@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx @react-native-community/cli@latest init:*)",
+      "Read(/Users/keullaeseuting/Desktop/gylee/**)",
+      "Bash(npm install)",
+      "Bash(pod install:*)",
+      "Bash(sudo gem install:*)",
+      "Bash(brew install:*)",
+      "Bash(npx react-native:*)",
+      "Bash(npm test)",
+      "Bash(npm install:*)",
+      "Bash(npm start)",
+      "Bash(npx create-expo-app:*)",
+      "Bash(npm test:*)",
+      "Bash(npm run web:*)",
+      "Read(/Users/keullaeseuting/Desktop/gylee/HonbabnonoExpo/**)",
+      "Bash(npx expo:*)",
+      "Bash(git add:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
