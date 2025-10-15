@@ -7,12 +7,20 @@ const jwt = require('jsonwebtoken');
 // 환경변수 로드
 dotenv.config({ path: '../.env' });
 
+// 데이터베이스 및 모델 가져오기
+const { initDatabase, User } = require('./models');
+
+// 라우터 가져오기
+const userRoutes = require('./routes/users');
+const meetupRoutes = require('./routes/meetups');
+const testRoutes = require('./routes/test');
+
 const app = express();
 const PORT = 3001;
 
 // 미들웨어
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://192.168.0.33:3000'],
+  origin: ['http://localhost:3000', 'http://localhost:3000'],
   credentials: true
 }));
 app.use(express.json());
@@ -76,7 +84,7 @@ app.get('/auth/kakao/callback', async (req, res) => {
     });
 
     const kakaoUser = userResponse.data;
-    
+
     // 3. 사용자 정보 추출
     const user = {
       id: kakaoUser.id,
@@ -134,7 +142,7 @@ app.post('/api/auth/logout', (req, res) => {
 // 일반 로그인 API (이메일/패스워드)
 app.post('/api/auth/login', (req, res) => {
   const { email, password } = req.body;
-  
+
   // 임시 더미 로그인 (실제로는 데이터베이스 확인 필요)
   if (email && password) {
     const user = {
@@ -158,18 +166,42 @@ app.post('/api/auth/login', (req, res) => {
 
 // 헬스체크
 app.get('/health', (req, res) => {
-  res.json({ 
-    status: 'OK', 
+  res.json({
+    status: 'OK',
     message: '혼밥시러 백엔드 서버가 정상 동작 중입니다',
     timestamp: new Date().toISOString()
   });
 });
 
-// 서버 시작
-app.listen(PORT, () => {
-  console.log(`🍚 혼밥시러 백엔드 서버가 포트 ${PORT}에서 실행 중입니다`);
-  console.log(`🔗 http://localhost:${PORT}`);
-  console.log(`🔑 카카오 OAuth2 설정:`);
-  console.log(`   - Client ID: ${KAKAO_CONFIG.clientId ? '✅ 설정됨' : '❌ 미설정'}`);
-  console.log(`   - Redirect URI: ${KAKAO_CONFIG.redirectUri}`);
+// API 라우터 설정
+app.use('/api/users', userRoutes);
+app.use('/api/meetups', meetupRoutes);
+app.use('/api/test', testRoutes);
+
+// 데이터베이스 초기화 및 서버 시작
+initDatabase().then((success) => {
+  app.listen(PORT, () => {
+    console.log(`🍚 혼밥시러 백엔드 서버가 포트 ${PORT}에서 실행 중입니다`);
+    console.log(`🔗 http://localhost:${PORT}`);
+    console.log(`🔑 카카오 OAuth2 설정:`);
+    console.log(`   - Client ID: ${KAKAO_CONFIG.clientId ? '✅ 설정됨' : '❌ 미설정'}`);
+    console.log(`   - Redirect URI: ${KAKAO_CONFIG.redirectUri}`);
+    console.log(`💾 데이터베이스: ${success ? '✅ 연결됨' : '❌ 연결 실패 (기본 기능만 사용 가능)'}`);
+    console.log(`📊 API 엔드포인트:`);
+    console.log(`   - POST /api/users/register - 회원가입`);
+    console.log(`   - POST /api/users/login - 로그인`);
+    console.log(`   - GET /api/users/profile - 프로필 조회`);
+    console.log(`   - GET /api/meetups - 모임 목록`);
+    console.log(`   - POST /api/meetups - 모임 생성`);
+    console.log(`   - GET /api/meetups/:id - 모임 상세`);
+  });
+}).catch((error) => {
+  console.error('❌ 서버 시작 중 오류 발생:', error);
+
+  // 데이터베이스 없이라도 서버 시작
+  app.listen(PORT, () => {
+    console.log(`🍚 혼밥시러 백엔드 서버가 포트 ${PORT}에서 실행 중입니다 (제한 모드)`);
+    console.log(`🔗 http://localhost:${PORT}`);
+    console.log(`⚠️  PostgreSQL 연결 실패 - 기본 OAuth 기능만 사용 가능`);
+  });
 });

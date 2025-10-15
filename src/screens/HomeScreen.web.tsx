@@ -34,12 +34,6 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
           </View>
           <View style={styles.headerButtons}>
             <TouchableOpacity 
-              style={styles.createMeetupHeaderButton}
-              onPress={() => setShowCreateMeetup(true)}
-            >
-              <Text style={styles.createMeetupHeaderText}>모임 만들기</Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
               style={styles.notificationButton}
               onPress={() => console.log('알림 화면으로 이동')}
             >
@@ -203,6 +197,14 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
 
     </ScrollView>
 
+    {/* Floating Action Button */}
+    <TouchableOpacity 
+      style={styles.fab}
+      onPress={() => setShowCreateMeetup(true)}
+    >
+      <Text style={styles.fabIcon}>+</Text>
+    </TouchableOpacity>
+
     {/* 모임 만들기 모달 */}
     <Modal
       visible={showCreateMeetup}
@@ -249,18 +251,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
   },
-  createMeetupHeaderButton: {
-    backgroundColor: COLORS.secondary.main,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: COLORS.primary.light,
+  fab: {
+    position: 'absolute',
+    bottom: 30,
+    right: 20,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: COLORS.primary.main,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...SHADOWS.large,
+    elevation: 8,
   },
-  createMeetupHeaderText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: COLORS.primary.dark,
+  fabIcon: {
+    fontSize: 28,
+    color: COLORS.text.white,
+    fontWeight: 'bold',
   },
   headerText: {
     flex: 1,
