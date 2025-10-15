@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useState, useEffect} from 'react';
 import {View, Text, TouchableOpacity, StyleSheet} from 'react-native';
 import {COLORS, SHADOWS} from '../styles/colors';
 import HomeScreen from '../screens/HomeScreen.web';
@@ -10,8 +10,10 @@ import MeetupDetailScreen from '../screens/MeetupDetailScreen';
 
 const WebTabNavigator = () => {
   const [activeTab, setActiveTab] = useState('Home');
-  const [currentScreen, setCurrentScreen] = useState('tabs'); // 'tabs', 'login', 'meetupDetail', 'chat'
+  const [currentScreen, setCurrentScreen] = useState('login'); // 기본을 로그인으로 변경
   const [screenParams, setScreenParams] = useState({});
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [user, setUser] = useState(null);
 
   const tabs = [
     {key: 'Home', title: '홈', icon: '🏠', component: HomeScreen},
@@ -19,6 +21,47 @@ const WebTabNavigator = () => {
     {key: 'Notifications', title: '알림', icon: '🔔', component: ChatScreen}, // 임시로 채팅 컴포넌트 사용
     {key: 'MyPage', title: '마이페이지', icon: '👤', component: MyPageScreen},
   ];
+
+  // 로그인 상태 확인 (페이지 로드 시)
+  useEffect(() => {
+    checkLoginStatus();
+  }, []);
+
+  const checkLoginStatus = () => {
+    // URL에서 토큰과 사용자 정보 확인 (카카오 로그인 후 리다이렉트)
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get('token');
+    const userParam = urlParams.get('user');
+    
+    // 또는 localStorage에서 토큰 확인
+    const storedToken = localStorage.getItem('token');
+    const storedUser = localStorage.getItem('user');
+
+    if (token && userParam) {
+      // 카카오 로그인 성공 후 리다이렉트된 경우
+      localStorage.setItem('token', token);
+      localStorage.setItem('user', userParam);
+      setIsLoggedIn(true);
+      setUser(JSON.parse(decodeURIComponent(userParam)));
+      setCurrentScreen('tabs');
+      // URL 파라미터 제거
+      window.history.replaceState({}, document.title, window.location.pathname);
+    } else if (storedToken && storedUser) {
+      // 이미 로그인된 경우
+      setIsLoggedIn(true);
+      setUser(JSON.parse(storedUser));
+      setCurrentScreen('tabs');
+    }
+  };
+
+  // 로그아웃 함수
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    setIsLoggedIn(false);
+    setUser(null);
+    setCurrentScreen('login');
+  };
 
   // 네비게이션 함수들
   const navigateToLogin = () => {
@@ -53,7 +96,9 @@ const WebTabNavigator = () => {
     },
     navigateToSearch: () => {
       setActiveTab('Search');
-    }
+    },
+    logout: handleLogout,
+    user: user
   };
 
   const renderScreen = () => {
@@ -76,15 +121,20 @@ const WebTabNavigator = () => {
     
     // HomeScreen에 네비게이션 함수들 전달
     if (activeTab === 'Home') {
-      return <ScreenComponent navigateToLogin={navigateToLogin} navigation={webNavigation} />;
+      return <ScreenComponent navigateToLogin={navigateToLogin} navigation={webNavigation} user={user} />;
     }
     
     // SearchScreen에도 네비게이션 전달
     if (activeTab === 'Search') {
-      return <ScreenComponent navigation={webNavigation} />;
+      return <ScreenComponent navigation={webNavigation} user={user} />;
     }
     
-    return <ScreenComponent />;
+    // MyPageScreen에 로그아웃 함수 전달
+    if (activeTab === 'MyPage') {
+      return <ScreenComponent navigation={webNavigation} user={user} onLogout={handleLogout} />;
+    }
+    
+    return <ScreenComponent navigation={webNavigation} user={user} />;
   };
 
   return (
@@ -133,7 +183,7 @@ const WebTabNavigator = () => {
       </View>
       
       {/* Bottom Tab Bar - 로그인 화면에서는 숨김 */}
-      {currentScreen === 'tabs' && (
+      {currentScreen === 'tabs' && isLoggedIn && (
         <View style={styles.tabBar}>
           {tabs.map(tab => (
             <TouchableOpacity

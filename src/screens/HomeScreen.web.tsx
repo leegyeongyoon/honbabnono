@@ -16,9 +16,10 @@ import { useMeetups } from '../hooks/useMeetups';
 interface HomeScreenProps {
   navigateToLogin?: () => void;
   navigation?: any;
+  user?: any;
 }
 
-const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation }) => {
+const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, user }) => {
   const [showCreateMeetup, setShowCreateMeetup] = useState(false);
   const { meetups } = useMeetups();
 
@@ -31,15 +32,23 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation }) 
             <Text style={styles.greeting}>혼자 밥 먹기 싫어요! 🍽️</Text>
             <Text style={styles.subtitle}>따뜻한 사람들과 함께하는 맛있는 식사</Text>
           </View>
-          <TouchableOpacity 
-            style={styles.notificationButton}
-            onPress={() => console.log('알림 화면으로 이동')}
-          >
-            <Text style={styles.notificationIcon}>🔔</Text>
-            <View style={styles.notificationBadge}>
-              <Text style={styles.notificationCount}>3</Text>
-            </View>
-          </TouchableOpacity>
+          <View style={styles.headerButtons}>
+            <TouchableOpacity 
+              style={styles.createMeetupHeaderButton}
+              onPress={() => setShowCreateMeetup(true)}
+            >
+              <Text style={styles.createMeetupHeaderText}>모임 만들기</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.notificationButton}
+              onPress={() => console.log('알림 화면으로 이동')}
+            >
+              <Text style={styles.notificationIcon}>🔔</Text>
+              <View style={styles.notificationBadge}>
+                <Text style={styles.notificationCount}>3</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
 
@@ -47,13 +56,6 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation }) 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>🚀 빠른 시작</Text>
         <View style={styles.quickActionsGrid}>
-          <TouchableOpacity 
-            style={styles.quickActionButton}
-            onPress={() => setShowCreateMeetup(true)}
-          >
-            <Text style={styles.quickActionIcon}>➕</Text>
-            <Text style={styles.quickActionText}>모임 만들기</Text>
-          </TouchableOpacity>
           <TouchableOpacity 
             style={styles.quickActionButton}
             onPress={() => navigation?.navigateToSearch()}
@@ -74,6 +76,13 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation }) 
           >
             <Text style={styles.quickActionIcon}>✨</Text>
             <Text style={styles.quickActionText}>추천</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={styles.quickActionButton}
+            onPress={() => console.log('내 모임')}
+          >
+            <Text style={styles.quickActionIcon}>👥</Text>
+            <Text style={styles.quickActionText}>내 모임</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -114,68 +123,84 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation }) 
             <Text style={styles.moreButton}>더보기 ›</Text>
           </TouchableOpacity>
         </View>
-        {meetups.map(meetup => (
+        <View style={styles.popularMeetupsContainer}>
+          {meetups.map(meetup => (
+            <TouchableOpacity 
+              key={meetup.id} 
+              style={styles.popularMeetupCard}
+              onPress={() => navigation?.navigate('MeetupDetail', { meetupId: meetup.id })}
+            >
+              <Image source={{uri: meetup.image}} style={styles.popularMeetupImage} />
+              <View style={styles.popularMeetupOverlay}>
+                <View style={styles.popularMeetupBadge}>
+                  <Text style={styles.popularMeetupBadgeText}>인기</Text>
+                </View>
+              </View>
+              <View style={styles.popularMeetupInfo}>
+                <Text style={styles.popularMeetupTitle} numberOfLines={2}>{meetup.title}</Text>
+                <View style={styles.popularMeetupDetails}>
+                  <Text style={styles.popularMeetupLocation}>📍 {meetup.location}</Text>
+                  <Text style={styles.popularMeetupTime}>🕐 {meetup.date}</Text>
+                </View>
+                <View style={styles.popularMeetupFooter}>
+                  <Text style={styles.popularMeetupParticipants}>
+                    👥 {meetup.currentParticipants}/{meetup.maxParticipants}
+                  </Text>
+                  <Text style={styles.popularMeetupStatus}>모집중</Text>
+                </View>
+              </View>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+
+      <View style={styles.section}>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>🍽️ 오늘의 추천</Text>
+          <TouchableOpacity onPress={() => navigation?.navigateToSearch()}>
+            <Text style={styles.moreButton}>더보기 ›</Text>
+          </TouchableOpacity>
+        </View>
+        <View style={styles.recommendationsContainer}>
           <TouchableOpacity 
-            key={meetup.id} 
-            style={styles.meetupCard}
-            onPress={() => navigation?.navigate('MeetupDetail', { meetupId: meetup.id })}
+            style={styles.recommendationCard}
+            onPress={() => navigation?.navigateToSearch()}
           >
-            <Image source={{uri: meetup.image}} style={styles.meetupImage} />
-            <View style={styles.meetupInfo}>
-              <Text style={styles.meetupTitle}>{meetup.title}</Text>
-              <Text style={styles.meetupLocation}>📍 {meetup.location}</Text>
-              <Text style={styles.meetupTime}>🕐 {meetup.date} {meetup.time}</Text>
-              <Text style={styles.meetupParticipants}>
-                👥 {meetup.currentParticipants}/{meetup.maxParticipants}명
+            <View style={styles.recommendationIcon}>
+              <Text style={styles.recommendationEmoji}>🌟</Text>
+            </View>
+            <View style={styles.recommendationContent}>
+              <Text style={styles.recommendationTitle}>
+                믿을 수 있는 식사 친구들
+              </Text>
+              <Text style={styles.recommendationSubtitle}>
+                검증된 회원들과 안전한 모임
               </Text>
             </View>
+            <Text style={styles.recommendationArrow}>›</Text>
           </TouchableOpacity>
-        ))}
+          
+          <TouchableOpacity 
+            style={styles.recommendationCard}
+            onPress={() => navigation?.navigateToSearch()}
+          >
+            <View style={styles.recommendationIcon}>
+              <Text style={styles.recommendationEmoji}>🎯</Text>
+            </View>
+            <View style={styles.recommendationContent}>
+              <Text style={styles.recommendationTitle}>
+                맞춤형 모임 추천
+              </Text>
+              <Text style={styles.recommendationSubtitle}>
+                당신의 취향에 딱 맞는 모임
+              </Text>
+            </View>
+            <Text style={styles.recommendationArrow}>›</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>🍽️ 오늘의 추천</Text>
-        <TouchableOpacity 
-          style={styles.recommendationCard}
-          onPress={() => navigation?.navigateToSearch()}
-        >
-          <Text style={styles.recommendationTitle}>
-            믿을 수 있는 식사 친구들
-          </Text>
-          <Text style={styles.recommendationSubtitle}>
-            검증된 회원들과 안전한 모임을 가져보세요
-          </Text>
-        </TouchableOpacity>
-      </View>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>✨ 새로운 모임</Text>
-        <TouchableOpacity 
-          style={styles.createMeetupCard}
-          onPress={() => setShowCreateMeetup(true)}
-        >
-          <Text style={styles.createMeetupIcon}>🎉</Text>
-          <Text style={styles.createMeetupTitle}>
-            나만의 모임 만들기
-          </Text>
-          <Text style={styles.createMeetupSubtitle}>
-            새로운 사람들과 특별한 식사 경험을 만들어보세요
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>🔐 계정</Text>
-        <TouchableOpacity 
-          style={styles.loginCard}
-          onPress={navigateToLogin}
-        >
-          <Text style={styles.loginTitle}>로그인 / 회원가입</Text>
-          <Text style={styles.loginSubtitle}>
-            로그인하고 더 많은 기능을 이용해보세요!
-          </Text>
-        </TouchableOpacity>
-      </View>
     </ScrollView>
 
     {/* 모임 만들기 모달 */}
@@ -218,6 +243,24 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+  },
+  headerButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  createMeetupHeaderButton: {
+    backgroundColor: COLORS.secondary.main,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: COLORS.primary.light,
+  },
+  createMeetupHeaderText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.primary.dark,
   },
   headerText: {
     flex: 1,
@@ -310,67 +353,119 @@ const styles = StyleSheet.create({
     color: COLORS.primary.dark,
     fontWeight: '500',
   },
-  recommendationCard: {
-    backgroundColor: COLORS.primary.main,
-    borderRadius: 12,
-    padding: 20,
-    alignItems: 'center',
+  popularMeetupsContainer: {
+    gap: 16,
+  },
+  popularMeetupCard: {
+    backgroundColor: COLORS.neutral.white,
+    borderRadius: 16,
+    overflow: 'hidden',
     ...SHADOWS.medium,
   },
-  recommendationTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
+  popularMeetupImage: {
+    width: '100%',
+    height: 180,
+    resizeMode: 'cover',
+  },
+  popularMeetupOverlay: {
+    position: 'absolute',
+    top: 12,
+    left: 12,
+  },
+  popularMeetupBadge: {
+    backgroundColor: COLORS.functional.error,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  popularMeetupBadgeText: {
     color: COLORS.text.white,
-    marginBottom: 5,
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  popularMeetupInfo: {
+    padding: 16,
+  },
+  popularMeetupTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: COLORS.text.primary,
+    marginBottom: 8,
+    lineHeight: 22,
+  },
+  popularMeetupDetails: {
+    marginBottom: 12,
+  },
+  popularMeetupLocation: {
+    fontSize: 14,
+    color: COLORS.text.secondary,
+    marginBottom: 4,
+  },
+  popularMeetupTime: {
+    fontSize: 14,
+    color: COLORS.text.secondary,
+  },
+  popularMeetupFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  popularMeetupParticipants: {
+    fontSize: 14,
+    color: COLORS.primary.dark,
+    fontWeight: '500',
+  },
+  popularMeetupStatus: {
+    backgroundColor: COLORS.primary.light,
+    color: COLORS.primary.dark,
+    fontSize: 12,
+    fontWeight: 'bold',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  recommendationsContainer: {
+    gap: 12,
+  },
+  recommendationCard: {
+    backgroundColor: COLORS.neutral.white,
+    borderRadius: 12,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.neutral.grey200,
+    ...SHADOWS.small,
+  },
+  recommendationIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: COLORS.secondary.light,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  recommendationEmoji: {
+    fontSize: 24,
+  },
+  recommendationContent: {
+    flex: 1,
+  },
+  recommendationTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: COLORS.text.primary,
+    marginBottom: 4,
   },
   recommendationSubtitle: {
     fontSize: 14,
-    color: COLORS.text.white,
-    opacity: 0.9,
-  },
-  loginCard: {
-    backgroundColor: COLORS.primary.accent,
-    borderRadius: 12,
-    padding: 20,
-    alignItems: 'center',
-    ...SHADOWS.medium,
-  },
-  loginTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: COLORS.text.primary,
-    marginBottom: 5,
-  },
-  loginSubtitle: {
-    fontSize: 14,
     color: COLORS.text.secondary,
-    opacity: 0.9,
   },
-  createMeetupCard: {
-    backgroundColor: COLORS.secondary.main,
-    borderRadius: 12,
-    padding: 20,
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: COLORS.primary.light,
-    ...SHADOWS.medium,
-  },
-  createMeetupIcon: {
-    fontSize: 40,
-    marginBottom: 8,
-  },
-  createMeetupTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: COLORS.text.primary,
-    marginBottom: 5,
-    textAlign: 'center',
-  },
-  createMeetupSubtitle: {
-    fontSize: 14,
+  recommendationArrow: {
+    fontSize: 20,
     color: COLORS.text.secondary,
-    textAlign: 'center',
-    lineHeight: 20,
+    marginLeft: 8,
   },
   quickActionsGrid: {
     flexDirection: 'row',

@@ -25,7 +25,10 @@
       "Read(/Users/keullaeseuting/Desktop/gylee/**)",
       "Bash(pkill:*)",
       "Bash(npx qrcode-terminal:*)",
-      "Bash(qrcode-terminal:*)"
+      "Bash(qrcode-terminal:*)",
+      "Bash(node:*)",
+      "Bash(lsof:*)",
+      "Bash(kill:*)"
     ],
     "deny": [],
     "ask": []

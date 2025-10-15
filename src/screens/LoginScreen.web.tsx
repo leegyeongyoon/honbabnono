@@ -36,7 +36,7 @@ const LoginScreen = () => {
 
     setLoading(true);
     try {
-      const response = await fetch('/api/auth/login', {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -61,13 +61,13 @@ const LoginScreen = () => {
   };
 
   const handleKakaoLogin = () => {
-    const kakaoAuthUrl = '/auth/kakao';
+    const kakaoAuthUrl = `${process.env.REACT_APP_API_URL}/auth/kakao`;
     window.location.href = kakaoAuthUrl;
   };
 
   const handleKakaoCallback = async (code: string) => {
     try {
-      const response = await fetch('/api/auth/kakao/callback', {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/auth/kakao/callback`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

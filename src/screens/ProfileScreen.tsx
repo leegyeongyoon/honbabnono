@@ -8,25 +8,35 @@ import {
   Image,
   Switch,
   Alert,
+  TextInput,
+  Modal,
 } from 'react-native';
 import { COLORS, SHADOWS } from '../styles/colors';
 import BabAlIndex from '../components/BabAlIndex';
 
-const ProfileScreen = () => {
+interface ProfileScreenProps {
+  navigation?: any;
+  user?: any;
+  onLogout?: () => void;
+}
+
+const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation, user, onLogout }) => {
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [locationEnabled, setLocationEnabled] = useState(true);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editedName, setEditedName] = useState(user?.name || '');
 
   const userProfile = {
-    name: '김혼밥',
-    email: 'honbab@example.com',
+    name: user?.name || '사용자',
+    email: user?.email || user?.kakao_account?.email || 'user@example.com',
     phone: '010-1234-5678',
-    profileImage: 'https://via.placeholder.com/120x120/F5CB76/ffffff?text=김',
+    profileImage: user?.properties?.profile_image || user?.kakao_account?.profile?.profile_image_url || 'https://via.placeholder.com/120x120/F5CB76/ffffff?text=사',
     isVerified: true,
     rating: 4.8,
     meetupsJoined: 12,
     meetupsHosted: 5,
     joinDate: '2024년 1월',
-    babAlScore: 78, // 밥알지수 추가
+    babAlScore: 78,
   };
 
   const menuItems = [
@@ -39,7 +49,14 @@ const ProfileScreen = () => {
   ];
 
   const handleEditProfile = () => {
-    Alert.alert('준비중', '프로필 편집 기능은 준비중입니다.');
+    setEditedName(userProfile.name);
+    setShowEditModal(true);
+  };
+
+  const handleSaveProfile = () => {
+    // TODO: 실제 API 호출로 이름 업데이트
+    Alert.alert('성공', '프로필이 업데이트되었습니다.');
+    setShowEditModal(false);
   };
 
   const handleVerification = () => {
@@ -59,7 +76,13 @@ const ProfileScreen = () => {
       '정말로 로그아웃하시겠습니까?',
       [
         { text: '취소', style: 'cancel' },
-        { text: '로그아웃', style: 'destructive', onPress: () => Alert.alert('완료', '로그아웃되었습니다.') }
+        { text: '로그아웃', style: 'destructive', onPress: () => {
+          if (onLogout) {
+            onLogout();
+          } else {
+            Alert.alert('완료', '로그아웃되었습니다.');
+          }
+        }}
       ]
     );
   };
@@ -187,6 +210,54 @@ const ProfileScreen = () => {
         <Text style={styles.appInfoText}>혼밥시러 v1.0.0</Text>
         <Text style={styles.appInfoText}>이용약관 · 개인정보처리방침</Text>
       </View>
+
+      {/* 이름 수정 모달 */}
+      <Modal
+        visible={showEditModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        transparent={true}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>이름 수정</Text>
+              <TouchableOpacity 
+                style={styles.closeButton}
+                onPress={() => setShowEditModal(false)}
+              >
+                <Text style={styles.closeButtonText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.modalContent}>
+              <Text style={styles.inputLabel}>새로운 이름</Text>
+              <TextInput
+                style={styles.nameInput}
+                value={editedName}
+                onChangeText={setEditedName}
+                placeholder="이름을 입력하세요"
+                maxLength={20}
+              />
+              
+              <View style={styles.modalButtons}>
+                <TouchableOpacity 
+                  style={[styles.modalButton, styles.cancelButton]}
+                  onPress={() => setShowEditModal(false)}
+                >
+                  <Text style={styles.cancelButtonText}>취소</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={[styles.modalButton, styles.saveButton]}
+                  onPress={handleSaveProfile}
+                >
+                  <Text style={styles.saveButtonText}>저장</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 };
@@ -401,6 +472,91 @@ const styles = StyleSheet.create({
   },
   babAlSection: {
     marginTop: 10,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContainer: {
+    backgroundColor: COLORS.neutral.white,
+    borderRadius: 16,
+    width: '90%',
+    maxWidth: 400,
+    ...SHADOWS.large,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.neutral.grey200,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: COLORS.text.primary,
+  },
+  closeButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: COLORS.neutral.grey200,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  closeButtonText: {
+    fontSize: 18,
+    color: COLORS.text.primary,
+    fontWeight: 'bold',
+  },
+  modalContent: {
+    padding: 20,
+  },
+  inputLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+    marginBottom: 8,
+  },
+  nameInput: {
+    borderWidth: 1,
+    borderColor: COLORS.primary.light,
+    borderRadius: 12,
+    padding: 16,
+    fontSize: 16,
+    backgroundColor: COLORS.secondary.light,
+    color: COLORS.text.primary,
+    marginBottom: 20,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  modalButton: {
+    flex: 1,
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    ...SHADOWS.small,
+  },
+  cancelButton: {
+    backgroundColor: COLORS.neutral.grey200,
+  },
+  cancelButtonText: {
+    color: COLORS.text.primary,
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  saveButton: {
+    backgroundColor: COLORS.primary.main,
+  },
+  saveButtonText: {
+    color: COLORS.text.white,
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
 
