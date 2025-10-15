@@ -71,6 +71,19 @@ const HomeScreen = () => {
           </Text>
         </TouchableOpacity>
       </View>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>🔐 계정</Text>
+        <TouchableOpacity 
+          style={styles.loginCard}
+          onPress={() => navigation.navigate('Login')}
+        >
+          <Text style={styles.loginTitle}>로그인 / 회원가입</Text>
+          <Text style={styles.loginSubtitle}>
+            로그인하고 더 많은 기능을 이용해보세요!
+          </Text>
+        </TouchableOpacity>
+      </View>
     </ScrollView>
   );
 };
@@ -157,6 +170,23 @@ const styles = StyleSheet.create({
     marginBottom: 5,
   },
   recommendationSubtitle: {
+    fontSize: 14,
+    color: '#fff',
+    opacity: 0.9,
+  },
+  loginCard: {
+    backgroundColor: '#28a745',
+    borderRadius: 12,
+    padding: 20,
+    alignItems: 'center',
+  },
+  loginTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginBottom: 5,
+  },
+  loginSubtitle: {
     fontSize: 14,
     color: '#fff',
     opacity: 0.9,

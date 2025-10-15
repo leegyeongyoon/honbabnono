@@ -7,6 +7,7 @@ export const ROUTES = {
   
   // Stack Routes
   MAIN: 'Main' as const,
+  LOGIN: 'Login' as const,
   MEETUP_DETAIL: 'MeetupDetail' as const,
   CREATE_MEETUP: 'CreateMeetup' as const,
   PROFILE: 'Profile' as const,
