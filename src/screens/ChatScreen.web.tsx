@@ -1,5 +1,6 @@
 import React from 'react';
 import {View, Text, StyleSheet, ScrollView, TouchableOpacity} from 'react-native';
+import {COLORS, SHADOWS} from '../styles/colors';
 
 const ChatScreen = () => {
   const chats = [
@@ -75,46 +76,48 @@ const ChatScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: COLORS.neutral.background,
   },
   header: {
-    backgroundColor: '#fff',
+    backgroundColor: COLORS.neutral.white,
     padding: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: COLORS.primary.light,
+    ...SHADOWS.small,
   },
   headerTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#333',
+    color: COLORS.text.primary,
     marginBottom: 5,
   },
   headerSubtitle: {
     fontSize: 14,
-    color: '#666',
+    color: COLORS.text.secondary,
   },
   chatList: {
     flex: 1,
   },
   chatItem: {
     flexDirection: 'row',
-    backgroundColor: '#fff',
+    backgroundColor: COLORS.neutral.white,
     padding: 15,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: COLORS.secondary.light,
     alignItems: 'center',
   },
   chatAvatar: {
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: '#007AFF',
+    backgroundColor: COLORS.primary.main,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 15,
+    ...SHADOWS.small,
   },
   avatarText: {
-    color: '#fff',
+    color: COLORS.text.white,
     fontSize: 12,
     fontWeight: 'bold',
   },
@@ -130,25 +133,25 @@ const styles = StyleSheet.create({
   chatTitle: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#333',
+    color: COLORS.text.primary,
     flex: 1,
     marginRight: 10,
   },
   chatTime: {
     fontSize: 12,
-    color: '#999',
+    color: COLORS.text.tertiary,
   },
   participants: {
     fontSize: 12,
-    color: '#666',
+    color: COLORS.text.secondary,
     marginBottom: 2,
   },
   lastMessage: {
     fontSize: 14,
-    color: '#666',
+    color: COLORS.text.secondary,
   },
   unreadBadge: {
-    backgroundColor: '#FF3B30',
+    backgroundColor: COLORS.functional.error,
     borderRadius: 10,
     minWidth: 20,
     height: 20,
@@ -157,7 +160,7 @@ const styles = StyleSheet.create({
     marginLeft: 10,
   },
   unreadCount: {
-    color: '#fff',
+    color: COLORS.text.white,
     fontSize: 12,
     fontWeight: 'bold',
   },

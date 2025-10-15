@@ -7,6 +7,7 @@ import {
   StyleSheet,
   Alert,
 } from 'react-native';
+import {COLORS, SHADOWS} from '../styles/colors';
 
 const LoginScreen = () => {
   const [email, setEmail] = useState('');
@@ -91,7 +92,7 @@ const LoginScreen = () => {
   return (
     <View style={styles.container}>
       <View style={styles.formContainer}>
-        <Text style={styles.title}>혼밥노노</Text>
+        <Text style={styles.title}>혼밥시러</Text>
         <Text style={styles.subtitle}>로그인</Text>
 
         <View style={styles.inputContainer}>
@@ -150,6 +151,20 @@ const LoginScreen = () => {
             <Text style={styles.linkText}>회원가입</Text>
           </TouchableOpacity>
         </View>
+
+        <View style={styles.policyContainer}>
+          <Text style={styles.policyText}>
+            로그인 시 혼밥시러의{' '}
+            <TouchableOpacity onPress={() => Alert.alert('이용약관', '이용약관 내용')}>
+              <Text style={styles.policyLink}>이용약관</Text>
+            </TouchableOpacity>
+            {' '}및{' '}
+            <TouchableOpacity onPress={() => Alert.alert('개인정보처리방침', '개인정보처리방침 내용')}>
+              <Text style={styles.policyLink}>개인정보처리방침</Text>
+            </TouchableOpacity>
+            에 동의하게 됩니다.
+          </Text>
+        </View>
       </View>
     </View>
   );
@@ -158,7 +173,7 @@ const LoginScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: COLORS.neutral.background,
     justifyContent: 'center',
     padding: 20,
   },
@@ -166,40 +181,46 @@ const styles = StyleSheet.create({
     maxWidth: 400,
     alignSelf: 'center',
     width: '100%',
+    backgroundColor: COLORS.neutral.white,
+    borderRadius: 16,
+    padding: 30,
+    ...SHADOWS.large,
   },
   title: {
     fontSize: 32,
     fontWeight: 'bold',
     textAlign: 'center',
     marginBottom: 8,
-    color: '#333',
+    color: COLORS.primary.main,
   },
   subtitle: {
     fontSize: 18,
     textAlign: 'center',
     marginBottom: 40,
-    color: '#666',
+    color: COLORS.text.secondary,
   },
   inputContainer: {
     marginBottom: 16,
   },
   input: {
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
+    borderColor: COLORS.primary.light,
+    borderRadius: 12,
     padding: 16,
     fontSize: 16,
-    backgroundColor: '#f9f9f9',
+    backgroundColor: COLORS.secondary.light,
+    color: COLORS.text.primary,
   },
   loginButton: {
-    backgroundColor: '#007AFF',
-    borderRadius: 8,
+    backgroundColor: COLORS.primary.main,
+    borderRadius: 12,
     padding: 16,
     alignItems: 'center',
     marginBottom: 20,
+    ...SHADOWS.medium,
   },
   loginButtonText: {
-    color: '#fff',
+    color: COLORS.text.white,
     fontSize: 16,
     fontWeight: '600',
   },
@@ -211,22 +232,23 @@ const styles = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: '#ddd',
+    backgroundColor: COLORS.neutral.grey300,
   },
   dividerText: {
     marginHorizontal: 16,
-    color: '#666',
+    color: COLORS.text.secondary,
     fontSize: 14,
   },
   kakaoButton: {
-    backgroundColor: '#FEE500',
-    borderRadius: 8,
+    backgroundColor: COLORS.functional.warning,
+    borderRadius: 12,
     padding: 16,
     alignItems: 'center',
     marginBottom: 20,
+    ...SHADOWS.medium,
   },
   kakaoButtonText: {
-    color: '#000',
+    color: COLORS.text.primary,
     fontSize: 16,
     fontWeight: '600',
   },
@@ -240,13 +262,28 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   linkText: {
-    color: '#007AFF',
+    color: COLORS.primary.dark,
     fontSize: 14,
   },
   separator: {
     marginHorizontal: 16,
-    color: '#666',
+    color: COLORS.text.secondary,
     fontSize: 14,
+  },
+  policyContainer: {
+    marginTop: 30,
+    paddingHorizontal: 10,
+  },
+  policyText: {
+    fontSize: 12,
+    color: COLORS.text.secondary,
+    textAlign: 'center',
+    lineHeight: 18,
+  },
+  policyLink: {
+    color: COLORS.primary.dark,
+    textDecorationLine: 'underline',
+    fontWeight: '500',
   },
 });
 

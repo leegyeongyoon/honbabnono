@@ -19,7 +19,13 @@
       "Bash(git add:*)",
       "Bash(git push:*)",
       "Bash(npm run dev:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "WebFetch(domain:www.figma.com)",
+      "WebFetch(domain:www.notion.so)",
+      "Read(/Users/keullaeseuting/Desktop/gylee/**)",
+      "Bash(pkill:*)",
+      "Bash(npx qrcode-terminal:*)",
+      "Bash(qrcode-terminal:*)"
     ],
     "deny": [],
     "ask": []

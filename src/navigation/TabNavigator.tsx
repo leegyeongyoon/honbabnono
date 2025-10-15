@@ -3,6 +3,7 @@ import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import {Text} from 'react-native';
 import {RootTabParamList} from '../types/navigation';
 import {TAB_ROUTES} from './routes';
+import {COLORS, SHADOWS} from '../styles/colors';
 import HomeScreen from '../screens/HomeScreen';
 import SearchScreen from '../screens/SearchScreen';
 import ChatScreen from '../screens/ChatScreen';
@@ -29,30 +30,31 @@ const TabNavigator = () => {
   return (
     <Tab.Navigator
       screenOptions={{
-        tabBarActiveTintColor: '#007AFF',
-        tabBarInactiveTintColor: '#999',
+        tabBarActiveTintColor: COLORS.primary.dark,
+        tabBarInactiveTintColor: COLORS.text.tertiary,
         tabBarLabelStyle: {
           fontSize: 12,
           fontWeight: '500',
         },
         tabBarStyle: {
-          backgroundColor: '#fff',
-          borderTopWidth: 1,
-          borderTopColor: '#eee',
-          height: 60,
-          paddingBottom: 8,
-          paddingTop: 8,
+          backgroundColor: COLORS.neutral.white,
+          borderTopWidth: 0,
+          height: 65,
+          paddingBottom: 10,
+          paddingTop: 10,
+          ...SHADOWS.medium,
         },
         headerStyle: {
-          backgroundColor: '#fff',
-          borderBottomWidth: 1,
-          borderBottomColor: '#eee',
+          backgroundColor: COLORS.primary.main,
+          borderBottomWidth: 0,
+          ...SHADOWS.small,
         },
         headerTitleStyle: {
           fontSize: 18,
           fontWeight: 'bold',
-          color: '#333',
+          color: COLORS.text.white,
         },
+        headerTintColor: COLORS.text.white,
       }}>
       {TAB_ROUTES.map((route) => (
         <Tab.Screen

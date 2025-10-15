@@ -8,6 +8,7 @@ import {
   ScrollView,
   Alert,
 } from 'react-native';
+import {COLORS, SHADOWS} from '../styles/colors';
 
 const SearchScreen = () => {
   const [searchText, setSearchText] = useState('');
@@ -36,7 +37,7 @@ const SearchScreen = () => {
       <View style={styles.searchContainer}>
         <TextInput
           style={styles.searchInput}
-          placeholder="지역, 음식 종류로 검색해보세요"
+          placeholder="안전한 모임을 찾아보세요"
           value={searchText}
           onChangeText={setSearchText}
         />
@@ -95,6 +96,16 @@ const SearchScreen = () => {
           </TouchableOpacity>
         </View>
       </View>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>🛡️ 안전한 모임을 위한 수칙</Text>
+        <View style={styles.safetyContainer}>
+          <Text style={styles.safetyItem}>• 첫 만남은 공개된 장소에서</Text>
+          <Text style={styles.safetyItem}>• 개인정보는 신중하게 공유</Text>
+          <Text style={styles.safetyItem}>• 불편한 상황 시 즉시 신고</Text>
+          <Text style={styles.safetyItem}>• 음주는 적당히, 안전 우선</Text>
+        </View>
+      </View>
     </ScrollView>
   );
 };
@@ -102,46 +113,50 @@ const SearchScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: COLORS.neutral.background,
   },
   searchContainer: {
     flexDirection: 'row',
     padding: 20,
-    backgroundColor: '#fff',
+    backgroundColor: COLORS.neutral.white,
     marginBottom: 10,
+    ...SHADOWS.small,
   },
   searchInput: {
     flex: 1,
     height: 50,
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: COLORS.primary.light,
     borderRadius: 25,
     paddingHorizontal: 20,
     fontSize: 16,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: COLORS.secondary.light,
+    color: COLORS.text.primary,
   },
   searchButton: {
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: '#007AFF',
+    backgroundColor: COLORS.primary.main,
     justifyContent: 'center',
     alignItems: 'center',
     marginLeft: 10,
+    ...SHADOWS.medium,
   },
   searchButtonText: {
     fontSize: 20,
   },
   section: {
-    backgroundColor: '#fff',
+    backgroundColor: COLORS.neutral.white,
     marginBottom: 10,
     padding: 20,
+    ...SHADOWS.small,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     marginBottom: 15,
-    color: '#333',
+    color: COLORS.text.primary,
   },
   categoryGrid: {
     flexDirection: 'row',
@@ -150,11 +165,12 @@ const styles = StyleSheet.create({
   },
   categoryItem: {
     width: '30%',
-    backgroundColor: '#f8f9fa',
+    backgroundColor: COLORS.secondary.light,
     borderRadius: 12,
     padding: 20,
     alignItems: 'center',
     marginBottom: 10,
+    ...SHADOWS.small,
   },
   categoryEmoji: {
     fontSize: 30,
@@ -163,10 +179,10 @@ const styles = StyleSheet.create({
   categoryName: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#333',
+    color: COLORS.text.primary,
   },
   selectedCategoryItem: {
-    backgroundColor: '#007AFF',
+    backgroundColor: COLORS.primary.main,
   },
   locationGrid: {
     flexDirection: 'row',
@@ -175,15 +191,16 @@ const styles = StyleSheet.create({
   },
   locationItem: {
     width: '48%',
-    backgroundColor: '#f8f9fa',
-    borderRadius: 8,
+    backgroundColor: COLORS.secondary.warm,
+    borderRadius: 12,
     padding: 15,
     alignItems: 'center',
     marginBottom: 10,
+    ...SHADOWS.small,
   },
   locationText: {
     fontSize: 16,
-    color: '#333',
+    color: COLORS.text.primary,
     fontWeight: '500',
   },
   timeGrid: {
@@ -193,16 +210,30 @@ const styles = StyleSheet.create({
   },
   timeItem: {
     width: '48%',
-    backgroundColor: '#f8f9fa',
-    borderRadius: 8,
+    backgroundColor: COLORS.primary.light,
+    borderRadius: 12,
     padding: 15,
     alignItems: 'center',
     marginBottom: 10,
+    ...SHADOWS.small,
   },
   timeText: {
     fontSize: 14,
-    color: '#333',
+    color: COLORS.text.primary,
     fontWeight: '500',
+  },
+  safetyContainer: {
+    backgroundColor: COLORS.secondary.light,
+    borderRadius: 12,
+    padding: 15,
+    borderLeftWidth: 4,
+    borderLeftColor: COLORS.primary.main,
+  },
+  safetyItem: {
+    fontSize: 14,
+    color: COLORS.text.primary,
+    lineHeight: 22,
+    marginBottom: 5,
   },
 });
 

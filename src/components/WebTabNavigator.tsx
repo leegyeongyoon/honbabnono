@@ -1,29 +1,59 @@
 import React, {useState} from 'react';
 import {View, Text, TouchableOpacity, StyleSheet} from 'react-native';
-import HomeScreen from '../screens/HomeScreen';
+import {COLORS, SHADOWS} from '../styles/colors';
+import HomeScreen from '../screens/HomeScreen.web';
 import SearchScreen from '../screens/SearchScreen';
 import ChatScreen from '../screens/ChatScreen';
 import MyPageScreen from '../screens/MyPageScreen';
 import LoginScreen from '../screens/LoginScreen';
+import MeetupDetailScreen from '../screens/MeetupDetailScreen';
 
 const WebTabNavigator = () => {
   const [activeTab, setActiveTab] = useState('Home');
-  const [currentScreen, setCurrentScreen] = useState('tabs'); // 'tabs' or 'login'
+  const [currentScreen, setCurrentScreen] = useState('tabs'); // 'tabs', 'login', 'meetupDetail', 'chat'
+  const [screenParams, setScreenParams] = useState({});
 
   const tabs = [
     {key: 'Home', title: '홈', icon: '🏠', component: HomeScreen},
     {key: 'Search', title: '탐색', icon: '🔍', component: SearchScreen},
-    {key: 'Chat', title: '채팅', icon: '💬', component: ChatScreen},
+    {key: 'Notifications', title: '알림', icon: '🔔', component: ChatScreen}, // 임시로 채팅 컴포넌트 사용
     {key: 'MyPage', title: '마이페이지', icon: '👤', component: MyPageScreen},
   ];
 
-  // 로그인 화면으로 네비게이션하는 함수를 HomeScreen에 전달
+  // 네비게이션 함수들
   const navigateToLogin = () => {
     setCurrentScreen('login');
   };
 
+  const navigateToMeetupDetail = (meetupId: number) => {
+    setCurrentScreen('meetupDetail');
+    setScreenParams({ meetupId });
+  };
+
+  const navigateToChat = (meetupId: number, meetupTitle: string) => {
+    setCurrentScreen('chat');
+    setScreenParams({ meetupId, meetupTitle });
+  };
+
   const navigateBack = () => {
     setCurrentScreen('tabs');
+    setScreenParams({});
+  };
+
+  // 웹용 네비게이션 객체 생성
+  const webNavigation = {
+    navigate: (screenName: string, params?: any) => {
+      if (screenName === 'Login') {
+        navigateToLogin();
+      } else if (screenName === 'MeetupDetail') {
+        navigateToMeetupDetail(params.meetupId);
+      } else if (screenName === 'Chat') {
+        navigateToChat(params.meetupId, params.meetupTitle);
+      }
+    },
+    navigateToSearch: () => {
+      setActiveTab('Search');
+    }
   };
 
   const renderScreen = () => {
@@ -31,14 +61,27 @@ const WebTabNavigator = () => {
       return <LoginScreen />;
     }
     
+    if (currentScreen === 'meetupDetail') {
+      return <MeetupDetailScreen route={{ params: screenParams }} navigation={webNavigation} />;
+    }
+    
+    if (currentScreen === 'chat') {
+      return <ChatScreen route={{ params: screenParams }} navigation={webNavigation} />;
+    }
+    
     const currentTab = tabs.find(tab => tab.key === activeTab);
     if (!currentTab) return null;
     
     const ScreenComponent = currentTab.component;
     
-    // HomeScreen에만 네비게이션 함수 전달
+    // HomeScreen에 네비게이션 함수들 전달
     if (activeTab === 'Home') {
-      return <ScreenComponent navigateToLogin={navigateToLogin} />;
+      return <ScreenComponent navigateToLogin={navigateToLogin} navigation={webNavigation} />;
+    }
+    
+    // SearchScreen에도 네비게이션 전달
+    if (activeTab === 'Search') {
+      return <ScreenComponent navigation={webNavigation} />;
     }
     
     return <ScreenComponent />;
@@ -56,10 +99,31 @@ const WebTabNavigator = () => {
             <Text style={styles.headerTitle}>로그인</Text>
             <View style={styles.placeholder} />
           </View>
+        ) : currentScreen === 'meetupDetail' ? (
+          <View style={styles.headerWithBack}>
+            <TouchableOpacity style={styles.backButton} onPress={navigateBack}>
+              <Text style={styles.backButtonText}>← 뒤로</Text>
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>모임 상세</Text>
+            <View style={styles.placeholder} />
+          </View>
+        ) : currentScreen === 'chat' ? (
+          <View style={styles.headerWithBack}>
+            <TouchableOpacity style={styles.backButton} onPress={navigateBack}>
+              <Text style={styles.backButtonText}>← 뒤로</Text>
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>모임 채팅</Text>
+            <View style={styles.placeholder} />
+          </View>
         ) : (
-          <Text style={styles.headerTitle}>
-            {tabs.find(tab => tab.key === activeTab)?.title || '혼밥시러'}
-          </Text>
+          <View style={styles.headerTitleContainer}>
+            <Text style={styles.headerTitle}>
+              {activeTab === 'Home' ? '🍚 혼밥시러' : tabs.find(tab => tab.key === activeTab)?.title}
+            </Text>
+            {activeTab === 'Home' && (
+              <Text style={styles.headerSubtitle}>🤝 따뜻한 사람들과 함께하는 맛있는 시간</Text>
+            )}
+          </View>
         )}
       </View>
       
@@ -103,53 +167,80 @@ const WebTabNavigator = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: COLORS.neutral.background,
   },
   header: {
-    backgroundColor: '#fff',
-    paddingVertical: 15,
+    backgroundColor: COLORS.primary.main,
+    paddingVertical: 25,
     paddingHorizontal: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomWidth: 0,
+    alignItems: 'center',
+    borderTopLeftRadius: 0,
+    borderTopRightRadius: 0,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+    ...SHADOWS.large,
+  },
+  headerTitleContainer: {
     alignItems: 'center',
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
+    fontSize: 28,
+    fontWeight: '900',
+    color: COLORS.text.white,
+    letterSpacing: -0.8,
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    color: COLORS.text.white,
+    opacity: 0.95,
+    marginTop: 4,
+    fontWeight: '600',
+    letterSpacing: -0.2,
+    textShadowColor: 'rgba(0, 0, 0, 0.2)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   content: {
     flex: 1,
   },
   tabBar: {
     flexDirection: 'row',
-    backgroundColor: '#fff',
-    borderTopWidth: 1,
-    borderTopColor: '#eee',
-    paddingVertical: 8,
+    backgroundColor: COLORS.neutral.white,
+    borderTopWidth: 0,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    ...SHADOWS.large,
   },
   tabItem: {
     flex: 1,
     alignItems: 'center',
     paddingVertical: 8,
+    paddingHorizontal: 4,
+    borderRadius: 12,
   },
   activeTabItem: {
-    // 활성 탭 스타일
+    backgroundColor: COLORS.primary.light,
+    ...SHADOWS.small,
   },
   tabIcon: {
     fontSize: 24,
     marginBottom: 4,
   },
   activeTabIcon: {
-    // 활성 아이콘 스타일
+    transform: [{scale: 1.1}],
   },
   tabLabel: {
     fontSize: 12,
     fontWeight: '500',
-    color: '#999',
+    color: COLORS.text.tertiary,
   },
   activeTabLabel: {
-    color: '#007AFF',
+    color: COLORS.primary.dark,
+    fontWeight: '600',
   },
   headerWithBack: {
     flexDirection: 'row',
@@ -159,14 +250,16 @@ const styles = StyleSheet.create({
   },
   backButton: {
     padding: 8,
+    borderRadius: 8,
+    backgroundColor: COLORS.secondary.light,
   },
   backButtonText: {
     fontSize: 16,
-    color: '#007AFF',
+    color: COLORS.text.primary,
     fontWeight: '500',
   },
   placeholder: {
-    width: 50, // backButton과 동일한 크기로 중앙 정렬
+    width: 50,
   },
 });
 
