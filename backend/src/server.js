@@ -27,6 +27,10 @@ const KAKAO_CONFIG = {
   userInfoUrl: 'https://kapi.kakao.com/v2/user/me'
 };
 
+// 프론트엔드 URL 설정
+const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
+console.log('🔗 FRONTEND_URL:', FRONTEND_URL);
+
 // 카카오 로그인 시작 (리다이렉트)
 app.get('/auth/kakao', (req, res) => {
   const kakaoAuthUrl = `${KAKAO_CONFIG.authUrl}?client_id=${KAKAO_CONFIG.clientId}&redirect_uri=${KAKAO_CONFIG.redirectUri}&response_type=code`;
@@ -39,12 +43,12 @@ app.get('/auth/kakao/callback', async (req, res) => {
 
   if (error) {
     console.error('카카오 로그인 에러:', error);
-    return res.redirect('http://localhost:3000?error=kakao_login_failed');
+    return res.redirect(`${FRONTEND_URL}?error=kakao_login_failed`);
   }
 
   if (!code) {
     console.error('Authorization code가 없습니다');
-    return res.redirect('http://localhost:3000?error=no_code');
+    return res.redirect(`${FRONTEND_URL}?error=no_code`);
   }
 
   try {
@@ -90,12 +94,12 @@ app.get('/auth/kakao/callback', async (req, res) => {
     );
 
     // 5. 프론트엔드로 리다이렉트 (토큰과 함께)
-    const redirectUrl = `http://localhost:3000?token=${token}&user=${encodeURIComponent(JSON.stringify(user))}`;
+    const redirectUrl = `${FRONTEND_URL}?token=${token}&user=${encodeURIComponent(JSON.stringify(user))}`;
     res.redirect(redirectUrl);
 
   } catch (error) {
     console.error('카카오 로그인 처리 에러:', error);
-    res.redirect('http://localhost:3000?error=auth_failed');
+    res.redirect(`${FRONTEND_URL}?error=auth_failed`);
   }
 });
 
