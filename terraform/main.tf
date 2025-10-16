@@ -14,11 +14,6 @@ provider "aws" {
   region = var.aws_region
 }
 
-# 데이터 소스: 기본 VPC
-data "aws_vpc" "default" {
-  default = true
-}
-
 # 데이터 소스: 가용 영역
 data "aws_availability_zones" "available" {
   state = "available"
@@ -28,8 +23,10 @@ data "aws_availability_zones" "available" {
 data "aws_subnets" "default" {
   filter {
     name   = "vpc-id"
-    values = [data.aws_vpc.default.id]
+    values = [aws_default_vpc.default.id]
   }
+  
+  depends_on = [aws_default_subnet.default]
 }
 
 # ECS 클러스터
@@ -124,7 +121,7 @@ resource "aws_lb_target_group" "app" {
   name        = "${var.app_name}-tg"
   port        = 80
   protocol    = "HTTP"
-  vpc_id      = data.aws_vpc.default.id
+  vpc_id      = aws_default_vpc.default.id
   target_type = "ip"
 
   health_check {
