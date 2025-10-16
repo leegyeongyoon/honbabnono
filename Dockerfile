@@ -30,7 +30,7 @@ RUN npm run build:web
 # 프로덕션 스테이지
 FROM nginx:alpine AS production
 
-# nginx 설정 파일 복사
+# 빌드된 파일들 복사
 COPY --from=build /app/dist /usr/share/nginx/html
 
 # nginx 설정
@@ -43,19 +43,6 @@ server {
         root /usr/share/nginx/html;
         index index.html index.htm;
         try_files \$uri \$uri/ /index.html;
-    }
-    
-    # API 프록시 설정 (백엔드가 있는 경우)
-    location /api/ {
-        proxy_pass http://backend:3000;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade \$http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
-        proxy_cache_bypass \$http_upgrade;
     }
     
     error_page 500 502 503 504 /50x.html;

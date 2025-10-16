@@ -31,7 +31,8 @@
       "Bash(kill:*)",
       "Bash(chmod:*)",
       "Bash(git commit:*)",
-      "Bash(sed:*)"
+      "Bash(sed:*)",
+      "Bash(aws ecs describe-tasks:*)"
     ],
     "deny": [],
     "ask": []

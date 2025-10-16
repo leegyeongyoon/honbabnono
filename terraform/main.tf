@@ -234,7 +234,16 @@ resource "aws_iam_role" "ecs_task_role" {
   }
 }
 
-# CloudWatch 로그 그룹 제거 (비용 절감)
+# CloudWatch 로그 그룹 (최소 설정으로 디버깅용)
+resource "aws_cloudwatch_log_group" "app" {
+  name              = "/ecs/${local.resource_prefix}"
+  retention_in_days = 1  # 1일만 보관으로 비용 최소화
+  
+  tags = {
+    Name        = "${local.resource_prefix}-logs"
+    Environment = var.environment
+  }
+}
 
 # ECS 태스크 정의
 resource "aws_ecs_task_definition" "app" {
@@ -266,7 +275,15 @@ resource "aws_ecs_task_definition" "app" {
         }
       ]
 
-      # 로그 설정 제거 (비용 절감)
+      # 최소 로그 설정 (디버깅용)
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          "awslogs-group"         = aws_cloudwatch_log_group.app.name
+          "awslogs-region"        = var.aws_region
+          "awslogs-stream-prefix" = "ecs"
+        }
+      }
 
       essential = true
     }
