@@ -36,7 +36,6 @@ resource "aws_security_group" "alb" {
   tags = {
     Name        = "${local.resource_prefix}-alb-sg"
     Environment = var.environment
-    UniqueId    = local.unique_suffix
   }
 }
 
@@ -70,6 +69,5 @@ resource "aws_security_group" "ecs_tasks" {
   tags = {
     Name        = "${local.resource_prefix}-ecs-tasks-sg"
     Environment = var.environment
-    UniqueId    = local.unique_suffix
   }
 }

@@ -6,10 +6,6 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 5.0"
     }
-    random = {
-      source  = "hashicorp/random"
-      version = "~> 3.1"
-    }
   }
 }
 
@@ -23,19 +19,9 @@ data "aws_availability_zones" "available" {
   state = "available"
 }
 
-# 고유 식별자 생성 (중복 방지)
-resource "random_id" "unique_suffix" {
-  byte_length = 4
-  keepers = {
-    app_name = var.app_name
-    region   = var.aws_region
-  }
-}
-
-# 로컬 값으로 고유한 이름 정의
+# 로컬 값으로 간단한 이름 정의
 locals {
-  unique_suffix   = random_id.unique_suffix.hex
-  resource_prefix = "${var.app_name}-${local.unique_suffix}"
+  resource_prefix = var.app_name
 }
 
 # VPC와 서브넷은 default-vpc.tf에서 생성됨
@@ -57,7 +43,6 @@ resource "aws_ecs_cluster" "main" {
   tags = {
     Name        = "${local.resource_prefix}-cluster"
     Environment = var.environment
-    UniqueId    = local.unique_suffix
   }
 }
 
@@ -98,7 +83,6 @@ resource "aws_ecr_repository" "app" {
   tags = {
     Name        = "${local.resource_prefix}-app"
     Environment = var.environment
-    UniqueId    = local.unique_suffix
   }
 }
 
@@ -142,7 +126,6 @@ resource "aws_lb" "main" {
   tags = {
     Name        = "${local.resource_prefix}-alb"
     Environment = var.environment
-    UniqueId    = local.unique_suffix
   }
 }
 
@@ -174,7 +157,6 @@ resource "aws_lb_target_group" "app" {
   tags = {
     Name        = "${local.resource_prefix}-tg"
     Environment = var.environment
-    UniqueId    = local.unique_suffix
   }
 }
 
@@ -215,7 +197,6 @@ resource "aws_iam_role" "ecs_task_execution_role" {
   tags = {
     Name        = "${local.resource_prefix}-ecs-task-execution-role"
     Environment = var.environment
-    UniqueId    = local.unique_suffix
   }
 }
 
@@ -250,7 +231,6 @@ resource "aws_iam_role" "ecs_task_role" {
   tags = {
     Name        = "${local.resource_prefix}-ecs-task-role"
     Environment = var.environment
-    UniqueId    = local.unique_suffix
   }
 }
 
@@ -295,7 +275,6 @@ resource "aws_ecs_task_definition" "app" {
   tags = {
     Name        = "${local.resource_prefix}-task"
     Environment = var.environment
-    UniqueId    = local.unique_suffix
   }
 }
 
@@ -336,6 +315,5 @@ resource "aws_ecs_service" "main" {
   tags = {
     Name        = "${local.resource_prefix}-service"
     Environment = var.environment
-    UniqueId    = local.unique_suffix
   }
 }

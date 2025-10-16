@@ -24,10 +24,7 @@ locals {
     Environment   = var.environment
     ManagedBy     = "terraform"
     CreatedBy     = data.aws_caller_identity.current.user_id
-    UniqueId      = local.unique_suffix
     ResourceGroup = "${var.app_name}-${var.environment}"
-    # 중복 방지를 위한 고유 식별자
-    DeploymentId = "${var.app_name}-${var.environment}-${local.unique_suffix}"
   }
 }
 
@@ -36,21 +33,19 @@ output "resource_info" {
   value = {
     account_id      = data.aws_caller_identity.current.account_id
     resource_prefix = local.resource_prefix
-    unique_suffix   = local.unique_suffix
-    deployment_id   = local.common_tags.DeploymentId
   }
-  description = "리소스 중복 방지를 위한 정보"
+  description = "리소스 정보"
 }
 
-# Terraform 상태 백엔드 권장 설정 (주석 처리됨)
-# terraform {
-#   backend "s3" {
-#     bucket = "${var.app_name}-terraform-state"
-#     key    = "${var.environment}/terraform.tfstate"
-#     region = var.aws_region
-#     
-#     # 상태 잠금을 위한 DynamoDB 테이블
-#     dynamodb_table = "${var.app_name}-terraform-locks"
-#     encrypt        = true
-#   }
-# }
+# Terraform 상태 백엔드 설정 (S3 + DynamoDB)
+terraform {
+  backend "s3" {
+    bucket = "honbabnono-terraform-state"
+    key    = "production/terraform.tfstate"
+    region = "ap-northeast-2"
+    
+    # 상태 잠금을 위한 DynamoDB 테이블
+    dynamodb_table = "honbabnono-terraform-locks"
+    encrypt        = true
+  }
+}

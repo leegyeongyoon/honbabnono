@@ -30,7 +30,8 @@
       "Bash(lsof:*)",
       "Bash(kill:*)",
       "Bash(chmod:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(sed:*)"
     ],
     "deny": [],
     "ask": []
