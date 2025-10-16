@@ -19,15 +19,7 @@ data "aws_availability_zones" "available" {
   state = "available"
 }
 
-# 데이터 소스: 기본 VPC의 서브넷
-data "aws_subnets" "default" {
-  filter {
-    name   = "vpc-id"
-    values = [aws_default_vpc.default.id]
-  }
-  
-  depends_on = [aws_default_subnet.default]
-}
+# VPC와 서브넷은 default-vpc.tf에서 생성됨
 
 # ECS 클러스터
 resource "aws_ecs_cluster" "main" {
@@ -106,7 +98,7 @@ resource "aws_lb" "main" {
   internal           = false
   load_balancer_type = "application"
   security_groups    = [aws_security_group.alb.id]
-  subnets            = data.aws_subnets.default.ids
+  subnets            = aws_subnet.public[*].id
 
   enable_deletion_protection = false
 
@@ -121,7 +113,7 @@ resource "aws_lb_target_group" "app" {
   name        = "${var.app_name}-tg"
   port        = 80
   protocol    = "HTTP"
-  vpc_id      = aws_default_vpc.default.id
+  vpc_id      = aws_vpc.main.id
   target_type = "ip"
 
   health_check {
@@ -265,7 +257,7 @@ resource "aws_ecs_service" "main" {
 
   network_configuration {
     security_groups  = [aws_security_group.ecs_tasks.id]
-    subnets          = data.aws_subnets.default.ids
+    subnets          = aws_subnet.public[*].id
     assign_public_ip = true
   }
 
