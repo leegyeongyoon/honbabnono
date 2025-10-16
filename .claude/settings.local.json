@@ -36,7 +36,14 @@
       "Bash(aws route53 list-hosted-zones:*)",
       "Bash(aws route53:*)",
       "Bash(aws elbv2 create-listener:*)",
-      "Bash(aws elbv2 describe-listeners:*)"
+      "Bash(aws elbv2 describe-listeners:*)",
+      "Bash(aws ecs describe-services:*)",
+      "Bash(aws ecs list-tasks:*)",
+      "Bash(TASK_ARN=\"52c99a60d2f44aae82d9729d53ced7a7\")",
+      "Bash(aws logs describe-log-streams:*)",
+      "Bash(aws ecs execute-command:*)",
+      "Bash(aws ecs describe-task-definition:*)",
+      "Bash(aws logs get-log-events:*)"
     ],
     "deny": [],
     "ask": []
