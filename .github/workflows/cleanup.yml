@@ -1,0 +1,51 @@
+name: Cleanup Existing Resources
+
+on:
+  workflow_dispatch:  # 수동 실행만 가능
+    inputs:
+      confirm:
+        description: 'Type "CLEANUP" to confirm resource cleanup'
+        required: true
+        type: string
+
+env:
+  AWS_REGION: ap-northeast-2
+  APP_NAME: honbabnono
+
+jobs:
+  cleanup:
+    name: Cleanup Resources
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Validate confirmation
+      if: github.event.inputs.confirm != 'CLEANUP'
+      run: |
+        echo "❌ Confirmation failed. You must type 'CLEANUP' to proceed."
+        exit 1
+        
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+        
+    - name: Run cleanup script
+      run: |
+        chmod +x cleanup-resources.sh
+        ./cleanup-resources.sh
+        
+    - name: Wait for resources to be fully deleted
+      run: |
+        echo "⏳ Waiting 2 minutes for AWS resources to be fully deleted..."
+        sleep 120
+        
+    - name: Cleanup notification
+      run: |
+        echo "🧹 Resource cleanup completed!"
+        echo "✅ You can now run the deploy workflow again."
+        echo "💡 Wait 2-3 minutes before redeploying to ensure all resources are cleaned up."

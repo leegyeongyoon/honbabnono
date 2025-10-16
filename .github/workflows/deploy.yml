@@ -60,6 +60,30 @@ jobs:
           echo "No infrastructure found, will create new"
         fi
         
+    - name: Cleanup conflicting resources (if needed)
+      run: |
+        # ECR 리포지토리가 이미 존재하는지 확인하고 삭제
+        if aws ecr describe-repositories --repository-names ${{ env.APP_NAME }}-app --region ${{ env.AWS_REGION }} 2>/dev/null; then
+          echo "🧹 Cleaning up existing ECR repository..."
+          aws ecr delete-repository --repository-name ${{ env.APP_NAME }}-app --force --region ${{ env.AWS_REGION }} || true
+        fi
+        
+        # Target Group이 이미 존재하는지 확인하고 삭제
+        if aws elbv2 describe-target-groups --names ${{ env.APP_NAME }}-tg --region ${{ env.AWS_REGION }} 2>/dev/null; then
+          echo "🧹 Cleaning up existing Target Group..."
+          TG_ARN=$(aws elbv2 describe-target-groups --names ${{ env.APP_NAME }}-tg --region ${{ env.AWS_REGION }} --query 'TargetGroups[0].TargetGroupArn' --output text)
+          aws elbv2 delete-target-group --target-group-arn $TG_ARN --region ${{ env.AWS_REGION }} || true
+        fi
+        
+        # IAM 역할들 정리
+        echo "🧹 Cleaning up existing IAM roles..."
+        aws iam detach-role-policy --role-name ${{ env.APP_NAME }}-ecs-task-execution-role --policy-arn arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy 2>/dev/null || true
+        aws iam delete-role --role-name ${{ env.APP_NAME }}-ecs-task-execution-role 2>/dev/null || true
+        aws iam delete-role --role-name ${{ env.APP_NAME }}-ecs-task-role 2>/dev/null || true
+        
+        echo "✅ Cleanup completed, waiting 30 seconds..."
+        sleep 30
+        
     - name: Deploy infrastructure
       run: |
         cd terraform
