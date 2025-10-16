@@ -10,7 +10,10 @@ const app = express();
 const PORT = process.env.API_PORT || 3001;
 
 // 미들웨어 설정
-app.use(cors());
+app.use(cors({
+  origin: process.env.CORS_ORIGIN || 'https://honbabnono.com',
+  credentials: true
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -27,11 +30,25 @@ app.get('/api/health', (req, res) => {
 app.post('/api/auth/kakao', (req, res) => {
   const { code } = req.body;
   
-  // TODO: 카카오 OAuth2 로직 구현
+  console.log('카카오 로그인 요청:', {
+    code,
+    clientId: process.env.KAKAO_CLIENT_ID,
+    redirectUri: process.env.KAKAO_REDIRECT_URI
+  });
+  
+  // TODO: 카카오 OAuth2 토큰 교환 로직 구현
+  // 1. code를 사용해 카카오에서 access_token 받기
+  // 2. access_token으로 사용자 정보 조회
+  // 3. JWT 토큰 생성 및 반환
+  
   res.json({
     success: true,
     message: '카카오 로그인 처리 (구현 예정)',
-    data: { code }
+    data: { 
+      code,
+      clientId: process.env.KAKAO_CLIENT_ID ? '설정됨' : '미설정',
+      redirectUri: process.env.KAKAO_REDIRECT_URI
+    }
   });
 });
 
