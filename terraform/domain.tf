@@ -56,14 +56,13 @@ data "aws_acm_certificate" "existing" {
 #   }
 # }
 
-# ALB에 HTTPS 리스너 추가 (기존 인증서 사용)
+# ALB에 HTTPS 리스너 추가 (기존 인증서 사용) - 항상 생성
 resource "aws_lb_listener" "https" {
-  count             = var.domain_name != "" ? 1 : 0
   load_balancer_arn = aws_lb.main.arn
   port              = "443"
   protocol          = "HTTPS"
   ssl_policy        = "ELBSecurityPolicy-2016-08"
-  certificate_arn   = data.aws_acm_certificate.existing[0].arn
+  certificate_arn   = "arn:aws:acm:ap-northeast-2:975050251584:certificate/26e43f91-c274-4731-b357-b929ee2c0074"
 
   default_action {
     type             = "forward"
@@ -71,9 +70,8 @@ resource "aws_lb_listener" "https" {
   }
 }
 
-# HTTP에서 HTTPS로 리다이렉트
+# HTTP에서 HTTPS로 리다이렉트 - 항상 생성
 resource "aws_lb_listener" "redirect" {
-  count             = var.domain_name != "" ? 1 : 0
   load_balancer_arn = aws_lb.main.arn
   port              = "80"
   protocol          = "HTTP"
@@ -89,11 +87,10 @@ resource "aws_lb_listener" "redirect" {
   }
 }
 
-# 도메인을 ALB로 연결하는 A 레코드
+# 도메인을 ALB로 연결하는 A 레코드 - 항상 생성
 resource "aws_route53_record" "main" {
-  count   = var.domain_name != "" ? 1 : 0
-  zone_id = local.hosted_zone_id
-  name    = var.domain_name
+  zone_id = "Z063704727QK0JIQO9M5I"
+  name    = "honbabnono.com"
   type    = "A"
 
   alias {
@@ -101,13 +98,17 @@ resource "aws_route53_record" "main" {
     zone_id                = aws_lb.main.zone_id
     evaluate_target_health = false
   }
+
+  depends_on = [
+    aws_lb_listener.https,
+    aws_lb_listener.redirect
+  ]
 }
 
-# www 서브도메인도 메인 도메인으로 리다이렉트
+# www 서브도메인도 메인 도메인으로 리다이렉트 - 항상 생성
 resource "aws_route53_record" "www" {
-  count   = var.domain_name != "" ? 1 : 0
-  zone_id = local.hosted_zone_id
-  name    = "www.${var.domain_name}"
+  zone_id = "Z063704727QK0JIQO9M5I"
+  name    = "www.honbabnono.com"
   type    = "A"
 
   alias {
@@ -115,4 +116,9 @@ resource "aws_route53_record" "www" {
     zone_id                = aws_lb.main.zone_id
     evaluate_target_health = false
   }
+
+  depends_on = [
+    aws_lb_listener.https,
+    aws_lb_listener.redirect
+  ]
 }

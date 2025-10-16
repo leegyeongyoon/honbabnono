@@ -160,18 +160,18 @@ resource "aws_lb_target_group" "app" {
   }
 }
 
-# ALB 기본 HTTP 리스너 (도메인 설정이 없을 때 사용)
-resource "aws_lb_listener" "main" {
-  count             = var.domain_name == "" ? 1 : 0
-  load_balancer_arn = aws_lb.main.arn
-  port              = "80"
-  protocol          = "HTTP"
-
-  default_action {
-    type             = "forward"
-    target_group_arn = aws_lb_target_group.app.arn
-  }
-}
+# ALB 기본 HTTP 리스너 (domain.tf에서 처리하므로 주석 처리)
+# resource "aws_lb_listener" "main" {
+#   count             = var.domain_name == "" ? 1 : 0
+#   load_balancer_arn = aws_lb.main.arn
+#   port              = "80"
+#   protocol          = "HTTP"
+#
+#   default_action {
+#     type             = "forward"
+#     target_group_arn = aws_lb_target_group.app.arn
+#   }
+# }
 
 # ECS 태스크 정의를 위한 IAM 역할 (고유 이름으로 중복 방지)
 resource "aws_iam_role" "ecs_task_execution_role" {
