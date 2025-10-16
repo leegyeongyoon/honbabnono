@@ -1,10 +1,14 @@
-# Terraform 설정
+# Terraform 설정 - 중복 방지 강화
 terraform {
   required_version = ">= 1.0"
   required_providers {
     aws = {
       source  = "hashicorp/aws"
       version = "~> 5.0"
+    }
+    random = {
+      source  = "hashicorp/random"
+      version = "~> 3.1"
     }
   }
 }
@@ -19,11 +23,26 @@ data "aws_availability_zones" "available" {
   state = "available"
 }
 
+# 고유 식별자 생성 (중복 방지)
+resource "random_id" "unique_suffix" {
+  byte_length = 4
+  keepers = {
+    app_name = var.app_name
+    region   = var.aws_region
+  }
+}
+
+# 로컬 값으로 고유한 이름 정의
+locals {
+  unique_suffix   = random_id.unique_suffix.hex
+  resource_prefix = "${var.app_name}-${local.unique_suffix}"
+}
+
 # VPC와 서브넷은 default-vpc.tf에서 생성됨
 
-# ECS 클러스터 (중복 방지)
+# ECS 클러스터 (고유 이름으로 중복 방지)
 resource "aws_ecs_cluster" "main" {
-  name = "${var.app_name}-cluster"
+  name = "${local.resource_prefix}-cluster"
 
   setting {
     name  = "containerInsights"
@@ -31,12 +50,14 @@ resource "aws_ecs_cluster" "main" {
   }
 
   lifecycle {
-    ignore_changes = [name]  # 이름이 이미 존재해도 무시
+    create_before_destroy = true
+    prevent_destroy       = false
   }
 
   tags = {
-    Name        = "${var.app_name}-cluster"
+    Name        = "${local.resource_prefix}-cluster"
     Environment = var.environment
+    UniqueId    = local.unique_suffix
   }
 }
 
@@ -59,22 +80,25 @@ resource "aws_ecs_cluster_capacity_providers" "main" {
   }
 }
 
-# ECR 리포지토리 (중복 방지를 위해 lifecycle 사용)
+# ECR 리포지토리 (고유 이름으로 중복 방지)
 resource "aws_ecr_repository" "app" {
-  name                 = "${var.app_name}-app"
+  name                 = "${local.resource_prefix}-app"
   image_tag_mutability = "MUTABLE"
+  force_delete         = true
 
   image_scanning_configuration {
     scan_on_push = true
   }
 
   lifecycle {
-    ignore_changes = [name]  # 이름이 이미 존재해도 무시
+    create_before_destroy = true
+    prevent_destroy       = false
   }
 
   tags = {
-    Name        = "${var.app_name}-app"
+    Name        = "${local.resource_prefix}-app"
     Environment = var.environment
+    UniqueId    = local.unique_suffix
   }
 }
 
@@ -100,9 +124,9 @@ resource "aws_ecr_lifecycle_policy" "app" {
   })
 }
 
-# Application Load Balancer (중복 방지)
+# Application Load Balancer (고유 이름으로 중복 방지)
 resource "aws_lb" "main" {
-  name               = "${var.app_name}-alb"
+  name               = "${local.resource_prefix}-alb"
   internal           = false
   load_balancer_type = "application"
   security_groups    = [aws_security_group.alb.id]
@@ -111,18 +135,20 @@ resource "aws_lb" "main" {
   enable_deletion_protection = false
 
   lifecycle {
-    ignore_changes = [name]  # 이름이 이미 존재해도 무시
+    create_before_destroy = true
+    prevent_destroy       = false
   }
 
   tags = {
-    Name        = "${var.app_name}-alb"
+    Name        = "${local.resource_prefix}-alb"
     Environment = var.environment
+    UniqueId    = local.unique_suffix
   }
 }
 
-# ALB 대상 그룹 (중복 방지)
+# ALB 대상 그룹 (고유 이름으로 중복 방지)
 resource "aws_lb_target_group" "app" {
-  name        = "${var.app_name}-tg"
+  name        = "${local.resource_prefix}-tg"
   port        = 80
   protocol    = "HTTP"
   vpc_id      = local.vpc_id
@@ -141,12 +167,14 @@ resource "aws_lb_target_group" "app" {
   }
 
   lifecycle {
-    ignore_changes = [name]  # 이름이 이미 존재해도 무시
+    create_before_destroy = true
+    prevent_destroy       = false
   }
 
   tags = {
-    Name        = "${var.app_name}-tg"
+    Name        = "${local.resource_prefix}-tg"
     Environment = var.environment
+    UniqueId    = local.unique_suffix
   }
 }
 
@@ -162,12 +190,13 @@ resource "aws_lb_listener" "main" {
   }
 }
 
-# ECS 태스크 정의를 위한 IAM 역할 (중복 방지)
+# ECS 태스크 정의를 위한 IAM 역할 (고유 이름으로 중복 방지)
 resource "aws_iam_role" "ecs_task_execution_role" {
-  name = "${var.app_name}-ecs-task-execution-role"
+  name = "${local.resource_prefix}-ecs-task-execution-role"
 
   lifecycle {
-    ignore_changes = [name]  # 이름이 이미 존재해도 무시
+    create_before_destroy = true
+    prevent_destroy       = false
   }
 
   assume_role_policy = jsonencode({
@@ -184,8 +213,9 @@ resource "aws_iam_role" "ecs_task_execution_role" {
   })
 
   tags = {
-    Name        = "${var.app_name}-ecs-task-execution-role"
+    Name        = "${local.resource_prefix}-ecs-task-execution-role"
     Environment = var.environment
+    UniqueId    = local.unique_suffix
   }
 }
 
@@ -195,12 +225,13 @@ resource "aws_iam_role_policy_attachment" "ecs_task_execution_role_policy" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 }
 
-# ECS 태스크 역할 (중복 방지)
+# ECS 태스크 역할 (고유 이름으로 중복 방지)
 resource "aws_iam_role" "ecs_task_role" {
-  name = "${var.app_name}-ecs-task-role"
+  name = "${local.resource_prefix}-ecs-task-role"
 
   lifecycle {
-    ignore_changes = [name]  # 이름이 이미 존재해도 무시
+    create_before_destroy = true
+    prevent_destroy       = false
   }
 
   assume_role_policy = jsonencode({
@@ -217,8 +248,9 @@ resource "aws_iam_role" "ecs_task_role" {
   })
 
   tags = {
-    Name        = "${var.app_name}-ecs-task-role"
+    Name        = "${local.resource_prefix}-ecs-task-role"
     Environment = var.environment
+    UniqueId    = local.unique_suffix
   }
 }
 
@@ -226,7 +258,7 @@ resource "aws_iam_role" "ecs_task_role" {
 
 # ECS 태스크 정의
 resource "aws_ecs_task_definition" "app" {
-  family                   = "${var.app_name}-task"
+  family                   = "${local.resource_prefix}-task"
   network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
   cpu                      = var.fargate_cpu
@@ -236,9 +268,9 @@ resource "aws_ecs_task_definition" "app" {
 
   container_definitions = jsonencode([
     {
-      name  = "${var.app_name}-container"
+      name  = "${local.resource_prefix}-container"
       image = "${aws_ecr_repository.app.repository_url}:latest"
-      
+
       portMappings = [
         {
           containerPort = 80
@@ -254,29 +286,30 @@ resource "aws_ecs_task_definition" "app" {
         }
       ]
 
-# 로그 설정 제거 (비용 절감)
+      # 로그 설정 제거 (비용 절감)
 
       essential = true
     }
   ])
 
   tags = {
-    Name        = "${var.app_name}-task"
+    Name        = "${local.resource_prefix}-task"
     Environment = var.environment
+    UniqueId    = local.unique_suffix
   }
 }
 
 # ECS 서비스 (Spot 인스턴스 사용으로 비용 절감)
 resource "aws_ecs_service" "main" {
-  name            = "${var.app_name}-service"
+  name            = "${local.resource_prefix}-service"
   cluster         = aws_ecs_cluster.main.id
   task_definition = aws_ecs_task_definition.app.arn
   desired_count   = var.app_count
 
   capacity_provider_strategy {
     capacity_provider = "FARGATE_SPOT"
-    weight           = 100
-    base             = 0
+    weight            = 100
+    base              = 0
   }
 
   network_configuration {
@@ -287,21 +320,22 @@ resource "aws_ecs_service" "main" {
 
   load_balancer {
     target_group_arn = aws_lb_target_group.app.id
-    container_name   = "${var.app_name}-container"
+    container_name   = "${local.resource_prefix}-container"
     container_port   = 80
   }
 
   # 배포 구성 - 더 관대한 설정
   deployment_maximum_percent         = 200
   deployment_minimum_healthy_percent = 50
-  
+
   # 헬스 체크 유예 기간 추가 (ALB 사용 시)
   health_check_grace_period_seconds = 300
-  
+
   depends_on = [aws_lb_listener.main, aws_iam_role_policy_attachment.ecs_task_execution_role_policy]
 
   tags = {
-    Name        = "${var.app_name}-service"
+    Name        = "${local.resource_prefix}-service"
     Environment = var.environment
+    UniqueId    = local.unique_suffix
   }
 }

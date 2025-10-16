@@ -1,11 +1,12 @@
-# Application Load Balancer 보안 그룹 (중복 방지)
+# Application Load Balancer 보안 그룹 (고유 이름으로 중복 방지)
 resource "aws_security_group" "alb" {
-  name        = "${var.app_name}-alb-sg"
+  name        = "${local.resource_prefix}-alb-sg"
   description = "Security group for ALB"
   vpc_id      = local.vpc_id
 
   lifecycle {
-    ignore_changes = [name]  # 이름이 이미 존재해도 무시
+    create_before_destroy = true
+    prevent_destroy       = false
   }
 
   ingress {
@@ -33,19 +34,21 @@ resource "aws_security_group" "alb" {
   }
 
   tags = {
-    Name        = "${var.app_name}-alb-sg"
+    Name        = "${local.resource_prefix}-alb-sg"
     Environment = var.environment
+    UniqueId    = local.unique_suffix
   }
 }
 
-# ECS 태스크 보안 그룹 (중복 방지)
+# ECS 태스크 보안 그룹 (고유 이름으로 중복 방지)
 resource "aws_security_group" "ecs_tasks" {
-  name        = "${var.app_name}-ecs-tasks-sg"
+  name        = "${local.resource_prefix}-ecs-tasks-sg"
   description = "Security group for ECS tasks"
   vpc_id      = local.vpc_id
 
   lifecycle {
-    ignore_changes = [name]  # 이름이 이미 존재해도 무시
+    create_before_destroy = true
+    prevent_destroy       = false
   }
 
   ingress {
@@ -65,7 +68,8 @@ resource "aws_security_group" "ecs_tasks" {
   }
 
   tags = {
-    Name        = "${var.app_name}-ecs-tasks-sg"
+    Name        = "${local.resource_prefix}-ecs-tasks-sg"
     Environment = var.environment
+    UniqueId    = local.unique_suffix
   }
 }
