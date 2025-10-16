@@ -60,59 +60,10 @@ jobs:
           echo "No infrastructure found, will create new"
         fi
         
-    - name: Cleanup conflicting resources (if needed)
-      run: |
-        echo "🧹 Starting cleanup of existing resources..."
-        
-        # ECS 서비스 스케일 다운 및 삭제
-        if aws ecs describe-services --cluster ${{ env.APP_NAME }}-cluster --services ${{ env.APP_NAME }}-service --region ${{ env.AWS_REGION }} 2>/dev/null | grep -q "ACTIVE"; then
-          echo "🧹 Scaling down ECS service..."
-          aws ecs update-service --cluster ${{ env.APP_NAME }}-cluster --service ${{ env.APP_NAME }}-service --desired-count 0 --region ${{ env.AWS_REGION }} || true
-          sleep 30
-          aws ecs delete-service --cluster ${{ env.APP_NAME }}-cluster --service ${{ env.APP_NAME }}-service --region ${{ env.AWS_REGION }} || true
-        fi
-        
-        # ECS 클러스터 삭제
-        if aws ecs describe-clusters --clusters ${{ env.APP_NAME }}-cluster --region ${{ env.AWS_REGION }} 2>/dev/null | grep -q "ACTIVE"; then
-          echo "🧹 Deleting ECS cluster..."
-          aws ecs delete-cluster --cluster ${{ env.APP_NAME }}-cluster --region ${{ env.AWS_REGION }} || true
-        fi
-        
-        # ALB 삭제 (Target Group 보다 먼저)
-        if aws elbv2 describe-load-balancers --names ${{ env.APP_NAME }}-alb --region ${{ env.AWS_REGION }} 2>/dev/null; then
-          echo "🧹 Cleaning up existing ALB..."
-          ALB_ARN=$(aws elbv2 describe-load-balancers --names ${{ env.APP_NAME }}-alb --region ${{ env.AWS_REGION }} --query 'LoadBalancers[0].LoadBalancerArn' --output text)
-          aws elbv2 delete-load-balancer --load-balancer-arn $ALB_ARN --region ${{ env.AWS_REGION }} || true
-          echo "⏳ Waiting for ALB deletion..."
-          sleep 60
-        fi
-        
-        # Target Group 삭제
-        if aws elbv2 describe-target-groups --names ${{ env.APP_NAME }}-tg --region ${{ env.AWS_REGION }} 2>/dev/null; then
-          echo "🧹 Cleaning up existing Target Group..."
-          TG_ARN=$(aws elbv2 describe-target-groups --names ${{ env.APP_NAME }}-tg --region ${{ env.AWS_REGION }} --query 'TargetGroups[0].TargetGroupArn' --output text)
-          aws elbv2 delete-target-group --target-group-arn $TG_ARN --region ${{ env.AWS_REGION }} || true
-        fi
-        
-        # 보안 그룹 삭제
-        echo "🧹 Cleaning up security groups..."
-        aws ec2 delete-security-group --group-name ${{ env.APP_NAME }}-alb-sg --region ${{ env.AWS_REGION }} 2>/dev/null || true
-        aws ec2 delete-security-group --group-name ${{ env.APP_NAME }}-ecs-tasks-sg --region ${{ env.AWS_REGION }} 2>/dev/null || true
-        
-        # IAM 역할들 정리
-        echo "🧹 Cleaning up existing IAM roles..."
-        aws iam detach-role-policy --role-name ${{ env.APP_NAME }}-ecs-task-execution-role --policy-arn arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy 2>/dev/null || true
-        aws iam delete-role --role-name ${{ env.APP_NAME }}-ecs-task-execution-role 2>/dev/null || true
-        aws iam delete-role --role-name ${{ env.APP_NAME }}-ecs-task-role 2>/dev/null || true
-        
-        # ECR 리포지토리 삭제
-        if aws ecr describe-repositories --repository-names ${{ env.APP_NAME }}-app --region ${{ env.AWS_REGION }} 2>/dev/null; then
-          echo "🧹 Cleaning up existing ECR repository..."
-          aws ecr delete-repository --repository-name ${{ env.APP_NAME }}-app --force --region ${{ env.AWS_REGION }} || true
-        fi
-        
-        echo "✅ Cleanup completed, waiting 60 seconds for AWS propagation..."
-        sleep 60
+    # 이 단계는 더 이상 필요하지 않습니다 (Terraform state로 관리됨)
+    # - name: Cleanup conflicting resources (if needed)
+    #   run: |
+    #     echo "📋 Skipping cleanup - using Terraform state management"
         
     - name: Deploy infrastructure
       run: |
