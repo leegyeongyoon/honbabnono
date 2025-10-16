@@ -3,13 +3,13 @@
 # 현재 AWS 계정 정보 확인
 data "aws_caller_identity" "current" {}
 
-# 기존 ECS 클러스터 확인 (중복 방지)
-data "aws_ecs_cluster" "existing" {
-  cluster_name = "${local.resource_prefix}-cluster"
-
-  # 에러 무시 (존재하지 않으면 새로 생성)
-  depends_on = []
-}
+# 기존 ECS 클러스터 확인 (중복 방지) - 비활성화
+# data "aws_ecs_cluster" "existing" {
+#   cluster_name = "${local.resource_prefix}-cluster"
+#
+#   # 에러 무시 (존재하지 않으면 새로 생성)
+#   depends_on = []
+# }
 
 # 기존 ECR 리포지토리 확인 (중복 방지)
 data "aws_ecr_repository" "existing" {
