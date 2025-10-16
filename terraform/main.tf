@@ -119,13 +119,13 @@ resource "aws_lb_target_group" "app" {
   health_check {
     enabled             = true
     healthy_threshold   = 2
-    interval            = 30
-    matcher             = "200"
+    interval            = 60
+    matcher             = "200,301,302"
     path                = "/"
     port                = "traffic-port"
     protocol            = "HTTP"
-    timeout             = 5
-    unhealthy_threshold = 2
+    timeout             = 30
+    unhealthy_threshold = 5
   }
 
   tags = {
@@ -267,6 +267,15 @@ resource "aws_ecs_service" "main" {
     container_port   = 80
   }
 
+  # 배포 구성 - 더 관대한 설정
+  deployment_configuration {
+    maximum_percent         = 200
+    minimum_healthy_percent = 50
+  }
+  
+  # 헬스 체크 유예 기간 추가
+  health_check_grace_period_seconds = 300
+  
   depends_on = [aws_lb_listener.main, aws_iam_role_policy_attachment.ecs_task_execution_role_policy]
 
   tags = {

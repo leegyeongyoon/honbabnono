@@ -160,12 +160,53 @@ jobs:
           --force-new-deployment \
           --region ${{ env.AWS_REGION }}
           
-    - name: Wait for deployment to complete
+    - name: Check ECS service status and debug
       run: |
-        aws ecs wait services-stable \
+        echo "🔍 Checking ECS service status..."
+        aws ecs describe-services \
           --cluster ${{ env.APP_NAME }}-cluster \
           --services ${{ env.APP_NAME }}-service \
           --region ${{ env.AWS_REGION }}
+        
+        echo "🔍 Checking running tasks..."
+        aws ecs list-tasks \
+          --cluster ${{ env.APP_NAME }}-cluster \
+          --service-name ${{ env.APP_NAME }}-service \
+          --region ${{ env.AWS_REGION }}
+        
+        echo "🔍 Getting task details..."
+        TASK_ARNS=$(aws ecs list-tasks \
+          --cluster ${{ env.APP_NAME }}-cluster \
+          --service-name ${{ env.APP_NAME }}-service \
+          --region ${{ env.AWS_REGION }} \
+          --query 'taskArns' \
+          --output text)
+        
+        if [ ! -z "$TASK_ARNS" ]; then
+          for task in $TASK_ARNS; do
+            echo "📋 Task details for: $task"
+            aws ecs describe-tasks \
+              --cluster ${{ env.APP_NAME }}-cluster \
+              --tasks $task \
+              --region ${{ env.AWS_REGION }}
+          done
+        fi
+        
+    - name: Wait for deployment to complete (with timeout)
+      run: |
+        echo "⏳ Waiting for ECS service to stabilize (max 10 minutes)..."
+        timeout 600 aws ecs wait services-stable \
+          --cluster ${{ env.APP_NAME }}-cluster \
+          --services ${{ env.APP_NAME }}-service \
+          --region ${{ env.AWS_REGION }} || {
+          echo "❌ Service failed to stabilize within 10 minutes"
+          echo "🔍 Final service status:"
+          aws ecs describe-services \
+            --cluster ${{ env.APP_NAME }}-cluster \
+            --services ${{ env.APP_NAME }}-service \
+            --region ${{ env.AWS_REGION }}
+          exit 1
+        }
           
     - name: Get application URL
       id: app-url
