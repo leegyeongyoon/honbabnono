@@ -52,9 +52,12 @@ COPY package*.json ./
 RUN npm cache clean --force && \
     npm install --production --verbose
 
-# 서버 코드 복사
-COPY server/ ./server/
+# 백엔드 서버 코드 복사
+COPY backend/ ./backend/
 COPY .env.production .env
+
+# 환경변수 파일이 없는 경우 기본값 생성
+RUN if [ ! -f .env ]; then echo "PORT=3001" > .env; fi
 
 # 빌드된 웹 파일들 복사
 COPY --from=build /app/dist /usr/share/nginx/html
