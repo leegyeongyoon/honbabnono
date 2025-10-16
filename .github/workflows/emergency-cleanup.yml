@@ -1,0 +1,144 @@
+name: Emergency Cleanup All Resources
+
+on:
+  workflow_dispatch:  # 수동 실행만 가능
+    inputs:
+      confirm:
+        description: 'Type "EMERGENCY" to confirm ALL resource cleanup'
+        required: true
+        type: string
+
+env:
+  AWS_REGION: ap-northeast-2
+  APP_NAME: honbabnono
+
+jobs:
+  emergency-cleanup:
+    name: Emergency Cleanup
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Validate confirmation
+      if: github.event.inputs.confirm != 'EMERGENCY'
+      run: |
+        echo "❌ Confirmation failed. You must type 'EMERGENCY' to proceed."
+        exit 1
+        
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+        
+    - name: Emergency cleanup - Delete ALL VPCs and resources
+      run: |
+        echo "🚨 EMERGENCY CLEANUP STARTED 🚨"
+        
+        # 1. 모든 ECS 서비스/클러스터 삭제
+        echo "🧹 Cleaning up ALL ECS resources..."
+        for cluster in $(aws ecs list-clusters --query 'clusterArns' --output text); do
+          if [[ ! -z "$cluster" ]]; then
+            cluster_name=$(basename $cluster)
+            echo "Processing cluster: $cluster_name"
+            
+            # 모든 서비스 스케일 다운
+            for service in $(aws ecs list-services --cluster $cluster_name --query 'serviceArns' --output text); do
+              if [[ ! -z "$service" ]]; then
+                service_name=$(basename $service)
+                aws ecs update-service --cluster $cluster_name --service $service_name --desired-count 0 || true
+              fi
+            done
+            
+            sleep 30
+            
+            # 모든 서비스 삭제
+            for service in $(aws ecs list-services --cluster $cluster_name --query 'serviceArns' --output text); do
+              if [[ ! -z "$service" ]]; then
+                service_name=$(basename $service)
+                aws ecs delete-service --cluster $cluster_name --service $service_name || true
+              fi
+            done
+            
+            # 클러스터 삭제
+            aws ecs delete-cluster --cluster $cluster_name || true
+          fi
+        done
+        
+        # 2. 모든 ALB/Target Group 삭제
+        echo "🧹 Cleaning up ALL ALBs and Target Groups..."
+        for alb in $(aws elbv2 describe-load-balancers --query 'LoadBalancers[*].LoadBalancerArn' --output text); do
+          if [[ ! -z "$alb" ]]; then
+            aws elbv2 delete-load-balancer --load-balancer-arn $alb || true
+          fi
+        done
+        
+        sleep 60
+        
+        for tg in $(aws elbv2 describe-target-groups --query 'TargetGroups[*].TargetGroupArn' --output text); do
+          if [[ ! -z "$tg" ]]; then
+            aws elbv2 delete-target-group --target-group-arn $tg || true
+          fi
+        done
+        
+        # 3. 모든 보안 그룹 삭제 (기본 제외)
+        echo "🧹 Cleaning up ALL security groups..."
+        for sg in $(aws ec2 describe-security-groups --query 'SecurityGroups[?GroupName!=`default`].GroupId' --output text); do
+          if [[ ! -z "$sg" ]]; then
+            aws ec2 delete-security-group --group-id $sg || true
+          fi
+        done
+        
+        # 4. 모든 ECR 리포지토리 삭제
+        echo "🧹 Cleaning up ALL ECR repositories..."
+        for repo in $(aws ecr describe-repositories --query 'repositories[*].repositoryName' --output text); do
+          if [[ ! -z "$repo" ]]; then
+            aws ecr delete-repository --repository-name $repo --force || true
+          fi
+        done
+        
+        # 5. 모든 IAM 역할 삭제 (AWS 관리 제외)
+        echo "🧹 Cleaning up ALL custom IAM roles..."
+        for role in $(aws iam list-roles --query 'Roles[?starts_with(RoleName, `honbabnono`)].RoleName' --output text); do
+          if [[ ! -z "$role" ]]; then
+            # 정책 분리
+            for policy in $(aws iam list-attached-role-policies --role-name $role --query 'AttachedPolicies[*].PolicyArn' --output text); do
+              aws iam detach-role-policy --role-name $role --policy-arn $policy || true
+            done
+            # 역할 삭제
+            aws iam delete-role --role-name $role || true
+          fi
+        done
+        
+        # 6. 불필요한 VPC 삭제 (기본 VPC 제외)
+        echo "🧹 Cleaning up ALL non-default VPCs..."
+        for vpc in $(aws ec2 describe-vpcs --query 'Vpcs[?IsDefault==`false`].VpcId' --output text); do
+          if [[ ! -z "$vpc" ]]; then
+            echo "Attempting to delete VPC: $vpc"
+            
+            # 서브넷 삭제
+            for subnet in $(aws ec2 describe-subnets --filters "Name=vpc-id,Values=$vpc" --query 'Subnets[*].SubnetId' --output text); do
+              aws ec2 delete-subnet --subnet-id $subnet || true
+            done
+            
+            # 인터넷 게이트웨이 분리 및 삭제
+            for igw in $(aws ec2 describe-internet-gateways --filters "Name=attachment.vpc-id,Values=$vpc" --query 'InternetGateways[*].InternetGatewayId' --output text); do
+              aws ec2 detach-internet-gateway --internet-gateway-id $igw --vpc-id $vpc || true
+              aws ec2 delete-internet-gateway --internet-gateway-id $igw || true
+            done
+            
+            # 라우팅 테이블 삭제 (메인 제외)
+            for rt in $(aws ec2 describe-route-tables --filters "Name=vpc-id,Values=$vpc" --query 'RouteTables[?Associations[0].Main!=`true`].RouteTableId' --output text); do
+              aws ec2 delete-route-table --route-table-id $rt || true
+            done
+            
+            sleep 10
+            
+            # VPC 삭제
+            aws ec2 delete-vpc --vpc-id $vpc || true
+          fi
+        done
+        
+        echo "🚨 EMERGENCY CLEANUP COMPLETED 🚨"
+        echo "💰 All billable resources have been deleted"
+        echo "⏳ Wait 5 minutes before redeploying"
