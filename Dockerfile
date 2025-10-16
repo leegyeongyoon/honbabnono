@@ -12,7 +12,7 @@ COPY package*.json ./
 
 # 의존성 설치 (production + server 의존성)
 RUN npm cache clean --force && \
-    npm ci --verbose
+    npm install --verbose
 
 # 빌드 스테이지
 FROM node:20-alpine AS build
@@ -27,7 +27,7 @@ COPY package*.json ./
 
 # npm 캐시 정리 및 의존성 설치
 RUN npm cache clean --force && \
-    npm install --frozen-lockfile --verbose
+    npm install --verbose
 
 # 소스 코드 복사
 COPY . .
@@ -50,7 +50,7 @@ WORKDIR /app
 # 프로덕션 의존성만 설치
 COPY package*.json ./
 RUN npm cache clean --force && \
-    npm ci --omit=dev --verbose
+    npm install --production --verbose
 
 # 서버 코드 복사
 COPY server/ ./server/
