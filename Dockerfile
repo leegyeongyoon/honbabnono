@@ -60,7 +60,7 @@ COPY .env.production .env
 COPY --from=build /app/dist /usr/share/nginx/html
 
 # nginx 설정 (API 프록시 포함)
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY nginx.conf /etc/nginx/nginx.conf
 
 # supervisor 설정 (nginx + Node.js 동시 실행)
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
