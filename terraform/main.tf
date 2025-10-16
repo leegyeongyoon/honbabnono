@@ -21,13 +21,17 @@ data "aws_availability_zones" "available" {
 
 # VPC와 서브넷은 default-vpc.tf에서 생성됨
 
-# ECS 클러스터
+# ECS 클러스터 (중복 방지)
 resource "aws_ecs_cluster" "main" {
   name = "${var.app_name}-cluster"
 
   setting {
     name  = "containerInsights"
     value = "enabled"
+  }
+
+  lifecycle {
+    ignore_changes = [name]  # 이름이 이미 존재해도 무시
   }
 
   tags = {
@@ -55,13 +59,17 @@ resource "aws_ecs_cluster_capacity_providers" "main" {
   }
 }
 
-# ECR 리포지토리
+# ECR 리포지토리 (중복 방지를 위해 lifecycle 사용)
 resource "aws_ecr_repository" "app" {
   name                 = "${var.app_name}-app"
   image_tag_mutability = "MUTABLE"
 
   image_scanning_configuration {
     scan_on_push = true
+  }
+
+  lifecycle {
+    ignore_changes = [name]  # 이름이 이미 존재해도 무시
   }
 
   tags = {
@@ -92,7 +100,7 @@ resource "aws_ecr_lifecycle_policy" "app" {
   })
 }
 
-# Application Load Balancer
+# Application Load Balancer (중복 방지)
 resource "aws_lb" "main" {
   name               = "${var.app_name}-alb"
   internal           = false
@@ -102,13 +110,17 @@ resource "aws_lb" "main" {
 
   enable_deletion_protection = false
 
+  lifecycle {
+    ignore_changes = [name]  # 이름이 이미 존재해도 무시
+  }
+
   tags = {
     Name        = "${var.app_name}-alb"
     Environment = var.environment
   }
 }
 
-# ALB 대상 그룹
+# ALB 대상 그룹 (중복 방지)
 resource "aws_lb_target_group" "app" {
   name        = "${var.app_name}-tg"
   port        = 80
@@ -126,6 +138,10 @@ resource "aws_lb_target_group" "app" {
     protocol            = "HTTP"
     timeout             = 30
     unhealthy_threshold = 5
+  }
+
+  lifecycle {
+    ignore_changes = [name]  # 이름이 이미 존재해도 무시
   }
 
   tags = {
@@ -146,9 +162,13 @@ resource "aws_lb_listener" "main" {
   }
 }
 
-# ECS 태스크 정의를 위한 IAM 역할
+# ECS 태스크 정의를 위한 IAM 역할 (중복 방지)
 resource "aws_iam_role" "ecs_task_execution_role" {
   name = "${var.app_name}-ecs-task-execution-role"
+
+  lifecycle {
+    ignore_changes = [name]  # 이름이 이미 존재해도 무시
+  }
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -175,9 +195,13 @@ resource "aws_iam_role_policy_attachment" "ecs_task_execution_role_policy" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 }
 
-# ECS 태스크 역할
+# ECS 태스크 역할 (중복 방지)
 resource "aws_iam_role" "ecs_task_role" {
   name = "${var.app_name}-ecs-task-role"
+
+  lifecycle {
+    ignore_changes = [name]  # 이름이 이미 존재해도 무시
+  }
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
