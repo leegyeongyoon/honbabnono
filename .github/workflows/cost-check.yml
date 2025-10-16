@@ -1,0 +1,73 @@
+name: Check AWS Costs
+
+on:
+  schedule:
+    - cron: '0 9 * * 1'  # 매주 월요일 오전 9시
+  workflow_dispatch:  # 수동 실행 가능
+
+env:
+  AWS_REGION: ap-northeast-2
+
+jobs:
+  cost-check:
+    name: Check AWS Costs
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+        
+    - name: Get current month costs
+      id: current-costs
+      run: |
+        START_DATE=$(date -d "$(date +%Y-%m-01)" +%Y-%m-%d)
+        END_DATE=$(date +%Y-%m-%d)
+        
+        COST=$(aws ce get-cost-and-usage \
+          --time-period Start=$START_DATE,End=$END_DATE \
+          --granularity MONTHLY \
+          --metrics BlendedCost \
+          --group-by Type=DIMENSION,Key=SERVICE \
+          --query 'ResultsByTime[0].Total.BlendedCost.Amount' \
+          --output text)
+        
+        echo "current_cost=$COST" >> $GITHUB_OUTPUT
+        
+    - name: Get last month costs
+      id: last-costs
+      run: |
+        LAST_MONTH_START=$(date -d "$(date +%Y-%m-01) -1 month" +%Y-%m-%d)
+        LAST_MONTH_END=$(date -d "$(date +%Y-%m-01) -1 day" +%Y-%m-%d)
+        
+        LAST_COST=$(aws ce get-cost-and-usage \
+          --time-period Start=$LAST_MONTH_START,End=$LAST_MONTH_END \
+          --granularity MONTHLY \
+          --metrics BlendedCost \
+          --query 'ResultsByTime[0].Total.BlendedCost.Amount' \
+          --output text)
+        
+        echo "last_cost=$LAST_COST" >> $GITHUB_OUTPUT
+        
+    - name: Cost analysis
+      run: |
+        echo "📊 AWS 비용 리포트"
+        echo "===================="
+        echo "💰 현재 월 비용: $$${{ steps.current-costs.outputs.current_cost }}"
+        echo "📈 지난 월 비용: $$${{ steps.last-costs.outputs.last_cost }}"
+        echo ""
+        echo "🎯 목표 월 비용: $26 (35,000원)"
+        echo ""
+        
+        CURRENT=$(echo "${{ steps.current-costs.outputs.current_cost }}" | cut -d. -f1)
+        if [ "$CURRENT" -gt 30 ]; then
+          echo "⚠️  비용이 목표치를 초과했습니다!"
+          echo "💡 비용 절감 방법:"
+          echo "   - ECS 서비스 스케일 다운: aws ecs update-service --desired-count 0"
+          echo "   - 불필요한 리소스 확인"
+        else
+          echo "✅ 비용이 목표 범위 내에 있습니다."
+        fi

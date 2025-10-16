@@ -18,6 +18,7 @@
     "@react-navigation/native-stack": "^7.3.28",
     "@react-navigation/stack": "^7.4.10",
     "dotenv": "^17.2.3",
+    "expo": "^54.0.13",
     "react": "19.1.1",
     "react-dom": "19.1.1",
     "react-native": "0.82.0",
