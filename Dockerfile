@@ -50,7 +50,7 @@ WORKDIR /app
 # 프로덕션 의존성만 설치
 COPY package*.json ./
 RUN npm cache clean --force && \
-    npm ci --only=production --verbose
+    npm ci --omit=dev --verbose
 
 # 서버 코드 복사
 COPY server/ ./server/
