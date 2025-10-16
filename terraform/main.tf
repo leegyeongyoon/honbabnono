@@ -283,11 +283,11 @@ resource "aws_ecs_task_definition" "app" {
         },
         {
           name  = "REACT_APP_API_URL"
-          value = "http://${aws_lb.main.dns_name}"
+          value = var.domain_name != "" ? "https://${var.domain_name}" : "http://${aws_lb.main.dns_name}"
         },
         {
           name  = "FRONTEND_URL"
-          value = "http://${aws_lb.main.dns_name}"
+          value = var.domain_name != "" ? "https://${var.domain_name}" : "http://${aws_lb.main.dns_name}"
         }
       ]
 

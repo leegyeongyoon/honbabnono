@@ -38,7 +38,7 @@ variable "app_count" {
 variable "domain_name" {
   description = "Domain name for the application (optional). Leave empty to use ALB DNS name only."
   type        = string
-  default     = ""
+  default     = "honbabnono.com"
   
   validation {
     condition = var.domain_name == "" || can(regex("^[a-z0-9.-]+\\.[a-z]{2,}$", var.domain_name))
