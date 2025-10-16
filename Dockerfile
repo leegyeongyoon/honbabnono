@@ -4,22 +4,30 @@ FROM node:20-alpine AS base
 # 작업 디렉토리 설정
 WORKDIR /app
 
+# 빌드에 필요한 도구들 설치
+RUN apk add --no-cache python3 make g++
+
 # package.json과 package-lock.json 복사
 COPY package*.json ./
 
 # 의존성 설치 (production + server 의존성)
-RUN npm ci
+RUN npm cache clean --force && \
+    npm ci --verbose
 
 # 빌드 스테이지
 FROM node:20-alpine AS build
 
 WORKDIR /app
 
+# 빌드에 필요한 도구들 설치
+RUN apk add --no-cache python3 make g++
+
 # package.json과 package-lock.json 복사
 COPY package*.json ./
 
-# 모든 의존성 설치 (devDependencies 포함)
-RUN npm ci
+# npm 캐시 정리 및 의존성 설치
+RUN npm cache clean --force && \
+    npm install --frozen-lockfile --verbose
 
 # 소스 코드 복사
 COPY . .
@@ -33,15 +41,16 @@ RUN npm run build:web
 # 프로덕션 스테이지 (Node.js + nginx)
 FROM node:20-alpine AS production
 
-# nginx 설치
-RUN apk add --no-cache nginx supervisor
+# nginx와 필요한 도구들 설치
+RUN apk add --no-cache nginx supervisor python3 make g++
 
 # 작업 디렉토리 설정
 WORKDIR /app
 
 # 프로덕션 의존성만 설치
 COPY package*.json ./
-RUN npm ci --only=production
+RUN npm cache clean --force && \
+    npm ci --only=production --verbose
 
 # 서버 코드 복사
 COPY server/ ./server/
