@@ -160,17 +160,17 @@ resource "aws_lb_target_group" "app" {
   }
 }
 
-# ALB 리스너
-resource "aws_lb_listener" "main" {
-  load_balancer_arn = aws_lb.main.arn
-  port              = "80"
-  protocol          = "HTTP"
-
-  default_action {
-    type             = "forward"
-    target_group_arn = aws_lb_target_group.app.arn
-  }
-}
+# ALB 리스너 (domain.tf의 redirect 리스너로 대체됨)
+# resource "aws_lb_listener" "main" {
+#   load_balancer_arn = aws_lb.main.arn
+#   port              = "80"
+#   protocol          = "HTTP"
+#
+#   default_action {
+#     type             = "forward"
+#     target_group_arn = aws_lb_target_group.app.arn
+#   }
+# }
 
 # ECS 태스크 정의를 위한 IAM 역할 (고유 이름으로 중복 방지)
 resource "aws_iam_role" "ecs_task_execution_role" {
@@ -343,7 +343,7 @@ resource "aws_ecs_service" "main" {
   # 헬스 체크 유예 기간 추가 (ALB 사용 시)
   health_check_grace_period_seconds = 300
 
-  depends_on = [aws_lb_listener.main, aws_iam_role_policy_attachment.ecs_task_execution_role_policy]
+  depends_on = [aws_iam_role_policy_attachment.ecs_task_execution_role_policy]
 
   tags = {
     Name        = "${local.resource_prefix}-service"

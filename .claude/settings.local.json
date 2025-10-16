@@ -32,7 +32,11 @@
       "Bash(chmod:*)",
       "Bash(git commit:*)",
       "Bash(sed:*)",
-      "Bash(aws ecs describe-tasks:*)"
+      "Bash(aws ecs describe-tasks:*)",
+      "Bash(aws route53 list-hosted-zones:*)",
+      "Bash(aws route53:*)",
+      "Bash(aws elbv2 create-listener:*)",
+      "Bash(aws elbv2 describe-listeners:*)"
     ],
     "deny": [],
     "ask": []

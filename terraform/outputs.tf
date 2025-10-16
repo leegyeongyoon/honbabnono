@@ -36,7 +36,7 @@ output "application_url" {
 
 output "ssl_certificate_arn" {
   description = "SSL certificate ARN (if domain configured)"
-  value       = var.domain_name != "" ? aws_acm_certificate.main[0].arn : "Not configured"
+  value       = var.domain_name != "" ? data.aws_acm_certificate.existing[0].arn : "Not configured"
 }
 
 output "hosted_zone_id" {
@@ -46,10 +46,10 @@ output "hosted_zone_id" {
 
 output "nameservers" {
   description = "Route 53 nameservers (configure these in your domain registrar)"
-  value       = var.domain_name != "" && !var.use_existing_hosted_zone ? aws_route53_zone.main[0].name_servers : "Not applicable"
+  value       = var.domain_name != "" ? data.aws_route53_zone.existing[0].name_servers : []
 }
 
 output "domain_setup_instructions" {
   description = "Instructions for domain setup"
-  value = var.domain_name != "" && !var.use_existing_hosted_zone ? "Configure these nameservers in your domain registrar: ${join(", ", aws_route53_zone.main[0].name_servers)}" : "No domain configured or using existing hosted zone"
+  value = var.domain_name != "" ? "Domain is already configured and managed" : "No domain configured"
 }
