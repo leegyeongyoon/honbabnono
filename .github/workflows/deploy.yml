@@ -31,19 +31,36 @@ jobs:
         terraform_version: 1.6.0
         terraform_wrapper: false
         
+    - name: Initialize Terraform and setup variables
+      run: |
+        cd terraform
+        
+        # Create terraform.tfvars if it doesn't exist
+        if [ ! -f terraform.tfvars ]; then
+          echo "Creating terraform.tfvars from example..."
+          cp terraform.tfvars.example terraform.tfvars
+        fi
+        
+        # Show the current configuration
+        echo "Current terraform.tfvars:"
+        cat terraform.tfvars
+        
+        terraform init
+        
     - name: Check if infrastructure exists
       id: check-infra
       run: |
         cd terraform
-        terraform init
-        if terraform show &>/dev/null; then
+        # Check if state file exists and has resources
+        if terraform show -json 2>/dev/null | jq -e '.values.root_module.resources | length > 0' &>/dev/null; then
           echo "exists=true" >> $GITHUB_OUTPUT
+          echo "Infrastructure already exists"
         else
           echo "exists=false" >> $GITHUB_OUTPUT
+          echo "No infrastructure found, will create new"
         fi
         
-    - name: Deploy infrastructure (if not exists)
-      if: steps.check-infra.outputs.exists == 'false'
+    - name: Deploy infrastructure
       run: |
         cd terraform
         terraform plan
@@ -53,8 +70,18 @@ jobs:
       id: ecr-url
       run: |
         cd terraform
-        ECR_URL=$(terraform output -raw ecr_repository_url)
-        echo "ecr_url=$ECR_URL" >> $GITHUB_OUTPUT
+        # Wait a moment for outputs to be available
+        sleep 10
+        
+        # Try to get ECR URL with error handling
+        if ECR_URL=$(terraform output -raw ecr_repository_url 2>/dev/null); then
+          echo "ecr_url=$ECR_URL" >> $GITHUB_OUTPUT
+          echo "✅ ECR URL: $ECR_URL"
+        else
+          echo "❌ Failed to get ECR URL, checking terraform state..."
+          terraform show
+          exit 1
+        fi
         
     - name: Login to Amazon ECR
       id: login-ecr
