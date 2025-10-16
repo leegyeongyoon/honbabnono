@@ -5,7 +5,7 @@ const axios = require('axios');
 const jwt = require('jsonwebtoken');
 
 // 환경변수 로드
-dotenv.config({ path: '../.env' });
+dotenv.config({ path: process.env.NODE_ENV === 'production' ? '/app/.env' : '../.env' });
 
 // 데이터베이스 및 모델 가져오기
 const { initDatabase, User } = require('./models');
