@@ -24,6 +24,9 @@ RUN npm ci
 # 소스 코드 복사
 COPY . .
 
+# 프로덕션 환경변수 복사
+COPY .env.production .env
+
 # 웹 버전 빌드
 RUN npm run build:web
 

@@ -80,3 +80,10 @@ yarn-error.log
 # Terraform
 terraform/.terraform/
 terraform/terraform.tfstate*
+
+# Environment variables (exclude development, include production)
+.env
+.env.local
+.env.development
+.env.test
+!.env.production

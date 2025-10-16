@@ -272,6 +272,22 @@ resource "aws_ecs_task_definition" "app" {
         {
           name  = "NODE_ENV"
           value = var.environment
+        },
+        {
+          name  = "PORT"
+          value = "80"
+        },
+        {
+          name  = "REACT_APP_ENV"
+          value = var.environment
+        },
+        {
+          name  = "REACT_APP_API_URL"
+          value = "http://${aws_lb.main.dns_name}"
+        },
+        {
+          name  = "FRONTEND_URL"
+          value = "http://${aws_lb.main.dns_name}"
         }
       ]
 
