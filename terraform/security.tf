@@ -2,7 +2,7 @@
 resource "aws_security_group" "alb" {
   name        = "${var.app_name}-alb-sg"
   description = "Security group for ALB"
-  vpc_id      = aws_vpc.main.id
+  vpc_id      = local.vpc_id
 
   ingress {
     from_port   = 80
@@ -38,7 +38,7 @@ resource "aws_security_group" "alb" {
 resource "aws_security_group" "ecs_tasks" {
   name        = "${var.app_name}-ecs-tasks-sg"
   description = "Security group for ECS tasks"
-  vpc_id      = aws_vpc.main.id
+  vpc_id      = local.vpc_id
 
   ingress {
     from_port       = 80
