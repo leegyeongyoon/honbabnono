@@ -43,7 +43,11 @@
       "Bash(aws logs describe-log-streams:*)",
       "Bash(aws ecs execute-command:*)",
       "Bash(aws ecs describe-task-definition:*)",
-      "Bash(aws logs get-log-events:*)"
+      "Bash(aws logs get-log-events:*)",
+      "Bash(aws ecr describe-images:*)",
+      "Bash(aws ecs stop-task:*)",
+      "Bash(aws ecr put-image:*)",
+      "Bash(aws ecs register-task-definition:*)"
     ],
     "deny": [],
     "ask": []
