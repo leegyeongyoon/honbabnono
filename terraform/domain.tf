@@ -21,6 +21,11 @@ data "aws_route53_zone" "existing" {
 # 실제 사용할 호스팅 존 (기존 것 사용)
 locals {
   hosted_zone_id = var.domain_name != "" ? data.aws_route53_zone.existing[0].zone_id : ""
+  # 리스너 의존성을 위한 로컬 값
+  listeners_ready = var.domain_name != "" ? [
+    aws_lb_listener.https[0],
+    aws_lb_listener.redirect[0]
+  ] : []
 }
 
 # SSL 인증서 (기존 것 사용)
