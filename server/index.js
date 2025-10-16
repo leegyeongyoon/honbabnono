@@ -9,6 +9,9 @@ dotenv.config();
 const app = express();
 const PORT = process.env.API_PORT || 3001;
 
+// Express Router 생성 (API base path용)
+const apiRouter = express.Router();
+
 // 미들웨어 설정
 app.use(cors({
   origin: process.env.CORS_ORIGIN || 'https://honbabnono.com',
@@ -17,8 +20,11 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// API 라우터를 /api 경로에 마운트
+app.use('/api', apiRouter);
+
 // 기본 라우터
-app.get('/api/health', (req, res) => {
+apiRouter.get('/health', (req, res) => {
   res.json({ 
     status: 'ok', 
     message: '혼밥시러 API 서버가 정상 동작 중입니다.',
@@ -26,9 +32,9 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// 카카오 로그인 라우트
-app.post('/api/auth/kakao', (req, res) => {
-  const { code } = req.body;
+// 카카오 로그인 라우트 (GET, POST 모두 지원)
+apiRouter.all('/auth/kakao', (req, res) => {
+  const { code } = req.method === 'GET' ? req.query : req.body;
   
   console.log('카카오 로그인 요청:', {
     code,
@@ -53,7 +59,7 @@ app.post('/api/auth/kakao', (req, res) => {
 });
 
 // 사용자 프로필 라우트
-app.get('/api/user/profile', (req, res) => {
+apiRouter.get('/user/profile', (req, res) => {
   // TODO: 사용자 인증 및 프로필 조회 로직
   res.json({
     id: 1,
@@ -64,7 +70,7 @@ app.get('/api/user/profile', (req, res) => {
 });
 
 // 밥 모임 관련 라우트
-app.get('/api/meetups', (req, res) => {
+apiRouter.get('/meetups', (req, res) => {
   // TODO: 밥 모임 목록 조회 로직
   res.json({
     meetups: [
@@ -88,7 +94,7 @@ app.get('/api/meetups', (req, res) => {
   });
 });
 
-app.post('/api/meetups', (req, res) => {
+apiRouter.post('/meetups', (req, res) => {
   const { title, location, datetime, maxParticipants } = req.body;
   
   // TODO: 밥 모임 생성 로직
@@ -106,8 +112,8 @@ app.post('/api/meetups', (req, res) => {
   });
 });
 
-// 404 에러 핸들러
-app.use('/api/*', (req, res) => {
+// 404 에러 핸들러 (API 라우터용)
+apiRouter.use('*', (req, res) => {
   res.status(404).json({
     error: 'API 엔드포인트를 찾을 수 없습니다.',
     path: req.path
