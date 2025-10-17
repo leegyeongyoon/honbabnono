@@ -11,7 +11,7 @@ import {
   TextInput,
   Modal,
 } from 'react-native';
-import { COLORS, SHADOWS } from '../styles/colors';
+import { COLORS, SHADOWS, LAYOUT } from '../styles/colors';
 import BabAlIndex from '../components/BabAlIndex';
 
 interface ProfileScreenProps {
@@ -271,7 +271,7 @@ const styles = StyleSheet.create({
   },
   scrollContainer: {
     flex: 1,
-    paddingTop: 78, // 고정 헤더 높이만큼 패딩 추가
+    paddingTop: LAYOUT.HEADER_HEIGHT + LAYOUT.CONTENT_TOP_MARGIN, // 고정 헤더 + 마진
   },
   profileHeader: {
     padding: 20,
@@ -527,9 +527,8 @@ const styles = StyleSheet.create({
     right: 0,
     zIndex: 1000,
     backgroundColor: '#ede0c8',
-    paddingTop: 8,
-    paddingBottom: 8,
-    paddingHorizontal: 20,
+    height: LAYOUT.HEADER_HEIGHT,
+    paddingHorizontal: LAYOUT.HEADER_PADDING_HORIZONTAL,
     borderBottomWidth: 1,
     borderBottomColor: '#ebe7dc',
     ...SHADOWS.small,
@@ -538,6 +537,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    height: '100%',
   },
   headerTitle: {
     fontSize: 18,

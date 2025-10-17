@@ -94,7 +94,12 @@ const WebTabNavigator = () => {
         navigateToMeetupDetail(params.meetupId);
       } else if (screenName === 'Chat') {
         navigateToChat(params.meetupId, params.meetupTitle);
+      } else if (screenName === 'Home') {
+        navigateBack();
       }
+    },
+    goBack: () => {
+      navigateBack();
     },
     navigateToSearch: () => {
       setActiveTab('Search');

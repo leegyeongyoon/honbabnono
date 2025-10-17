@@ -8,7 +8,7 @@ import {
   Image,
   FlatList,
 } from 'react-native';
-import { COLORS, SHADOWS } from '../styles/colors';
+import { COLORS, SHADOWS, LAYOUT } from '../styles/colors';
 import { TYPOGRAPHY } from '../styles/typography';
 import { Icon } from '../components/Icon';
 
@@ -145,28 +145,30 @@ const NotificationScreen: React.FC<NotificationScreenProps> = ({ navigation, use
     <View style={styles.container}>
       {/* 탭 버튼들 */}
       <View style={styles.tabsContainer}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          {tabs.map((tab) => (
-            <TouchableOpacity
-              key={tab}
-              style={[
-                styles.tabButton,
-                selectedTab === tab && styles.selectedTabButton
-              ]}
-              onPress={() => setSelectedTab(tab)}
-            >
-              <Text style={[
-                styles.tabButtonText,
-                selectedTab === tab && styles.selectedTabButtonText
-              ]}>
-                {tab}
-                {tab === '전체' && unreadCount > 0 && (
-                  <Text style={styles.tabBadge}> {unreadCount}</Text>
-                )}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
+        <View style={styles.tabsContent}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            {tabs.map((tab) => (
+              <TouchableOpacity
+                key={tab}
+                style={[
+                  styles.tabButton,
+                  selectedTab === tab && styles.selectedTabButton
+                ]}
+                onPress={() => setSelectedTab(tab)}
+              >
+                <Text style={[
+                  styles.tabButtonText,
+                  selectedTab === tab && styles.selectedTabButtonText
+                ]}>
+                  {tab}
+                  {tab === '전체' && unreadCount > 0 && (
+                    <Text style={styles.tabBadge}> {unreadCount}</Text>
+                  )}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
       </View>
 
       {/* 알림 목록 */}
@@ -194,11 +196,13 @@ const styles = StyleSheet.create({
   },
   tabsContainer: {
     backgroundColor: '#ede0c8',
-    paddingVertical: 8,
-    paddingTop: 8, // 상단 패딩 추가
-    paddingBottom: 8,
+    height: LAYOUT.HEADER_HEIGHT,
     borderBottomWidth: 1,
     borderBottomColor: '#ebe7dc',
+    justifyContent: 'center',
+  },
+  tabsContent: {
+    paddingHorizontal: 8,
   },
   tabButton: {
     paddingHorizontal: 16,

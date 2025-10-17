@@ -20,6 +20,7 @@ export type IconName =
   | 'more-horizontal'
   | 'chevron-down'
   | 'chevron-right'
+  | 'chevron-left'
   | 'home'
   | 'users';
 
@@ -49,6 +50,7 @@ const iconPaths = {
   'more-horizontal': 'M12 13a1 1 0 100-2 1 1 0 000 2zM19 13a1 1 0 100-2 1 1 0 000 2zM5 13a1 1 0 100-2 1 1 0 000 2z',
   'chevron-down': 'M6 9l6 6 6-6',
   'chevron-right': 'M9 18l6-6-6-6',
+  'chevron-left': 'M15 18l-6-6 6-6',
   'home': 'M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9zM9 22V12h6v10',
   'users': 'M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75'
 };
@@ -105,6 +107,7 @@ const SVGIcon: React.FC<{ path: string; size: number; color: string; style?: Vie
     'more-horizontal': '⋯',
     'chevron-down': '▼',
     'chevron-right': '▶',
+    'chevron-left': '◀',
     'home': '🏠',
     'users': '👥'
   };

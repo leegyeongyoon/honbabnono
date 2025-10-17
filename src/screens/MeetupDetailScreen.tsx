@@ -8,7 +8,8 @@ import {
   Image,
   Alert,
 } from 'react-native';
-import { COLORS, SHADOWS } from '../styles/colors';
+import { COLORS, SHADOWS, LAYOUT } from '../styles/colors';
+import { Icon } from '../components/Icon';
 import { useMeetups } from '../hooks/useMeetups';
 import BabAlIndex from '../components/BabAlIndex';
 import MealPreferenceSelector from '../components/MealPreferenceSelector';
@@ -42,6 +43,16 @@ interface MeetupDetailScreenProps {
 const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ route, navigation }) => {
   const meetupId = route?.params?.meetupId || 0;
   const { getMeetupById, joinMeetup, leaveMeetup, meetups } = useMeetups();
+  
+  const handleGoBack = () => {
+    if (navigation && navigation.goBack) {
+      navigation.goBack();
+    } else if (navigation && navigation.navigate) {
+      navigation.navigate('Home');
+    } else {
+      console.log('Navigation not available');
+    }
+  };
   const [isJoined, setIsJoined] = useState(false);
   
   // meetups가 변경될 때마다 최신 데이터를 가져오도록 함
@@ -142,9 +153,20 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ route, navigati
   };
 
   return (
-    <ScrollView style={styles.container}>
-      {/* 헤더 이미지 */}
-      <View style={styles.imageContainer}>
+    <View style={styles.container}>
+      {/* 헤더 */}
+      <View style={styles.header}>
+        <TouchableOpacity 
+          style={styles.backButton}
+          onPress={handleGoBack}
+        >
+          <Icon name="chevron-left" size={20} color={COLORS.text.white} />
+        </TouchableOpacity>
+      </View>
+
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+        {/* 헤더 이미지 */}
+        <View style={styles.imageContainer}>
         <Image 
           source={{ uri: meetupData.image || 'https://via.placeholder.com/400x200/F5CB76/ffffff?text=모임' }}
           style={styles.headerImage}
@@ -289,7 +311,8 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ route, navigati
           </Text>
         </TouchableOpacity>
       </View>
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 };
 
@@ -297,6 +320,36 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.neutral.background,
+  },
+  header: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
+    backgroundColor: '#ede0c8',
+    height: LAYOUT.HEADER_HEIGHT,
+    paddingHorizontal: LAYOUT.HEADER_PADDING_HORIZONTAL,
+    borderBottomWidth: 1,
+    borderBottomColor: '#ebe7dc',
+    ...SHADOWS.small,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'transparent',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 'auto',
+    marginBottom: 'auto',
+  },
+  scrollView: {
+    flex: 1,
+    paddingTop: LAYOUT.HEADER_HEIGHT, // 헤더 높이만큼 패딩 (이미지가 마진 역할)
+  },
+  scrollContent: {
+    paddingBottom: 20,
   },
   imageContainer: {
     position: 'relative',

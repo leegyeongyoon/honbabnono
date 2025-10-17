@@ -8,7 +8,7 @@ import {
   TextInput,
   FlatList,
 } from 'react-native';
-import { COLORS, SHADOWS } from '../styles/colors';
+import { COLORS, SHADOWS, LAYOUT } from '../styles/colors';
 import { TYPOGRAPHY } from '../styles/typography';
 import { Icon } from '../components/Icon';
 import { useMeetups } from '../hooks/useMeetups';
@@ -157,12 +157,12 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     zIndex: 1000,
-    paddingHorizontal: 20,
-    paddingTop: 8,
-    paddingBottom: 8,
+    height: LAYOUT.HEADER_HEIGHT,
+    paddingHorizontal: LAYOUT.HEADER_PADDING_HORIZONTAL,
     backgroundColor: '#ede0c8',
     borderBottomWidth: 1,
     borderBottomColor: '#ebe7dc',
+    justifyContent: 'center',
     ...SHADOWS.small,
   },
   searchInputContainer: {
@@ -186,7 +186,7 @@ const styles = StyleSheet.create({
   },
   filtersSection: {
     paddingVertical: 16,
-    paddingTop: 78, // 고정 검색바 높이만큼 패딩 추가
+    paddingTop: LAYOUT.HEADER_HEIGHT + LAYOUT.CONTENT_TOP_MARGIN, // 고정 검색바 + 마진
   },
   filterLabel: {
     ...TYPOGRAPHY.card.subtitle,

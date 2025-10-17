@@ -64,6 +64,14 @@ export const withOpacity = (color: string, opacity: number) => {
   return `${color}${Math.round(opacity * 255).toString(16).padStart(2, '0')}`;
 };
 
+// 레이아웃 상수
+export const LAYOUT = {
+  HEADER_HEIGHT: 72, // 고정 헤더 높이 (모든 화면 동일)
+  HEADER_PADDING_VERTICAL: 12, // 헤더 상하 패딩
+  HEADER_PADDING_HORIZONTAL: 20, // 헤더 좌우 패딩
+  CONTENT_TOP_MARGIN: 20, // 컨텐츠 상단 마진
+} as const;
+
 // 그림자 스타일
 export const SHADOWS = {
   small: {
