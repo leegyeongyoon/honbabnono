@@ -2,11 +2,12 @@ import React, {useState, useEffect} from 'react';
 import {View, Text, TouchableOpacity, StyleSheet} from 'react-native';
 import {COLORS, SHADOWS} from '../styles/colors';
 import HomeScreen from '../screens/HomeScreen.web';
-import SearchScreen from '../screens/SearchScreen';
-import ChatScreen from '../screens/ChatScreen';
+import SearchScreen from '../screens/SearchScreen.web';
+import NotificationScreen from '../screens/NotificationScreen.web';
 import MyPageScreen from '../screens/MyPageScreen';
-import LoginScreen from '../screens/LoginScreen';
+import LoginScreen from '../screens/LoginScreen.web';
 import MeetupDetailScreen from '../screens/MeetupDetailScreen';
+import ChatScreen from '../screens/ChatScreen';
 
 const WebTabNavigator = () => {
   const [activeTab, setActiveTab] = useState('Home');
@@ -18,7 +19,7 @@ const WebTabNavigator = () => {
   const tabs = [
     {key: 'Home', title: '홈', icon: '🏠', component: HomeScreen},
     {key: 'Search', title: '탐색', icon: '🔍', component: SearchScreen},
-    {key: 'Notifications', title: '알림', icon: '🔔', component: ChatScreen}, // 임시로 채팅 컴포넌트 사용
+    {key: 'Notifications', title: '알림', icon: '🔔', component: NotificationScreen},
     {key: 'MyPage', title: '마이페이지', icon: '👤', component: MyPageScreen},
   ];
 
@@ -139,44 +140,6 @@ const WebTabNavigator = () => {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        {currentScreen === 'login' ? (
-          <View style={styles.headerWithBack}>
-            <TouchableOpacity style={styles.backButton} onPress={navigateBack}>
-              <Text style={styles.backButtonText}>← 뒤로</Text>
-            </TouchableOpacity>
-            <Text style={styles.headerTitle}>로그인</Text>
-            <View style={styles.placeholder} />
-          </View>
-        ) : currentScreen === 'meetupDetail' ? (
-          <View style={styles.headerWithBack}>
-            <TouchableOpacity style={styles.backButton} onPress={navigateBack}>
-              <Text style={styles.backButtonText}>← 뒤로</Text>
-            </TouchableOpacity>
-            <Text style={styles.headerTitle}>모임 상세</Text>
-            <View style={styles.placeholder} />
-          </View>
-        ) : currentScreen === 'chat' ? (
-          <View style={styles.headerWithBack}>
-            <TouchableOpacity style={styles.backButton} onPress={navigateBack}>
-              <Text style={styles.backButtonText}>← 뒤로</Text>
-            </TouchableOpacity>
-            <Text style={styles.headerTitle}>모임 채팅</Text>
-            <View style={styles.placeholder} />
-          </View>
-        ) : (
-          <View style={styles.headerTitleContainer}>
-            <Text style={styles.headerTitle}>
-              {activeTab === 'Home' ? '🍚 혼밥시러' : tabs.find(tab => tab.key === activeTab)?.title}
-            </Text>
-            {activeTab === 'Home' && (
-              <Text style={styles.headerSubtitle}>🤝 따뜻한 사람들과 함께하는 맛있는 시간</Text>
-            )}
-          </View>
-        )}
-      </View>
-      
       {/* Screen Content */}
       <View style={styles.content}>
         {renderScreen()}
@@ -217,7 +180,6 @@ const WebTabNavigator = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.neutral.background,
   },
   header: {
     backgroundColor: COLORS.primary.main,
@@ -273,7 +235,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   activeTabItem: {
-    backgroundColor: COLORS.primary.light,
+    backgroundColor: '#ede0c8',
     ...SHADOWS.small,
   },
   tabIcon: {

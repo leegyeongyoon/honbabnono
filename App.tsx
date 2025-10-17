@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import {StatusBar, useColorScheme} from 'react-native';
+import {StatusBar, useColorScheme, StyleSheet, View} from 'react-native';
 import {NavigationContainer} from '@react-navigation/native';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import {SafeAreaProvider} from 'react-native-safe-area-context';
@@ -18,30 +18,43 @@ function App() {
   const isDarkMode = useColorScheme() === 'dark';
 
   return (
-    <SafeAreaProvider>
-      <StatusBar 
-        barStyle={isDarkMode ? 'light-content' : 'dark-content'}
-        backgroundColor="#fff"
-      />
-      <NavigationContainer ref={navigationRef}>
-        <Stack.Navigator initialRouteName="Main">
-          <Stack.Screen 
-            name="Main" 
-            component={TabNavigator} 
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen 
-            name="Login" 
-            component={LoginScreen}
-            options={{ 
-              title: '로그인',
-              headerBackTitle: '뒤로'
-            }}
-          />
-        </Stack.Navigator>
-      </NavigationContainer>
-    </SafeAreaProvider>
+    <View style={styles.container}>
+      <SafeAreaProvider style={styles.safeArea}>
+        <StatusBar 
+          barStyle={isDarkMode ? 'light-content' : 'dark-content'}
+          backgroundColor="#fff"
+        />
+        <NavigationContainer ref={navigationRef}>
+          <Stack.Navigator initialRouteName="Main">
+            <Stack.Screen 
+              name="Main" 
+              component={TabNavigator} 
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen 
+              name="Login" 
+              component={LoginScreen}
+              options={{ 
+                title: '로그인',
+                headerBackTitle: '뒤로'
+              }}
+            />
+          </Stack.Navigator>
+        </NavigationContainer>
+      </SafeAreaProvider>
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#ffffff',
+  },
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#ffffff',
+  },
+});
 
 export default App;

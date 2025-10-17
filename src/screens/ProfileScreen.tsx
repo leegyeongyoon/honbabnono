@@ -88,37 +88,39 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation, user, onLogou
   };
 
   return (
-    <ScrollView style={styles.container}>
-      {/* 프로필 헤더 */}
-      <View style={styles.profileHeader}>
-        <View style={styles.profileImageContainer}>
-          <Image source={{ uri: userProfile.profileImage }} style={styles.profileImage} />
-          {userProfile.isVerified && (
-            <View style={styles.verifiedBadge}>
-              <Text style={styles.verifiedText}>✅</Text>
-            </View>
-          )}
+    <View style={styles.container}>
+      {/* 고정 헤더 */}
+      <View style={styles.fixedHeader}>
+        <View style={styles.headerContent}>
+          <Text style={styles.headerTitle}>마이페이지</Text>
+          <TouchableOpacity style={styles.settingsButton}>
+            <Text style={styles.settingsIcon}>⚙️</Text>
+          </TouchableOpacity>
         </View>
-        
-        <View style={styles.profileInfo}>
-          <Text style={styles.userName}>{userProfile.name}</Text>
-          <Text style={styles.userEmail}>{userProfile.email}</Text>
-          <Text style={styles.userRating}>⭐ {userProfile.rating} · {userProfile.joinDate} 가입</Text>
+      </View>
+      
+      <ScrollView style={styles.scrollContainer}>
+        {/* 프로필 헤더 */}
+        <View style={styles.profileHeader}>
+          <View style={styles.profileImageContainer}>
+            <Image source={{ uri: userProfile.profileImage }} style={styles.profileImage} />
+            {userProfile.isVerified && (
+              <View style={styles.verifiedBadge}>
+                <Text style={styles.verifiedText}>✅</Text>
+              </View>
+            )}
+          </View>
+          
+          <View style={styles.profileInfo}>
+            <Text style={styles.userName}>{userProfile.name}</Text>
+            <Text style={styles.userEmail}>{userProfile.email}</Text>
+            <Text style={styles.userRating}>⭐ {userProfile.rating} · {userProfile.joinDate} 가입</Text>
+          </View>
+
+          <TouchableOpacity style={styles.editButton} onPress={handleEditProfile}>
+            <Text style={styles.editButtonText}>편집</Text>
+          </TouchableOpacity>
         </View>
-
-        <TouchableOpacity style={styles.editButton} onPress={handleEditProfile}>
-          <Text style={styles.editButtonText}>편집</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* 밥알지수 섹션 */}
-      <View style={styles.babAlSection}>
-        <BabAlIndex 
-          score={userProfile.babAlScore} 
-          showDetails={true}
-          size="medium"
-        />
-      </View>
 
       {/* 활동 통계 */}
       <View style={styles.statsSection}>
@@ -133,8 +135,8 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation, user, onLogou
         </View>
         <View style={styles.statDivider} />
         <View style={styles.statItem}>
-          <Text style={styles.statNumber}>{userProfile.rating}</Text>
-          <Text style={styles.statLabel}>평점</Text>
+          <Text style={styles.statNumber}>{userProfile.babAlScore}</Text>
+          <Text style={styles.statLabel}>밥알지수</Text>
         </View>
       </View>
 
@@ -258,21 +260,23 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation, user, onLogou
           </View>
         </View>
       </Modal>
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.neutral.background,
+  },
+  scrollContainer: {
+    flex: 1,
+    paddingTop: 78, // 고정 헤더 높이만큼 패딩 추가
   },
   profileHeader: {
-    backgroundColor: COLORS.neutral.white,
     padding: 20,
     flexDirection: 'row',
     alignItems: 'center',
-    ...SHADOWS.small,
   },
   profileImageContainer: {
     position: 'relative',
@@ -330,7 +334,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',
-    ...SHADOWS.small,
+    borderRadius: 8,
+    borderWidth: 0,
   },
   statItem: {
     alignItems: 'center',
@@ -355,7 +360,8 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.neutral.white,
     marginTop: 10,
     padding: 20,
-    ...SHADOWS.small,
+    borderRadius: 8,
+    borderWidth: 0,
   },
   sectionTitle: {
     fontSize: 18,
@@ -385,7 +391,8 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.neutral.white,
     marginTop: 10,
     padding: 20,
-    ...SHADOWS.small,
+    borderRadius: 8,
+    borderWidth: 0,
   },
   settingItem: {
     flexDirection: 'row',
@@ -410,7 +417,8 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.neutral.white,
     marginTop: 10,
     padding: 20,
-    ...SHADOWS.small,
+    borderRadius: 8,
+    borderWidth: 0,
   },
   menuItem: {
     flexDirection: 'row',
@@ -484,7 +492,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     width: '90%',
     maxWidth: 400,
-    ...SHADOWS.large,
+    borderWidth: 0,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -511,6 +519,36 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: COLORS.text.primary,
     fontWeight: 'bold',
+  },
+  fixedHeader: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 1000,
+    backgroundColor: '#ede0c8',
+    paddingTop: 8,
+    paddingBottom: 8,
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#ebe7dc',
+    ...SHADOWS.small,
+  },
+  headerContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: COLORS.text.primary,
+  },
+  settingsButton: {
+    padding: 8,
+  },
+  settingsIcon: {
+    fontSize: 20,
   },
   modalContent: {
     padding: 20,
