@@ -47,7 +47,16 @@
       "Bash(aws ecr describe-images:*)",
       "Bash(aws ecs stop-task:*)",
       "Bash(aws ecr put-image:*)",
-      "Bash(aws ecs register-task-definition:*)"
+      "Bash(aws ecs register-task-definition:*)",
+      "Bash(git log:*)",
+      "Bash(aws logs describe-log-groups:*)",
+      "Bash(psql:*)",
+      "Bash(PGPASSWORD=honbabnono psql -h honbabnono.c3iokeig2kd8.ap-northeast-2.rds.amazonaws.com -U postgres -d honbabnono -c \"SELECT version();\")",
+      "Bash(PGPASSWORD=honbabnono psql -h honbabnono.c3iokeig2kd8.ap-northeast-2.rds.amazonaws.com -U postgres -d postgres -c \"CREATE DATABASE honbabnono;\")",
+      "Bash(PGPASSWORD=honbabnono psql -h honbabnono.c3iokeig2kd8.ap-northeast-2.rds.amazonaws.com -U postgres -d honbabnono -c \"SELECT current_database();\")",
+      "Bash(echo:*)",
+      "Bash(cat:*)",
+      "WebFetch(domain:localhost)"
     ],
     "deny": [],
     "ask": []

@@ -238,24 +238,6 @@ apiRouter.post('/auth/kakao', async (req, res) => {
   }
 });
 
-// 사용자 프로필 조회 (인증 필요)
-apiRouter.get('/user/profile', authenticateToken, async (req, res) => {
-  try {
-    const user = await User.findByPk(req.user.userId, {
-      attributes: { exclude: ['password'] }
-    });
-
-    if (!user) {
-      return res.status(404).json({ error: '사용자를 찾을 수 없습니다' });
-    }
-
-    res.json({ user });
-  } catch (error) {
-    console.error('프로필 조회 오류:', error);
-    res.status(500).json({ error: '서버 오류가 발생했습니다' });
-  }
-});
-
 // JWT 토큰 검증 미들웨어
 const authenticateToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];
@@ -273,6 +255,24 @@ const authenticateToken = (req, res, next) => {
     next();
   });
 };
+
+// 사용자 프로필 조회 (인증 필요)
+apiRouter.get('/user/profile', authenticateToken, async (req, res) => {
+  try {
+    const user = await User.findByPk(req.user.userId, {
+      attributes: { exclude: ['password'] }
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: '사용자를 찾을 수 없습니다' });
+    }
+
+    res.json({ user });
+  } catch (error) {
+    console.error('프로필 조회 오류:', error);
+    res.status(500).json({ error: '서버 오류가 발생했습니다' });
+  }
+});
 
 // 밥 모임 목록 조회 (데이터베이스 연동)
 apiRouter.get('/meetups', async (req, res) => {
