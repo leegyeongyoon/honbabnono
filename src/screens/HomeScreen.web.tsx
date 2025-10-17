@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import {useTypedNavigation} from '../hooks/useWebNavigation';
 import {COLORS, SHADOWS} from '../styles/colors';
+import {TYPOGRAPHY} from '../styles/typography';
 import CreateMeetupScreen from './CreateMeetupScreen';
 import { useMeetups } from '../hooks/useMeetups';
 
@@ -248,16 +249,12 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   locationLabel: {
-    fontSize: 11,
+    ...TYPOGRAPHY.location.secondary,
     color: '#5f6368',
-    fontWeight: '400',
-    lineHeight: 14,
   },
   locationText: {
-    fontSize: 14,
-    fontWeight: '600',
+    ...TYPOGRAPHY.location.primary,
     color: '#202124',
-    lineHeight: 18,
   },
   locationArrow: {
     fontSize: 12,
@@ -341,10 +338,9 @@ const styles = StyleSheet.create({
     fontSize: 24,
   },
   categoryName: {
-    fontSize: 12,
+    ...TYPOGRAPHY.label,
     color: COLORS.text.primary,
     textAlign: 'center',
-    fontWeight: '500',
   },
   section: {
     marginBottom: 0,
@@ -358,14 +354,11 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: COLORS.text.primary,
+    ...TYPOGRAPHY.heading.h3,
   },
   moreButton: {
-    fontSize: 14,
+    ...TYPOGRAPHY.button.medium,
     color: COLORS.primary.main,
-    fontWeight: '500',
   },
   meetupCard: {
     backgroundColor: COLORS.neutral.white,
@@ -388,31 +381,28 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   meetupTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: COLORS.text.primary,
+    ...TYPOGRAPHY.card.title,
     marginBottom: 6,
-    lineHeight: 22,
   },
   meetupMeta: {
     flexDirection: 'row',
     gap: 12,
   },
   meetupLocation: {
-    fontSize: 12,
+    ...TYPOGRAPHY.card.meta,
     color: COLORS.text.secondary,
   },
   meetupTime: {
-    fontSize: 12,
+    ...TYPOGRAPHY.card.meta,
     color: COLORS.text.secondary,
   },
   meetupStatus: {
     alignItems: 'flex-end',
   },
   statusText: {
-    fontSize: 12,
+    ...TYPOGRAPHY.label,
     color: COLORS.primary.main,
-    fontWeight: 'bold',
+    fontWeight: '600',
     marginBottom: 4,
   },
   participantCount: {

@@ -9,6 +9,7 @@ import {
   FlatList,
 } from 'react-native';
 import { COLORS, SHADOWS } from '../styles/colors';
+import { TYPOGRAPHY } from '../styles/typography';
 
 interface NotificationScreenProps {
   navigation?: any;
@@ -268,22 +269,18 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   notificationTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: COLORS.text.primary,
+    ...TYPOGRAPHY.card.title,
     marginBottom: 4,
   },
   unreadTitle: {
     fontWeight: 'bold',
   },
   notificationMessage: {
-    fontSize: 14,
-    color: COLORS.text.secondary,
-    lineHeight: 20,
+    ...TYPOGRAPHY.body.medium,
     marginBottom: 8,
   },
   notificationTime: {
-    fontSize: 12,
+    ...TYPOGRAPHY.card.meta,
     color: COLORS.text.secondary,
   },
   unreadDot: {

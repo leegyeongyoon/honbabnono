@@ -9,6 +9,7 @@ import {
   FlatList,
 } from 'react-native';
 import { COLORS, SHADOWS } from '../styles/colors';
+import { TYPOGRAPHY } from '../styles/typography';
 import { useMeetups } from '../hooks/useMeetups';
 
 interface SearchScreenProps {
@@ -170,17 +171,15 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    fontSize: 16,
+    ...TYPOGRAPHY.input,
     color: '#202124',
-    fontWeight: '400',
   },
   filtersSection: {
     paddingVertical: 16,
     paddingTop: 78, // 고정 검색바 높이만큼 패딩 추가
   },
   filterLabel: {
-    fontSize: 14,
-    fontWeight: '600',
+    ...TYPOGRAPHY.card.subtitle,
     color: COLORS.text.primary,
     marginLeft: 16,
     marginBottom: 8,
