@@ -56,7 +56,8 @@
       "Bash(PGPASSWORD=honbabnono psql -h honbabnono.c3iokeig2kd8.ap-northeast-2.rds.amazonaws.com -U postgres -d honbabnono -c \"SELECT current_database();\")",
       "Bash(echo:*)",
       "Bash(cat:*)",
-      "WebFetch(domain:localhost)"
+      "WebFetch(domain:localhost)",
+      "Bash(npm uninstall:*)"
     ],
     "deny": [],
     "ask": []

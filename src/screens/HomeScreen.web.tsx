@@ -12,6 +12,7 @@ import {
 import {useTypedNavigation} from '../hooks/useWebNavigation';
 import {COLORS, SHADOWS} from '../styles/colors';
 import {TYPOGRAPHY} from '../styles/typography';
+import {Icon} from '../components/Icon';
 import CreateMeetupScreen from './CreateMeetupScreen';
 import { useMeetups } from '../hooks/useMeetups';
 
@@ -78,24 +79,24 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
         <View style={styles.headerContent}>
           <TouchableOpacity style={styles.locationButton} onPress={handleLocationChange}>
             <View style={styles.locationIconContainer}>
-              <Text style={styles.locationIcon}>📍</Text>
+              <Icon name="map-pin" size={16} color={COLORS.text.secondary} />
             </View>
             <View style={styles.locationTextContainer}>
               <Text style={styles.locationLabel}>현재 위치</Text>
               <Text style={styles.locationText}>{currentLocation}</Text>
             </View>
-            <Text style={styles.locationArrow}>▼</Text>
+            <Icon name="chevron-down" size={14} color={COLORS.text.secondary} />
           </TouchableOpacity>
           
           <View style={styles.headerIcons}>
             <TouchableOpacity style={styles.iconButton} onPress={() => navigation?.navigateToSearch()}>
               <View style={styles.iconContainer}>
-                <Text style={styles.searchIcon}>🔍</Text>
+                <Icon name="search" size={18} color={COLORS.text.secondary} />
               </View>
             </TouchableOpacity>
             <TouchableOpacity style={styles.iconButton} onPress={() => console.log('알림')}>
               <View style={styles.iconContainer}>
-                <Text style={styles.notificationIcon}>🔔</Text>
+                <Icon name="bell" size={18} color={COLORS.text.secondary} />
                 <View style={styles.notificationBadge}>
                   <Text style={styles.notificationCount}>3</Text>
                 </View>
@@ -143,8 +144,14 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
                 <View style={styles.meetupTitleSection}>
                   <Text style={styles.meetupTitle}>{meetup.title}</Text>
                   <View style={styles.meetupMeta}>
-                    <Text style={styles.meetupLocation}>📍 {meetup.location}</Text>
-                    <Text style={styles.meetupTime}>🕐 {meetup.date} {meetup.time}</Text>
+                    <View style={{flexDirection: 'row', alignItems: 'center', gap: 4}}>
+                      <Icon name="map-pin" size={11} color={COLORS.text.secondary} />
+                      <Text style={styles.meetupLocation}>{meetup.location}</Text>
+                    </View>
+                    <View style={{flexDirection: 'row', alignItems: 'center', gap: 4}}>
+                      <Icon name="clock" size={11} color={COLORS.text.secondary} />
+                      <Text style={styles.meetupTime}>{meetup.date} {meetup.time}</Text>
+                    </View>
                   </View>
                 </View>
                 <View style={styles.meetupStatus}>
@@ -159,7 +166,10 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
                     <Text style={styles.hostInitial}>{meetup.hostName.charAt(0)}</Text>
                   </View>
                   <Text style={styles.hostName}>{meetup.hostName}</Text>
-                  <Text style={styles.hostRating}>⭐ 4.8</Text>
+                  <View style={{flexDirection: 'row', alignItems: 'center', gap: 2}}>
+                    <Icon name="star" size={11} color={COLORS.functional.warning} />
+                    <Text style={styles.hostRating}>4.8</Text>
+                  </View>
                 </View>
                 <View style={styles.categoryBadge}>
                   <Text style={styles.categoryBadgeText}>{meetup.category}</Text>
@@ -175,7 +185,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
       style={styles.fab}
       onPress={() => setShowCreateMeetup(true)}
     >
-      <Text style={styles.fabIcon}>+</Text>
+      <Icon name="plus" size={24} color={COLORS.text.white} />
     </TouchableOpacity>
 
     {/* 모임 만들기 모달 */}

@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { COLORS, SHADOWS } from '../styles/colors';
 import { TYPOGRAPHY } from '../styles/typography';
+import { Icon } from '../components/Icon';
 
 interface NotificationScreenProps {
   navigation?: any;
@@ -75,10 +76,10 @@ const NotificationScreen: React.FC<NotificationScreenProps> = ({ navigation, use
 
   const getNotificationIcon = (type: string) => {
     switch (type) {
-      case 'meetup': return '🍽️';
-      case 'message': return '💬';
-      case 'system': return '📢';
-      default: return '🔔';
+      case 'meetup': return <Icon name="utensils" size={20} color={COLORS.primary.main} />;
+      case 'message': return <Icon name="message-circle" size={20} color={COLORS.functional.info} />;
+      case 'system': return <Icon name="megaphone" size={20} color={COLORS.functional.success} />;
+      default: return <Icon name="bell" size={20} color={COLORS.text.secondary} />;
     }
   };
 
@@ -118,9 +119,7 @@ const NotificationScreen: React.FC<NotificationScreenProps> = ({ navigation, use
       onPress={() => markAsRead(notification.id)}
     >
       <View style={styles.notificationIcon}>
-        <Text style={styles.notificationEmoji}>
-          {getNotificationIcon(notification.type)}
-        </Text>
+        {getNotificationIcon(notification.type)}
       </View>
       
       <View style={styles.notificationContent}>
@@ -180,7 +179,7 @@ const NotificationScreen: React.FC<NotificationScreenProps> = ({ navigation, use
         contentContainerStyle={styles.notificationsContainer}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>📭</Text>
+            <Icon name="mail-open" size={48} color={COLORS.text.tertiary} />
             <Text style={styles.emptyMessage}>알림이 없습니다</Text>
           </View>
         }

@@ -1,6 +1,7 @@
 import React, {useState, useEffect} from 'react';
 import {View, Text, TouchableOpacity, StyleSheet} from 'react-native';
 import {COLORS, SHADOWS} from '../styles/colors';
+import {Icon, IconName} from './Icon';
 import HomeScreen from '../screens/HomeScreen.web';
 import SearchScreen from '../screens/SearchScreen.web';
 import NotificationScreen from '../screens/NotificationScreen.web';
@@ -17,10 +18,10 @@ const WebTabNavigator = () => {
   const [user, setUser] = useState(null);
 
   const tabs = [
-    {key: 'Home', title: '홈', icon: '🏠', component: HomeScreen},
-    {key: 'Search', title: '탐색', icon: '🔍', component: SearchScreen},
-    {key: 'Notifications', title: '알림', icon: '🔔', component: NotificationScreen},
-    {key: 'MyPage', title: '마이페이지', icon: '👤', component: MyPageScreen},
+    {key: 'Home', title: '홈', icon: 'home' as IconName, component: HomeScreen},
+    {key: 'Search', title: '탐색', icon: 'search' as IconName, component: SearchScreen},
+    {key: 'Notifications', title: '알림', icon: 'bell' as IconName, component: NotificationScreen},
+    {key: 'MyPage', title: '마이페이지', icon: 'user' as IconName, component: MyPageScreen},
   ];
 
   // 로그인 상태 확인 (페이지 로드 시)
@@ -157,12 +158,16 @@ const WebTabNavigator = () => {
               ]}
               onPress={() => setActiveTab(tab.key)}
             >
-              <Text style={[
+              <View style={[
                 styles.tabIcon,
                 activeTab === tab.key && styles.activeTabIcon
               ]}>
-                {tab.icon}
-              </Text>
+                <Icon 
+                  name={tab.icon} 
+                  size={20} 
+                  color={activeTab === tab.key ? COLORS.text.white : COLORS.text.secondary}
+                />
+              </View>
               <Text style={[
                 styles.tabLabel,
                 activeTab === tab.key && styles.activeTabLabel

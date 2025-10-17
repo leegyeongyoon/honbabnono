@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { COLORS, SHADOWS } from '../styles/colors';
 import { TYPOGRAPHY } from '../styles/typography';
+import { Icon } from '../components/Icon';
 import { useMeetups } from '../hooks/useMeetups';
 
 interface SearchScreenProps {
@@ -67,8 +68,14 @@ const SearchScreen: React.FC<SearchScreenProps> = ({ navigation, user }) => {
         <View style={styles.meetupTitleSection}>
           <Text style={styles.meetupTitle} numberOfLines={2}>{meetup.title}</Text>
           <View style={styles.meetupMeta}>
-            <Text style={styles.meetupLocation}>📍 {meetup.location}</Text>
-            <Text style={styles.meetupTime}>🕐 {meetup.date} {meetup.time}</Text>
+            <View style={{flexDirection: 'row', alignItems: 'center', gap: 4}}>
+              <Icon name="map-pin" size={11} color={COLORS.text.secondary} />
+              <Text style={styles.meetupLocation}>{meetup.location}</Text>
+            </View>
+            <View style={{flexDirection: 'row', alignItems: 'center', gap: 4}}>
+              <Icon name="clock" size={11} color={COLORS.text.secondary} />
+              <Text style={styles.meetupTime}>{meetup.date} {meetup.time}</Text>
+            </View>
           </View>
         </View>
         <View style={styles.meetupStatus}>
@@ -83,7 +90,10 @@ const SearchScreen: React.FC<SearchScreenProps> = ({ navigation, user }) => {
             <Text style={styles.hostInitial}>{meetup.hostName.charAt(0)}</Text>
           </View>
           <Text style={styles.hostName}>{meetup.hostName}</Text>
-          <Text style={styles.hostRating}>⭐ 4.8</Text>
+          <View style={{flexDirection: 'row', alignItems: 'center', gap: 2}}>
+            <Icon name="star" size={11} color={COLORS.functional.warning} />
+            <Text style={styles.hostRating}>4.8</Text>
+          </View>
         </View>
         <View style={styles.categoryBadge}>
           <Text style={styles.categoryBadgeText}>{meetup.category}</Text>
@@ -97,7 +107,7 @@ const SearchScreen: React.FC<SearchScreenProps> = ({ navigation, user }) => {
       {/* 검색바 */}
       <View style={styles.searchContainer}>
         <View style={styles.searchInputContainer}>
-          <Text style={styles.searchIcon}>🔍</Text>
+          <Icon name="search" size={16} color="#5f6368" />
           <TextInput
             style={styles.searchInput}
             placeholder="모임 제목이나 장소를 검색해보세요"
