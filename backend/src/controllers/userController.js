@@ -51,110 +51,10 @@ const updateProfile = async (req, res) => {
   }
 };
 
-// 이메일 회원가입
-const register = async (req, res) => {
-  try {
-    const { email, password, name } = req.body;
+// 카카오 로그인 전용 앱이므로 기본 회원가입/로그인 제거
+// register와 login은 카카오 OAuth를 통해서만 가능
 
-    if (!email || !password || !name) {
-      return res.status(400).json({ error: '모든 필드를 입력해주세요' });
-    }
-
-    // 이미 존재하는 사용자 확인
-    const existingUser = await User.findOne({ where: { email } });
-    if (existingUser) {
-      return res.status(400).json({ error: '이미 존재하는 이메일입니다' });
-    }
-
-    // 비밀번호 해시화
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    // 사용자 생성
-    const user = await User.create({
-      email,
-      password: hashedPassword,
-      name,
-      provider: 'email'
-    });
-
-    // JWT 토큰 생성
-    const token = jwt.sign(
-      { userId: user.id, email: user.email, name: user.name },
-      process.env.JWT_SECRET || 'honbabnono_secret',
-      { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
-    );
-
-    res.status(201).json({
-      message: '회원가입이 완료되었습니다',
-      token,
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        profileImage: user.profileImage,
-        rating: user.rating,
-        meetupsJoined: user.meetupsJoined,
-        meetupsHosted: user.meetupsHosted,
-        babAlScore: user.babAlScore
-      }
-    });
-  } catch (error) {
-    console.error('회원가입 오류:', error);
-    res.status(500).json({ error: '서버 오류가 발생했습니다' });
-  }
-};
-
-// 이메일 로그인
-const login = async (req, res) => {
-  try {
-    const { email, password } = req.body;
-
-    if (!email || !password) {
-      return res.status(400).json({ error: '이메일과 비밀번호를 입력해주세요' });
-    }
-
-    // 사용자 찾기
-    const user = await User.findOne({ where: { email } });
-    if (!user) {
-      return res.status(401).json({ error: '잘못된 이메일 또는 비밀번호입니다' });
-    }
-
-    // 비밀번호 확인
-    if (user.provider === 'kakao') {
-      return res.status(400).json({ error: '카카오 로그인을 사용해주세요' });
-    }
-
-    const isValidPassword = await bcrypt.compare(password, user.password);
-    if (!isValidPassword) {
-      return res.status(401).json({ error: '잘못된 이메일 또는 비밀번호입니다' });
-    }
-
-    // JWT 토큰 생성
-    const token = jwt.sign(
-      { userId: user.id, email: user.email, name: user.name },
-      process.env.JWT_SECRET || 'honbabnono_secret',
-      { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
-    );
-
-    res.json({
-      message: '로그인 성공',
-      token,
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        profileImage: user.profileImage,
-        rating: user.rating,
-        meetupsJoined: user.meetupsJoined,
-        meetupsHosted: user.meetupsHosted,
-        babAlScore: user.babAlScore
-      }
-    });
-  } catch (error) {
-    console.error('로그인 오류:', error);
-    res.status(500).json({ error: '서버 오류가 발생했습니다' });
-  }
-};
+// 카카오 로그인은 main server(index.js)에서 처리됨
 
 // 사용자 목록 조회 (관리자용)
 const getUsers = async (req, res) => {
@@ -187,7 +87,6 @@ const getUsers = async (req, res) => {
 module.exports = {
   getProfile,
   updateProfile,
-  register,
-  login,
   getUsers
+  // register, login 제거됨 - 카카오 OAuth만 사용
 };

@@ -3,11 +3,8 @@ const router = express.Router();
 const userController = require('../controllers/userController');
 const authenticateToken = require('../middleware/auth');
 
-// 회원가입
-router.post('/register', userController.register);
-
-// 로그인
-router.post('/login', userController.login);
+// 카카오 로그인 전용 앱이므로 기본 회원가입/로그인 라우트 제거
+// 카카오 OAuth는 main server에서 처리됨
 
 // 프로필 조회 (인증 필요)
 router.get('/profile', authenticateToken, userController.getProfile);
