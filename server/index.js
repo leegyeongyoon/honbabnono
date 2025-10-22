@@ -6,12 +6,22 @@ const axios = require('axios');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const cookieParser = require('cookie-parser');
+const http = require('http');
+const { Server } = require('socket.io');
 const { initDatabase, User, Meetup, MeetupParticipant } = require('../backend/src/models/index');
 
 // 환경변수 로드
 dotenv.config();
 
 const app = express();
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: ['http://localhost:3000', 'https://honbabnono.com'],
+    methods: ['GET', 'POST'],
+    credentials: true
+  }
+});
 const PORT = process.env.API_PORT || 3001;
 
 // 카카오 OAuth 헬퍼 함수들
@@ -559,16 +569,46 @@ app.use((err, req, res, next) => {
   });
 });
 
+// Socket.IO 연결 처리
+io.on('connection', (socket) => {
+  console.log('📱 클라이언트 연결됨:', socket.id);
+  
+  // 사용자가 채팅방에 입장
+  socket.on('join-room', (roomId) => {
+    socket.join(roomId);
+    console.log(`👤 사용자가 채팅방 ${roomId}에 입장`);
+  });
+  
+  // 사용자가 채팅방에서 퇴장
+  socket.on('leave-room', (roomId) => {
+    socket.leave(roomId);
+    console.log(`👤 사용자가 채팅방 ${roomId}에서 퇴장`);
+  });
+  
+  // 메시지 전송
+  socket.on('send-message', (data) => {
+    console.log('💬 메시지 전송:', data);
+    // 해당 채팅방의 모든 클라이언트에게 메시지 브로드캐스트
+    io.to(data.roomId).emit('new-message', data);
+  });
+  
+  // 연결 해제
+  socket.on('disconnect', () => {
+    console.log('📱 클라이언트 연결 해제됨:', socket.id);
+  });
+});
+
 // 서버 시작
 const startServer = async () => {
   try {
     // 데이터베이스 초기화
     await initDatabase();
     
-    app.listen(PORT, '0.0.0.0', () => {
+    server.listen(PORT, '0.0.0.0', () => {
       console.log(`🚀 혼밥시러 API 서버가 포트 ${PORT}에서 실행 중입니다.`);
       console.log(`📍 Health check: http://localhost:${PORT}/api/health`);
       console.log(`🔑 Kakao login: http://localhost:${PORT}/api/auth/kakao/login`);
+      console.log(`📡 WebSocket 서버가 Socket.IO로 실행 중입니다.`);
     });
   } catch (error) {
     console.error('서버 시작 실패:', error);
