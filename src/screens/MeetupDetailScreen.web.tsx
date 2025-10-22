@@ -66,7 +66,7 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user }) => {
       setLoading(true);
       const token = localStorage.getItem('token');
       
-      const response = await fetch(`http://localhost:3001/api/meetups/${meetupId}`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:3001/api'}/meetups/${meetupId}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -94,7 +94,7 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user }) => {
     try {
       const token = localStorage.getItem('token');
       
-      const response = await fetch(`http://localhost:3001/api/meetups/${meetupId}/join`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:3001/api'}/meetups/${meetupId}/join`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
