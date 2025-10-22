@@ -40,7 +40,7 @@ const LoginScreen = () => {
 
   const handleKakaoLogin = () => {
     setLoading(true);
-    const kakaoAuthUrl = `${process.env.REACT_APP_API_URL || 'http://localhost:3001'}/api/auth/kakao/login`;
+    const kakaoAuthUrl = `${process.env.REACT_APP_API_URL || 'http://localhost:3001'}/auth/kakao`;
     window.location.href = kakaoAuthUrl;
   };
 
