@@ -400,6 +400,148 @@ apiRouter.post('/meetups', authenticateToken, async (req, res) => {
   }
 });
 
+// 모임 상세 조회 API
+apiRouter.get('/meetups/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const meetup = await Meetup.findByPk(id, {
+      include: [
+        {
+          model: User,
+          as: 'host',
+          attributes: ['id', 'name', 'profileImage', 'rating']
+        },
+        {
+          model: User,
+          as: 'participants',
+          attributes: ['id', 'name', 'profileImage'],
+          through: { attributes: ['status', 'joinedAt'] }
+        }
+      ]
+    });
+
+    if (!meetup) {
+      return res.status(404).json({ error: '모임을 찾을 수 없습니다' });
+    }
+
+    res.json({
+      success: true,
+      meetup
+    });
+  } catch (error) {
+    console.error('모임 상세 조회 오류:', error);
+    res.status(500).json({ error: '서버 오류가 발생했습니다' });
+  }
+});
+
+// 모임 참가 API
+apiRouter.post('/meetups/:id/join', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.userId;
+
+    // 모임 존재 확인
+    const meetup = await Meetup.findByPk(id);
+    if (!meetup) {
+      return res.status(404).json({ error: '모임을 찾을 수 없습니다' });
+    }
+
+    // 이미 참가했는지 확인
+    const existingParticipant = await MeetupParticipant.findOne({
+      where: { meetupId: id, userId }
+    });
+
+    if (existingParticipant) {
+      return res.status(400).json({ error: '이미 참가한 모임입니다' });
+    }
+
+    // 참가자 수 확인
+    if (meetup.currentParticipants >= meetup.maxParticipants) {
+      return res.status(400).json({ error: '모임이 가득찼습니다' });
+    }
+
+    // 참가자 추가
+    await MeetupParticipant.create({
+      meetupId: id,
+      userId,
+      status: '참가승인'
+    });
+
+    // 현재 참가자 수 업데이트
+    await meetup.increment('currentParticipants');
+
+    res.json({
+      success: true,
+      message: '모임 참가가 완료되었습니다'
+    });
+  } catch (error) {
+    console.error('모임 참가 오류:', error);
+    res.status(500).json({ error: '서버 오류가 발생했습니다' });
+  }
+});
+
+// 채팅방 목록 조회 API
+apiRouter.get('/chat/rooms', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    
+    // 임시 응답 (실제 채팅 시스템 구현 필요)
+    res.json({
+      success: true,
+      data: []
+    });
+  } catch (error) {
+    console.error('채팅방 목록 조회 오류:', error);
+    res.status(500).json({ error: '서버 오류가 발생했습니다' });
+  }
+});
+
+// 채팅 메시지 조회 API
+apiRouter.get('/chat/rooms/:id/messages', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // 임시 응답 (실제 채팅 시스템 구현 필요)
+    res.json({
+      success: true,
+      data: {
+        chatRoom: { id, title: '채팅방', participants: [] },
+        messages: []
+      }
+    });
+  } catch (error) {
+    console.error('채팅 메시지 조회 오류:', error);
+    res.status(500).json({ error: '서버 오류가 발생했습니다' });
+  }
+});
+
+// 채팅 메시지 전송 API
+apiRouter.post('/chat/rooms/:id/messages', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { message, senderId, senderName } = req.body;
+    
+    // 임시 응답 (실제 채팅 시스템 구현 필요)
+    res.json({
+      success: true,
+      data: {
+        id: Date.now(),
+        chatRoomId: id,
+        senderId,
+        senderName,
+        message,
+        timestamp: new Date().toISOString(),
+        isMe: true,
+        isRead: false
+      }
+    });
+  } catch (error) {
+    console.error('채팅 메시지 전송 오류:', error);
+    res.status(500).json({ error: '서버 오류가 발생했습니다' });
+  }
+});
+
 // 404 에러 핸들러 (API 라우터용)
 apiRouter.use('*', (req, res) => {
   res.status(404).json({
