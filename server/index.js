@@ -89,6 +89,22 @@ app.use(express.urlencoded({ extended: true }));
 // API 라우터를 /api 경로에 마운트
 app.use('/api', apiRouter);
 
+// 임시: /api 없는 요청을 /api로 리다이렉트 (하위 호환성을 위해)
+app.use('/meetups', (req, res) => {
+  console.log('⚠️  Legacy request without /api prefix, redirecting:', req.originalUrl);
+  res.redirect(301, `/api${req.originalUrl}`);
+});
+
+app.use('/auth', (req, res) => {
+  console.log('⚠️  Legacy auth request without /api prefix, redirecting:', req.originalUrl);
+  res.redirect(301, `/api${req.originalUrl}`);
+});
+
+app.use('/chat', (req, res) => {
+  console.log('⚠️  Legacy chat request without /api prefix, redirecting:', req.originalUrl);
+  res.redirect(301, `/api${req.originalUrl}`);
+});
+
 // 기본 라우터
 apiRouter.get('/health', (req, res) => {
   res.json({ 
@@ -266,14 +282,19 @@ const authenticateToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
 
+  console.log('🔐 토큰 검증 시작:', { authHeader: authHeader?.substring(0, 20) + '...', token: token?.substring(0, 20) + '...' });
+
   if (!token) {
+    console.log('❌ 토큰이 없습니다');
     return res.status(401).json({ error: '접근 토큰이 필요합니다' });
   }
 
   jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
     if (err) {
+      console.log('❌ 토큰 검증 실패:', err.message);
       return res.status(403).json({ error: '유효하지 않은 토큰입니다' });
     }
+    console.log('✅ 토큰 검증 성공:', { userId: user.id, email: user.email });
     req.user = { userId: user.id, email: user.email, name: user.name };
     next();
   });

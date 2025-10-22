@@ -1,7 +1,11 @@
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const webpack = require('webpack');
-require('dotenv').config();
+const dotenv = require('dotenv');
+
+// 환경변수 로드
+const env = dotenv.config().parsed || {};
+console.log('🔧 Loaded env vars:', env);
 
 module.exports = {
   mode: 'development',
@@ -41,10 +45,10 @@ module.exports = {
       inject: false,
     }),
     new webpack.DefinePlugin({
-      'process.env.REACT_APP_API_URL': JSON.stringify(process.env.REACT_APP_API_URL || 'http://localhost:3001/api'),
-      'process.env.REACT_APP_WS_URL': JSON.stringify(process.env.REACT_APP_WS_URL || 'http://localhost:3001'),
-      'process.env.REACT_APP_KAKAO_CLIENT_ID': JSON.stringify(process.env.REACT_APP_KAKAO_CLIENT_ID || '5a202bd90ab8dff01348f24cb1c37f3f'),
-      'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'development'),
+      'process.env.REACT_APP_API_URL': JSON.stringify(env.REACT_APP_API_URL || 'http://localhost:3001/api'),
+      'process.env.REACT_APP_WS_URL': JSON.stringify(env.REACT_APP_WS_URL || 'http://localhost:3001'),
+      'process.env.REACT_APP_KAKAO_CLIENT_ID': JSON.stringify(env.REACT_APP_KAKAO_CLIENT_ID || '5a202bd90ab8dff01348f24cb1c37f3f'),
+      'process.env.NODE_ENV': JSON.stringify(env.NODE_ENV || 'development'),
     }),
   ],
   devServer: {
@@ -54,6 +58,8 @@ module.exports = {
     port: 3000,
     hot: true,
     open: true,
-    historyApiFallback: true,
+    historyApiFallback: {
+      index: '/index.html'
+    },
   },
 };

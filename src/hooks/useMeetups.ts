@@ -8,7 +8,10 @@ export const useMeetups = () => {
   const fetchMeetups = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:3001/api'}/meetups`);
+      const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
+      console.log('🔍 Using API URL:', apiUrl);
+      console.log('🔍 ENV REACT_APP_API_URL:', process.env.REACT_APP_API_URL);
+      const response = await fetch(`${apiUrl}/meetups`);
       const data = await response.json();
       
       // 백엔드 데이터를 프론트엔드 형식에 맞게 변환
@@ -69,7 +72,7 @@ export const useMeetups = () => {
         throw new Error('로그인이 필요합니다');
       }
 
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:3001/api'}/meetups`, {
+      const response = await fetch(`http://localhost:3001/api/meetups`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
