@@ -72,7 +72,7 @@ export const useMeetups = () => {
         throw new Error('로그인이 필요합니다');
       }
 
-      const response = await fetch(`http://localhost:3001/api/meetups`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:3001/api'}/meetups`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
