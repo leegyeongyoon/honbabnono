@@ -28,7 +28,6 @@ const WebTabNavigator = () => {
   // 로그인 상태 확인 및 URL 라우팅 (페이지 로드 시)
   useEffect(() => {
     checkLoginStatus();
-    handleUrlChange();
     
     // 브라우저 뒤로가기/앞으로가기 처리
     const handlePopState = () => {
@@ -39,13 +38,48 @@ const WebTabNavigator = () => {
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
+  // 로그인 상태가 변경될 때마다 URL 처리
+  useEffect(() => {
+    handleUrlChange();
+  }, [isLoggedIn]);
+
   // URL 변경 처리
   const handleUrlChange = () => {
     const path = window.location.pathname;
     const urlParams = new URLSearchParams(window.location.search);
     
-    if (path === '/login') {
+    // 루트 경로 처리 - 로그인 상태에 따라 분기
+    if (path === '/') {
+      if (isLoggedIn) {
+        window.history.replaceState({}, '', '/home');
+        setCurrentScreen('tabs');
+        setActiveTab('Home');
+      } else {
+        window.history.replaceState({}, '', '/login');
+        setCurrentScreen('login');
+      }
+      return;
+    }
+    
+    // 로그인이 필요한 페이지들 - 로그인하지 않은 경우 로그인 페이지로 리다이렉트
+    const protectedPaths = ['/home', '/search', '/chat', '/mypage', '/create-meetup'];
+    const isProtectedPath = protectedPaths.includes(path) || path.startsWith('/meetup/') || path.startsWith('/chat/');
+    
+    if (isProtectedPath && !isLoggedIn) {
+      window.history.replaceState({}, '', '/login');
       setCurrentScreen('login');
+      return;
+    }
+    
+    if (path === '/login') {
+      // 이미 로그인된 경우 홈으로 리다이렉트
+      if (isLoggedIn) {
+        window.history.replaceState({}, '', '/home');
+        setCurrentScreen('tabs');
+        setActiveTab('Home');
+      } else {
+        setCurrentScreen('login');
+      }
     } else if (path.startsWith('/meetup/')) {
       const meetupId = parseInt(path.split('/')[2]);
       if (!isNaN(meetupId)) {
@@ -61,7 +95,7 @@ const WebTabNavigator = () => {
       }
     } else if (path === '/create-meetup') {
       setCurrentScreen('createMeetup');
-    } else if (path === '/home' || path === '/') {
+    } else if (path === '/home') {
       setCurrentScreen('tabs');
       setActiveTab('Home');
     } else if (path === '/search') {
@@ -109,6 +143,7 @@ const WebTabNavigator = () => {
     localStorage.removeItem('user');
     setIsLoggedIn(false);
     setUser(null);
+    window.history.pushState({}, '', '/login');
     setCurrentScreen('login');
   };
 

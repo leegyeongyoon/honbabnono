@@ -106,14 +106,26 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ navigation, rou
       if (response.ok) {
         Alert.alert(
           '참가 신청 완료!', 
-          '모임 참가 신청이 완료되었습니다. 호스트의 승인을 기다려주세요.',
+          '모임 참가 신청이 완료되었습니다. 모임 채팅방에 자동으로 참가되었어요!',
           [
             {
-              text: '확인',
+              text: '홈으로',
+              style: 'default',
               onPress: () => {
                 setShowJoinModal(false);
                 setJoinMessage('');
-                loadMeetupDetail(); // 새로고침
+                if (navigation) {
+                  navigation.navigate('Home');
+                }
+              }
+            },
+            {
+              text: '채팅방 가기',
+              style: 'default',
+              onPress: () => {
+                setShowJoinModal(false);
+                setJoinMessage('');
+                handleChatRoom();
               }
             }
           ]

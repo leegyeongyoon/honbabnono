@@ -10,6 +10,8 @@ import {
 } from 'react-native';
 import { COLORS, SHADOWS, LAYOUT } from '../styles/colors';
 import { Icon } from '../components/Icon';
+import Toast from '../components/Toast';
+import { useToast } from '../hooks/useToast';
 
 interface CreateMeetupScreenProps {
   navigation?: any;
@@ -31,6 +33,7 @@ const CreateMeetupScreen: React.FC<CreateMeetupScreenProps> = ({ navigation, use
   });
 
   const [loading, setLoading] = useState(false);
+  const { toast, showSuccess, showError, hideToast } = useToast();
 
   const categories = ['한식', '중식', '일식', '양식', '카페', '술집', '기타'];
   const priceRanges = ['1만원 이하', '1-2만원', '2-3만원', '3만원 이상'];
@@ -91,26 +94,22 @@ const CreateMeetupScreen: React.FC<CreateMeetupScreenProps> = ({ navigation, use
       const data = await response.json();
 
       if (response.ok) {
-        Alert.alert(
-          '모임 생성 완료!', 
-          '모임이 성공적으로 생성되었습니다. 모임 채팅방도 자동으로 생성되었어요!',
-          [
-            {
-              text: '확인',
-              onPress: () => {
-                if (navigation) {
-                  navigation.goBack();
-                }
-              }
-            }
-          ]
-        );
+        showSuccess('모임이 성공적으로 생성되었습니다! 🎉');
+        
+        // 3초 후 모임 상세 페이지로 이동
+        setTimeout(() => {
+          if (navigation && data.meetup?.id) {
+            navigation.navigate('MeetupDetail', { meetupId: data.meetup.id });
+          } else if (navigation) {
+            navigation.goBack();
+          }
+        }, 2000);
       } else {
-        Alert.alert('오류', data.error || '모임 생성에 실패했습니다.');
+        showError(data.error || '모임 생성에 실패했습니다.');
       }
     } catch (error) {
       console.error('모임 생성 오류:', error);
-      Alert.alert('오류', '서버 연결에 실패했습니다.');
+      showError('서버 연결에 실패했습니다.');
     } finally {
       setLoading(false);
     }
@@ -306,6 +305,13 @@ const CreateMeetupScreen: React.FC<CreateMeetupScreenProps> = ({ navigation, use
 
         <View style={{ height: 40 }} />
       </ScrollView>
+
+      <Toast
+        visible={toast.visible}
+        message={toast.message}
+        type={toast.type}
+        onHide={hideToast}
+      />
     </View>
   );
 };
