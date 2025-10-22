@@ -12,13 +12,15 @@ import { COLORS, SHADOWS, LAYOUT } from '../styles/colors';
 import { Icon } from '../components/Icon';
 import Toast from '../components/Toast';
 import { useToast } from '../hooks/useToast';
+import { useRouterNavigation } from '../components/RouterNavigation';
 
 interface CreateMeetupScreenProps {
   navigation?: any;
   user?: any;
 }
 
-const CreateMeetupScreen: React.FC<CreateMeetupScreenProps> = ({ navigation, user }) => {
+const CreateMeetupScreen: React.FC<CreateMeetupScreenProps> = ({ user }) => {
+  const navigation = useRouterNavigation();
   const [formData, setFormData] = useState({
     title: '',
     description: '',

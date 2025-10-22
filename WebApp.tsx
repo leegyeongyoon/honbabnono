@@ -1,7 +1,7 @@
 import React from 'react';
 import {StatusBar, useColorScheme} from 'react-native';
 import {SafeAreaProvider} from 'react-native-safe-area-context';
-import WebTabNavigator from './src/components/WebTabNavigator';
+import RouterApp from './src/components/RouterApp';
 
 function WebApp() {
   const isDarkMode = useColorScheme() === 'dark';
@@ -12,7 +12,7 @@ function WebApp() {
         barStyle={isDarkMode ? 'light-content' : 'dark-content'}
         backgroundColor="#fff"
       />
-      <WebTabNavigator />
+      <RouterApp />
     </SafeAreaProvider>
   );
 }

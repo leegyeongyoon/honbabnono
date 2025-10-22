@@ -9,8 +9,10 @@ import {
   TextInput,
   Modal,
 } from 'react-native';
+import { useParams } from 'react-router-dom';
 import { COLORS, SHADOWS, LAYOUT } from '../styles/colors';
 import { Icon } from '../components/Icon';
+import { useRouterNavigation } from '../components/RouterNavigation';
 
 interface MeetupDetailScreenProps {
   navigation?: any;
@@ -44,14 +46,16 @@ interface Meetup {
   }>;
 }
 
-const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ navigation, route, user }) => {
+const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user }) => {
+  const { id } = useParams<{ id: string }>();
+  const navigation = useRouterNavigation();
   const [meetup, setMeetup] = useState<Meetup | null>(null);
   const [loading, setLoading] = useState(true);
   const [joinLoading, setJoinLoading] = useState(false);
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [joinMessage, setJoinMessage] = useState('');
 
-  const meetupId = route?.params?.meetupId || '1'; // 임시로 1 사용
+  const meetupId = id || '1'; // URL 파라미터에서 가져오기
 
   useEffect(() => {
     loadMeetupDetail();

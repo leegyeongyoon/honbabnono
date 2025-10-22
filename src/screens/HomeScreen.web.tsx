@@ -9,7 +9,7 @@ import {
   Modal,
   Alert,
 } from 'react-native';
-import {useTypedNavigation} from '../hooks/useWebNavigation';
+import { useRouterNavigation } from '../components/RouterNavigation';
 import {COLORS, SHADOWS, LAYOUT} from '../styles/colors';
 import {TYPOGRAPHY} from '../styles/typography';
 import {Icon} from '../components/Icon';
@@ -22,7 +22,8 @@ interface HomeScreenProps {
   user?: any;
 }
 
-const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, user }) => {
+const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, user }) => {
+  const navigation = useRouterNavigation();
   const [showCreateMeetup, setShowCreateMeetup] = useState(false);
   const [currentLocation, setCurrentLocation] = useState('위치 설정');
   const { meetups } = useMeetups();
