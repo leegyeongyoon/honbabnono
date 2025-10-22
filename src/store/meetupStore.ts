@@ -1,7 +1,7 @@
 import { MealPreferences } from '../types/mealPreferences';
 
 export interface Meetup {
-  id: number;
+  id: string | number;
   title: string;
   description: string;
   category: string;

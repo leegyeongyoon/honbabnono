@@ -42,7 +42,7 @@ const LoginScreen = () => {
     setLoading(true);
     try {
       // Kakao OAuth2 로그인 URL로 리다이렉트
-      const kakaoAuthUrl = `${process.env.REACT_APP_API_URL || 'http://localhost:3001'}/auth/kakao`;
+      const kakaoAuthUrl = `${process.env.REACT_APP_API_URL || 'http://localhost:3001'}/api/auth/kakao`;
       
       if (Platform.OS === 'web') {
         window.location.href = kakaoAuthUrl;

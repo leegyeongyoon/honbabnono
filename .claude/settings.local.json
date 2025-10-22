@@ -57,7 +57,19 @@
       "Bash(echo:*)",
       "Bash(cat:*)",
       "WebFetch(domain:localhost)",
-      "Bash(npm uninstall:*)"
+      "Bash(npm uninstall:*)",
+      "Bash(npm run start:*)",
+      "Bash(PGPASSWORD=honbabnono psql -h honbabnono.c3iokeig2kd8.ap-northeast-2.rds.amazonaws.com -U postgres -d honbabnono -c \"SELECT current_database();\")",
+      "Bash(PGPASSWORD=honbabnono psql -h honbabnono.c3iokeig2kd8.ap-northeast-2.rds.amazonaws.com -U postgres -d honbabnono -c \"SELECT id, name, provider, provider_id FROM users LIMIT 5;\")",
+      "Bash(PGPASSWORD=honbabnono psql -h honbabnono.c3iokeig2kd8.ap-northeast-2.rds.amazonaws.com -U postgres -d honbabnono -c \"SELECT id, name, provider, provider_id FROM users;\")",
+      "Bash(PGPASSWORD=honbabnono psql -h honbabnono.c3iokeig2kd8.ap-northeast-2.rds.amazonaws.com -U postgres -d honbabnono -c \"INSERT INTO users (id, email, name, provider, provider_id, is_verified, created_at, updated_at) VALUES (''550e8400-e29b-41d4-a716-446655440001'', ''test@test.com'', ''테스트유저'', ''email'', ''test123'', true, NOW(), NOW()) RETURNING id, name;\")",
+      "Bash(PGPASSWORD=honbabnono psql -h honbabnono.c3iokeig2kd8.ap-northeast-2.rds.amazonaws.com -U postgres -d honbabnono -c \"SELECT m.title, m.current_participants, m.max_participants, mp.user_id, u.name, mp.status FROM meetups m JOIN meetup_participants mp ON m.id = mp.meetup_id JOIN users u ON mp.user_id = u.id WHERE m.id = ''d50df3ef-a221-4ad9-8bf6-9a36aeb7f8e1'';\")",
+      "Bash(PGPASSWORD=honbabnono psql -h honbabnono.c3iokeig2kd8.ap-northeast-2.rds.amazonaws.com -U postgres -d honbabnono -c \"\nDELETE FROM chat_participants WHERE \"\"userId\"\" = ''2393dc8f-fb30-41cb-8d1e-fb70e00695d9'';\nDELETE FROM meetup_participants WHERE user_id = ''2393dc8f-fb30-41cb-8d1e-fb70e00695d9'';\nDELETE FROM chat_rooms WHERE \"\"createdBy\"\" = ''2393dc8f-fb30-41cb-8d1e-fb70e00695d9'';\nDELETE FROM meetups WHERE host_id = ''2393dc8f-fb30-41cb-8d1e-fb70e00695d9'';\nDELETE FROM users WHERE id = ''2393dc8f-fb30-41cb-8d1e-fb70e00695d9'';\n\")",
+      "Bash(PGPASSWORD=honbabnono psql -h honbabnono.c3iokeig2kd8.ap-northeast-2.rds.amazonaws.com -U postgres -d honbabnono -c \"DELETE FROM meetups WHERE host_id = ''2393dc8f-fb30-41cb-8d1e-fb70e00695d9'';\")",
+      "Bash(PGPASSWORD=honbabnono psql -h honbabnono.c3iokeig2kd8.ap-northeast-2.rds.amazonaws.com -U postgres -d honbabnono -c \"SELECT id, title, location, date, time, category, status, host_id FROM meetups ORDER BY created_at DESC LIMIT 3;\")",
+      "Bash(PGPASSWORD=honbabnono psql -h honbabnono.c3iokeig2kd8.ap-northeast-2.rds.amazonaws.com -U postgres -d honbabnono -c \"\nINSERT INTO users (id, email, name, password, provider, provider_id, is_verified, created_at, updated_at) VALUES \n(''11111111-1111-1111-1111-111111111111'', ''test1@test.com'', ''테스트유저1'', ''password123'', ''email'', ''test1'', true, NOW(), NOW()),\n(''22222222-2222-2222-2222-222222222222'', ''test2@test.com'', ''테스트유저2'', ''password123'', ''email'', ''test2'', true, NOW(), NOW()),\n(''33333333-3333-3333-3333-333333333333'', ''test3@test.com'', ''테스트유저3'', ''password123'', ''email'', ''test3'', true, NOW(), NOW());\n\")",
+      "Bash(PGPASSWORD=honbabnono psql -h honbabnono.c3iokeig2kd8.ap-northeast-2.rds.amazonaws.com -U postgres -d honbabnono -c \"SELECT m.id, m.title, m.host_id, m.current_participants, m.max_participants, m.status FROM meetups m;\")",
+      "Bash(PGPASSWORD=honbabnono psql:*)"
     ],
     "deny": [],
     "ask": []

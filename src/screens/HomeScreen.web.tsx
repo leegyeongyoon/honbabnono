@@ -125,10 +125,10 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
           </View>
         </View>
 
-        {/* 활동이 활발한 모임 섹션 */}
+        {/* 가까운 모임 섹션 */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>활동이 활발한 모임</Text>
+            <Text style={styles.sectionTitle}>🏃‍♂️ 가까운 모임</Text>
             <TouchableOpacity onPress={() => navigation?.navigateToSearch()}>
               <Text style={styles.moreButton}>더보기 ›</Text>
             </TouchableOpacity>
@@ -177,6 +177,81 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
               </View>
             </TouchableOpacity>
           ))}
+        </View>
+
+        {/* 추천 모임 섹션 */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>✨ 추천 모임</Text>
+            <TouchableOpacity onPress={() => navigation?.navigateToSearch()}>
+              <Text style={styles.moreButton}>더보기 ›</Text>
+            </TouchableOpacity>
+          </View>
+          
+          {meetups.slice(0, 3).map((meetup) => (
+            <TouchableOpacity 
+              key={`rec-${meetup.id}`} 
+              style={styles.meetupCard}
+              onPress={() => navigation?.navigate('MeetupDetail', { meetupId: meetup.id })}
+            >
+              <View style={styles.meetupHeader}>
+                <View style={styles.meetupTitleSection}>
+                  <Text style={styles.meetupTitle}>{meetup.title}</Text>
+                  <View style={styles.meetupMeta}>
+                    <View style={{flexDirection: 'row', alignItems: 'center', gap: 4}}>
+                      <Icon name="map-pin" size={11} color={COLORS.text.secondary} />
+                      <Text style={styles.meetupLocation}>{meetup.location}</Text>
+                    </View>
+                    <View style={{flexDirection: 'row', alignItems: 'center', gap: 4}}>
+                      <Icon name="clock" size={11} color={COLORS.text.secondary} />
+                      <Text style={styles.meetupTime}>{meetup.date} {meetup.time}</Text>
+                    </View>
+                  </View>
+                </View>
+                <View style={styles.meetupStatus}>
+                  <Text style={styles.statusText}>모집중</Text>
+                  <Text style={styles.participantCount}>{meetup.currentParticipants}/{meetup.maxParticipants}</Text>
+                </View>
+              </View>
+              
+              <View style={styles.meetupFooter}>
+                <View style={styles.hostInfo}>
+                  <View style={styles.hostAvatar}>
+                    <Text style={styles.hostInitial}>{meetup.hostName.charAt(0)}</Text>
+                  </View>
+                  <Text style={styles.hostName}>{meetup.hostName}</Text>
+                  <View style={{flexDirection: 'row', alignItems: 'center', gap: 2}}>
+                    <Icon name="star" size={11} color={COLORS.functional.warning} />
+                    <Text style={styles.hostRating}>4.8</Text>
+                  </View>
+                </View>
+                <View style={styles.categoryBadge}>
+                  <Text style={styles.categoryBadgeText}>{meetup.category}</Text>
+                </View>
+              </View>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* 즐겨찾는 CTA 섹션 */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>⭐ 즐겨찾는 기능</Text>
+          </View>
+          
+          <View style={styles.ctaGrid}>
+            <TouchableOpacity style={styles.ctaCard} onPress={() => navigation?.navigateToSearch()}>
+              <Text style={styles.ctaIcon}>🔍</Text>
+              <Text style={styles.ctaTitle}>내 주변 검색</Text>
+              <Text style={styles.ctaDesc}>가까운 맛집과 모임을 찾아보세요</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity style={styles.ctaCard} onPress={() => setShowCreateMeetup(true)}>
+              <Text style={styles.ctaIcon}>➕</Text>
+              <Text style={styles.ctaTitle}>모임 만들기</Text>
+              <Text style={styles.ctaDesc}>새로운 모임을 생성해보세요</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </ScrollView>
 
@@ -504,6 +579,38 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: COLORS.text.primary,
     fontWeight: 'bold',
+  },
+  ctaGrid: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    gap: 12,
+  },
+  ctaCard: {
+    flex: 1,
+    backgroundColor: COLORS.neutral.white,
+    padding: 20,
+    borderRadius: 16,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#f0f0f0',
+    ...SHADOWS.small,
+  },
+  ctaIcon: {
+    fontSize: 32,
+    marginBottom: 12,
+  },
+  ctaTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+    marginBottom: 6,
+    textAlign: 'center',
+  },
+  ctaDesc: {
+    fontSize: 12,
+    color: COLORS.text.secondary,
+    textAlign: 'center',
+    lineHeight: 16,
   },
 });
 

@@ -10,7 +10,10 @@ const sequelize = new Sequelize({
   dialect: 'postgres',
   logging: process.env.NODE_ENV === 'development' ? console.log : false,
   dialectOptions: {
-    ssl: false, // 개발환경에서 SSL 비활성화
+    ssl: {
+      require: true,
+      rejectUnauthorized: false
+    }
   },
   pool: {
     max: 5,

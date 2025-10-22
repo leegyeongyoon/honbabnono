@@ -40,8 +40,35 @@ const LoginScreen = () => {
 
   const handleKakaoLogin = () => {
     setLoading(true);
-    const kakaoAuthUrl = `${process.env.REACT_APP_API_URL || 'http://localhost:3001'}/auth/kakao`;
+    const kakaoAuthUrl = `${process.env.REACT_APP_API_URL || 'http://localhost:3001'}/api/auth/kakao`;
     window.location.href = kakaoAuthUrl;
+  };
+
+  const handleTestLogin = async (email: string, password: string, name: string) => {
+    setLoading(true);
+    try {
+      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:3001'}/api/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('user', JSON.stringify(data.user));
+        Alert.alert('테스트 로그인 성공! 🎉', `${name}으로 로그인되었습니다.`);
+        window.location.href = '/';
+      } else {
+        Alert.alert('로그인 실패', '테스트 로그인에 실패했습니다.');
+      }
+    } catch (error) {
+      Alert.alert('로그인 실패', '서버 연결에 실패했습니다.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -84,6 +111,43 @@ const LoginScreen = () => {
               </Text>
             </View>
           </TouchableOpacity>
+
+          {/* 구분선 */}
+          <View style={styles.dividerContainer}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>또는</Text>
+            <View style={styles.dividerLine} />
+          </View>
+
+          {/* 테스트 로그인 버튼들 */}
+          <View style={styles.testLoginSection}>
+            <Text style={styles.testLoginTitle}>빠른 테스트 로그인</Text>
+            <View style={styles.testButtonsContainer}>
+              <TouchableOpacity
+                style={[styles.testButton, loading && styles.disabledButton]}
+                onPress={() => handleTestLogin('test1@test.com', 'password123', '테스트유저1')}
+                disabled={loading}
+              >
+                <Text style={styles.testButtonText}>👤 테스트유저1</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={[styles.testButton, loading && styles.disabledButton]}
+                onPress={() => handleTestLogin('test2@test.com', 'password123', '테스트유저2')}
+                disabled={loading}
+              >
+                <Text style={styles.testButtonText}>👤 테스트유저2</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={[styles.testButton, loading && styles.disabledButton]}
+                onPress={() => handleTestLogin('test3@test.com', 'password123', '테스트유저3')}
+                disabled={loading}
+              >
+                <Text style={styles.testButtonText}>👤 테스트유저3</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
 
           {/* 기능 소개 */}
           <View style={styles.featuresSection}>
@@ -256,6 +320,49 @@ const styles = StyleSheet.create({
   },
   disabledButton: {
     opacity: 0.6,
+  },
+  dividerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 24,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: COLORS.neutral.border,
+  },
+  dividerText: {
+    marginHorizontal: 16,
+    fontSize: 14,
+    color: COLORS.text.secondary,
+    fontWeight: '500',
+  },
+  testLoginSection: {
+    marginBottom: 32,
+  },
+  testLoginTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  testButtonsContainer: {
+    gap: 8,
+  },
+  testButton: {
+    backgroundColor: COLORS.neutral.background,
+    borderWidth: 1,
+    borderColor: COLORS.neutral.border,
+    borderRadius: 12,
+    padding: 14,
+    alignItems: 'center',
+    ...SHADOWS.small,
+  },
+  testButtonText: {
+    color: COLORS.text.primary,
+    fontSize: 15,
+    fontWeight: '600',
   },
   featuresSection: {
     marginBottom: 28,

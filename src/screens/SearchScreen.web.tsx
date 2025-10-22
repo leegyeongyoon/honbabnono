@@ -20,11 +20,14 @@ interface SearchScreenProps {
 
 const SearchScreen: React.FC<SearchScreenProps> = ({ navigation, user }) => {
   const [searchText, setSearchText] = useState('');
+  const [selectedTab, setSelectedTab] = useState('내주변모임');
   const [selectedCategory, setSelectedCategory] = useState('전체');
   const [selectedLocation, setSelectedLocation] = useState('전체');
   const [selectedSort, setSelectedSort] = useState('최신순');
   
   const { meetups } = useMeetups();
+  
+  const tabs = ['내주변모임', '맛집리스트', '필터링'];
 
   const categories = ['전체', '한식', '중식', '일식', '양식', '카페', '술집'];
   const locations = ['전체', '강남구', '서초구', '송파구', '마포구', '용산구'];
@@ -102,6 +105,87 @@ const SearchScreen: React.FC<SearchScreenProps> = ({ navigation, user }) => {
     </TouchableOpacity>
   );
 
+  const renderRestaurantItem = (restaurant: any) => (
+    <TouchableOpacity style={styles.restaurantCard}>
+      <View style={styles.restaurantHeader}>
+        <Text style={styles.restaurantName}>{restaurant.name}</Text>
+        <View style={styles.restaurantRating}>
+          <Icon name="star" size={12} color={COLORS.functional.warning} />
+          <Text style={styles.ratingText}>{restaurant.rating}</Text>
+        </View>
+      </View>
+      <Text style={styles.restaurantCategory}>{restaurant.category}</Text>
+      <View style={styles.restaurantMeta}>
+        <View style={{flexDirection: 'row', alignItems: 'center', gap: 4}}>
+          <Icon name="map-pin" size={11} color={COLORS.text.secondary} />
+          <Text style={styles.restaurantLocation}>{restaurant.location}</Text>
+        </View>
+        <View style={{flexDirection: 'row', alignItems: 'center', gap: 4}}>
+          <Icon name="clock" size={11} color={COLORS.text.secondary} />
+          <Text style={styles.restaurantHours}>{restaurant.hours}</Text>
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
+
+  const renderTabContent = () => {
+    switch (selectedTab) {
+      case '내주변모임':
+        return (
+          <FlatList
+            data={filteredMeetups}
+            keyExtractor={(item) => item.id.toString()}
+            renderItem={({ item }) => renderMeetupItem(item)}
+            style={styles.resultsList}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.resultsContainer}
+          />
+        );
+      
+      case '맛집리스트':
+        const restaurants = [
+          { id: 1, name: '맛있는 한식당', category: '한식', rating: 4.5, location: '강남구', hours: '11:00-22:00' },
+          { id: 2, name: '이탈리안 레스토랑', category: '양식', rating: 4.3, location: '서초구', hours: '12:00-23:00' },
+          { id: 3, name: '라멘 맛집', category: '일식', rating: 4.7, location: '송파구', hours: '11:30-21:30' },
+        ];
+        return (
+          <FlatList
+            data={restaurants}
+            keyExtractor={(item) => item.id.toString()}
+            renderItem={({ item }) => renderRestaurantItem(item)}
+            style={styles.resultsList}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.resultsContainer}
+          />
+        );
+      
+      case '필터링':
+        return (
+          <ScrollView style={styles.filterContent}>
+            <View style={styles.filterSection}>
+              <Text style={styles.filterSectionTitle}>상세 필터</Text>
+              
+              <Text style={styles.filterLabel}>카테고리</Text>
+              {renderTabButton('카테고리', selectedCategory, setSelectedCategory, categories)}
+              
+              <Text style={styles.filterLabel}>지역</Text>
+              {renderTabButton('지역', selectedLocation, setSelectedLocation, locations)}
+              
+              <Text style={styles.filterLabel}>정렬</Text>
+              {renderTabButton('정렬', selectedSort, setSelectedSort, sortOptions)}
+              
+              <TouchableOpacity style={styles.applyFilterButton}>
+                <Text style={styles.applyFilterText}>필터 적용</Text>
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
+        );
+      
+      default:
+        return null;
+    }
+  };
+
   return (
     <View style={styles.container}>
       {/* 검색바 */}
@@ -118,31 +202,35 @@ const SearchScreen: React.FC<SearchScreenProps> = ({ navigation, user }) => {
         </View>
       </View>
 
-      {/* 필터 탭들 */}
-      <View style={styles.filtersSection}>
-        <Text style={styles.filterLabel}>카테고리</Text>
-        {renderTabButton('카테고리', selectedCategory, setSelectedCategory, categories)}
-        
-        <Text style={styles.filterLabel}>지역</Text>
-        {renderTabButton('지역', selectedLocation, setSelectedLocation, locations)}
-        
-        <Text style={styles.filterLabel}>정렬</Text>
-        {renderTabButton('정렬', selectedSort, setSelectedSort, sortOptions)}
+      {/* 탭 네비게이션 */}
+      <View style={styles.tabNavigation}>
+        {tabs.map((tab) => (
+          <TouchableOpacity
+            key={tab}
+            style={[
+              styles.tabNavButton,
+              selectedTab === tab && styles.selectedTabNavButton
+            ]}
+            onPress={() => setSelectedTab(tab)}
+          >
+            <Text style={[
+              styles.tabNavButtonText,
+              selectedTab === tab && styles.selectedTabNavButtonText
+            ]}>
+              {tab}
+            </Text>
+          </TouchableOpacity>
+        ))}
       </View>
 
       {/* 검색 결과 */}
-      <View style={styles.resultsHeader}>
-        <Text style={styles.resultsCount}>총 {filteredMeetups.length}개의 모임</Text>
-      </View>
+      {selectedTab === '내주변모임' && (
+        <View style={styles.resultsHeader}>
+          <Text style={styles.resultsCount}>총 {filteredMeetups.length}개의 모임</Text>
+        </View>
+      )}
 
-      <FlatList
-        data={filteredMeetups}
-        keyExtractor={(item) => item.id.toString()}
-        renderItem={({ item }) => renderMeetupItem(item)}
-        style={styles.resultsList}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.resultsContainer}
-      />
+      {renderTabContent()}
     </View>
   );
 };
@@ -331,6 +419,105 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: COLORS.text.secondary,
     fontWeight: '500',
+  },
+  tabNavigation: {
+    flexDirection: 'row',
+    backgroundColor: COLORS.neutral.white,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+    paddingTop: LAYOUT.HEADER_HEIGHT + LAYOUT.CONTENT_TOP_MARGIN,
+  },
+  tabNavButton: {
+    flex: 1,
+    paddingVertical: 16,
+    alignItems: 'center',
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+  },
+  selectedTabNavButton: {
+    borderBottomColor: COLORS.primary.main,
+  },
+  tabNavButtonText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: COLORS.text.secondary,
+  },
+  selectedTabNavButtonText: {
+    color: COLORS.primary.main,
+    fontWeight: '600',
+  },
+  restaurantCard: {
+    backgroundColor: COLORS.neutral.white,
+    padding: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#f0f0f0',
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  restaurantHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  restaurantName: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: COLORS.text.primary,
+    flex: 1,
+  },
+  restaurantRating: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  ratingText: {
+    fontSize: 12,
+    color: COLORS.text.secondary,
+    fontWeight: '500',
+  },
+  restaurantCategory: {
+    fontSize: 12,
+    color: COLORS.primary.main,
+    fontWeight: '500',
+    marginBottom: 8,
+  },
+  restaurantMeta: {
+    flexDirection: 'row',
+    gap: 16,
+  },
+  restaurantLocation: {
+    fontSize: 12,
+    color: COLORS.text.secondary,
+  },
+  restaurantHours: {
+    fontSize: 12,
+    color: COLORS.text.secondary,
+  },
+  filterContent: {
+    flex: 1,
+  },
+  filterSection: {
+    padding: 16,
+  },
+  filterSectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: COLORS.text.primary,
+    marginBottom: 20,
+  },
+  applyFilterButton: {
+    backgroundColor: COLORS.primary.main,
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    marginTop: 20,
+    ...SHADOWS.medium,
+  },
+  applyFilterText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.text.white,
   },
 });
 

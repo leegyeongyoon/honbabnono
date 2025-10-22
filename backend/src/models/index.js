@@ -2,6 +2,9 @@ const { sequelize } = require('../config/database');
 const User = require('./User');
 const Meetup = require('./Meetup');
 const MeetupParticipant = require('./MeetupParticipant');
+const ChatRoom = require('./ChatRoom');
+const ChatMessage = require('./ChatMessage');
+const ChatParticipant = require('./ChatParticipant');
 
 // 모델 간 관계 설정
 // User와 Meetup 관계 (호스트)
@@ -39,6 +42,53 @@ MeetupParticipant.belongsTo(Meetup, {
   as: 'meetup' 
 });
 
+// 채팅 관련 관계 설정
+// ChatRoom과 Meetup 관계 (모임 채팅방)
+Meetup.hasOne(ChatRoom, {
+  foreignKey: 'meetupId',
+  as: 'chatRoom'
+});
+ChatRoom.belongsTo(Meetup, {
+  foreignKey: 'meetupId',
+  as: 'meetup'
+});
+
+// ChatRoom과 ChatMessage 관계 (일대다)
+ChatRoom.hasMany(ChatMessage, {
+  foreignKey: 'chatRoomId',
+  as: 'messages'
+});
+ChatMessage.belongsTo(ChatRoom, {
+  foreignKey: 'chatRoomId',
+  as: 'chatRoom'
+});
+
+// ChatRoom과 ChatParticipant 관계 (일대다)
+ChatRoom.hasMany(ChatParticipant, {
+  foreignKey: 'chatRoomId',
+  as: 'participants'
+});
+ChatParticipant.belongsTo(ChatRoom, {
+  foreignKey: 'chatRoomId',
+  as: 'chatRoom'
+});
+
+// ChatMessage 자기 참조 관계 (답장)
+ChatMessage.belongsTo(ChatMessage, {
+  foreignKey: 'replyToId',
+  as: 'replyTo'
+});
+ChatMessage.hasMany(ChatMessage, {
+  foreignKey: 'replyToId',
+  as: 'replies'
+});
+
+// ChatParticipant와 ChatMessage 관계 (마지막 읽은 메시지)
+ChatParticipant.belongsTo(ChatMessage, {
+  foreignKey: 'lastReadMessageId',
+  as: 'lastReadMessage'
+});
+
 // 데이터베이스 초기화 함수
 const initDatabase = async () => {
   try {
@@ -65,5 +115,8 @@ module.exports = {
   User,
   Meetup,
   MeetupParticipant,
+  ChatRoom,
+  ChatMessage,
+  ChatParticipant,
   initDatabase
 };

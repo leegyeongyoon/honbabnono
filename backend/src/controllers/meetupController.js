@@ -1,5 +1,69 @@
-const { Meetup, User, MeetupParticipant } = require('../models');
+const { Meetup, User, MeetupParticipant, ChatRoom, ChatParticipant } = require('../models');
 const { Op } = require('sequelize');
+
+// 채팅방 생성 헬퍼 함수 (DB 직접 사용)
+const createMeetupChatRoom = async (meetupId, title, hostId, hostName) => {
+  try {
+    // 채팅방 생성
+    const chatRoom = await ChatRoom.create({
+      type: 'meetup',
+      meetupId,
+      title: `${title} 모임 채팅`,
+      description: `${title} 모임의 단체 채팅방입니다.`,
+      isActive: true,
+      createdBy: hostId
+    });
+
+    // 호스트를 채팅방 참가자로 추가
+    await ChatParticipant.create({
+      chatRoomId: chatRoom.id,
+      userId: hostId,
+      userName: hostName || '호스트',
+      role: 'owner'
+    });
+
+    console.log(`✅ 모임 ${meetupId} 채팅방 생성 완료 (ID: ${chatRoom.id})`);
+    return chatRoom;
+  } catch (error) {
+    console.error('채팅방 생성 실패:', error);
+    // 채팅방 생성 실패해도 모임 생성은 계속 진행
+  }
+};
+
+// 채팅방에 사용자 추가 헬퍼 함수 (DB 직접 사용)
+const addUserToChatRoom = async (meetupId, userId, userName) => {
+  try {
+    // 모임 채팅방 찾기
+    const chatRoom = await ChatRoom.findOne({
+      where: { type: 'meetup', meetupId }
+    });
+
+    if (!chatRoom) {
+      console.error('모임 채팅방을 찾을 수 없습니다:', meetupId);
+      return;
+    }
+
+    // 이미 참가하고 있는지 확인
+    const existingParticipant = await ChatParticipant.findOne({
+      where: { chatRoomId: chatRoom.id, userId, isActive: true }
+    });
+
+    if (!existingParticipant) {
+      // 사용자를 채팅방에 추가
+      await ChatParticipant.create({
+        chatRoomId: chatRoom.id,
+        userId,
+        userName: userName || '참가자',
+        role: 'member'
+      });
+
+      console.log(`✅ 사용자 ${userId}를 모임 ${meetupId} 채팅방에 추가`);
+    }
+  } catch (error) {
+    console.error('채팅방 사용자 추가 실패:', error);
+    // 채팅방 사용자 추가 실패해도 참가 승인은 계속 진행
+  }
+};
 
 // 모임 생성
 const createMeetup = async (req, res) => {
@@ -54,6 +118,14 @@ const createMeetup = async (req, res) => {
 
     // 호스트의 주최 모임 수 증가
     await User.increment('meetupsHosted', { where: { id: hostId } });
+
+    // 호스트 정보 조회
+    const host = await User.findByPk(hostId, {
+      attributes: ['name']
+    });
+
+    // 모임 채팅방 자동 생성
+    await createMeetupChatRoom(meetup.id, title, hostId, host?.name);
 
     const createdMeetup = await Meetup.findByPk(meetup.id, {
       include: [
@@ -147,7 +219,7 @@ const getMeetupById = async (req, res) => {
           model: User,
           as: 'participants',
           through: {
-            where: { status: '참가승인' },
+            where: { status: ['참가신청', '참가승인'] },
             attributes: ['status', 'joinedAt']
           },
           attributes: ['id', 'name', 'profileImage', 'rating']
@@ -207,6 +279,43 @@ const joinMeetup = async (req, res) => {
       status: '참가신청'
     });
 
+    // 모임 채팅방에 자동으로 참가자 추가
+    try {
+      const chatRoom = await ChatRoom.findOne({
+        where: { 
+          meetupId: id,
+          type: 'meetup' 
+        }
+      });
+
+      if (chatRoom) {
+        const user = await User.findByPk(userId);
+        
+        // 이미 채팅방에 참가했는지 확인
+        const existingChatParticipant = await ChatParticipant.findOne({
+          where: {
+            chatRoomId: chatRoom.id,
+            userId: userId
+          }
+        });
+
+        if (!existingChatParticipant) {
+          await ChatParticipant.create({
+            chatRoomId: chatRoom.id,
+            userId: userId,
+            userName: user.name,
+            role: 'member',
+            joinedAt: new Date(),
+            isActive: true
+          });
+          console.log(`✅ 사용자 ${user.name}이 모임 채팅방 ${chatRoom.id}에 추가됨`);
+        }
+      }
+    } catch (chatError) {
+      console.error('채팅방 참가 중 오류:', chatError);
+      // 채팅방 추가 실패해도 모임 참가는 성공으로 처리
+    }
+
     res.status(201).json({
       message: '모임 참가 신청이 완료되었습니다',
       participant
@@ -251,6 +360,14 @@ const updateParticipantStatus = async (req, res) => {
     if (status === '참가승인') {
       await meetup.increment('currentParticipants');
       await User.increment('meetupsJoined', { where: { id: participant.userId } });
+
+      // 참가자 정보 조회
+      const participantUser = await User.findByPk(participant.userId, {
+        attributes: ['name']
+      });
+
+      // 모임 채팅방에 사용자 추가
+      await addUserToChatRoom(meetup.id, participant.userId, participantUser?.name);
 
       // 정원이 가득 찬 경우 모집 완료로 변경
       if (meetup.currentParticipants + 1 >= meetup.maxParticipants) {

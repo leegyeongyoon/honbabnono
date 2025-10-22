@@ -8,7 +8,8 @@ import NotificationScreen from '../screens/NotificationScreen.web';
 import MyPageScreen from '../screens/MyPageScreen';
 import LoginScreen from '../screens/LoginScreen.web';
 import MeetupDetailScreen from '../screens/MeetupDetailScreen';
-import ChatScreen from '../screens/ChatScreen';
+import CreateMeetupScreen from '../screens/CreateMeetupScreen.web';
+import ChatScreen from '../screens/ChatScreen.web';
 
 const WebTabNavigator = () => {
   const [activeTab, setActiveTab] = useState('Home');
@@ -19,15 +20,61 @@ const WebTabNavigator = () => {
 
   const tabs = [
     {key: 'Home', title: '홈', icon: 'home' as IconName, component: HomeScreen},
-    {key: 'Search', title: '탐색', icon: 'search' as IconName, component: SearchScreen},
-    {key: 'Notifications', title: '알림', icon: 'bell' as IconName, component: NotificationScreen},
+    {key: 'Search', title: '검색', icon: 'search' as IconName, component: SearchScreen},
+    {key: 'Chat', title: '채팅', icon: 'message-circle' as IconName, component: ChatScreen},
     {key: 'MyPage', title: '마이페이지', icon: 'user' as IconName, component: MyPageScreen},
   ];
 
-  // 로그인 상태 확인 (페이지 로드 시)
+  // 로그인 상태 확인 및 URL 라우팅 (페이지 로드 시)
   useEffect(() => {
     checkLoginStatus();
+    handleUrlChange();
+    
+    // 브라우저 뒤로가기/앞으로가기 처리
+    const handlePopState = () => {
+      handleUrlChange();
+    };
+    
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
   }, []);
+
+  // URL 변경 처리
+  const handleUrlChange = () => {
+    const path = window.location.pathname;
+    const urlParams = new URLSearchParams(window.location.search);
+    
+    if (path === '/login') {
+      setCurrentScreen('login');
+    } else if (path.startsWith('/meetup/')) {
+      const meetupId = parseInt(path.split('/')[2]);
+      if (!isNaN(meetupId)) {
+        setCurrentScreen('meetupDetail');
+        setScreenParams({ meetupId });
+      }
+    } else if (path.startsWith('/chat/')) {
+      const chatId = parseInt(path.split('/')[2]);
+      const meetupTitle = urlParams.get('title') || '채팅';
+      if (!isNaN(chatId)) {
+        setCurrentScreen('chat');
+        setScreenParams({ meetupId: chatId, meetupTitle });
+      }
+    } else if (path === '/create-meetup') {
+      setCurrentScreen('createMeetup');
+    } else if (path === '/home' || path === '/') {
+      setCurrentScreen('tabs');
+      setActiveTab('Home');
+    } else if (path === '/search') {
+      setCurrentScreen('tabs');
+      setActiveTab('Search');
+    } else if (path === '/chat') {
+      setCurrentScreen('tabs');
+      setActiveTab('Chat');
+    } else if (path === '/mypage') {
+      setCurrentScreen('tabs');
+      setActiveTab('MyPage');
+    }
+  };
 
   const checkLoginStatus = () => {
     // URL에서 토큰과 사용자 정보 확인 (카카오 로그인 후 리다이렉트)
@@ -65,24 +112,46 @@ const WebTabNavigator = () => {
     setCurrentScreen('login');
   };
 
-  // 네비게이션 함수들
+  // 네비게이션 함수들 (URL 변경 포함)
   const navigateToLogin = () => {
+    window.history.pushState({}, '', '/login');
     setCurrentScreen('login');
   };
 
   const navigateToMeetupDetail = (meetupId: number) => {
+    window.history.pushState({}, '', `/meetup/${meetupId}`);
     setCurrentScreen('meetupDetail');
     setScreenParams({ meetupId });
   };
 
   const navigateToChat = (meetupId: number, meetupTitle: string) => {
+    window.history.pushState({}, '', `/chat/${meetupId}?title=${encodeURIComponent(meetupTitle)}`);
     setCurrentScreen('chat');
     setScreenParams({ meetupId, meetupTitle });
   };
 
+  const navigateToCreateMeetup = () => {
+    window.history.pushState({}, '', '/create-meetup');
+    setCurrentScreen('createMeetup');
+    setScreenParams({});
+  };
+
   const navigateBack = () => {
+    window.history.pushState({}, '', '/home');
     setCurrentScreen('tabs');
     setScreenParams({});
+  };
+
+  const navigateToTab = (tabKey: string) => {
+    const paths = {
+      'Home': '/home',
+      'Search': '/search', 
+      'Chat': '/chat',
+      'MyPage': '/mypage'
+    };
+    window.history.pushState({}, '', paths[tabKey] || '/home');
+    setCurrentScreen('tabs');
+    setActiveTab(tabKey);
   };
 
   // 웹용 네비게이션 객체 생성
@@ -92,6 +161,8 @@ const WebTabNavigator = () => {
         navigateToLogin();
       } else if (screenName === 'MeetupDetail') {
         navigateToMeetupDetail(params.meetupId);
+      } else if (screenName === 'CreateMeetup') {
+        navigateToCreateMeetup();
       } else if (screenName === 'Chat') {
         navigateToChat(params.meetupId, params.meetupTitle);
       } else if (screenName === 'Home') {
@@ -114,7 +185,11 @@ const WebTabNavigator = () => {
     }
     
     if (currentScreen === 'meetupDetail') {
-      return <MeetupDetailScreen route={{ params: screenParams }} navigation={webNavigation} />;
+      return <MeetupDetailScreen route={{ params: screenParams }} navigation={webNavigation} user={user} />;
+    }
+    
+    if (currentScreen === 'createMeetup') {
+      return <CreateMeetupScreen navigation={webNavigation} user={user} />;
     }
     
     if (currentScreen === 'chat') {
@@ -133,6 +208,11 @@ const WebTabNavigator = () => {
     
     // SearchScreen에도 네비게이션 전달
     if (activeTab === 'Search') {
+      return <ScreenComponent navigation={webNavigation} user={user} />;
+    }
+    
+    // ChatScreen에 네비게이션 전달
+    if (activeTab === 'Chat') {
       return <ScreenComponent navigation={webNavigation} user={user} />;
     }
     
@@ -161,7 +241,7 @@ const WebTabNavigator = () => {
                 styles.tabItem,
                 activeTab === tab.key && styles.activeTabItem
               ]}
-              onPress={() => setActiveTab(tab.key)}
+              onPress={() => navigateToTab(tab.key)}
             >
               <View style={[
                 styles.tabIcon,
@@ -190,41 +270,6 @@ const WebTabNavigator = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  header: {
-    backgroundColor: COLORS.primary.main,
-    paddingVertical: 25,
-    paddingHorizontal: 20,
-    borderBottomWidth: 0,
-    alignItems: 'center',
-    borderTopLeftRadius: 0,
-    borderTopRightRadius: 0,
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
-    ...SHADOWS.large,
-  },
-  headerTitleContainer: {
-    alignItems: 'center',
-  },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: '900',
-    color: COLORS.text.white,
-    letterSpacing: -0.8,
-    textShadowColor: 'rgba(0, 0, 0, 0.3)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 4,
-  },
-  headerSubtitle: {
-    fontSize: 14,
-    color: COLORS.text.white,
-    opacity: 0.95,
-    marginTop: 4,
-    fontWeight: '600',
-    letterSpacing: -0.2,
-    textShadowColor: 'rgba(0, 0, 0, 0.2)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
   },
   content: {
     flex: 1,
@@ -263,25 +308,6 @@ const styles = StyleSheet.create({
   activeTabLabel: {
     color: COLORS.primary.dark,
     fontWeight: '600',
-  },
-  headerWithBack: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    width: '100%',
-  },
-  backButton: {
-    padding: 8,
-    borderRadius: 8,
-    backgroundColor: COLORS.secondary.light,
-  },
-  backButtonText: {
-    fontSize: 16,
-    color: COLORS.text.primary,
-    fontWeight: '500',
-  },
-  placeholder: {
-    width: 50,
   },
 });
 
