@@ -70,7 +70,7 @@ const apiRouter = express.Router();
 
 // 미들웨어 설정
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || 'https://honbabnono.com',
+  origin: ['http://localhost:3000', 'https://honbabnono.com'],
   credentials: true
 }));
 app.use(express.json());
@@ -89,6 +89,19 @@ apiRouter.get('/health', (req, res) => {
 });
 
 // 카카오 로그인 시작 (인증 페이지로 리다이렉트)
+apiRouter.get('/auth/kakao', (req, res) => {
+  const kakaoAuthUrl = `https://kauth.kakao.com/oauth/authorize?client_id=${process.env.KAKAO_CLIENT_ID}&redirect_uri=${encodeURIComponent(process.env.KAKAO_REDIRECT_URI)}&response_type=code`;
+  
+  console.log('카카오 로그인 시작:', {
+    clientId: process.env.KAKAO_CLIENT_ID,
+    redirectUri: process.env.KAKAO_REDIRECT_URI,
+    authUrl: kakaoAuthUrl
+  });
+  
+  res.redirect(kakaoAuthUrl);
+});
+
+// 카카오 로그인 시작 (레거시 경로)
 apiRouter.get('/auth/kakao/login', (req, res) => {
   const kakaoAuthUrl = `https://kauth.kakao.com/oauth/authorize?client_id=${process.env.KAKAO_CLIENT_ID}&redirect_uri=${encodeURIComponent(process.env.KAKAO_REDIRECT_URI)}&response_type=code`;
   
@@ -152,7 +165,7 @@ apiRouter.get('/auth/kakao/callback', async (req, res) => {
     const jwtToken = generateJWT(user);
     
     // 5. 프론트엔드로 토큰과 함께 리다이렉트
-    res.redirect(`/#/login?success=true&token=${jwtToken}&user=${encodeURIComponent(JSON.stringify({
+    res.redirect(`http://localhost:3000/login?success=true&token=${jwtToken}&user=${encodeURIComponent(JSON.stringify({
       id: user.id,
       name: user.name,
       email: user.email,
@@ -161,7 +174,7 @@ apiRouter.get('/auth/kakao/callback', async (req, res) => {
     
   } catch (error) {
     console.error('카카오 로그인 처리 실패:', error);
-    res.redirect('/#/login?error=kakao_login_failed');
+    res.redirect('http://localhost:3000/login?error=kakao_login_failed');
   }
 });
 
