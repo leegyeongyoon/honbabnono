@@ -44,6 +44,24 @@ const LoginScreen = () => {
     window.location.href = kakaoAuthUrl;
   };
 
+  const handleQuickLogin = () => {
+    setLoading(true);
+    // 테스트용 JWT 토큰과 사용자 정보 설정
+    const testToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIxMTExMTExMS0xMTExLTExMTEtMTExMS0xMTExMTExMTExMTEiLCJlbWFpbCI6InRlc3QxQHRlc3QuY29tIiwibmFtZSI6Iu2FjOyKpO2KuOycoOyggDEiLCJpYXQiOjE3NjEyMDM5MzcsImV4cCI6MTc2MTI5MDMzN30.IosszesySBCTu-1LPw82fQDpXn2FGIq7Nv7T78etaW0';
+    const testUser = {
+      id: '11111111-1111-1111-1111-111111111111',
+      name: '테스트유저1',
+      email: 'test1@test.com'
+    };
+    
+    localStorage.setItem('token', testToken);
+    localStorage.setItem('user', JSON.stringify(testUser));
+    
+    setTimeout(() => {
+      window.location.href = '/';
+    }, 500);
+  };
+
   const handleTestLogin = async (email: string, password: string, name: string) => {
     setLoading(true);
     try {
@@ -125,10 +143,10 @@ const LoginScreen = () => {
             <View style={styles.testButtonsContainer}>
               <TouchableOpacity
                 style={[styles.testButton, loading && styles.disabledButton]}
-                onPress={() => handleTestLogin('test1@test.com', 'password123', '테스트유저1')}
+                onPress={handleQuickLogin}
                 disabled={loading}
               >
-                <Text style={styles.testButtonText}>👤 테스트유저1</Text>
+                <Text style={styles.testButtonText}>🚀 빠른 로그인</Text>
               </TouchableOpacity>
               
               <TouchableOpacity

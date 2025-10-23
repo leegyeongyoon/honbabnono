@@ -52,17 +52,10 @@ const RouterApp: React.FC = () => {
       setIsLoggedIn(true);
       setUser(JSON.parse(storedUser));
     } else {
-      // 임시: 테스트용 기본 사용자 설정
-      console.log('Setting test user');
-      const testUser = {
-        id: '11111111-1111-1111-1111-111111111111',
-        name: '테스트유저1',
-        email: 'test1@test.com'
-      };
-      localStorage.setItem('token', 'test-token');
-      localStorage.setItem('user', JSON.stringify(testUser));
-      setIsLoggedIn(true);
-      setUser(testUser);
+      // 로그인되지 않은 상태
+      console.log('No credentials found, staying logged out');
+      setIsLoggedIn(false);
+      setUser(null);
     }
     
     setIsLoading(false);
