@@ -13,6 +13,9 @@ import { useParams } from 'react-router-dom';
 import { COLORS, SHADOWS, LAYOUT } from '../styles/colors';
 import { Icon } from '../components/Icon';
 import { useRouterNavigation } from '../components/RouterNavigation';
+import ReviewList from '../components/ReviewList';
+import ReviewForm from '../components/ReviewForm';
+import reviewApiService, { Review, ReviewStats } from '../services/reviewApiService';
 
 interface MeetupDetailScreenProps {
   navigation?: any;
@@ -54,11 +57,16 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user }) => {
   const [joinLoading, setJoinLoading] = useState(false);
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [joinMessage, setJoinMessage] = useState('');
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [reviewStats, setReviewStats] = useState<ReviewStats>({ averageRating: 0, totalReviews: 0 });
+  const [showReviewForm, setShowReviewForm] = useState(false);
+  const [reviewLoading, setReviewLoading] = useState(false);
 
   const meetupId = id || '1'; // URL 파라미터에서 가져오기
 
   useEffect(() => {
     loadMeetupDetail();
+    loadReviews();
   }, [meetupId]);
 
   const loadMeetupDetail = async () => {
@@ -84,6 +92,23 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user }) => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const loadReviews = async () => {
+    try {
+      setReviewLoading(true);
+      const response = await reviewApiService.getMeetupReviews(meetupId, 1, 10);
+      setReviews(response.reviews);
+      setReviewStats(response.stats);
+    } catch (error) {
+      console.error('리뷰 로드 실패:', error);
+    } finally {
+      setReviewLoading(false);
+    }
+  };
+
+  const handleReviewSubmitted = () => {
+    loadReviews(); // 리뷰 목록 새로고침
   };
 
   const handleJoinMeetup = async () => {
@@ -174,6 +199,13 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user }) => {
 
   const isParticipant = () => {
     return meetup && user && meetup.participants.some(p => p.id === user.id);
+  };
+
+  const canWriteReview = () => {
+    if (!meetup || !user) return false;
+    
+    // 모임이 완료되었고 참가자인 경우만 리뷰 작성 가능
+    return meetup.status === '완료' && isParticipant();
   };
 
   if (loading) {
@@ -306,6 +338,28 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user }) => {
           </View>
         </View>
 
+        {/* 리뷰 섹션 */}
+        <View style={styles.section}>
+          <View style={styles.reviewSectionHeader}>
+            <Text style={styles.sectionTitle}>리뷰</Text>
+            {canWriteReview() && (
+              <TouchableOpacity 
+                style={styles.writeReviewButton}
+                onPress={() => setShowReviewForm(true)}
+              >
+                <Icon name="edit" size={16} color={COLORS.primary.main} />
+                <Text style={styles.writeReviewText}>리뷰 작성</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+          
+          <ReviewList
+            reviews={reviews}
+            stats={reviewStats}
+            loading={reviewLoading}
+          />
+        </View>
+
         <View style={{ height: 100 }} />
       </ScrollView>
 
@@ -382,6 +436,17 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user }) => {
           </View>
         </View>
       </Modal>
+
+      {/* 리뷰 작성 모달 */}
+      {meetup && (
+        <ReviewForm
+          visible={showReviewForm}
+          onClose={() => setShowReviewForm(false)}
+          meetupId={meetupId}
+          meetupTitle={meetup.title}
+          onReviewSubmitted={handleReviewSubmitted}
+        />
+      )}
     </View>
   );
 };
@@ -677,6 +742,26 @@ const styles = StyleSheet.create({
     color: COLORS.text.white,
     fontSize: 16,
     fontWeight: '600',
+  },
+  reviewSectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  writeReviewButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.primary.light,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    gap: 4,
+  },
+  writeReviewText: {
+    fontSize: 14,
+    color: COLORS.primary.main,
+    fontWeight: '500',
   },
 });
 

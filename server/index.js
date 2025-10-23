@@ -339,8 +339,8 @@ const authenticateToken = (req, res, next) => {
       console.log('❌ 토큰 검증 실패:', err.message);
       return res.status(403).json({ error: '유효하지 않은 토큰입니다' });
     }
-    console.log('✅ 토큰 검증 성공:', { userId: user.id, email: user.email, url: req.originalUrl });
-    req.user = { userId: user.id, email: user.email, name: user.name };
+    console.log('✅ 토큰 검증 성공:', { userId: user.userId || user.id, email: user.email, url: req.originalUrl });
+    req.user = { userId: user.userId || user.id, email: user.email, name: user.name };
     next();
   });
 };
@@ -440,6 +440,27 @@ apiRouter.get('/meetups', async (req, res) => {
   } catch (error) {
     console.error('모임 목록 조회 오류:', error);
     res.status(500).json({ error: '서버 오류가 발생했습니다' });
+  }
+});
+
+// 로그아웃 API (토큰 무효화)
+apiRouter.post('/auth/logout', authenticateToken, async (req, res) => {
+  try {
+    console.log('🚪 로그아웃 요청:', { userId: req.user.userId, email: req.user.email });
+    
+    // 클라이언트 측에서 토큰을 삭제하도록 응답
+    res.json({
+      success: true,
+      message: '로그아웃 되었습니다.'
+    });
+    
+    console.log('✅ 로그아웃 완료:', { userId: req.user.userId });
+  } catch (error) {
+    console.error('❌ 로그아웃 실패:', error);
+    res.status(500).json({ 
+      success: false,
+      error: '로그아웃 처리 중 오류가 발생했습니다.' 
+    });
   }
 });
 
@@ -923,6 +944,615 @@ apiRouter.post('/chat/rooms/:id/messages', authenticateToken, async (req, res) =
   } catch (error) {
     console.error('채팅 메시지 전송 오류:', error);
     res.status(500).json({ error: '서버 오류가 발생했습니다' });
+  }
+});
+
+// ======================
+// 리뷰 API
+// ======================
+
+// 모임에 대한 리뷰 작성
+apiRouter.post('/meetups/:id/reviews', authenticateToken, async (req, res) => {
+  try {
+    const { id: meetupId } = req.params;
+    const { rating, comment, tags } = req.body;
+    const userId = req.user.userId;
+    
+    console.log('✍️ 리뷰 작성 요청:', { meetupId, userId, rating });
+    
+    if (!rating || rating < 1 || rating > 5) {
+      return res.status(400).json({ error: '평점은 1-5 사이의 값이어야 합니다' });
+    }
+    
+    // 모임 존재 확인
+    const meetupResult = await pool.query(`
+      SELECT id, title, host_id, date FROM meetups WHERE id = $1
+    `, [meetupId]);
+    
+    if (meetupResult.rows.length === 0) {
+      return res.status(404).json({ error: '모임을 찾을 수 없습니다' });
+    }
+    
+    const meetup = meetupResult.rows[0];
+    
+    // 모임이 완료되었는지 확인 (과거 날짜)
+    if (new Date(meetup.date) > new Date()) {
+      return res.status(400).json({ error: '완료된 모임에만 리뷰를 작성할 수 있습니다' });
+    }
+    
+    // 사용자가 해당 모임에 참가했는지 확인
+    const participantResult = await pool.query(`
+      SELECT id FROM meetup_participants 
+      WHERE meetup_id = $1 AND user_id = $2 AND status = '참가승인'
+    `, [meetupId, userId]);
+    
+    if (participantResult.rows.length === 0) {
+      return res.status(403).json({ error: '참가한 모임에만 리뷰를 작성할 수 있습니다' });
+    }
+    
+    // 이미 리뷰를 작성했는지 확인
+    const existingReviewResult = await pool.query(`
+      SELECT id FROM reviews WHERE meetup_id = $1 AND reviewer_id = $2
+    `, [meetupId, userId]);
+    
+    if (existingReviewResult.rows.length > 0) {
+      return res.status(400).json({ error: '이미 리뷰를 작성하셨습니다' });
+    }
+    
+    // 사용자 정보 조회
+    const userResult = await pool.query(`
+      SELECT name FROM users WHERE id = $1
+    `, [userId]);
+    
+    const reviewerName = userResult.rows[0]?.name || '익명';
+    
+    // 리뷰 저장
+    const reviewResult = await pool.query(`
+      INSERT INTO reviews (
+        meetup_id, reviewer_id, reviewer_name, rating, comment, tags, created_at, updated_at
+      ) VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
+      RETURNING id, meetup_id, reviewer_id, reviewer_name, rating, comment, tags, created_at
+    `, [meetupId, userId, reviewerName, rating, comment || '', JSON.stringify(tags || [])]);
+    
+    const review = reviewResult.rows[0];
+    
+    // 호스트의 평균 평점 업데이트
+    const avgRatingResult = await pool.query(`
+      SELECT AVG(r.rating) as avg_rating, COUNT(r.id) as review_count
+      FROM reviews r
+      JOIN meetups m ON r.meetup_id = m.id
+      WHERE m.host_id = $1
+    `, [meetup.host_id]);
+    
+    const avgRating = parseFloat(avgRatingResult.rows[0].avg_rating) || 0;
+    
+    await pool.query(`
+      UPDATE users 
+      SET rating = $1, updated_at = NOW()
+      WHERE id = $2
+    `, [avgRating, meetup.host_id]);
+    
+    console.log('✅ 리뷰 작성 완료:', { reviewId: review.id, rating, avgRating });
+    
+    res.status(201).json({
+      success: true,
+      data: {
+        ...review,
+        tags: JSON.parse(review.tags)
+      }
+    });
+  } catch (error) {
+    console.error('리뷰 작성 오류:', error);
+    res.status(500).json({ error: '서버 오류가 발생했습니다' });
+  }
+});
+
+// 모임의 리뷰 목록 조회
+apiRouter.get('/meetups/:id/reviews', async (req, res) => {
+  try {
+    const { id: meetupId } = req.params;
+    const { page = 1, limit = 10 } = req.query;
+    const offset = (page - 1) * limit;
+    
+    console.log('📝 리뷰 목록 조회 요청:', { meetupId, page, limit });
+    
+    // 리뷰 목록 조회
+    const reviewsResult = await pool.query(`
+      SELECT 
+        r.id,
+        r.meetup_id,
+        r.reviewer_id,
+        r.reviewer_name,
+        r.rating,
+        r.comment,
+        r.tags,
+        r.created_at,
+        u.profile_image as reviewer_profile_image
+      FROM reviews r
+      LEFT JOIN users u ON r.reviewer_id = u.id
+      WHERE r.meetup_id = $1
+      ORDER BY r.created_at DESC
+      LIMIT $2 OFFSET $3
+    `, [meetupId, parseInt(limit), parseInt(offset)]);
+    
+    // 총 개수 조회
+    const countResult = await pool.query(`
+      SELECT COUNT(*) as total FROM reviews WHERE meetup_id = $1
+    `, [meetupId]);
+    
+    // 평균 평점 계산
+    const avgRatingResult = await pool.query(`
+      SELECT 
+        AVG(rating) as avg_rating,
+        COUNT(*) as review_count
+      FROM reviews 
+      WHERE meetup_id = $1
+    `, [meetupId]);
+    
+    const reviews = reviewsResult.rows.map(review => ({
+      ...review,
+      tags: JSON.parse(review.tags || '[]')
+    }));
+    
+    const total = parseInt(countResult.rows[0].total);
+    const avgRating = parseFloat(avgRatingResult.rows[0].avg_rating) || 0;
+    const reviewCount = parseInt(avgRatingResult.rows[0].review_count);
+    
+    console.log('✅ 리뷰 목록 조회 성공:', { count: reviews.length, avgRating, reviewCount });
+    
+    res.json({
+      success: true,
+      data: {
+        reviews,
+        stats: {
+          averageRating: avgRating,
+          totalReviews: reviewCount
+        },
+        pagination: {
+          total,
+          page: parseInt(page),
+          limit: parseInt(limit),
+          totalPages: Math.ceil(total / limit)
+        }
+      }
+    });
+  } catch (error) {
+    console.error('리뷰 목록 조회 오류:', error);
+    res.status(500).json({ error: '서버 오류가 발생했습니다' });
+  }
+});
+
+// 사용자가 작성한 리뷰 목록 조회
+apiRouter.get('/user/reviews', authenticateToken, async (req, res) => {
+  try {
+    const { page = 1, limit = 10 } = req.query;
+    const offset = (page - 1) * limit;
+    const userId = req.user.userId;
+    
+    console.log('👤 사용자 리뷰 목록 조회 요청:', { userId, page, limit });
+    
+    // 사용자가 작성한 리뷰 목록 조회
+    const reviewsResult = await pool.query(`
+      SELECT 
+        r.id,
+        r.meetup_id,
+        r.rating,
+        r.comment,
+        r.tags,
+        r.created_at,
+        m.title as meetup_title,
+        m.date as meetup_date,
+        m.location as meetup_location,
+        m.category as meetup_category
+      FROM reviews r
+      JOIN meetups m ON r.meetup_id = m.id
+      WHERE r.reviewer_id = $1
+      ORDER BY r.created_at DESC
+      LIMIT $2 OFFSET $3
+    `, [userId, parseInt(limit), parseInt(offset)]);
+    
+    // 총 개수 조회
+    const countResult = await pool.query(`
+      SELECT COUNT(*) as total FROM reviews WHERE reviewer_id = $1
+    `, [userId]);
+    
+    const reviews = reviewsResult.rows.map(review => ({
+      ...review,
+      tags: JSON.parse(review.tags || '[]')
+    }));
+    
+    const total = parseInt(countResult.rows[0].total);
+    
+    console.log('✅ 사용자 리뷰 목록 조회 성공:', { count: reviews.length, total });
+    
+    res.json({
+      success: true,
+      data: reviews,
+      pagination: {
+        total,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        totalPages: Math.ceil(total / limit)
+      }
+    });
+  } catch (error) {
+    console.error('사용자 리뷰 목록 조회 오류:', error);
+    res.status(500).json({ error: '서버 오류가 발생했습니다' });
+  }
+});
+
+// ======================
+// 내활동 API
+// ======================
+
+// 내가 호스팅한 모임 목록 조회
+apiRouter.get('/user/hosted-meetups', authenticateToken, async (req, res) => {
+  try {
+    const { page = 1, limit = 10 } = req.query;
+    const offset = (page - 1) * limit;
+    const userId = req.user.userId;
+    
+    console.log('🏠 호스팅 모임 조회 요청:', { userId, page, limit });
+    
+    // 내가 호스팅한 모임 목록 조회
+    const meetupsResult = await pool.query(`
+      SELECT 
+        m.id,
+        m.title,
+        m.description,
+        m.location,
+        m.date,
+        m.time,
+        m.max_participants as "maxParticipants",
+        m.current_participants as "currentParticipants",
+        m.category,
+        m.status,
+        m.created_at as "createdAt"
+      FROM meetups m
+      WHERE m.host_id = $1
+      ORDER BY m.created_at DESC
+      LIMIT $2 OFFSET $3
+    `, [userId, parseInt(limit), parseInt(offset)]);
+    
+    // 총 개수 조회
+    const countResult = await pool.query(`
+      SELECT COUNT(*) as total FROM meetups WHERE host_id = $1
+    `, [userId]);
+    
+    const total = parseInt(countResult.rows[0].total);
+    
+    console.log('✅ 호스팅 모임 조회 성공:', { count: meetupsResult.rows.length, total });
+    
+    res.json({
+      success: true,
+      data: meetupsResult.rows,
+      pagination: {
+        total,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        totalPages: Math.ceil(total / limit)
+      }
+    });
+  } catch (error) {
+    console.error('호스팅 모임 조회 오류:', error);
+    res.status(500).json({ error: '서버 오류가 발생했습니다' });
+  }
+});
+
+// 내가 참가한 모임 목록 조회
+apiRouter.get('/user/joined-meetups', authenticateToken, async (req, res) => {
+  try {
+    const { page = 1, limit = 10 } = req.query;
+    const offset = (page - 1) * limit;
+    const userId = req.user.userId;
+    
+    console.log('👥 참가 모임 조회 요청:', { userId, page, limit });
+    
+    // 내가 참가한 모임 목록 조회 (호스팅한 모임 제외)
+    const meetupsResult = await pool.query(`
+      SELECT 
+        m.id,
+        m.title,
+        m.description,
+        m.location,
+        m.date,
+        m.time,
+        m.max_participants as "maxParticipants",
+        m.current_participants as "currentParticipants",
+        m.category,
+        m.status,
+        m.created_at as "createdAt",
+        mp.status as "participationStatus",
+        mp.created_at as "joinedAt",
+        u.name as "hostName"
+      FROM meetup_participants mp
+      JOIN meetups m ON mp.meetup_id = m.id
+      JOIN users u ON m.host_id = u.id
+      WHERE mp.user_id = $1 AND m.host_id != $1
+      ORDER BY mp.created_at DESC
+      LIMIT $2 OFFSET $3
+    `, [userId, parseInt(limit), parseInt(offset)]);
+    
+    // 총 개수 조회
+    const countResult = await pool.query(`
+      SELECT COUNT(*) as total 
+      FROM meetup_participants mp
+      JOIN meetups m ON mp.meetup_id = m.id
+      WHERE mp.user_id = $1 AND m.host_id != $1
+    `, [userId]);
+    
+    const total = parseInt(countResult.rows[0].total);
+    
+    console.log('✅ 참가 모임 조회 성공:', { count: meetupsResult.rows.length, total });
+    
+    res.json({
+      success: true,
+      data: meetupsResult.rows,
+      pagination: {
+        total,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        totalPages: Math.ceil(total / limit)
+      }
+    });
+  } catch (error) {
+    console.error('참가 모임 조회 오류:', error);
+    res.status(500).json({ error: '서버 오류가 발생했습니다' });
+  }
+});
+
+// 내활동 통계 조회
+apiRouter.get('/user/activity-stats', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    
+    console.log('📊 활동 통계 조회 요청:', { userId });
+    
+    // 호스팅한 모임 수
+    const hostedResult = await pool.query(`
+      SELECT COUNT(*) as count FROM meetups WHERE host_id = $1
+    `, [userId]);
+    
+    // 참가한 모임 수 (호스팅한 모임 포함)
+    const joinedResult = await pool.query(`
+      SELECT COUNT(*) as count FROM meetup_participants WHERE user_id = $1
+    `, [userId]);
+    
+    // 완료된 모임 수 (과거 날짜의 모임)
+    const completedResult = await pool.query(`
+      SELECT COUNT(*) as count 
+      FROM meetup_participants mp
+      JOIN meetups m ON mp.meetup_id = m.id
+      WHERE mp.user_id = $1 AND m.date < CURRENT_DATE
+    `, [userId]);
+    
+    // 이번 달 참가 예정 모임 수
+    const thisMonthResult = await pool.query(`
+      SELECT COUNT(*) as count 
+      FROM meetup_participants mp
+      JOIN meetups m ON mp.meetup_id = m.id
+      WHERE mp.user_id = $1 
+        AND m.date >= CURRENT_DATE 
+        AND m.date < (CURRENT_DATE + INTERVAL '1 month')
+    `, [userId]);
+    
+    const stats = {
+      hostedMeetups: parseInt(hostedResult.rows[0].count),
+      joinedMeetups: parseInt(joinedResult.rows[0].count),
+      completedMeetups: parseInt(completedResult.rows[0].count),
+      upcomingMeetups: parseInt(thisMonthResult.rows[0].count)
+    };
+    
+    console.log('✅ 활동 통계 조회 성공:', stats);
+    
+    res.json({
+      success: true,
+      data: stats
+    });
+  } catch (error) {
+    console.error('활동 통계 조회 오류:', error);
+    res.status(500).json({ error: '서버 오류가 발생했습니다' });
+  }
+});
+
+// 밥알지수 계산 API
+apiRouter.get('/user/rice-index', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    console.log('🍚 밥알지수 계산 요청:', { userId });
+
+    // 사용자 활동 데이터 조회
+    const [
+      joinedMeetups,
+      hostedMeetups,
+      completedMeetups,
+      reviews,
+      averageRating
+    ] = await Promise.all([
+      // 참여한 모임 수
+      pool.query(`
+        SELECT COUNT(*) as count 
+        FROM meetup_participants 
+        WHERE user_id = $1 AND status = '참가승인'
+      `, [userId]),
+      
+      // 호스팅한 모임 수
+      pool.query(`
+        SELECT COUNT(*) as count 
+        FROM meetups 
+        WHERE host_id = $1
+      `, [userId]),
+      
+      // 완료한 모임 수
+      pool.query(`
+        SELECT COUNT(*) as count 
+        FROM meetup_participants mp 
+        JOIN meetups m ON mp.meetup_id = m.id 
+        WHERE mp.user_id = $1 AND m.status = '종료'
+      `, [userId]),
+      
+      // 작성한 리뷰 수
+      pool.query(`
+        SELECT COUNT(*) as count 
+        FROM reviews 
+        WHERE reviewer_id = $1
+      `, [userId]),
+      
+      // 받은 평균 평점 (호스트로서)
+      pool.query(`
+        SELECT AVG(r.rating) as avg_rating 
+        FROM reviews r 
+        JOIN meetups m ON r.meetup_id = m.id 
+        WHERE m.host_id = $1
+      `, [userId])
+    ]);
+
+    const stats = {
+      joinedMeetups: parseInt(joinedMeetups.rows[0].count),
+      hostedMeetups: parseInt(hostedMeetups.rows[0].count),
+      completedMeetups: parseInt(completedMeetups.rows[0].count),
+      reviewsWritten: parseInt(reviews.rows[0].count),
+      averageRating: parseFloat(averageRating.rows[0].avg_rating || 0)
+    };
+
+    // 새로운 밥알지수 계산 알고리즘 (0.0 ~ 100.0)
+    let riceIndex = 40.0; // 기본 점수
+    
+    // 완료한 모임 수에 따른 점수 계산
+    const completedMeetupsCount = stats.completedMeetups;
+    const reviewCount = stats.reviewsWritten;
+    const avgRating = stats.averageRating;
+    
+    // 후기가 있는 완료 모임에 대한 점수 계산
+    const reviewedMeetups = Math.min(reviewCount, completedMeetupsCount);
+    
+    if (reviewedMeetups > 0) {
+      // 현재 점수 구간에 따라 다른 상승폭 적용
+      let increment = 0;
+      
+      if (riceIndex < 40.0) {
+        increment = 1.5; // 0.0 ~ 39.9 구간
+      } else if (riceIndex < 60.0) {
+        increment = 1.0; // 40.0 ~ 59.9 구간  
+      } else if (riceIndex < 70.0) {
+        increment = 0.5; // 60.0 ~ 69.9 구간
+      } else if (riceIndex < 80.0) {
+        increment = 0.3; // 70.0 ~ 79.9 구간
+      } else if (riceIndex < 90.0) {
+        increment = 0.1; // 80.0 ~ 89.9 구간
+      } else {
+        increment = 0.05; // 90.0 ~ 99.9 구간
+      }
+      
+      // 후기 품질 보너스 (평점이 높을 경우)
+      let qualityMultiplier = 1.0;
+      if (avgRating >= 4.5) {
+        qualityMultiplier = 1.3;
+      } else if (avgRating >= 4.0) {
+        qualityMultiplier = 1.1;
+      } else if (avgRating >= 3.5) {
+        qualityMultiplier = 1.0;
+      } else if (avgRating >= 2.0) {
+        qualityMultiplier = 0.7; // 낮은 평점 시 감점
+      } else if (avgRating > 0) {
+        qualityMultiplier = 0.5; // 매우 낮은 평점 시 큰 감점
+      }
+      
+      riceIndex += (reviewedMeetups * increment * qualityMultiplier);
+    }
+    
+    // 연속 참여 보너스 (간접적으로 총 참여 모임으로 추정)
+    const totalMeetups = stats.joinedMeetups + stats.hostedMeetups;
+    if (totalMeetups >= 10) {
+      riceIndex += 2.0; // 10회 이상 참여 보너스
+    } else if (totalMeetups >= 5) {
+      riceIndex += 1.0; // 5회 이상 참여 보너스
+    }
+    
+    // 호스팅 경험 보너스
+    if (stats.hostedMeetups > 0) {
+      riceIndex += Math.min(stats.hostedMeetups * 0.5, 5.0); // 최대 5점
+    }
+    
+    // 최소/최대 점수 제한 (0.0 ~ 100.0)
+    riceIndex = Math.max(0.0, Math.min(100.0, Math.round(riceIndex * 10) / 10));
+
+    // 밥알지수 레벨 계산
+    const getRiceLevel = (score) => {
+      if (score >= 98.1) {
+        return {
+          level: "밥神 (밥신)",
+          emoji: "🍚🍚🍚🍚🍚🍚🍚",
+          description: "전설적인 유저",
+          color: "#FFD700" // 금색
+        };
+      } else if (score >= 90.0) {
+        return {
+          level: "찰밥대장",
+          emoji: "🍚🍚🍚🍚🍚🍚",
+          description: "거의 완벽한 활동 이력",
+          color: "#FF6B35" // 주황색
+        };
+      } else if (score >= 80.0) {
+        return {
+          level: "밥도둑 밥상",
+          emoji: "🍚🍚🍚🍚🍚",
+          description: "상위권, 최고의 매너 보유",
+          color: "#F7931E" // 오렌지
+        };
+      } else if (score >= 70.0) {
+        return {
+          level: "고봉밥",
+          emoji: "🍚🍚🍚🍚",
+          description: "후기 품질도 높고 꾸준한 출석",
+          color: "#4CAF50" // 초록색
+        };
+      } else if (score >= 60.0) {
+        return {
+          level: "따끈한 밥그릇",
+          emoji: "🍚🍚🍚",
+          description: "후기와 출석률 모두 양호",
+          color: "#2196F3" // 파란색
+        };
+      } else if (score >= 40.0) {
+        return {
+          level: "밥 한 숟갈",
+          emoji: "🍚",
+          description: "일반 유저, 평균적인 활동",
+          color: "#9E9E9E" // 회색
+        };
+      } else {
+        return {
+          level: "티스푼",
+          emoji: "🍚🍚",
+          description: "반복된 신고/노쇼, 신뢰 낮음",
+          color: "#F44336" // 빨간색
+        };
+      }
+    };
+
+    const levelInfo = getRiceLevel(riceIndex);
+
+    console.log('✅ 밥알지수 계산 완료:', {
+      userId,
+      stats,
+      calculatedIndex: riceIndex,
+      level: levelInfo
+    });
+
+    res.json({
+      success: true,
+      riceIndex,
+      level: levelInfo,
+      stats
+    });
+
+  } catch (error) {
+    console.error('❌ 밥알지수 계산 실패:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: '밥알지수를 계산할 수 없습니다.' 
+    });
   }
 });
 

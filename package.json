@@ -12,7 +12,9 @@
     "server": "node server/index.js",
     "backend": "node backend/src/server.js",
     "dev": "concurrently \"npm run web\" \"npm run server\"",
-    "test": "jest"
+    "test": "jest",
+    "test:rice-index": "node server/test-rice-index.js",
+    "test:api": "npm run test:rice-index"
   },
   "dependencies": {
     "@react-native/new-app-screen": "0.82.0",
