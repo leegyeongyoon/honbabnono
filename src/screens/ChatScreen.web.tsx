@@ -9,6 +9,7 @@ import {
   TextInput,
   Alert,
 } from 'react-native';
+import { useNavigate, useParams } from 'react-router-dom';
 import { COLORS, SHADOWS, LAYOUT } from '../styles/colors';
 import { Icon } from '../components/Icon';
 import chatService from '../services/chatService';
@@ -20,9 +21,14 @@ interface ChatScreenProps {
 }
 
 const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, user }) => {
+  const navigate = useNavigate();
+  const { id: chatIdFromUrl } = useParams<{ id?: string }>();
+  
   const [selectedTab, setSelectedTab] = useState('모임채팅');
   const [chatRooms, setChatRooms] = useState<ChatRoom[]>([]);
-  const [selectedChatId, setSelectedChatId] = useState<number | null>(null);
+  const [selectedChatId, setSelectedChatId] = useState<number | null>(
+    chatIdFromUrl ? parseInt(chatIdFromUrl) : null
+  );
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [messageText, setMessageText] = useState('');
   const [loading, setLoading] = useState(false);
@@ -53,6 +59,25 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, user }) => {
       }
     };
   }, []);
+
+  // URL에서 채팅방 ID가 있으면 해당 채팅방 로드
+  useEffect(() => {
+    if (chatIdFromUrl && chatRooms.length > 0) {
+      const roomId = parseInt(chatIdFromUrl);
+      const room = chatRooms.find(r => r.id === roomId);
+      if (room && selectedChatId !== roomId) {
+        selectChatRoomFromUrl(roomId);
+      }
+    } else if (!chatIdFromUrl && selectedChatId) {
+      // URL에 채팅방 ID가 없으면 채팅방 목록으로 돌아가기
+      if (selectedChatId) {
+        chatService.leaveRoom(selectedChatId);
+      }
+      setSelectedChatId(null);
+      setCurrentChatRoom(null);
+      setMessages([]);
+    }
+  }, [chatIdFromUrl, chatRooms]);
 
   // 채팅방 목록 로드
   const loadChatRooms = async () => {
@@ -87,8 +112,8 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, user }) => {
     ));
   };
 
-  // 채팅방 선택
-  const selectChatRoom = async (roomId: number) => {
+  // URL에서 채팅방 로드 (navigate 호출 없음)
+  const selectChatRoomFromUrl = async (roomId: number) => {
     try {
       setLoading(true);
       
@@ -117,6 +142,12 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, user }) => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // 채팅방 선택 (사용자 클릭 시)
+  const selectChatRoom = async (roomId: number) => {
+    // URL 변경
+    navigate(`/chat/${roomId}`);
   };
 
   // 메시지 전송
@@ -258,12 +289,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, user }) => {
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => {
-            if (selectedChatId) {
-              chatService.leaveRoom(selectedChatId);
-            }
-            setSelectedChatId(null);
-            setCurrentChatRoom(null);
-            setMessages([]);
+            navigate(-1);
           }}
         >
           <Icon name="chevron-left" size={20} color={COLORS.text.primary} />

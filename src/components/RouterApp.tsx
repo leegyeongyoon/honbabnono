@@ -18,6 +18,9 @@ import BottomTabBar from './BottomTabBar';
 const RouterApp: React.FC = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  
+  console.log('RouterApp rendering, isLoggedIn:', isLoggedIn, 'isLoading:', isLoading, 'current path:', window.location.pathname);
 
   // 로그인 상태 확인
   useEffect(() => {
@@ -25,6 +28,7 @@ const RouterApp: React.FC = () => {
   }, []);
 
   const checkLoginStatus = () => {
+    console.log('checkLoginStatus called');
     // URL에서 토큰과 사용자 정보 확인 (카카오 로그인 후 리다이렉트)
     const urlParams = new URLSearchParams(window.location.search);
     const token = urlParams.get('token');
@@ -44,9 +48,24 @@ const RouterApp: React.FC = () => {
       window.history.replaceState({}, document.title, window.location.pathname);
     } else if (storedToken && storedUser) {
       // 이미 로그인된 경우
+      console.log('Found stored credentials');
       setIsLoggedIn(true);
       setUser(JSON.parse(storedUser));
+    } else {
+      // 임시: 테스트용 기본 사용자 설정
+      console.log('Setting test user');
+      const testUser = {
+        id: '11111111-1111-1111-1111-111111111111',
+        name: '테스트유저1',
+        email: 'test1@test.com'
+      };
+      localStorage.setItem('token', 'test-token');
+      localStorage.setItem('user', JSON.stringify(testUser));
+      setIsLoggedIn(true);
+      setUser(testUser);
     }
+    
+    setIsLoading(false);
   };
 
   // 로그아웃 함수
@@ -59,6 +78,7 @@ const RouterApp: React.FC = () => {
 
   // 보호된 라우트 컴포넌트
   const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+    console.log('ProtectedRoute: isLoggedIn =', isLoggedIn);
     return isLoggedIn ? <>{children}</> : <Navigate to="/login" replace />;
   };
 
@@ -73,29 +93,52 @@ const RouterApp: React.FC = () => {
     logout: handleLogout,
   });
 
+  // 로딩 중이면 로딩 화면 표시
+  if (isLoading) {
+    return (
+      <div style={{
+        display: 'flex',
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        height: '100vh',
+        backgroundColor: '#ffffff'
+      }}>
+        <div style={{
+          fontSize: '16px',
+          color: '#333333'
+        }}>
+          로딩 중...
+        </div>
+      </div>
+    );
+  }
+
   return (
     <Router>
       <View style={styles.container}>
         <Routes>
-          {/* 루트 경로 - 로그인 상태에 따라 리다이렉트 */}
+          {/* 보호된 라우트들 - 구체적인 경로부터 먼저 */}
           <Route 
-            path="/" 
+            path="/chat/:id" 
             element={
-              isLoggedIn ? <Navigate to="/home" replace /> : <Navigate to="/login" replace />
+              <ProtectedRoute>
+                <MainLayout>
+                  <ChatScreen {...getNavigationProps()} />
+                </MainLayout>
+              </ProtectedRoute>
             } 
           />
 
-          {/* 로그인 페이지 */}
           <Route 
-            path="/login" 
+            path="/meetup/:id" 
             element={
-              <LoginRedirect>
-                <LoginScreen />
-              </LoginRedirect>
+              <ProtectedRoute>
+                <MeetupDetailScreen user={user} />
+              </ProtectedRoute>
             } 
           />
 
-          {/* 보호된 라우트들 */}
           <Route 
             path="/home" 
             element={
@@ -149,26 +192,26 @@ const RouterApp: React.FC = () => {
             } 
           />
 
+          {/* 로그인 페이지 */}
           <Route 
-            path="/meetup/:id" 
+            path="/login" 
             element={
-              <ProtectedRoute>
-                <MeetupDetailScreen user={user} />
-              </ProtectedRoute>
+              <LoginRedirect>
+                <LoginScreen />
+              </LoginRedirect>
             } 
           />
 
+          {/* 루트 경로 - 로그인 상태에 따라 리다이렉트 */}
           <Route 
-            path="/chat/:id" 
+            path="/" 
             element={
-              <ProtectedRoute>
-                <ChatScreen {...getNavigationProps()} />
-              </ProtectedRoute>
+              isLoggedIn ? <Navigate to="/home" replace /> : <Navigate to="/login" replace />
             } 
           />
 
-          {/* 404 페이지 */}
-          <Route path="*" element={<Navigate to="/" replace />} />
+          {/* 404 페이지 - 가장 마지막에 위치 */}
+          <Route path="*" element={<Navigate to="/home" replace />} />
         </Routes>
       </View>
     </Router>

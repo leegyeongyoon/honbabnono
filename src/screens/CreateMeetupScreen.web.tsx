@@ -13,6 +13,7 @@ import { Icon } from '../components/Icon';
 import Toast from '../components/Toast';
 import { useToast } from '../hooks/useToast';
 import { useRouterNavigation } from '../components/RouterNavigation';
+import { FOOD_CATEGORY_NAMES, PRICE_RANGES } from '../constants/categories';
 
 interface CreateMeetupScreenProps {
   navigation?: any;
@@ -37,8 +38,8 @@ const CreateMeetupScreen: React.FC<CreateMeetupScreenProps> = ({ user }) => {
   const [loading, setLoading] = useState(false);
   const { toast, showSuccess, showError, hideToast } = useToast();
 
-  const categories = ['한식', '중식', '일식', '양식', '카페', '술집', '기타'];
-  const priceRanges = ['1만원 이하', '1-2만원', '2-3만원', '3만원 이상'];
+  const categories = FOOD_CATEGORY_NAMES;
+  const priceRanges = PRICE_RANGES;
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({

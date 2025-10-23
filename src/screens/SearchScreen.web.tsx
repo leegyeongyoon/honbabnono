@@ -8,10 +8,12 @@ import {
   TextInput,
   FlatList,
 } from 'react-native';
+import { useNavigate } from 'react-router-dom';
 import { COLORS, SHADOWS, LAYOUT } from '../styles/colors';
 import { TYPOGRAPHY } from '../styles/typography';
 import { Icon } from '../components/Icon';
 import { useMeetups } from '../hooks/useMeetups';
+import { SEARCH_CATEGORIES, SEARCH_LOCATIONS, SORT_OPTION_NAMES } from '../constants/categories';
 
 interface SearchScreenProps {
   navigation?: any;
@@ -19,6 +21,7 @@ interface SearchScreenProps {
 }
 
 const SearchScreen: React.FC<SearchScreenProps> = ({ navigation, user }) => {
+  const navigate = useNavigate();
   const [searchText, setSearchText] = useState('');
   const [selectedTab, setSelectedTab] = useState('내주변모임');
   const [selectedCategory, setSelectedCategory] = useState('전체');
@@ -29,9 +32,9 @@ const SearchScreen: React.FC<SearchScreenProps> = ({ navigation, user }) => {
   
   const tabs = ['내주변모임', '맛집리스트', '필터링'];
 
-  const categories = ['전체', '한식', '중식', '일식', '양식', '카페', '술집'];
-  const locations = ['전체', '강남구', '서초구', '송파구', '마포구', '용산구'];
-  const sortOptions = ['최신순', '인기순', '마감임박순', '가격순'];
+  const categories = SEARCH_CATEGORIES;
+  const locations = SEARCH_LOCATIONS;
+  const sortOptions = SORT_OPTION_NAMES;
 
   const filteredMeetups = meetups.filter(meetup => {
     const matchesSearch = meetup.title.toLowerCase().includes(searchText.toLowerCase()) ||
@@ -65,7 +68,7 @@ const SearchScreen: React.FC<SearchScreenProps> = ({ navigation, user }) => {
   const renderMeetupItem = (meetup: any) => (
     <TouchableOpacity
       style={styles.meetupCard}
-      onPress={() => navigation?.navigate('MeetupDetail', { meetupId: meetup.id })}
+      onPress={() => navigate(`/meetup/${meetup.id}`)}
     >
       <View style={styles.meetupHeader}>
         <View style={styles.meetupTitleSection}>

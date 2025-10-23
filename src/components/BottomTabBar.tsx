@@ -17,12 +17,32 @@ const BottomTabBar: React.FC = () => {
 
   const getActiveTab = () => {
     const currentPath = location.pathname;
+    console.log('BottomTabBar currentPath:', currentPath);
+    
+    // /chat/:id 형태의 경로는 chat 탭으로 처리
+    if (currentPath.startsWith('/chat')) {
+      return 'chat';
+    }
+    
+    // /meetup/:id 형태의 경로는 홈 탭으로 처리 (모임 상세는 홈에서 접근)
+    if (currentPath.startsWith('/meetup')) {
+      return 'home';
+    }
+    
+    // 정확히 일치하는 탭 찾기
     const activeTab = tabs.find(tab => tab.path === currentPath);
     return activeTab?.key || 'home';
   };
 
   const handleTabPress = (path: string) => {
-    navigate(path);
+    console.log('BottomTabBar handleTabPress:', path);
+    
+    // 채팅 탭을 클릭하면 항상 채팅 목록으로 이동
+    if (path === '/chat') {
+      navigate('/chat');
+    } else {
+      navigate(path);
+    }
   };
 
   const activeTab = getActiveTab();

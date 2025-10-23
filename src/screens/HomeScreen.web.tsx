@@ -15,6 +15,8 @@ import {TYPOGRAPHY} from '../styles/typography';
 import {Icon} from '../components/Icon';
 import CreateMeetupScreen from './CreateMeetupScreen';
 import { useMeetups } from '../hooks/useMeetups';
+import { FOOD_CATEGORIES } from '../constants/categories';
+import { useNavigate } from 'react-router-dom';
 
 interface HomeScreenProps {
   navigateToLogin?: () => void;
@@ -23,6 +25,7 @@ interface HomeScreenProps {
 }
 
 const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, user }) => {
+  const navigate = useNavigate();
   const navigation = useRouterNavigation();
   const [showCreateMeetup, setShowCreateMeetup] = useState(false);
   const [currentLocation, setCurrentLocation] = useState('위치 설정');
@@ -62,16 +65,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, user }) => {
     );
   };
 
-  const categories = [
-    { id: 'korean', name: '한식', icon: '🍚', desc: '김치찌개/불고기' },
-    { id: 'chinese', name: '중식', icon: '🥟', desc: '짜장면/탕수육' },
-    { id: 'japanese', name: '일식', icon: '🍣', desc: '초밥/라멘' },
-    { id: 'western', name: '양식', icon: '🍝', desc: '파스타/스테이크' },
-    { id: 'cafe', name: '카페', icon: '☕', desc: '디저트/음료' },
-    { id: 'bar', name: '술집', icon: '🍻', desc: '맥주/안주' },
-    { id: 'fastfood', name: '패스트푸드', icon: '🍔', desc: '햄버거/치킨' },
-    { id: 'dessert', name: '디저트', icon: '🍰', desc: '케이크/아이스크림' },
-  ];
+  const categories = FOOD_CATEGORIES;
 
   return (
     <View style={styles.container}>
@@ -118,7 +112,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, user }) => {
                 onPress={() => navigation?.navigateToSearch()}
               >
                 <View style={styles.categoryIconContainer}>
-                  <Text style={styles.categoryIcon}>{category.icon}</Text>
+                  <Text style={styles.categoryIcon}>{category.emoji}</Text>
                 </View>
                 <Text style={styles.categoryName}>{category.name}</Text>
               </TouchableOpacity>
@@ -139,7 +133,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, user }) => {
             <TouchableOpacity 
               key={meetup.id} 
               style={styles.meetupCard}
-              onPress={() => navigation?.navigate('MeetupDetail', { meetupId: meetup.id })}
+              onPress={() => navigate(`/meetup/${meetup.id}`)}
             >
               <View style={styles.meetupHeader}>
                 <View style={styles.meetupTitleSection}>
@@ -193,7 +187,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, user }) => {
             <TouchableOpacity 
               key={`rec-${meetup.id}`} 
               style={styles.meetupCard}
-              onPress={() => navigation?.navigate('MeetupDetail', { meetupId: meetup.id })}
+              onPress={() => navigate(`/meetup/${meetup.id}`)}
             >
               <View style={styles.meetupHeader}>
                 <View style={styles.meetupTitleSection}>
