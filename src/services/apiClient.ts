@@ -12,10 +12,33 @@ const apiClient: AxiosInstance = axios.create({
   },
 });
 
+// Storage helper - Web과 React Native 호환
+const getStorageItem = (key: string): string | null => {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      return localStorage.getItem(key);
+    }
+    return null;
+  } catch (error) {
+    console.warn('Storage access failed:', error);
+    return null;
+  }
+};
+
+const removeStorageItem = (key: string): void => {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      localStorage.removeItem(key);
+    }
+  } catch (error) {
+    console.warn('Storage remove failed:', error);
+  }
+};
+
 // 요청 인터셉터: 토큰 자동 추가
 apiClient.interceptors.request.use(
   (config: any) => {
-    const token = localStorage.getItem('token');
+    const token = getStorageItem('token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -53,10 +76,14 @@ apiClient.interceptors.response.use(
     // 401 Unauthorized: 토큰 만료 또는 무효
     if (error.response?.status === 401) {
       console.log('🔐 인증 토큰 무효, 로그아웃 처리');
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      // 필요시 로그인 페이지로 리다이렉트
-      // window.location.href = '/login';
+      removeStorageItem('token');
+      removeStorageItem('user');
+      
+      // Web 환경에서 로그인 페이지로 리다이렉트
+      if (typeof window !== 'undefined' && window.location) {
+        console.log('🔄 로그인 페이지로 리다이렉트');
+        window.location.href = '/login';
+      }
     }
 
     return Promise.reject(error);

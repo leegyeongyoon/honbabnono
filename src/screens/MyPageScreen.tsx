@@ -7,22 +7,22 @@ import {
   TouchableOpacity,
   Alert,
   RefreshControl,
-  Animated,
-  Dimensions,
+  Modal,
+  TextInput,
 } from 'react-native';
 import { COLORS, SHADOWS, LAYOUT } from '../styles/colors';
 import { TYPOGRAPHY } from '../styles/typography';
 import { Icon } from '../components/Icon';
 import userApiService, { ActivityStats, HostedMeetup, JoinedMeetup } from '../services/userApiService';
 import reviewApiService, { UserReview } from '../services/reviewApiService';
+import apiClient from '../services/apiClient';
+import { formatKoreanDateTime } from '../utils/dateUtils';
 
 interface MyPageScreenProps {
   navigation?: any;
   user?: any;
   onLogout?: () => void;
 }
-
-const { width } = Dimensions.get('window');
 
 const MyPageScreen: React.FC<MyPageScreenProps> = ({ navigation, user, onLogout }) => {
   const [loading, setLoading] = useState(false);
@@ -33,17 +33,10 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ navigation, user, onLogout 
   const [userReviews, setUserReviews] = useState<UserReview[]>([]);
   const [riceIndex, setRiceIndex] = useState<number>(0);
   const [riceLevel, setRiceLevel] = useState<any>(null);
-  const scrollY = new Animated.Value(0);
-  const fadeAnim = new Animated.Value(0);
 
   // 컴포넌트 마운트 시 데이터 로드
   useEffect(() => {
     loadUserData();
-    Animated.timing(fadeAnim, {
-      toValue: 1,
-      duration: 500,
-      useNativeDriver: true,
-    }).start();
   }, []);
 
   // 사용자 데이터 로드
@@ -108,16 +101,10 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ navigation, user, onLogout 
   // 밥알지수 로드
   const loadRiceIndex = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:3001/api'}/user/rice-index`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-      const data = await response.json();
-      if (response.ok) {
-        setRiceIndex(data.riceIndex);
-        setRiceLevel(data.level);
+      const response = await apiClient.get('/user/rice-index');
+      if (response.data) {
+        setRiceIndex(response.data.riceIndex);
+        setRiceLevel(response.data.level);
       }
     } catch (error) {
       console.error('밥알지수 로드 실패:', error);
@@ -131,13 +118,45 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ navigation, user, onLogout 
     setRefreshing(false);
   };
 
+  // 프로필 수정 모달 관련 state
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [showNotificationModal, setShowNotificationModal] = useState(false);
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
+  const [showHelpModal, setShowHelpModal] = useState(false);
+  const [showTermsModal, setShowTermsModal] = useState(false);
+
+  // 프로필 수정 핸들러
+  const handleProfileEdit = () => {
+    setShowProfileModal(true);
+  };
+
+  // 알림 설정 핸들러
+  const handleNotificationSettings = () => {
+    setShowNotificationModal(true);
+  };
+
+  // 개인정보 관리 핸들러
+  const handlePrivacyManagement = () => {
+    setShowPrivacyModal(true);
+  };
+
+  // 도움말 핸들러
+  const handleHelp = () => {
+    setShowHelpModal(true);
+  };
+
+  // 이용약관 핸들러
+  const handleTerms = () => {
+    setShowTermsModal(true);
+  };
+
   // 설정 메뉴
   const settingsMenu = [
-    { id: 'profile', title: '프로필 관리', icon: 'user', action: () => console.log('프로필 관리') },
-    { id: 'notification', title: '알림 설정', icon: 'bell', action: () => console.log('알림 설정') },
-    { id: 'privacy', title: '개인정보 관리', icon: 'shield', action: () => console.log('개인정보 관리') },
-    { id: 'help', title: '도움말', icon: 'help-circle', action: () => console.log('도움말') },
-    { id: 'terms', title: '이용약관', icon: 'file-text', action: () => console.log('이용약관') },
+    { id: 'profile', title: '프로필 관리', icon: 'user', action: handleProfileEdit },
+    { id: 'notification', title: '알림 설정', icon: 'bell', action: handleNotificationSettings },
+    { id: 'privacy', title: '개인정보 관리', icon: 'shield', action: handlePrivacyManagement },
+    { id: 'help', title: '도움말', icon: 'help-circle', action: handleHelp },
+    { id: 'terms', title: '이용약관', icon: 'file-text', action: handleTerms },
     { id: 'logout', title: '로그아웃', icon: 'log-out', action: () => handleLogout() },
   ];
 
@@ -152,20 +171,7 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ navigation, user, onLogout 
             setLoading(true);
             
             // 로그아웃 API 호출
-            const token = localStorage.getItem('token');
-            if (token) {
-              await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:3001/api'}/auth/logout`, {
-                method: 'POST',
-                headers: {
-                  'Authorization': `Bearer ${token}`,
-                  'Content-Type': 'application/json',
-                },
-              });
-            }
-            
-            // 로컬 스토리지에서 토큰 제거
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
+            await apiClient.post('/auth/logout');
             
             // 로그아웃 콜백 실행
             onLogout?.();
@@ -173,9 +179,7 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ navigation, user, onLogout 
             Alert.alert('알림', '로그아웃되었습니다.');
           } catch (error) {
             console.error('로그아웃 실패:', error);
-            // 에러가 발생해도 로컬 토큰은 제거
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
+            // 에러가 발생해도 로그아웃 처리
             onLogout?.();
             Alert.alert('알림', '로그아웃되었습니다.');
           } finally {
@@ -206,7 +210,7 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ navigation, user, onLogout 
             <View style={styles.activityInfo}>
               <Text style={styles.activityTitle}>{meetup.title}</Text>
               <Text style={styles.activityLocation}>{meetup.location}</Text>
-              <Text style={styles.activityDate}>{meetup.date} {meetup.time}</Text>
+              <Text style={styles.activityDate}>{formatKoreanDateTime(meetup.date, 'datetime')}</Text>
               {'hostName' in meetup && (
                 <Text style={styles.hostName}>호스트: {meetup.hostName}</Text>
               )}
@@ -312,232 +316,117 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ navigation, user, onLogout 
     </View>
   );
 
-  const headerOpacity = scrollY.interpolate({
-    inputRange: [0, 150],
-    outputRange: [1, 0.8],
-    extrapolate: 'clamp',
-  });
-
-  const headerTranslateY = scrollY.interpolate({
-    inputRange: [0, 150],
-    outputRange: [0, -50],
-    extrapolate: 'clamp',
-  });
-
   return (
     <View style={styles.container}>
-      {/* 모던한 프로필 헤더 */}
-      <Animated.View style={[
-        styles.profileHeader,
-        {
-          opacity: headerOpacity,
-          transform: [{ translateY: headerTranslateY }],
-        }
-      ]}>
-        <View style={styles.profileBackgroundGradient}>
-          <View style={styles.profileTopRow}>
-            <View style={styles.profileAvatarContainer}>
-              <View style={styles.profileAvatar}>
-                <Text style={styles.profileAvatarText}>
-                  {user?.name?.charAt(0) || '혼'}
-                </Text>
-              </View>
-              <View style={styles.onlineIndicator} />
-            </View>
-            <View style={styles.profileInfo}>
-              <Text style={styles.profileName}>{user?.name || '혼밥러'}</Text>
-              <Text style={styles.profileId}>#{user?.id ? String(user.id).slice(0, 8) : '1181301'}</Text>
-              <View style={styles.verifiedBadge}>
-                <Icon name="check-circle" size={14} color={COLORS.functional.success} />
-                <Text style={styles.verifiedText}>인증됨</Text>
-              </View>
-            </View>
-            <TouchableOpacity style={styles.profileEditButton}>
-              <Icon name="edit-3" size={16} color={COLORS.primary.main} />
-              <Text style={styles.profileEditText}>편집</Text>
+      {/* 당근마켓 스타일 프로필 헤더 */}
+      <View style={styles.profileHeader}>
+        <View style={styles.profileTopRow}>
+          <View style={styles.profileAvatar}>
+            <Text style={styles.profileAvatarText}>
+              {user?.name?.charAt(0) || '혼'}
+            </Text>
+          </View>
+          <View style={styles.profileInfo}>
+            <Text style={styles.profileName}>{user?.name || '혼밥러'}</Text>
+            <Text style={styles.profileId}>#{user?.id ? String(user.id).slice(0, 8) : '1181301'}</Text>
+          </View>
+          <TouchableOpacity style={styles.profileEditButton} onPress={handleProfileEdit}>
+            <Text style={styles.profileEditText}>프로필 수정</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* 밥알지수 섹션 (당근마켓 매너온도 스타일) */}
+        <View style={styles.riceIndexSection}>
+          <View style={styles.riceIndexHeader}>
+            <Text style={styles.riceIndexLabel}>밥알지수</Text>
+            <TouchableOpacity>
+              <Text style={styles.infoIcon}>ⓘ</Text>
             </TouchableOpacity>
           </View>
-
-          {/* 밥알지수 섹션 - 모던 카드 스타일 */}
-          <View style={styles.riceIndexCard}>
-            <View style={styles.riceIndexHeader}>
-              <View style={styles.riceIndexTitleContainer}>
-                <Text style={styles.riceIndexLabel}>밥알지수</Text>
-                <View style={styles.riceIndexBadge}>
-                  <Text style={styles.riceIndexBadgeText}>HOT</Text>
-                </View>
-              </View>
-              <TouchableOpacity style={styles.infoButton}>
-                <Icon name="info" size={16} color={COLORS.text.secondary} />
-              </TouchableOpacity>
-            </View>
-            
-            <View style={styles.modernTemperatureContainer}>
-              <View style={styles.temperatureMain}>
-                <Text style={styles.modernCurrentTemperature}>{riceIndex}</Text>
-                <Text style={styles.temperatureUnit}>밥알</Text>
-                <Text style={styles.modernTemperatureEmoji}>
-                  {riceLevel?.emoji || '🍚'}
-                </Text>
-              </View>
-              <Text style={styles.modernFirstTemperature}>
-                기본 지수에서 +{Math.max(0, riceIndex - 36)}
+          
+          <View style={styles.temperatureContainer}>
+            <Text style={styles.firstTemperature}>첫 온도 36.5°C</Text>
+            <View style={styles.currentTemperatureContainer}>
+              <Text style={styles.currentTemperature}>{riceIndex}밥알</Text>
+              <Text style={styles.temperatureEmoji}>
+                {riceLevel?.emoji || '🍚'}
               </Text>
             </View>
-
-            {/* 현대적인 진행 바 */}
-            <View style={styles.modernTemperatureBar}>
-              <Animated.View style={[
-                styles.modernTemperatureProgress, 
-                { 
-                  width: `${Math.min((riceIndex / 100) * 100, 100)}%`,
-                  backgroundColor: riceLevel?.color || COLORS.primary.main
-                }
-              ]} />
-              <View style={styles.temperatureMarkers}>
-                {[25, 50, 75].map(marker => (
-                  <View key={marker} style={[styles.temperatureMarker, { left: `${marker}%` }]} />
-                ))}
-              </View>
-            </View>
-
-            {/* 모던한 통계 */}
-            <View style={styles.modernStats}>
-              <View style={styles.modernStatItem}>
-                <View style={styles.statIconContainer}>
-                  <Icon name="users" size={16} color={COLORS.primary.main} />
-                </View>
-                <Text style={styles.modernStatValue}>100%</Text>
-                <Text style={styles.modernStatLabel}>재참여율</Text>
-              </View>
-              <View style={styles.modernStatItem}>
-                <View style={styles.statIconContainer}>
-                  <Icon name="message-circle" size={16} color={COLORS.functional.success} />
-                </View>
-                <Text style={styles.modernStatValue}>98%</Text>
-                <Text style={styles.modernStatLabel}>응답률</Text>
-              </View>
-              <View style={styles.modernStatItem}>
-                <View style={styles.statIconContainer}>
-                  <Icon name="clock" size={16} color={COLORS.functional.warning} />
-                </View>
-                <Text style={styles.modernStatValue}>5분</Text>
-                <Text style={styles.modernStatLabel}>평균응답</Text>
-              </View>
-            </View>
-
-            {/* 레벨 정보 - 더 모던하게 */}
-            {riceLevel && (
-              <View style={styles.modernLevelContainer}>
-                <View style={[styles.levelBadge, { backgroundColor: riceLevel.color + '20' }]}>
-                  <Text style={[styles.modernLevelName, { color: riceLevel.color }]}>
-                    {riceLevel.level}
-                  </Text>
-                </View>
-                <Text style={styles.modernLevelDescription}>
-                  {riceLevel.description}
-                </Text>
-              </View>
-            )}
           </View>
+
+          {/* 온도 바 */}
+          <View style={styles.temperatureBar}>
+            <View style={[styles.temperatureProgress, { 
+              width: `${Math.min((riceIndex / 100) * 100, 100)}%`,
+              backgroundColor: riceLevel?.color || COLORS.neutral.grey400
+            }]} />
+          </View>
+
+          {/* 온도 설명 */}
+          <View style={styles.temperatureDescription}>
+            <View style={styles.temperatureStats}>
+              <View style={styles.tempStat}>
+                <Text style={styles.tempStatIcon}>👤</Text>
+                <Text style={styles.tempStatText}>재거래희망률 100%</Text>
+              </View>
+              <View style={styles.tempStat}>
+                <Text style={styles.tempStatIcon}>💬</Text>
+                <Text style={styles.tempStatText}>응답률 100%</Text>
+              </View>
+            </View>
+            <Text style={styles.tempStatDetail}>13일 후 3번째 거래</Text>
+            <Text style={styles.tempStatDetail}>최근 3일 이내 활동 (20204년 6월 가입)</Text>
+          </View>
+
+          {/* 레벨 정보 */}
+          {riceLevel && (
+            <View style={styles.levelContainer}>
+              <Text style={[styles.levelName, { color: riceLevel.color }]}>
+                {riceLevel.level}
+              </Text>
+              <Text style={styles.levelDescription}>
+                {riceLevel.description}
+              </Text>
+            </View>
+          )}
         </View>
 
-        {/* 모던한 활동 통계 */}
-        <View style={styles.modernStatsSection}>
-          <Animated.View style={[styles.modernStatCard, { opacity: fadeAnim }]}>
-            <View style={styles.statIconCircle}>
-              <Icon name="calendar" size={20} color={COLORS.primary.main} />
-            </View>
-            <Text style={styles.modernStatNumber}>{activityStats?.joinedMeetups || 0}</Text>
-            <Text style={styles.modernStatLabel}>참여한 모임</Text>
-            <View style={styles.statGrowth}>
-              <Icon name="trending-up" size={12} color={COLORS.functional.success} />
-              <Text style={styles.statGrowthText}>+3</Text>
-            </View>
-          </Animated.View>
-          
-          <Animated.View style={[styles.modernStatCard, { opacity: fadeAnim }]}>
-            <View style={styles.statIconCircle}>
-              <Icon name="star" size={20} color={COLORS.functional.warning} />
-            </View>
-            <Text style={styles.modernStatNumber}>{activityStats?.hostedMeetups || 0}</Text>
-            <Text style={styles.modernStatLabel}>호스팅</Text>
-            <View style={styles.statGrowth}>
-              <Icon name="trending-up" size={12} color={COLORS.functional.success} />
-              <Text style={styles.statGrowthText}>+1</Text>
-            </View>
-          </Animated.View>
-          
-          <Animated.View style={[styles.modernStatCard, { opacity: fadeAnim }]}>
-            <View style={styles.statIconCircle}>
-              <Icon name="check-circle" size={20} color={COLORS.functional.success} />
-            </View>
-            <Text style={styles.modernStatNumber}>{activityStats?.completedMeetups || 0}</Text>
-            <Text style={styles.modernStatLabel}>완료</Text>
-            <View style={styles.statCompletion}>
-              <Text style={styles.statCompletionText}>100%</Text>
-            </View>
-          </Animated.View>
+        {/* 활동 통계 */}
+        <View style={styles.statsSection}>
+          <TouchableOpacity style={styles.statCard}>
+            <Text style={styles.statNumber}>{activityStats?.joinedMeetups || 0}</Text>
+            <Text style={styles.statLabel}>참여</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.statCard}>
+            <Text style={styles.statNumber}>{activityStats?.hostedMeetups || 0}</Text>
+            <Text style={styles.statLabel}>호스팅</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.statCard}>
+            <Text style={styles.statNumber}>{activityStats?.completedMeetups || 0}</Text>
+            <Text style={styles.statLabel}>완료</Text>
+          </TouchableOpacity>
         </View>
-      </Animated.View>
+      </View>
 
       {/* 메인 콘텐츠 */}
-      <Animated.ScrollView 
+      <ScrollView 
         style={styles.content}
-        onScroll={Animated.event(
-          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-          { useNativeDriver: false }
-        )}
-        scrollEventThrottle={16}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
             colors={[COLORS.primary.main]}
-            tintColor={COLORS.primary.main}
           />
         }
         showsVerticalScrollIndicator={false}
       >
         {loading ? (
-          <View style={styles.modernLoadingContainer}>
-            <View style={styles.loadingSpinner} />
-            <Text style={styles.modernLoadingText}>데이터를 불러오는 중...</Text>
+          <View style={styles.loadingContainer}>
+            <Text style={styles.loadingText}>데이터를 불러오는 중...</Text>
           </View>
         ) : (
-          <Animated.View style={{ opacity: fadeAnim }}>
-            {/* 빠른 액션 메뉴 */}
-            <View style={styles.quickActionsContainer}>
-              <Text style={styles.quickActionsTitle}>빠른 실행</Text>
-              <View style={styles.quickActions}>
-                <TouchableOpacity style={styles.quickActionItem}>
-                  <View style={styles.quickActionIcon}>
-                    <Icon name="plus" size={20} color={COLORS.primary.main} />
-                  </View>
-                  <Text style={styles.quickActionText}>모임 만들기</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.quickActionItem}>
-                  <View style={styles.quickActionIcon}>
-                    <Icon name="search" size={20} color={COLORS.functional.success} />
-                  </View>
-                  <Text style={styles.quickActionText}>모임 찾기</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.quickActionItem}>
-                  <View style={styles.quickActionIcon}>
-                    <Icon name="heart" size={20} color={COLORS.functional.error} />
-                  </View>
-                  <Text style={styles.quickActionText}>관심 목록</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.quickActionItem}>
-                  <View style={styles.quickActionIcon}>
-                    <Icon name="gift" size={20} color={COLORS.functional.warning} />
-                  </View>
-                  <Text style={styles.quickActionText}>이벤트</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            {/* 내 활동 - 모던 스타일 */}
+          <>
+            {/* 내 활동 */}
             {renderMeetupList('참여한 모임', joinedMeetups, true)}
             {renderMeetupList('만든 모임', hostedMeetups, true)}
             
@@ -546,9 +435,181 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ navigation, user, onLogout 
             
             {/* 설정 */}
             {renderSettings()}
-          </Animated.View>
+          </>
         )}
-      </Animated.ScrollView>
+      </ScrollView>
+
+      {/* 프로필 수정 모달 */}
+      <Modal
+        visible={showProfileModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowProfileModal(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <TouchableOpacity onPress={() => setShowProfileModal(false)}>
+              <Text style={styles.modalCloseText}>취소</Text>
+            </TouchableOpacity>
+            <Text style={styles.modalTitle}>프로필 수정</Text>
+            <TouchableOpacity>
+              <Text style={styles.modalSaveText}>저장</Text>
+            </TouchableOpacity>
+          </View>
+          <ScrollView style={styles.modalContent}>
+            <Text style={styles.modalSectionTitle}>기본 정보</Text>
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>이름</Text>
+              <TextInput
+                style={styles.input}
+                value={user?.name || ''}
+                placeholder="이름을 입력하세요"
+              />
+            </View>
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>이메일</Text>
+              <TextInput
+                style={styles.input}
+                value={user?.email || ''}
+                placeholder="이메일을 입력하세요"
+                keyboardType="email-address"
+              />
+            </View>
+          </ScrollView>
+        </View>
+      </Modal>
+
+      {/* 알림 설정 모달 */}
+      <Modal
+        visible={showNotificationModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowNotificationModal(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <TouchableOpacity onPress={() => setShowNotificationModal(false)}>
+              <Text style={styles.modalCloseText}>닫기</Text>
+            </TouchableOpacity>
+            <Text style={styles.modalTitle}>알림 설정</Text>
+            <View style={styles.modalPlaceholder} />
+          </View>
+          <ScrollView style={styles.modalContent}>
+            <Text style={styles.modalSectionTitle}>알림 종류</Text>
+            <View style={styles.settingItem}>
+              <Text style={styles.settingLabel}>푸시 알림</Text>
+              <Text style={styles.settingDescription}>새로운 모임, 메시지 등</Text>
+            </View>
+            <View style={styles.settingItem}>
+              <Text style={styles.settingLabel}>이메일 알림</Text>
+              <Text style={styles.settingDescription}>중요한 업데이트</Text>
+            </View>
+            <View style={styles.settingItem}>
+              <Text style={styles.settingLabel}>모임 리마인더</Text>
+              <Text style={styles.settingDescription}>모임 시간 알림</Text>
+            </View>
+          </ScrollView>
+        </View>
+      </Modal>
+
+      {/* 개인정보 관리 모달 */}
+      <Modal
+        visible={showPrivacyModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowPrivacyModal(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <TouchableOpacity onPress={() => setShowPrivacyModal(false)}>
+              <Text style={styles.modalCloseText}>닫기</Text>
+            </TouchableOpacity>
+            <Text style={styles.modalTitle}>개인정보 관리</Text>
+            <View style={styles.modalPlaceholder} />
+          </View>
+          <ScrollView style={styles.modalContent}>
+            <TouchableOpacity style={styles.privacyMenuItem}>
+              <Text style={styles.privacyMenuText}>개인정보 내보내기</Text>
+              <Icon name="download" size={20} color={COLORS.text.secondary} />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.privacyMenuItem}>
+              <Text style={styles.privacyMenuText}>비밀번호 변경</Text>
+              <Icon name="lock" size={20} color={COLORS.text.secondary} />
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.privacyMenuItem, styles.dangerMenuItem]}>
+              <Text style={[styles.privacyMenuText, styles.dangerText]}>계정 탈퇴</Text>
+              <Icon name="trash" size={20} color={COLORS.functional.error} />
+            </TouchableOpacity>
+          </ScrollView>
+        </View>
+      </Modal>
+
+      {/* 도움말 모달 */}
+      <Modal
+        visible={showHelpModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowHelpModal(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <TouchableOpacity onPress={() => setShowHelpModal(false)}>
+              <Text style={styles.modalCloseText}>닫기</Text>
+            </TouchableOpacity>
+            <Text style={styles.modalTitle}>도움말</Text>
+            <View style={styles.modalPlaceholder} />
+          </View>
+          <ScrollView style={styles.modalContent}>
+            <Text style={styles.modalSectionTitle}>자주 묻는 질문</Text>
+            <TouchableOpacity style={styles.helpMenuItem}>
+              <Text style={styles.helpQuestion}>혼밥노노 앱은 어떻게 사용하나요?</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.helpMenuItem}>
+              <Text style={styles.helpQuestion}>모임에 참여하려면 어떻게 해야 하나요?</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.helpMenuItem}>
+              <Text style={styles.helpQuestion}>밥알지수는 무엇인가요?</Text>
+            </TouchableOpacity>
+            
+            <Text style={styles.modalSectionTitle}>문의하기</Text>
+            <TouchableOpacity style={styles.contactButton}>
+              <Icon name="mail" size={20} color={COLORS.primary.main} />
+              <Text style={styles.contactButtonText}>이메일로 문의하기</Text>
+            </TouchableOpacity>
+          </ScrollView>
+        </View>
+      </Modal>
+
+      {/* 이용약관 모달 */}
+      <Modal
+        visible={showTermsModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowTermsModal(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <TouchableOpacity onPress={() => setShowTermsModal(false)}>
+              <Text style={styles.modalCloseText}>닫기</Text>
+            </TouchableOpacity>
+            <Text style={styles.modalTitle}>이용약관</Text>
+            <View style={styles.modalPlaceholder} />
+          </View>
+          <ScrollView style={styles.modalContent}>
+            <Text style={styles.termsText}>
+              제1조 (목적){'\n'}
+              이 약관은 혼밥노노가 제공하는 모바일 애플리케이션 서비스의 이용조건 및 절차를 규정함을 목적으로 합니다.{'\n\n'}
+              
+              제2조 (용어의 정의){'\n'}
+              1. "서비스"라 함은 회사가 제공하는 혼밥노노 모바일 애플리케이션을 통한 모든 서비스를 의미합니다.{'\n'}
+              2. "이용자"라 함은 회사의 서비스를 받는 회원 및 비회원을 말합니다.{'\n\n'}
+              
+              제3조 (서비스의 제공){'\n'}
+              회사는 식사 모임 생성 및 참여 서비스, 회원 간 커뮤니케이션 서비스 등을 제공합니다.
+            </Text>
+          </ScrollView>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -556,63 +617,30 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ navigation, user, onLogout 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: COLORS.neutral.background,
   },
   profileHeader: {
-    backgroundColor: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-    padding: 24,
-    paddingTop: 40,
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
-    elevation: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-  },
-  profileBackgroundGradient: {
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    borderRadius: 20,
+    backgroundColor: COLORS.neutral.white,
     padding: 20,
-    backdropFilter: 'blur(10px)',
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.neutral.grey200,
   },
   profileTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 24,
-  },
-  profileAvatarContainer: {
-    position: 'relative',
-    marginRight: 16,
+    marginBottom: 20,
   },
   profileAvatar: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     backgroundColor: COLORS.primary.main,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 3,
-    borderColor: COLORS.neutral.white,
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-  },
-  onlineIndicator: {
-    position: 'absolute',
-    bottom: 2,
-    right: 2,
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    backgroundColor: COLORS.functional.success,
-    borderWidth: 3,
-    borderColor: COLORS.neutral.white,
+    marginRight: 12,
   },
   profileAvatarText: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: 'bold',
     color: COLORS.neutral.white,
   },
@@ -620,334 +648,160 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   profileName: {
-    fontSize: 22,
+    fontSize: 18,
     fontWeight: 'bold',
     color: COLORS.text.primary,
-    marginBottom: 4,
+    marginBottom: 2,
   },
   profileId: {
     fontSize: 14,
     color: COLORS.text.secondary,
-    marginBottom: 6,
-  },
-  verifiedBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.functional.success + '20',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    alignSelf: 'flex-start',
-  },
-  verifiedText: {
-    fontSize: 12,
-    color: COLORS.functional.success,
-    fontWeight: '600',
-    marginLeft: 4,
   },
   profileEditButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.primary.main,
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    elevation: 2,
-    shadowColor: COLORS.primary.main,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
+    borderWidth: 1,
+    borderColor: COLORS.neutral.grey300,
+    borderRadius: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
   },
   profileEditText: {
     fontSize: 14,
-    color: COLORS.neutral.white,
-    fontWeight: '600',
-    marginLeft: 6,
+    color: COLORS.text.primary,
   },
-  riceIndexCard: {
+  riceIndexSection: {
     backgroundColor: COLORS.neutral.white,
-    borderRadius: 20,
-    padding: 20,
-    marginBottom: 20,
-    elevation: 6,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    ...SHADOWS.card,
   },
   riceIndexHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 16,
+    marginBottom: 8,
   },
-  riceIndexTitleContainer: {
+  riceIndexLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+  },
+  infoIcon: {
+    fontSize: 16,
+    color: COLORS.text.secondary,
+  },
+  temperatureContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  firstTemperature: {
+    fontSize: 14,
+    color: COLORS.text.secondary,
+  },
+  currentTemperatureContainer: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  riceIndexLabel: {
+  currentTemperature: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: COLORS.primary.main,
+    marginRight: 8,
+  },
+  temperatureEmoji: {
+    fontSize: 20,
+  },
+  temperatureBar: {
+    height: 8,
+    backgroundColor: COLORS.neutral.grey300,
+    borderRadius: 4,
+    marginBottom: 16,
+    overflow: 'hidden',
+  },
+  temperatureProgress: {
+    height: '100%',
+    borderRadius: 4,
+  },
+  temperatureDescription: {
+    marginBottom: 12,
+  },
+  temperatureStats: {
+    flexDirection: 'row',
+    marginBottom: 8,
+  },
+  tempStat: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  tempStatIcon: {
+    fontSize: 14,
+    marginRight: 4,
+  },
+  tempStatText: {
+    fontSize: 14,
+    color: COLORS.text.secondary,
+  },
+  tempStatDetail: {
+    fontSize: 12,
+    color: COLORS.text.secondary,
+    marginBottom: 2,
+  },
+  levelContainer: {
+    alignItems: 'center',
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.neutral.grey300,
+  },
+  levelName: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 4,
+  },
+  levelDescription: {
+    fontSize: 14,
+    color: COLORS.text.secondary,
+    textAlign: 'center',
+  },
+  statsSection: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+  },
+  statCard: {
+    alignItems: 'center',
+    padding: 12,
+    backgroundColor: COLORS.neutral.grey100,
+    borderRadius: 8,
+    minWidth: 60,
+  },
+  statNumber: {
     fontSize: 18,
     fontWeight: 'bold',
     color: COLORS.text.primary,
-    marginRight: 8,
-  },
-  riceIndexBadge: {
-    backgroundColor: COLORS.functional.error,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 10,
-  },
-  riceIndexBadgeText: {
-    fontSize: 10,
-    fontWeight: 'bold',
-    color: COLORS.neutral.white,
-  },
-  infoButton: {
-    padding: 8,
-    borderRadius: 20,
-    backgroundColor: COLORS.neutral.grey100,
-  },
-  modernTemperatureContainer: {
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  temperatureMain: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    justifyContent: 'center',
-    marginBottom: 8,
-  },
-  modernCurrentTemperature: {
-    fontSize: 48,
-    fontWeight: 'bold',
-    color: COLORS.primary.main,
-  },
-  temperatureUnit: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: COLORS.text.secondary,
-    marginLeft: 4,
-    marginRight: 8,
-  },
-  modernTemperatureEmoji: {
-    fontSize: 24,
-  },
-  modernFirstTemperature: {
-    fontSize: 14,
-    color: COLORS.text.secondary,
-    textAlign: 'center',
-  },
-  modernTemperatureBar: {
-    height: 12,
-    backgroundColor: COLORS.neutral.grey200,
-    borderRadius: 20,
-    marginBottom: 20,
-    overflow: 'hidden',
-    position: 'relative',
-  },
-  modernTemperatureProgress: {
-    height: '100%',
-    borderRadius: 20,
-    position: 'relative',
-  },
-  temperatureMarkers: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    flexDirection: 'row',
-  },
-  temperatureMarker: {
-    position: 'absolute',
-    width: 2,
-    height: '100%',
-    backgroundColor: 'rgba(255, 255, 255, 0.5)',
-  },
-  modernStats: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginBottom: 20,
-  },
-  modernStatItem: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  statIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: COLORS.neutral.grey100,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  modernStatValue: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: COLORS.text.primary,
     marginBottom: 4,
   },
-  modernStatLabel: {
+  statLabel: {
     fontSize: 12,
     color: COLORS.text.secondary,
-    textAlign: 'center',
-  },
-  modernLevelContainer: {
-    alignItems: 'center',
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.neutral.grey200,
-  },
-  levelBadge: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    marginBottom: 8,
-  },
-  modernLevelName: {
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  modernLevelDescription: {
-    fontSize: 14,
-    color: COLORS.text.secondary,
-    textAlign: 'center',
-    lineHeight: 20,
-  },
-  modernStatsSection: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 20,
-  },
-  modernStatCard: {
-    flex: 1,
-    alignItems: 'center',
-    backgroundColor: COLORS.neutral.white,
-    padding: 16,
-    borderRadius: 16,
-    marginHorizontal: 4,
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-  },
-  statIconCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: COLORS.neutral.grey100,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  modernStatNumber: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: COLORS.text.primary,
-    marginBottom: 4,
-  },
-  modernStatLabel: {
-    fontSize: 12,
-    color: COLORS.text.secondary,
-    textAlign: 'center',
-    marginBottom: 4,
-  },
-  statGrowth: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.functional.success + '20',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 8,
-  },
-  statGrowthText: {
-    fontSize: 10,
-    fontWeight: 'bold',
-    color: COLORS.functional.success,
-    marginLeft: 2,
-  },
-  statCompletion: {
-    backgroundColor: COLORS.functional.success + '20',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 8,
-  },
-  statCompletionText: {
-    fontSize: 10,
-    fontWeight: 'bold',
-    color: COLORS.functional.success,
   },
   content: {
     flex: 1,
-    paddingTop: 8,
-  },
-  quickActionsContainer: {
-    backgroundColor: COLORS.neutral.white,
-    margin: 16,
-    padding: 20,
-    borderRadius: 16,
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-  },
-  quickActionsTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: COLORS.text.primary,
-    marginBottom: 16,
-  },
-  quickActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  quickActionItem: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  quickActionIcon: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: COLORS.neutral.grey100,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 8,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-  },
-  quickActionText: {
-    fontSize: 12,
-    color: COLORS.text.secondary,
-    textAlign: 'center',
-    fontWeight: '500',
   },
   activitySection: {
     backgroundColor: COLORS.neutral.white,
-    margin: 16,
-    marginBottom: 8,
-    padding: 20,
-    borderRadius: 16,
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
+    marginBottom: 1,
+    padding: 16,
   },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 12,
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
     color: COLORS.text.primary,
   },
@@ -960,12 +814,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 4,
+    paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.neutral.grey200,
-    borderRadius: 8,
-    marginBottom: 8,
   },
   activityInfo: {
     flex: 1,
@@ -992,20 +843,13 @@ const styles = StyleSheet.create({
   },
   settingsSection: {
     backgroundColor: COLORS.neutral.white,
-    margin: 16,
-    marginTop: 8,
-    borderRadius: 16,
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
+    marginTop: 1,
   },
   settingsItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 20,
+    padding: 16,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.neutral.grey200,
   },
@@ -1020,28 +864,19 @@ const styles = StyleSheet.create({
   settingsTitle: {
     fontSize: 16,
     color: COLORS.text.primary,
-    fontWeight: '500',
   },
   logoutText: {
     color: COLORS.functional.error,
   },
-  modernLoadingContainer: {
+  loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 40,
   },
-  loadingSpinner: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: COLORS.primary.main + '20',
-    marginBottom: 16,
-  },
-  modernLoadingText: {
+  loadingText: {
     fontSize: 16,
     color: COLORS.text.secondary,
-    fontWeight: '500',
   },
   emptyContainer: {
     padding: 20,
@@ -1071,15 +906,8 @@ const styles = StyleSheet.create({
   },
   reviewsSection: {
     backgroundColor: COLORS.neutral.white,
-    margin: 16,
-    marginBottom: 8,
-    padding: 20,
-    borderRadius: 16,
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
+    marginBottom: 1,
+    padding: 16,
   },
   reviewCount: {
     fontSize: 14,
@@ -1156,6 +984,123 @@ const styles = StyleSheet.create({
     color: COLORS.text.tertiary,
     textAlign: 'center',
     marginTop: 4,
+  },
+  // 모달 스타일
+  modalContainer: {
+    flex: 1,
+    backgroundColor: COLORS.neutral.white,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.neutral.grey200,
+  },
+  modalCloseText: {
+    fontSize: 16,
+    color: COLORS.text.secondary,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: COLORS.text.primary,
+  },
+  modalSaveText: {
+    fontSize: 16,
+    color: COLORS.primary.main,
+    fontWeight: '600',
+  },
+  modalPlaceholder: {
+    width: 40,
+  },
+  modalContent: {
+    flex: 1,
+    padding: 16,
+  },
+  modalSectionTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: COLORS.text.primary,
+    marginBottom: 16,
+    marginTop: 8,
+  },
+  inputGroup: {
+    marginBottom: 16,
+  },
+  inputLabel: {
+    fontSize: 14,
+    color: COLORS.text.secondary,
+    marginBottom: 8,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: COLORS.neutral.grey300,
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    color: COLORS.text.primary,
+  },
+  settingItem: {
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.neutral.grey200,
+  },
+  settingLabel: {
+    fontSize: 16,
+    color: COLORS.text.primary,
+    marginBottom: 4,
+  },
+  settingDescription: {
+    fontSize: 14,
+    color: COLORS.text.secondary,
+  },
+  privacyMenuItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.neutral.grey200,
+  },
+  privacyMenuText: {
+    fontSize: 16,
+    color: COLORS.text.primary,
+  },
+  dangerMenuItem: {
+    borderBottomWidth: 0,
+  },
+  dangerText: {
+    color: COLORS.functional.error,
+  },
+  helpMenuItem: {
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.neutral.grey200,
+  },
+  helpQuestion: {
+    fontSize: 16,
+    color: COLORS.text.primary,
+  },
+  contactButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.primary.light,
+    padding: 16,
+    borderRadius: 8,
+    marginTop: 8,
+  },
+  contactButtonText: {
+    fontSize: 16,
+    color: COLORS.primary.main,
+    marginLeft: 8,
+    fontWeight: '600',
+  },
+  termsText: {
+    fontSize: 14,
+    color: COLORS.text.primary,
+    lineHeight: 22,
   },
 });
 

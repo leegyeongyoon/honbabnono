@@ -14,6 +14,7 @@ import { TYPOGRAPHY } from '../styles/typography';
 import { Icon } from '../components/Icon';
 import { useMeetups } from '../hooks/useMeetups';
 import { SEARCH_CATEGORIES, SEARCH_LOCATIONS, SORT_OPTION_NAMES } from '../constants/categories';
+import { formatKoreanDateTime } from '../utils/dateUtils';
 
 interface SearchScreenProps {
   navigation?: any;
@@ -80,7 +81,9 @@ const SearchScreen: React.FC<SearchScreenProps> = ({ navigation, user }) => {
             </View>
             <View style={{flexDirection: 'row', alignItems: 'center', gap: 4}}>
               <Icon name="clock" size={11} color={COLORS.text.secondary} />
-              <Text style={styles.meetupTime}>{meetup.date} {meetup.time}</Text>
+              <Text style={styles.meetupTime}>
+                {formatKoreanDateTime(meetup.date, 'datetime')}
+              </Text>
             </View>
           </View>
         </View>

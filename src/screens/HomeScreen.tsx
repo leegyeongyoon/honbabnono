@@ -12,6 +12,7 @@ import {useTypedNavigation} from '../hooks/useNavigation';
 import {COLORS, SHADOWS} from '../styles/colors';
 import CreateMeetupScreen from './CreateMeetupScreen';
 import { useMeetups } from '../hooks/useMeetups';
+import { formatKoreanDateTime } from '../utils/dateUtils';
 
 const HomeScreen = () => {
   const navigation = useTypedNavigation();
@@ -51,7 +52,7 @@ const HomeScreen = () => {
             <View style={styles.meetupInfo}>
               <Text style={styles.meetupTitle}>{meetup.title}</Text>
               <Text style={styles.meetupLocation}>📍 {meetup.location}</Text>
-              <Text style={styles.meetupTime}>🕐 {meetup.date} {meetup.time}</Text>
+              <Text style={styles.meetupTime}>🕐 {formatKoreanDateTime(meetup.date, 'datetime')}</Text>
               <Text style={styles.meetupParticipants}>
                 👥 {meetup.currentParticipants}/{meetup.maxParticipants}명
               </Text>

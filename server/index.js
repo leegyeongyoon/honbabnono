@@ -98,6 +98,12 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// 모든 요청 로깅 (디버깅용)
+app.use((req, res, next) => {
+  console.log(`📝 Request: ${req.method} ${req.url}`);
+  next();
+});
+
 // API 라우터를 /api 경로에 마운트
 app.use('/api', apiRouter);
 
@@ -227,6 +233,83 @@ apiRouter.get('/auth/kakao/callback', async (req, res) => {
   } catch (error) {
     console.error('카카오 로그인 처리 실패:', error);
     res.redirect('http://localhost:3000/login?error=kakao_login_failed');
+  }
+});
+
+// 토큰 검증 및 자동 로그인 API
+apiRouter.post('/auth/verify-token', async (req, res) => {
+  console.log('🔍 토큰 검증 API 호출됨:', { 
+    body: req.body,
+    hasToken: !!req.body?.token,
+    tokenLength: req.body?.token?.length 
+  });
+  
+  try {
+    const { token } = req.body;
+    
+    if (!token) {
+      return res.status(400).json({ 
+        success: false, 
+        error: '토큰이 필요합니다.' 
+      });
+    }
+
+    // JWT 토큰 검증
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    
+    // 사용자 정보 조회
+    const userResult = await pool.query(`
+      SELECT id, email, name, profile_image, provider, is_verified, created_at 
+      FROM users 
+      WHERE id = $1 AND is_verified = true
+    `, [decoded.userId]);
+
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({ 
+        success: false, 
+        error: '사용자를 찾을 수 없습니다.' 
+      });
+    }
+
+    const user = userResult.rows[0];
+    
+    console.log('✅ 토큰 검증 성공 - 자동 로그인:', user.email);
+
+    res.json({
+      success: true,
+      message: '자동 로그인 성공',
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        profileImage: user.profile_image,
+        provider: user.provider,
+        isVerified: user.is_verified,
+        createdAt: user.created_at
+      },
+      token: token // 기존 토큰 재사용
+    });
+
+  } catch (error) {
+    if (error.name === 'TokenExpiredError') {
+      return res.status(401).json({ 
+        success: false, 
+        error: '토큰이 만료되었습니다.' 
+      });
+    }
+    
+    if (error.name === 'JsonWebTokenError') {
+      return res.status(401).json({ 
+        success: false, 
+        error: '유효하지 않은 토큰입니다.' 
+      });
+    }
+
+    console.error('토큰 검증 오류:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: '서버 오류가 발생했습니다.' 
+    });
   }
 });
 
@@ -1556,6 +1639,666 @@ apiRouter.get('/user/rice-index', authenticateToken, async (req, res) => {
   }
 });
 
+// ===========================================
+// 마이페이지 상세 기능 API들
+// ===========================================
+
+// 1. 프로필 관리 API
+// 프로필 정보 수정
+apiRouter.put('/user/profile', authenticateToken, async (req, res) => {
+  try {
+    console.log('👤 프로필 수정 요청:', req.body);
+    const { name, email, profile_image } = req.body;
+    const userId = req.userId;
+
+    // 입력 검증
+    if (!name && !email && !profile_image) {
+      return res.status(400).json({
+        success: false,
+        error: '수정할 정보를 입력해주세요.'
+      });
+    }
+
+    // 이메일 중복 검사 (이메일이 변경된 경우)
+    if (email) {
+      const emailCheck = await pool.query(
+        'SELECT id FROM users WHERE email = $1 AND id != $2',
+        [email, userId]
+      );
+      if (emailCheck.rows.length > 0) {
+        return res.status(400).json({
+          success: false,
+          error: '이미 사용 중인 이메일입니다.'
+        });
+      }
+    }
+
+    // 업데이트할 필드들 동적으로 구성
+    const updateFields = [];
+    const updateValues = [];
+    let valueIndex = 1;
+
+    if (name) {
+      updateFields.push(`name = $${valueIndex}`);
+      updateValues.push(name);
+      valueIndex++;
+    }
+    if (email) {
+      updateFields.push(`email = $${valueIndex}`);
+      updateValues.push(email);
+      valueIndex++;
+    }
+    if (profile_image) {
+      updateFields.push(`profile_image = $${valueIndex}`);
+      updateValues.push(profile_image);
+      valueIndex++;
+    }
+
+    updateFields.push(`updated_at = $${valueIndex}`);
+    updateValues.push(new Date());
+    valueIndex++;
+
+    updateValues.push(userId);
+
+    const updateQuery = `
+      UPDATE users 
+      SET ${updateFields.join(', ')}
+      WHERE id = $${valueIndex}
+      RETURNING id, email, name, profile_image, provider, is_verified, created_at, updated_at
+    `;
+
+    const result = await pool.query(updateQuery, updateValues);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: '사용자를 찾을 수 없습니다.'
+      });
+    }
+
+    console.log('✅ 프로필 수정 성공');
+    res.json({
+      success: true,
+      message: '프로필이 성공적으로 수정되었습니다.',
+      user: result.rows[0]
+    });
+
+  } catch (error) {
+    console.error('❌ 프로필 수정 실패:', error);
+    res.status(500).json({
+      success: false,
+      error: '프로필 수정 중 오류가 발생했습니다.'
+    });
+  }
+});
+
+// 비밀번호 변경 (이메일 로그인 사용자만)
+apiRouter.put('/user/password', authenticateToken, async (req, res) => {
+  try {
+    console.log('🔐 비밀번호 변경 요청');
+    const { currentPassword, newPassword } = req.body;
+    const userId = req.userId;
+
+    // 입력 검증
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({
+        success: false,
+        error: '현재 비밀번호와 새 비밀번호를 입력해주세요.'
+      });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({
+        success: false,
+        error: '새 비밀번호는 6자 이상이어야 합니다.'
+      });
+    }
+
+    // 사용자 정보 조회
+    const userResult = await pool.query(
+      'SELECT password, provider FROM users WHERE id = $1',
+      [userId]
+    );
+
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: '사용자를 찾을 수 없습니다.'
+      });
+    }
+
+    const user = userResult.rows[0];
+
+    // 소셜 로그인 사용자는 비밀번호 변경 불가
+    if (user.provider !== 'email') {
+      return res.status(400).json({
+        success: false,
+        error: '소셜 로그인 사용자는 비밀번호를 변경할 수 없습니다.'
+      });
+    }
+
+    // 현재 비밀번호 확인
+    const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.password);
+    if (!isCurrentPasswordValid) {
+      return res.status(400).json({
+        success: false,
+        error: '현재 비밀번호가 올바르지 않습니다.'
+      });
+    }
+
+    // 새 비밀번호 해시화
+    const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+
+    // 비밀번호 업데이트
+    await pool.query(
+      'UPDATE users SET password = $1, updated_at = $2 WHERE id = $3',
+      [hashedNewPassword, new Date(), userId]
+    );
+
+    console.log('✅ 비밀번호 변경 성공');
+    res.json({
+      success: true,
+      message: '비밀번호가 성공적으로 변경되었습니다.'
+    });
+
+  } catch (error) {
+    console.error('❌ 비밀번호 변경 실패:', error);
+    res.status(500).json({
+      success: false,
+      error: '비밀번호 변경 중 오류가 발생했습니다.'
+    });
+  }
+});
+
+// 2. 알림 설정 API
+// 알림 설정 조회
+apiRouter.get('/user/notification-settings', authenticateToken, async (req, res) => {
+  try {
+    console.log('🔔 알림 설정 조회 요청');
+    const userId = req.userId;
+
+    const result = await pool.query(`
+      SELECT 
+        push_notifications,
+        email_notifications,
+        meetup_reminders,
+        chat_notifications,
+        marketing_notifications,
+        updated_at
+      FROM user_notification_settings 
+      WHERE user_id = $1
+    `, [userId]);
+
+    let settings;
+    if (result.rows.length === 0) {
+      // 기본 설정으로 생성
+      const defaultSettings = {
+        push_notifications: true,
+        email_notifications: true,
+        meetup_reminders: true,
+        chat_notifications: true,
+        marketing_notifications: false
+      };
+
+      await pool.query(`
+        INSERT INTO user_notification_settings 
+        (user_id, push_notifications, email_notifications, meetup_reminders, chat_notifications, marketing_notifications)
+        VALUES ($1, $2, $3, $4, $5, $6)
+      `, [userId, defaultSettings.push_notifications, defaultSettings.email_notifications, 
+          defaultSettings.meetup_reminders, defaultSettings.chat_notifications, defaultSettings.marketing_notifications]);
+
+      settings = defaultSettings;
+    } else {
+      settings = result.rows[0];
+    }
+
+    console.log('✅ 알림 설정 조회 성공');
+    res.json({
+      success: true,
+      data: settings
+    });
+
+  } catch (error) {
+    console.error('❌ 알림 설정 조회 실패:', error);
+    res.status(500).json({
+      success: false,
+      error: '알림 설정 조회 중 오류가 발생했습니다.'
+    });
+  }
+});
+
+// 알림 설정 업데이트
+apiRouter.put('/user/notification-settings', authenticateToken, async (req, res) => {
+  try {
+    console.log('🔔 알림 설정 업데이트 요청:', req.body);
+    const userId = req.userId;
+    const {
+      push_notifications,
+      email_notifications,
+      meetup_reminders,
+      chat_notifications,
+      marketing_notifications
+    } = req.body;
+
+    // 설정이 존재하는지 확인
+    const existingSettings = await pool.query(
+      'SELECT user_id FROM user_notification_settings WHERE user_id = $1',
+      [userId]
+    );
+
+    if (existingSettings.rows.length === 0) {
+      // 새로 생성
+      await pool.query(`
+        INSERT INTO user_notification_settings 
+        (user_id, push_notifications, email_notifications, meetup_reminders, chat_notifications, marketing_notifications)
+        VALUES ($1, $2, $3, $4, $5, $6)
+      `, [userId, push_notifications ?? true, email_notifications ?? true, 
+          meetup_reminders ?? true, chat_notifications ?? true, marketing_notifications ?? false]);
+    } else {
+      // 업데이트할 필드들 동적으로 구성
+      const updateFields = [];
+      const updateValues = [];
+      let valueIndex = 1;
+
+      if (push_notifications !== undefined) {
+        updateFields.push(`push_notifications = $${valueIndex}`);
+        updateValues.push(push_notifications);
+        valueIndex++;
+      }
+      if (email_notifications !== undefined) {
+        updateFields.push(`email_notifications = $${valueIndex}`);
+        updateValues.push(email_notifications);
+        valueIndex++;
+      }
+      if (meetup_reminders !== undefined) {
+        updateFields.push(`meetup_reminders = $${valueIndex}`);
+        updateValues.push(meetup_reminders);
+        valueIndex++;
+      }
+      if (chat_notifications !== undefined) {
+        updateFields.push(`chat_notifications = $${valueIndex}`);
+        updateValues.push(chat_notifications);
+        valueIndex++;
+      }
+      if (marketing_notifications !== undefined) {
+        updateFields.push(`marketing_notifications = $${valueIndex}`);
+        updateValues.push(marketing_notifications);
+        valueIndex++;
+      }
+
+      updateFields.push(`updated_at = $${valueIndex}`);
+      updateValues.push(new Date());
+      valueIndex++;
+
+      updateValues.push(userId);
+
+      if (updateFields.length > 1) { // updated_at 외에 다른 필드가 있는 경우만
+        const updateQuery = `
+          UPDATE user_notification_settings 
+          SET ${updateFields.join(', ')}
+          WHERE user_id = $${valueIndex}
+        `;
+        await pool.query(updateQuery, updateValues);
+      }
+    }
+
+    console.log('✅ 알림 설정 업데이트 성공');
+    res.json({
+      success: true,
+      message: '알림 설정이 성공적으로 업데이트되었습니다.'
+    });
+
+  } catch (error) {
+    console.error('❌ 알림 설정 업데이트 실패:', error);
+    res.status(500).json({
+      success: false,
+      error: '알림 설정 업데이트 중 오류가 발생했습니다.'
+    });
+  }
+});
+
+// 3. 개인정보 관리 API
+// 개인정보 내보내기
+apiRouter.get('/user/data-export', authenticateToken, async (req, res) => {
+  try {
+    console.log('📁 개인정보 내보내기 요청');
+    const userId = req.userId;
+
+    // 사용자 기본 정보
+    const userResult = await pool.query(`
+      SELECT id, email, name, profile_image, provider, is_verified, created_at, updated_at
+      FROM users WHERE id = $1
+    `, [userId]);
+
+    // 참여한 모임들
+    const meetupsResult = await pool.query(`
+      SELECT m.title, m.description, m.location, m.date, m.time, m.category, mp.status, mp.joined_at
+      FROM meetup_participants mp
+      JOIN meetups m ON mp.meetup_id = m.id
+      WHERE mp.user_id = $1
+      ORDER BY mp.joined_at DESC
+    `, [userId]);
+
+    // 호스팅한 모임들
+    const hostedMeetupsResult = await pool.query(`
+      SELECT title, description, location, date, time, category, status, created_at
+      FROM meetups WHERE host_id = $1
+      ORDER BY created_at DESC
+    `, [userId]);
+
+    // 작성한 리뷰들
+    const reviewsResult = await pool.query(`
+      SELECT r.rating, r.comment, r.tags, r.created_at, m.title as meetup_title
+      FROM reviews r
+      JOIN meetups m ON r.meetup_id = m.id
+      WHERE r.reviewer_id = $1
+      ORDER BY r.created_at DESC
+    `, [userId]);
+
+    // 알림 설정
+    const notificationResult = await pool.query(`
+      SELECT push_notifications, email_notifications, meetup_reminders, chat_notifications, marketing_notifications
+      FROM user_notification_settings WHERE user_id = $1
+    `, [userId]);
+
+    const exportData = {
+      user_info: userResult.rows[0],
+      joined_meetups: meetupsResult.rows,
+      hosted_meetups: hostedMeetupsResult.rows,
+      reviews: reviewsResult.rows,
+      notification_settings: notificationResult.rows[0] || null,
+      exported_at: new Date().toISOString()
+    };
+
+    console.log('✅ 개인정보 내보내기 성공');
+    res.json({
+      success: true,
+      data: exportData
+    });
+
+  } catch (error) {
+    console.error('❌ 개인정보 내보내기 실패:', error);
+    res.status(500).json({
+      success: false,
+      error: '개인정보 내보내기 중 오류가 발생했습니다.'
+    });
+  }
+});
+
+// 계정 탈퇴
+apiRouter.delete('/user/account', authenticateToken, async (req, res) => {
+  try {
+    console.log('🗑️ 계정 탈퇴 요청');
+    const userId = req.userId;
+    const { password, reason } = req.body;
+
+    // 사용자 정보 조회
+    const userResult = await pool.query(
+      'SELECT password, provider, email FROM users WHERE id = $1',
+      [userId]
+    );
+
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: '사용자를 찾을 수 없습니다.'
+      });
+    }
+
+    const user = userResult.rows[0];
+
+    // 이메일 로그인 사용자인 경우 비밀번호 확인
+    if (user.provider === 'email' && password) {
+      const isPasswordValid = await bcrypt.compare(password, user.password);
+      if (!isPasswordValid) {
+        return res.status(400).json({
+          success: false,
+          error: '비밀번호가 올바르지 않습니다.'
+        });
+      }
+    }
+
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      // 탈퇴 로그 기록
+      await client.query(`
+        INSERT INTO user_deletion_logs (user_id, email, reason, deleted_at)
+        VALUES ($1, $2, $3, $4)
+      `, [userId, user.email, reason || '', new Date()]);
+
+      // 관련 데이터 삭제 (참조 무결성 고려)
+      await client.query('DELETE FROM chat_participants WHERE "userId" = $1', [userId]);
+      await client.query('DELETE FROM meetup_participants WHERE user_id = $1', [userId]);
+      await client.query('DELETE FROM reviews WHERE reviewer_id = $1', [userId]);
+      await client.query('DELETE FROM user_notification_settings WHERE user_id = $1', [userId]);
+      
+      // 호스팅한 모임들 상태 변경 (삭제하지 않고 비활성화)
+      await client.query(
+        'UPDATE meetups SET status = $1, updated_at = $2 WHERE host_id = $3',
+        ['취소', new Date(), userId]
+      );
+
+      // 사용자 계정 삭제
+      await client.query('DELETE FROM users WHERE id = $1', [userId]);
+
+      await client.query('COMMIT');
+      console.log('✅ 계정 탈퇴 성공');
+
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+
+    res.json({
+      success: true,
+      message: '계정이 성공적으로 탈퇴되었습니다.'
+    });
+
+  } catch (error) {
+    console.error('❌ 계정 탈퇴 실패:', error);
+    res.status(500).json({
+      success: false,
+      error: '계정 탈퇴 중 오류가 발생했습니다.'
+    });
+  }
+});
+
+// 4. 도움말 및 지원 API
+// FAQ 목록 조회
+apiRouter.get('/support/faq', async (req, res) => {
+  try {
+    console.log('❓ FAQ 목록 조회 요청');
+    const { category } = req.query;
+
+    let query = `
+      SELECT id, category, question, answer, order_index, created_at, updated_at
+      FROM faq 
+      WHERE is_active = true
+    `;
+    const queryParams = [];
+
+    if (category) {
+      query += ' AND category = $1';
+      queryParams.push(category);
+    }
+
+    query += ' ORDER BY category, order_index, created_at';
+
+    const result = await pool.query(query, queryParams);
+
+    console.log('✅ FAQ 목록 조회 성공');
+    res.json({
+      success: true,
+      data: result.rows
+    });
+
+  } catch (error) {
+    console.error('❌ FAQ 목록 조회 실패:', error);
+    res.status(500).json({
+      success: false,
+      error: 'FAQ 목록 조회 중 오류가 발생했습니다.'
+    });
+  }
+});
+
+// 문의하기
+apiRouter.post('/support/inquiry', authenticateToken, async (req, res) => {
+  try {
+    console.log('💬 문의 접수 요청:', req.body);
+    const userId = req.userId;
+    const { subject, content, category } = req.body;
+
+    // 입력 검증
+    if (!subject || !content) {
+      return res.status(400).json({
+        success: false,
+        error: '제목과 내용을 입력해주세요.'
+      });
+    }
+
+    const result = await pool.query(`
+      INSERT INTO support_inquiries (user_id, subject, content, category, status, created_at)
+      VALUES ($1, $2, $3, $4, $5, $6)
+      RETURNING id, subject, category, status, created_at
+    `, [userId, subject, content, category || '일반', '접수', new Date()]);
+
+    console.log('✅ 문의 접수 성공');
+    res.json({
+      success: true,
+      message: '문의가 성공적으로 접수되었습니다.',
+      data: result.rows[0]
+    });
+
+  } catch (error) {
+    console.error('❌ 문의 접수 실패:', error);
+    res.status(500).json({
+      success: false,
+      error: '문의 접수 중 오류가 발생했습니다.'
+    });
+  }
+});
+
+// 내 문의 내역 조회
+apiRouter.get('/support/my-inquiries', authenticateToken, async (req, res) => {
+  try {
+    console.log('📋 내 문의 내역 조회 요청');
+    const userId = req.userId;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const offset = (page - 1) * limit;
+
+    // 전체 개수 조회
+    const countResult = await pool.query(
+      'SELECT COUNT(*) FROM support_inquiries WHERE user_id = $1',
+      [userId]
+    );
+    const totalCount = parseInt(countResult.rows[0].count);
+
+    // 문의 내역 조회
+    const result = await pool.query(`
+      SELECT id, subject, content, category, status, created_at, updated_at
+      FROM support_inquiries 
+      WHERE user_id = $1
+      ORDER BY created_at DESC
+      LIMIT $2 OFFSET $3
+    `, [userId, limit, offset]);
+
+    console.log('✅ 내 문의 내역 조회 성공');
+    res.json({
+      success: true,
+      data: result.rows,
+      pagination: {
+        total: totalCount,
+        page: page,
+        limit: limit,
+        totalPages: Math.ceil(totalCount / limit)
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ 내 문의 내역 조회 실패:', error);
+    res.status(500).json({
+      success: false,
+      error: '문의 내역 조회 중 오류가 발생했습니다.'
+    });
+  }
+});
+
+// 5. 이용약관 및 개인정보처리방침 API
+// 이용약관 조회
+apiRouter.get('/legal/terms', async (req, res) => {
+  try {
+    console.log('📄 이용약관 조회 요청');
+    
+    const result = await pool.query(`
+      SELECT version, content, effective_date, created_at
+      FROM terms_of_service 
+      WHERE is_current = true
+      ORDER BY created_at DESC
+      LIMIT 1
+    `);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: '이용약관을 찾을 수 없습니다.'
+      });
+    }
+
+    console.log('✅ 이용약관 조회 성공');
+    res.json({
+      success: true,
+      data: result.rows[0]
+    });
+
+  } catch (error) {
+    console.error('❌ 이용약관 조회 실패:', error);
+    res.status(500).json({
+      success: false,
+      error: '이용약관 조회 중 오류가 발생했습니다.'
+    });
+  }
+});
+
+// 개인정보처리방침 조회
+apiRouter.get('/legal/privacy', async (req, res) => {
+  try {
+    console.log('🔒 개인정보처리방침 조회 요청');
+    
+    const result = await pool.query(`
+      SELECT version, content, effective_date, created_at
+      FROM privacy_policy 
+      WHERE is_current = true
+      ORDER BY created_at DESC
+      LIMIT 1
+    `);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: '개인정보처리방침을 찾을 수 없습니다.'
+      });
+    }
+
+    console.log('✅ 개인정보처리방침 조회 성공');
+    res.json({
+      success: true,
+      data: result.rows[0]
+    });
+
+  } catch (error) {
+    console.error('❌ 개인정보처리방침 조회 실패:', error);
+    res.status(500).json({
+      success: false,
+      error: '개인정보처리방침 조회 중 오류가 발생했습니다.'
+    });
+  }
+});
+
 // 404 에러 핸들러 (API 라우터용)
 apiRouter.use('*', (req, res) => {
   res.status(404).json({
@@ -1600,6 +2343,279 @@ io.on('connection', (socket) => {
   socket.on('disconnect', () => {
     console.log('📱 클라이언트 연결 해제됨:', socket.id);
   });
+});
+
+// 모임 후기 API들
+// 모임 후기 작성
+apiRouter.post('/meetups/:id/review', authenticateToken, async (req, res) => {
+  try {
+    const { id: meetupId } = req.params;
+    const userId = req.user.userId;
+    const { rating, content, images } = req.body;
+
+    console.log('🌟 모임 후기 작성 요청:', { meetupId, userId, rating });
+
+    // 입력값 검증
+    if (!rating || rating < 1 || rating > 5) {
+      return res.status(400).json({ 
+        success: false, 
+        error: '평점은 1-5 사이의 값이어야 합니다.' 
+      });
+    }
+
+    if (!content || content.trim().length < 10) {
+      return res.status(400).json({ 
+        success: false, 
+        error: '후기 내용은 최소 10자 이상 작성해주세요.' 
+      });
+    }
+
+    // 모임 존재 및 참가 여부 확인
+    const participantCheck = await pool.query(`
+      SELECT mp.id, m.title, m.date, m.time, m.status
+      FROM meetup_participants mp
+      JOIN meetups m ON mp.meetup_id = m.id
+      WHERE mp.meetup_id = $1 AND mp.user_id = $2 AND mp.status = '참가승인'
+    `, [meetupId, userId]);
+
+    if (participantCheck.rows.length === 0) {
+      return res.status(403).json({ 
+        success: false, 
+        error: '참가한 모임에만 후기를 작성할 수 있습니다.' 
+      });
+    }
+
+    const meetup = participantCheck.rows[0];
+
+    // 모임이 종료되었는지 확인
+    const meetupDateTime = new Date(`${meetup.date}T${meetup.time}`);
+    const now = new Date();
+    if (meetupDateTime.getTime() > now.getTime()) {
+      return res.status(400).json({ 
+        success: false, 
+        error: '종료된 모임에만 후기를 작성할 수 있습니다.' 
+      });
+    }
+
+    // 이미 후기를 작성했는지 확인
+    const existingReview = await pool.query(`
+      SELECT id FROM meetup_reviews 
+      WHERE meetup_id = $1 AND user_id = $2
+    `, [meetupId, userId]);
+
+    if (existingReview.rows.length > 0) {
+      return res.status(400).json({ 
+        success: false, 
+        error: '이미 이 모임에 대한 후기를 작성하셨습니다.' 
+      });
+    }
+
+    // 후기 저장
+    const reviewResult = await pool.query(`
+      INSERT INTO meetup_reviews (
+        id, meetup_id, user_id, rating, content, images, created_at, updated_at
+      ) VALUES (
+        gen_random_uuid(), $1, $2, $3, $4, $5, NOW(), NOW()
+      ) RETURNING *
+    `, [meetupId, userId, rating, content.trim(), JSON.stringify(images || [])]);
+
+    const review = reviewResult.rows[0];
+
+    console.log('✅ 모임 후기 작성 성공:', review.id);
+
+    res.status(201).json({
+      success: true,
+      message: '후기가 성공적으로 작성되었습니다.',
+      review: {
+        id: review.id,
+        rating: review.rating,
+        content: review.content,
+        images: JSON.parse(review.images || '[]'),
+        createdAt: review.created_at
+      }
+    });
+
+  } catch (error) {
+    console.error('모임 후기 작성 오류:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: '서버 오류가 발생했습니다.' 
+    });
+  }
+});
+
+// 모임 후기 목록 조회
+apiRouter.get('/meetups/:id/reviews', async (req, res) => {
+  try {
+    const { id: meetupId } = req.params;
+    const { page = 1, limit = 10 } = req.query;
+
+    console.log('📝 모임 후기 목록 조회:', { meetupId, page, limit });
+
+    const offset = (parseInt(page) - 1) * parseInt(limit);
+
+    // 후기 목록 조회
+    const reviewsResult = await pool.query(`
+      SELECT 
+        mr.id,
+        mr.rating,
+        mr.content,
+        mr.images,
+        mr.created_at,
+        u.name as author_name,
+        u.profile_image as author_profile_image
+      FROM meetup_reviews mr
+      JOIN users u ON mr.user_id = u.id
+      WHERE mr.meetup_id = $1
+      ORDER BY mr.created_at DESC
+      LIMIT $2 OFFSET $3
+    `, [meetupId, parseInt(limit), offset]);
+
+    // 전체 후기 수 조회
+    const countResult = await pool.query(`
+      SELECT COUNT(*) as total FROM meetup_reviews WHERE meetup_id = $1
+    `, [meetupId]);
+
+    const total = parseInt(countResult.rows[0].total);
+    const totalPages = Math.ceil(total / parseInt(limit));
+
+    // 평균 평점 계산
+    const avgRatingResult = await pool.query(`
+      SELECT AVG(rating)::NUMERIC(3,2) as avg_rating, COUNT(*) as review_count
+      FROM meetup_reviews WHERE meetup_id = $1
+    `, [meetupId]);
+
+    const { avg_rating, review_count } = avgRatingResult.rows[0];
+
+    const reviews = reviewsResult.rows.map(review => ({
+      id: review.id,
+      rating: review.rating,
+      content: review.content,
+      images: JSON.parse(review.images || '[]'),
+      createdAt: review.created_at,
+      author: {
+        name: review.author_name,
+        profileImage: review.author_profile_image
+      }
+    }));
+
+    console.log('✅ 모임 후기 목록 조회 성공:', reviews.length, '개');
+
+    res.json({
+      success: true,
+      data: reviews,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total,
+        totalPages
+      },
+      summary: {
+        averageRating: parseFloat(avg_rating) || 0,
+        reviewCount: parseInt(review_count)
+      }
+    });
+
+  } catch (error) {
+    console.error('모임 후기 목록 조회 오류:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: '서버 오류가 발생했습니다.' 
+    });
+  }
+});
+
+// 모임 위치 인증
+apiRouter.post('/meetups/:id/verify-location', authenticateToken, async (req, res) => {
+  try {
+    const { id: meetupId } = req.params;
+    const userId = req.user.userId;
+    const { latitude, longitude, accuracy } = req.body;
+
+    console.log('📍 모임 위치 인증 요청:', { meetupId, userId, latitude, longitude });
+
+    // 입력값 검증
+    if (!latitude || !longitude) {
+      return res.status(400).json({ 
+        success: false, 
+        error: '위치 정보가 필요합니다.' 
+      });
+    }
+
+    // 모임 정보 및 참가 여부 확인
+    const meetupResult = await pool.query(`
+      SELECT m.*, mp.id as participant_id
+      FROM meetups m
+      JOIN meetup_participants mp ON m.id = mp.meetup_id
+      WHERE m.id = $1 AND mp.user_id = $2 AND mp.status = '참가승인'
+    `, [meetupId, userId]);
+
+    if (meetupResult.rows.length === 0) {
+      return res.status(403).json({ 
+        success: false, 
+        error: '참가 승인된 모임만 위치 인증이 가능합니다.' 
+      });
+    }
+
+    const meetup = meetupResult.rows[0];
+
+    // 거리 계산 (하버사인 공식)
+    const calculateDistance = (lat1, lon1, lat2, lon2) => {
+      const R = 6371e3; // 지구 반지름 (미터)
+      const φ1 = (lat1 * Math.PI) / 180;
+      const φ2 = (lat2 * Math.PI) / 180;
+      const Δφ = ((lat2 - lat1) * Math.PI) / 180;
+      const Δλ = ((lon2 - lon1) * Math.PI) / 180;
+
+      const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+                Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+      return R * c;
+    };
+
+    // 모임 장소 좌표 (임시로 서울시청 좌표 사용)
+    const meetupLatitude = meetup.latitude || 37.5665;
+    const meetupLongitude = meetup.longitude || 126.9780;
+
+    const distance = calculateDistance(latitude, longitude, meetupLatitude, meetupLongitude);
+    const maxDistance = 100; // 100미터
+    const isVerified = distance <= maxDistance;
+
+    // 위치 인증 기록 저장
+    await pool.query(`
+      INSERT INTO location_verifications (
+        id, meetup_id, user_id, latitude, longitude, accuracy, distance, verified, created_at
+      ) VALUES (
+        gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, NOW()
+      )
+    `, [meetupId, userId, latitude, longitude, accuracy, Math.round(distance), isVerified]);
+
+    let message = '';
+    if (isVerified) {
+      message = `모임 장소 인증 성공! (${Math.round(distance)}m 거리)`;
+    } else {
+      message = `모임 장소에서 너무 멀리 있습니다. (${Math.round(distance)}m 거리, 최대 ${maxDistance}m)`;
+    }
+
+    console.log(isVerified ? '✅ 위치 인증 성공' : '❌ 위치 인증 실패:', message);
+
+    res.json({
+      success: true,
+      verified: isVerified,
+      distance: Math.round(distance),
+      maxDistance,
+      accuracy,
+      message
+    });
+
+  } catch (error) {
+    console.error('모임 위치 인증 오류:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: '서버 오류가 발생했습니다.' 
+    });
+  }
 });
 
 // 서버 시작

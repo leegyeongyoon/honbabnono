@@ -13,6 +13,7 @@ import {COLORS, SHADOWS} from '../styles/colors';
 import {useMeetups} from '../hooks/useMeetups';
 import MealPreferenceSelector from '../components/MealPreferenceSelector';
 import { MealPreferences } from '../types/mealPreferences';
+import { formatKoreanDateTime } from '../utils/dateUtils';
 
 interface SearchScreenProps {
   navigation?: any;
@@ -185,7 +186,7 @@ const SearchScreen: React.FC<SearchScreenProps> = ({ navigation, route }) => {
                 <View style={styles.meetupInfo}>
                   <Text style={styles.meetupTitle}>{meetup.title}</Text>
                   <Text style={styles.meetupLocation}>📍 {meetup.location}</Text>
-                  <Text style={styles.meetupTime}>🕐 {meetup.date} {meetup.time}</Text>
+                  <Text style={styles.meetupTime}>🕐 {formatKoreanDateTime(meetup.date, 'datetime')}</Text>
                   <Text style={styles.meetupParticipants}>
                     👥 {meetup.currentParticipants}/{meetup.maxParticipants}명
                   </Text>

@@ -71,7 +71,12 @@
       "Bash(PGPASSWORD=honbabnono psql -h honbabnono.c3iokeig2kd8.ap-northeast-2.rds.amazonaws.com -U postgres -d honbabnono -c \"SELECT m.id, m.title, m.host_id, m.current_participants, m.max_participants, m.status FROM meetups m;\")",
       "Bash(PGPASSWORD=honbabnono psql:*)",
       "Bash(aws ecs list-services:*)",
-      "Bash(aws ecs:*)"
+      "Bash(aws ecs:*)",
+      "Bash(PORT=3001 npm start)",
+      "Bash(npm run test:*)",
+      "Bash(PORT=3001 node server/index.js)",
+      "Read(/Users/keullaeseuting/**)",
+      "WebFetch(domain:honbabnono.com)"
     ],
     "deny": [],
     "ask": []

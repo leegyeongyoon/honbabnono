@@ -16,6 +16,7 @@ import { useRouterNavigation } from '../components/RouterNavigation';
 import ReviewList from '../components/ReviewList';
 import ReviewForm from '../components/ReviewForm';
 import reviewApiService, { Review, ReviewStats } from '../services/reviewApiService';
+import { formatKoreanDateTime } from '../utils/dateUtils';
 
 interface MeetupDetailScreenProps {
   navigation?: any;
@@ -277,7 +278,9 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user }) => {
           
           <View style={styles.infoItem}>
             <Icon name="calendar" size={20} color={COLORS.primary.main} />
-            <Text style={styles.infoText}>{meetup.date} {meetup.time}</Text>
+            <Text style={styles.infoText}>
+              {formatKoreanDateTime(meetup.date, 'datetime')}
+            </Text>
           </View>
 
           <View style={styles.infoItem}>

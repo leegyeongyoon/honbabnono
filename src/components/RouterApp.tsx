@@ -27,7 +27,7 @@ const RouterApp: React.FC = () => {
     checkLoginStatus();
   }, []);
 
-  const checkLoginStatus = () => {
+  const checkLoginStatus = async () => {
     console.log('checkLoginStatus called');
     // URL에서 토큰과 사용자 정보 확인 (카카오 로그인 후 리다이렉트)
     const urlParams = new URLSearchParams(window.location.search);
@@ -36,7 +36,14 @@ const RouterApp: React.FC = () => {
     
     // 또는 localStorage에서 토큰 확인
     const storedToken = localStorage.getItem('token');
-    const storedUser = localStorage.getItem('user');
+    
+    console.log('🔍 RouterApp 초기화:', {
+      hasToken: !!token,
+      hasUserParam: !!userParam,
+      hasStoredToken: !!storedToken,
+      tokenLength: storedToken?.length,
+      currentPath: window.location.pathname
+    });
 
     if (token && userParam) {
       // 카카오 로그인 성공 후 리다이렉트된 경우
@@ -46,19 +53,62 @@ const RouterApp: React.FC = () => {
       setUser(JSON.parse(decodeURIComponent(userParam)));
       // URL 파라미터 제거
       window.history.replaceState({}, document.title, window.location.pathname);
-    } else if (storedToken && storedUser) {
-      // 이미 로그인된 경우
-      console.log('Found stored credentials');
-      setIsLoggedIn(true);
-      setUser(JSON.parse(storedUser));
+      setIsLoading(false);
+    } else if (storedToken) {
+      // 저장된 토큰이 있으면 서버에서 검증
+      console.log('Found stored token, verifying with server...');
+      const apiUrl = `${process.env.REACT_APP_API_URL || 'http://localhost:3001/api'}/auth/verify-token`;
+      console.log('📡 Sending verify-token request to:', apiUrl);
+      
+      try {
+        const response = await fetch(apiUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ token: storedToken }),
+        });
+
+        console.log('📡 Response status:', response.status, response.statusText);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        console.log('📡 Response data:', data);
+
+        if (data.success) {
+          // 토큰이 유효하면 자동 로그인
+          console.log('✅ 자동 로그인 성공:', data.user.email);
+          setIsLoggedIn(true);
+          setUser(data.user);
+          localStorage.setItem('user', JSON.stringify(data.user));
+        } else {
+          // 토큰이 유효하지 않으면 로그아웃 처리
+          console.log('❌ 토큰 무효, 로그아웃 처리:', data.error);
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          setIsLoggedIn(false);
+          setUser(null);
+        }
+      } catch (error) {
+        // 네트워크 오류 등의 경우 로그아웃 처리
+        console.error('📡 verify-token 요청 실패:', error);
+        console.error('토큰 검증 오류:', error);
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        setIsLoggedIn(false);
+        setUser(null);
+      }
+      setIsLoading(false);
     } else {
-      // 로그인되지 않은 상태
-      console.log('No credentials found, staying logged out');
+      // 토큰이 없으면 로그인되지 않은 상태
+      console.log('No token found, staying logged out');
       setIsLoggedIn(false);
       setUser(null);
+      setIsLoading(false);
     }
-    
-    setIsLoading(false);
   };
 
   // 로그아웃 함수

@@ -1,0 +1,50 @@
+name: Run Tests Only
+
+on:
+  workflow_dispatch:
+  push:
+    branches-ignore: [ main ]
+  pull_request:
+    branches: [ main, develop ]
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Setup test environment
+      run: |
+        echo "NODE_ENV=test" > .env
+        echo "PORT=3002" >> .env
+        echo "JWT_SECRET=test-secret-key-for-testing-only" >> .env
+
+    - name: Run linting
+      run: npm run lint
+
+    - name: Run simple tests
+      run: npm run test:simple
+
+    - name: Test Summary
+      if: always()
+      run: |
+        if [ "${{ job.status }}" == "success" ]; then
+          echo "✅ All tests passed! Ready for deployment."
+        else
+          echo "❌ Tests failed. Please fix issues before merging."
+        fi

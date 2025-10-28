@@ -17,6 +17,7 @@ import CreateMeetupScreen from './CreateMeetupScreen';
 import { useMeetups } from '../hooks/useMeetups';
 import { FOOD_CATEGORIES } from '../constants/categories';
 import { useNavigate } from 'react-router-dom';
+import { formatKoreanDateTime, getMeetupStatus } from '../utils/dateUtils';
 
 interface HomeScreenProps {
   navigateToLogin?: () => void;
@@ -145,12 +146,22 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, user }) => {
                     </View>
                     <View style={{flexDirection: 'row', alignItems: 'center', gap: 4}}>
                       <Icon name="clock" size={11} color={COLORS.text.secondary} />
-                      <Text style={styles.meetupTime}>{meetup.date} {meetup.time}</Text>
+                      <Text style={styles.meetupTime}>
+                        {formatKoreanDateTime(meetup.date, 'datetime')}
+                      </Text>
+                    </View>
+                    <View style={{flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2}}>
+                      <Icon name="users" size={11} color={COLORS.text.secondary} />
+                      <Text style={styles.meetupTime}>
+                        {getMeetupStatus(meetup.date, meetup.time).label}
+                      </Text>
                     </View>
                   </View>
                 </View>
                 <View style={styles.meetupStatus}>
-                  <Text style={styles.statusText}>모집중</Text>
+                  <View style={[styles.statusBadge, { backgroundColor: getMeetupStatus(meetup.date, meetup.time).color }]}>
+                    <Text style={styles.statusText}>{getMeetupStatus(meetup.date, meetup.time).label}</Text>
+                  </View>
                   <Text style={styles.participantCount}>{meetup.currentParticipants}/{meetup.maxParticipants}</Text>
                 </View>
               </View>
@@ -199,12 +210,22 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, user }) => {
                     </View>
                     <View style={{flexDirection: 'row', alignItems: 'center', gap: 4}}>
                       <Icon name="clock" size={11} color={COLORS.text.secondary} />
-                      <Text style={styles.meetupTime}>{meetup.date} {meetup.time}</Text>
+                      <Text style={styles.meetupTime}>
+                        {formatKoreanDateTime(meetup.date, 'datetime')}
+                      </Text>
+                    </View>
+                    <View style={{flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2}}>
+                      <Icon name="users" size={11} color={COLORS.text.secondary} />
+                      <Text style={styles.meetupTime}>
+                        {getMeetupStatus(meetup.date, meetup.time).label}
+                      </Text>
                     </View>
                   </View>
                 </View>
                 <View style={styles.meetupStatus}>
-                  <Text style={styles.statusText}>모집중</Text>
+                  <View style={[styles.statusBadge, { backgroundColor: getMeetupStatus(meetup.date, meetup.time).color }]}>
+                    <Text style={styles.statusText}>{getMeetupStatus(meetup.date, meetup.time).label}</Text>
+                  </View>
                   <Text style={styles.participantCount}>{meetup.currentParticipants}/{meetup.maxParticipants}</Text>
                 </View>
               </View>
@@ -480,9 +501,9 @@ const styles = StyleSheet.create({
   },
   statusText: {
     ...TYPOGRAPHY.label,
-    color: COLORS.primary.main,
+    color: COLORS.neutral.white,
     fontWeight: '600',
-    marginBottom: 4,
+    fontSize: 10,
   },
   participantCount: {
     fontSize: 12,
@@ -606,6 +627,13 @@ const styles = StyleSheet.create({
     color: COLORS.text.secondary,
     textAlign: 'center',
     lineHeight: 16,
+  },
+  statusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
 
