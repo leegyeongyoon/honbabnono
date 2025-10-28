@@ -9,11 +9,23 @@ class ChatService {
       return this.socket;
     }
 
-    // 프로덕션/개발 환경에 따른 Socket.IO URL 설정
-    const socketUrl = process.env.REACT_APP_WS_URL || 
-      (window.location.hostname === 'localhost' ? 'http://localhost:3001' : window.location.origin);
+    // 프로덕션/개발 환경에 따른 Socket.IO URL을 런타임에 동적으로 설정
+    const getSocketUrl = (): string => {
+      if (process.env.REACT_APP_WS_URL) {
+        return process.env.REACT_APP_WS_URL;
+      }
+      
+      if (typeof window !== 'undefined') {
+        return window.location.hostname === 'localhost' 
+          ? 'http://localhost:3001' 
+          : window.location.origin;
+      }
+      
+      // SSR fallback
+      return '';
+    };
     
-    this.socket = io(socketUrl, {
+    this.socket = io(getSocketUrl(), {
       transports: ['websocket', 'polling'],
       timeout: 20000,
     });

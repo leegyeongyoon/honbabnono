@@ -1,14 +1,24 @@
 import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
 
-// API 기본 URL 설정 - 프로덕션/개발 환경 자동 감지
-const API_BASE_URL = process.env.REACT_APP_API_URL || 
-  (typeof window !== 'undefined' && window.location.hostname === 'localhost' 
-    ? 'http://localhost:3001/api' 
-    : `${window.location.origin}/api`);
+// API 기본 URL을 런타임에 동적으로 설정
+const getApiBaseUrl = (): string => {
+  if (process.env.REACT_APP_API_URL) {
+    return process.env.REACT_APP_API_URL;
+  }
+  
+  if (typeof window !== 'undefined') {
+    return window.location.hostname === 'localhost' 
+      ? 'http://localhost:3001/api' 
+      : `${window.location.origin}/api`;
+  }
+  
+  // SSR fallback
+  return '/api';
+};
 
 // Axios 인스턴스 생성
 const apiClient: AxiosInstance = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: getApiBaseUrl(),
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
