@@ -9,7 +9,11 @@ class ChatService {
       return this.socket;
     }
 
-    this.socket = io(process.env.REACT_APP_WS_URL || 'http://localhost:3001', {
+    // 프로덕션/개발 환경에 따른 Socket.IO URL 설정
+    const socketUrl = process.env.REACT_APP_WS_URL || 
+      (window.location.hostname === 'localhost' ? 'http://localhost:3001' : window.location.origin);
+    
+    this.socket = io(socketUrl, {
       transports: ['websocket', 'polling'],
       timeout: 20000,
     });
