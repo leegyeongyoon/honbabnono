@@ -1,7 +1,10 @@
 import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
 
-// API 기본 URL 설정
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
+// API 기본 URL 설정 - 프로덕션/개발 환경 자동 감지
+const API_BASE_URL = process.env.REACT_APP_API_URL || 
+  (typeof window !== 'undefined' && window.location.hostname === 'localhost' 
+    ? 'http://localhost:3001/api' 
+    : `${window.location.origin}/api`);
 
 // Axios 인스턴스 생성
 const apiClient: AxiosInstance = axios.create({
