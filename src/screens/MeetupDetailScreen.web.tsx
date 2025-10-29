@@ -510,7 +510,8 @@ const styles = StyleSheet.create({
   },
   titleSection: {
     padding: 24,
-    backgroundColor: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+    backgroundColor: '#667eea',
+    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
   },
@@ -538,7 +539,7 @@ const styles = StyleSheet.create({
   },
   category: {
     fontSize: 17,
-    color: 'rgba(255, 255, 255, 0.8)',
+    color: 'rgba(255, 255, 255, 0.9)',
     fontWeight: '500',
   },
   section: {
