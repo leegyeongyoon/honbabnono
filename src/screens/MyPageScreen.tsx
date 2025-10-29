@@ -103,12 +103,11 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ navigation, user, onLogout 
   const loadRiceIndex = async () => {
     try {
       const response = await apiClient.get('/user/rice-index');
-      if (response.data && response.data.data) {
-        const riceData = response.data.data;
-        setRiceIndex(riceData.currentIndex);
-        setRiceLevel(riceData.level);
+      if (response.data && response.data.success) {
+        setRiceIndex(response.data.riceIndex);
+        setRiceLevel(response.data.level);
         // 추가 정보도 저장할 수 있도록 state 확장
-        setRiceIndexData(riceData);
+        setRiceIndexData(response.data);
       }
     } catch (error) {
       console.error('밥알지수 로드 실패:', error);
@@ -352,13 +351,13 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ navigation, user, onLogout 
             <View style={styles.riceScoreContainer}>
               <Text style={styles.riceScore}>{riceIndex}밥알</Text>
               <Text style={styles.riceEmoji}>
-                {riceIndexData?.riceEmoji || '🍚'}
+                {riceLevel?.emoji || '🍚'}
               </Text>
             </View>
             <View style={styles.riceLevelContainer}>
-              <Text style={styles.riceLevel}>{riceIndexData?.level || '밥 한 숟갈'}</Text>
+              <Text style={styles.riceLevel}>{riceLevel?.level || '밥 한 숟갈'}</Text>
               <Text style={styles.riceDescription}>
-                {riceIndexData?.description || '일반 유저, 평균적인 활동'}
+                {riceLevel?.description || '일반 유저, 평균적인 활동'}
               </Text>
             </View>
           </View>
@@ -390,22 +389,7 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ navigation, user, onLogout 
                 이달 {riceIndexData?.monthlyProgress > 0 ? '+' : ''}{riceIndexData?.monthlyProgress || 0}밥알
               </Text>
             </View>
-            </View>
-            <Text style={styles.tempStatDetail}>13일 후 3번째 거래</Text>
-            <Text style={styles.tempStatDetail}>최근 3일 이내 활동 (20204년 6월 가입)</Text>
           </View>
-
-          {/* 레벨 정보 */}
-          {riceLevel && (
-            <View style={styles.levelContainer}>
-              <Text style={[styles.levelName, { color: riceLevel.color }]}>
-                {riceLevel.level}
-              </Text>
-              <Text style={styles.levelDescription}>
-                {riceLevel.description}
-              </Text>
-            </View>
-          )}
         </View>
 
         {/* 활동 통계 */}

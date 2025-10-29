@@ -5,6 +5,8 @@ const MeetupParticipant = require('./MeetupParticipant');
 const ChatRoom = require('./ChatRoom');
 const ChatMessage = require('./ChatMessage');
 const ChatParticipant = require('./ChatParticipant');
+const MeetupPreferenceFilter = require('./MeetupPreferenceFilter');
+const MeetupParticipantPreference = require('./MeetupParticipantPreference');
 
 // 모델 간 관계 설정
 // User와 Meetup 관계 (호스트)
@@ -89,6 +91,37 @@ ChatParticipant.belongsTo(ChatMessage, {
   as: 'lastReadMessage'
 });
 
+// 식사 성향 필터 관계 설정
+// Meetup과 MeetupPreferenceFilter 관계 (일대일)
+Meetup.hasOne(MeetupPreferenceFilter, {
+  foreignKey: 'meetupId',
+  as: 'preferenceFilter'
+});
+MeetupPreferenceFilter.belongsTo(Meetup, {
+  foreignKey: 'meetupId',
+  as: 'meetup'
+});
+
+// Meetup과 MeetupParticipantPreference 관계 (일대다)
+Meetup.hasMany(MeetupParticipantPreference, {
+  foreignKey: 'meetupId',
+  as: 'participantPreferences'
+});
+MeetupParticipantPreference.belongsTo(Meetup, {
+  foreignKey: 'meetupId',
+  as: 'meetup'
+});
+
+// User와 MeetupParticipantPreference 관계 (일대다)
+User.hasMany(MeetupParticipantPreference, {
+  foreignKey: 'userId',
+  as: 'preferenceAnswers'
+});
+MeetupParticipantPreference.belongsTo(User, {
+  foreignKey: 'userId',
+  as: 'user'
+});
+
 // 데이터베이스 초기화 함수
 const initDatabase = async () => {
   try {
@@ -118,5 +151,7 @@ module.exports = {
   ChatRoom,
   ChatMessage,
   ChatParticipant,
+  MeetupPreferenceFilter,
+  MeetupParticipantPreference,
   initDatabase
 };

@@ -5,12 +5,23 @@ const axios = require('axios');
 const jwt = require('jsonwebtoken');
 const http = require('http');
 const socketIo = require('socket.io');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
 
 // 환경변수 로드
 dotenv.config({ path: process.env.NODE_ENV === 'production' ? '/app/.env' : '../.env' });
 
 // 데이터베이스 및 모델 가져오기
-const { initDatabase, User } = require('./models');
+const { 
+  initDatabase, 
+  User, 
+  Meetup, 
+  MeetupParticipant, 
+  MeetupPreferenceFilter,
+  MeetupParticipantPreference,
+  sequelize 
+} = require('./models');
 
 // 라우터 가져오기
 const userRoutes = require('./routes/users');
@@ -40,6 +51,41 @@ app.use(cors({
   credentials: true
 }));
 app.use(express.json());
+
+// uploads 디렉토리 생성
+const uploadsDir = path.join(__dirname, '../uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+// 정적 파일 서빙 (업로드된 이미지)
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+
+// Multer 설정 (프로필 이미지 업로드)
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, uploadsDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, 'profile-' + uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const upload = multer({
+  storage: storage,
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB 제한
+  },
+  fileFilter: (req, file, cb) => {
+    // 이미지 파일만 허용
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('이미지 파일만 업로드 가능합니다.'));
+    }
+  }
+});
 
 // WebSocket 연결 처리
 io.on('connection', (socket) => {
@@ -419,25 +465,31 @@ app.get('/api/user/profile', authenticateToken, async (req, res) => {
       });
     }
     
-    // 임시 프로필 데이터
-    const mockProfile = {
-      id: userId,
-      email: req.user.email,
-      name: req.user.name,
-      profile_image: null,
-      provider: 'kakao',
-      provider_id: 'temp123',
-      is_verified: true,
-      rating: 4.5,
-      meetups_hosted: 3,
-      created_at: '2025-01-01T00:00:00Z',
-      updated_at: '2025-10-29T00:00:00Z'
-    };
+    // 실제 데이터베이스에서 사용자 프로필 조회 (Sequelize ORM 사용)
+    const userProfile = await User.findByPk(userId, {
+      attributes: [
+        'id', 'email', 'name', 'profile_image', 'provider', 'provider_id', 'phone',
+        'is_verified', 'rating', 'meetups_joined', 'meetups_hosted', 'babal_score',
+        'preferences', 'last_login_at', 'created_at', 'updated_at'
+      ]
+    });
+    
+    if (!userProfile) {
+      return res.status(404).json({
+        success: false,
+        error: '사용자를 찾을 수 없습니다.'
+      });
+    }
+    
+    // 프로필 이미지 URL 처리 (상대 경로를 절대 URL로 변환)
+    if (userProfile.profile_image && !userProfile.profile_image.startsWith('http')) {
+      userProfile.profile_image = `${req.protocol}://${req.get('host')}${userProfile.profile_image}`;
+    }
     
     console.log('✅ 사용자 프로필 조회 성공');
     res.json({ 
       success: true, 
-      user: mockProfile 
+      user: userProfile 
     });
 
   } catch (error) {
@@ -445,6 +497,76 @@ app.get('/api/user/profile', authenticateToken, async (req, res) => {
     res.status(500).json({ 
       success: false, 
       error: '서버 오류가 발생했습니다.' 
+    });
+  }
+});
+
+// 프로필 이미지 업로드 API
+app.post('/api/user/profile/upload-image', authenticateToken, upload.single('profileImage'), async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    console.log('📸 프로필 이미지 업로드 요청:', { userId, file: req.file ? req.file.filename : 'none' });
+    
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        error: '업로드할 이미지 파일이 없습니다.'
+      });
+    }
+    
+    // 파일 정보
+    const imageUrl = `/uploads/${req.file.filename}`;
+    const fullImageUrl = `${req.protocol}://${req.get('host')}${imageUrl}`;
+    
+    // 데이터베이스에 프로필 이미지 URL 업데이트 (Sequelize ORM 사용)
+    const [affectedRows] = await User.update(
+      { 
+        profile_image: imageUrl,
+        updated_at: new Date()
+      },
+      { 
+        where: { id: userId }
+      }
+    );
+    
+    if (affectedRows === 0) {
+      // 업데이트 실패 시 업로드된 파일 삭제
+      fs.unlinkSync(req.file.path);
+      return res.status(404).json({
+        success: false,
+        error: '사용자를 찾을 수 없습니다.'
+      });
+    }
+    
+    console.log('✅ 프로필 이미지 업로드 성공:', { 
+      filename: req.file.filename,
+      size: req.file.size,
+      url: fullImageUrl,
+      userId: userId
+    });
+    
+    res.json({
+      success: true,
+      message: '프로필 이미지가 성공적으로 업로드되었습니다.',
+      imageUrl: fullImageUrl,
+      filename: req.file.filename
+    });
+    
+  } catch (error) {
+    console.error('❌ 프로필 이미지 업로드 실패:', error);
+    
+    // 업로드된 파일이 있다면 삭제
+    if (req.file) {
+      try {
+        fs.unlinkSync(req.file.path);
+      } catch (unlinkError) {
+        console.error('파일 삭제 실패:', unlinkError);
+      }
+    }
+    
+    res.status(500).json({
+      success: false,
+      error: error.message === '이미지 파일만 업로드 가능합니다.' ? error.message : '서버 오류가 발생했습니다.'
     });
   }
 });
@@ -551,19 +673,22 @@ app.get('/api/user/reviews', authenticateToken, async (req, res) => {
 
 // 밥알지수 계산 함수
 const calculateRiceIndex = (userStats) => {
-  // 기본 점수 40.0점에서 시작
+  // 신규 유저 기본 밥알: 40.0개 (일반 유저)
   let baseScore = 40.0;
   
-  // 사용자 활동 통계 (실제로는 DB에서 가져와야 함)
+  // 사용자 활동 통계에서 실제 값들 가져오기
   const {
-    attendedMeetups = 5,
-    reviewsWritten = 3,
-    positiveReviews = 2,
+    joinedMeetups = 0,
+    hostedMeetups = 0,
+    completedMeetups = 0,
+    reviewsWritten = 0,
+    averageRating = 0,
+    positiveReviews = 0,
     negativeReviews = 0,
     noShows = 0,
     reports = 0,
-    consecutiveAttendance = 3,
-    qualityReviews = 1 // 30자 이상 후기
+    consecutiveAttendance = 0,
+    qualityReviews = 0 // 30자 이상 후기
   } = userStats;
 
   // 점수 계산
@@ -576,12 +701,16 @@ const calculateRiceIndex = (userStats) => {
   } else if (score < 60.0) {
     // 밥 한 숟갈 구간: 후기 + 매너/태도 보장
     score += positiveReviews * 1.0;
+    score += joinedMeetups * 0.5;
+    score += hostedMeetups * 1.0;
   } else if (score < 70.0) {
     // 따끈한 밥그릇 구간: 후기 + 3회 연속 출석
     score += (consecutiveAttendance >= 3 ? reviewsWritten * 0.5 : 0);
+    score += completedMeetups * 0.3;
   } else if (score < 80.0) {
     // 고봉밥 구간: 후기 + 품질 후기 (30자 이상)
     score += qualityReviews * 0.3;
+    score += (averageRating >= 4.0 ? (averageRating - 4.0) * 2 : 0);
   } else if (score < 90.0) {
     // 밥도둑 밥상 구간: 후기 + 5회 연속 + 무사고
     score += (consecutiveAttendance >= 5 && noShows === 0 && reports === 0) ? reviewsWritten * 0.1 : 0;
@@ -590,10 +719,11 @@ const calculateRiceIndex = (userStats) => {
     score += (consecutiveAttendance >= 10 && noShows === 0 && reports === 0) ? reviewsWritten * 0.05 : 0;
   }
   
-  // 감점 요소
-  score -= negativeReviews * 2.0; // 비매너 평가
-  score -= noShows * 5.0; // 노쇼
-  score -= reports * 5.0; // 신고
+  // 감점 요소 (정확한 스펙 반영)
+  score -= negativeReviews * 2.0; // 비매너 평가 후기 (1~2점대) -2.0밥알
+  score -= noShows * 5.0; // 노쇼 1회 -5.0밥알
+  score -= reports * 5.0; // 신고 정당한 경우 -5.0밥알
+  // 추가: 후기 조작/스팸성 후기 -3.0밥알 (별도 필드 필요시)
   
   // 점수 범위 제한 (0.0 ~ 100.0)
   score = Math.max(0.0, Math.min(100.0, score));
@@ -601,26 +731,26 @@ const calculateRiceIndex = (userStats) => {
   return Math.round(score * 10) / 10; // 소수점 첫째자리까지
 };
 
-// 밥알지수 레벨 및 밥알 개수 계산 함수
+// 밥알지수 레벨 및 밥알 개수 계산 함수 (0.0-100.0 밥알 범위)
 const getRiceLevel = (score) => {
-  if (score < 40.0) return { level: "티스푼", riceEmoji: "🍚🍚", description: "반복된 신고/노쇼, 신뢰 낮음" };
-  if (score < 60.0) return { level: "밥 한 숟갈", riceEmoji: "🍚", description: "일반 유저, 평균적인 활동" };
-  if (score < 70.0) return { level: "따끈한 밥그릇", riceEmoji: "🍚🍚🍚", description: "후기와 출석률 모두 양호" };
-  if (score < 80.0) return { level: "고봉밥", riceEmoji: "🍚🍚🍚🍚", description: "후기 품질도 높고 꾸준한 출석" };
-  if (score < 90.0) return { level: "밥도둑 밥상", riceEmoji: "🍚🍚🍚🍚🍚", description: "상위권, 최고의 매너 보유" };
-  if (score < 98.1) return { level: "찰밥대장", riceEmoji: "🍚🍚🍚🍚🍚🍚", description: "거의 완벽한 활동 이력" };
-  return { level: "밥神 (밥신)", riceEmoji: "🍚🍚🍚🍚🍚🍚🍚", description: "전설적인 유저" };
+  if (score < 40.0) return { level: "티스푼", riceEmoji: "🍚🍚", description: "반복된 신고/노쇼, 신뢰 낮음", color: "#FF5722" };
+  if (score < 60.0) return { level: "밥 한 숟갈", riceEmoji: "🍚", description: "일반 유저, 평균적인 활동", color: "#9E9E9E" };
+  if (score < 70.0) return { level: "따끈한 밥그릇", riceEmoji: "🍚🍚🍚", description: "후기와 출석률 모두 양호", color: "#FF9800" };
+  if (score < 80.0) return { level: "고봉밥", riceEmoji: "🍚🍚🍚🍚", description: "후기 품질도 높고 꾸준한 출석", color: "#4CAF50" };
+  if (score < 90.0) return { level: "밥도둑 밥상", riceEmoji: "🍚🍚🍚🍚🍚", description: "상위권, 최고의 매너 보유", color: "#2196F3" };
+  if (score < 98.1) return { level: "찰밥대장", riceEmoji: "🍚🍚🍚🍚🍚🍚", description: "거의 완벽한 활동 이력", color: "#9C27B0" };
+  return { level: "밥神 (밥신)", riceEmoji: "🍚🍚🍚🍚🍚🍚🍚", description: "전설적인 유저", color: "#FFD700" };
 };
 
-// 유저 분포 계산 함수
+// 유저 분포 계산 함수 (정확한 스펙 반영)
 const getUserRank = (score, totalUsers = 1500) => {
   const distributions = [
-    { min: 0, max: 39.9, percentage: 15 },
-    { min: 40, max: 59.9, percentage: 50 },
-    { min: 60, max: 69.9, percentage: 20 },
-    { min: 70, max: 79.9, percentage: 10 },
-    { min: 80, max: 89.9, percentage: 4.5 },
-    { min: 90, max: 100, percentage: 0.5 }
+    { min: 0.0, max: 39.9, percentage: 15 },    // 티스푼 15%
+    { min: 40.0, max: 59.9, percentage: 50 },   // 밥 한 숟갈 50% (대부분의 일반 유저)
+    { min: 60.0, max: 69.9, percentage: 20 },   // 따끈한 밥그릇 20%
+    { min: 70.0, max: 79.9, percentage: 10 },   // 고봉밥 10%
+    { min: 80.0, max: 89.9, percentage: 4.5 },  // 밥도둑 밥상 4.5%
+    { min: 90.0, max: 100.0, percentage: 0.5 }  // 찰밥대장 + 밥神 0.5%
   ];
   
   let cumulativePercentage = 0;
@@ -637,65 +767,140 @@ const getUserRank = (score, totalUsers = 1500) => {
   return totalUsers; // 기본값
 };
 
-// 혼밥지수 조회
+// 혼밥지수 조회 (데이터베이스 기반)
 app.get('/api/user/rice-index', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.userId;
-    console.log('🍚 밥알지수 조회 요청:', { userId });
+    console.log('🍚 밥알지수 계산 요청:', { userId });
     
-    // 실제로는 DB에서 사용자 활동 통계를 가져와야 함
-    const userStats = {
-      attendedMeetups: 8,
-      reviewsWritten: 5,
-      positiveReviews: 4,
-      negativeReviews: 0,
-      noShows: 0,
-      reports: 0,
-      consecutiveAttendance: 5,
-      qualityReviews: 3
-    };
-    
-    const currentIndex = calculateRiceIndex(userStats);
-    const levelInfo = getRiceLevel(currentIndex);
-    const totalUsers = 1500;
-    const rank = getUserRank(currentIndex, totalUsers);
-    
-    // 이번 달 진행률 계산 (임시)
-    const lastMonthScore = currentIndex - 2.5; // 임시로 2.5점 상승했다고 가정
-    const monthlyProgress = +(currentIndex - lastMonthScore).toFixed(1);
-    
-    // 다음 레벨까지 필요한 점수
-    const nextLevelThresholds = [40, 60, 70, 80, 90, 98.1, 100];
-    const nextThreshold = nextLevelThresholds.find(threshold => threshold > currentIndex) || 100;
-    const progressToNext = ((currentIndex % 10) / 10) * 100; // 임시 계산
-    
-    const riceIndexData = {
-      currentIndex: currentIndex,
-      level: levelInfo.level,
-      riceEmoji: levelInfo.riceEmoji,
-      description: levelInfo.description,
-      rank: rank,
-      totalUsers: totalUsers,
-      monthlyProgress: monthlyProgress,
-      nextLevelThreshold: nextThreshold,
-      progressToNext: Math.round(progressToNext),
-      achievements: [
-        { id: 1, name: "첫 모임 참가", completed: userStats.attendedMeetups > 0 },
-        { id: 2, name: "모임 5회 참가", completed: userStats.attendedMeetups >= 5 },
-        { id: 3, name: "리뷰 5개 작성", completed: userStats.reviewsWritten >= 5 },
-        { id: 4, name: "품질 후기 작성", completed: userStats.qualityReviews > 0 },
-        { id: 5, name: "무사고 연속 참가", completed: userStats.consecutiveAttendance >= 5 && userStats.noShows === 0 }
-      ],
-      stats: userStats
-    };
-    
-    console.log('✅ 밥알지수 조회 성공:', riceIndexData);
-    res.json({ 
-      success: true, 
-      riceIndex: currentIndex,
-      level: levelInfo.level,
-      data: riceIndexData 
+    // 1. 사용자 기본 정보 조회 (현재 밥알지수 포함)
+    const user = await User.findByPk(userId, {
+      attributes: ['babal_score', 'meetups_joined', 'meetups_hosted', 'rating', 'created_at']
     });
+    
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: '사용자를 찾을 수 없습니다.'
+      });
+    }
+    
+    const currentBabalScore = user.babal_score || 40;
+    
+    // 2. 모임 참여 통계 조회 (Sequelize ORM 사용)
+    const [participantStats] = await sequelize.query(`
+      SELECT 
+        COUNT(*) as total_joined,
+        COUNT(CASE WHEN status = '참가승인' THEN 1 END) as completed_meetups,
+        COUNT(CASE WHEN status = '참가취소' THEN 1 END) as no_shows
+      FROM meetup_participants 
+      WHERE user_id = :userId
+    `, {
+      replacements: { userId },
+      type: sequelize.QueryTypes.SELECT
+    });
+    
+    // 3. 리뷰 통계 조회 (reviews 테이블이 있다면)
+    let reviewStats = { reviews_written: 0, positive_reviews: 0, negative_reviews: 0, quality_reviews: 0, average_rating: 0 };
+    try {
+      const [result] = await sequelize.query(`
+        SELECT 
+          COUNT(*) as reviews_written,
+          COUNT(CASE WHEN rating >= 4 THEN 1 END) as positive_reviews,
+          COUNT(CASE WHEN rating <= 2 THEN 1 END) as negative_reviews,
+          COUNT(CASE WHEN is_quality_review = true THEN 1 END) as quality_reviews,
+          AVG(rating) as average_rating
+        FROM reviews 
+        WHERE reviewer_id = :userId
+      `, {
+        replacements: { userId },
+        type: sequelize.QueryTypes.SELECT
+      });
+      reviewStats = result;
+    } catch (error) {
+      console.log('⚠️ reviews 테이블이 없어서 기본값 사용');
+    }
+    
+    // 4. 신고 횟수 조회 (reports 테이블이 있다면)
+    let reportStats = { report_count: 0 };
+    try {
+      const [result] = await sequelize.query(`
+        SELECT COUNT(*) as report_count
+        FROM reports 
+        WHERE reported_id = :userId AND status = 'resolved'
+      `, {
+        replacements: { userId },
+        type: sequelize.QueryTypes.SELECT
+      });
+      reportStats = result;
+    } catch (error) {
+      console.log('⚠️ reports 테이블이 없어서 기본값 사용');
+    }
+    
+    // 5. 활동 통계 종합
+    const stats = {
+      joinedMeetups: parseInt(participantStats?.total_joined || 0),
+      hostedMeetups: parseInt(user.meetups_hosted || 0),
+      completedMeetups: parseInt(participantStats?.completed_meetups || 0),
+      reviewsWritten: parseInt(reviewStats?.reviews_written || 0),
+      positiveReviews: parseInt(reviewStats?.positive_reviews || 0),
+      negativeReviews: parseInt(reviewStats?.negative_reviews || 0),
+      qualityReviews: parseInt(reviewStats?.quality_reviews || 0),
+      noShows: parseInt(participantStats?.no_shows || 0),
+      reports: parseInt(reportStats?.report_count || 0),
+      averageRating: parseFloat(reviewStats?.average_rating || 0),
+      consecutiveAttendance: 0 // TODO: 연속 출석 계산 로직 추가
+    };
+    
+    console.log('✅ 밥알지수 계산 완료:', { 
+      userId, 
+      stats, 
+      calculatedIndex: currentBabalScore,
+      level: getRiceLevel(currentBabalScore)
+    });
+    
+    // 6. 레벨 정보 및 순위 계산
+    const levelInfo = getRiceLevel(currentBabalScore);
+    const totalUsers = 1500; // TODO: 실제 사용자 수 조회
+    const rank = getUserRank(currentBabalScore, totalUsers);
+    
+    // 7. 이번 달 진행률 (밥알지수 히스토리에서 계산)
+    let monthlyProgress = 0;
+    try {
+      const [result] = await sequelize.query(`
+        SELECT 
+          COALESCE(SUM(change_amount), 0) as monthly_change
+        FROM babal_score_history 
+        WHERE user_id = :userId 
+          AND created_at >= date_trunc('month', CURRENT_DATE)
+      `, {
+        replacements: { userId },
+        type: sequelize.QueryTypes.SELECT
+      });
+      monthlyProgress = parseInt(result?.monthly_change || 0);
+    } catch (error) {
+      console.log('⚠️ babal_score_history 테이블이 없어서 기본값 사용');
+    }
+    
+    // 8. 다음 레벨까지 필요한 점수
+    const nextLevelThresholds = [40, 60, 70, 80, 90, 98.1, 100];
+    const nextThreshold = nextLevelThresholds.find(threshold => threshold > currentBabalScore) || 100;
+    const progressToNext = Math.max(0, nextThreshold - currentBabalScore);
+    
+    // 9. 응답 데이터 구성
+    const responseData = {
+      success: true,
+      riceIndex: currentBabalScore,
+      level: {
+        level: levelInfo.level,
+        emoji: levelInfo.riceEmoji,
+        description: levelInfo.description,
+        color: levelInfo.color
+      },
+      stats: stats
+    };
+    
+    res.json(responseData);
 
   } catch (error) {
     console.error('❌ 밥알지수 조회 실패:', error);
@@ -867,6 +1072,265 @@ app.get('/health', (req, res) => {
     message: '혼밥시러 백엔드 서버가 정상 동작 중입니다',
     timestamp: new Date().toISOString()
   });
+});
+
+// =====================================
+// 💬 식사 성향 필터 API
+// =====================================
+
+// 모임 필터 설정 생성/수정 (모임장용)
+app.post('/api/meetups/:meetupId/preference-filter', authenticateToken, async (req, res) => {
+  try {
+    const { meetupId } = req.params;
+    const userId = req.user.userId;
+    
+    console.log('🎯 모임 필터 설정 요청:', { meetupId, userId });
+    
+    // 모임 존재 확인 및 호스트 권한 확인
+    const meetup = await Meetup.findByPk(meetupId);
+    if (!meetup) {
+      return res.status(404).json({
+        success: false,
+        error: '모임을 찾을 수 없습니다'
+      });
+    }
+    
+    if (meetup.hostId !== userId) {
+      return res.status(403).json({
+        success: false,
+        error: '모임 호스트만 필터를 설정할 수 있습니다'
+      });
+    }
+    
+    const filterData = req.body;
+    
+    // 기존 필터 확인
+    let preferenceFilter = await MeetupPreferenceFilter.findOne({
+      where: { meetupId }
+    });
+    
+    if (preferenceFilter) {
+      // 기존 필터 업데이트
+      await preferenceFilter.update(filterData);
+      console.log('✅ 기존 필터 업데이트 완료');
+    } else {
+      // 새 필터 생성
+      preferenceFilter = await MeetupPreferenceFilter.create({
+        meetupId,
+        ...filterData
+      });
+      console.log('✅ 새 필터 생성 완료');
+    }
+    
+    res.json({
+      success: true,
+      data: preferenceFilter
+    });
+    
+  } catch (error) {
+    console.error('❌ 모임 필터 설정 실패:', error);
+    res.status(500).json({
+      success: false,
+      error: '필터 설정 중 오류가 발생했습니다'
+    });
+  }
+});
+
+// 모임 필터 조회
+app.get('/api/meetups/:meetupId/preference-filter', async (req, res) => {
+  try {
+    const { meetupId } = req.params;
+    
+    console.log('🔍 모임 필터 조회 요청:', { meetupId });
+    
+    const preferenceFilter = await MeetupPreferenceFilter.findOne({
+      where: { meetupId }
+    });
+    
+    res.json({
+      success: true,
+      data: preferenceFilter
+    });
+    
+  } catch (error) {
+    console.error('❌ 모임 필터 조회 실패:', error);
+    res.status(500).json({
+      success: false,
+      error: '필터 조회 중 오류가 발생했습니다'
+    });
+  }
+});
+
+// 참가자 성향 답변 생성/수정 (참가자용)
+app.post('/api/meetups/:meetupId/my-preferences', authenticateToken, async (req, res) => {
+  try {
+    const { meetupId } = req.params;
+    const userId = req.user.userId;
+    
+    console.log('🙋 참가자 성향 답변 요청:', { meetupId, userId });
+    
+    // 모임 존재 확인
+    const meetup = await Meetup.findByPk(meetupId);
+    if (!meetup) {
+      return res.status(404).json({
+        success: false,
+        error: '모임을 찾을 수 없습니다'
+      });
+    }
+    
+    // 참가자 확인
+    const participant = await MeetupParticipant.findOne({
+      where: { meetupId, userId, status: '참가승인' }
+    });
+    
+    if (!participant) {
+      return res.status(403).json({
+        success: false,
+        error: '모임에 참가한 사용자만 성향을 설정할 수 있습니다'
+      });
+    }
+    
+    const preferenceData = req.body;
+    
+    // 기존 답변 확인
+    let participantPreference = await MeetupParticipantPreference.findOne({
+      where: { meetupId, userId }
+    });
+    
+    if (participantPreference) {
+      // 기존 답변 업데이트
+      await participantPreference.update({
+        ...preferenceData,
+        answeredAt: new Date()
+      });
+      console.log('✅ 기존 성향 답변 업데이트 완료');
+    } else {
+      // 새 답변 생성
+      participantPreference = await MeetupParticipantPreference.create({
+        meetupId,
+        userId,
+        ...preferenceData
+      });
+      console.log('✅ 새 성향 답변 생성 완료');
+    }
+    
+    res.json({
+      success: true,
+      data: participantPreference
+    });
+    
+  } catch (error) {
+    console.error('❌ 참가자 성향 답변 실패:', error);
+    res.status(500).json({
+      success: false,
+      error: '성향 답변 중 오류가 발생했습니다'
+    });
+  }
+});
+
+// 참가자 성향 답변 조회
+app.get('/api/meetups/:meetupId/my-preferences', authenticateToken, async (req, res) => {
+  try {
+    const { meetupId } = req.params;
+    const userId = req.user.userId;
+    
+    console.log('🔍 참가자 성향 답변 조회 요청:', { meetupId, userId });
+    
+    const participantPreference = await MeetupParticipantPreference.findOne({
+      where: { meetupId, userId }
+    });
+    
+    res.json({
+      success: true,
+      data: participantPreference
+    });
+    
+  } catch (error) {
+    console.error('❌ 참가자 성향 답변 조회 실패:', error);
+    res.status(500).json({
+      success: false,
+      error: '성향 답변 조회 중 오류가 발생했습니다'
+    });
+  }
+});
+
+// 모임의 모든 참가자 성향 요약 조회 (모임장용)
+app.get('/api/meetups/:meetupId/participants-preferences', authenticateToken, async (req, res) => {
+  try {
+    const { meetupId } = req.params;
+    const userId = req.user.userId;
+    
+    console.log('📊 모임 참가자 성향 요약 조회 요청:', { meetupId, userId });
+    
+    // 모임 존재 확인 및 호스트 권한 확인
+    const meetup = await Meetup.findByPk(meetupId);
+    if (!meetup) {
+      return res.status(404).json({
+        success: false,
+        error: '모임을 찾을 수 없습니다'
+      });
+    }
+    
+    if (meetup.hostId !== userId) {
+      return res.status(403).json({
+        success: false,
+        error: '모임 호스트만 참가자 성향을 조회할 수 있습니다'
+      });
+    }
+    
+    // 참가자 성향 답변 조회
+    const participantPreferences = await MeetupParticipantPreference.findAll({
+      where: { meetupId },
+      include: [{
+        model: User,
+        as: 'user',
+        attributes: ['id', 'name', 'profileImage']
+      }],
+      order: [['answeredAt', 'DESC']]
+    });
+    
+    // 통계 계산
+    const totalParticipants = await MeetupParticipant.count({
+      where: { meetupId, status: '참가승인' }
+    });
+    
+    const stats = {
+      totalParticipants,
+      answeredParticipants: participantPreferences.length,
+      answerRate: totalParticipants > 0 ? Math.round((participantPreferences.length / totalParticipants) * 100) : 0,
+      
+      // 성향 분포
+      eatingSpeed: {
+        fast: participantPreferences.filter(p => p.eatingSpeed === 'fast').length,
+        slow: participantPreferences.filter(p => p.eatingSpeed === 'slow').length,
+        no_preference: participantPreferences.filter(p => p.eatingSpeed === 'no_preference').length
+      },
+      talkativeness: {
+        talkative: participantPreferences.filter(p => p.talkativeness === 'talkative').length,
+        listener: participantPreferences.filter(p => p.talkativeness === 'listener').length,
+        moderate: participantPreferences.filter(p => p.talkativeness === 'moderate').length
+      },
+      avgIntrovertLevel: participantPreferences.length > 0 ? 
+        Math.round(participantPreferences.reduce((sum, p) => sum + (p.introvertLevel || 0), 0) / participantPreferences.length) : 0,
+      avgExtrovertLevel: participantPreferences.length > 0 ? 
+        Math.round(participantPreferences.reduce((sum, p) => sum + (p.extrovertLevel || 0), 0) / participantPreferences.length) : 0
+    };
+    
+    res.json({
+      success: true,
+      data: {
+        preferences: participantPreferences,
+        stats
+      }
+    });
+    
+  } catch (error) {
+    console.error('❌ 모임 참가자 성향 요약 조회 실패:', error);
+    res.status(500).json({
+      success: false,
+      error: '참가자 성향 조회 중 오류가 발생했습니다'
+    });
+  }
 });
 
 // API 라우터 설정
