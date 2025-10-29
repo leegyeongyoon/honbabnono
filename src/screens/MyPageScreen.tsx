@@ -366,12 +366,11 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ navigation, user, onLogout 
           <View style={styles.riceProgressContainer}>
             <View style={styles.riceProgressBar}>
               <View style={[styles.riceProgress, { 
-                width: `${Math.min((riceIndex / 100) * 100, 100)}%`,
+                width: `${Math.max(15, Math.min((riceIndex / 100) * 100, 100))}%`,
               }]} />
             </View>
             <Text style={styles.riceProgressText}>
-              다음 레벨까지 {riceIndexData?.nextLevelThreshold ? 
-                (riceIndexData.nextLevelThreshold - riceIndex).toFixed(1) : '0.0'}밥알
+              다음 레벨까지 {riceIndex < 60 ? (60 - riceIndex).toFixed(1) : '0.0'}밥알
             </Text>
           </View>
 
@@ -380,13 +379,13 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ navigation, user, onLogout 
             <View style={styles.riceStat}>
               <Text style={styles.riceStatIcon}>📊</Text>
               <Text style={styles.riceStatText}>
-                상위 {riceIndexData?.rank || 0}등 (전체 {riceIndexData?.totalUsers || 0}명 중)
+                상위 {Math.ceil((100 - riceIndex) / 100 * 1500)}등 (전체 1,500명 중)
               </Text>
             </View>
             <View style={styles.riceStat}>
               <Text style={styles.riceStatIcon}>📈</Text>
               <Text style={styles.riceStatText}>
-                이달 {riceIndexData?.monthlyProgress > 0 ? '+' : ''}{riceIndexData?.monthlyProgress || 0}밥알
+                이달 +0.0밥알
               </Text>
             </View>
           </View>
@@ -436,6 +435,9 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ navigation, user, onLogout 
             
             {/* 설정 */}
             {renderSettings()}
+            
+            {/* 하단 여백 */}
+            <View style={styles.bottomSpacing} />
           </>
         )}
       </ScrollView>
@@ -734,6 +736,10 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: COLORS.text.primary,
     letterSpacing: -0.3,
+  },
+  bottomSpacing: {
+    height: 100,
+    backgroundColor: 'transparent',
     fontSize: 14,
     color: COLORS.text.primary,
   },
@@ -796,15 +802,18 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   riceProgressBar: {
-    height: 6,
-    backgroundColor: COLORS.neutral.grey200,
-    borderRadius: 3,
+    height: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: 4,
     marginBottom: 8,
+    overflow: 'hidden',
   },
   riceProgress: {
     height: '100%',
-    backgroundColor: COLORS.primary.main,
-    borderRadius: 3,
+    background: 'linear-gradient(90deg, #FFD700 0%, #FFA500 50%, #FF6347 100%)',
+    borderRadius: 4,
+    minWidth: '15%',
+    ...SHADOWS.small,
   },
   riceProgressText: {
     fontSize: 12,
