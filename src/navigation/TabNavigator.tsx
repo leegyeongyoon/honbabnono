@@ -30,14 +30,14 @@ const TabNavigator = () => {
   return (
     <Tab.Navigator
       screenOptions={{
-        tabBarActiveTintColor: COLORS.primary.dark,
-        tabBarInactiveTintColor: COLORS.text.tertiary,
+        tabBarActiveTintColor: '#2d3748',
+        tabBarInactiveTintColor: '#2d3748',
         tabBarLabelStyle: {
           fontSize: 12,
           fontWeight: '500',
         },
         tabBarStyle: {
-          backgroundColor: COLORS.neutral.white,
+          backgroundColor: '#ffffff',
           borderTopWidth: 0,
           height: 65,
           paddingBottom: 10,
@@ -45,16 +45,16 @@ const TabNavigator = () => {
           ...SHADOWS.medium,
         },
         headerStyle: {
-          backgroundColor: COLORS.primary.main,
+          backgroundColor: '#667eea',
           borderBottomWidth: 0,
           ...SHADOWS.small,
         },
         headerTitleStyle: {
           fontSize: 18,
           fontWeight: 'bold',
-          color: COLORS.text.white,
+          color: '#ffffff',
         },
-        headerTintColor: COLORS.text.white,
+        headerTintColor: '#ffffff',
       }}>
       {TAB_ROUTES.map((route) => (
         <Tab.Screen
