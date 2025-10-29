@@ -549,36 +549,156 @@ app.get('/api/user/reviews', authenticateToken, async (req, res) => {
   }
 });
 
+// 밥알지수 계산 함수
+const calculateRiceIndex = (userStats) => {
+  // 기본 점수 40.0점에서 시작
+  let baseScore = 40.0;
+  
+  // 사용자 활동 통계 (실제로는 DB에서 가져와야 함)
+  const {
+    attendedMeetups = 5,
+    reviewsWritten = 3,
+    positiveReviews = 2,
+    negativeReviews = 0,
+    noShows = 0,
+    reports = 0,
+    consecutiveAttendance = 3,
+    qualityReviews = 1 // 30자 이상 후기
+  } = userStats;
+
+  // 점수 계산
+  let score = baseScore;
+  
+  // 상승 요소
+  if (score < 40.0) {
+    // 티스푼 구간: 후기만 있어도 상승
+    score += reviewsWritten * 1.5;
+  } else if (score < 60.0) {
+    // 밥 한 숟갈 구간: 후기 + 매너/태도 보장
+    score += positiveReviews * 1.0;
+  } else if (score < 70.0) {
+    // 따끈한 밥그릇 구간: 후기 + 3회 연속 출석
+    score += (consecutiveAttendance >= 3 ? reviewsWritten * 0.5 : 0);
+  } else if (score < 80.0) {
+    // 고봉밥 구간: 후기 + 품질 후기 (30자 이상)
+    score += qualityReviews * 0.3;
+  } else if (score < 90.0) {
+    // 밥도둑 밥상 구간: 후기 + 5회 연속 + 무사고
+    score += (consecutiveAttendance >= 5 && noShows === 0 && reports === 0) ? reviewsWritten * 0.1 : 0;
+  } else {
+    // 찰밥대장/밥神 구간: 후기 + 10회 연속 무사고
+    score += (consecutiveAttendance >= 10 && noShows === 0 && reports === 0) ? reviewsWritten * 0.05 : 0;
+  }
+  
+  // 감점 요소
+  score -= negativeReviews * 2.0; // 비매너 평가
+  score -= noShows * 5.0; // 노쇼
+  score -= reports * 5.0; // 신고
+  
+  // 점수 범위 제한 (0.0 ~ 100.0)
+  score = Math.max(0.0, Math.min(100.0, score));
+  
+  return Math.round(score * 10) / 10; // 소수점 첫째자리까지
+};
+
+// 밥알지수 레벨 및 밥알 개수 계산 함수
+const getRiceLevel = (score) => {
+  if (score < 40.0) return { level: "티스푼", riceEmoji: "🍚🍚", description: "반복된 신고/노쇼, 신뢰 낮음" };
+  if (score < 60.0) return { level: "밥 한 숟갈", riceEmoji: "🍚", description: "일반 유저, 평균적인 활동" };
+  if (score < 70.0) return { level: "따끈한 밥그릇", riceEmoji: "🍚🍚🍚", description: "후기와 출석률 모두 양호" };
+  if (score < 80.0) return { level: "고봉밥", riceEmoji: "🍚🍚🍚🍚", description: "후기 품질도 높고 꾸준한 출석" };
+  if (score < 90.0) return { level: "밥도둑 밥상", riceEmoji: "🍚🍚🍚🍚🍚", description: "상위권, 최고의 매너 보유" };
+  if (score < 98.1) return { level: "찰밥대장", riceEmoji: "🍚🍚🍚🍚🍚🍚", description: "거의 완벽한 활동 이력" };
+  return { level: "밥神 (밥신)", riceEmoji: "🍚🍚🍚🍚🍚🍚🍚", description: "전설적인 유저" };
+};
+
+// 유저 분포 계산 함수
+const getUserRank = (score, totalUsers = 1500) => {
+  const distributions = [
+    { min: 0, max: 39.9, percentage: 15 },
+    { min: 40, max: 59.9, percentage: 50 },
+    { min: 60, max: 69.9, percentage: 20 },
+    { min: 70, max: 79.9, percentage: 10 },
+    { min: 80, max: 89.9, percentage: 4.5 },
+    { min: 90, max: 100, percentage: 0.5 }
+  ];
+  
+  let cumulativePercentage = 0;
+  for (const dist of distributions) {
+    if (score >= dist.min && score <= dist.max) {
+      // 해당 구간 내에서의 상대적 위치 계산
+      const positionInRange = (score - dist.min) / (dist.max - dist.min);
+      const rankPercentile = cumulativePercentage + (dist.percentage * (1 - positionInRange));
+      return Math.ceil((rankPercentile / 100) * totalUsers);
+    }
+    cumulativePercentage += dist.percentage;
+  }
+  
+  return totalUsers; // 기본값
+};
+
 // 혼밥지수 조회
 app.get('/api/user/rice-index', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.userId;
-    console.log('🍚 혼밥지수 조회 요청:', { userId });
+    console.log('🍚 밥알지수 조회 요청:', { userId });
     
-    // 임시 혼밥지수 데이터
-    const mockRiceIndex = {
-      currentIndex: 85,
-      level: "혼밥 마스터",
-      rank: 12,
-      totalUsers: 1500,
-      monthlyProgress: +8,
-      achievements: [
-        { id: 1, name: "첫 모임 참가", completed: true },
-        { id: 2, name: "모임 호스팅", completed: true },
-        { id: 3, name: "리뷰 5개 작성", completed: false }
-      ]
+    // 실제로는 DB에서 사용자 활동 통계를 가져와야 함
+    const userStats = {
+      attendedMeetups: 8,
+      reviewsWritten: 5,
+      positiveReviews: 4,
+      negativeReviews: 0,
+      noShows: 0,
+      reports: 0,
+      consecutiveAttendance: 5,
+      qualityReviews: 3
     };
     
-    console.log('✅ 혼밥지수 조회 성공:', mockRiceIndex);
+    const currentIndex = calculateRiceIndex(userStats);
+    const levelInfo = getRiceLevel(currentIndex);
+    const totalUsers = 1500;
+    const rank = getUserRank(currentIndex, totalUsers);
+    
+    // 이번 달 진행률 계산 (임시)
+    const lastMonthScore = currentIndex - 2.5; // 임시로 2.5점 상승했다고 가정
+    const monthlyProgress = +(currentIndex - lastMonthScore).toFixed(1);
+    
+    // 다음 레벨까지 필요한 점수
+    const nextLevelThresholds = [40, 60, 70, 80, 90, 98.1, 100];
+    const nextThreshold = nextLevelThresholds.find(threshold => threshold > currentIndex) || 100;
+    const progressToNext = ((currentIndex % 10) / 10) * 100; // 임시 계산
+    
+    const riceIndexData = {
+      currentIndex: currentIndex,
+      level: levelInfo.level,
+      riceEmoji: levelInfo.riceEmoji,
+      description: levelInfo.description,
+      rank: rank,
+      totalUsers: totalUsers,
+      monthlyProgress: monthlyProgress,
+      nextLevelThreshold: nextThreshold,
+      progressToNext: Math.round(progressToNext),
+      achievements: [
+        { id: 1, name: "첫 모임 참가", completed: userStats.attendedMeetups > 0 },
+        { id: 2, name: "모임 5회 참가", completed: userStats.attendedMeetups >= 5 },
+        { id: 3, name: "리뷰 5개 작성", completed: userStats.reviewsWritten >= 5 },
+        { id: 4, name: "품질 후기 작성", completed: userStats.qualityReviews > 0 },
+        { id: 5, name: "무사고 연속 참가", completed: userStats.consecutiveAttendance >= 5 && userStats.noShows === 0 }
+      ],
+      stats: userStats
+    };
+    
+    console.log('✅ 밥알지수 조회 성공:', riceIndexData);
     res.json({ 
       success: true, 
-      riceIndex: mockRiceIndex.currentIndex,
-      level: mockRiceIndex.level,
-      data: mockRiceIndex 
+      riceIndex: currentIndex,
+      level: levelInfo.level,
+      data: riceIndexData 
     });
 
   } catch (error) {
-    console.error('❌ 혼밥지수 조회 실패:', error);
+    console.error('❌ 밥알지수 조회 실패:', error);
     res.status(500).json({ 
       success: false, 
       error: '서버 오류가 발생했습니다.' 

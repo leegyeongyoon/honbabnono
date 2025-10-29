@@ -33,6 +33,7 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ navigation, user, onLogout 
   const [userReviews, setUserReviews] = useState<UserReview[]>([]);
   const [riceIndex, setRiceIndex] = useState<number>(0);
   const [riceLevel, setRiceLevel] = useState<any>(null);
+  const [riceIndexData, setRiceIndexData] = useState<any>(null);
 
   // 컴포넌트 마운트 시 데이터 로드
   useEffect(() => {
@@ -102,9 +103,12 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ navigation, user, onLogout 
   const loadRiceIndex = async () => {
     try {
       const response = await apiClient.get('/user/rice-index');
-      if (response.data) {
-        setRiceIndex(response.data.riceIndex);
-        setRiceLevel(response.data.level);
+      if (response.data && response.data.data) {
+        const riceData = response.data.data;
+        setRiceIndex(riceData.currentIndex);
+        setRiceLevel(riceData.level);
+        // 추가 정보도 저장할 수 있도록 state 확장
+        setRiceIndexData(riceData);
       }
     } catch (error) {
       console.error('밥알지수 로드 실패:', error);
@@ -335,7 +339,7 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ navigation, user, onLogout 
           </TouchableOpacity>
         </View>
 
-        {/* 밥알지수 섹션 (당근마켓 매너온도 스타일) */}
+        {/* 밥알지수 섹션 */}
         <View style={styles.riceIndexSection}>
           <View style={styles.riceIndexHeader}>
             <Text style={styles.riceIndexLabel}>밥알지수</Text>
@@ -344,35 +348,48 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ navigation, user, onLogout 
             </TouchableOpacity>
           </View>
           
-          <View style={styles.temperatureContainer}>
-            <Text style={styles.firstTemperature}>첫 온도 36.5°C</Text>
-            <View style={styles.currentTemperatureContainer}>
-              <Text style={styles.currentTemperature}>{riceIndex}밥알</Text>
-              <Text style={styles.temperatureEmoji}>
-                {riceLevel?.emoji || '🍚'}
+          <View style={styles.riceIndexContainer}>
+            <View style={styles.riceScoreContainer}>
+              <Text style={styles.riceScore}>{riceIndex}밥알</Text>
+              <Text style={styles.riceEmoji}>
+                {riceIndexData?.riceEmoji || '🍚'}
+              </Text>
+            </View>
+            <View style={styles.riceLevelContainer}>
+              <Text style={styles.riceLevel}>{riceIndexData?.level || '밥 한 숟갈'}</Text>
+              <Text style={styles.riceDescription}>
+                {riceIndexData?.description || '일반 유저, 평균적인 활동'}
               </Text>
             </View>
           </View>
 
-          {/* 온도 바 */}
-          <View style={styles.temperatureBar}>
-            <View style={[styles.temperatureProgress, { 
-              width: `${Math.min((riceIndex / 100) * 100, 100)}%`,
-              backgroundColor: riceLevel?.color || COLORS.neutral.grey400
-            }]} />
+          {/* 밥알지수 진행 바 */}
+          <View style={styles.riceProgressContainer}>
+            <View style={styles.riceProgressBar}>
+              <View style={[styles.riceProgress, { 
+                width: `${Math.min((riceIndex / 100) * 100, 100)}%`,
+              }]} />
+            </View>
+            <Text style={styles.riceProgressText}>
+              다음 레벨까지 {riceIndexData?.nextLevelThreshold ? 
+                (riceIndexData.nextLevelThreshold - riceIndex).toFixed(1) : '0.0'}밥알
+            </Text>
           </View>
 
-          {/* 온도 설명 */}
-          <View style={styles.temperatureDescription}>
-            <View style={styles.temperatureStats}>
-              <View style={styles.tempStat}>
-                <Text style={styles.tempStatIcon}>👤</Text>
-                <Text style={styles.tempStatText}>재거래희망률 100%</Text>
-              </View>
-              <View style={styles.tempStat}>
-                <Text style={styles.tempStatIcon}>💬</Text>
-                <Text style={styles.tempStatText}>응답률 100%</Text>
-              </View>
+          {/* 밥알지수 통계 */}
+          <View style={styles.riceStatsContainer}>
+            <View style={styles.riceStat}>
+              <Text style={styles.riceStatIcon}>📊</Text>
+              <Text style={styles.riceStatText}>
+                상위 {riceIndexData?.rank || 0}등 (전체 {riceIndexData?.totalUsers || 0}명 중)
+              </Text>
+            </View>
+            <View style={styles.riceStat}>
+              <Text style={styles.riceStatIcon}>📈</Text>
+              <Text style={styles.riceStatText}>
+                이달 {riceIndexData?.monthlyProgress > 0 ? '+' : ''}{riceIndexData?.monthlyProgress || 0}밥알
+              </Text>
+            </View>
             </View>
             <Text style={styles.tempStatDetail}>13일 후 3번째 거래</Text>
             <Text style={styles.tempStatDetail}>최근 3일 이내 활동 (20204년 6월 가입)</Text>
@@ -690,19 +707,72 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: COLORS.text.secondary,
   },
-  temperatureContainer: {
+  riceIndexContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 12,
+    marginBottom: 16,
   },
-  firstTemperature: {
-    fontSize: 14,
+  riceScoreContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  riceScore: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: COLORS.primary.main,
+    marginRight: 8,
+  },
+  riceEmoji: {
+    fontSize: 24,
+  },
+  riceLevelContainer: {
+    flex: 1,
+  },
+  riceLevel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+    marginBottom: 4,
+  },
+  riceDescription: {
+    fontSize: 12,
     color: COLORS.text.secondary,
+    lineHeight: 16,
   },
-  currentTemperatureContainer: {
+  riceProgressContainer: {
+    marginBottom: 16,
+  },
+  riceProgressBar: {
+    height: 6,
+    backgroundColor: COLORS.neutral.grey200,
+    borderRadius: 3,
+    marginBottom: 8,
+  },
+  riceProgress: {
+    height: '100%',
+    backgroundColor: COLORS.primary.main,
+    borderRadius: 3,
+  },
+  riceProgressText: {
+    fontSize: 12,
+    color: COLORS.text.secondary,
+    textAlign: 'center',
+  },
+  riceStatsContainer: {
+    gap: 8,
+  },
+  riceStat: {
     flexDirection: 'row',
     alignItems: 'center',
+  },
+  riceStatIcon: {
+    fontSize: 14,
+    marginRight: 8,
+  },
+  riceStatText: {
+    fontSize: 12,
+    color: COLORS.text.secondary,
   },
   currentTemperature: {
     fontSize: 24,
