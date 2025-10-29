@@ -223,6 +223,90 @@ app.get('/api/user/me', authenticateToken, (req, res) => {
   res.json({ user: req.user });
 });
 
+// 토큰 검증 및 자동 로그인 API
+app.post('/api/auth/verify-token', async (req, res) => {
+  console.log('🔍 토큰 검증 API 호출됨:', { 
+    body: req.body,
+    hasToken: !!req.body?.token,
+    tokenLength: req.body?.token?.length 
+  });
+  
+  try {
+    const { token } = req.body;
+    
+    if (!token) {
+      return res.status(400).json({ 
+        success: false, 
+        error: '토큰이 필요합니다.' 
+      });
+    }
+
+    // JWT 토큰 검증
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'honbabnono_secret');
+    console.log('✅ 토큰 검증 성공:', { userId: decoded.userId, email: decoded.email });
+
+    // 데이터베이스에서 사용자 정보 조회
+    let user = null;
+    try {
+      user = await User.findByPk(decoded.userId);
+      if (!user) {
+        console.log('❌ 사용자를 찾을 수 없음:', decoded.userId);
+        return res.status(404).json({ 
+          success: false, 
+          error: '사용자를 찾을 수 없습니다.' 
+        });
+      }
+    } catch (dbError) {
+      console.log('⚠️ 데이터베이스 오류, 토큰 정보만 사용:', dbError.message);
+      // 데이터베이스 연결 실패 시 토큰의 정보만 사용
+      user = {
+        id: decoded.userId,
+        email: decoded.email,
+        name: decoded.name,
+        provider: 'token'
+      };
+    }
+
+    // 응답용 사용자 데이터
+    const userForResponse = {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      profileImage: user.profileImage || null,
+      provider: user.provider
+    };
+
+    console.log('✅ 토큰 검증 완료:', userForResponse);
+    res.json({ 
+      success: true, 
+      user: userForResponse,
+      token: token
+    });
+
+  } catch (error) {
+    console.error('❌ 토큰 검증 실패:', error.message);
+    
+    if (error.name === 'TokenExpiredError') {
+      return res.status(401).json({ 
+        success: false, 
+        error: '토큰이 만료되었습니다.' 
+      });
+    }
+    
+    if (error.name === 'JsonWebTokenError') {
+      return res.status(401).json({ 
+        success: false, 
+        error: '유효하지 않은 토큰입니다.' 
+      });
+    }
+    
+    res.status(500).json({ 
+      success: false, 
+      error: '토큰 검증 중 오류가 발생했습니다.' 
+    });
+  }
+});
+
 // 로그아웃 API
 app.post('/api/auth/logout', (req, res) => {
   res.json({ message: '로그아웃되었습니다' });
