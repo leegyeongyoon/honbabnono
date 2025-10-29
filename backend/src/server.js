@@ -223,6 +223,103 @@ app.get('/api/user/me', authenticateToken, (req, res) => {
   res.json({ user: req.user });
 });
 
+// 내가 호스팅한 모임 목록 조회
+app.get('/api/user/hosted-meetups', authenticateToken, async (req, res) => {
+  try {
+    const { page = 1, limit = 10 } = req.query;
+    const offset = (page - 1) * limit;
+    const userId = req.user.userId;
+    
+    console.log('🏠 호스팅 모임 조회 요청:', { userId, page, limit });
+    
+    // 데이터베이스 연결 확인
+    if (!User) {
+      return res.status(503).json({ 
+        success: false, 
+        error: '데이터베이스 연결이 필요합니다.' 
+      });
+    }
+    
+    // 임시 데이터 반환 (실제 구현에서는 데이터베이스 쿼리 사용)
+    const mockData = {
+      meetups: [
+        {
+          id: 1,
+          title: "홍대 맛집 투어",
+          description: "홍대 근처 맛집을 함께 탐방해요!",
+          location: "홍대입구역",
+          date: "2025-11-01",
+          time: "18:00",
+          maxParticipants: 4,
+          currentParticipants: 2,
+          category: "맛집탐방",
+          status: "active",
+          createdAt: "2025-10-25T10:00:00Z"
+        }
+      ],
+      pagination: {
+        total: 1,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        totalPages: 1
+      }
+    };
+    
+    console.log('✅ 호스팅 모임 조회 성공');
+    res.json({ 
+      success: true, 
+      data: mockData 
+    });
+
+  } catch (error) {
+    console.error('❌ 호스팅 모임 조회 실패:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: '서버 오류가 발생했습니다.' 
+    });
+  }
+});
+
+// 내활동 통계 조회
+app.get('/api/user/activity-stats', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    
+    console.log('📊 활동 통계 조회 요청:', { userId });
+    
+    // 데이터베이스 연결 확인
+    if (!User) {
+      return res.status(503).json({ 
+        success: false, 
+        error: '데이터베이스 연결이 필요합니다.' 
+      });
+    }
+    
+    // 임시 통계 데이터 반환 (실제 구현에서는 데이터베이스 쿼리 사용)
+    const mockStats = {
+      hostedMeetups: 3,
+      joinedMeetups: 8,
+      completedMeetups: 5,
+      thisMonthMeetups: 2,
+      totalPoints: 150,
+      level: "활발한 혼밥러"
+    };
+    
+    console.log('✅ 활동 통계 조회 성공:', mockStats);
+    res.json({ 
+      success: true, 
+      data: mockStats 
+    });
+
+  } catch (error) {
+    console.error('❌ 활동 통계 조회 실패:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: '서버 오류가 발생했습니다.' 
+    });
+  }
+});
+
 // 토큰 검증 및 자동 로그인 API
 app.post('/api/auth/verify-token', async (req, res) => {
   console.log('🔍 토큰 검증 API 호출됨:', { 
