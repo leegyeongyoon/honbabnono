@@ -554,8 +554,8 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: COLORS.text.primary,
+    fontWeight: '700',
+    color: '#2d3748',
     marginBottom: 16,
   },
   hostInfo: {
@@ -587,7 +587,7 @@ const styles = StyleSheet.create({
   hostName: {
     fontSize: 16,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: '#2d3748',
     marginBottom: 4,
   },
   ratingContainer: {
@@ -596,8 +596,9 @@ const styles = StyleSheet.create({
   },
   rating: {
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: '#718096',
     marginLeft: 4,
+    fontWeight: '500',
   },
   infoItem: {
     flexDirection: 'row',
@@ -606,26 +607,28 @@ const styles = StyleSheet.create({
   },
   infoText: {
     fontSize: 16,
-    color: COLORS.text.primary,
+    color: '#2d3748',
     marginLeft: 12,
     flex: 1,
+    fontWeight: '500',
   },
   subInfoText: {
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: '#718096',
     marginLeft: 12,
     marginTop: 2,
+    fontWeight: '500',
   },
   description: {
     fontSize: 16,
-    color: COLORS.text.primary,
+    color: '#4a5568',
     lineHeight: 24,
   },
   requirements: {
     fontSize: 16,
-    color: COLORS.text.primary,
+    color: '#4a5568',
     lineHeight: 24,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#f7fafc',
     padding: 16,
     borderRadius: 12,
   },

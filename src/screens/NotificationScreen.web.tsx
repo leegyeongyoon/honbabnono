@@ -223,22 +223,22 @@ const styles = StyleSheet.create({
     borderColor: '#e9ecef',
   },
   selectedTabButton: {
-    backgroundColor: '#ede0c8',
-    borderColor: '#ede0c8',
+    backgroundColor: '#667eea',
+    borderColor: '#667eea',
   },
   tabButtonText: {
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: '#718096',
     fontWeight: '500',
   },
   selectedTabButtonText: {
-    color: COLORS.text.white,
+    color: '#ffffff',
     fontWeight: '600',
   },
   tabBadge: {
     fontSize: 12,
-    color: COLORS.functional.error,
-    fontWeight: 'bold',
+    color: '#e53e3e',
+    fontWeight: '600',
   },
   notificationsList: {
     flex: 1,

@@ -362,8 +362,8 @@ const styles = StyleSheet.create({
   },
   meetupTitle: {
     fontSize: 16,
-    fontWeight: 'bold',
-    color: COLORS.text.primary,
+    fontWeight: '600',
+    color: '#2d3748',
     marginBottom: 6,
     lineHeight: 22,
   },
@@ -373,24 +373,27 @@ const styles = StyleSheet.create({
   },
   meetupLocation: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: '#718096',
+    fontWeight: '500',
   },
   meetupTime: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: '#718096',
+    fontWeight: '500',
   },
   meetupStatus: {
     alignItems: 'flex-end',
   },
   statusText: {
     fontSize: 12,
-    color: COLORS.primary.main,
-    fontWeight: 'bold',
+    color: '#667eea',
+    fontWeight: '600',
     marginBottom: 4,
   },
   participantCount: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: '#718096',
+    fontWeight: '500',
   },
   meetupFooter: {
     flexDirection: 'row',

@@ -447,8 +447,9 @@ const styles = StyleSheet.create({
     fontSize: 24,
   },
   categoryName: {
-    ...TYPOGRAPHY.label,
-    color: COLORS.text.primary,
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#4a5568',
     textAlign: 'center',
   },
   section: {
@@ -463,11 +464,15 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   sectionTitle: {
-    ...TYPOGRAPHY.heading.h3,
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#2d3748',
+    letterSpacing: -0.3,
   },
   moreButton: {
-    ...TYPOGRAPHY.button.medium,
-    color: COLORS.primary.main,
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#667eea',
   },
   meetupCard: {
     backgroundColor: COLORS.neutral.white,
@@ -492,7 +497,9 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   meetupTitle: {
-    ...TYPOGRAPHY.card.title,
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#2d3748',
     marginBottom: 6,
   },
   meetupMeta: {
@@ -500,12 +507,14 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   meetupLocation: {
-    ...TYPOGRAPHY.card.meta,
-    color: COLORS.text.secondary,
+    fontSize: 13,
+    color: '#718096',
+    fontWeight: '500',
   },
   meetupTime: {
-    ...TYPOGRAPHY.card.meta,
-    color: COLORS.text.secondary,
+    fontSize: 13,
+    color: '#718096',
+    fontWeight: '500',
   },
   meetupStatus: {
     alignItems: 'flex-end',
@@ -518,7 +527,8 @@ const styles = StyleSheet.create({
   },
   participantCount: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: '#718096',
+    fontWeight: '500',
   },
   meetupFooter: {
     flexDirection: 'row',
@@ -545,12 +555,14 @@ const styles = StyleSheet.create({
   },
   hostName: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: '#718096',
     marginRight: 8,
+    fontWeight: '500',
   },
   hostRating: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: '#718096',
+    fontWeight: '500',
   },
   categoryBadge: {
     backgroundColor: '#ffffff',
@@ -562,7 +574,7 @@ const styles = StyleSheet.create({
   },
   categoryBadgeText: {
     fontSize: 10,
-    color: COLORS.text.secondary,
+    color: '#718096',
     fontWeight: '500',
   },
   fab: {
