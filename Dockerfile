@@ -53,7 +53,7 @@ RUN npm cache clean --force && \
     npm install --production --verbose
 
 # 백엔드 서버 코드 복사
-COPY backend/ ./backend/
+COPY server/ ./server/
 COPY .env.production .env
 
 # 환경변수 파일이 없는 경우 기본값 생성
