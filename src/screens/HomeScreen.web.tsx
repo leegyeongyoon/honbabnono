@@ -304,6 +304,8 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, user }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#f8f9fa',
+    background: 'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)',
   },
   fixedLocationHeader: {
     position: 'absolute',
@@ -408,7 +410,8 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
-    paddingTop: LAYOUT.HEADER_HEIGHT + LAYOUT.CONTENT_TOP_MARGIN, // 고정 헤더 + 마진
+    paddingTop: LAYOUT.HEADER_HEIGHT + LAYOUT.CONTENT_TOP_MARGIN,
+    backgroundColor: 'transparent',
   },
   categorySection: {
     paddingVertical: 20,

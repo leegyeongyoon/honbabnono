@@ -193,13 +193,21 @@ const NotificationScreen: React.FC<NotificationScreenProps> = ({ navigation, use
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#f8f9fa',
+    background: 'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)',
   },
   tabsContainer: {
-    backgroundColor: '#ede0c8',
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    backdropFilter: 'blur(20px)',
+    WebkitBackdropFilter: 'blur(20px)',
     height: LAYOUT.HEADER_HEIGHT,
-    borderBottomWidth: 1,
-    borderBottomColor: '#ebe7dc',
+    borderBottomWidth: 0,
     justifyContent: 'center',
+    ...SHADOWS.medium,
+    shadowColor: 'rgba(0,0,0,0.05)',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 12,
   },
   tabsContent: {
     paddingHorizontal: 8,

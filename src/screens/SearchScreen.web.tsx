@@ -244,6 +244,8 @@ const SearchScreen: React.FC<SearchScreenProps> = ({ navigation, user }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#f8f9fa',
+    background: 'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)',
   },
   searchContainer: {
     position: 'absolute',
