@@ -268,7 +268,8 @@ app.get('/api/user/hosted-meetups', authenticateToken, async (req, res) => {
     console.log('✅ 호스팅 모임 조회 성공');
     res.json({ 
       success: true, 
-      data: mockData 
+      data: mockData.meetups,
+      pagination: mockData.pagination 
     });
 
   } catch (error) {
@@ -571,6 +572,8 @@ app.get('/api/user/rice-index', authenticateToken, async (req, res) => {
     console.log('✅ 혼밥지수 조회 성공:', mockRiceIndex);
     res.json({ 
       success: true, 
+      riceIndex: mockRiceIndex.currentIndex,
+      level: mockRiceIndex.level,
       data: mockRiceIndex 
     });
 
