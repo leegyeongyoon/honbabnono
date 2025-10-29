@@ -457,7 +457,8 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.neutral.background,
+    backgroundColor: '#f8f9fa',
+    background: 'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)',
   },
   header: {
     height: LAYOUT.HEADER_HEIGHT,
@@ -480,8 +481,8 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: COLORS.text.primary,
+    fontWeight: '700',
+    color: '#2d3748',
   },
   shareButton: {
     padding: 4,
@@ -496,7 +497,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 16,
-    color: COLORS.text.secondary,
+    color: '#718096',
   },
   errorContainer: {
     flex: 1,
@@ -505,7 +506,7 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: 16,
-    color: COLORS.text.secondary,
+    color: '#718096',
   },
   titleSection: {
     padding: 24,
@@ -531,7 +532,7 @@ const styles = StyleSheet.create({
   meetupTitle: {
     fontSize: 28,
     fontWeight: '800',
-    color: COLORS.text.white,
+    color: '#ffffff',
     marginBottom: 8,
     letterSpacing: -0.5,
   },
@@ -541,7 +542,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   section: {
-    backgroundColor: COLORS.neutral.white,
+    backgroundColor: '#ffffff',
     padding: 24,
     marginHorizontal: 16,
     marginTop: 16,
@@ -566,7 +567,7 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: COLORS.primary.light,
+    backgroundColor: '#e2e8f0',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 16,
@@ -578,8 +579,8 @@ const styles = StyleSheet.create({
   },
   hostAvatarText: {
     fontSize: 20,
-    fontWeight: 'bold',
-    color: COLORS.primary.main,
+    fontWeight: '700',
+    color: '#667eea',
   },
   hostDetails: {
     flex: 1,
