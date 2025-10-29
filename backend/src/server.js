@@ -404,9 +404,286 @@ app.post('/api/auth/verify-token', async (req, res) => {
   }
 });
 
+// 사용자 프로필 조회
+app.get('/api/user/profile', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    console.log('👤 사용자 프로필 조회 요청:', { userId });
+    
+    // 데이터베이스 연결 확인
+    if (!User) {
+      return res.status(503).json({ 
+        success: false, 
+        error: '데이터베이스 연결이 필요합니다.' 
+      });
+    }
+    
+    // 임시 프로필 데이터
+    const mockProfile = {
+      id: userId,
+      email: req.user.email,
+      name: req.user.name,
+      profile_image: null,
+      provider: 'kakao',
+      provider_id: 'temp123',
+      is_verified: true,
+      rating: 4.5,
+      meetups_hosted: 3,
+      created_at: '2025-01-01T00:00:00Z',
+      updated_at: '2025-10-29T00:00:00Z'
+    };
+    
+    console.log('✅ 사용자 프로필 조회 성공');
+    res.json({ 
+      success: true, 
+      user: mockProfile 
+    });
+
+  } catch (error) {
+    console.error('❌ 사용자 프로필 조회 실패:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: '서버 오류가 발생했습니다.' 
+    });
+  }
+});
+
+// 내가 참가한 모임 목록 조회
+app.get('/api/user/joined-meetups', authenticateToken, async (req, res) => {
+  try {
+    const { page = 1, limit = 10 } = req.query;
+    const userId = req.user.userId;
+    
+    console.log('👥 참가 모임 조회 요청:', { userId, page, limit });
+    
+    // 임시 데이터
+    const mockData = {
+      data: [
+        {
+          id: "2",
+          title: "강남 카페 투어",
+          description: "강남역 주변 예쁜 카페들을 탐방해요",
+          location: "강남역",
+          date: "2025-11-05",
+          time: "14:00",
+          maxParticipants: 6,
+          currentParticipants: 4,
+          category: "카페탐방",
+          status: "active",
+          createdAt: "2025-10-20T10:00:00Z",
+          participationStatus: "confirmed",
+          joinedAt: "2025-10-21T10:00:00Z",
+          hostName: "카페러버"
+        }
+      ],
+      pagination: {
+        total: 1,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        totalPages: 1
+      }
+    };
+    
+    console.log('✅ 참가 모임 조회 성공');
+    res.json({ 
+      success: true, 
+      data: mockData.data,
+      pagination: mockData.pagination
+    });
+
+  } catch (error) {
+    console.error('❌ 참가 모임 조회 실패:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: '서버 오류가 발생했습니다.' 
+    });
+  }
+});
+
+// 사용자가 작성한 리뷰 목록 조회
+app.get('/api/user/reviews', authenticateToken, async (req, res) => {
+  try {
+    const { page = 1, limit = 10 } = req.query;
+    const userId = req.user.userId;
+    
+    console.log('📝 사용자 리뷰 조회 요청:', { userId, page, limit });
+    
+    // 임시 데이터
+    const mockData = {
+      data: [
+        {
+          id: "1",
+          meetup_id: "1",
+          rating: 5,
+          comment: "정말 즐거운 시간이었습니다!",
+          tags: ["맛있는", "친절한", "재미있는"],
+          created_at: "2025-10-25T15:00:00Z",
+          meetup_title: "홍대 맛집 투어",
+          meetup_date: "2025-10-24",
+          meetup_location: "홍대입구역",
+          meetup_category: "맛집탐방"
+        }
+      ],
+      pagination: {
+        total: 1,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        totalPages: 1
+      }
+    };
+    
+    console.log('✅ 사용자 리뷰 조회 성공');
+    res.json({ 
+      success: true, 
+      data: mockData.data,
+      pagination: mockData.pagination
+    });
+
+  } catch (error) {
+    console.error('❌ 사용자 리뷰 조회 실패:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: '서버 오류가 발생했습니다.' 
+    });
+  }
+});
+
+// 혼밥지수 조회
+app.get('/api/user/rice-index', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    console.log('🍚 혼밥지수 조회 요청:', { userId });
+    
+    // 임시 혼밥지수 데이터
+    const mockRiceIndex = {
+      currentIndex: 85,
+      level: "혼밥 마스터",
+      rank: 12,
+      totalUsers: 1500,
+      monthlyProgress: +8,
+      achievements: [
+        { id: 1, name: "첫 모임 참가", completed: true },
+        { id: 2, name: "모임 호스팅", completed: true },
+        { id: 3, name: "리뷰 5개 작성", completed: false }
+      ]
+    };
+    
+    console.log('✅ 혼밥지수 조회 성공:', mockRiceIndex);
+    res.json({ 
+      success: true, 
+      data: mockRiceIndex 
+    });
+
+  } catch (error) {
+    console.error('❌ 혼밥지수 조회 실패:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: '서버 오류가 발생했습니다.' 
+    });
+  }
+});
+
+// 모임 리뷰 작성
+app.post('/api/meetups/:meetupId/reviews', authenticateToken, async (req, res) => {
+  try {
+    const { meetupId } = req.params;
+    const { rating, comment, tags } = req.body;
+    const userId = req.user.userId;
+    
+    console.log('✍️ 리뷰 작성 요청:', { meetupId, userId, rating });
+    
+    if (!rating || rating < 1 || rating > 5) {
+      return res.status(400).json({ 
+        success: false, 
+        error: '평점은 1~5 사이의 값이어야 합니다.' 
+      });
+    }
+    
+    // 임시 리뷰 데이터
+    const mockReview = {
+      id: Date.now().toString(),
+      meetup_id: meetupId,
+      reviewer_id: userId,
+      reviewer_name: req.user.name,
+      rating: rating,
+      comment: comment || '',
+      tags: tags || [],
+      created_at: new Date().toISOString(),
+      reviewer_profile_image: null
+    };
+    
+    console.log('✅ 리뷰 작성 성공');
+    res.json({ 
+      success: true, 
+      data: mockReview 
+    });
+
+  } catch (error) {
+    console.error('❌ 리뷰 작성 실패:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: '서버 오류가 발생했습니다.' 
+    });
+  }
+});
+
+// 모임의 리뷰 목록 조회
+app.get('/api/meetups/:meetupId/reviews', async (req, res) => {
+  try {
+    const { meetupId } = req.params;
+    const { page = 1, limit = 10 } = req.query;
+    
+    console.log('📝 모임 리뷰 목록 조회 요청:', { meetupId, page, limit });
+    
+    // 임시 리뷰 데이터
+    const mockData = {
+      reviews: [
+        {
+          id: "1",
+          meetup_id: meetupId,
+          reviewer_id: "user1",
+          reviewer_name: "리뷰어1",
+          rating: 5,
+          comment: "정말 좋은 모임이었습니다!",
+          tags: ["맛있는", "친절한"],
+          created_at: "2025-10-25T15:00:00Z",
+          reviewer_profile_image: null
+        }
+      ],
+      stats: {
+        averageRating: 4.8,
+        totalReviews: 5
+      },
+      pagination: {
+        total: 1,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        totalPages: 1
+      }
+    };
+    
+    console.log('✅ 모임 리뷰 목록 조회 성공');
+    res.json({ 
+      success: true, 
+      data: mockData 
+    });
+
+  } catch (error) {
+    console.error('❌ 모임 리뷰 목록 조회 실패:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: '서버 오류가 발생했습니다.' 
+    });
+  }
+});
+
 // 로그아웃 API
 app.post('/api/auth/logout', (req, res) => {
-  res.json({ message: '로그아웃되었습니다' });
+  console.log('👋 로그아웃 요청');
+  res.json({ 
+    success: true,
+    message: '로그아웃되었습니다' 
+  });
 });
 
 // 일반 로그인 API (이메일/패스워드)
