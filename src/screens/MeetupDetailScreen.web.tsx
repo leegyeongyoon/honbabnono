@@ -237,11 +237,11 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user }) => {
           style={styles.backButton}
           onPress={() => navigation?.goBack()}
         >
-          <Icon name="chevron-left" size={24} color="#2d3748" />
+          <Icon name="chevron-left" size={24} color={COLORS.text.primary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>모임 상세</Text>
         <TouchableOpacity style={styles.shareButton}>
-          <Icon name="share" size={20} color="#2d3748" />
+          <Icon name="share" size={20} color={COLORS.text.primary} />
         </TouchableOpacity>
       </View>
 
@@ -277,14 +277,14 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user }) => {
           <Text style={styles.sectionTitle}>모임 정보</Text>
           
           <View style={styles.infoItem}>
-            <Icon name="calendar" size={20} color="#667eea" />
+            <Icon name="calendar" size={20} color={COLORS.primary.main} />
             <Text style={styles.infoText}>
               {formatKoreanDateTime(meetup.date, 'datetime')}
             </Text>
           </View>
 
           <View style={styles.infoItem}>
-            <Icon name="map-pin" size={20} color="#667eea" />
+            <Icon name="map-pin" size={20} color={COLORS.primary.main} />
             <View>
               <Text style={styles.infoText}>{meetup.location}</Text>
               {meetup.address && (
@@ -294,7 +294,7 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user }) => {
           </View>
 
           <View style={styles.infoItem}>
-            <Icon name="users" size={20} color="#667eea" />
+            <Icon name="users" size={20} color={COLORS.primary.main} />
             <Text style={styles.infoText}>
               {meetup.currentParticipants} / {meetup.maxParticipants}명
             </Text>
@@ -302,7 +302,7 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user }) => {
 
           {meetup.priceRange && (
             <View style={styles.infoItem}>
-              <Icon name="dollar-sign" size={20} color="#667eea" />
+              <Icon name="dollar-sign" size={20} color={COLORS.primary.main} />
               <Text style={styles.infoText}>{meetup.priceRange}</Text>
             </View>
           )}
@@ -350,7 +350,7 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user }) => {
                 style={styles.writeReviewButton}
                 onPress={() => setShowReviewForm(true)}
               >
-                <Icon name="edit" size={16} color="#667eea" />
+                <Icon name="edit" size={16} color={COLORS.primary.main} />
                 <Text style={styles.writeReviewText}>리뷰 작성</Text>
               </TouchableOpacity>
             )}
@@ -370,12 +370,12 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user }) => {
       <View style={styles.bottomButtons}>
         {isHost() ? (
           <TouchableOpacity style={styles.chatButton} onPress={handleChatRoom}>
-            <Icon name="message-circle" size={20} color="#ffffff" />
+            <Icon name="message-circle" size={20} color={COLORS.text.white} />
             <Text style={styles.chatButtonText}>모임 채팅방</Text>
           </TouchableOpacity>
         ) : isParticipant() ? (
           <TouchableOpacity style={styles.chatButton} onPress={handleChatRoom}>
-            <Icon name="message-circle" size={20} color="#ffffff" />
+            <Icon name="message-circle" size={20} color={COLORS.text.white} />
             <Text style={styles.chatButtonText}>채팅방 입장</Text>
           </TouchableOpacity>
         ) : canJoin() ? (
@@ -524,7 +524,7 @@ const styles = StyleSheet.create({
     backdropFilter: 'blur(10px)',
   },
   statusText: {
-    color: '#ffffff',
+    color: COLORS.text.white,
     fontSize: 13,
     fontWeight: '700',
     letterSpacing: 0.5,
