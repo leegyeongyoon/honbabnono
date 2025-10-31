@@ -76,15 +76,7 @@
       "Bash(npm run test:*)",
       "Bash(PORT=3001 node server/index.js)",
       "Read(/Users/keullaeseuting/**)",
-      "WebFetch(domain:honbabnono.com)",
-      "Bash(nslookup:*)",
-      "Bash(docker build:*)",
-      "Bash(open:*)",
-      "Bash(docker tag:*)",
-      "Bash(gh run list:*)",
-      "Bash(git revert:*)",
-      "Bash(gh workflow run:*)",
-      "Bash(PORT=3001 node src/server.js)"
+      "WebFetch(domain:honbabnono.com)"
     ],
     "deny": [],
     "ask": []
