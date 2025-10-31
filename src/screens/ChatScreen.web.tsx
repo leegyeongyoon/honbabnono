@@ -404,8 +404,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, user }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
-    background: 'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)',
+    backgroundColor: COLORS.neutral.background,
   },
   header: {
     height: LAYOUT.HEADER_HEIGHT,

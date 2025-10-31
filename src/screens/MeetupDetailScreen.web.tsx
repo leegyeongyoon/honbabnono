@@ -457,8 +457,7 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
-    background: 'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)',
+    backgroundColor: COLORS.neutral.background,
   },
   header: {
     height: LAYOUT.HEADER_HEIGHT,
@@ -510,7 +509,7 @@ const styles = StyleSheet.create({
   },
   titleSection: {
     padding: 24,
-    backgroundColor: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+    backgroundColor: COLORS.primary.main,
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
   },
@@ -673,7 +672,7 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
   },
   joinButton: {
-    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+    backgroundColor: COLORS.primary.main,
     borderRadius: 20,
     padding: 20,
     alignItems: 'center',
@@ -690,7 +689,7 @@ const styles = StyleSheet.create({
     letterSpacing: -0.3,
   },
   chatButton: {
-    background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+    backgroundColor: COLORS.functional.info,
     borderRadius: 20,
     padding: 20,
     alignItems: 'center',

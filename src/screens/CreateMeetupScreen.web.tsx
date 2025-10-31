@@ -690,7 +690,7 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     padding: 24,
-    backgroundColor: 'linear-gradient(135deg, #ffeef8 0%, #f0f8ff 100%)',
+    backgroundColor: COLORS.neutral.background,
   },
   section: {
     backgroundColor: COLORS.neutral.white,

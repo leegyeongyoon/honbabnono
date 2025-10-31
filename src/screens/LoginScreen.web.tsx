@@ -224,7 +224,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: '100%',
-    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)',
+    backgroundColor: COLORS.primary.main,
     opacity: 0.9,
   },
   logoSection: {
