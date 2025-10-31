@@ -304,8 +304,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, user }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
-    background: 'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)',
+    backgroundColor: COLORS.neutral.background,
   },
   fixedLocationHeader: {
     position: 'absolute',
@@ -585,15 +584,9 @@ const styles = StyleSheet.create({
     height: 64,
     borderRadius: 32,
     backgroundColor: COLORS.primary.main,
-    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
     justifyContent: 'center',
     alignItems: 'center',
     ...SHADOWS.large,
-    shadowColor: 'rgba(102, 126, 234, 0.4)',
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 1,
-    shadowRadius: 24,
-    elevation: 15,
   },
   fabIcon: {
     fontSize: 24,
@@ -631,16 +624,12 @@ const styles = StyleSheet.create({
   },
   ctaCard: {
     flex: 1,
-    backgroundColor: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+    backgroundColor: COLORS.primary.main,
     padding: 24,
     borderRadius: 20,
     alignItems: 'center',
     borderWidth: 0,
     ...SHADOWS.large,
-    shadowColor: 'rgba(102, 126, 234, 0.3)',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 1,
-    shadowRadius: 20,
   },
   ctaIcon: {
     fontSize: 32,

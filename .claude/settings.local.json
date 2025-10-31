@@ -76,7 +76,9 @@
       "Bash(npm run test:*)",
       "Bash(PORT=3001 node server/index.js)",
       "Read(/Users/keullaeseuting/**)",
-      "WebFetch(domain:honbabnono.com)"
+      "WebFetch(domain:honbabnono.com)",
+      "Bash(git revert:*)",
+      "Bash(open http://localhost:3000)"
     ],
     "deny": [],
     "ask": []
