@@ -186,7 +186,7 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
             
             <View style={styles.infoRow}>
               <Text style={styles.infoLabel}>인원</Text>
-              <Text style={styles.infoValue}>{meetup.current_participants || 0}/{meetup.max_participants || 0}명</Text>
+              <Text style={styles.infoValue}>{meetup.currentParticipants || 0}/{meetup.maxParticipants || 0}명</Text>
             </View>
             
             <View style={styles.infoRow}>

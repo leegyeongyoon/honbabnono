@@ -712,7 +712,9 @@ apiRouter.get('/meetups/:id', async (req, res) => {
         u.id as "host_id",
         u.name as "host_name",
         u.profile_image as "host_profileImage",
-        u.rating as "host_rating"
+        u.rating as "host_rating",
+        u.meetups_hosted as "host_meetups_hosted",
+        u.meetups_joined as "host_meetups_joined"
       FROM meetups m
       LEFT JOIN users u ON m.host_id = u.id
       WHERE m.id = $1
@@ -737,6 +739,21 @@ apiRouter.get('/meetups/:id', async (req, res) => {
       WHERE mp.meetup_id = $1
       ORDER BY mp.created_at ASC
     `, [id]);
+
+    // 호스트의 밥알지수 계산
+    const calculateBabAlScore = (hostedCount = 0, joinedCount = 0, rating = 0) => {
+      let score = 20; // 기본 점수
+      score += Math.min(joinedCount * 2, 30); // 참여 점수 (최대 30점)
+      score += Math.min(hostedCount * 5, 25); // 호스팅 점수 (최대 25점) 
+      score += Math.min((rating - 1) * 6.25, 25); // 평점 점수 (최대 25점)
+      return Math.min(Math.round(score), 100);
+    };
+
+    const hostBabAlScore = calculateBabAlScore(
+      meetupData.host_meetups_hosted || 0,
+      meetupData.host_meetups_joined || 0, 
+      meetupData.host_rating || 0
+    );
 
     // 모임 데이터 구조화
     const meetup = {
@@ -764,7 +781,8 @@ apiRouter.get('/meetups/:id', async (req, res) => {
         id: meetupData.host_id,
         name: meetupData.host_name,
         profileImage: meetupData.host_profileImage,
-        rating: meetupData.host_rating
+        rating: meetupData.host_rating,
+        babAlScore: hostBabAlScore
       },
       participants: participantsResult.rows
     };
