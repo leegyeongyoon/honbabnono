@@ -111,7 +111,7 @@ const RouterApp: React.FC = () => {
     if (isLoggedIn && user) {
       fetchMeetups();
     }
-  }, [isLoggedIn, user, fetchMeetups]);
+  }, [isLoggedIn, user]);
 
   // 보호된 라우트 컴포넌트
   const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
