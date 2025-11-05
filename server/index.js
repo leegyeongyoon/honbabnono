@@ -237,6 +237,42 @@ apiRouter.get('/auth/kakao/callback', async (req, res) => {
 });
 
 // 토큰 검증 및 자동 로그인 API
+// 테스트 로그인 API (개발용)
+apiRouter.post('/auth/test-login', async (req, res) => {
+  try {
+    const testUser = {
+      id: '11111111-1111-1111-1111-111111111111',
+      name: '테스트유저1',
+      email: 'test1@test.com'
+    };
+
+    // JWT 토큰 생성
+    const token = jwt.sign(
+      { 
+        userId: testUser.id,
+        email: testUser.email,
+        name: testUser.name
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    console.log('✅ 테스트 로그인 성공:', testUser.email);
+    
+    res.json({
+      success: true,
+      token,
+      user: testUser
+    });
+  } catch (error) {
+    console.error('❌ 테스트 로그인 실패:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: '테스트 로그인 중 오류가 발생했습니다.' 
+    });
+  }
+});
+
 apiRouter.post('/auth/verify-token', async (req, res) => {
   console.log('🔍 토큰 검증 API 호출됨:', { 
     body: req.body,
@@ -256,15 +292,23 @@ apiRouter.post('/auth/verify-token', async (req, res) => {
 
     // JWT 토큰 검증
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    console.log('🔍 JWT decoded:', decoded);
     
-    // 사용자 정보 조회
+    // userId 필드명 확인 (userId 또는 id)
+    const userId = decoded.userId || decoded.id;
+    console.log('🔍 Extracted userId:', userId);
+    
+    // 사용자 정보 조회 (is_verified 조건 제거)
     const userResult = await pool.query(`
       SELECT id, email, name, profile_image, provider, is_verified, created_at 
       FROM users 
-      WHERE id = $1 AND is_verified = true
-    `, [decoded.userId]);
+      WHERE id = $1
+    `, [userId]);
+
+    console.log('🔍 User query result:', { found: userResult.rows.length, userId });
 
     if (userResult.rows.length === 0) {
+      console.log('❌ 사용자를 찾을 수 없습니다:', userId);
       return res.status(404).json({ 
         success: false, 
         error: '사용자를 찾을 수 없습니다.' 

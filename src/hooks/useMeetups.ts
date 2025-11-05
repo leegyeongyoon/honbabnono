@@ -114,8 +114,45 @@ export const useMeetups = () => {
     return meetupStore.leaveMeetup(meetupId, userId);
   };
 
-  const getMeetupById = (id: number) => {
-    return meetupStore.getMeetupById(id);
+  const getMeetupById = async (id: string) => {
+    try {
+      const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
+      const response = await fetch(`${apiUrl}/meetups/${id}`);
+      
+      if (!response.ok) {
+        throw new Error('모임을 찾을 수 없습니다');
+      }
+      
+      const data = await response.json();
+      
+      // API 응답이 { success: true, meetup: {...} } 형태인지 확인
+      const meetupData = data.success ? data.meetup : data;
+      
+      // 백엔드 데이터를 프론트엔드 형식에 맞게 변환
+      const meetup = {
+        id: meetupData.id,
+        title: meetupData.title,
+        description: meetupData.description || '',
+        category: meetupData.category,
+        location: meetupData.location,
+        date: meetupData.date,
+        time: meetupData.time,
+        max_participants: meetupData.maxParticipants,
+        current_participants: meetupData.currentParticipants,
+        hostName: meetupData.host?.name || '익명',
+        hostId: meetupData.hostId,
+        hostBabAlScore: 98, // 임시 고정값
+        status: meetupData.status,
+        created_at: meetupData.createdAt,
+        participants: meetupData.participants || []
+      };
+      
+      return meetup;
+    } catch (error) {
+      console.error('모임 상세 조회 실패:', error);
+      // 에러 시 로컬 데이터 사용
+      return meetupStore.getMeetupById(parseInt(id));
+    }
   };
 
   return {

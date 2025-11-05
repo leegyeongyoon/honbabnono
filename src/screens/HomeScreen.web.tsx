@@ -74,200 +74,198 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, user }) => {
       <View style={styles.fixedLocationHeader}>
         <View style={styles.headerContent}>
           <TouchableOpacity style={styles.locationButton} onPress={handleLocationChange}>
-            <View style={styles.locationIconContainer}>
-              <Icon name="map-pin" size={16} color={COLORS.text.secondary} />
-            </View>
-            <View style={styles.locationTextContainer}>
-              <Text style={styles.locationLabel}>현재 위치</Text>
-              <Text style={styles.locationText}>{currentLocation}</Text>
-            </View>
-            <Icon name="chevron-down" size={14} color={COLORS.text.secondary} />
+            <Text style={styles.locationText}>{currentLocation}</Text>
+            <Icon name="chevron-down" size={14} color={COLORS.text.primary} />
           </TouchableOpacity>
           
-          <View style={styles.headerIcons}>
-            <TouchableOpacity style={styles.iconButton} onPress={() => navigation?.navigateToSearch()}>
-              <View style={styles.iconContainer}>
-                <Icon name="search" size={18} color={COLORS.text.secondary} />
-              </View>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.iconButton} onPress={() => console.log('알림')}>
-              <View style={styles.iconContainer}>
-                <Icon name="bell" size={18} color={COLORS.text.secondary} />
-                <View style={styles.notificationBadge}>
-                  <Text style={styles.notificationCount}>3</Text>
-                </View>
-              </View>
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity style={styles.notificationIconButton} onPress={() => console.log('알림')}>
+            <Icon name="bell" size={20} color={COLORS.text.primary} />
+            <View style={styles.notificationBadge}>
+              <Text style={styles.notificationCount}>3</Text>
+            </View>
+          </TouchableOpacity>
         </View>
       </View>
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        {/* 검색창 */}
+        <View style={styles.searchContainer}>
+          <TouchableOpacity 
+            style={styles.searchBox}
+            onPress={() => navigation?.navigateToSearch()}
+          >
+            <Icon name="search" size={16} color={COLORS.text.secondary} />
+            <Text style={styles.searchPlaceholder}>모임을 검색해보세요</Text>
+          </TouchableOpacity>
+        </View>
+
         {/* 카테고리 그리드 */}
         <View style={styles.categorySection}>
           <View style={styles.categoryGrid}>
-            {categories.map((category) => (
-              <TouchableOpacity 
-                key={category.id} 
-                style={styles.categoryItem}
-                onPress={() => navigation?.navigateToSearch()}
-              >
-                <View style={styles.categoryIconContainer}>
-                  <Text style={styles.categoryIcon}>{category.emoji}</Text>
-                </View>
-                <Text style={styles.categoryName}>{category.name}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-
-        {/* 가까운 모임 섹션 */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>🏃‍♂️ 가까운 모임</Text>
-            <TouchableOpacity onPress={() => navigation?.navigateToSearch()}>
-              <Text style={styles.moreButton}>더보기 ›</Text>
-            </TouchableOpacity>
-          </View>
-          
-          {meetups.map((meetup) => (
-            <TouchableOpacity 
-              key={meetup.id} 
-              style={styles.meetupCard}
-              onPress={() => navigate(`/meetup/${meetup.id}`)}
-            >
-              <View style={styles.meetupHeader}>
-                <View style={styles.meetupTitleSection}>
-                  <Text style={styles.meetupTitle}>{meetup.title}</Text>
-                  <View style={styles.meetupMeta}>
-                    <View style={{flexDirection: 'row', alignItems: 'center', gap: 4}}>
-                      <Icon name="map-pin" size={11} color={COLORS.text.secondary} />
-                      <Text style={styles.meetupLocation}>{meetup.location}</Text>
-                    </View>
-                    <View style={{flexDirection: 'row', alignItems: 'center', gap: 4}}>
-                      <Icon name="clock" size={11} color={COLORS.text.secondary} />
-                      <Text style={styles.meetupTime}>
-                        {formatKoreanDateTime(meetup.date, 'datetime')}
-                      </Text>
-                    </View>
-                    <View style={{flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2}}>
-                      <Icon name="users" size={11} color={COLORS.text.secondary} />
-                      <Text style={styles.meetupTime}>
-                        {getMeetupStatus(meetup.date, meetup.time).label}
-                      </Text>
-                    </View>
-                  </View>
-                </View>
-                <View style={styles.meetupStatus}>
-                  <View style={[styles.statusBadge, { backgroundColor: getMeetupStatus(meetup.date, meetup.time).color }]}>
-                    <Text style={styles.statusText}>{getMeetupStatus(meetup.date, meetup.time).label}</Text>
-                  </View>
-                  <Text style={styles.participantCount}>{meetup.currentParticipants}/{meetup.maxParticipants}</Text>
-                </View>
+            <TouchableOpacity style={styles.categoryItem}>
+              <View style={styles.categoryIconContainer}>
+                <Text style={styles.categoryIcon}>🍚</Text>
               </View>
-              
-              <View style={styles.meetupFooter}>
-                <View style={styles.hostInfo}>
-                  <View style={styles.hostAvatar}>
-                    <Text style={styles.hostInitial}>{meetup.hostName.charAt(0)}</Text>
-                  </View>
-                  <Text style={styles.hostName}>{meetup.hostName}</Text>
-                  <View style={{flexDirection: 'row', alignItems: 'center', gap: 2}}>
-                    <Icon name="star" size={11} color={COLORS.functional.warning} />
-                    <Text style={styles.hostRating}>4.8</Text>
-                  </View>
-                </View>
-                <View style={styles.categoryBadge}>
-                  <Text style={styles.categoryBadgeText}>{meetup.category}</Text>
-                </View>
-              </View>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        {/* 추천 모임 섹션 */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>✨ 추천 모임</Text>
-            <TouchableOpacity onPress={() => navigation?.navigateToSearch()}>
-              <Text style={styles.moreButton}>더보기 ›</Text>
-            </TouchableOpacity>
-          </View>
-          
-          {meetups.slice(0, 3).map((meetup) => (
-            <TouchableOpacity 
-              key={`rec-${meetup.id}`} 
-              style={styles.meetupCard}
-              onPress={() => navigate(`/meetup/${meetup.id}`)}
-            >
-              <View style={styles.meetupHeader}>
-                <View style={styles.meetupTitleSection}>
-                  <Text style={styles.meetupTitle}>{meetup.title}</Text>
-                  <View style={styles.meetupMeta}>
-                    <View style={{flexDirection: 'row', alignItems: 'center', gap: 4}}>
-                      <Icon name="map-pin" size={11} color={COLORS.text.secondary} />
-                      <Text style={styles.meetupLocation}>{meetup.location}</Text>
-                    </View>
-                    <View style={{flexDirection: 'row', alignItems: 'center', gap: 4}}>
-                      <Icon name="clock" size={11} color={COLORS.text.secondary} />
-                      <Text style={styles.meetupTime}>
-                        {formatKoreanDateTime(meetup.date, 'datetime')}
-                      </Text>
-                    </View>
-                    <View style={{flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2}}>
-                      <Icon name="users" size={11} color={COLORS.text.secondary} />
-                      <Text style={styles.meetupTime}>
-                        {getMeetupStatus(meetup.date, meetup.time).label}
-                      </Text>
-                    </View>
-                  </View>
-                </View>
-                <View style={styles.meetupStatus}>
-                  <View style={[styles.statusBadge, { backgroundColor: getMeetupStatus(meetup.date, meetup.time).color }]}>
-                    <Text style={styles.statusText}>{getMeetupStatus(meetup.date, meetup.time).label}</Text>
-                  </View>
-                  <Text style={styles.participantCount}>{meetup.currentParticipants}/{meetup.maxParticipants}</Text>
-                </View>
-              </View>
-              
-              <View style={styles.meetupFooter}>
-                <View style={styles.hostInfo}>
-                  <View style={styles.hostAvatar}>
-                    <Text style={styles.hostInitial}>{meetup.hostName.charAt(0)}</Text>
-                  </View>
-                  <Text style={styles.hostName}>{meetup.hostName}</Text>
-                  <View style={{flexDirection: 'row', alignItems: 'center', gap: 2}}>
-                    <Icon name="star" size={11} color={COLORS.functional.warning} />
-                    <Text style={styles.hostRating}>4.8</Text>
-                  </View>
-                </View>
-                <View style={styles.categoryBadge}>
-                  <Text style={styles.categoryBadgeText}>{meetup.category}</Text>
-                </View>
-              </View>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        {/* 즐겨찾는 CTA 섹션 */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>⭐ 즐겨찾는 기능</Text>
-          </View>
-          
-          <View style={styles.ctaGrid}>
-            <TouchableOpacity style={styles.ctaCard} onPress={() => navigation?.navigateToSearch()}>
-              <Text style={styles.ctaIcon}>🔍</Text>
-              <Text style={styles.ctaTitle}>내 주변 검색</Text>
-              <Text style={styles.ctaDesc}>가까운 맛집과 모임을 찾아보세요</Text>
+              <Text style={styles.categoryName}>한식</Text>
             </TouchableOpacity>
             
-            <TouchableOpacity style={styles.ctaCard} onPress={() => setShowCreateMeetup(true)}>
-              <Text style={styles.ctaIcon}>➕</Text>
-              <Text style={styles.ctaTitle}>모임 만들기</Text>
-              <Text style={styles.ctaDesc}>새로운 모임을 생성해보세요</Text>
+            <TouchableOpacity style={styles.categoryItem}>
+              <View style={styles.categoryIconContainer}>
+                <Text style={styles.categoryIcon}>🥘</Text>
+              </View>
+              <Text style={styles.categoryName}>양식</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity style={styles.categoryItem}>
+              <View style={styles.categoryIconContainer}>
+                <Text style={styles.categoryIcon}>🍜</Text>
+              </View>
+              <Text style={styles.categoryName}>중식</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity style={styles.categoryItem}>
+              <View style={styles.categoryIconContainer}>
+                <Text style={styles.categoryIcon}>🍣</Text>
+              </View>
+              <Text style={styles.categoryName}>일식</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity style={styles.categoryItem}>
+              <View style={styles.categoryIconContainer}>
+                <Text style={styles.categoryIcon}>☕</Text>
+              </View>
+              <Text style={styles.categoryName}>카페</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity style={styles.categoryItem}>
+              <View style={styles.categoryIconContainer}>
+                <Text style={styles.categoryIcon}>🍻</Text>
+              </View>
+              <Text style={styles.categoryName}>술집</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity style={styles.categoryItem}>
+              <View style={styles.categoryIconContainer}>
+                <Text style={styles.categoryIcon}>🍱</Text>
+              </View>
+              <Text style={styles.categoryName}>음식점</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity style={styles.categoryItem}>
+              <View style={styles.categoryIconContainer}>
+                <Text style={styles.categoryIcon}>🏪</Text>
+              </View>
+              <Text style={styles.categoryName}>다른분류</Text>
             </TouchableOpacity>
           </View>
+        </View>
+
+        {/* 빠른 링크 */}
+        <View style={styles.quickLinksSection}>
+          <TouchableOpacity style={styles.quickLink}>
+            <Text style={styles.quickLinkText}>광고없이</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* 인기 모임 */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>🔥 인기 모임</Text>
+            <TouchableOpacity onPress={() => navigation?.navigateToSearch()}>
+              <Text style={styles.moreButton}>더보기 ›</Text>
+            </TouchableOpacity>
+          </View>
+          
+          {meetups.length > 0 ? (
+            <>
+              {meetups.slice(0, 4).map((meetup) => (
+                <TouchableOpacity 
+                  key={meetup.id} 
+                  style={styles.meetupCard}
+                  onPress={() => navigate(`/meetup/${meetup.id}`)}
+                >
+                  <View style={styles.meetupHeader}>
+                    <View style={styles.meetupTitleSection}>
+                      <Text style={styles.meetupTitle}>{meetup.title}</Text>
+                      <View style={styles.meetupMeta}>
+                        <View style={{flexDirection: 'row', alignItems: 'center', gap: 4}}>
+                          <Icon name="map-pin" size={11} color={COLORS.text.secondary} />
+                          <Text style={styles.meetupLocation}>{meetup.location}</Text>
+                        </View>
+                        <View style={{flexDirection: 'row', alignItems: 'center', gap: 4}}>
+                          <Icon name="clock" size={11} color={COLORS.text.secondary} />
+                          <Text style={styles.meetupTime}>
+                            {formatKoreanDateTime(meetup.date, 'datetime')}
+                          </Text>
+                        </View>
+                      </View>
+                    </View>
+                    <View style={styles.meetupStatus}>
+                      <View style={[styles.statusBadge, { backgroundColor: getMeetupStatus(meetup.date, meetup.time).color }]}>
+                        <Text style={styles.statusText}>{getMeetupStatus(meetup.date, meetup.time).label}</Text>
+                      </View>
+                      <Text style={styles.participantCount}>{meetup.currentParticipants}/{meetup.maxParticipants}</Text>
+                    </View>
+                  </View>
+                  
+                  <View style={styles.meetupFooter}>
+                    <View style={styles.hostInfo}>
+                      <View style={styles.hostAvatar}>
+                        <Text style={styles.hostInitial}>{meetup.hostName.charAt(0)}</Text>
+                      </View>
+                      <Text style={styles.hostName}>{meetup.hostName}</Text>
+                      <View style={{flexDirection: 'row', alignItems: 'center', gap: 2}}>
+                        <Icon name="star" size={11} color={COLORS.functional.warning} />
+                        <Text style={styles.hostRating}>4.8</Text>
+                      </View>
+                    </View>
+                    <View style={styles.categoryBadge}>
+                      <Text style={styles.categoryBadgeText}>{meetup.category}</Text>
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              ))}
+              
+              {meetups.length > 4 && (
+                <View style={styles.moreIndicator}>
+                  <Text style={styles.moreDots}>•••</Text>
+                </View>
+              )}
+            </>
+          ) : (
+            <View style={styles.noMeetupsContainer}>
+              <Text style={styles.noMeetupsText}>아직 등록된 모임이 없습니다</Text>
+              <TouchableOpacity 
+                style={styles.createFirstMeetupButton}
+                onPress={() => setShowCreateMeetup(true)}
+              >
+                <Text style={styles.createFirstMeetupText}>첫 번째 모임 만들기</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+
+        {/* 하단 기능 버튼들 */}
+        <View style={styles.section}>
+          <TouchableOpacity style={styles.functionButton}>
+            <Text style={styles.functionButtonText}>우리 지역 맛집을 알고 계신 분</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity style={styles.functionButton}>
+            <Text style={styles.functionButtonText}>오늘 가실 분이 계시는 분</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity style={styles.functionButton}>
+            <Text style={styles.functionButtonText}>오늘 18:30 이시는 분</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity style={styles.functionButton}>
+            <Text style={styles.functionButtonText}>포장과 집의 한끼</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity style={styles.functionButton}>
+            <Text style={styles.functionButtonText}>오늘 혼사여러 모시분에 모이는 한끼</Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
 
@@ -330,35 +328,16 @@ const styles = StyleSheet.create({
   locationButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 20,
-    borderWidth: 0,
-    ...SHADOWS.medium,
-  },
-  locationIconContainer: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: 'transparent',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 8,
-  },
-  locationIcon: {
-    fontSize: 12,
-  },
-  locationTextContainer: {
-    marginRight: 8,
-  },
-  locationLabel: {
-    ...TYPOGRAPHY.location.secondary,
-    color: '#5f6368',
+    gap: 6,
   },
   locationText: {
-    ...TYPOGRAPHY.location.primary,
-    color: '#202124',
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+  },
+  notificationIconButton: {
+    position: 'relative',
+    padding: 8,
   },
   locationArrow: {
     fontSize: 12,
@@ -412,48 +391,85 @@ const styles = StyleSheet.create({
     paddingTop: LAYOUT.HEADER_HEIGHT + LAYOUT.CONTENT_TOP_MARGIN,
     backgroundColor: 'transparent',
   },
+  searchContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    backgroundColor: COLORS.neutral.background,
+  },
+  searchBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.neutral.white,
+    borderRadius: 25,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 8,
+    ...SHADOWS.small,
+  },
+  searchPlaceholder: {
+    fontSize: 16,
+    color: COLORS.text.secondary,
+    flex: 1,
+  },
   categorySection: {
-    paddingVertical: 20,
-    marginBottom: 0,
+    backgroundColor: COLORS.neutral.white,
+    paddingVertical: 24,
+    paddingHorizontal: 16,
+    marginBottom: 8,
   },
   categoryGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    paddingHorizontal: 16,
     justifyContent: 'space-between',
   },
   categoryItem: {
     width: '22%',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 24,
   },
   categoryIconContainer: {
-    width: 60,
-    height: 60,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    width: 50,
+    height: 50,
+    borderRadius: 12,
+    backgroundColor: COLORS.neutral.background,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 8,
-    borderWidth: 0,
     ...SHADOWS.small,
-    shadowColor: 'rgba(0,0,0,0.06)',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 1,
-    shadowRadius: 8,
   },
   categoryIcon: {
-    fontSize: 24,
+    fontSize: 20,
   },
   categoryName: {
     fontSize: 12,
     fontWeight: '500',
-    color: '#4a5568',
+    color: COLORS.text.primary,
     textAlign: 'center',
   },
+  quickLinksSection: {
+    backgroundColor: COLORS.neutral.white,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    marginBottom: 8,
+    alignItems: 'center',
+  },
+  quickLink: {
+    backgroundColor: COLORS.primary.accent,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 20,
+    ...SHADOWS.small,
+  },
+  quickLinkText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+  },
   section: {
-    marginBottom: 0,
-    paddingTop: 20,
+    backgroundColor: COLORS.neutral.white,
+    marginBottom: 10,
+    padding: 20,
+    ...SHADOWS.small,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -654,6 +670,168 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  searchCard: {
+    backgroundColor: COLORS.secondary.light,
+    borderRadius: 12,
+    padding: 20,
+    alignItems: 'center',
+    ...SHADOWS.medium,
+  },
+  searchTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: COLORS.text.primary,
+    marginBottom: 5,
+  },
+  searchSubtitle: {
+    fontSize: 14,
+    color: COLORS.text.secondary,
+  },
+  homeMainCard: {
+    backgroundColor: COLORS.primary.light,
+    borderRadius: 12,
+    padding: 20,
+    alignItems: 'center',
+    ...SHADOWS.medium,
+  },
+  homeMainTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: COLORS.text.primary,
+    marginBottom: 5,
+  },
+  homeMainSubtitle: {
+    fontSize: 14,
+    color: COLORS.text.secondary,
+    textAlign: 'center',
+  },
+  categoryContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  categoryButton: {
+    backgroundColor: COLORS.primary.accent,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    ...SHADOWS.small,
+  },
+  categoryText: {
+    fontSize: 14,
+    color: COLORS.text.primary,
+    fontWeight: '500',
+  },
+  meetupInfo: {
+    justifyContent: 'space-between',
+  },
+  moreIndicator: {
+    alignItems: 'center',
+    marginVertical: 10,
+  },
+  moreDots: {
+    fontSize: 20,
+    color: COLORS.text.secondary,
+    textAlign: 'center',
+  },
+  recommendationCard: {
+    backgroundColor: COLORS.primary.main,
+    borderRadius: 12,
+    padding: 15,
+    marginBottom: 10,
+    ...SHADOWS.medium,
+  },
+  recommendationTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: COLORS.text.white,
+    marginBottom: 5,
+  },
+  recommendationSubtitle: {
+    fontSize: 14,
+    color: COLORS.text.white,
+    opacity: 0.9,
+  },
+  createMeetupCard: {
+    backgroundColor: COLORS.secondary.main,
+    borderRadius: 12,
+    padding: 20,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: COLORS.primary.light,
+    ...SHADOWS.medium,
+  },
+  createMeetupIcon: {
+    fontSize: 40,
+    marginBottom: 8,
+  },
+  createMeetupTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: COLORS.text.primary,
+    marginBottom: 5,
+    textAlign: 'center',
+  },
+  createMeetupSubtitle: {
+    fontSize: 14,
+    color: COLORS.text.secondary,
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  loginCard: {
+    backgroundColor: COLORS.primary.accent,
+    borderRadius: 12,
+    padding: 20,
+    alignItems: 'center',
+    ...SHADOWS.medium,
+  },
+  loginTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: COLORS.text.primary,
+    marginBottom: 5,
+  },
+  loginSubtitle: {
+    fontSize: 14,
+    color: COLORS.text.secondary,
+    opacity: 0.9,
+  },
+  functionButton: {
+    backgroundColor: COLORS.neutral.background,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: COLORS.neutral.grey200,
+  },
+  functionButtonText: {
+    fontSize: 14,
+    color: COLORS.text.primary,
+    textAlign: 'center',
+    fontWeight: '500',
+  },
+  noMeetupsContainer: {
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  noMeetupsText: {
+    fontSize: 16,
+    color: COLORS.text.secondary,
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  createFirstMeetupButton: {
+    backgroundColor: COLORS.primary.main,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 20,
+    ...SHADOWS.medium,
+  },
+  createFirstMeetupText: {
+    fontSize: 14,
+    color: COLORS.text.white,
+    fontWeight: '600',
   },
 });
 

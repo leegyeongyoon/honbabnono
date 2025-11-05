@@ -1,454 +1,254 @@
-import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  Alert,
-  TextInput,
-  Modal,
-} from 'react-native';
-import { useParams } from 'react-router-dom';
-import { COLORS, SHADOWS, LAYOUT } from '../styles/colors';
-import { Icon } from '../components/Icon';
-import { useRouterNavigation } from '../components/RouterNavigation';
-import ReviewList from '../components/ReviewList';
-import ReviewForm from '../components/ReviewForm';
-import reviewApiService, { Review, ReviewStats } from '../services/reviewApiService';
-import { formatKoreanDateTime } from '../utils/dateUtils';
+import React from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { useMeetups } from '../hooks/useMeetups';
+import { COLORS, SHADOWS } from '../styles/colors';
+
+// Window 타입 확장
+declare global {
+  interface Window {
+    kakao: any;
+  }
+}
+
+interface User {
+  id: string;
+  name: string;
+  email: string;
+}
 
 interface MeetupDetailScreenProps {
-  navigation?: any;
-  route?: any;
-  user?: any;
+  user: User | null;
 }
 
-interface Meetup {
-  id: string;
-  title: string;
-  description: string;
-  location: string;
-  address: string;
-  date: string;
-  time: string;
-  maxParticipants: number;
-  currentParticipants: number;
-  category: string;
-  priceRange: string;
-  status: string;
-  requirements: string;
-  host: {
-    id: string;
-    name: string;
-    rating: number;
-  };
-  participants: Array<{
-    id: string;
-    name: string;
-    profileImage?: string;
-  }>;
-}
+// 카카오맵 컴포넌트
+const KakaoMap: React.FC<{ location: string; address: string }> = ({ location, address }) => {
+  const mapRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    const loadKakaoMap = () => {
+      if (window.kakao && window.kakao.maps && mapRef.current) {
+        const options = {
+          center: new window.kakao.maps.LatLng(37.498095, 127.027610),
+          level: 3
+        };
+
+        const map = new window.kakao.maps.Map(mapRef.current, options);
+        const geocoder = new window.kakao.maps.services.Geocoder();
+
+        geocoder.addressSearch(location, function(result: any, status: any) {
+          if (status === window.kakao.maps.services.Status.OK) {
+            const coords = new window.kakao.maps.LatLng(result[0].y, result[0].x);
+            const marker = new window.kakao.maps.Marker({
+              map: map,
+              position: coords
+            });
+            const infowindow = new window.kakao.maps.InfoWindow({
+              content: `<div style="width:150px;text-align:center;padding:6px 0;">${location}</div>`
+            });
+            infowindow.open(map, marker);
+            map.setCenter(coords);
+          }
+        });
+      }
+    };
+
+    if (!window.kakao) {
+      const script = document.createElement('script');
+      script.async = true;
+      script.src = `//dapi.kakao.com/v2/maps/sdk.js?appkey=5a202bd90ab8dff01348f24cb1c37f3f&libraries=services&autoload=false`;
+      script.onload = () => {
+        window.kakao.maps.load(loadKakaoMap);
+      };
+      document.head.appendChild(script);
+    } else {
+      loadKakaoMap();
+    }
+  }, [location]);
+
+  return (
+    <View style={styles.mapSection}>
+      <Text style={styles.mapLabel}>지도</Text>
+      <div 
+        ref={mapRef}
+        style={{
+          width: '100%',
+          height: '200px',
+          backgroundColor: '#f5f5f5',
+          borderRadius: '8px',
+          marginBottom: '12px'
+        }}
+      />
+      <Text style={styles.mapLocationText}>{location}</Text>
+    </View>
+  );
+};
 
 const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user }) => {
   const { id } = useParams<{ id: string }>();
-  const navigation = useRouterNavigation();
-  const [meetup, setMeetup] = useState<Meetup | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [joinLoading, setJoinLoading] = useState(false);
-  const [showJoinModal, setShowJoinModal] = useState(false);
-  const [joinMessage, setJoinMessage] = useState('');
-  const [reviews, setReviews] = useState<Review[]>([]);
-  const [reviewStats, setReviewStats] = useState<ReviewStats>({ averageRating: 0, totalReviews: 0 });
-  const [showReviewForm, setShowReviewForm] = useState(false);
-  const [reviewLoading, setReviewLoading] = useState(false);
+  const navigate = useNavigate();
+  const { getMeetupById } = useMeetups();
+  const [meetup, setMeetup] = React.useState<any>(null);
+  const [participants, setParticipants] = React.useState<any[]>([]);
+  const [showPromiseModal, setShowPromiseModal] = React.useState(false);
 
-  const meetupId = id || '1'; // URL 파라미터에서 가져오기
-
-  useEffect(() => {
-    loadMeetupDetail();
-    loadReviews();
-  }, [meetupId]);
-
-  const loadMeetupDetail = async () => {
-    try {
-      setLoading(true);
-      const token = localStorage.getItem('token');
-      
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:3001/api'}/meetups/${meetupId}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-      const data = await response.json();
-
-      if (response.ok) {
-        setMeetup(data.meetup);
-      } else {
-        Alert.alert('오류', '모임 정보를 불러올 수 없습니다.');
-      }
-    } catch (error) {
-      console.error('모임 상세 조회 오류:', error);
-      Alert.alert('오류', '서버 연결에 실패했습니다.');
-    } finally {
-      setLoading(false);
+  React.useEffect(() => {
+    if (id) {
+      const fetchMeetupData = async () => {
+        try {
+          // 모임 정보와 참가자 정보를 함께 가져오기
+          const meetupData = await getMeetupById(id);
+          setMeetup(meetupData);
+          
+          // 참가자 정보는 meetupData에 포함되어 있음
+          if (meetupData && meetupData.participants) {
+            setParticipants(meetupData.participants);
+          }
+        } catch (error) {
+          console.error('모임 정보 조회 실패:', error);
+        }
+      };
+      fetchMeetupData();
     }
-  };
-
-  const loadReviews = async () => {
-    try {
-      setReviewLoading(true);
-      const response = await reviewApiService.getMeetupReviews(meetupId, 1, 10);
-      setReviews(response.reviews);
-      setReviewStats(response.stats);
-    } catch (error) {
-      console.error('리뷰 로드 실패:', error);
-    } finally {
-      setReviewLoading(false);
-    }
-  };
-
-  const handleReviewSubmitted = () => {
-    loadReviews(); // 리뷰 목록 새로고침
-  };
-
-  const handleJoinMeetup = async () => {
-    if (!meetup) return;
-
-    setJoinLoading(true);
-    
-    try {
-      const token = localStorage.getItem('token');
-      
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:3001/api'}/meetups/${meetupId}/join`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          message: joinMessage.trim() || undefined,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        Alert.alert(
-          '참가 신청 완료!', 
-          '모임 참가 신청이 완료되었습니다. 모임 채팅방에 자동으로 참가되었어요!',
-          [
-            {
-              text: '홈으로',
-              style: 'default',
-              onPress: () => {
-                setShowJoinModal(false);
-                setJoinMessage('');
-                if (navigation) {
-                  navigation.navigate('Home');
-                }
-              }
-            },
-            {
-              text: '채팅방 가기',
-              style: 'default',
-              onPress: () => {
-                setShowJoinModal(false);
-                setJoinMessage('');
-                handleChatRoom();
-              }
-            }
-          ]
-        );
-      } else {
-        Alert.alert('오류', data.error || '참가 신청에 실패했습니다.');
-      }
-    } catch (error) {
-      console.error('모임 참가 신청 오류:', error);
-      Alert.alert('오류', '서버 연결에 실패했습니다.');
-    } finally {
-      setJoinLoading(false);
-    }
-  };
-
-  const handleChatRoom = () => {
-    // 채팅방으로 이동
-    if (navigation) {
-      navigation.navigate('Chat', { 
-        selectedMeetupId: meetupId 
-      });
-    }
-  };
-
-  const canJoin = () => {
-    if (!meetup || !user) return false;
-    
-    // 호스트인지 확인
-    if (meetup.host.id === user.id) return false;
-    
-    // 이미 참가했는지 확인
-    const isParticipant = meetup.participants.some(p => p.id === user.id);
-    if (isParticipant) return false;
-    
-    // 모집 상태 및 정원 확인
-    return meetup.status === '모집중' && meetup.currentParticipants < meetup.maxParticipants;
-  };
-
-  const isHost = () => {
-    return meetup && user && meetup.host.id === user.id;
-  };
-
-  const isParticipant = () => {
-    return meetup && user && meetup.participants.some(p => p.id === user.id);
-  };
-
-  const canWriteReview = () => {
-    if (!meetup || !user) return false;
-    
-    // 모임이 완료되었고 참가자인 경우만 리뷰 작성 가능
-    return meetup.status === '완료' && isParticipant();
-  };
-
-  if (loading) {
-    return (
-      <View style={styles.container}>
-        <View style={styles.loadingContainer}>
-          <Text style={styles.loadingText}>모임 정보를 불러오는 중...</Text>
-        </View>
-      </View>
-    );
-  }
+  }, [id]);
 
   if (!meetup) {
     return (
-      <View style={styles.container}>
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>모임을 찾을 수 없습니다.</Text>
-        </View>
+      <View style={styles.loadingContainer}>
+        <Text style={styles.loadingText}>로딩 중...</Text>
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
-      {/* 헤더 */}
-      <View style={styles.header}>
-        <TouchableOpacity 
-          style={styles.backButton}
-          onPress={() => navigation?.goBack()}
-        >
-          <Icon name="chevron-left" size={24} color={COLORS.text.primary} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>모임 상세</Text>
-        <TouchableOpacity style={styles.shareButton}>
-          <Icon name="share" size={20} color={COLORS.text.primary} />
-        </TouchableOpacity>
-      </View>
-
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* 모임 제목 및 상태 */}
-        <View style={styles.titleSection}>
-          <View style={styles.statusBadge}>
-            <Text style={styles.statusText}>{meetup.status}</Text>
-          </View>
-          <Text style={styles.meetupTitle}>{meetup.title}</Text>
-          <Text style={styles.category}>{meetup.category}</Text>
-        </View>
-
-        {/* 호스트 정보 */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>호스트</Text>
-          <View style={styles.hostInfo}>
-            <View style={styles.hostAvatar}>
-              <Text style={styles.hostAvatarText}>{meetup.host.name.charAt(0)}</Text>
-            </View>
-            <View style={styles.hostDetails}>
-              <Text style={styles.hostName}>{meetup.host.name}</Text>
-              <View style={styles.ratingContainer}>
-                <Icon name="star" size={16} color="#FFD700" />
-                <Text style={styles.rating}>{parseFloat(meetup.host.rating || '5.0').toFixed(1)}</Text>
-              </View>
-            </View>
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        {/* 헤더 */}
+        <View style={styles.header}>
+          <TouchableOpacity
+            onPress={() => navigate(-1)}
+            style={styles.backButton}
+          >
+            <Text style={styles.backButtonText}>←</Text>
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>상세보기</Text>
+          <View style={styles.babAlContainer}>
+            <Text style={styles.babAlScore}>98 밥알</Text>
           </View>
         </View>
 
-        {/* 모임 정보 */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>모임 정보</Text>
+        {/* 메인 카드 */}
+        <View style={styles.mainCard}>
+          {/* 제목 */}
+          <Text style={styles.meetupTitle}>{meetup.title || '제목 없음'}</Text>
           
-          <View style={styles.infoItem}>
-            <Icon name="calendar" size={20} color={COLORS.primary.main} />
-            <Text style={styles.infoText}>
-              {formatKoreanDateTime(meetup.date, 'datetime')}
-            </Text>
-          </View>
-
-          <View style={styles.infoItem}>
-            <Icon name="map-pin" size={20} color={COLORS.primary.main} />
-            <View>
-              <Text style={styles.infoText}>{meetup.location}</Text>
-              {meetup.address && (
-                <Text style={styles.subInfoText}>{meetup.address}</Text>
-              )}
+          {/* 정보 그리드 */}
+          <View style={styles.infoContainer}>
+            <View style={styles.infoRow}>
+              <Text style={styles.infoLabel}>카테고리</Text>
+              <Text style={styles.infoValue}>{meetup.category || '미정'}</Text>
+            </View>
+            
+            <View style={styles.infoRow}>
+              <Text style={styles.infoLabel}>날짜</Text>
+              <Text style={styles.infoValue}>{meetup.date || '미정'}</Text>
+            </View>
+            
+            <View style={styles.infoRow}>
+              <Text style={styles.infoLabel}>시간</Text>
+              <Text style={styles.infoValue}>{meetup.time || '미정'}</Text>
+            </View>
+            
+            <View style={styles.infoRow}>
+              <Text style={styles.infoLabel}>인원</Text>
+              <Text style={styles.infoValue}>{meetup.current_participants || 0}/{meetup.max_participants || 0}명</Text>
+            </View>
+            
+            <View style={styles.infoRow}>
+              <Text style={styles.infoLabel}>위치</Text>
+              <Text style={styles.infoValue}>{meetup.location || '미정'}</Text>
             </View>
           </View>
 
-          <View style={styles.infoItem}>
-            <Icon name="users" size={20} color={COLORS.primary.main} />
-            <Text style={styles.infoText}>
-              {meetup.currentParticipants} / {meetup.maxParticipants}명
-            </Text>
-          </View>
-
-          {meetup.priceRange && (
-            <View style={styles.infoItem}>
-              <Icon name="dollar-sign" size={20} color={COLORS.primary.main} />
-              <Text style={styles.infoText}>{meetup.priceRange}</Text>
+          {/* 설명 */}
+          <Text style={styles.description}>{meetup.description || '설명 없음'}</Text>
+          
+          {/* 지도 */}
+          <KakaoMap location={meetup.location} address={meetup.location} />
+          
+          {/* 하단 정보 */}
+          <View style={styles.bottomInfo}>
+            <Text style={styles.bottomInfoText}>데이팅레볼 (서울 구로구 항동으로길72길 29)</Text>
+            <View style={styles.statusContainer}>
+              <View style={styles.statusDot} />
+              <Text style={styles.statusText}>상대방이 참여요청 중 · 5분 전</Text>
             </View>
-          )}
+          </View>
         </View>
 
-        {/* 모임 설명 */}
-        {meetup.description && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>모임 설명</Text>
-            <Text style={styles.description}>{meetup.description}</Text>
-          </View>
-        )}
-
-        {/* 참가 조건 */}
-        {meetup.requirements && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>참가 조건</Text>
-            <Text style={styles.requirements}>{meetup.requirements}</Text>
-          </View>
-        )}
-
-        {/* 참가자 목록 */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>참가자 ({meetup.participants.length}명)</Text>
-          <View style={styles.participantsList}>
-            {meetup.participants.map((participant) => (
-              <View key={participant.id} style={styles.participantItem}>
-                <View style={styles.participantAvatar}>
-                  <Text style={styles.participantAvatarText}>
-                    {participant.name.charAt(0)}
+        {/* 참가 예비 섹션 */}
+        <View style={styles.participantCard}>
+          <Text style={styles.participantTitle}>참가 예비</Text>
+          
+          <View style={styles.participantList}>
+            {participants.length > 0 ? participants.map((participant, index) => (
+              <View key={index} style={styles.participantItem}>
+                <View style={styles.avatar} />
+                <View style={styles.participantInfo}>
+                  <Text style={styles.participantName}>{participant.name || participant.user_name || '익명'}</Text>
+                  <Text style={styles.participantStatus}>
+                    {participant.status === 'approved' ? '참여 확정' : '참여 대기 중'}
                   </Text>
                 </View>
-                <Text style={styles.participantName}>{participant.name}</Text>
               </View>
-            ))}
-          </View>
-        </View>
-
-        {/* 리뷰 섹션 */}
-        <View style={styles.section}>
-          <View style={styles.reviewSectionHeader}>
-            <Text style={styles.sectionTitle}>리뷰</Text>
-            {canWriteReview() && (
-              <TouchableOpacity 
-                style={styles.writeReviewButton}
-                onPress={() => setShowReviewForm(true)}
-              >
-                <Icon name="edit" size={16} color={COLORS.primary.main} />
-                <Text style={styles.writeReviewText}>리뷰 작성</Text>
-              </TouchableOpacity>
+            )) : (
+              <View style={styles.participantItem}>
+                <View style={styles.avatar} />
+                <View style={styles.participantInfo}>
+                  <Text style={styles.participantName}>참가자 없음</Text>
+                  <Text style={styles.participantStatus}>아직 참가한 사람이 없습니다</Text>
+                </View>
+              </View>
             )}
           </View>
-          
-          <ReviewList
-            reviews={reviews}
-            stats={reviewStats}
-            loading={reviewLoading}
-          />
         </View>
 
-        <View style={{ height: 100 }} />
+        {/* 참여하기 버튼 */}
+        <View style={styles.buttonContainer}>
+          <TouchableOpacity
+            onPress={() => setShowPromiseModal(true)}
+            style={styles.joinButton}
+          >
+            <Text style={styles.joinButtonText}>참여하기</Text>
+          </TouchableOpacity>
+        </View>
       </ScrollView>
 
-      {/* 하단 버튼 */}
-      <View style={styles.bottomButtons}>
-        {isHost() ? (
-          <TouchableOpacity style={styles.chatButton} onPress={handleChatRoom}>
-            <Icon name="message-circle" size={20} color={COLORS.text.white} />
-            <Text style={styles.chatButtonText}>모임 채팅방</Text>
-          </TouchableOpacity>
-        ) : isParticipant() ? (
-          <TouchableOpacity style={styles.chatButton} onPress={handleChatRoom}>
-            <Icon name="message-circle" size={20} color={COLORS.text.white} />
-            <Text style={styles.chatButtonText}>채팅방 입장</Text>
-          </TouchableOpacity>
-        ) : canJoin() ? (
-          <TouchableOpacity 
-            style={styles.joinButton} 
-            onPress={() => setShowJoinModal(true)}
-          >
-            <Text style={styles.joinButtonText}>참가 신청</Text>
-          </TouchableOpacity>
-        ) : (
-          <View style={styles.disabledButton}>
-            <Text style={styles.disabledButtonText}>
-              {meetup.status === '모집완료' ? '모집 완료' : '참가 불가'}
-            </Text>
-          </View>
-        )}
-      </View>
-
-      {/* 참가 신청 모달 */}
-      <Modal
-        visible={showJoinModal}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setShowJoinModal(false)}
-      >
+      {/* 약속보증금 모달 */}
+      {showPromiseModal && (
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>참가 신청</Text>
-            <Text style={styles.modalSubtitle}>
-              호스트에게 전달할 메시지를 작성해주세요 (선택사항)
+          <View style={styles.modalContainer}>
+            <Text style={styles.modalTitle}>약속보증금</Text>
+            <Text style={styles.modalDescription}>
+              노쇼 방지를 위해 약속보증금을 결제해주세요.{'\n'}
+              모임 참석 시 100% 환불됩니다.
             </Text>
-            
-            <TextInput
-              style={styles.modalInput}
-              placeholder="안녕하세요! 모임에 참가하고 싶습니다."
-              value={joinMessage}
-              onChangeText={setJoinMessage}
-              multiline
-              numberOfLines={4}
-              maxLength={200}
-            />
-
-            <View style={styles.modalButtons}>
-              <TouchableOpacity 
+            <View style={styles.modalAmountContainer}>
+              <Text style={styles.modalAmount}>5,000원</Text>
+            </View>
+            <View style={styles.modalButtonContainer}>
+              <TouchableOpacity
+                onPress={() => setShowPromiseModal(false)}
                 style={styles.modalCancelButton}
-                onPress={() => setShowJoinModal(false)}
               >
                 <Text style={styles.modalCancelText}>취소</Text>
               </TouchableOpacity>
-              
-              <TouchableOpacity 
-                style={[styles.modalJoinButton, joinLoading && styles.modalJoinButtonDisabled]}
-                onPress={handleJoinMeetup}
-                disabled={joinLoading}
-              >
-                <Text style={styles.modalJoinText}>
-                  {joinLoading ? '신청 중...' : '참가 신청'}
-                </Text>
+              <TouchableOpacity style={styles.modalPayButton}>
+                <Text style={styles.modalPayText}>결제하기</Text>
               </TouchableOpacity>
             </View>
           </View>
         </View>
-      </Modal>
-
-      {/* 리뷰 작성 모달 */}
-      {meetup && (
-        <ReviewForm
-          visible={showReviewForm}
-          onClose={() => setShowReviewForm(false)}
-          meetupId={meetupId}
-          meetupTitle={meetup.title}
-          onReviewSubmitted={handleReviewSubmitted}
-        />
       )}
     </View>
   );
@@ -457,358 +257,263 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.neutral.background,
+    backgroundColor: '#f8f9fa',
   },
-  header: {
-    height: LAYOUT.HEADER_HEIGHT,
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    backdropFilter: 'blur(20px)',
-    WebkitBackdropFilter: 'blur(20px)',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    borderBottomWidth: 0,
-    ...SHADOWS.medium,
-    shadowColor: 'rgba(0,0,0,0.05)',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 1,
-    shadowRadius: 12,
-  },
-  backButton: {
-    padding: 4,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#2d3748',
-  },
-  shareButton: {
-    padding: 4,
-  },
-  content: {
+  scrollView: {
     flex: 1,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#f8f9fa',
   },
   loadingText: {
     fontSize: 16,
-    color: '#718096',
+    color: '#666',
   },
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  errorText: {
-    fontSize: 16,
-    color: '#718096',
-  },
-  titleSection: {
-    padding: 24,
-    backgroundColor: COLORS.primary.main,
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
-  },
-  statusBadge: {
-    alignSelf: 'flex-start',
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    marginBottom: 16,
-    backdropFilter: 'blur(10px)',
-  },
-  statusText: {
-    color: COLORS.text.white,
-    fontSize: 13,
-    fontWeight: '700',
-    letterSpacing: 0.5,
-  },
-  meetupTitle: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: '#ffffff',
-    marginBottom: 8,
-    letterSpacing: -0.5,
-  },
-  category: {
-    fontSize: 17,
-    color: 'rgba(255, 255, 255, 0.8)',
-    fontWeight: '500',
-  },
-  section: {
-    backgroundColor: '#ffffff',
-    padding: 24,
-    marginHorizontal: 16,
-    marginTop: 16,
-    borderRadius: 20,
-    ...SHADOWS.medium,
-    shadowColor: 'rgba(0,0,0,0.05)',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 1,
-    shadowRadius: 12,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#2d3748',
-    marginBottom: 16,
-  },
-  hostInfo: {
+  header: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: 'white',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e9ecef',
   },
-  hostAvatar: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#e2e8f0',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 16,
-    ...SHADOWS.small,
-    shadowColor: 'rgba(102, 126, 234, 0.2)',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 1,
-    shadowRadius: 8,
+  backButton: {
+    padding: 8,
   },
-  hostAvatarText: {
+  backButtonText: {
     fontSize: 20,
-    fontWeight: '700',
-    color: '#667eea',
+    color: '#333',
   },
-  hostDetails: {
-    flex: 1,
-  },
-  hostName: {
+  headerTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#2d3748',
-    marginBottom: 4,
-  },
-  ratingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  rating: {
-    fontSize: 14,
-    color: '#718096',
-    marginLeft: 4,
-    fontWeight: '500',
-  },
-  infoItem: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 12,
-  },
-  infoText: {
-    fontSize: 16,
-    color: '#2d3748',
-    marginLeft: 12,
+    color: '#333',
     flex: 1,
+    textAlign: 'center',
+    marginRight: 80,
+  },
+  babAlContainer: {
+    backgroundColor: '#e3f2fd',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  babAlScore: {
+    fontSize: 12,
+    color: '#1976d2',
     fontWeight: '500',
   },
-  subInfoText: {
+  mainCard: {
+    backgroundColor: 'white',
+    margin: 16,
+    padding: 20,
+    borderRadius: 12,
+    ...SHADOWS.small,
+  },
+  meetupTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 16,
+  },
+  infoContainer: {
+    marginBottom: 16,
+  },
+  infoRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f1f3f4',
+  },
+  infoLabel: {
     fontSize: 14,
-    color: '#718096',
-    marginLeft: 12,
-    marginTop: 2,
+    color: '#666',
+  },
+  infoValue: {
+    fontSize: 14,
+    color: '#333',
     fontWeight: '500',
   },
   description: {
-    fontSize: 16,
-    color: '#4a5568',
-    lineHeight: 24,
+    fontSize: 14,
+    color: '#333',
+    lineHeight: 20,
+    marginBottom: 20,
   },
-  requirements: {
-    fontSize: 16,
-    color: '#4a5568',
-    lineHeight: 24,
-    backgroundColor: '#f7fafc',
-    padding: 16,
-    borderRadius: 12,
+  mapSection: {
+    marginBottom: 20,
   },
-  participantsList: {
+  mapLabel: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 8,
+  },
+  mapLocationText: {
+    fontSize: 12,
+    color: '#666',
+    textAlign: 'center',
+  },
+  bottomInfo: {
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#f1f3f4',
+  },
+  bottomInfoText: {
+    fontSize: 12,
+    color: '#666',
+    marginBottom: 8,
+  },
+  statusContainer: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
+    alignItems: 'center',
+  },
+  statusDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#4caf50',
+    marginRight: 6,
+  },
+  statusText: {
+    fontSize: 12,
+    color: '#666',
+  },
+  participantCard: {
+    backgroundColor: 'white',
+    marginHorizontal: 16,
+    marginBottom: 16,
+    padding: 20,
+    borderRadius: 12,
+    ...SHADOWS.small,
+  },
+  participantTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 16,
+  },
+  participantList: {
+    
   },
   participantItem: {
+    flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 12,
   },
-  participantAvatar: {
+  avatar: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#e2e8f0',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 4,
+    backgroundColor: '#e9ecef',
+    marginRight: 12,
   },
-  participantAvatarText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#667eea',
+  participantInfo: {
+    flex: 1,
   },
   participantName: {
-    fontSize: 12,
-    color: '#718096',
-    textAlign: 'center',
+    fontSize: 14,
     fontWeight: '500',
+    color: '#333',
+    marginBottom: 2,
   },
-  bottomButtons: {
-    padding: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    borderTopWidth: 0,
-    ...SHADOWS.medium,
-    shadowColor: 'rgba(0,0,0,0.05)',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 1,
-    shadowRadius: 12,
+  participantStatus: {
+    fontSize: 12,
+    color: '#666',
+  },
+  buttonContainer: {
+    paddingHorizontal: 16,
+    paddingBottom: 20,
   },
   joinButton: {
-    backgroundColor: COLORS.primary.main,
-    borderRadius: 20,
-    padding: 20,
+    backgroundColor: '#007bff',
+    borderRadius: 8,
+    paddingVertical: 16,
     alignItems: 'center',
-    ...SHADOWS.large,
-    shadowColor: 'rgba(102, 126, 234, 0.3)',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 1,
-    shadowRadius: 16,
   },
   joinButtonText: {
-    color: '#ffffff',
-    fontSize: 19,
-    fontWeight: '800',
-    letterSpacing: -0.3,
-  },
-  chatButton: {
-    backgroundColor: COLORS.functional.info,
-    borderRadius: 20,
-    padding: 20,
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'center',
-    ...SHADOWS.large,
-    shadowColor: 'rgba(79, 172, 254, 0.3)',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 1,
-    shadowRadius: 16,
-  },
-  chatButtonText: {
-    color: '#ffffff',
-    fontSize: 19,
-    fontWeight: '800',
-    marginLeft: 8,
-    letterSpacing: -0.3,
-  },
-  disabledButton: {
-    backgroundColor: '#a0aec0',
-    borderRadius: 20,
-    padding: 20,
-    alignItems: 'center',
-  },
-  disabledButtonText: {
-    color: '#ffffff',
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '600',
+    color: 'white',
   },
   modalOverlay: {
-    flex: 1,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
   },
-  modalContent: {
-    backgroundColor: '#ffffff',
-    borderRadius: 20,
+  modalContainer: {
+    backgroundColor: 'white',
+    borderRadius: 16,
     padding: 24,
-    width: '100%',
+    width: '90%',
     maxWidth: 400,
     ...SHADOWS.large,
   },
   modalTitle: {
     fontSize: 20,
-    fontWeight: '700',
-    color: '#2d3748',
+    fontWeight: 'bold',
+    color: '#333',
     textAlign: 'center',
-    marginBottom: 8,
+    marginBottom: 16,
   },
-  modalSubtitle: {
+  modalDescription: {
     fontSize: 14,
-    color: '#718096',
+    color: '#666',
     textAlign: 'center',
+    lineHeight: 20,
     marginBottom: 20,
   },
-  modalInput: {
-    backgroundColor: '#f7fafc',
+  modalAmountContainer: {
+    backgroundColor: '#f8f9fa',
     borderRadius: 12,
     padding: 16,
-    fontSize: 16,
-    color: '#2d3748',
-    height: 100,
-    textAlignVertical: 'top',
+    alignItems: 'center',
     marginBottom: 20,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
   },
-  modalButtons: {
+  modalAmount: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  modalButtonContainer: {
     flexDirection: 'row',
     gap: 12,
   },
   modalCancelButton: {
     flex: 1,
-    backgroundColor: '#a0aec0',
-    borderRadius: 16,
-    padding: 16,
+    backgroundColor: '#e9ecef',
+    borderRadius: 12,
+    padding: 12,
     alignItems: 'center',
   },
   modalCancelText: {
-    color: '#ffffff',
     fontSize: 16,
     fontWeight: '600',
+    color: '#333',
   },
-  modalJoinButton: {
+  modalPayButton: {
     flex: 1,
-    backgroundColor: '#667eea',
-    borderRadius: 16,
-    padding: 16,
+    backgroundColor: '#007bff',
+    borderRadius: 12,
+    padding: 12,
     alignItems: 'center',
   },
-  modalJoinButtonDisabled: {
-    backgroundColor: '#a0aec0',
-  },
-  modalJoinText: {
-    color: '#ffffff',
+  modalPayText: {
     fontSize: 16,
     fontWeight: '600',
-  },
-  reviewSectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  writeReviewButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#e2e8f0',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    gap: 4,
-  },
-  writeReviewText: {
-    fontSize: 14,
-    color: '#667eea',
-    fontWeight: '500',
+    color: 'white',
   },
 });
 

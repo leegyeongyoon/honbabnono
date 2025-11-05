@@ -78,7 +78,12 @@
       "Read(/Users/keullaeseuting/**)",
       "WebFetch(domain:honbabnono.com)",
       "Bash(git revert:*)",
-      "Bash(open http://localhost:3000)"
+      "Bash(open http://localhost:3000)",
+      "Bash(aws:*)",
+      "Bash(open http://localhost:3000/home)",
+      "Bash(open http://localhost:3000/meetup/1)",
+      "Bash(open http://localhost:3000/meetup/2)",
+      "Bash(open:*)"
     ],
     "deny": [],
     "ask": []
