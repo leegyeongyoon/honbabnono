@@ -99,7 +99,7 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
     if (id) {
       fetchMeetupById(id);
     }
-  }, [id, fetchMeetupById]);
+  }, [id]);
 
   if (loading || !currentMeetup) {
     return (
