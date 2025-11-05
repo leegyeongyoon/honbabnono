@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { View, StyleSheet } from 'react-native';
 import { COLORS } from '../styles/colors';
+import { useUserStore } from '../store/userStore';
+import { useMeetupStore } from '../store/meetupStore';
 
 // Screens
 import HomeScreen from '../screens/HomeScreen.web';
@@ -16,8 +18,8 @@ import CreateMeetupScreen from '../screens/CreateMeetupScreen.web';
 import BottomTabBar from './BottomTabBar';
 
 const RouterApp: React.FC = () => {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [user, setUser] = useState(null);
+  const { user, isLoggedIn, login, logout, setUser, setToken } = useUserStore();
+  const { fetchMeetups } = useMeetupStore();
   const [isLoading, setIsLoading] = useState(true);
   
   console.log('RouterApp rendering, isLoggedIn:', isLoggedIn, 'isLoading:', isLoading, 'current path:', window.location.pathname);
@@ -47,10 +49,8 @@ const RouterApp: React.FC = () => {
 
     if (token && userParam) {
       // 카카오 로그인 성공 후 리다이렉트된 경우
-      localStorage.setItem('token', token);
-      localStorage.setItem('user', userParam);
-      setIsLoggedIn(true);
-      setUser(JSON.parse(decodeURIComponent(userParam)));
+      const userData = JSON.parse(decodeURIComponent(userParam));
+      login(userData, token);
       // URL 파라미터 제거
       window.history.replaceState({}, document.title, window.location.pathname);
       setIsLoading(false);
@@ -81,43 +81,37 @@ const RouterApp: React.FC = () => {
         if (data.success) {
           // 토큰이 유효하면 자동 로그인
           console.log('✅ 자동 로그인 성공:', data.user.email);
-          setIsLoggedIn(true);
-          setUser(data.user);
-          localStorage.setItem('user', JSON.stringify(data.user));
+          login(data.user, storedToken);
         } else {
           // 토큰이 유효하지 않으면 로그아웃 처리
           console.log('❌ 토큰 무효, 로그아웃 처리:', data.error);
-          localStorage.removeItem('token');
-          localStorage.removeItem('user');
-          setIsLoggedIn(false);
-          setUser(null);
+          logout();
         }
       } catch (error) {
         // 네트워크 오류 등의 경우 로그아웃 처리
         console.error('📡 verify-token 요청 실패:', error);
         console.error('토큰 검증 오류:', error);
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        setIsLoggedIn(false);
-        setUser(null);
+        logout();
       }
       setIsLoading(false);
     } else {
       // 토큰이 없으면 로그인되지 않은 상태
       console.log('No token found, staying logged out');
-      setIsLoggedIn(false);
-      setUser(null);
       setIsLoading(false);
     }
   };
 
   // 로그아웃 함수
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    setIsLoggedIn(false);
-    setUser(null);
+    logout();
   };
+
+  // 로그인 성공 시 모임 목록 가져오기
+  useEffect(() => {
+    if (isLoggedIn && user) {
+      fetchMeetups();
+    }
+  }, [isLoggedIn, user, fetchMeetups]);
 
   // 보호된 라우트 컴포넌트
   const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {

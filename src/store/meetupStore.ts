@@ -1,174 +1,326 @@
-import { MealPreferences } from '../types/mealPreferences';
+import { create } from 'zustand';
+import { subscribeWithSelector } from 'zustand/middleware';
+
+export interface Participant {
+  id: string;
+  name: string;
+  profileImage?: string;
+  status: 'approved' | 'pending' | 'rejected';
+  joinedAt: string;
+  babAlScore?: number;
+}
 
 export interface Meetup {
-  id: string | number;
+  id: string;
   title: string;
   description: string;
   category: string;
   location: string;
+  address?: string;
+  latitude?: number;
+  longitude?: number;
   date: string;
   time: string;
   maxParticipants: number;
   currentParticipants: number;
-  hostName: string;
-  hostId: string;
-  hostBabAlScore: number;
-  mealPreferences: MealPreferences;
-  isApproved: boolean;
-  createdAt: string;
+  priceRange?: string;
   image?: string;
+  status: 'recruiting' | 'confirmed' | 'completed' | 'cancelled';
+  hostId: string;
+  hostName: string;
+  hostBabAlScore: number;
+  requirements?: string;
+  tags?: string[];
+  createdAt: string;
+  updatedAt: string;
+  participants: Participant[];
 }
 
-class MeetupStore {
-  private meetups: Meetup[] = [
-    // 기본 샘플 데이터
-    {
-      id: 1,
-      title: '강남역 파스타 맛집 탐방',
-      description: '맛있는 파스타를 함께 먹으며 즐거운 대화를 나눠요!',
-      category: '양식',
-      location: '강남역 2번 출구',
-      date: '2024-01-15',
-      time: '19:00',
-      maxParticipants: 4,
-      currentParticipants: 1,
-      hostName: '김혼밥',
-      hostId: 'user1',
-      hostBabAlScore: 85,
-      mealPreferences: {
-        dietary: [],
-        style: ['fine_dining', 'course_meal'],
-        restriction: ['no_spicy'],
-        atmosphere: ['quiet', 'romantic']
-      },
-      isApproved: true,
-      createdAt: '2024-01-10T10:00:00Z',
-      image: 'https://via.placeholder.com/300x200/F5CB76/ffffff?text=Pasta',
-    },
-    {
-      id: 2,
-      title: '홍대 술집 호핑',
-      description: '홍대의 분위기 좋은 술집들을 함께 탐방해요',
-      category: '술집',
-      location: '홍대입구역 9번 출구',
-      date: '2024-01-16',
-      time: '20:00',
-      maxParticipants: 6,
-      currentParticipants: 1,
-      hostName: '이식사',
-      hostId: 'user2',
-      hostBabAlScore: 72,
-      mealPreferences: {
-        dietary: [],
-        style: ['casual', 'street_food'],
-        restriction: ['no_alcohol'],
-        atmosphere: ['lively', 'trendy']
-      },
-      isApproved: true,
-      createdAt: '2024-01-11T14:00:00Z',
-      image: 'https://via.placeholder.com/300x200/F8E5A3/ffffff?text=Drinks',
-    },
-  ];
-
-  private listeners: (() => void)[] = [];
-  private idCounter = 3; // 다음 ID
-
-  // 구독 기능
-  subscribe(listener: () => void) {
-    this.listeners.push(listener);
-    return () => {
-      this.listeners = this.listeners.filter(l => l !== listener);
-    };
-  }
-
-  private notify() {
-    this.listeners.forEach(listener => listener());
-  }
-
-  // 모든 모임 가져오기
-  getAllMeetups(): Meetup[] {
-    return [...this.meetups];
-  }
-
-  // 승인된 모임만 가져오기
-  getApprovedMeetups(): Meetup[] {
-    return this.meetups.filter(meetup => meetup.isApproved);
-  }
-
-  // 특정 모임 가져오기
-  getMeetupById(id: number): Meetup | undefined {
-    return this.meetups.find(meetup => meetup.id === id);
-  }
-
-  // 새 모임 생성
-  createMeetup(meetupData: Omit<Meetup, 'id' | 'currentParticipants' | 'isApproved' | 'createdAt'>): Meetup {
-    const newMeetup: Meetup = {
-      ...meetupData,
-      id: this.idCounter++,
-      currentParticipants: 1, // 호스트가 자동으로 참여
-      isApproved: false, // 승인 대기 상태
-      createdAt: new Date().toISOString(),
-      image: this.getDefaultImage(meetupData.category),
-    };
-
-    this.meetups.unshift(newMeetup); // 맨 앞에 추가
-    this.notify();
-    return newMeetup;
-  }
-
-  // 모임 승인
-  approveMeetup(id: number): boolean {
-    const meetup = this.getMeetupById(id);
-    if (meetup) {
-      meetup.isApproved = true;
-      this.notify();
-      return true;
-    }
-    return false;
-  }
-
-  // 모임 참여
-  joinMeetup(meetupId: number, userId: string): boolean {
-    const meetup = this.getMeetupById(meetupId);
-    if (meetup && meetup.currentParticipants < meetup.maxParticipants) {
-      meetup.currentParticipants += 1;
-      this.notify();
-      return true;
-    }
-    return false;
-  }
-
-  // 모임 탈퇴
-  leaveMeetup(meetupId: number, userId: string): boolean {
-    const meetup = this.getMeetupById(meetupId);
-    if (meetup && meetup.currentParticipants > 1) {
-      meetup.currentParticipants -= 1;
-      this.notify();
-      return true;
-    }
-    return false;
-  }
-
-  // 카테고리별 기본 이미지
-  private getDefaultImage(category: string): string {
-    const imageMap: { [key: string]: string } = {
-      '한식': 'https://via.placeholder.com/300x200/F5CB76/ffffff?text=한식',
-      '중식': 'https://via.placeholder.com/300x200/F8E5A3/ffffff?text=중식',
-      '일식': 'https://via.placeholder.com/300x200/F9E5B8/ffffff?text=일식',
-      '양식': 'https://via.placeholder.com/300x200/F5CB76/ffffff?text=양식',
-      '카페': 'https://via.placeholder.com/300x200/F2D68A/ffffff?text=카페',
-      '술집': 'https://via.placeholder.com/300x200/F7D794/ffffff?text=술집',
-    };
-    return imageMap[category] || 'https://via.placeholder.com/300x200/F5CB76/ffffff?text=모임';
-  }
-
-  // 임시로 승인 처리 (실제로는 관리자가 처리)
-  autoApproveMeetup(id: number, delayMs: number = 3000) {
-    setTimeout(() => {
-      this.approveMeetup(id);
-    }, delayMs);
-  }
+interface MeetupState {
+  // State
+  meetups: Meetup[];
+  currentMeetup: Meetup | null;
+  loading: boolean;
+  error: string | null;
+  
+  // Actions
+  setMeetups: (meetups: Meetup[]) => void;
+  setCurrentMeetup: (meetup: Meetup | null) => void;
+  setLoading: (loading: boolean) => void;
+  setError: (error: string | null) => void;
+  
+  // CRUD Actions
+  fetchMeetups: () => Promise<void>;
+  fetchMeetupById: (id: string) => Promise<Meetup | null>;
+  createMeetup: (meetupData: Partial<Meetup>) => Promise<Meetup | null>;
+  updateMeetup: (id: string, updates: Partial<Meetup>) => Promise<void>;
+  deleteMeetup: (id: string) => Promise<void>;
+  
+  // Participant Actions
+  joinMeetup: (meetupId: string, userId: string) => Promise<void>;
+  leaveMeetup: (meetupId: string, userId: string) => Promise<void>;
+  approveParticipant: (meetupId: string, userId: string) => Promise<void>;
+  rejectParticipant: (meetupId: string, userId: string) => Promise<void>;
+  
+  // Utility Actions
+  getMeetupsByCategory: (category: string) => Meetup[];
+  getMeetupsByHost: (hostId: string) => Meetup[];
+  getParticipatedMeetups: (userId: string) => Meetup[];
+  clearStore: () => void;
 }
 
-// 싱글톤 인스턴스
-export const meetupStore = new MeetupStore();
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
+
+// API 호출 헬퍼 함수
+const apiCall = async (endpoint: string, options: RequestInit = {}) => {
+  const token = localStorage.getItem('token');
+  const response = await fetch(`${API_URL}${endpoint}`, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token && { 'Authorization': `Bearer ${token}` }),
+      ...options.headers,
+    },
+  });
+  
+  if (!response.ok) {
+    throw new Error(`API Error: ${response.status} ${response.statusText}`);
+  }
+  
+  return response.json();
+};
+
+// 백엔드 데이터를 프론트엔드 형식으로 변환
+const transformMeetupData = (meetupData: any): Meetup => {
+  const actualData = meetupData.success ? meetupData.meetup : meetupData;
+  
+  return {
+    id: actualData.id,
+    title: actualData.title,
+    description: actualData.description || '',
+    category: actualData.category,
+    location: actualData.location,
+    address: actualData.address,
+    latitude: actualData.latitude,
+    longitude: actualData.longitude,
+    date: actualData.date,
+    time: actualData.time,
+    maxParticipants: actualData.maxParticipants,
+    currentParticipants: actualData.currentParticipants,
+    priceRange: actualData.priceRange,
+    image: actualData.image,
+    status: actualData.status === '모집중' ? 'recruiting' : actualData.status,
+    hostId: actualData.hostId,
+    hostName: actualData.host?.name || '익명',
+    hostBabAlScore: actualData.host?.babAlScore || 98,
+    requirements: actualData.requirements,
+    tags: actualData.tags || [],
+    createdAt: actualData.createdAt,
+    updatedAt: actualData.updatedAt,
+    participants: actualData.participants?.map((p: any) => ({
+      id: p.id,
+      name: p.name,
+      profileImage: p.profileImage,
+      status: p.status === '참가승인' ? 'approved' : p.status === '참가신청' ? 'pending' : 'rejected',
+      joinedAt: p.joinedAt,
+      babAlScore: p.babAlScore || 50,
+    })) || [],
+  };
+};
+
+export const useMeetupStore = create<MeetupState>()(
+  subscribeWithSelector((set, get) => ({
+    // Initial state
+    meetups: [],
+    currentMeetup: null,
+    loading: false,
+    error: null,
+    
+    // Basic setters
+    setMeetups: (meetups) => set({ meetups }),
+    setCurrentMeetup: (meetup) => set({ currentMeetup: meetup }),
+    setLoading: (loading) => set({ loading }),
+    setError: (error) => set({ error }),
+    
+    // CRUD Actions
+    fetchMeetups: async () => {
+      set({ loading: true, error: null });
+      try {
+        const response = await apiCall('/meetups');
+        const transformedMeetups = response.meetups?.map(transformMeetupData) || [];
+        set({ meetups: transformedMeetups, loading: false });
+      } catch (error) {
+        console.error('모임 목록 조회 실패:', error);
+        set({ error: (error as Error).message, loading: false });
+      }
+    },
+    
+    fetchMeetupById: async (id: string) => {
+      set({ loading: true, error: null });
+      try {
+        const response = await apiCall(`/meetups/${id}`);
+        const meetup = transformMeetupData(response);
+        set({ currentMeetup: meetup, loading: false });
+        return meetup;
+      } catch (error) {
+        console.error('모임 상세 조회 실패:', error);
+        set({ error: (error as Error).message, loading: false });
+        return null;
+      }
+    },
+    
+    createMeetup: async (meetupData) => {
+      set({ loading: true, error: null });
+      try {
+        const response = await apiCall('/meetups', {
+          method: 'POST',
+          body: JSON.stringify(meetupData),
+        });
+        
+        const newMeetup = transformMeetupData(response);
+        
+        // 기존 목록에 새 모임 추가
+        const { meetups } = get();
+        set({ 
+          meetups: [newMeetup, ...meetups],
+          loading: false 
+        });
+        
+        return newMeetup;
+      } catch (error) {
+        console.error('모임 생성 실패:', error);
+        set({ error: (error as Error).message, loading: false });
+        return null;
+      }
+    },
+    
+    updateMeetup: async (id: string, updates: Partial<Meetup>) => {
+      set({ loading: true, error: null });
+      try {
+        const response = await apiCall(`/meetups/${id}`, {
+          method: 'PUT',
+          body: JSON.stringify(updates),
+        });
+        
+        const updatedMeetup = transformMeetupData(response);
+        
+        // 목록에서 업데이트
+        const { meetups, currentMeetup } = get();
+        const updatedMeetups = meetups.map(m => m.id === id ? updatedMeetup : m);
+        
+        set({ 
+          meetups: updatedMeetups,
+          currentMeetup: currentMeetup?.id === id ? updatedMeetup : currentMeetup,
+          loading: false 
+        });
+      } catch (error) {
+        console.error('모임 수정 실패:', error);
+        set({ error: (error as Error).message, loading: false });
+      }
+    },
+    
+    deleteMeetup: async (id: string) => {
+      set({ loading: true, error: null });
+      try {
+        await apiCall(`/meetups/${id}`, { method: 'DELETE' });
+        
+        // 목록에서 제거
+        const { meetups, currentMeetup } = get();
+        const filteredMeetups = meetups.filter(m => m.id !== id);
+        
+        set({ 
+          meetups: filteredMeetups,
+          currentMeetup: currentMeetup?.id === id ? null : currentMeetup,
+          loading: false 
+        });
+      } catch (error) {
+        console.error('모임 삭제 실패:', error);
+        set({ error: (error as Error).message, loading: false });
+      }
+    },
+    
+    // Participant Actions
+    joinMeetup: async (meetupId: string, userId: string) => {
+      try {
+        await apiCall(`/meetups/${meetupId}/join`, {
+          method: 'POST',
+          body: JSON.stringify({ userId }),
+        });
+        
+        // 모임 데이터 새로고침
+        await get().fetchMeetupById(meetupId);
+      } catch (error) {
+        console.error('모임 참가 실패:', error);
+        set({ error: (error as Error).message });
+      }
+    },
+    
+    leaveMeetup: async (meetupId: string, userId: string) => {
+      try {
+        await apiCall(`/meetups/${meetupId}/leave`, {
+          method: 'POST',
+          body: JSON.stringify({ userId }),
+        });
+        
+        // 모임 데이터 새로고침
+        await get().fetchMeetupById(meetupId);
+      } catch (error) {
+        console.error('모임 탈퇴 실패:', error);
+        set({ error: (error as Error).message });
+      }
+    },
+    
+    approveParticipant: async (meetupId: string, userId: string) => {
+      try {
+        await apiCall(`/meetups/${meetupId}/participants/${userId}/approve`, {
+          method: 'POST',
+        });
+        
+        // 모임 데이터 새로고침
+        await get().fetchMeetupById(meetupId);
+      } catch (error) {
+        console.error('참가자 승인 실패:', error);
+        set({ error: (error as Error).message });
+      }
+    },
+    
+    rejectParticipant: async (meetupId: string, userId: string) => {
+      try {
+        await apiCall(`/meetups/${meetupId}/participants/${userId}/reject`, {
+          method: 'POST',
+        });
+        
+        // 모임 데이터 새로고침
+        await get().fetchMeetupById(meetupId);
+      } catch (error) {
+        console.error('참가자 거절 실패:', error);
+        set({ error: (error as Error).message });
+      }
+    },
+    
+    // Utility functions
+    getMeetupsByCategory: (category: string) => {
+      const { meetups } = get();
+      return meetups.filter(meetup => meetup.category === category);
+    },
+    
+    getMeetupsByHost: (hostId: string) => {
+      const { meetups } = get();
+      return meetups.filter(meetup => meetup.hostId === hostId);
+    },
+    
+    getParticipatedMeetups: (userId: string) => {
+      const { meetups } = get();
+      return meetups.filter(meetup => 
+        meetup.participants.some(p => p.id === userId)
+      );
+    },
+    
+    clearStore: () => set({
+      meetups: [],
+      currentMeetup: null,
+      loading: false,
+      error: null,
+    }),
+  }))
+);

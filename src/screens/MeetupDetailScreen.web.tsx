@@ -1,8 +1,9 @@
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import { useMeetups } from '../hooks/useMeetups';
 import { COLORS, SHADOWS } from '../styles/colors';
+import { useUserStore } from '../store/userStore';
+import { useMeetupStore } from '../store/meetupStore';
 
 // Window 타입 확장
 declare global {
@@ -18,7 +19,7 @@ interface User {
 }
 
 interface MeetupDetailScreenProps {
-  user: User | null;
+  user?: User | null;
 }
 
 // 카카오맵 컴포넌트
@@ -84,41 +85,61 @@ const KakaoMap: React.FC<{ location: string; address: string }> = ({ location, a
   );
 };
 
-const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user }) => {
+const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser }) => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { getMeetupById } = useMeetups();
-  const [meetup, setMeetup] = React.useState<any>(null);
-  const [participants, setParticipants] = React.useState<any[]>([]);
+  const { user: storeUser } = useUserStore();
+  const { currentMeetup, loading, fetchMeetupById, joinMeetup, leaveMeetup } = useMeetupStore();
   const [showPromiseModal, setShowPromiseModal] = React.useState(false);
+  
+  // props로 받은 user가 있으면 사용, 없으면 store의 user 사용
+  const user = propsUser || storeUser;
 
   React.useEffect(() => {
     if (id) {
-      const fetchMeetupData = async () => {
-        try {
-          // 모임 정보와 참가자 정보를 함께 가져오기
-          const meetupData = await getMeetupById(id);
-          setMeetup(meetupData);
-          
-          // 참가자 정보는 meetupData에 포함되어 있음
-          if (meetupData && meetupData.participants) {
-            setParticipants(meetupData.participants);
-          }
-        } catch (error) {
-          console.error('모임 정보 조회 실패:', error);
-        }
-      };
-      fetchMeetupData();
+      fetchMeetupById(id);
     }
-  }, [id]);
+  }, [id, fetchMeetupById]);
 
-  if (!meetup) {
+  if (loading || !currentMeetup) {
     return (
       <View style={styles.loadingContainer}>
         <Text style={styles.loadingText}>로딩 중...</Text>
       </View>
     );
   }
+
+  const meetup = currentMeetup;
+  const participants = meetup.participants || [];
+
+  // 모임 참여하기
+  const handleJoinMeetup = async () => {
+    if (!user || !id) return;
+    
+    try {
+      if (participants.some(p => p.id === user.id)) {
+        // 이미 참여중이면 탈퇴
+        await leaveMeetup(id, user.id);
+      } else {
+        // 참여하기
+        setShowPromiseModal(true);
+      }
+    } catch (error) {
+      console.error('모임 참여/탈퇴 실패:', error);
+    }
+  };
+
+  // 보증금 결제 후 실제 참여
+  const handleConfirmJoin = async () => {
+    if (!user || !id) return;
+    
+    try {
+      await joinMeetup(id, user.id);
+      setShowPromiseModal(false);
+    } catch (error) {
+      console.error('모임 참여 실패:', error);
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -133,7 +154,7 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user }) => {
           </TouchableOpacity>
           <Text style={styles.headerTitle}>상세보기</Text>
           <View style={styles.babAlContainer}>
-            <Text style={styles.babAlScore}>98 밥알</Text>
+            <Text style={styles.babAlScore}>{user?.babAlScore || meetup.hostBabAlScore} 밥알</Text>
           </View>
         </View>
 
@@ -216,10 +237,24 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user }) => {
         {/* 참여하기 버튼 */}
         <View style={styles.buttonContainer}>
           <TouchableOpacity
-            onPress={() => setShowPromiseModal(true)}
-            style={styles.joinButton}
+            onPress={() => handleJoinMeetup()}
+            style={[
+              styles.joinButton,
+              (!user || participants.some(p => p.id === user.id)) && styles.joinButtonDisabled
+            ]}
+            disabled={!user || participants.some(p => p.id === user.id)}
           >
-            <Text style={styles.joinButtonText}>참여하기</Text>
+            <Text style={[
+              styles.joinButtonText,
+              (!user || participants.some(p => p.id === user.id)) && styles.joinButtonTextDisabled
+            ]}>
+              {!user 
+                ? '로그인 필요' 
+                : participants.some(p => p.id === user.id) 
+                  ? '참여중' 
+                  : '참여하기'
+              }
+            </Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -243,7 +278,10 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user }) => {
               >
                 <Text style={styles.modalCancelText}>취소</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.modalPayButton}>
+              <TouchableOpacity 
+                style={styles.modalPayButton}
+                onPress={handleConfirmJoin}
+              >
                 <Text style={styles.modalPayText}>결제하기</Text>
               </TouchableOpacity>
             </View>
@@ -442,6 +480,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: 'white',
+  },
+  joinButtonDisabled: {
+    backgroundColor: '#d6d6d6',
+  },
+  joinButtonTextDisabled: {
+    color: '#999',
   },
   modalOverlay: {
     position: 'absolute',
