@@ -89,7 +89,10 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user: storeUser } = useUserStore();
-  const { currentMeetup, loading, fetchMeetupById, joinMeetup, leaveMeetup } = useMeetupStore();
+  const currentMeetup = useMeetupStore(state => state.currentMeetup);
+  const loading = useMeetupStore(state => state.loading);
+  const joinMeetup = useMeetupStore(state => state.joinMeetup);
+  const leaveMeetup = useMeetupStore(state => state.leaveMeetup);
   const [showPromiseModal, setShowPromiseModal] = React.useState(false);
   
   // props로 받은 user가 있으면 사용, 없으면 store의 user 사용
@@ -97,9 +100,10 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
 
   React.useEffect(() => {
     if (id) {
-      fetchMeetupById(id);
+      const fetchFn = useMeetupStore.getState().fetchMeetupById;
+      fetchFn(id);
     }
-  }, [id]);
+  }, [id]); // id가 변경될 때만 호출
 
   if (loading || !currentMeetup) {
     return (

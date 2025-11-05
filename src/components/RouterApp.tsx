@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { View, StyleSheet } from 'react-native';
 import { COLORS } from '../styles/colors';
@@ -19,7 +19,6 @@ import BottomTabBar from './BottomTabBar';
 
 const RouterApp: React.FC = () => {
   const { user, isLoggedIn, login, logout, setUser, setToken } = useUserStore();
-  const { fetchMeetups } = useMeetupStore();
   const [isLoading, setIsLoading] = useState(true);
   
   console.log('RouterApp rendering, isLoggedIn:', isLoggedIn, 'isLoading:', isLoading, 'current path:', window.location.pathname);
@@ -106,12 +105,18 @@ const RouterApp: React.FC = () => {
     logout();
   };
 
+  // fetchMeetups를 useCallback으로 안정화
+  const fetchMeetups = useCallback(() => {
+    const fetchFn = useMeetupStore.getState().fetchMeetups;
+    fetchFn();
+  }, []);
+
   // 로그인 성공 시 모임 목록 가져오기
   useEffect(() => {
     if (isLoggedIn && user) {
       fetchMeetups();
     }
-  }, [isLoggedIn, user]);
+  }, [isLoggedIn, user, fetchMeetups]);
 
   // 보호된 라우트 컴포넌트
   const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
