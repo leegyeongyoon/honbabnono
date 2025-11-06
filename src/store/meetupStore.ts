@@ -73,15 +73,28 @@ interface MeetupState {
 // API 호출 헬퍼 함수 (apiClient 사용)
 const apiCall = async (endpoint: string, options: RequestInit = {}) => {
   try {
+    console.log('🚀 API Call:', endpoint, options);
     const response = await apiClient.request({
       url: endpoint,
       method: options.method as any || 'GET',
       data: options.body ? JSON.parse(options.body as string) : undefined,
       ...options
     });
+    
+    // 상세한 응답 로그
+    console.log('📦 Full axios response:', {
+      status: response.status,
+      statusText: response.statusText,
+      headers: response.headers,
+      data: response.data,
+      dataType: typeof response.data,
+      isDataEmpty: Object.keys(response.data || {}).length === 0
+    });
+    
     // 전체 응답 객체를 반환 (기존 동작과 동일하게)
     return response.data;
   } catch (error: any) {
+    console.error('💥 API Call Error:', error);
     throw new Error(`API Error: ${error.response?.status || 'Unknown'} ${error.message}`);
   }
 };
