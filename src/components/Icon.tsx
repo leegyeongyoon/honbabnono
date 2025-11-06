@@ -22,7 +22,11 @@ export type IconName =
   | 'chevron-right'
   | 'chevron-left'
   | 'home'
-  | 'users';
+  | 'users'
+  | 'calendar'
+  | 'send'
+  | 'more-vertical'
+  | 'x';
 
 interface IconProps {
   name: IconName;
@@ -52,7 +56,11 @@ const iconPaths = {
   'chevron-right': 'M9 18l6-6-6-6',
   'chevron-left': 'M15 18l-6-6 6-6',
   'home': 'M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9zM9 22V12h6v10',
-  'users': 'M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75'
+  'users': 'M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75',
+  'calendar': 'M3 4a1 1 0 011-1h16a1 1 0 011 1v16a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM8 2v4M16 2v4M3 10h18',
+  'send': 'M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z',
+  'more-vertical': 'M12 13a1 1 0 100-2 1 1 0 000 2zM12 6a1 1 0 100-2 1 1 0 000 2zM12 20a1 1 0 100-2 1 1 0 000 2z',
+  'x': 'M18 6L6 18M6 6l12 12'
 };
 
 // Simple SVG component for web
@@ -109,7 +117,11 @@ const SVGIcon: React.FC<{ path: string; size: number; color: string; style?: Vie
     'chevron-right': '▶',
     'chevron-left': '◀',
     'home': '🏠',
-    'users': '👥'
+    'users': '👥',
+    'calendar': '📅',
+    'send': '✈️',
+    'more-vertical': '⋮',
+    'x': '✕'
   };
   
   return (

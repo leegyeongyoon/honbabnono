@@ -198,48 +198,27 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, user }) => {
         style={styles.chatItem} 
         onPress={() => selectChatRoom(item.id)}
       >
-        <View style={styles.chatItemLeft}>
-          <View style={[styles.chatAvatar, item.type === 'meetup' && styles.meetupAvatar]}>
-            <Text style={styles.chatAvatarText}>
-              {displayTitle.charAt(0)}
-            </Text>
-            {item.type === 'direct' && item.isOnline && <View style={styles.onlineIndicator} />}
-          </View>
-          <View style={styles.chatInfo}>
-            <View style={styles.chatHeader}>
-              <Text style={styles.chatTitle} numberOfLines={1}>
-                {displayTitle}
-              </Text>
-              <Text style={styles.chatTime}>
-                {new Date(item.lastTime).toLocaleTimeString('ko-KR', { 
-                  hour: '2-digit', 
-                  minute: '2-digit',
-                  hour12: true 
-                })}
-              </Text>
-            </View>
-            <View style={styles.chatSubInfo}>
-              <Text style={styles.lastMessage} numberOfLines={1}>
-                {item.lastMessage || '아직 메시지가 없습니다'}
-              </Text>
-              {participantCount && (
-                <Text style={styles.participantCount}>{participantCount}명</Text>
-              )}
-            </View>
-          </View>
+        <View style={styles.chatAvatar}>
+          <Text style={styles.chatAvatarText}>
+            {displayTitle.charAt(0)}
+          </Text>
         </View>
-        <View style={styles.chatItemRight}>
-          {item.unreadCount > 0 && (
-            <View style={styles.unreadBadge}>
-              <Text style={styles.unreadCount}>{item.unreadCount}</Text>
-            </View>
-          )}
-          {item.type === 'meetup' && item.isActive && (
-            <View style={styles.activeBadge}>
-              <Text style={styles.activeText}>활성</Text>
-            </View>
-          )}
+        <View style={styles.chatInfo}>
+          <Text style={styles.chatTitle} numberOfLines={1}>
+            {displayTitle}
+          </Text>
+          <Text style={styles.lastMessage} numberOfLines={1}>
+            {item.lastMessage || '아직 메시지가 없습니다'}
+          </Text>
+          <Text style={styles.chatTime}>
+            {participantCount ? `${participantCount}명 참여` : ''}
+          </Text>
         </View>
+        {item.unreadCount > 0 && (
+          <View style={styles.unreadBadge}>
+            <Text style={styles.unreadCount}>{item.unreadCount}</Text>
+          </View>
+        )}
       </TouchableOpacity>
     );
   };
@@ -372,6 +351,14 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, user }) => {
       {/* 헤더 */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>채팅</Text>
+        <View style={styles.headerIcons}>
+          <TouchableOpacity style={styles.headerIcon}>
+            <Icon name="search" size={20} color="#333" />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.headerIcon}>
+            <Icon name="bell" size={20} color="#333" />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* 탭 네비게이션 */}
@@ -404,214 +391,161 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, user }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.neutral.background,
+    backgroundColor: '#f5f5f5',
   },
   header: {
-    height: LAYOUT.HEADER_HEIGHT,
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    backdropFilter: 'blur(20px)',
-    WebkitBackdropFilter: 'blur(20px)',
-    justifyContent: 'center',
+    height: 60,
+    backgroundColor: 'white',
+    flexDirection: 'row',
     alignItems: 'center',
-    borderBottomWidth: 0,
-    ...SHADOWS.medium,
-    shadowColor: 'rgba(0,0,0,0.05)',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 1,
-    shadowRadius: 12,
-    borderBottomColor: '#ebe7dc',
-    ...SHADOWS.small,
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: '700',
-    color: '#2d3748',
+    fontWeight: '600',
+    color: '#333',
+  },
+  headerIcons: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  headerIcon: {
+    padding: 8,
   },
   tabNavigation: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    borderBottomWidth: 0,
-    marginHorizontal: 16,
-    borderRadius: 16,
-    marginTop: 8,
-    ...SHADOWS.small,
+    backgroundColor: 'white',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
   },
   tabButton: {
     flex: 1,
-    paddingVertical: 16,
+    paddingVertical: 12,
     alignItems: 'center',
-    borderRadius: 12,
-    marginHorizontal: 4,
-    marginVertical: 4,
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
   },
   selectedTabButton: {
-    backgroundColor: '#667eea',
-    ...SHADOWS.small,
+    borderBottomColor: '#007AFF',
   },
   tabButtonText: {
     fontSize: 14,
     fontWeight: '500',
-    color: COLORS.text.secondary,
+    color: '#666',
   },
   selectedTabButtonText: {
-    color: COLORS.primary.main,
+    color: '#007AFF',
     fontWeight: '600',
   },
   chatList: {
     flex: 1,
+    backgroundColor: 'white',
   },
   chatListContainer: {
     paddingBottom: 20,
   },
   chatItem: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 16,
-    backgroundColor: COLORS.neutral.white,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    backgroundColor: 'white',
     borderBottomWidth: 1,
     borderBottomColor: '#f0f0f0',
   },
-  chatItemLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
   chatAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: COLORS.primary.light,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: '#e0e0e0',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
-    position: 'relative',
-  },
-  meetupAvatar: {
-    backgroundColor: COLORS.secondary.light,
   },
   chatAvatarText: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: COLORS.primary.main,
-  },
-  onlineIndicator: {
-    position: 'absolute',
-    bottom: 2,
-    right: 2,
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: COLORS.functional.success,
-    borderWidth: 2,
-    borderColor: COLORS.neutral.white,
+    fontWeight: '600',
+    color: '#333',
   },
   chatInfo: {
     flex: 1,
   },
-  chatHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
   chatTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: COLORS.text.primary,
-    flex: 1,
-  },
-  chatTime: {
-    fontSize: 12,
-    color: COLORS.text.secondary,
-  },
-  chatSubInfo: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    color: '#333',
+    marginBottom: 4,
   },
   lastMessage: {
     fontSize: 14,
-    color: COLORS.text.secondary,
-    flex: 1,
+    color: '#666',
+    marginBottom: 4,
   },
-  participantCount: {
+  chatTime: {
     fontSize: 12,
-    color: COLORS.text.tertiary,
-  },
-  chatItemRight: {
-    alignItems: 'flex-end',
-    gap: 4,
+    color: '#999',
   },
   unreadBadge: {
-    backgroundColor: COLORS.functional.error,
-    borderRadius: 10,
-    minWidth: 20,
-    height: 20,
+    backgroundColor: '#FF3B30',
+    borderRadius: 12,
+    minWidth: 24,
+    height: 24,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 6,
   },
   unreadCount: {
     fontSize: 12,
-    fontWeight: 'bold',
-    color: COLORS.text.white,
-  },
-  activeBadge: {
-    backgroundColor: COLORS.functional.success,
-    borderRadius: 8,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-  },
-  activeText: {
-    fontSize: 10,
-    fontWeight: '500',
-    color: COLORS.text.white,
+    fontWeight: '600',
+    color: 'white',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    padding: 40,
+    backgroundColor: 'white',
   },
   loadingText: {
     fontSize: 16,
-    color: COLORS.text.secondary,
-    marginTop: 10,
+    color: '#666',
   },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 40,
+    backgroundColor: 'white',
   },
   emptyText: {
     fontSize: 16,
-    color: COLORS.text.secondary,
+    color: '#666',
     textAlign: 'center',
   },
   chatRoom: {
     flex: 1,
-    backgroundColor: COLORS.neutral.background,
+    backgroundColor: '#f5f5f5',
   },
   chatRoomHeader: {
-    height: LAYOUT.HEADER_HEIGHT,
-    backgroundColor: '#ede0c8',
+    height: 60,
+    backgroundColor: 'white',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#ebe7dc',
-    ...SHADOWS.small,
+    borderBottomColor: '#e0e0e0',
   },
   backButton: {
     padding: 8,
   },
   chatRoomTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: COLORS.text.primary,
+    fontWeight: '600',
+    color: '#333',
     flex: 1,
     textAlign: 'center',
   },
@@ -620,7 +554,7 @@ const styles = StyleSheet.create({
   },
   messageList: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#f5f5f5',
   },
   messageListContainer: {
     padding: 16,
@@ -638,54 +572,53 @@ const styles = StyleSheet.create({
   },
   senderName: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: '#666',
     fontWeight: '500',
   },
   messageBubble: {
-    backgroundColor: COLORS.neutral.white,
+    backgroundColor: 'white',
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 16,
-    ...SHADOWS.small,
   },
   myMessageBubble: {
-    backgroundColor: COLORS.primary.main,
+    backgroundColor: '#007AFF',
   },
   messageText: {
     fontSize: 14,
-    color: COLORS.text.primary,
+    color: '#333',
     lineHeight: 20,
   },
   myMessageText: {
-    color: COLORS.text.white,
+    color: 'white',
   },
   messageTime: {
     fontSize: 10,
-    color: COLORS.text.tertiary,
+    color: '#999',
     marginTop: 4,
   },
   myMessageTime: {
     textAlign: 'right',
   },
   messageInput: {
-    backgroundColor: COLORS.neutral.white,
+    backgroundColor: 'white',
     borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
+    borderTopColor: '#e0e0e0',
     padding: 16,
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    backgroundColor: '#f8f9fa',
-    borderRadius: 24,
+    backgroundColor: '#f5f5f5',
+    borderRadius: 20,
     paddingHorizontal: 16,
     paddingVertical: 8,
-    minHeight: 44,
+    minHeight: 40,
   },
   textInput: {
     flex: 1,
     fontSize: 14,
-    color: COLORS.text.primary,
+    color: '#333',
     maxHeight: 100,
     paddingVertical: 8,
   },
@@ -699,7 +632,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   sendButtonActive: {
-    backgroundColor: COLORS.primary.main,
+    backgroundColor: '#007AFF',
   },
 });
 

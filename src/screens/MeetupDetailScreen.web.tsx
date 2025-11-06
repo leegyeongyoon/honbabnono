@@ -4,6 +4,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-nati
 import { COLORS, SHADOWS } from '../styles/colors';
 import { useUserStore } from '../store/userStore';
 import { useMeetupStore } from '../store/meetupStore';
+import apiClient from '../services/apiClient';
 
 // Window 타입 확장
 declare global {
@@ -94,6 +95,7 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
   const joinMeetup = useMeetupStore(state => state.joinMeetup);
   const leaveMeetup = useMeetupStore(state => state.leaveMeetup);
   const [showPromiseModal, setShowPromiseModal] = React.useState(false);
+  const [userRiceIndex, setUserRiceIndex] = React.useState<number>(0);
   
   // props로 받은 user가 있으면 사용, 없으면 store의 user 사용
   const user = propsUser || storeUser;
@@ -104,6 +106,24 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
       fetchFn(id);
     }
   }, [id]); // id가 변경될 때만 호출
+
+  // 사용자 밥알지수 로드
+  React.useEffect(() => {
+    const loadUserRiceIndex = async () => {
+      try {
+        const response = await apiClient.get('/user/rice-index');
+        if (response.data && response.data.success) {
+          setUserRiceIndex(response.data.riceIndex);
+        }
+      } catch (error) {
+        console.error('밥알지수 로드 실패:', error);
+      }
+    };
+    
+    if (user) {
+      loadUserRiceIndex();
+    }
+  }, [user]);
 
   if (loading || !currentMeetup) {
     return (
@@ -158,7 +178,7 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
           </TouchableOpacity>
           <Text style={styles.headerTitle}>상세보기</Text>
           <View style={styles.babAlContainer}>
-            <Text style={styles.babAlScore}>{user?.babAlScore || meetup.hostBabAlScore} 밥알</Text>
+            <Text style={styles.babAlScore}>{userRiceIndex || 43} 밥알</Text>
           </View>
         </View>
 

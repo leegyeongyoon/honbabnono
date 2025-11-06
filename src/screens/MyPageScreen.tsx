@@ -17,6 +17,7 @@ import userApiService, { ActivityStats, HostedMeetup, JoinedMeetup } from '../se
 import reviewApiService, { UserReview } from '../services/reviewApiService';
 import apiClient from '../services/apiClient';
 import { formatKoreanDateTime } from '../utils/dateUtils';
+import { useUserStore } from '../store/userStore';
 
 interface MyPageScreenProps {
   navigation?: any;
@@ -25,15 +26,19 @@ interface MyPageScreenProps {
 }
 
 const MyPageScreen: React.FC<MyPageScreenProps> = ({ navigation, user, onLogout }) => {
+  const { user: storeUser } = useUserStore();
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [activityStats, setActivityStats] = useState<ActivityStats | null>(null);
   const [hostedMeetups, setHostedMeetups] = useState<HostedMeetup[]>([]);
   const [joinedMeetups, setJoinedMeetups] = useState<JoinedMeetup[]>([]);
   const [userReviews, setUserReviews] = useState<UserReview[]>([]);
-  const [riceIndex, setRiceIndex] = useState<number>(0);
   const [riceLevel, setRiceLevel] = useState<any>(null);
   const [riceIndexData, setRiceIndexData] = useState<any>(null);
+  
+  // props로 받은 user가 있으면 사용, 없으면 store의 user 사용
+  const currentUser = user || storeUser;
+  const riceIndex = currentUser?.babAlScore || 0;
 
   // 컴포넌트 마운트 시 데이터 로드
   useEffect(() => {
@@ -49,7 +54,7 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ navigation, user, onLogout 
         loadHostedMeetups(),
         loadJoinedMeetups(),
         loadUserReviews(),
-        loadRiceIndex()
+        loadRiceLevel()
       ]);
     } catch (error) {
       console.error('사용자 데이터 로드 실패:', error);
@@ -99,18 +104,16 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ navigation, user, onLogout 
     }
   };
 
-  // 밥알지수 로드
-  const loadRiceIndex = async () => {
+  // 밥알 레벨 정보 로드 (점수는 store에서 가져옴)
+  const loadRiceLevel = async () => {
     try {
       const response = await apiClient.get('/user/rice-index');
       if (response.data && response.data.success) {
-        setRiceIndex(response.data.riceIndex);
         setRiceLevel(response.data.level);
-        // 추가 정보도 저장할 수 있도록 state 확장
         setRiceIndexData(response.data);
       }
     } catch (error) {
-      console.error('밥알지수 로드 실패:', error);
+      console.error('밥알 레벨 로드 실패:', error);
     }
   };
 

@@ -14,10 +14,13 @@ import {COLORS, SHADOWS, LAYOUT} from '../styles/colors';
 import {TYPOGRAPHY} from '../styles/typography';
 import {Icon} from '../components/Icon';
 import CreateMeetupScreen from './CreateMeetupScreen';
+import NeighborhoodSelector from '../components/NeighborhoodSelector';
 import { useMeetups } from '../hooks/useMeetups';
 import { FOOD_CATEGORIES } from '../constants/categories';
 import { useNavigate } from 'react-router-dom';
 import { formatKoreanDateTime, getMeetupStatus } from '../utils/dateUtils';
+import locationService from '../services/locationService';
+import { useUserStore } from '../store/userStore';
 
 interface HomeScreenProps {
   navigateToLogin?: () => void;
@@ -28,42 +31,35 @@ interface HomeScreenProps {
 const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, user }) => {
   const navigate = useNavigate();
   const navigation = useRouterNavigation();
+  const { updateNeighborhood } = useUserStore();
   const [showCreateMeetup, setShowCreateMeetup] = useState(false);
-  const [currentLocation, setCurrentLocation] = useState('위치 설정');
+  const [showNeighborhoodSelector, setShowNeighborhoodSelector] = useState(false);
+  const [currentNeighborhood, setCurrentNeighborhood] = useState<{ district: string; neighborhood: string } | null>(null);
   const { meetups } = useMeetups();
 
   useEffect(() => {
-    requestLocation();
+    loadSavedNeighborhood();
   }, []);
 
-  const requestLocation = () => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          // 실제로는 역지오코딩 API를 사용해야 하지만, 임시로 고정값 사용
-          setCurrentLocation('강남구');
-        },
-        () => {
-          setCurrentLocation('강남구'); // 기본값
-        }
-      );
+  const loadSavedNeighborhood = () => {
+    const saved = locationService.getUserNeighborhood();
+    if (saved) {
+      setCurrentNeighborhood(saved);
     } else {
-      setCurrentLocation('강남구'); // 기본값
+      // 기본값 설정
+      setCurrentNeighborhood({ district: '강남구', neighborhood: '역삼동' });
     }
   };
 
-  const handleLocationChange = () => {
-    Alert.alert(
-      '위치 변경',
-      '지역을 선택해주세요',
-      [
-        { text: '강남구', onPress: () => setCurrentLocation('강남구') },
-        { text: '서초구', onPress: () => setCurrentLocation('서초구') },
-        { text: '송파구', onPress: () => setCurrentLocation('송파구') },
-        { text: '마포구', onPress: () => setCurrentLocation('마포구') },
-        { text: '취소', style: 'cancel' }
-      ]
-    );
+  const handleNeighborhoodSelect = (district: string, neighborhood: string) => {
+    const newNeighborhood = { district, neighborhood };
+    setCurrentNeighborhood(newNeighborhood);
+    locationService.saveUserNeighborhood(district, neighborhood);
+    updateNeighborhood(district, neighborhood);
+  };
+
+  const openNeighborhoodSelector = () => {
+    setShowNeighborhoodSelector(true);
   };
 
   const categories = FOOD_CATEGORIES;
@@ -73,8 +69,10 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, user }) => {
       {/* 고정 위치 헤더 */}
       <View style={styles.fixedLocationHeader}>
         <View style={styles.headerContent}>
-          <TouchableOpacity style={styles.locationButton} onPress={handleLocationChange}>
-            <Text style={styles.locationText}>{currentLocation}</Text>
+          <TouchableOpacity style={styles.locationButton} onPress={openNeighborhoodSelector}>
+            <Text style={styles.locationText}>
+              {currentNeighborhood ? `${currentNeighborhood.district}` : '동네 설정'}
+            </Text>
             <Icon name="chevron-down" size={14} color={COLORS.text.primary} />
           </TouchableOpacity>
           
@@ -295,6 +293,14 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, user }) => {
         <CreateMeetupScreen onClose={() => setShowCreateMeetup(false)} />
       </View>
     </Modal>
+
+    {/* 동네 설정 모달 */}
+    <NeighborhoodSelector
+      visible={showNeighborhoodSelector}
+      onClose={() => setShowNeighborhoodSelector(false)}
+      onSelect={handleNeighborhoodSelect}
+      currentNeighborhood={currentNeighborhood}
+    />
   </View>
   );
 };
@@ -834,5 +840,15 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 });
+
+// 컴포넌트 끝 부분에 NeighborhoodSelector 추가
+const HomeScreenWithSelector: React.FC<HomeScreenProps> = (props) => {
+  return (
+    <>
+      <HomeScreen {...props} />
+      {/* 동네 설정 모달은 전역적으로 표시되어야 하므로 여기에 추가 */}
+    </>
+  );
+};
 
 export default HomeScreen;

@@ -10,7 +10,7 @@ const BottomTabBar: React.FC = () => {
 
   const tabs = [
     { key: 'home', title: '홈', icon: 'home' as IconName, path: '/home' },
-    { key: 'search', title: '검색', icon: 'search' as IconName, path: '/search' },
+    { key: 'my-meetups', title: '내 모임', icon: 'calendar' as IconName, path: '/my-meetups' },
     { key: 'chat', title: '채팅', icon: 'message-circle' as IconName, path: '/chat' },
     { key: 'mypage', title: '마이페이지', icon: 'user' as IconName, path: '/mypage' },
   ];
@@ -22,6 +22,11 @@ const BottomTabBar: React.FC = () => {
     // /chat/:id 형태의 경로는 chat 탭으로 처리
     if (currentPath.startsWith('/chat')) {
       return 'chat';
+    }
+    
+    // /my-meetups 경로는 my-meetups 탭으로 처리
+    if (currentPath.startsWith('/my-meetups')) {
+      return 'my-meetups';
     }
     
     // /meetup/:id 형태의 경로는 홈 탭으로 처리 (모임 상세는 홈에서 접근)

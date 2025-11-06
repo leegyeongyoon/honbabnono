@@ -7,7 +7,7 @@ import { useMeetupStore } from '../store/meetupStore';
 
 // Screens
 import HomeScreen from '../screens/HomeScreen.web';
-import SearchScreen from '../screens/SearchScreen.web';
+import MyMeetupsScreen from '../screens/MyMeetupsScreen.web';
 import ChatScreen from '../screens/ChatScreen.web';
 import MyPageScreen from '../screens/MyPageScreen';
 import LoginScreen from '../screens/LoginScreen.web';
@@ -193,11 +193,11 @@ const RouterApp: React.FC = () => {
           />
 
           <Route 
-            path="/search" 
+            path="/my-meetups" 
             element={
               <ProtectedRoute>
                 <MainLayout>
-                  <SearchScreen user={user} />
+                  <MyMeetupsScreen user={user} />
                 </MainLayout>
               </ProtectedRoute>
             } 

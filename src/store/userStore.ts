@@ -13,6 +13,10 @@ export interface User {
   meetupsJoined: number;
   rating: number; // 평점 (1-5)
   createdAt: string;
+  neighborhood?: {
+    district: string;
+    neighborhood: string;
+  };
 }
 
 interface UserState {
@@ -24,10 +28,11 @@ interface UserState {
   // Actions
   setUser: (user: User) => void;
   setToken: (token: string) => void;
-  login: (user: User, token: string) => void;
+  login: (user: User, token: string) => Promise<void>;
   logout: () => void;
   updateBabAlScore: (score: number) => void;
   updateUserStats: (stats: Partial<Pick<User, 'meetupsHosted' | 'meetupsJoined' | 'rating'>>) => void;
+  updateNeighborhood: (district: string, neighborhood: string) => void;
   
   // API Actions
   fetchUserProfile: () => Promise<void>;
@@ -66,8 +71,26 @@ export const useUserStore = create<UserState>()(
       
       setToken: (token: string) => set({ token }),
       
-      login: (user: User, token: string) => {
-        const babAlScore = calculateBabAlFromStats(user);
+      login: async (user: User, token: string) => {
+        let babAlScore = calculateBabAlFromStats(user); // 기본값
+        
+        // DB에서 실제 밥알지수 가져오기 시도
+        try {
+          const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
+          const response = await fetch(`${apiUrl}/user/rice-index`, {
+            headers: { 'Authorization': `Bearer ${token}` },
+          });
+          
+          if (response.ok) {
+            const riceData = await response.json();
+            if (riceData.success && riceData.riceIndex) {
+              babAlScore = riceData.riceIndex;
+            }
+          }
+        } catch (error) {
+          console.warn('밥알지수 조회 실패, 계산값 사용:', error);
+        }
+        
         const updatedUser = { ...user, babAlScore };
         
         set({ 
@@ -111,6 +134,13 @@ export const useUserStore = create<UserState>()(
           user: { ...updatedUser, babAlScore: newBabAlScore }
         };
       }),
+
+      updateNeighborhood: (district, neighborhood) => set((state) => ({
+        user: state.user ? { 
+          ...state.user, 
+          neighborhood: { district, neighborhood } 
+        } : null
+      })),
       
       calculateBabAlScore: () => {
         const { user } = get();
@@ -123,15 +153,29 @@ export const useUserStore = create<UserState>()(
         
         try {
           const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
-          const response = await fetch(`${apiUrl}/auth/profile`, {
-            headers: {
-              'Authorization': `Bearer ${token}`,
-            },
-          });
           
-          if (response.ok) {
-            const userData = await response.json();
-            const babAlScore = calculateBabAlFromStats(userData);
+          // 프로필 정보와 밥알지수를 동시에 가져오기
+          const [profileResponse, riceIndexResponse] = await Promise.all([
+            fetch(`${apiUrl}/auth/profile`, {
+              headers: { 'Authorization': `Bearer ${token}` },
+            }),
+            fetch(`${apiUrl}/user/rice-index`, {
+              headers: { 'Authorization': `Bearer ${token}` },
+            })
+          ]);
+          
+          if (profileResponse.ok) {
+            const userData = await profileResponse.json();
+            let babAlScore = calculateBabAlFromStats(userData); // 기본값
+            
+            // DB에서 가져온 밥알지수가 있으면 우선 사용
+            if (riceIndexResponse.ok) {
+              const riceData = await riceIndexResponse.json();
+              if (riceData.success && riceData.riceIndex) {
+                babAlScore = riceData.riceIndex;
+              }
+            }
+            
             const updatedUser = { ...userData, babAlScore };
             set({ user: updatedUser });
           }
