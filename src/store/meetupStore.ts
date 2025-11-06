@@ -167,7 +167,18 @@ export const useMeetupStore = create<MeetupState>()(
     fetchMeetups: async () => {
       set({ loading: true, error: null });
       try {
+        console.log('📋 Fetching meetups list');
         const response = await apiCall('/meetups');
+        
+        console.log('🎯 Response received in fetchMeetups:', {
+          response,
+          responseType: typeof response,
+          responseKeys: Object.keys(response || {}),
+          meetupsArray: response?.meetups,
+          meetupsLength: response?.meetups?.length,
+          stringified: JSON.stringify(response)
+        });
+        
         const transformedMeetups = response.meetups?.map(transformMeetupData) || [];
         set({ meetups: transformedMeetups, loading: false });
       } catch (error) {
@@ -179,7 +190,17 @@ export const useMeetupStore = create<MeetupState>()(
     fetchMeetupById: async (id: string) => {
       set({ loading: true, error: null });
       try {
+        console.log('📋 Fetching meetup by ID:', id);
         const response = await apiCall(`/meetups/${id}`);
+        
+        console.log('🎯 Response received in fetchMeetupById:', {
+          response,
+          responseType: typeof response,
+          responseKeys: Object.keys(response || {}),
+          hasData: !!response,
+          stringified: JSON.stringify(response)
+        });
+        
         const meetup = transformMeetupData(response);
         set({ currentMeetup: meetup, loading: false });
         return meetup;
