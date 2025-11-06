@@ -79,6 +79,7 @@ const apiCall = async (endpoint: string, options: RequestInit = {}) => {
       data: options.body ? JSON.parse(options.body as string) : undefined,
       ...options
     });
+    // 전체 응답 객체를 반환 (기존 동작과 동일하게)
     return response.data;
   } catch (error: any) {
     throw new Error(`API Error: ${error.response?.status || 'Unknown'} ${error.message}`);
@@ -87,7 +88,19 @@ const apiCall = async (endpoint: string, options: RequestInit = {}) => {
 
 // 백엔드 데이터를 프론트엔드 형식으로 변환
 const transformMeetupData = (meetupData: any): Meetup => {
-  const actualData = meetupData.success ? meetupData.meetup : meetupData;
+  console.log('🔄 Transform meetup data:', meetupData);
+  
+  // 다양한 응답 구조 처리
+  let actualData;
+  if (meetupData.success && meetupData.meetup) {
+    actualData = meetupData.meetup;
+  } else if (meetupData.meetup) {
+    actualData = meetupData.meetup;
+  } else {
+    actualData = meetupData;
+  }
+  
+  console.log('📝 Actual data:', actualData);
   
   return {
     id: actualData.id,
