@@ -837,8 +837,8 @@ apiRouter.post('/meetups/:id/join', authenticateToken, async (req, res) => {
 
     // 참가자 추가
     await pool.query(`
-      INSERT INTO meetup_participants (meetup_id, user_id, status, created_at, updated_at)
-      VALUES ($1, $2, $3, NOW(), NOW())
+      INSERT INTO meetup_participants (id, meetup_id, user_id, status, created_at, updated_at)
+      VALUES (gen_random_uuid(), $1, $2, $3, NOW(), NOW())
     `, [id, userId, '참가승인']);
 
     // 현재 참가자 수 업데이트
@@ -2676,6 +2676,406 @@ apiRouter.post('/meetups/:id/verify-location', authenticateToken, async (req, re
     res.status(500).json({ 
       success: false, 
       error: '서버 오류가 발생했습니다.' 
+    });
+  }
+});
+
+// ===========================================
+// 약속금 및 포인트 시스템 API
+// ===========================================
+
+// 사용자 포인트 조회
+apiRouter.get('/user/points', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    console.log('🎁 포인트 조회 요청:', { userId });
+
+    // 포인트 정보 조회, 없으면 생성
+    let pointsResult = await pool.query(`
+      SELECT * FROM user_points WHERE user_id = $1
+    `, [userId]);
+
+    if (pointsResult.rows.length === 0) {
+      // 포인트 계정 생성
+      await pool.query(`
+        INSERT INTO user_points (user_id, total_points, available_points, used_points, expired_points)
+        VALUES ($1, 0, 0, 0, 0)
+      `, [userId]);
+      
+      pointsResult = await pool.query(`
+        SELECT * FROM user_points WHERE user_id = $1
+      `, [userId]);
+    }
+
+    const points = pointsResult.rows[0];
+
+    console.log('✅ 포인트 조회 성공:', points);
+
+    res.json({
+      success: true,
+      data: {
+        id: points.id,
+        userId: points.user_id,
+        totalPoints: points.total_points,
+        availablePoints: points.available_points,
+        usedPoints: points.used_points,
+        expiredPoints: points.expired_points,
+        lastUpdatedAt: points.updated_at
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ 포인트 조회 실패:', error);
+    res.status(500).json({
+      success: false,
+      error: '포인트 정보를 조회할 수 없습니다.'
+    });
+  }
+});
+
+// 포인트 내역 조회
+apiRouter.get('/user/point-transactions', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { page = 1, limit = 20 } = req.query;
+    const offset = (page - 1) * limit;
+
+    console.log('📋 포인트 내역 조회 요청:', { userId, page, limit });
+
+    const transactionsResult = await pool.query(`
+      SELECT * FROM point_transactions 
+      WHERE user_id = $1 
+      ORDER BY created_at DESC
+      LIMIT $2 OFFSET $3
+    `, [userId, parseInt(limit), parseInt(offset)]);
+
+    const countResult = await pool.query(`
+      SELECT COUNT(*) as total FROM point_transactions WHERE user_id = $1
+    `, [userId]);
+
+    const total = parseInt(countResult.rows[0].total);
+
+    console.log('✅ 포인트 내역 조회 성공:', transactionsResult.rows.length);
+
+    res.json({
+      success: true,
+      data: transactionsResult.rows.map(tx => ({
+        id: tx.id,
+        type: tx.type,
+        amount: tx.amount,
+        description: tx.description,
+        expiryDate: tx.expiry_date,
+        relatedDepositId: tx.related_deposit_id,
+        createdAt: tx.created_at
+      })),
+      pagination: {
+        total,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        totalPages: Math.ceil(total / limit)
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ 포인트 내역 조회 실패:', error);
+    res.status(500).json({
+      success: false,
+      error: '포인트 내역을 조회할 수 없습니다.'
+    });
+  }
+});
+
+// 약속금 결제 (Mock 구현)
+apiRouter.post('/deposits/payment', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { amount, meetupId, paymentMethod } = req.body;
+
+    console.log('💳 약속금 결제 요청:', { userId, amount, meetupId, paymentMethod });
+
+    // 입력값 검증
+    if (!amount || !meetupId || !paymentMethod) {
+      return res.status(400).json({
+        success: false,
+        error: '필수 정보가 누락되었습니다.'
+      });
+    }
+
+    // 이미 결제한 약속금이 있는지 확인
+    const existingDeposit = await pool.query(`
+      SELECT id FROM promise_deposits 
+      WHERE meetup_id = $1 AND user_id = $2
+    `, [meetupId, userId]);
+
+    if (existingDeposit.rows.length > 0) {
+      return res.status(400).json({
+        success: false,
+        error: '이미 해당 모임의 약속금을 결제하셨습니다.'
+      });
+    }
+
+    let paymentId;
+    let redirectUrl;
+
+    // 결제 방법별 처리 (Mock)
+    switch (paymentMethod) {
+      case 'kakaopay':
+        paymentId = `kakao_${Date.now()}`;
+        redirectUrl = `https://mockup-kakaopay.com/pay?amount=${amount}`;
+        break;
+      case 'card':
+        paymentId = `card_${Date.now()}`;
+        break;
+      case 'points':
+        // 포인트 잔액 확인
+        const pointsResult = await pool.query(`
+          SELECT available_points FROM user_points WHERE user_id = $1
+        `, [userId]);
+        
+        if (pointsResult.rows.length === 0 || pointsResult.rows[0].available_points < amount) {
+          return res.status(400).json({
+            success: false,
+            error: '보유 포인트가 부족합니다.'
+          });
+        }
+
+        // 포인트 차감
+        await pool.query(`
+          UPDATE user_points 
+          SET available_points = available_points - $1,
+              used_points = used_points + $1,
+              updated_at = NOW()
+          WHERE user_id = $2
+        `, [amount, userId]);
+
+        // 포인트 거래 내역 추가
+        await pool.query(`
+          INSERT INTO point_transactions (user_id, type, amount, description, created_at)
+          VALUES ($1, 'used', $2, $3, NOW())
+        `, [userId, amount, `모임 약속금 결제 (모임 ID: ${meetupId})`]);
+
+        paymentId = `points_${Date.now()}`;
+        break;
+      default:
+        return res.status(400).json({
+          success: false,
+          error: '지원하지 않는 결제 방식입니다.'
+        });
+    }
+
+    // 약속금 기록 저장
+    const depositResult = await pool.query(`
+      INSERT INTO promise_deposits (
+        meetup_id, user_id, amount, status, payment_method, payment_id, deposited_at, created_at, updated_at
+      ) VALUES ($1, $2, $3, 'paid', $4, $5, NOW(), NOW(), NOW())
+      RETURNING id
+    `, [meetupId, userId, amount, paymentMethod, paymentId]);
+
+    const depositId = depositResult.rows[0].id;
+
+    console.log('✅ 약속금 결제 완료:', { depositId, paymentId });
+
+    res.json({
+      success: true,
+      paymentId: depositId,
+      redirectUrl
+    });
+
+  } catch (error) {
+    console.error('❌ 약속금 결제 실패:', error);
+    res.status(500).json({
+      success: false,
+      error: '결제 처리 중 오류가 발생했습니다.'
+    });
+  }
+});
+
+// 약속금 환불 처리
+apiRouter.post('/deposits/:id/refund', authenticateToken, async (req, res) => {
+  try {
+    const { id: depositId } = req.params;
+    const { reason } = req.body;
+    const userId = req.user.userId;
+
+    console.log('💰 약속금 환불 요청:', { depositId, reason, userId });
+
+    // 약속금 정보 조회
+    const depositResult = await pool.query(`
+      SELECT * FROM promise_deposits 
+      WHERE id = $1 AND user_id = $2 AND status = 'paid'
+    `, [depositId, userId]);
+
+    if (depositResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: '환불 가능한 약속금을 찾을 수 없습니다.'
+      });
+    }
+
+    const deposit = depositResult.rows[0];
+
+    // 환불 금액 계산 (여기서는 100% 환불로 처리)
+    const refundAmount = deposit.amount;
+
+    // 약속금 상태 업데이트
+    await pool.query(`
+      UPDATE promise_deposits 
+      SET status = 'refunded', 
+          refund_amount = $1, 
+          refund_reason = $2,
+          returned_at = NOW(), 
+          updated_at = NOW()
+      WHERE id = $3
+    `, [refundAmount, reason, depositId]);
+
+    console.log('✅ 약속금 환불 완료:', { depositId, refundAmount });
+
+    res.json({
+      success: true,
+      message: '약속금이 환불되었습니다.',
+      refundAmount
+    });
+
+  } catch (error) {
+    console.error('❌ 약속금 환불 실패:', error);
+    res.status(500).json({
+      success: false,
+      error: '환불 처리 중 오류가 발생했습니다.'
+    });
+  }
+});
+
+// 약속금 포인트 전환
+apiRouter.post('/deposits/:id/convert-to-points', authenticateToken, async (req, res) => {
+  try {
+    const { id: depositId } = req.params;
+    const userId = req.user.userId;
+
+    console.log('🎁 약속금 포인트 전환 요청:', { depositId, userId });
+
+    // 약속금 정보 조회
+    const depositResult = await pool.query(`
+      SELECT * FROM promise_deposits 
+      WHERE id = $1 AND user_id = $2 AND status = 'paid'
+    `, [depositId, userId]);
+
+    if (depositResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: '포인트 전환 가능한 약속금을 찾을 수 없습니다.'
+      });
+    }
+
+    const deposit = depositResult.rows[0];
+    const pointAmount = deposit.amount; // 100% 포인트 전환
+
+    // 포인트 적립
+    await pool.query(`
+      INSERT INTO user_points (user_id, total_points, available_points, used_points, expired_points)
+      VALUES ($1, $2, $2, 0, 0)
+      ON CONFLICT (user_id) 
+      DO UPDATE SET 
+        total_points = user_points.total_points + $2,
+        available_points = user_points.available_points + $2,
+        updated_at = NOW()
+    `, [userId, pointAmount]);
+
+    // 포인트 거래 내역 추가
+    await pool.query(`
+      INSERT INTO point_transactions (user_id, type, amount, description, related_deposit_id, created_at)
+      VALUES ($1, 'earned', $2, $3, $4, NOW())
+    `, [userId, pointAmount, `약속금 포인트 전환 (모임 ID: ${deposit.meetup_id})`, depositId]);
+
+    // 약속금 상태 업데이트
+    await pool.query(`
+      UPDATE promise_deposits 
+      SET status = 'converted', 
+          is_converted_to_points = true,
+          updated_at = NOW()
+      WHERE id = $1
+    `, [depositId]);
+
+    console.log('✅ 약속금 포인트 전환 완료:', { depositId, pointAmount });
+
+    res.json({
+      success: true,
+      message: '약속금이 포인트로 전환되었습니다.',
+      pointAmount
+    });
+
+  } catch (error) {
+    console.error('❌ 약속금 포인트 전환 실패:', error);
+    res.status(500).json({
+      success: false,
+      error: '포인트 전환 처리 중 오류가 발생했습니다.'
+    });
+  }
+});
+
+// 사용자 약속금 내역 조회
+apiRouter.get('/user/deposits', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { page = 1, limit = 10 } = req.query;
+    const offset = (page - 1) * limit;
+
+    console.log('💰 약속금 내역 조회 요청:', { userId, page, limit });
+
+    const depositsResult = await pool.query(`
+      SELECT 
+        pd.*,
+        m.title as meetup_title,
+        m.date as meetup_date,
+        m.location as meetup_location
+      FROM promise_deposits pd
+      JOIN meetups m ON pd.meetup_id = m.id
+      WHERE pd.user_id = $1
+      ORDER BY pd.created_at DESC
+      LIMIT $2 OFFSET $3
+    `, [userId, parseInt(limit), parseInt(offset)]);
+
+    const countResult = await pool.query(`
+      SELECT COUNT(*) as total FROM promise_deposits WHERE user_id = $1
+    `, [userId]);
+
+    const total = parseInt(countResult.rows[0].total);
+
+    console.log('✅ 약속금 내역 조회 성공:', depositsResult.rows.length);
+
+    res.json({
+      success: true,
+      data: depositsResult.rows.map(deposit => ({
+        id: deposit.id,
+        meetupId: deposit.meetup_id,
+        amount: deposit.amount,
+        status: deposit.status,
+        paymentMethod: deposit.payment_method,
+        paymentId: deposit.payment_id,
+        refundAmount: deposit.refund_amount,
+        refundReason: deposit.refund_reason,
+        isConvertedToPoints: deposit.is_converted_to_points,
+        depositedAt: deposit.deposited_at,
+        returnedAt: deposit.returned_at,
+        createdAt: deposit.created_at,
+        meetup: {
+          title: deposit.meetup_title,
+          date: deposit.meetup_date,
+          location: deposit.meetup_location
+        }
+      })),
+      pagination: {
+        total,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        totalPages: Math.ceil(total / limit)
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ 약속금 내역 조회 실패:', error);
+    res.status(500).json({
+      success: false,
+      error: '약속금 내역을 조회할 수 없습니다.'
     });
   }
 });

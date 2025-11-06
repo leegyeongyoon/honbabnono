@@ -18,6 +18,9 @@ import reviewApiService, { UserReview } from '../services/reviewApiService';
 import apiClient from '../services/apiClient';
 import { formatKoreanDateTime } from '../utils/dateUtils';
 import { useUserStore } from '../store/userStore';
+import PointsModal from '../components/PointsModal';
+import depositService from '../services/depositService';
+import { UserPoints } from '../types/deposit';
 
 interface MyPageScreenProps {
   navigation?: any;
@@ -35,6 +38,8 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ navigation, user, onLogout 
   const [userReviews, setUserReviews] = useState<UserReview[]>([]);
   const [riceLevel, setRiceLevel] = useState<any>(null);
   const [riceIndexData, setRiceIndexData] = useState<any>(null);
+  const [userPoints, setUserPoints] = useState<UserPoints | null>(null);
+  const [showPointsModal, setShowPointsModal] = useState(false);
   
   // props로 받은 user가 있으면 사용, 없으면 store의 user 사용
   const currentUser = user || storeUser;
@@ -54,7 +59,8 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ navigation, user, onLogout 
         loadHostedMeetups(),
         loadJoinedMeetups(),
         loadUserReviews(),
-        loadRiceLevel()
+        loadRiceLevel(),
+        loadUserPoints()
       ]);
     } catch (error) {
       console.error('사용자 데이터 로드 실패:', error);
@@ -114,6 +120,18 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ navigation, user, onLogout 
       }
     } catch (error) {
       console.error('밥알 레벨 로드 실패:', error);
+    }
+  };
+
+  // 사용자 포인트 정보 로드
+  const loadUserPoints = async () => {
+    try {
+      if (currentUser?.id) {
+        const points = await depositService.getUserPoints(currentUser.id);
+        setUserPoints(points);
+      }
+    } catch (error) {
+      console.error('포인트 정보 로드 실패:', error);
     }
   };
 
@@ -394,6 +412,30 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ navigation, user, onLogout 
           </View>
         </View>
 
+        {/* 포인트 섹션 */}
+        <TouchableOpacity 
+          style={styles.pointsSection}
+          onPress={() => setShowPointsModal(true)}
+        >
+          <View style={styles.pointsHeader}>
+            <View style={styles.pointsLeft}>
+              <View style={styles.pointsIcon}>
+                <Text style={styles.pointsIconText}>🎁</Text>
+              </View>
+              <View style={styles.pointsInfo}>
+                <Text style={styles.pointsLabel}>보유 포인트</Text>
+                <Text style={styles.pointsAmount}>
+                  {userPoints?.availablePoints?.toLocaleString() || '0'}P
+                </Text>
+              </View>
+            </View>
+            <Icon name="chevron-right" size={20} color={COLORS.text.tertiary} />
+          </View>
+          <Text style={styles.pointsDescription}>
+            모임 참여로 적립한 포인트를 확인하고 사용해보세요
+          </Text>
+        </TouchableOpacity>
+
         {/* 활동 통계 */}
         <View style={styles.statsSection}>
           <TouchableOpacity style={styles.statCard}>
@@ -616,6 +658,12 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ navigation, user, onLogout 
           </ScrollView>
         </View>
       </Modal>
+
+      {/* 포인트 모달 */}
+      <PointsModal
+        visible={showPointsModal}
+        onClose={() => setShowPointsModal(false)}
+      />
     </View>
   );
 };
@@ -1368,6 +1416,53 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: COLORS.text.primary,
     lineHeight: 22,
+  },
+  // 포인트 섹션 스타일
+  pointsSection: {
+    backgroundColor: COLORS.neutral.white,
+    marginBottom: 1,
+    padding: 16,
+  },
+  pointsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  pointsLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  pointsIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#FFF3E0',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  pointsIconText: {
+    fontSize: 20,
+  },
+  pointsInfo: {
+    flex: 1,
+  },
+  pointsLabel: {
+    fontSize: 14,
+    color: COLORS.text.secondary,
+    marginBottom: 2,
+  },
+  pointsAmount: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: COLORS.primary.main,
+  },
+  pointsDescription: {
+    fontSize: 13,
+    color: COLORS.text.secondary,
+    lineHeight: 18,
   },
 });
 

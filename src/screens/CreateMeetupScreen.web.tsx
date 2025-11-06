@@ -14,6 +14,8 @@ import Toast from '../components/Toast';
 import { useToast } from '../hooks/useToast';
 import { useRouterNavigation } from '../components/RouterNavigation';
 import { FOOD_CATEGORY_NAMES, PRICE_RANGES } from '../constants/categories';
+import DepositSelector from '../components/DepositSelector';
+import depositService from '../services/depositService';
 
 interface CreateMeetupScreenProps {
   navigation?: any;
@@ -52,12 +54,16 @@ const CreateMeetupScreen: React.FC<CreateMeetupScreenProps> = ({ user }) => {
   });
 
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [showDepositSelector, setShowDepositSelector] = useState(false);
+  const [depositEnabled, setDepositEnabled] = useState(false);
+  const [depositId, setDepositId] = useState<string | null>(null);
 
   const [loading, setLoading] = useState(false);
   const { toast, showSuccess, showError, hideToast } = useToast();
 
   const categories = FOOD_CATEGORY_NAMES;
   const priceRanges = PRICE_RANGES;
+  const defaultPolicy = depositService.getDefaultDepositPolicy();
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
@@ -80,6 +86,22 @@ const CreateMeetupScreen: React.FC<CreateMeetupScreenProps> = ({ user }) => {
         ? prev.interests.filter(i => i !== interest)
         : [...prev.interests, interest]
     }));
+  };
+
+  const handleDepositToggle = () => {
+    if (!depositEnabled) {
+      setDepositEnabled(true);
+      setShowDepositSelector(true);
+    } else {
+      setDepositEnabled(false);
+      setDepositId(null);
+    }
+  };
+
+  const handleDepositPaid = (paidDepositId: string, amount: number) => {
+    setDepositId(paidDepositId);
+    setDepositEnabled(true);
+    showSuccess(`약속금 ${amount.toLocaleString()}원이 결제되었습니다!`);
   };
 
   const validateForm = () => {
@@ -115,6 +137,9 @@ const CreateMeetupScreen: React.FC<CreateMeetupScreenProps> = ({ user }) => {
       const meetupData = {
         ...formData,
         maxParticipants: parseInt(formData.maxParticipants),
+        depositEnabled,
+        depositAmount: depositEnabled ? defaultPolicy.amount : 0,
+        depositId,
       };
 
       const token = localStorage.getItem('token');
@@ -359,6 +384,74 @@ const CreateMeetupScreen: React.FC<CreateMeetupScreenProps> = ({ user }) => {
               maxLength={300}
             />
           </View>
+        </View>
+
+        {/* 약속금 설정 */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>약속금 설정</Text>
+          <Text style={styles.sectionSubtitle}>
+            노쇼 방지와 신뢰도 향상을 위한 약속금을 설정할 수 있습니다
+          </Text>
+          
+          <TouchableOpacity
+            style={styles.depositToggleRow}
+            onPress={handleDepositToggle}
+          >
+            <View style={styles.depositToggleLeft}>
+              <View style={styles.depositToggleIcon}>
+                <Text style={styles.depositToggleIconText}>💰</Text>
+              </View>
+              <View style={styles.depositToggleInfo}>
+                <Text style={styles.depositToggleTitle}>
+                  {defaultPolicy.name} ({defaultPolicy.amount.toLocaleString()}원)
+                </Text>
+                <Text style={styles.depositToggleDesc}>
+                  {depositEnabled && depositId 
+                    ? '결제 완료 ✅' 
+                    : defaultPolicy.description
+                  }
+                </Text>
+              </View>
+            </View>
+            <View style={[
+              styles.toggleSwitch,
+              depositEnabled && styles.toggleSwitchActive,
+            ]}>
+              <View style={[
+                styles.toggleSwitchThumb,
+                depositEnabled && styles.toggleSwitchThumbActive,
+              ]} />
+            </View>
+          </TouchableOpacity>
+
+          {depositEnabled && (
+            <View style={styles.depositPolicyInfo}>
+              <Text style={styles.policyTitle}>환불 정책</Text>
+              <View style={styles.policyItem}>
+                <Text style={styles.policyLabel}>• 정상 참석 + 후기 작성</Text>
+                <Text style={styles.policyValue}>100% 환불</Text>
+              </View>
+              <View style={styles.policyItem}>
+                <Text style={styles.policyLabel}>• 정상 참석 (후기 미작성)</Text>
+                <Text style={styles.policyValue}>포인트 전환</Text>
+              </View>
+              <View style={styles.policyItem}>
+                <Text style={styles.policyLabel}>• 노쇼</Text>
+                <Text style={styles.policyValue}>약속금 몰수</Text>
+              </View>
+              
+              {!depositId && (
+                <TouchableOpacity
+                  style={styles.payDepositButton}
+                  onPress={() => setShowDepositSelector(true)}
+                >
+                  <Text style={styles.payDepositButtonText}>
+                    {defaultPolicy.amount.toLocaleString()}원 결제하기
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
         </View>
 
         {/* 식사 성향 필터 */}
@@ -653,6 +746,13 @@ const CreateMeetupScreen: React.FC<CreateMeetupScreenProps> = ({ user }) => {
         type={toast.type}
         onHide={hideToast}
       />
+
+      <DepositSelector
+        visible={showDepositSelector}
+        onClose={() => setShowDepositSelector(false)}
+        onDepositPaid={handleDepositPaid}
+        meetupId="temp_meetup_id" // 실제로는 모임 생성 후 ID 사용
+      />
     </View>
   );
 };
@@ -859,6 +959,107 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: COLORS.text.primary,
     flex: 1,
+  },
+  // 약속금 관련 스타일
+  depositToggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    marginBottom: 16,
+  },
+  depositToggleLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  depositToggleIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#FFF3CD',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  depositToggleIconText: {
+    fontSize: 20,
+  },
+  depositToggleInfo: {
+    flex: 1,
+  },
+  depositToggleTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1A1A1A',
+    marginBottom: 2,
+  },
+  depositToggleDesc: {
+    fontSize: 14,
+    color: '#666666',
+  },
+  toggleSwitch: {
+    width: 44,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#E5E5E5',
+    padding: 2,
+    justifyContent: 'center',
+  },
+  toggleSwitchActive: {
+    backgroundColor: '#007AFF',
+  },
+  toggleSwitchThumb: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+  },
+  toggleSwitchThumbActive: {
+    transform: [{ translateX: 20 }],
+  },
+  depositPolicyInfo: {
+    backgroundColor: '#F8F9FA',
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 8,
+  },
+  policyTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1A1A1A',
+    marginBottom: 12,
+  },
+  policyItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  policyLabel: {
+    fontSize: 14,
+    color: '#666666',
+    flex: 1,
+  },
+  policyValue: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#1A1A1A',
+  },
+  payDepositButton: {
+    backgroundColor: '#007AFF',
+    borderRadius: 8,
+    paddingVertical: 12,
+    alignItems: 'center',
+    marginTop: 12,
+  },
+  payDepositButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
 });
 
