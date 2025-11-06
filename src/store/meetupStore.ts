@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
+import apiClient from '../services/apiClient';
 
 export interface Participant {
   id: string;
@@ -69,25 +70,19 @@ interface MeetupState {
   clearStore: () => void;
 }
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
-
-// API 호출 헬퍼 함수
+// API 호출 헬퍼 함수 (apiClient 사용)
 const apiCall = async (endpoint: string, options: RequestInit = {}) => {
-  const token = localStorage.getItem('token');
-  const response = await fetch(`${API_URL}${endpoint}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token && { 'Authorization': `Bearer ${token}` }),
-      ...options.headers,
-    },
-  });
-  
-  if (!response.ok) {
-    throw new Error(`API Error: ${response.status} ${response.statusText}`);
+  try {
+    const response = await apiClient.request({
+      url: endpoint,
+      method: options.method as any || 'GET',
+      data: options.body ? JSON.parse(options.body as string) : undefined,
+      ...options
+    });
+    return response.data;
+  } catch (error: any) {
+    throw new Error(`API Error: ${error.response?.status || 'Unknown'} ${error.message}`);
   }
-  
-  return response.json();
 };
 
 // 백엔드 데이터를 프론트엔드 형식으로 변환
