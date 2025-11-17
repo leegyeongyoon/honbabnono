@@ -13,6 +13,8 @@ import MyPageScreen from '../screens/MyPageScreen';
 import LoginScreen from '../screens/LoginScreen.web';
 import MeetupDetailScreen from '../screens/MeetupDetailScreen.web';
 import CreateMeetupScreen from '../screens/CreateMeetupScreen.web';
+import PaymentScreen from '../screens/PaymentScreen.web';
+import DepositPaymentScreen from '../screens/DepositPaymentScreen.web';
 
 // Components
 import BottomTabBar from './BottomTabBar';
@@ -173,6 +175,15 @@ const RouterApp: React.FC = () => {
           />
 
           <Route 
+            path="/meetup/:id/deposit-payment" 
+            element={
+              <ProtectedRoute>
+                <DepositPaymentScreen />
+              </ProtectedRoute>
+            } 
+          />
+
+          <Route 
             path="/meetup/:id" 
             element={
               <ProtectedRoute>
@@ -230,6 +241,15 @@ const RouterApp: React.FC = () => {
             element={
               <ProtectedRoute>
                 <CreateMeetupScreen user={user} />
+              </ProtectedRoute>
+            } 
+          />
+
+          <Route 
+            path="/payment" 
+            element={
+              <ProtectedRoute>
+                <PaymentScreen />
               </ProtectedRoute>
             } 
           />

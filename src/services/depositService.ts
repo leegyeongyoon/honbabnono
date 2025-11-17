@@ -404,7 +404,7 @@ class DepositService {
       const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
       const token = localStorage.getItem('token');
       
-      const response = await fetch(`${apiUrl}/user/points`, {
+      const response = await fetch(`${apiUrl}/users/points`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -416,7 +416,19 @@ class DepositService {
       }
 
       const result = await response.json();
-      return result.data;
+      console.log('💰 포인트 API 응답:', result);
+      
+      // API 응답 형태 변환
+      const pointsData = result.data;
+      return {
+        id: pointsData.userId,
+        userId: pointsData.userId,
+        totalPoints: pointsData.points || 0,
+        availablePoints: pointsData.points || 0,
+        usedPoints: 0,
+        expiredPoints: 0,
+        lastUpdatedAt: new Date().toISOString()
+      };
     } catch (error) {
       console.error('포인트 조회 오류:', error);
       // 실패 시 기본값 반환

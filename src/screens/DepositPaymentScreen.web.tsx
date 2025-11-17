@@ -1,0 +1,442 @@
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, SafeAreaView } from 'react-native';
+import { useNavigate, useParams } from 'react-router-dom';
+import { Icon } from '../components/Icon';
+import { COLORS } from '../styles/colors';
+
+interface UserPoints {
+  availablePoints: number;
+  totalPoints: number;
+}
+
+const DepositPaymentScreen: React.FC = () => {
+  const navigate = useNavigate();
+  const { id } = useParams<{ id: string }>();
+  const [userPoints, setUserPoints] = useState<UserPoints>({ availablePoints: 0, totalPoints: 0 });
+  const [selectedMethod, setSelectedMethod] = useState<'points' | 'card'>('points');
+  const [loading, setLoading] = useState(false);
+  const [showInsufficientModal, setShowInsufficientModal] = useState(false);
+  
+  const depositAmount = 1000; // 약속금 금액 (1,000원으로 조정)
+
+  // 사용자 포인트 조회
+  useEffect(() => {
+    const fetchUserPoints = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:3001/api'}/users/points`, {
+          headers: {
+            'Authorization': token ? `Bearer ${token}` : '',
+          },
+        });
+
+        const data = await response.json();
+        if (data.success) {
+          setUserPoints({
+            availablePoints: data.data.points || 0,
+            totalPoints: data.data.points || 0
+          });
+          
+          // 포인트가 충분하면 포인트 결제를 기본값으로
+          if (data.data.points >= depositAmount) {
+            setSelectedMethod('points');
+          } else {
+            setSelectedMethod('card');
+          }
+        }
+      } catch (error) {
+        console.error('포인트 조회 오류:', error);
+      }
+    };
+
+    fetchUserPoints();
+  }, [depositAmount]);
+
+  const handlePayment = async () => {
+    if (selectedMethod === 'points' && userPoints.availablePoints < depositAmount) {
+      setShowInsufficientModal(true);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      if (selectedMethod === 'points') {
+        // 포인트 결제
+        const token = localStorage.getItem('token');
+        const usePointsResponse = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:3001/api'}/users/use-points`, {
+          method: 'POST',
+          headers: {
+            'Authorization': token ? `Bearer ${token}` : '',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            amount: depositAmount,
+            description: `모임 약속금 결제`
+          }),
+        });
+
+        const pointsData = await usePointsResponse.json();
+        if (!pointsData.success) {
+          Alert.alert('결제 실패', pointsData.message || '포인트 사용 중 오류가 발생했습니다.');
+          setLoading(false);
+          return;
+        }
+
+        // 모임 참여 API 호출
+        const joinResponse = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:3001/api'}/meetups/${id}/join`, {
+          method: 'POST',
+          headers: {
+            'Authorization': token ? `Bearer ${token}` : '',
+            'Content-Type': 'application/json',
+          },
+        });
+
+        const joinData = await joinResponse.json();
+        if (!joinData.success) {
+          Alert.alert('참여 실패', joinData.message || '모임 참여 중 오류가 발생했습니다.');
+          setLoading(false);
+          return;
+        }
+
+        Alert.alert('참여 완료!', `약속금 ${depositAmount.toLocaleString()}원이 결제되어 모임에 참여했습니다.`, [
+          {
+            text: '확인',
+            onPress: () => navigate(`/meetup/${id}`)
+          }
+        ]);
+      } else {
+        // 카드 결제 (추후 구현)
+        Alert.alert('준비중', '카드 결제는 준비중입니다.', [
+          {
+            text: '확인',
+            onPress: () => setLoading(false)
+          }
+        ]);
+      }
+    } catch (error) {
+      console.error('결제 오류:', error);
+      Alert.alert('결제 실패', '결제 중 오류가 발생했습니다.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleInsufficientPoints = () => {
+    setShowInsufficientModal(false);
+    // 포인트 충전 페이지로 이동
+    sessionStorage.setItem('returnUrl', `/meetup/${id}/deposit-payment`);
+    sessionStorage.setItem('requiredPoints', (depositAmount - userPoints.availablePoints).toString());
+    navigate(`/payment?amount=${depositAmount - userPoints.availablePoints}&reason=deposit`);
+  };
+
+  return (
+    <SafeAreaView style={styles.container}>
+      {/* 헤더 */}
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => navigate(`/meetup/${id}`)} style={styles.backButton}>
+          <Icon name="chevron-left" size={24} color={COLORS.text.primary} />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>서로의 신뢰를 위해{'\n'}약속금을 미리 걸어두요</Text>
+      </View>
+
+      {/* 약속금 정보 */}
+      <View style={styles.amountSection}>
+        <Text style={styles.amountLabel}>약속금</Text>
+        <Text style={styles.amountValue}>{depositAmount.toLocaleString()}원</Text>
+        <Text style={styles.amountDescription}>
+          노쇼 방지 목적이며, 1일 이내 다시 입금됩니다.
+        </Text>
+      </View>
+
+      {/* 결제 방식 선택 */}
+      <View style={styles.paymentSection}>
+        <Text style={styles.sectionTitle}>결제 방식</Text>
+        
+        {/* 포인트 결제 */}
+        <TouchableOpacity
+          style={[
+            styles.paymentOption,
+            selectedMethod === 'points' && styles.selectedOption
+          ]}
+          onPress={() => setSelectedMethod('points')}
+        >
+          <View style={styles.paymentOptionLeft}>
+            <View style={[styles.radioButton, selectedMethod === 'points' && styles.radioSelected]}>
+              {selectedMethod === 'points' && <View style={styles.radioInner} />}
+            </View>
+            <Text style={styles.paymentOptionText}>포인트 결제</Text>
+          </View>
+          <View style={styles.paymentOptionRight}>
+            <Text style={[
+              styles.pointsText,
+              userPoints.availablePoints < depositAmount && styles.insufficientPoints
+            ]}>
+              {userPoints.availablePoints.toLocaleString()}P
+            </Text>
+            {userPoints.availablePoints < depositAmount && (
+              <Text style={styles.insufficientText}>포인트 부족</Text>
+            )}
+          </View>
+        </TouchableOpacity>
+
+        {/* 카드 결제 */}
+        <TouchableOpacity
+          style={[
+            styles.paymentOption,
+            selectedMethod === 'card' && styles.selectedOption
+          ]}
+          onPress={() => setSelectedMethod('card')}
+        >
+          <View style={styles.paymentOptionLeft}>
+            <View style={[styles.radioButton, selectedMethod === 'card' && styles.radioSelected]}>
+              {selectedMethod === 'card' && <View style={styles.radioInner} />}
+            </View>
+            <Text style={styles.paymentOptionText}>카드 결제</Text>
+          </View>
+        </TouchableOpacity>
+      </View>
+
+      {/* 결제 버튼 */}
+      <View style={styles.bottomSection}>
+        <TouchableOpacity
+          style={[styles.paymentButton, loading && styles.disabledButton]}
+          onPress={handlePayment}
+          disabled={loading}
+        >
+          <Text style={styles.paymentButtonText}>
+            {loading ? '결제 중...' : '다음'}
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* 포인트 부족 모달 */}
+      {showInsufficientModal && (
+        <View style={styles.modalOverlay}>
+          <View style={styles.modal}>
+            <Text style={styles.modalTitle}>서로의 신뢰를 위해{'\n'}약속금을 미리 걸어두요</Text>
+            <Text style={styles.modalSubtitle}>약속금 {depositAmount.toLocaleString()}원</Text>
+            <Text style={styles.modalDescription}>
+              노쇼 방지 목적이며, 1일 이내에 다시 입금됩니다.
+            </Text>
+            
+            <View style={styles.modalButtons}>
+              <TouchableOpacity 
+                style={styles.modalCancelButton}
+                onPress={() => setShowInsufficientModal(false)}
+              >
+                <Text style={styles.modalCancelText}>취소</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.modalConfirmButton}
+                onPress={handleInsufficientPoints}
+              >
+                <Text style={styles.modalConfirmText}>다음</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      )}
+    </SafeAreaView>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: COLORS.neutral.background,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 20,
+    paddingTop: 40,
+  },
+  backButton: {
+    padding: 8,
+    marginRight: 12,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+    lineHeight: 24,
+  },
+  amountSection: {
+    padding: 20,
+    alignItems: 'center',
+    marginVertical: 20,
+  },
+  amountLabel: {
+    fontSize: 16,
+    color: COLORS.text.secondary,
+    marginBottom: 8,
+  },
+  amountValue: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: COLORS.text.primary,
+    marginBottom: 8,
+  },
+  amountDescription: {
+    fontSize: 14,
+    color: COLORS.text.tertiary,
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  paymentSection: {
+    padding: 20,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+    marginBottom: 16,
+  },
+  paymentOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
+    backgroundColor: COLORS.neutral.white,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.neutral.border,
+    marginBottom: 12,
+  },
+  selectedOption: {
+    borderColor: COLORS.primary.main,
+    backgroundColor: COLORS.primary.light + '10',
+  },
+  paymentOptionLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  radioButton: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: COLORS.neutral.border,
+    marginRight: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  radioSelected: {
+    borderColor: COLORS.primary.main,
+  },
+  radioInner: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: COLORS.primary.main,
+  },
+  paymentOptionText: {
+    fontSize: 16,
+    color: COLORS.text.primary,
+  },
+  paymentOptionRight: {
+    alignItems: 'flex-end',
+  },
+  pointsText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+  },
+  insufficientPoints: {
+    color: COLORS.functional.error,
+  },
+  insufficientText: {
+    fontSize: 12,
+    color: COLORS.functional.error,
+    marginTop: 2,
+  },
+  bottomSection: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    padding: 20,
+  },
+  paymentButton: {
+    backgroundColor: COLORS.text.primary,
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+  },
+  disabledButton: {
+    backgroundColor: COLORS.neutral.border,
+  },
+  paymentButtonText: {
+    color: COLORS.neutral.white,
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  modalOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modal: {
+    backgroundColor: COLORS.neutral.white,
+    borderRadius: 16,
+    padding: 24,
+    width: '100%',
+    maxWidth: 320,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+    textAlign: 'center',
+    marginBottom: 12,
+    lineHeight: 24,
+  },
+  modalSubtitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: COLORS.text.primary,
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  modalDescription: {
+    fontSize: 14,
+    color: COLORS.text.tertiary,
+    textAlign: 'center',
+    marginBottom: 24,
+    lineHeight: 20,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  modalCancelButton: {
+    flex: 1,
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: COLORS.neutral.border,
+    alignItems: 'center',
+  },
+  modalCancelText: {
+    color: COLORS.text.secondary,
+    fontSize: 16,
+  },
+  modalConfirmButton: {
+    flex: 1,
+    padding: 12,
+    borderRadius: 8,
+    backgroundColor: COLORS.primary.main,
+    alignItems: 'center',
+  },
+  modalConfirmText: {
+    color: COLORS.neutral.white,
+    fontSize: 16,
+    fontWeight: '600',
+  },
+});
+
+export default DepositPaymentScreen;

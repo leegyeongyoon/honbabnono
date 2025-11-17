@@ -87,7 +87,16 @@
       "Bash(npm run server:*)",
       "Bash(nslookup:*)",
       "Bash(npm run build:*)",
-      "Bash(npm run:*)"
+      "Bash(npm run:*)",
+      "WebFetch(domain:auth-admin.cognity.classting.net)",
+      "WebFetch(domain:auth.cognity.classting.net)",
+      "Bash(kubectl get:*)",
+      "Bash(kubectl describe:*)",
+      "Bash(kubectl logs:*)",
+      "Bash(kubectl patch:*)",
+      "Bash(kubectl exec:*)",
+      "Bash(kubectl scale:*)",
+      "Read(/dev/**)"
     ],
     "deny": [],
     "ask": []

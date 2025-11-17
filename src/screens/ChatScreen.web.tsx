@@ -14,6 +14,7 @@ import { COLORS, SHADOWS, LAYOUT } from '../styles/colors';
 import { Icon } from '../components/Icon';
 import chatService from '../services/chatService';
 import chatApiService, { ChatRoom, ChatMessage } from '../services/chatApiService';
+import { getDetailedDateFormat, getChatDateHeader, isSameDay } from '../utils/timeUtils';
 
 interface ChatScreenProps {
   navigation?: any;
@@ -211,7 +212,9 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, user }) => {
             {item.lastMessage || '아직 메시지가 없습니다'}
           </Text>
           <Text style={styles.chatTime}>
-            {participantCount ? `${participantCount}명 참여` : ''}
+            {getDetailedDateFormat(item.lastTime)}
+            {participantCount && item.lastTime ? ' • ' : ''}
+            {participantCount ? `${participantCount}명` : ''}
           </Text>
         </View>
         {item.unreadCount > 0 && (
@@ -287,30 +290,43 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, user }) => {
         contentContainerStyle={styles.messageListContainer}
         showsVerticalScrollIndicator={false}
       >
-        {messages.map((message) => (
-          <View
-            key={message.id}
-            style={[styles.messageItem, message.isMe && styles.myMessage]}
-          >
-            {!message.isMe && (
-              <View style={styles.messageHeader}>
-                <Text style={styles.senderName}>{message.senderName}</Text>
+        {messages.map((message, index) => {
+          // 이전 메시지와 날짜가 다르면 날짜 헤더 표시
+          const showDateHeader = index === 0 || !isSameDay(messages[index - 1].timestamp, message.timestamp);
+          
+          return (
+            <View key={message.id}>
+              {showDateHeader && (
+                <View style={styles.dateHeader}>
+                  <Text style={styles.dateHeaderText}>
+                    {getChatDateHeader(message.timestamp)}
+                  </Text>
+                </View>
+              )}
+              <View
+                style={[styles.messageItem, message.isMe && styles.myMessage]}
+              >
+                {!message.isMe && (
+                  <View style={styles.messageHeader}>
+                    <Text style={styles.senderName}>{message.senderName}</Text>
+                  </View>
+                )}
+                <View style={[styles.messageBubble, message.isMe && styles.myMessageBubble]}>
+                  <Text style={[styles.messageText, message.isMe && styles.myMessageText]}>
+                    {message.message}
+                  </Text>
+                </View>
+                <Text style={[styles.messageTime, message.isMe && styles.myMessageTime]}>
+                  {new Date(message.timestamp).toLocaleTimeString('ko-KR', { 
+                    hour: '2-digit', 
+                    minute: '2-digit',
+                    hour12: true 
+                  })}
+                </Text>
               </View>
-            )}
-            <View style={[styles.messageBubble, message.isMe && styles.myMessageBubble]}>
-              <Text style={[styles.messageText, message.isMe && styles.myMessageText]}>
-                {message.message}
-              </Text>
             </View>
-            <Text style={[styles.messageTime, message.isMe && styles.myMessageTime]}>
-              {new Date(message.timestamp).toLocaleTimeString('ko-KR', { 
-                hour: '2-digit', 
-                minute: '2-digit',
-                hour12: true 
-              })}
-            </Text>
-          </View>
-        ))}
+          );
+        })}
       </ScrollView>
 
       {/* 메시지 입력 */}
@@ -633,6 +649,20 @@ const styles = StyleSheet.create({
   },
   sendButtonActive: {
     backgroundColor: '#007AFF',
+  },
+  dateHeader: {
+    alignItems: 'center',
+    marginVertical: 20,
+  },
+  dateHeaderText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#999',
+    backgroundColor: 'rgba(0, 0, 0, 0.05)',
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderRadius: 16,
+    textAlign: 'center',
   },
 });
 

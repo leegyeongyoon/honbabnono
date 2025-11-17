@@ -13,6 +13,7 @@ export const ROUTES = {
   PROFILE: 'Profile' as const,
   CHAT_ROOM: 'ChatRoom' as const,
   NOTIFICATION: 'Notification' as const,
+  PAYMENT: 'Payment' as const,
 } as const;
 
 export const TAB_ROUTES = [

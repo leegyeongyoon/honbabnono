@@ -94,7 +94,9 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
   const loading = useMeetupStore(state => state.loading);
   const joinMeetup = useMeetupStore(state => state.joinMeetup);
   const leaveMeetup = useMeetupStore(state => state.leaveMeetup);
+  const fetchMeetupById = useMeetupStore(state => state.fetchMeetupById);
   const [showPromiseModal, setShowPromiseModal] = React.useState(false);
+  const [showLeaveModal, setShowLeaveModal] = React.useState(false);
   const [userRiceIndex, setUserRiceIndex] = React.useState<number>(0);
   
   // props로 받은 user가 있으면 사용, 없으면 store의 user 사용
@@ -102,10 +104,9 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
 
   React.useEffect(() => {
     if (id) {
-      const fetchFn = useMeetupStore.getState().fetchMeetupById;
-      fetchFn(id);
+      fetchMeetupById(id);
     }
-  }, [id]); // id가 변경될 때만 호출
+  }, [id, fetchMeetupById]);
 
   // 사용자 밥알지수 로드
   React.useEffect(() => {
@@ -135,6 +136,7 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
 
   const meetup = currentMeetup;
   const participants = meetup.participants || [];
+  const isHost = meetup.hostId === user?.id;
 
   // 모임 참여하기
   const handleJoinMeetup = async () => {
@@ -142,14 +144,49 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
     
     try {
       if (participants.some(p => p.id === user.id)) {
-        // 이미 참여중이면 탈퇴
-        await leaveMeetup(id, user.id);
+        // 이미 참여중이면 탈퇴 확인 모달 표시
+        setShowLeaveModal(true);
       } else {
-        // 참여하기
-        setShowPromiseModal(true);
+        // 참여하기 - 약속금 결제 화면으로 이동
+        navigate(`/meetup/${id}/deposit-payment`);
       }
     } catch (error) {
       console.error('모임 참여/탈퇴 실패:', error);
+    }
+  };
+
+  // 모임 탈퇴 확인
+  const handleConfirmLeave = async () => {
+    if (!user || !id) return;
+    
+    try {
+      const result = await leaveMeetup(id, user.id);
+      setShowLeaveModal(false);
+      
+      // 호스트가 모임을 취소한 경우 홈으로 리다이렉트
+      if (result?.isHostCancellation) {
+        alert('모임이 취소되었습니다. 모든 참가자가 자동으로 나가게 됩니다.');
+        navigate('/home');
+      }
+    } catch (error) {
+      console.error('모임 탈퇴 실패:', error);
+      setShowLeaveModal(false);
+    }
+  };
+
+  // 포인트 충분 여부 확인
+  const checkUserPoints = async (): Promise<boolean> => {
+    try {
+      const response = await apiClient.get('/users/points');
+      if (response.data && response.data.success) {
+        const userPoints = response.data.data.points || 0;
+        const requiredPoints = meetup.deposit || 3000; // 기본값 3000원
+        return userPoints >= requiredPoints;
+      }
+      return false;
+    } catch (error) {
+      console.error('포인트 조회 실패:', error);
+      return false;
     }
   };
 
@@ -158,142 +195,174 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
     if (!user || !id) return;
     
     try {
+      // 포인트 확인
+      const hasEnoughPoints = await checkUserPoints();
+      
+      if (!hasEnoughPoints) {
+        const requiredPoints = meetup.deposit || 3000;
+        const confirmed = confirm(
+          `포인트가 부족합니다.\n필요한 포인트: ${requiredPoints.toLocaleString()}원\n충전 페이지로 이동하시겠습니까?`
+        );
+        
+        if (confirmed) {
+          // 약속금 결제 화면으로 이동
+          navigate(`/meetup/${id}/deposit-payment`);
+          return;
+        } else {
+          setShowPromiseModal(false);
+          return;
+        }
+      }
+
+      // 포인트 사용 API 호출
+      const usePointsResponse = await apiClient.post('/users/use-points', {
+        amount: meetup.deposit || 3000,
+        description: `모임 참여비: ${meetup.title}`
+      });
+
+      if (!usePointsResponse.data.success) {
+        alert('포인트 사용 중 오류가 발생했습니다.');
+        setShowPromiseModal(false);
+        return;
+      }
+
+      // 모임 참여
       await joinMeetup(id, user.id);
       setShowPromiseModal(false);
+      
+      alert(`모임 참여가 완료되었습니다!\n사용된 포인트: ${(meetup.deposit || 3000).toLocaleString()}원`);
     } catch (error) {
       console.error('모임 참여 실패:', error);
+      alert('모임 참여 중 오류가 발생했습니다.');
+      setShowPromiseModal(false);
     }
   };
 
   return (
     <View style={styles.container}>
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        {/* 헤더 */}
-        <View style={styles.header}>
-          <TouchableOpacity
-            onPress={() => navigate(-1)}
-            style={styles.backButton}
-          >
-            <Text style={styles.backButtonText}>←</Text>
+      {/* 상단 헤더 */}
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => navigate(-1)} style={styles.backButton}>
+          <Text style={styles.backButtonText}>←</Text>
+        </TouchableOpacity>
+        <View style={styles.headerIcons}>
+          <TouchableOpacity style={styles.iconButton}>
+            <Text style={styles.iconText}>🔍</Text>
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>상세보기</Text>
-          <View style={styles.babAlContainer}>
-            <Text style={styles.babAlScore}>{userRiceIndex || 43} 밥알</Text>
+          <TouchableOpacity style={styles.iconButton}>
+            <Text style={styles.iconText}>🔔</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        {/* 호스트 정보 */}
+        <View style={styles.hostSection}>
+          <View style={styles.hostInfo}>
+            <View style={styles.avatar} />
+            <View>
+              <Text style={styles.hostName}>{meetup.hostName || '익명'}</Text>
+              <Text style={styles.hostLocation}>{meetup.location || '위치 미정'}</Text>
+            </View>
+          </View>
+          <View style={styles.riceIndicator}>
+            <Text style={styles.riceText}>{meetup.hostBabAlScore || userRiceIndex} 밥알 🍚</Text>
           </View>
         </View>
 
         {/* 메인 카드 */}
         <View style={styles.mainCard}>
-          {/* 제목 */}
-          <Text style={styles.meetupTitle}>{meetup.title || '제목 없음'}</Text>
+          <Text style={styles.meetupTitle}>{meetup.title || '급한 때실 시밥'}</Text>
           
-          {/* 정보 그리드 */}
-          <View style={styles.infoContainer}>
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>카테고리</Text>
-              <Text style={styles.infoValue}>{meetup.category || '미정'}</Text>
+          <View style={styles.infoGrid}>
+            <View style={styles.infoItem}>
+              <Text style={styles.infoLabel}>{meetup.location}</Text>
+            </View>
+            
+            <View style={styles.infoItem}>
+              <Text style={styles.infoLabel}>{meetup.date} {meetup.time}</Text>
+            </View>
+            
+            <View style={styles.infoItem}>
+              <Text style={styles.infoLabel}>{meetup.currentParticipants}/{meetup.maxParticipants}명</Text>
             </View>
             
             <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>날짜</Text>
-              <Text style={styles.infoValue}>{meetup.date || '미정'}</Text>
-            </View>
-            
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>시간</Text>
-              <Text style={styles.infoValue}>{meetup.time || '미정'}</Text>
-            </View>
-            
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>인원</Text>
-              <Text style={styles.infoValue}>{meetup.currentParticipants || 0}/{meetup.maxParticipants || 0}명</Text>
-            </View>
-            
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>위치</Text>
-              <Text style={styles.infoValue}>{meetup.location || '미정'}</Text>
+              <Text style={styles.infoDetails}>{meetup.category}    {meetup.priceRange || '가격미정'}    {meetup.tags?.join(' ') || ''}</Text>
             </View>
           </View>
 
-          {/* 설명 */}
-          <Text style={styles.description}>{meetup.description || '설명 없음'}</Text>
-          
-          {/* 지도 */}
-          <KakaoMap location={meetup.location} address={meetup.location} />
-          
-          {/* 하단 정보 */}
-          <View style={styles.bottomInfo}>
-            <Text style={styles.bottomInfoText}>데이팅레볼 (서울 구로구 항동으로길72길 29)</Text>
-            <View style={styles.statusContainer}>
-              <View style={styles.statusDot} />
-              <Text style={styles.statusText}>상대방이 참여요청 중 · 5분 전</Text>
-            </View>
+          <Text style={styles.description}>
+            {meetup.description || '설명이 없습니다.'}
+          </Text>
+
+          <View style={styles.timeInfo}>
+            <Text style={styles.timeText}>2시간 전 · 조회 103</Text>
           </View>
         </View>
 
-        {/* 참가 예비 섹션 */}
-        <View style={styles.participantCard}>
-          <Text style={styles.participantTitle}>참가 예비</Text>
+        {/* 지도 섹션 */}
+        <KakaoMap location={meetup.location} address={meetup.address || meetup.location} />
+
+        {/* 참여자 섹션 */}
+        <View style={styles.participantSection}>
+          <Text style={styles.participantTitle}>참여자 ({participants.length}명)</Text>
           
-          <View style={styles.participantList}>
-            {participants.length > 0 ? participants.map((participant, index) => (
-              <View key={index} style={styles.participantItem}>
-                <View style={styles.avatar} />
-                <View style={styles.participantInfo}>
-                  <Text style={styles.participantName}>{participant.name || participant.user_name || '익명'}</Text>
-                  <Text style={styles.participantStatus}>
-                    {participant.status === 'approved' ? '참여 확정' : '참여 대기 중'}
-                  </Text>
-                </View>
+          {/* 호스트 */}
+          <View style={styles.participantItem}>
+            <View style={styles.hostAvatar} />
+            <View style={styles.participantInfo}>
+              <Text style={styles.participantName}>{meetup.hostName} (호스트)</Text>
+              <Text style={styles.participantRole}>호스트입니다</Text>
+            </View>
+          </View>
+
+          {/* 참여자들 */}
+          {participants.map((participant) => (
+            <View key={participant.id} style={styles.participantItem}>
+              <View style={styles.participantAvatar} />
+              <View style={styles.participantInfo}>
+                <Text style={styles.participantName}>{participant.name}</Text>
+                <Text style={styles.participantRole}>
+                  {participant.status === 'approved' ? '참가승인' : 
+                   participant.status === 'pending' ? '참가신청' : '거절됨'}
+                </Text>
               </View>
-            )) : (
-              <View style={styles.participantItem}>
-                <View style={styles.avatar} />
-                <View style={styles.participantInfo}>
-                  <Text style={styles.participantName}>참가자 없음</Text>
-                  <Text style={styles.participantStatus}>아직 참가한 사람이 없습니다</Text>
-                </View>
-              </View>
-            )}
-          </View>
+            </View>
+          ))}
+          
+          {participants.length === 0 && (
+            <Text style={styles.noParticipants}>아직 참여자가 없습니다.</Text>
+          )}
         </View>
 
-        {/* 참여하기 버튼 */}
-        <View style={styles.buttonContainer}>
-          <TouchableOpacity
-            onPress={() => handleJoinMeetup()}
-            style={[
-              styles.joinButton,
-              (!user || participants.some(p => p.id === user.id)) && styles.joinButtonDisabled
-            ]}
-            disabled={!user || participants.some(p => p.id === user.id)}
-          >
-            <Text style={[
-              styles.joinButtonText,
-              (!user || participants.some(p => p.id === user.id)) && styles.joinButtonTextDisabled
-            ]}>
-              {!user 
-                ? '로그인 필요' 
-                : participants.some(p => p.id === user.id) 
-                  ? '참여중' 
-                  : '참여하기'
-              }
-            </Text>
-          </TouchableOpacity>
-        </View>
+        {/* 하단 여백 */}
+        <View style={styles.bottomPadding} />
       </ScrollView>
+
+      {/* 하단 고정 버튼 */}
+      <View style={styles.fixedBottom}>
+        <TouchableOpacity
+          onPress={() => handleJoinMeetup()}
+          style={styles.joinButton}
+        >
+          <Text style={styles.joinButtonText}>
+            {participants.some(p => p.id === user?.id) || isHost ? 
+              (isHost ? '모임취소' : '참여취소') : '같이먹기'}
+          </Text>
+        </TouchableOpacity>
+      </View>
 
       {/* 약속보증금 모달 */}
       {showPromiseModal && (
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
-            <Text style={styles.modalTitle}>약속보증금</Text>
+            <Text style={styles.modalTitle}>서로의 신뢰를 위해{'\n'}약속금을 미리 걸어두요</Text>
             <Text style={styles.modalDescription}>
-              노쇼 방지를 위해 약속보증금을 결제해주세요.{'\n'}
-              모임 참석 시 100% 환불됩니다.
+              노쇼 방지 약속금이며, 1일 이내에 다시 입금됩니다.
             </Text>
             <View style={styles.modalAmountContainer}>
-              <Text style={styles.modalAmount}>5,000원</Text>
+              <Text style={styles.modalAmount}>약속금 3000원</Text>
             </View>
             <View style={styles.modalButtonContainer}>
               <TouchableOpacity
@@ -306,7 +375,40 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
                 style={styles.modalPayButton}
                 onPress={handleConfirmJoin}
               >
-                <Text style={styles.modalPayText}>결제하기</Text>
+                <Text style={styles.modalPayText}>다음</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      )}
+
+      {/* 참여 취소 확인 모달 */}
+      {showLeaveModal && (
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <Text style={styles.modalTitle}>
+              {isHost ? '모임을 취소하시겠어요?' : '모임에서 나가시겠어요?'}
+            </Text>
+            <Text style={styles.modalDescription}>
+              {isHost ? 
+                '모임을 취소하면 모든 참가자가 나가게 되고,\n채팅방도 삭제됩니다. 취소하시겠어요?' :
+                '모임을 나가면 채팅방에서도 나가게 되며,\n다시 참여하려면 새로 신청해야 해요.'
+              }
+            </Text>
+            <View style={styles.modalButtonContainer}>
+              <TouchableOpacity
+                onPress={() => setShowLeaveModal(false)}
+                style={styles.modalCancelButton}
+              >
+                <Text style={styles.modalCancelText}>취소</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.modalLeaveButton, isHost && styles.modalHostCancelButton]}
+                onPress={handleConfirmLeave}
+              >
+                <Text style={styles.modalLeaveText}>
+                  {isHost ? '모임취소' : '나가기'}
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -319,7 +421,7 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#FFFFFF',
   },
   scrollView: {
     flex: 1,
@@ -328,7 +430,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#FFFFFF',
   },
   loadingText: {
     fontSize: 16,
@@ -338,178 +440,239 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: 'white',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e9ecef',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    paddingTop: 50,
+    backgroundColor: '#FFFFFF',
   },
   backButton: {
     padding: 8,
   },
   backButtonText: {
-    fontSize: 20,
-    color: '#333',
+    fontSize: 24,
+    color: '#000000',
   },
-  headerTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-    flex: 1,
-    textAlign: 'center',
-    marginRight: 80,
+  headerIcons: {
+    flexDirection: 'row',
+    gap: 12,
   },
-  babAlContainer: {
-    backgroundColor: '#e3f2fd',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
+  iconButton: {
+    padding: 8,
   },
-  babAlScore: {
-    fontSize: 12,
-    color: '#1976d2',
-    fontWeight: '500',
+  iconText: {
+    fontSize: 18,
   },
-  mainCard: {
-    backgroundColor: 'white',
-    margin: 16,
-    padding: 20,
-    borderRadius: 12,
-    ...SHADOWS.small,
-  },
-  meetupTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 16,
-  },
-  infoContainer: {
-    marginBottom: 16,
-  },
-  infoRow: {
+  hostSection: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f1f3f4',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
   },
-  infoLabel: {
-    fontSize: 14,
-    color: '#666',
-  },
-  infoValue: {
-    fontSize: 14,
-    color: '#333',
-    fontWeight: '500',
-  },
-  description: {
-    fontSize: 14,
-    color: '#333',
-    lineHeight: 20,
-    marginBottom: 20,
-  },
-  mapSection: {
-    marginBottom: 20,
-  },
-  mapLabel: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 8,
-  },
-  mapLocationText: {
-    fontSize: 12,
-    color: '#666',
-    textAlign: 'center',
-  },
-  bottomInfo: {
-    marginTop: 16,
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#f1f3f4',
-  },
-  bottomInfoText: {
-    fontSize: 12,
-    color: '#666',
-    marginBottom: 8,
-  },
-  statusContainer: {
+  hostInfo: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 12,
   },
-  statusDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: '#4caf50',
-    marginRight: 6,
+  hostName: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#000000',
+    marginBottom: 2,
+  },
+  hostLocation: {
+    fontSize: 14,
+    color: '#666666',
+  },
+  riceIndicator: {
+    backgroundColor: '#F0F0F0',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  riceText: {
+    fontSize: 14,
+    color: '#000000',
+    fontWeight: '600',
+  },
+  mainCard: {
+    backgroundColor: '#FFFFFF',
+    marginHorizontal: 20,
+    marginBottom: 16,
+    padding: 20,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#F0F0F0',
+  },
+  meetupTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#000000',
+    marginBottom: 20,
+  },
+  infoGrid: {
+    marginBottom: 20,
+  },
+  infoItem: {
+    marginBottom: 12,
+  },
+  infoLabel: {
+    fontSize: 16,
+    color: '#666666',
+    fontWeight: '500',
+  },
+  infoRow: {
+    marginTop: 8,
+  },
+  infoDetails: {
+    fontSize: 14,
+    color: '#999999',
+  },
+  description: {
+    fontSize: 16,
+    color: '#333333',
+    lineHeight: 24,
+    marginBottom: 16,
+  },
+  timeInfo: {
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#F0F0F0',
+  },
+  timeText: {
+    fontSize: 13,
+    color: '#999999',
+  },
+  mapSection: {
+    marginHorizontal: 20,
+    marginBottom: 16,
+  },
+  mapTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#000000',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  locationInfo: {
+    
+  },
+  locationText: {
+    fontSize: 14,
+    color: '#000000',
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  statusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  subwayInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  subwayLine1: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#1E88E5',
+  },
+  subwayLine2: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#4CAF50',
+  },
+  subwayText: {
+    fontSize: 12,
+    color: '#666666',
+    marginLeft: 4,
   },
   statusText: {
     fontSize: 12,
-    color: '#666',
+    color: '#666666',
   },
-  participantCard: {
-    backgroundColor: 'white',
-    marginHorizontal: 16,
+  participantSection: {
+    backgroundColor: '#FFFFFF',
+    marginHorizontal: 20,
     marginBottom: 16,
     padding: 20,
-    borderRadius: 12,
-    ...SHADOWS.small,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#F0F0F0',
   },
   participantTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#000000',
     marginBottom: 16,
-  },
-  participantList: {
-    
   },
   participantItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 16,
   },
   avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: '#e9ecef',
+    marginRight: 12,
+  },
+  hostAvatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#FFD54F',
+    marginRight: 12,
+  },
+  participantAvatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#E0E0E0',
     marginRight: 12,
   },
   participantInfo: {
     flex: 1,
   },
   participantName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000000',
+    marginBottom: 4,
+  },
+  participantRole: {
     fontSize: 14,
-    fontWeight: '500',
-    color: '#333',
-    marginBottom: 2,
+    color: '#666666',
   },
-  participantStatus: {
-    fontSize: 12,
-    color: '#666',
+  bottomPadding: {
+    height: 100,
   },
-  buttonContainer: {
-    paddingHorizontal: 16,
-    paddingBottom: 20,
+  fixedBottom: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 20,
+    paddingVertical: 20,
+    paddingBottom: 34,
+    borderTopWidth: 1,
+    borderTopColor: '#F0F0F0',
   },
   joinButton: {
-    backgroundColor: '#007bff',
-    borderRadius: 8,
+    backgroundColor: '#495057',
+    borderRadius: 12,
     paddingVertical: 16,
     alignItems: 'center',
   },
   joinButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: 'white',
-  },
-  joinButtonDisabled: {
-    backgroundColor: '#d6d6d6',
-  },
-  joinButtonTextDisabled: {
-    color: '#999',
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
   modalOverlay: {
     position: 'absolute',
@@ -582,6 +745,28 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: 'white',
+  },
+  noParticipants: {
+    fontSize: 14,
+    color: '#999',
+    textAlign: 'center',
+    marginTop: 20,
+    fontStyle: 'italic',
+  },
+  modalLeaveButton: {
+    flex: 1,
+    backgroundColor: '#dc3545',
+    borderRadius: 12,
+    padding: 12,
+    alignItems: 'center',
+  },
+  modalLeaveText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: 'white',
+  },
+  modalHostCancelButton: {
+    backgroundColor: '#dc2626', // 더 진한 빨강
   },
 });
 

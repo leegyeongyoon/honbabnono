@@ -413,14 +413,11 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ navigation, user, onLogout 
         </View>
 
         {/* 포인트 섹션 */}
-        <TouchableOpacity 
-          style={styles.pointsSection}
-          onPress={() => setShowPointsModal(true)}
-        >
+        <View style={styles.pointsSection}>
           <View style={styles.pointsHeader}>
             <View style={styles.pointsLeft}>
               <View style={styles.pointsIcon}>
-                <Text style={styles.pointsIconText}>🎁</Text>
+                <Text style={styles.pointsIconText}>💰</Text>
               </View>
               <View style={styles.pointsInfo}>
                 <Text style={styles.pointsLabel}>보유 포인트</Text>
@@ -429,12 +426,23 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ navigation, user, onLogout 
                 </Text>
               </View>
             </View>
-            <Icon name="chevron-right" size={20} color={COLORS.text.tertiary} />
+            <TouchableOpacity 
+              style={styles.chargeButton}
+              onPress={() => {
+                if (navigation) {
+                  navigation.navigate('Payment');
+                } else {
+                  window.location.href = '/payment';
+                }
+              }}
+            >
+              <Text style={styles.chargeButtonText}>충전하기</Text>
+            </TouchableOpacity>
           </View>
           <Text style={styles.pointsDescription}>
-            모임 참여로 적립한 포인트를 확인하고 사용해보세요
+            모임 참여비로 포인트를 사용하고, 필요할 때 간편하게 충전하세요
           </Text>
-        </TouchableOpacity>
+        </View>
 
         {/* 활동 통계 */}
         <View style={styles.statsSection}>
@@ -448,7 +456,7 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ navigation, user, onLogout 
           </TouchableOpacity>
           <TouchableOpacity style={styles.statCard}>
             <Text style={styles.statNumber}>{activityStats?.completedMeetups || 0}</Text>
-            <Text style={styles.statLabel}>완료</Text>
+            <Text style={styles.statLabel}>지난 모임</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -672,6 +680,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.neutral.background,
+    paddingTop: 60, // 상단 여백 추가
   },
   profileHeader: {
     backgroundColor: COLORS.neutral.background,
@@ -1463,6 +1472,18 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: COLORS.text.secondary,
     lineHeight: 18,
+  },
+  chargeButton: {
+    backgroundColor: COLORS.primary.main,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 16,
+    marginLeft: 12,
+  },
+  chargeButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.neutral.white,
   },
 });
 

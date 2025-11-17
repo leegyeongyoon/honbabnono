@@ -35,6 +35,8 @@ const CreateMeetupScreen: React.FC<CreateMeetupScreenProps> = ({ user }) => {
     category: '한식',
     priceRange: '1-2만원',
     requirements: '',
+    image: null as File | null,
+    imagePreview: '' as string,
   });
 
   const [preferenceFilter, setPreferenceFilter] = useState({
@@ -128,29 +130,76 @@ const CreateMeetupScreen: React.FC<CreateMeetupScreenProps> = ({ user }) => {
     return true;
   };
 
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      // 이미지 파일 검증
+      const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+      if (!validTypes.includes(file.type)) {
+        alert('JPG, PNG, GIF 파일만 업로드 가능합니다.');
+        return;
+      }
+
+      // 파일 크기 검증 (5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        alert('이미지 파일은 5MB 이하로 업로드 해주세요.');
+        return;
+      }
+
+      // 미리보기 생성
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setFormData(prev => ({
+          ...prev,
+          image: file,
+          imagePreview: e.target?.result as string
+        }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setFormData(prev => ({
+      ...prev,
+      image: null,
+      imagePreview: ''
+    }));
+  };
+
   const handleCreateMeetup = async () => {
     if (!validateForm()) return;
 
     setLoading(true);
     
     try {
-      const meetupData = {
-        ...formData,
-        maxParticipants: parseInt(formData.maxParticipants),
-        depositEnabled,
-        depositAmount: depositEnabled ? defaultPolicy.amount : 0,
-        depositId,
-      };
-
       const token = localStorage.getItem('token');
+      
+      // FormData 생성 (이미지 업로드를 위해)
+      const formDataToSend = new FormData();
+      formDataToSend.append('title', formData.title);
+      formDataToSend.append('description', formData.description);
+      formDataToSend.append('category', formData.category);
+      formDataToSend.append('location', formData.location);
+      formDataToSend.append('address', formData.address);
+      formDataToSend.append('date', formData.date);
+      formDataToSend.append('time', formData.time);
+      formDataToSend.append('maxParticipants', formData.maxParticipants);
+      formDataToSend.append('priceRange', formData.priceRange);
+      formDataToSend.append('requirements', formData.requirements);
+      
+      // 이미지 파일이 있으면 추가
+      if (formData.image) {
+        formDataToSend.append('image', formData.image);
+      }
       
       const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:3001/api'}/meetups`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
+          // Content-Type을 설정하지 않음 (FormData가 자동으로 설정)
         },
-        body: JSON.stringify(meetupData),
+        body: formDataToSend,
       });
 
       const data = await response.json();
@@ -250,6 +299,44 @@ const CreateMeetupScreen: React.FC<CreateMeetupScreenProps> = ({ user }) => {
               numberOfLines={4}
               maxLength={500}
             />
+          </View>
+
+          {/* 이미지 업로드 */}
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>모임 이미지</Text>
+            <View style={styles.imageUploadContainer}>
+              {formData.imagePreview ? (
+                <View style={styles.imagePreviewContainer}>
+                  <img 
+                    src={formData.imagePreview} 
+                    alt="모임 이미지 미리보기" 
+                    style={styles.imagePreview}
+                  />
+                  <TouchableOpacity 
+                    style={styles.removeImageButton} 
+                    onPress={handleRemoveImage}
+                  >
+                    <Text style={styles.removeImageText}>✕</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <TouchableOpacity 
+                  style={styles.imageUploadButton}
+                  onPress={() => document.getElementById('image-upload')?.click()}
+                >
+                  <Text style={styles.imageUploadIcon}>📷</Text>
+                  <Text style={styles.imageUploadText}>이미지 추가</Text>
+                  <Text style={styles.imageUploadSubText}>JPG, PNG, GIF (최대 5MB)</Text>
+                </TouchableOpacity>
+              )}
+              <input
+                id="image-upload"
+                type="file"
+                accept="image/jpeg,image/jpg,image/png,image/gif"
+                onChange={handleImageUpload}
+                style={{ display: 'none' }}
+              />
+            </View>
           </View>
         </View>
 
@@ -1060,6 +1147,61 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#FFFFFF',
+  },
+  imageUploadContainer: {
+    marginTop: 8,
+  },
+  imageUploadButton: {
+    borderWidth: 2,
+    borderColor: '#E0E0E0',
+    borderStyle: 'dashed',
+    borderRadius: 12,
+    padding: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FAFAFA',
+    minHeight: 160,
+  },
+  imageUploadIcon: {
+    fontSize: 32,
+    marginBottom: 8,
+  },
+  imageUploadText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#333',
+    marginBottom: 4,
+  },
+  imageUploadSubText: {
+    fontSize: 12,
+    color: '#666',
+  },
+  imagePreviewContainer: {
+    position: 'relative',
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  imagePreview: {
+    width: '100%',
+    height: 200,
+    objectFit: 'cover',
+    borderRadius: 12,
+  },
+  removeImageButton: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    borderRadius: 15,
+    width: 30,
+    height: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  removeImageText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
 

@@ -35,6 +35,8 @@ export interface Meetup {
   createdAt: string;
   updatedAt: string;
   participants: Participant[];
+  lastChatTime?: string;
+  lastChatMessage?: string;
 }
 
 interface MeetupState {
@@ -146,6 +148,8 @@ const transformMeetupData = (meetupData: any): Meetup => {
       joinedAt: p.joinedAt,
       babAlScore: p.babAlScore || 50,
     })) || [],
+    lastChatTime: actualData.lastChatTime,
+    lastChatMessage: actualData.lastChatMessage,
   };
 };
 
@@ -299,16 +303,21 @@ export const useMeetupStore = create<MeetupState>()(
     
     leaveMeetup: async (meetupId: string, userId: string) => {
       try {
-        await apiCall(`/meetups/${meetupId}/leave`, {
+        const response = await apiCall(`/meetups/${meetupId}/leave`, {
           method: 'POST',
           body: JSON.stringify({ userId }),
         });
         
-        // 모임 데이터 새로고침
-        await get().fetchMeetupById(meetupId);
+        // 호스트 취소가 아닌 경우에만 데이터 새로고침
+        if (!response.isHostCancellation) {
+          await get().fetchMeetupById(meetupId);
+        }
+        
+        return response;
       } catch (error) {
         console.error('모임 탈퇴 실패:', error);
         set({ error: (error as Error).message });
+        throw error;
       }
     },
     
