@@ -27,38 +27,97 @@ interface MeetupDetailScreenProps {
   user?: User | null;
 }
 
-// 간단한 위치 정보 컴포넌트 (Kakao Maps 대체)
-const LocationInfo: React.FC<{ location: string; address: string }> = ({ location, address }) => {
-  const handleOpenInMaps = () => {
-    // 다양한 지도 서비스 링크 제공
-    const query = encodeURIComponent(location);
-    const googleMapsUrl = `https://maps.google.com/maps?q=${query}`;
-    const naverMapUrl = `https://map.naver.com/v5/search/${query}`;
-    const kakaoMapUrl = `https://map.kakao.com/link/search/${query}`;
-    
-    // 기본적으로 구글 맵스로 열기
-    window.open(googleMapsUrl, '_blank');
-  };
+// 카카오맵 컴포넌트
+const KakaoMap: React.FC<{ location: string; address: string }> = ({ location, address }) => {
+  const mapRef = React.useRef<HTMLDivElement>(null);
+  const [mapLoaded, setMapLoaded] = React.useState(false);
+  const [mapError, setMapError] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    const loadKakaoMap = () => {
+      try {
+        if (window.kakao && window.kakao.maps && mapRef.current) {
+          console.log('🗺️ Kakao Maps API loaded successfully');
+          const options = {
+            center: new window.kakao.maps.LatLng(37.498095, 127.027610),
+            level: 3
+          };
+
+          const map = new window.kakao.maps.Map(mapRef.current, options);
+          const geocoder = new window.kakao.maps.services.Geocoder();
+
+          geocoder.addressSearch(location, function(result: any, status: any) {
+            console.log('🔍 Address search result:', { location, status, result });
+            if (status === window.kakao.maps.services.Status.OK) {
+              const coords = new window.kakao.maps.LatLng(result[0].y, result[0].x);
+              const marker = new window.kakao.maps.Marker({
+                map: map,
+                position: coords
+              });
+              const infowindow = new window.kakao.maps.InfoWindow({
+                content: `<div style="width:150px;text-align:center;padding:6px 0;">${location}</div>`
+              });
+              infowindow.open(map, marker);
+              map.setCenter(coords);
+              setMapLoaded(true);
+              setMapError(null);
+            } else {
+              console.error('❌ Address search failed:', status);
+              setMapError('주소 검색에 실패했습니다.');
+              // 기본 위치로 지도 표시
+              setMapLoaded(true);
+            }
+          });
+        }
+      } catch (error) {
+        console.error('❌ Map loading error:', error);
+        setMapError('지도를 불러올 수 없습니다.');
+      }
+    };
+
+    if (!window.kakao) {
+      console.log('📥 Loading Kakao Maps script...');
+      const script = document.createElement('script');
+      script.async = true;
+      script.src = `//dapi.kakao.com/v2/maps/sdk.js?appkey=5a202bd90ab8dff01348f24cb1c37f3f&libraries=services&autoload=false`;
+      script.onload = () => {
+        console.log('✅ Kakao Maps script loaded');
+        if (window.kakao && window.kakao.maps) {
+          window.kakao.maps.load(loadKakaoMap);
+        }
+      };
+      script.onerror = (error) => {
+        console.error('❌ Failed to load Kakao Maps script:', error);
+        setMapError('지도 스크립트를 불러올 수 없습니다.');
+      };
+      document.head.appendChild(script);
+    } else {
+      loadKakaoMap();
+    }
+  }, [location]);
 
   return (
     <View style={styles.mapSection}>
-      <Text style={styles.mapLabel}>위치</Text>
-      <View style={styles.locationCard}>
-        <View style={styles.locationIconContainer}>
-          <View style={styles.locationIcon}>
-            <Text style={styles.locationEmoji}>📍</Text>
-          </View>
-        </View>
-        <View style={styles.locationInfo}>
-          <Text style={styles.locationText}>{location}</Text>
-          <TouchableOpacity 
-            style={styles.openMapButton}
-            onPress={handleOpenInMaps}
-          >
-            <Text style={styles.openMapText}>지도에서 보기</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
+      <Text style={styles.mapLabel}>지도</Text>
+      <div 
+        ref={mapRef}
+        style={{
+          width: '100%',
+          height: '200px',
+          backgroundColor: '#f5f5f5',
+          borderRadius: '8px',
+          marginBottom: '12px',
+          display: mapError ? 'flex' : 'block',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: '#666',
+          fontSize: '14px'
+        }}
+      >
+        {!mapLoaded && !mapError && '지도를 불러오는 중...'}
+        {mapError && mapError}
+      </div>
+      <Text style={styles.mapLocationText}>{location}</Text>
     </View>
   );
 };
@@ -299,8 +358,8 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
           </View>
         </View>
 
-        {/* 위치 섹션 */}
-        <LocationInfo location={meetup.location} address={meetup.address || meetup.location} />
+        {/* 지도 섹션 */}
+        <KakaoMap location={meetup.location} address={meetup.address || meetup.location} />
 
         {/* 참여자 섹션 */}
         <View style={styles.participantSection}>
@@ -602,6 +661,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#FFFFFF',
     fontWeight: '500',
+  },
+  mapLocationText: {
+    fontSize: 14,
+    color: '#333333',
+    fontWeight: '500',
+    textAlign: 'center',
   },
   mapTitle: {
     fontSize: 18,
