@@ -37,6 +37,9 @@ const LocationSelector: React.FC<{
   const mapRef = useRef<HTMLDivElement>(null);
   const [mapLoaded, setMapLoaded] = useState(false);
   const [mapError, setMapError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [manualLocation, setManualLocation] = useState('');
+  const [useManualInput, setUseManualInput] = useState(false);
 
   useEffect(() => {
     const loadKakaoMap = () => {
@@ -110,29 +113,130 @@ const LocationSelector: React.FC<{
     }
   }, []);
 
+  // 주소 검색 함수
+  const searchAddress = () => {
+    if (!searchQuery.trim() || !window.kakao) return;
+
+    const geocoder = new window.kakao.maps.services.Geocoder();
+    geocoder.addressSearch(searchQuery, function(result: any, status: any) {
+      if (status === window.kakao.maps.services.Status.OK) {
+        const coords = new window.kakao.maps.LatLng(result[0].y, result[0].x);
+        const locationName = result[0].address_name;
+        
+        console.log('🔍 검색 결과:', { locationName, coords, result: result[0] });
+        
+        // 지도 중심 이동 및 마커 업데이트
+        if (mapRef.current && window.kakao.maps) {
+          const mapInstance = window.kakao.maps.Map.getMap(mapRef.current);
+          if (mapInstance) {
+            mapInstance.setCenter(coords);
+            // 마커 업데이트 로직은 지도 로드 후 처리됨
+          }
+        }
+        
+        onLocationSelect(searchQuery, locationName, parseFloat(result[0].y), parseFloat(result[0].x));
+      } else {
+        alert('주소를 찾을 수 없습니다. 다른 검색어를 시도해보세요.');
+      }
+    });
+  };
+
+  // 수동 입력 저장
+  const saveManualLocation = () => {
+    if (!manualLocation.trim()) return;
+    
+    // 강남역 좌표를 기본값으로 사용
+    onLocationSelect(manualLocation, '직접 입력된 주소', 37.498095, 127.027610);
+    setUseManualInput(false);
+    console.log('📝 수동 입력 저장:', manualLocation);
+  };
+
   return (
     <View style={styles.mapSelectorContainer}>
-      <Text style={styles.mapSelectorTitle}>지도에서 위치 선택</Text>
-      <Text style={styles.mapSelectorDescription}>지도를 클릭해서 모임 장소를 선택해주세요</Text>
+      <Text style={styles.mapSelectorTitle}>모임 장소 선택</Text>
       
-      <div 
-        ref={mapRef}
-        style={{
-          width: '100%',
-          height: '300px',
-          backgroundColor: '#f5f5f5',
-          borderRadius: '8px',
-          marginBottom: '12px',
-          display: mapError ? 'flex' : 'block',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: '#666',
-          fontSize: '14px'
-        }}
-      >
-        {!mapLoaded && !mapError && '지도를 불러오는 중...'}
-        {mapError && mapError}
-      </div>
+      {/* 입력 방법 선택 탭 */}
+      <View style={styles.inputMethodTabs}>
+        <TouchableOpacity 
+          style={[styles.tabButton, !useManualInput && styles.activeTab]}
+          onPress={() => setUseManualInput(false)}
+        >
+          <Text style={[styles.tabText, !useManualInput && styles.activeTabText]}>지도/검색</Text>
+        </TouchableOpacity>
+        <TouchableOpacity 
+          style={[styles.tabButton, useManualInput && styles.activeTab]}
+          onPress={() => setUseManualInput(true)}
+        >
+          <Text style={[styles.tabText, useManualInput && styles.activeTabText]}>직접 입력</Text>
+        </TouchableOpacity>
+      </View>
+
+      {useManualInput ? (
+        /* 수동 입력 모드 */
+        <View style={styles.manualInputContainer}>
+          <Text style={styles.inputLabel}>장소명 직접 입력</Text>
+          <View style={styles.inputWithButton}>
+            <TextInput
+              style={styles.manualInput}
+              placeholder="예) 스타벅스 강남역점, 교보타워 지하 1층 등"
+              value={manualLocation}
+              onChangeText={setManualLocation}
+              maxLength={100}
+            />
+            <TouchableOpacity 
+              style={styles.saveButton}
+              onPress={saveManualLocation}
+              disabled={!manualLocation.trim()}
+            >
+              <Text style={styles.saveButtonText}>저장</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      ) : (
+        /* 지도/검색 모드 */
+        <>
+          {/* 검색 입력창 */}
+          <View style={styles.searchContainer}>
+            <View style={styles.inputWithButton}>
+              <TextInput
+                style={styles.searchInput}
+                placeholder="주소나 장소명을 검색하세요 (예: 강남역, 역삼동 카페)"
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                onSubmitEditing={searchAddress}
+              />
+              <TouchableOpacity 
+                style={styles.searchButton}
+                onPress={searchAddress}
+                disabled={!searchQuery.trim()}
+              >
+                <Text style={styles.searchButtonText}>검색</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          <Text style={styles.mapSelectorDescription}>또는 지도를 직접 클릭해서 위치를 선택하세요</Text>
+          
+          <div 
+            ref={mapRef}
+            style={{
+              width: '100%',
+              height: '300px',
+              backgroundColor: '#f5f5f5',
+              borderRadius: '8px',
+              marginBottom: '12px',
+              display: mapError ? 'flex' : 'block',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#666',
+              fontSize: '14px'
+            }}
+          >
+            {!mapLoaded && !mapError && '지도를 불러오는 중...'}
+            {mapError && mapError}
+          </div>
+        </>
+      )}
       
       {selectedLocation && (
         <View style={styles.selectedLocationInfo}>
@@ -1484,6 +1588,98 @@ const styles = StyleSheet.create({
   selectedAddressText: {
     fontSize: 14,
     color: COLORS.text.secondary,
+  },
+  // 입력 방법 선택 탭
+  inputMethodTabs: {
+    flexDirection: 'row',
+    marginBottom: 16,
+    backgroundColor: '#F0F0F0',
+    borderRadius: 8,
+    padding: 4,
+  },
+  tabButton: {
+    flex: 1,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 6,
+    alignItems: 'center',
+  },
+  activeTab: {
+    backgroundColor: COLORS.primary.main,
+  },
+  tabText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: COLORS.text.secondary,
+  },
+  activeTabText: {
+    color: COLORS.text.white,
+  },
+  // 검색 관련 스타일
+  searchContainer: {
+    marginBottom: 12,
+  },
+  inputWithButton: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  searchInput: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E5E5E5',
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    fontSize: 16,
+    color: '#333333',
+  },
+  searchButton: {
+    backgroundColor: COLORS.primary.main,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  searchButtonText: {
+    color: COLORS.text.white,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  // 수동 입력 스타일
+  manualInputContainer: {
+    marginBottom: 16,
+  },
+  inputLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: COLORS.text.primary,
+    marginBottom: 8,
+  },
+  manualInput: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E5E5E5',
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    fontSize: 16,
+    color: '#333333',
+  },
+  saveButton: {
+    backgroundColor: COLORS.primary.main,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  saveButtonText: {
+    color: COLORS.text.white,
+    fontSize: 14,
+    fontWeight: '600',
   },
 });
 
