@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -16,10 +16,133 @@ import { useRouterNavigation } from '../components/RouterNavigation';
 import { FOOD_CATEGORY_NAMES, PRICE_RANGES } from '../constants/categories';
 import { DepositSelector } from '../components/DepositSelector';
 
+// Window 타입 확장
+declare global {
+  interface Window {
+    kakao: any;
+  }
+}
+
 interface CreateMeetupScreenProps {
   navigation?: any;
   user?: any;
 }
+
+// 카카오맵 위치 선택 컴포넌트
+const LocationSelector: React.FC<{
+  selectedLocation: string;
+  selectedAddress: string;
+  onLocationSelect: (location: string, address: string, lat: number, lng: number) => void;
+}> = ({ selectedLocation, selectedAddress, onLocationSelect }) => {
+  const mapRef = useRef<HTMLDivElement>(null);
+  const [mapLoaded, setMapLoaded] = useState(false);
+  const [mapError, setMapError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const loadKakaoMap = () => {
+      try {
+        if (window.kakao && window.kakao.maps && mapRef.current) {
+          console.log('🗺️ 위치 선택 지도 로드됨');
+          
+          // 강남역 1번 출구 좌표
+          const gangnamStation = new window.kakao.maps.LatLng(37.498095, 127.027610);
+          
+          const options = {
+            center: gangnamStation,
+            level: 3
+          };
+
+          const map = new window.kakao.maps.Map(mapRef.current, options);
+          let marker = new window.kakao.maps.Marker({
+            position: gangnamStation,
+            map: map
+          });
+
+          // 기본값으로 강남역 1번 출구 설정
+          onLocationSelect('강남역 1번 출구', '서울 강남구 강남대로 390', 37.498095, 127.027610);
+
+          // 지도 클릭 이벤트
+          window.kakao.maps.event.addListener(map, 'click', function(mouseEvent: any) {
+            const latlng = mouseEvent.latLng;
+            
+            // 마커 위치 업데이트
+            marker.setPosition(latlng);
+            
+            // 주소 검색
+            const geocoder = new window.kakao.maps.services.Geocoder();
+            geocoder.coord2Address(latlng.getLng(), latlng.getLat(), function(result: any, status: any) {
+              if (status === window.kakao.maps.services.Status.OK) {
+                const detailAddr = result[0];
+                const address = detailAddr.address || detailAddr.road_address;
+                const locationName = address.address_name || address.road_address_name;
+                
+                console.log('📍 선택된 위치:', { locationName, address, lat: latlng.getLat(), lng: latlng.getLng() });
+                onLocationSelect(locationName, address.address_name, latlng.getLat(), latlng.getLng());
+              }
+            });
+          });
+
+          setMapLoaded(true);
+          setMapError(null);
+        }
+      } catch (error) {
+        console.error('❌ 위치 선택 지도 로딩 에러:', error);
+        setMapError('지도를 불러올 수 없습니다.');
+      }
+    };
+
+    if (!window.kakao) {
+      console.log('📥 카카오맵 스크립트 로딩 중...');
+      const script = document.createElement('script');
+      script.async = true;
+      script.src = `//dapi.kakao.com/v2/maps/sdk.js?appkey=5a202bd90ab8dff01348f24cb1c37f3f&libraries=services&autoload=false`;
+      script.onload = () => {
+        if (window.kakao && window.kakao.maps) {
+          window.kakao.maps.load(loadKakaoMap);
+        }
+      };
+      script.onerror = () => {
+        setMapError('지도 스크립트를 불러올 수 없습니다.');
+      };
+      document.head.appendChild(script);
+    } else {
+      loadKakaoMap();
+    }
+  }, []);
+
+  return (
+    <View style={styles.mapSelectorContainer}>
+      <Text style={styles.mapSelectorTitle}>지도에서 위치 선택</Text>
+      <Text style={styles.mapSelectorDescription}>지도를 클릭해서 모임 장소를 선택해주세요</Text>
+      
+      <div 
+        ref={mapRef}
+        style={{
+          width: '100%',
+          height: '300px',
+          backgroundColor: '#f5f5f5',
+          borderRadius: '8px',
+          marginBottom: '12px',
+          display: mapError ? 'flex' : 'block',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: '#666',
+          fontSize: '14px'
+        }}
+      >
+        {!mapLoaded && !mapError && '지도를 불러오는 중...'}
+        {mapError && mapError}
+      </div>
+      
+      {selectedLocation && (
+        <View style={styles.selectedLocationInfo}>
+          <Text style={styles.selectedLocationText}>📍 {selectedLocation}</Text>
+          <Text style={styles.selectedAddressText}>{selectedAddress}</Text>
+        </View>
+      )}
+    </View>
+  );
+};
 
 const CreateMeetupScreen: React.FC<CreateMeetupScreenProps> = ({ user }) => {
   const navigation = useRouterNavigation();
@@ -28,6 +151,8 @@ const CreateMeetupScreen: React.FC<CreateMeetupScreenProps> = ({ user }) => {
     description: '',
     location: '',
     address: '',
+    latitude: 37.498095, // 강남역 1번 출구 기본 좌표
+    longitude: 127.027610,
     date: '',
     time: '',
     maxParticipants: '',
@@ -70,6 +195,17 @@ const CreateMeetupScreen: React.FC<CreateMeetupScreenProps> = ({ user }) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
+    }));
+  };
+
+  const handleLocationSelect = (location: string, address: string, lat: number, lng: number) => {
+    console.log(`📍 위치 선택됨: ${location} (${lat}, ${lng})`);
+    setFormData(prev => ({
+      ...prev,
+      location,
+      address,
+      latitude: lat,
+      longitude: lng
     }));
   };
 
@@ -206,6 +342,8 @@ const CreateMeetupScreen: React.FC<CreateMeetupScreenProps> = ({ user }) => {
       formDataToSend.append('category', formData.category);
       formDataToSend.append('location', formData.location);
       formDataToSend.append('address', formData.address);
+      formDataToSend.append('latitude', formData.latitude.toString());
+      formDataToSend.append('longitude', formData.longitude.toString());
       formDataToSend.append('date', formData.date);
       formDataToSend.append('time', formData.time);
       formDataToSend.append('maxParticipants', formData.maxParticipants);
@@ -338,7 +476,7 @@ const CreateMeetupScreen: React.FC<CreateMeetupScreenProps> = ({ user }) => {
       <View style={styles.header}>
         <TouchableOpacity 
           style={styles.backButton}
-          onPress={() => navigation?.goBack()}
+          onPress={() => navigation.goBack()}
         >
           <Icon name="chevron-left" size={24} color={COLORS.text.primary} />
         </TouchableOpacity>
@@ -418,16 +556,12 @@ const CreateMeetupScreen: React.FC<CreateMeetupScreenProps> = ({ user }) => {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>장소 정보</Text>
           
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>모임 장소 *</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="예) 강남역 맛집거리"
-              value={formData.location}
-              onChangeText={(value) => handleInputChange('location', value)}
-              maxLength={100}
-            />
-          </View>
+          {/* 위치 선택 지도 */}
+          <LocationSelector
+            selectedLocation={formData.location}
+            selectedAddress={formData.address}
+            onLocationSelect={handleLocationSelect}
+          />
 
           <View style={styles.inputGroup}>
             <Text style={styles.label}>상세 주소</Text>
@@ -1318,6 +1452,38 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#333333',
     minHeight: 48,
+  },
+  // 위치 선택 지도 스타일
+  mapSelectorContainer: {
+    marginBottom: 16,
+  },
+  mapSelectorTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+    marginBottom: 4,
+  },
+  mapSelectorDescription: {
+    fontSize: 14,
+    color: COLORS.text.secondary,
+    marginBottom: 12,
+  },
+  selectedLocationInfo: {
+    padding: 12,
+    backgroundColor: '#F8F9FA',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E5E5E5',
+  },
+  selectedLocationText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: COLORS.text.primary,
+    marginBottom: 4,
+  },
+  selectedAddressText: {
+    fontSize: 14,
+    color: COLORS.text.secondary,
   },
 });
 

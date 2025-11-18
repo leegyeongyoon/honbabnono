@@ -96,7 +96,8 @@
       "Bash(kubectl patch:*)",
       "Bash(kubectl exec:*)",
       "Bash(kubectl scale:*)",
-      "Read(/dev/**)"
+      "Read(/dev/**)",
+      "Bash(PORT=3001 npm run server)"
     ],
     "deny": [],
     "ask": []
