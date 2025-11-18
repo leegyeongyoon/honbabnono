@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
 } from 'react-native';
-import { useTypedNavigation } from '../hooks/useNavigation';
+import { useRouterNavigation } from '../components/RouterNavigation';
 import { COLORS, SHADOWS } from '../styles/colors';
 import { useMeetups } from '../hooks/useMeetups';
 import { formatKoreanDateTime } from '../utils/dateUtils';
@@ -65,7 +65,7 @@ const MeetupCard: React.FC<MeetupCardProps> = ({ meetup, onPress }) => {
 };
 
 const MeetupListScreen = () => {
-  const navigation = useTypedNavigation();
+  const navigation = useRouterNavigation();
   const { meetups, loading, error, refreshMeetups } = useMeetups();
   const [filter, setFilter] = useState<'all' | 'recruiting' | 'full'>('all');
 
@@ -110,7 +110,17 @@ const MeetupListScreen = () => {
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
-          onPress={() => navigation.goBack()}
+          onPress={() => {
+            console.log('MeetupList: 뒤로가기 버튼 클릭됨');
+            try {
+              // React Router의 navigate(-1) 시도
+              window.history.go(-1);
+              console.log('MeetupList: history.go(-1) 실행됨');
+            } catch (error) {
+              console.log('MeetupList: 뒤로가기 실패, 홈으로 이동:', error);
+              navigation.navigate('Home');
+            }
+          }}
         >
           <Icon name="chevron-left" size={24} color={COLORS.text.primary} />
         </TouchableOpacity>
