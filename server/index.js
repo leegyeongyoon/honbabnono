@@ -3324,6 +3324,122 @@ apiRouter.get('/meetups/:id/reviews', async (req, res) => {
   }
 });
 
+// 모임 확정/취소 API
+apiRouter.put('/meetups/:id/confirm', authenticateToken, async (req, res) => {
+  try {
+    const { id: meetupId } = req.params;
+    const userId = req.user.userId;
+    const { action } = req.body; // 'confirm' 또는 'cancel'
+    
+    console.log('🎯 모임 확정/취소 요청:', { meetupId, userId, action });
+
+    // 입력값 검증
+    if (!action || !['confirm', 'cancel'].includes(action)) {
+      return res.status(400).json({ 
+        success: false, 
+        error: '올바른 액션을 선택해주세요 (confirm/cancel).' 
+      });
+    }
+
+    // 모임 정보 및 호스트 권한 확인
+    const meetupResult = await pool.query(`
+      SELECT * FROM meetups 
+      WHERE id = $1 AND host_id = $2
+    `, [meetupId, userId]);
+
+    if (meetupResult.rows.length === 0) {
+      return res.status(404).json({ 
+        success: false, 
+        error: '모임을 찾을 수 없거나 호스트 권한이 없습니다.' 
+      });
+    }
+
+    const meetup = meetupResult.rows[0];
+    let newStatus;
+
+    if (action === 'confirm') {
+      // 모임 확정
+      if (meetup.status === 'confirmed') {
+        return res.status(400).json({ 
+          success: false, 
+          error: '이미 확정된 모임입니다.' 
+        });
+      }
+      newStatus = 'confirmed';
+    } else {
+      // 모임 취소
+      if (meetup.status === 'cancelled') {
+        return res.status(400).json({ 
+          success: false, 
+          error: '이미 취소된 모임입니다.' 
+        });
+      }
+      newStatus = 'cancelled';
+    }
+
+    // 모임 상태 업데이트
+    await pool.query(`
+      UPDATE meetups 
+      SET status = $1, updated_at = NOW()
+      WHERE id = $2
+    `, [newStatus, meetupId]);
+
+    // 취소인 경우 참가자들에게 약속금 환불 처리
+    if (action === 'cancel') {
+      // 참가자 목록 조회
+      const participantsResult = await pool.query(`
+        SELECT mp.user_id, pd.id as deposit_id, pd.amount
+        FROM meetup_participants mp
+        LEFT JOIN promise_deposits pd ON mp.meetup_id = pd.meetup_id AND mp.user_id = pd.user_id
+        WHERE mp.meetup_id = $1 AND mp.status = '참가승인'
+      `, [meetupId]);
+
+      // 각 참가자에게 환불 처리
+      for (const participant of participantsResult.rows) {
+        if (participant.deposit_id && participant.amount) {
+          // 포인트 환불
+          await pool.query(`
+            UPDATE user_points 
+            SET available_points = available_points + $1,
+                used_points = used_points - $1,
+                updated_at = NOW()
+            WHERE user_id = $2
+          `, [participant.amount, participant.user_id]);
+
+          // 환불 거래 내역 추가
+          await pool.query(`
+            INSERT INTO point_transactions 
+            (user_id, type, amount, description, created_at, updated_at)
+            VALUES ($1, 'earned', $2, '모임 취소로 인한 약속금 환불: ${meetup.title}', NOW(), NOW())
+          `, [participant.user_id, participant.amount]);
+
+          // 약속금 상태 업데이트
+          await pool.query(`
+            UPDATE promise_deposits 
+            SET status = 'refunded', updated_at = NOW()
+            WHERE id = $1
+          `, [participant.deposit_id]);
+        }
+      }
+    }
+
+    console.log('✅ 모임 확정/취소 성공:', { meetupId, action, newStatus });
+
+    res.json({
+      success: true,
+      message: action === 'confirm' ? '모임이 확정되었습니다.' : '모임이 취소되었습니다.',
+      status: newStatus
+    });
+
+  } catch (error) {
+    console.error('❌ 모임 확정/취소 오류:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: '서버 오류가 발생했습니다.' 
+    });
+  }
+});
+
 // 모임 위치 인증
 apiRouter.post('/meetups/:id/verify-location', authenticateToken, async (req, res) => {
   try {

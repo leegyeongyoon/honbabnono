@@ -138,6 +138,7 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
   const [showPromiseModal, setShowPromiseModal] = React.useState(false);
   const [showLeaveModal, setShowLeaveModal] = React.useState(false);
   const [showDepositSelector, setShowDepositSelector] = React.useState(false);
+  const [showHostModal, setShowHostModal] = React.useState(false);
   const [userRiceIndex, setUserRiceIndex] = React.useState<number>(0);
   
   // props로 받은 user가 있으면 사용, 없으면 store의 user 사용
@@ -245,6 +246,41 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
     } catch (error) {
       console.error('모임 참여 실패:', error);
       alert('모임 참여에 실패했습니다. 다시 시도해주세요.');
+    }
+  };
+
+  // 채팅방으로 이동
+  const handleGoToChat = () => {
+    if (!user || !id) return;
+
+    // 모임 채팅방으로 이동 (채팅 시스템에서 모임 ID로 채팅방을 찾거나 생성)
+    navigate(`/chat/${id}`);
+    console.log('🗨️ 채팅방 이동:', { meetupId: id, userId: user.id });
+  };
+
+  // 모임 확정/취소 처리
+  const handleMeetupAction = async () => {
+    if (!user || !id) return;
+
+    try {
+      const action = meetup.status === 'confirmed' ? 'cancel' : 'confirm';
+      const response = await apiClient.put(`/meetups/${id}/confirm`, {
+        action: action
+      });
+
+      if (response.data.success) {
+        // 모임 정보 새로고침
+        await fetchMeetupById(id);
+        setShowHostModal(false);
+        
+        const message = action === 'confirm' ? '모임이 확정되었습니다!' : '모임이 취소되었습니다.';
+        alert(message);
+      } else {
+        alert(response.data.error || '처리 중 오류가 발생했습니다.');
+      }
+    } catch (error) {
+      console.error('모임 확정/취소 실패:', error);
+      alert('처리 중 오류가 발생했습니다.');
     }
   };
 
@@ -407,15 +443,48 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
 
       {/* 하단 고정 버튼 */}
       <View style={styles.fixedBottom}>
-        <TouchableOpacity
-          onPress={() => handleJoinMeetup()}
-          style={styles.joinButton}
-        >
-          <Text style={styles.joinButtonText}>
-            {participants.some(p => p.id === user?.id) || isHost ? 
-              (isHost ? '모임취소' : '참여취소') : '같이먹기'}
-          </Text>
-        </TouchableOpacity>
+        {/* 참여자 또는 호스트인 경우 */}
+        {(participants.some(p => p.id === user?.id) || isHost) ? (
+          <View style={styles.bottomButtonContainer}>
+            {/* 채팅방 가기 버튼 */}
+            <TouchableOpacity
+              onPress={() => handleGoToChat()}
+              style={styles.chatButton}
+            >
+              <Text style={styles.chatButtonText}>💬 채팅방</Text>
+            </TouchableOpacity>
+            
+            {/* 호스트 전용 버튼들 */}
+            {isHost && (
+              <TouchableOpacity
+                onPress={() => setShowHostModal(true)}
+                style={styles.hostButton}
+              >
+                <Text style={styles.hostButtonText}>
+                  {meetup.status === 'confirmed' ? '모임취소' : '모임확정'}
+                </Text>
+              </TouchableOpacity>
+            )}
+            
+            {/* 참가자 탈퇴 버튼 */}
+            {!isHost && (
+              <TouchableOpacity
+                onPress={() => setShowLeaveModal(true)}
+                style={styles.leaveButton}
+              >
+                <Text style={styles.leaveButtonText}>참여취소</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        ) : (
+          /* 미참여자 - 기존 참여하기 버튼 */
+          <TouchableOpacity
+            onPress={() => handleJoinMeetup()}
+            style={styles.joinButton}
+          >
+            <Text style={styles.joinButtonText}>같이먹기</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* 약속보증금 모달 */}
@@ -473,6 +542,39 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
               >
                 <Text style={styles.modalLeaveText}>
                   {isHost ? '모임취소' : '나가기'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      )}
+
+      {/* 호스트 모달 (모임 확정/취소) */}
+      {showHostModal && (
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <Text style={styles.modalTitle}>
+              {meetup.status === 'confirmed' ? '모임을 취소하시겠어요?' : '모임을 확정하시겠어요?'}
+            </Text>
+            <Text style={styles.modalDescription}>
+              {meetup.status === 'confirmed' ? 
+                '확정된 모임을 취소하면 취소 시점에 따라\n참가자들에게 부분 환불됩니다.' :
+                `현재 ${participants.length}명이 참여중입니다.\n모임을 확정하면 취소 시 패널티가 적용됩니다.`
+              }
+            </Text>
+            <View style={styles.modalButtonContainer}>
+              <TouchableOpacity
+                onPress={() => setShowHostModal(false)}
+                style={styles.modalCancelButton}
+              >
+                <Text style={styles.modalCancelText}>취소</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.modalConfirmButton]}
+                onPress={handleMeetupAction}
+              >
+                <Text style={styles.modalConfirmText}>
+                  {meetup.status === 'confirmed' ? '모임취소' : '모임확정'}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -896,6 +998,62 @@ const styles = StyleSheet.create({
   },
   modalHostCancelButton: {
     backgroundColor: '#dc2626', // 더 진한 빨강
+  },
+  // 하단 버튼 관련 스타일
+  bottomButtonContainer: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  chatButton: {
+    flex: 2,
+    backgroundColor: '#4285F4',
+    paddingVertical: 15,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  chatButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  hostButton: {
+    flex: 1,
+    backgroundColor: '#34C759',
+    paddingVertical: 15,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  hostButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  leaveButton: {
+    flex: 1,
+    backgroundColor: '#FF3B30',
+    paddingVertical: 15,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  leaveButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  modalConfirmButton: {
+    flex: 1,
+    backgroundColor: '#34C759',
+    borderRadius: 12,
+    padding: 12,
+    alignItems: 'center',
+  },
+  modalConfirmText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: 'white',
   },
 });
 

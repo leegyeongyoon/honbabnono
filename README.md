@@ -1,97 +1,215 @@
-This is a new [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
+# 혼밥시러 (HonbabnoNo) - 모임 매칭 플랫폼
 
-# Getting Started
+혼자 먹기 싫은 사람들을 위한 모임 매칭 플랫폼입니다.
 
-> **Note**: Make sure you have completed the [Set Up Your Environment](https://reactnative.dev/docs/set-up-your-environment) guide before proceeding.
+## 🚀 프로젝트 개요
 
-## Step 1: Start Metro
+혼밥시러는 혼자 식사하기 싫어하는 사람들이 함께 식사할 수 있도록 모임을 만들고 참여할 수 있는 플랫폼입니다.
 
-First, you will need to run **Metro**, the JavaScript build tool for React Native.
+### 주요 기능
+- 🍽️ 모임 생성 및 참여
+- 💬 실시간 채팅
+- 💰 약속금 시스템 (포인트/카카오페이/카드결제)
+- 🗺️ 지도 기반 위치 선택
+- ⭐ 밥알지수 (신뢰도 시스템)
+- 📝 참여자 리뷰 시스템
 
-To start the Metro dev server, run the following command from the root of your React Native project:
+## 🏗️ 기술 스택
 
-```sh
-# Using npm
-npm start
+### Frontend
+- **React Native**: 크로스 플랫폼 모바일 앱
+- **React**: 웹 버전
+- **TypeScript**: 타입 안정성
+- **React Navigation**: 네비게이션
+- **Zustand**: 상태 관리
 
-# OR using Yarn
-yarn start
+### Backend
+- **Node.js**: 백엔드 서버
+- **Express**: 웹 프레임워크
+- **PostgreSQL**: 데이터베이스
+- **JWT**: 인증 시스템
+
+### 외부 서비스
+- **카카오 로그인 API**: 소셜 로그인
+- **카카오맵 API**: 지도 및 위치 서비스
+- **카카오페이 API**: 결제 서비스
+
+## 📋 비즈니스 정책 및 요구사항
+
+### 1. 모임 취소/환불 정책
+
+#### 사용자 자발적 취소
+- **모임 시작 1시간 전까지**: 약속금 전액 환불
+- **직전 취소 (패널티)**:
+  - 40분 전: 약속금 60% 환불
+  - 20분 전: 약속금 30% 환불
+  - 10분 전: 약속금 환불 불가
+
+#### 시스템 취소
+- **특정 인원이 차지 않아 모임이 취소되는 경우**: 전원 전액 환불
+- **시스템 오류로 인한 취소**: 전원 전액 환불
+
+#### 잦은 취소 제재
+- **3회 이상 연속 취소**: 일정 기간 모임 생성/참여 제한 조치
+
+### 2. 모임 확정 정책
+
+#### 모임장 권한
+- **최소 인원 달성 시**: 모임장이 수동으로 확정 가능
+  - 예: 4명 모임에서 2명만 모여도 모임장 판단하에 확정 가능
+- **확정된 모임**: 무조건 진행되며, 취소 시 패널티 적용
+
+#### 자동 확정 조건
+- 최대 인원 달성 시 자동 확정
+- 모임 시작 1시간 전 자동 확정
+
+### 3. 위치 관리 정책
+
+#### 표준 위치
+- **기본 모임 장소**: 강남역 1번 출구 (좌표: 37.498095, 127.027610)
+- **기존 모임**: 모두 강남역 1번 출구로 표준화 완료
+
+#### 위치 선택 방법
+- **검색 기능**: 주소/장소명으로 검색
+- **지도 클릭**: 직접 지도에서 위치 선택
+- **직접 입력 기능**: 제거됨 (2024.11.18)
+
+### 4. 결제 시스템
+
+#### 지원 결제 방법
+- **포인트 결제**: 보유 포인트로 즉시 결제
+- **카카오페이**: 외부 결제 창 연동
+- **카드 결제**: 신용카드/체크카드
+
+#### 약속금 정책
+- **기본 금액**: 3,000원
+- **환불 정책**: 상기 취소 정책에 따름
+- **보증금 성격**: 노쇼 방지용, 모임 완료 후 1일 이내 환불
+
+### 5. 신뢰도 시스템 (밥알지수)
+
+#### 계산 요소
+- 참여 모임 수
+- 호스팅 모임 수
+- 완료한 모임 수
+- 받은 리뷰 점수
+- 취소 이력
+
+#### 등급 시스템
+- 🍚 새싹 밥알: 신규 사용자
+- 🍚🍚 따끈한 밥그릇: 안정적인 참여자
+- 🍚🍚🍚 완벽한 밥상: 높은 신뢰도
+
+## 🎨 UI/UX 요구사항
+
+### 모임 상세 페이지 하단 버튼
+- **참여자/호스트**: 
+  - 왼쪽 2/3: "💬 채팅방" 버튼
+  - 오른쪽 1/3: "모임확정"/"모임취소" 버튼 (호스트만)
+  - 오른쪽 1/3: "참여취소" 버튼 (참가자만)
+- **미참여자**: 
+  - 전체: "같이먹기" 버튼
+
+### 지도 표시
+- 모임 상세 페이지에서 해당 위치에 마커 표시 필수
+- 마커 클릭 시 위치명 인포윈도우 표시
+
+## 🗄️ 데이터베이스 스키마
+
+### 주요 테이블
+- `users`: 사용자 정보
+- `meetups`: 모임 정보
+- `meetup_participants`: 참여자 정보
+- `promise_deposits`: 약속금 정보
+- `user_points`: 포인트 정보
+- `point_transactions`: 포인트 거래 내역
+- `chat_rooms`: 채팅방 정보
+- `chat_messages`: 채팅 메시지
+
+### 모임 상태 (meetups.status)
+- `active`: 활성 모집 중
+- `confirmed`: 확정된 모임
+- `completed`: 완료된 모임
+- `cancelled`: 취소된 모임
+
+## 🚀 개발 환경 설정
+
+### 필수 요구사항
+- Node.js 16+
+- React Native CLI
+- PostgreSQL
+- 카카오 API 키 설정
+
+### 환경변수 설정
+```env
+DB_HOST=your_db_host
+DB_USER=your_db_user
+DB_PASSWORD=your_db_password
+DB_NAME=honbabnono
+KAKAO_API_KEY=your_kakao_api_key
+JWT_SECRET=your_jwt_secret
 ```
 
-## Step 2: Build and run your app
+### 설치 및 실행
+```bash
+# 의존성 설치
+npm install
 
-With Metro running, open a new terminal window/pane from the root of your React Native project, and use one of the following commands to build and run your Android or iOS app:
+# 웹 개발 서버 실행
+npm run web
 
-### Android
+# 백엔드 서버 실행 (포트 3001)
+PORT=3001 npm run server
 
-```sh
-# Using npm
-npm run android
-
-# OR using Yarn
-yarn android
+# 모바일 앱 실행
+npm run android  # Android
+npm run ios      # iOS
 ```
 
-### iOS
+## 📱 앱 접속 방법
 
-For iOS, remember to install CocoaPods dependencies (this only needs to be run on first clone or after updating native deps).
+### 개발 환경
+- **웹**: http://localhost:3000
+- **API**: http://localhost:3001
+- **데이터베이스**: PostgreSQL on AWS RDS
 
-The first time you create a new project, run the Ruby bundler to install CocoaPods itself:
+### 주요 페이지
+- `/home`: 홈 화면
+- `/create-meetup`: 모임 생성
+- `/meetup-list`: 모임 목록
+- `/meetup/:id`: 모임 상세
+- `/chat/:id`: 채팅방
+- `/profile`: 프로필
 
-```sh
-bundle install
-```
+## 🔄 최근 업데이트 내역
 
-Then, and every time you update your native dependencies, run:
+### 2024.11.18
+- ♻️ 위치 선택 직접 입력 기능 제거
+- 🗺️ 모임 상세 페이지 지도 마커 표시 개선
+- 📍 기존 모임 위치 강남역 1번 출구로 표준화
+- 💰 약속금 결제 시스템 통합
 
-```sh
-bundle exec pod install
-```
+## 🤝 개발 규칙
 
-For more information, please visit [CocoaPods Getting Started guide](https://guides.cocoapods.org/using/getting-started.html).
+### 커밋 메시지 규칙
+- ✨ feat: 새로운 기능 추가
+- 🐛 fix: 버그 수정
+- ♻️ refactor: 코드 리팩토링
+- 🗺️ map: 지도 관련 기능
+- 💰 payment: 결제 관련 기능
+- 📱 ui: UI/UX 개선
+- 📝 docs: 문서 업데이트
 
-```sh
-# Using npm
-npm run ios
+### 코드 스타일
+- TypeScript 사용 필수
+- ESLint/Prettier 규칙 준수
+- 컴포넌트명은 PascalCase
+- 함수명은 camelCase
 
-# OR using Yarn
-yarn ios
-```
+## 📞 문의 및 지원
 
-If everything is set up correctly, you should see your new app running in the Android Emulator, iOS Simulator, or your connected device.
+개발 관련 문의사항이나 버그 리포트는 이슈로 등록해주세요.
 
-This is one way to run your app — you can also build it directly from Android Studio or Xcode.
+---
 
-## Step 3: Modify your app
-
-Now that you have successfully run the app, let's make changes!
-
-Open `App.tsx` in your text editor of choice and make some changes. When you save, your app will automatically update and reflect these changes — this is powered by [Fast Refresh](https://reactnative.dev/docs/fast-refresh).
-
-When you want to forcefully reload, for example to reset the state of your app, you can perform a full reload:
-
-- **Android**: Press the <kbd>R</kbd> key twice or select **"Reload"** from the **Dev Menu**, accessed via <kbd>Ctrl</kbd> + <kbd>M</kbd> (Windows/Linux) or <kbd>Cmd ⌘</kbd> + <kbd>M</kbd> (macOS).
-- **iOS**: Press <kbd>R</kbd> in iOS Simulator.
-
-## Congratulations! :tada:
-
-You've successfully run and modified your React Native App. :partying_face:
-
-### Now what?
-
-- If you want to add this new React Native code to an existing application, check out the [Integration guide](https://reactnative.dev/docs/integration-with-existing-apps).
-- If you're curious to learn more about React Native, check out the [docs](https://reactnative.dev/docs/getting-started).
-
-# Troubleshooting
-
-If you're having issues getting the above steps to work, see the [Troubleshooting](https://reactnative.dev/docs/troubleshooting) page.
-
-# Learn More
-
-To learn more about React Native, take a look at the following resources:
-
-- [React Native Website](https://reactnative.dev) - learn more about React Native.
-- [Getting Started](https://reactnative.dev/docs/environment-setup) - an **overview** of React Native and how setup your environment.
-- [Learn the Basics](https://reactnative.dev/docs/getting-started) - a **guided tour** of the React Native **basics**.
-- [Blog](https://reactnative.dev/blog) - read the latest official React Native **Blog** posts.
-- [`@facebook/react-native`](https://github.com/facebook/react-native) - the Open Source; GitHub **repository** for React Native.
+**Generated with Claude Code** 🤖
