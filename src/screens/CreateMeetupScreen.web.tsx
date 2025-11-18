@@ -40,6 +40,8 @@ const LocationSelector: React.FC<{
   const [searchQuery, setSearchQuery] = useState('');
   const [manualLocation, setManualLocation] = useState('');
   const [useManualInput, setUseManualInput] = useState(false);
+  const [mapInstance, setMapInstance] = useState<any>(null);
+  const [markerInstance, setMarkerInstance] = useState<any>(null);
 
   useEffect(() => {
     const loadKakaoMap = () => {
@@ -56,10 +58,14 @@ const LocationSelector: React.FC<{
           };
 
           const map = new window.kakao.maps.Map(mapRef.current, options);
-          let marker = new window.kakao.maps.Marker({
+          const marker = new window.kakao.maps.Marker({
             position: gangnamStation,
             map: map
           });
+
+          // 지도와 마커 인스턴스 저장
+          setMapInstance(map);
+          setMarkerInstance(marker);
 
           // 기본값으로 강남역 1번 출구 설정
           onLocationSelect('강남역 1번 출구', '서울 강남구 강남대로 390', 37.498095, 127.027610);
@@ -126,12 +132,9 @@ const LocationSelector: React.FC<{
         console.log('🔍 검색 결과:', { locationName, coords, result: result[0] });
         
         // 지도 중심 이동 및 마커 업데이트
-        if (mapRef.current && window.kakao.maps) {
-          const mapInstance = window.kakao.maps.Map.getMap(mapRef.current);
-          if (mapInstance) {
-            mapInstance.setCenter(coords);
-            // 마커 업데이트 로직은 지도 로드 후 처리됨
-          }
+        if (mapInstance && markerInstance) {
+          mapInstance.setCenter(coords);
+          markerInstance.setPosition(coords);
         }
         
         onLocationSelect(searchQuery, locationName, parseFloat(result[0].y), parseFloat(result[0].x));
