@@ -38,8 +38,6 @@ const LocationSelector: React.FC<{
   const [mapLoaded, setMapLoaded] = useState(false);
   const [mapError, setMapError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [manualLocation, setManualLocation] = useState('');
-  const [useManualInput, setUseManualInput] = useState(false);
   const [mapInstance, setMapInstance] = useState<any>(null);
   const [markerInstance, setMarkerInstance] = useState<any>(null);
 
@@ -144,60 +142,12 @@ const LocationSelector: React.FC<{
     });
   };
 
-  // 수동 입력 저장
-  const saveManualLocation = () => {
-    if (!manualLocation.trim()) return;
-    
-    // 강남역 좌표를 기본값으로 사용
-    onLocationSelect(manualLocation, '직접 입력된 주소', 37.498095, 127.027610);
-    setUseManualInput(false);
-    console.log('📝 수동 입력 저장:', manualLocation);
-  };
 
   return (
     <View style={styles.mapSelectorContainer}>
       <Text style={styles.mapSelectorTitle}>모임 장소 선택</Text>
       
-      {/* 입력 방법 선택 탭 */}
-      <View style={styles.inputMethodTabs}>
-        <TouchableOpacity 
-          style={[styles.tabButton, !useManualInput && styles.activeTab]}
-          onPress={() => setUseManualInput(false)}
-        >
-          <Text style={[styles.tabText, !useManualInput && styles.activeTabText]}>지도/검색</Text>
-        </TouchableOpacity>
-        <TouchableOpacity 
-          style={[styles.tabButton, useManualInput && styles.activeTab]}
-          onPress={() => setUseManualInput(true)}
-        >
-          <Text style={[styles.tabText, useManualInput && styles.activeTabText]}>직접 입력</Text>
-        </TouchableOpacity>
-      </View>
-
-      {useManualInput ? (
-        /* 수동 입력 모드 */
-        <View style={styles.manualInputContainer}>
-          <Text style={styles.inputLabel}>장소명 직접 입력</Text>
-          <View style={styles.inputWithButton}>
-            <TextInput
-              style={styles.manualInput}
-              placeholder="예) 스타벅스 강남역점, 교보타워 지하 1층 등"
-              value={manualLocation}
-              onChangeText={setManualLocation}
-              maxLength={100}
-            />
-            <TouchableOpacity 
-              style={styles.saveButton}
-              onPress={saveManualLocation}
-              disabled={!manualLocation.trim()}
-            >
-              <Text style={styles.saveButtonText}>저장</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      ) : (
-        /* 지도/검색 모드 */
-        <>
+      {/* 검색과 지도 선택 */}
           {/* 검색 입력창 */}
           <View style={styles.searchContainer}>
             <View style={styles.inputWithButton}>
@@ -238,8 +188,6 @@ const LocationSelector: React.FC<{
             {!mapLoaded && !mapError && '지도를 불러오는 중...'}
             {mapError && mapError}
           </div>
-        </>
-      )}
       
       {selectedLocation && (
         <View style={styles.selectedLocationInfo}>
@@ -1592,32 +1540,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: COLORS.text.secondary,
   },
-  // 입력 방법 선택 탭
-  inputMethodTabs: {
-    flexDirection: 'row',
-    marginBottom: 16,
-    backgroundColor: '#F0F0F0',
-    borderRadius: 8,
-    padding: 4,
-  },
-  tabButton: {
-    flex: 1,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 6,
-    alignItems: 'center',
-  },
-  activeTab: {
-    backgroundColor: COLORS.primary.main,
-  },
-  tabText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: COLORS.text.secondary,
-  },
-  activeTabText: {
-    color: COLORS.text.white,
-  },
   // 검색 관련 스타일
   searchContainer: {
     marginBottom: 12,
@@ -1646,40 +1568,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   searchButtonText: {
-    color: COLORS.text.white,
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  // 수동 입력 스타일
-  manualInputContainer: {
-    marginBottom: 16,
-  },
-  inputLabel: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: COLORS.text.primary,
-    marginBottom: 8,
-  },
-  manualInput: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E5E5E5',
-    borderRadius: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 12,
-    fontSize: 16,
-    color: '#333333',
-  },
-  saveButton: {
-    backgroundColor: COLORS.primary.main,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  saveButtonText: {
     color: COLORS.text.white,
     fontSize: 14,
     fontWeight: '600',
