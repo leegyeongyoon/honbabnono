@@ -7,7 +7,7 @@ import { useMeetupStore } from '../store/meetupStore';
 import apiClient from '../services/apiClient';
 import { DepositSelector } from '../components/DepositSelector';
 import { getChatTimeDifference } from '../utils/timeUtils';
-import { useTypedNavigation } from '../hooks/useNavigation';
+import { useRouterNavigation } from '../components/RouterNavigation';
 import { Icon } from '../components/Icon';
 
 // Window 타입 확장
@@ -30,41 +30,65 @@ interface MeetupDetailScreenProps {
 // 카카오맵 컴포넌트
 const KakaoMap: React.FC<{ location: string; address: string }> = ({ location, address }) => {
   const mapRef = React.useRef<HTMLDivElement>(null);
+  const [mapLoaded, setMapLoaded] = React.useState(false);
+  const [mapError, setMapError] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     const loadKakaoMap = () => {
-      if (window.kakao && window.kakao.maps && mapRef.current) {
-        const options = {
-          center: new window.kakao.maps.LatLng(37.498095, 127.027610),
-          level: 3
-        };
+      try {
+        if (window.kakao && window.kakao.maps && mapRef.current) {
+          console.log('🗺️ Kakao Maps API loaded successfully');
+          const options = {
+            center: new window.kakao.maps.LatLng(37.498095, 127.027610),
+            level: 3
+          };
 
-        const map = new window.kakao.maps.Map(mapRef.current, options);
-        const geocoder = new window.kakao.maps.services.Geocoder();
+          const map = new window.kakao.maps.Map(mapRef.current, options);
+          const geocoder = new window.kakao.maps.services.Geocoder();
 
-        geocoder.addressSearch(location, function(result: any, status: any) {
-          if (status === window.kakao.maps.services.Status.OK) {
-            const coords = new window.kakao.maps.LatLng(result[0].y, result[0].x);
-            const marker = new window.kakao.maps.Marker({
-              map: map,
-              position: coords
-            });
-            const infowindow = new window.kakao.maps.InfoWindow({
-              content: `<div style="width:150px;text-align:center;padding:6px 0;">${location}</div>`
-            });
-            infowindow.open(map, marker);
-            map.setCenter(coords);
-          }
-        });
+          geocoder.addressSearch(location, function(result: any, status: any) {
+            console.log('🔍 Address search result:', { location, status, result });
+            if (status === window.kakao.maps.services.Status.OK) {
+              const coords = new window.kakao.maps.LatLng(result[0].y, result[0].x);
+              const marker = new window.kakao.maps.Marker({
+                map: map,
+                position: coords
+              });
+              const infowindow = new window.kakao.maps.InfoWindow({
+                content: `<div style="width:150px;text-align:center;padding:6px 0;">${location}</div>`
+              });
+              infowindow.open(map, marker);
+              map.setCenter(coords);
+              setMapLoaded(true);
+              setMapError(null);
+            } else {
+              console.error('❌ Address search failed:', status);
+              setMapError('주소 검색에 실패했습니다.');
+              // 기본 위치로 지도 표시
+              setMapLoaded(true);
+            }
+          });
+        }
+      } catch (error) {
+        console.error('❌ Map loading error:', error);
+        setMapError('지도를 불러올 수 없습니다.');
       }
     };
 
     if (!window.kakao) {
+      console.log('📥 Loading Kakao Maps script...');
       const script = document.createElement('script');
       script.async = true;
       script.src = `//dapi.kakao.com/v2/maps/sdk.js?appkey=5a202bd90ab8dff01348f24cb1c37f3f&libraries=services&autoload=false`;
       script.onload = () => {
-        window.kakao.maps.load(loadKakaoMap);
+        console.log('✅ Kakao Maps script loaded');
+        if (window.kakao && window.kakao.maps) {
+          window.kakao.maps.load(loadKakaoMap);
+        }
+      };
+      script.onerror = (error) => {
+        console.error('❌ Failed to load Kakao Maps script:', error);
+        setMapError('지도 스크립트를 불러올 수 없습니다.');
       };
       document.head.appendChild(script);
     } else {
@@ -82,9 +106,17 @@ const KakaoMap: React.FC<{ location: string; address: string }> = ({ location, a
           height: '200px',
           backgroundColor: '#f5f5f5',
           borderRadius: '8px',
-          marginBottom: '12px'
+          marginBottom: '12px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: '#666',
+          fontSize: '14px'
         }}
-      />
+      >
+        {!mapLoaded && !mapError && '지도를 불러오는 중...'}
+        {mapError && mapError}
+      </div>
       <Text style={styles.mapLocationText}>{location}</Text>
     </View>
   );
@@ -93,7 +125,7 @@ const KakaoMap: React.FC<{ location: string; address: string }> = ({ location, a
 const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser }) => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const navigation = useTypedNavigation();
+  const navigation = useRouterNavigation();
   const { user: storeUser } = useUserStore();
   const currentMeetup = useMeetupStore(state => state.currentMeetup);
   const loading = useMeetupStore(state => state.loading);
