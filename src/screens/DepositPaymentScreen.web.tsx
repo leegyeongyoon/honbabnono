@@ -17,7 +17,7 @@ const DepositPaymentScreen: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [showInsufficientModal, setShowInsufficientModal] = useState(false);
   
-  const depositAmount = 1000; // 약속금 금액 (1,000원으로 조정)
+  const depositAmount = 3000; // 약속금 금액
 
   // 사용자 포인트 조회
   useEffect(() => {

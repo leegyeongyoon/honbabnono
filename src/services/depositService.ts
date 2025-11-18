@@ -14,7 +14,7 @@ import {
 } from '../types/deposit';
 
 class DepositService {
-  private readonly DEFAULT_DEPOSIT_AMOUNT = 2000;
+  private readonly DEFAULT_DEPOSIT_AMOUNT = 3000;
 
   // 기본 약속금 정책
   private readonly refundPolicy: DepositRefundPolicy = {
@@ -61,6 +61,10 @@ class DepositService {
       const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
       const token = localStorage.getItem('token');
       
+      console.log('🔗 API URL:', `${apiUrl}/deposits/payment`);
+      console.log('🔑 Token:', token ? 'Present' : 'Missing');
+      console.log('📤 Request:', request);
+      
       const response = await fetch(`${apiUrl}/deposits/payment`, {
         method: 'POST',
         headers: {
@@ -70,9 +74,14 @@ class DepositService {
         body: JSON.stringify(request),
       });
 
+      console.log('📥 Response status:', response.status);
+      console.log('📥 Response headers:', Object.fromEntries(response.headers.entries()));
+      
       const result = await response.json();
+      console.log('📥 Response body:', result);
 
       if (!response.ok) {
+        console.error('❌ API 요청 실패:', response.status, result);
         return {
           success: false,
           errorMessage: result.error || '결제 처리 중 오류가 발생했습니다.'
@@ -327,7 +336,7 @@ class DepositService {
         id: 'deposit_payment',
         name: '약속금 대체 결제',
         description: '다음 모임 참여 시 약속금으로 사용',
-        pointsRequired: 2000,
+        pointsRequired: 3000,
         category: 'meetup',
         isActive: true
       },

@@ -675,92 +675,6 @@ apiRouter.post('/auth/logout', authenticateToken, async (req, res) => {
 });
 
 // 모임 생성 (데이터베이스 연동, 인증 필요)
-apiRouter.post('/meetups', authenticateToken, async (req, res) => {
-  try {
-    const {
-      title,
-      description,
-      location,
-      address,
-      date,
-      time,
-      maxParticipants,
-      category,
-      priceRange,
-      requirements
-    } = req.body;
-
-    const hostId = req.user.userId;
-
-    console.log('📝 모임 생성 요청:', { title, hostId, category });
-
-    if (!title || !location || !date || !time || !maxParticipants || !category) {
-      return res.status(400).json({ error: '필수 필드를 모두 입력해주세요' });
-    }
-
-    // 모임 생성
-    const meetupResult = await pool.query(`
-      INSERT INTO meetups (
-        id, title, description, location, address, date, time, 
-        max_participants, current_participants, category, price_range, 
-        host_id, requirements, status, created_at, updated_at
-      ) VALUES (
-        gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, 1, $8, $9, $10, $11, '모집중', NOW(), NOW()
-      ) RETURNING *
-    `, [title, description, location, address, date, time, maxParticipants, category, priceRange, hostId, requirements]);
-
-    const meetup = meetupResult.rows[0];
-
-    // 호스트를 자동으로 참가자로 추가
-    await pool.query(`
-      INSERT INTO meetup_participants (meetup_id, user_id, status, created_at, updated_at)
-      VALUES ($1, $2, $3, NOW(), NOW())
-    `, [meetup.id, hostId, '참가승인']);
-
-    // 호스트의 주최 모임 수 증가
-    await pool.query(`
-      UPDATE users 
-      SET meetups_hosted = meetups_hosted + 1, updated_at = NOW()
-      WHERE id = $1
-    `, [hostId]);
-
-    // 호스트 정보와 함께 생성된 모임 정보 조회
-    const createdMeetupResult = await pool.query(`
-      SELECT 
-        m.*,
-        u.id as "host_id",
-        u.name as "host_name", 
-        u.profile_image as "host_profileImage",
-        u.rating as "host_rating"
-      FROM meetups m
-      LEFT JOIN users u ON m.host_id = u.id
-      WHERE m.id = $1
-    `, [meetup.id]);
-
-    const createdMeetupData = createdMeetupResult.rows[0];
-    
-    const createdMeetup = {
-      ...createdMeetupData,
-      host: {
-        id: createdMeetupData.host_id,
-        name: createdMeetupData.host_name,
-        profileImage: createdMeetupData.host_profileImage,
-        rating: createdMeetupData.host_rating
-      }
-    };
-
-    console.log('✅ 모임 생성 완료:', { meetupId: meetup.id, title });
-
-    res.status(201).json({
-      success: true,
-      message: '모임이 생성되었습니다',
-      meetup: createdMeetup
-    });
-  } catch (error) {
-    console.error('모임 생성 오류:', error);
-    res.status(500).json({ error: '서버 오류가 발생했습니다' });
-  }
-});
 
 // 모임 상세 조회 API
 apiRouter.get('/meetups/:id', async (req, res) => {
@@ -768,6 +682,13 @@ apiRouter.get('/meetups/:id', async (req, res) => {
     const { id } = req.params;
     
     console.log('🔍 모임 상세 조회 요청:', { meetupId: id });
+    
+    // 조회수 증가
+    await pool.query(`
+      UPDATE meetups 
+      SET view_count = COALESCE(view_count, 0) + 1
+      WHERE id = $1
+    `, [id]);
     
     // 모임 정보 조회
     const meetupResult = await pool.query(`
@@ -790,6 +711,7 @@ apiRouter.get('/meetups/:id', async (req, res) => {
         m.host_id as "hostId",
         m.requirements,
         m.tags,
+        m.view_count as "viewCount",
         m.created_at as "createdAt",
         m.updated_at as "updatedAt",
         u.id as "host_id",
@@ -858,6 +780,7 @@ apiRouter.get('/meetups/:id', async (req, res) => {
       hostId: meetupData.hostId,
       requirements: meetupData.requirements,
       tags: meetupData.tags,
+      viewCount: meetupData.viewCount || 0,
       createdAt: meetupData.createdAt,
       updatedAt: meetupData.updatedAt,
       host: {
@@ -896,7 +819,18 @@ apiRouter.post('/meetups', authenticateToken, upload.single('image'), async (req
       maxParticipants,
       priceRange,
       requirements,
-      tags
+      tags,
+      // Preference filters
+      genderFilter,
+      ageFilterMin,
+      ageFilterMax,
+      eatingSpeed,
+      conversationDuringMeal,
+      talkativeness,
+      mealPurpose,
+      specificRestaurant,
+      interests,
+      isRequired
     } = req.body;
 
     const userId = req.user.userId;
@@ -909,13 +843,32 @@ apiRouter.post('/meetups', authenticateToken, upload.single('image'), async (req
       date,
       time,
       maxParticipants,
-      hasImage: !!req.file
+      hasImage: !!req.file,
+      filters: {
+        genderFilter,
+        ageFilterMin,
+        ageFilterMax,
+        eatingSpeed,
+        conversationDuringMeal,
+        talkativeness,
+        mealPurpose,
+        specificRestaurant,
+        interests: typeof interests === 'string' ? interests : JSON.stringify(interests),
+        isRequired
+      }
     });
 
     // 필수 필드 검증
     if (!title || !category || !location || !date || !time || !maxParticipants) {
       return res.status(400).json({ 
         error: '제목, 카테고리, 위치, 날짜, 시간, 최대 참가자 수는 필수입니다' 
+      });
+    }
+
+    // 필수 필터 검증 (성별, 나이만)
+    if (!genderFilter || !ageFilterMin || !ageFilterMax) {
+      return res.status(400).json({ 
+        error: '필수 필터를 모두 선택해주세요 (성별, 나이)' 
       });
     }
 
@@ -962,6 +915,19 @@ apiRouter.post('/meetups', authenticateToken, upload.single('image'), async (req
 
     const newMeetup = meetupResult.rows[0];
 
+    // 호스트를 자동으로 참가자로 추가
+    await pool.query(`
+      INSERT INTO meetup_participants (id, meetup_id, user_id, status, created_at, updated_at)
+      VALUES (gen_random_uuid(), $1, $2, '참가승인', NOW(), NOW())
+    `, [newMeetup.id, userId]);
+
+    // 현재 참가자 수 업데이트
+    await pool.query(`
+      UPDATE meetups 
+      SET current_participants = 1
+      WHERE id = $1
+    `, [newMeetup.id]);
+
     // 태그 저장 (태그 테이블이 있다면)
     if (parsedTags.length > 0) {
       try {
@@ -976,6 +942,31 @@ apiRouter.post('/meetups', authenticateToken, upload.single('image'), async (req
       } catch (tagError) {
         console.log('태그 저장 스킵:', tagError.message);
       }
+    }
+
+    // 모임 생성 시 채팅방도 자동 생성
+    try {
+      const chatRoomResult = await pool.query(`
+        INSERT INTO chat_rooms (type, "meetupId", title, description, "createdBy", "createdAt", "updatedAt")
+        VALUES ('meetup', $1, $2, $3, $4, NOW(), NOW())
+        RETURNING id
+      `, [newMeetup.id, newMeetup.title, `${newMeetup.title} 모임 채팅방`, userId]);
+
+      const roomId = chatRoomResult.rows[0].id;
+
+      // 사용자 이름 조회
+      const userResult = await pool.query('SELECT name FROM users WHERE id = $1', [userId]);
+      const userName = userResult.rows[0]?.name || '사용자';
+
+      // 호스트를 채팅방 참여자로 자동 추가
+      await pool.query(`
+        INSERT INTO chat_participants ("chatRoomId", "userId", "userName", "joinedAt", "createdAt", "updatedAt")
+        VALUES ($1, $2, $3, NOW(), NOW(), NOW())
+      `, [roomId, userId, userName]);
+
+      console.log('✅ 채팅방 자동 생성 완료:', { roomId, meetupId: newMeetup.id });
+    } catch (chatError) {
+      console.log('⚠️ 채팅방 생성 실패 (무시):', chatError.message);
     }
 
     console.log('✅ 모임 생성 완료:', {
@@ -1124,8 +1115,8 @@ async function handleHostCancelMeetup(req, res, meetupId, hostId) {
       `, [chatRoomId]);
     }
 
-    // 4. 참가자들에게 포인트 환불 (약속금 1000원 환불)
-    const depositAmount = 1000;
+    // 4. 참가자들에게 포인트 환불 (약속금 3000원 환불)
+    const depositAmount = 3000;
     for (const participant of participantsResult.rows) {
       try {
         await client.query(`
@@ -1355,7 +1346,7 @@ apiRouter.get('/chat/rooms', authenticateToken, async (req, res) => {
       LEFT JOIN chat_participants cp2 ON cr.id = cp2."chatRoomId" AND cp2."isActive" = true
       WHERE cp."userId" = $1 AND cp."isActive" = true
       GROUP BY cr.id, cp."unreadCount", cp."isPinned", cp."isMuted"
-      ORDER BY cr."lastMessageTime" DESC NULLS LAST, cr."createdAt" DESC
+      ORDER BY COALESCE(cr."lastMessageTime", cr."createdAt") DESC
     `, [userId]);
     
     const chatRooms = result.rows;
@@ -1585,7 +1576,10 @@ apiRouter.post('/users/charge-points', authenticateToken, async (req, res) => {
 
     // 사용자 정보 조회 (이메일 확인용)
     const userResult = await pool.query(`
-      SELECT id, name, email, points FROM users WHERE id = $1
+      SELECT u.id, u.name, u.email, COALESCE(up.available_points, 0) as points
+      FROM users u
+      LEFT JOIN user_points up ON u.id = up.user_id
+      WHERE u.id = $1
     `, [userId]);
 
     if (userResult.rows.length === 0) {
@@ -1635,10 +1629,15 @@ apiRouter.post('/users/charge-points', authenticateToken, async (req, res) => {
 
     const newPoints = (user.points || 0) + finalAmount;
 
-    // 포인트 업데이트
+    // user_points 테이블에 포인트 업데이트 또는 생성
     await pool.query(`
-      UPDATE users SET points = $1, updated_at = NOW() WHERE id = $2
-    `, [newPoints, userId]);
+      INSERT INTO user_points (id, user_id, total_points, available_points, used_points, expired_points, created_at, updated_at)
+      VALUES (gen_random_uuid(), $1, $2, $2, 0, 0, NOW(), NOW())
+      ON CONFLICT (user_id) DO UPDATE SET 
+        total_points = user_points.total_points + $3,
+        available_points = user_points.available_points + $3,
+        updated_at = NOW()
+    `, [userId, newPoints, finalAmount]);
 
     // 포인트 충전 기록 저장 (point_transactions 테이블이 있다면)
     try {
@@ -1705,7 +1704,10 @@ apiRouter.post('/users/use-points', authenticateToken, async (req, res) => {
 
     // 사용자 포인트 조회
     const userResult = await pool.query(`
-      SELECT id, name, points FROM users WHERE id = $1
+      SELECT u.id, u.name, COALESCE(up.available_points, 0) as points
+      FROM users u
+      LEFT JOIN user_points up ON u.id = up.user_id
+      WHERE u.id = $1
     `, [userId]);
 
     if (userResult.rows.length === 0) {
@@ -1727,10 +1729,14 @@ apiRouter.post('/users/use-points', authenticateToken, async (req, res) => {
 
     const newPoints = currentPoints - amount;
 
-    // 포인트 차감
+    // user_points 테이블에서 포인트 차감
     await pool.query(`
-      UPDATE users SET points = $1, updated_at = NOW() WHERE id = $2
-    `, [newPoints, userId]);
+      UPDATE user_points 
+      SET available_points = available_points - $1,
+          used_points = used_points + $1,
+          updated_at = NOW()
+      WHERE user_id = $2
+    `, [amount, userId]);
 
     // 포인트 사용 기록 저장
     try {
@@ -1776,7 +1782,10 @@ apiRouter.get('/users/points', authenticateToken, async (req, res) => {
     console.log('💰 포인트 잔액 조회 요청:', { userId });
 
     const userResult = await pool.query(`
-      SELECT id, name, points FROM users WHERE id = $1
+      SELECT u.id, u.name, COALESCE(up.available_points, 0) as points
+      FROM users u
+      LEFT JOIN user_points up ON u.id = up.user_id
+      WHERE u.id = $1
     `, [userId]);
 
     if (userResult.rows.length === 0) {
@@ -1820,7 +1829,10 @@ apiRouter.post('/users/refund-points', authenticateToken, async (req, res) => {
 
     // 사용자 존재 확인
     const userResult = await pool.query(`
-      SELECT id, points FROM users WHERE id = $1
+      SELECT u.id, COALESCE(up.available_points, 0) as points
+      FROM users u
+      LEFT JOIN user_points up ON u.id = up.user_id
+      WHERE u.id = $1
     `, [userId]);
 
     if (userResult.rows.length === 0) {
@@ -1830,12 +1842,15 @@ apiRouter.post('/users/refund-points', authenticateToken, async (req, res) => {
       });
     }
 
-    // 포인트 환불 (추가)
+    // user_points 테이블에서 포인트 환불 (추가)
     await pool.query(`
-      UPDATE users 
-      SET points = points + $1, updated_at = NOW()
-      WHERE id = $2
-    `, [amount, userId]);
+      INSERT INTO user_points (id, user_id, total_points, available_points, used_points, expired_points, created_at, updated_at)
+      VALUES (gen_random_uuid(), $1, $2, $2, 0, 0, NOW(), NOW())
+      ON CONFLICT (user_id) DO UPDATE SET 
+        total_points = user_points.total_points + $2,
+        available_points = user_points.available_points + $2,
+        updated_at = NOW()
+    `, [userId, amount]);
 
     // 포인트 거래 내역 기록
     await pool.query(`
@@ -1847,7 +1862,7 @@ apiRouter.post('/users/refund-points', authenticateToken, async (req, res) => {
 
     // 업데이트된 포인트 조회
     const updatedUserResult = await pool.query(`
-      SELECT points FROM users WHERE id = $1
+      SELECT available_points as points FROM user_points WHERE user_id = $1
     `, [userId]);
 
     res.json({
@@ -2282,21 +2297,14 @@ apiRouter.get('/user/rice-index', authenticateToken, async (req, res) => {
     const userId = req.user.userId;
     console.log('🍚 밥알지수 계산 요청:', { userId });
 
-    // 사용자 활동 데이터 조회
+    // 사용자 활동 데이터 조회 (activity-stats와 동일한 로직 사용)
     const [
-      joinedMeetups,
-      hostedMeetups,
-      completedMeetups,
+      hostedResult,
+      joinedResult,
+      completedResult,
       reviews,
       averageRating
     ] = await Promise.all([
-      // 참여한 모임 수
-      pool.query(`
-        SELECT COUNT(*) as count 
-        FROM meetup_participants 
-        WHERE user_id = $1 AND status = '참가승인'
-      `, [userId]),
-      
       // 호스팅한 모임 수
       pool.query(`
         SELECT COUNT(*) as count 
@@ -2304,12 +2312,20 @@ apiRouter.get('/user/rice-index', authenticateToken, async (req, res) => {
         WHERE host_id = $1
       `, [userId]),
       
-      // 완료한 모임 수
+      // 참가한 모임 수 (호스트로 참여한 것 제외)
       pool.query(`
         SELECT COUNT(*) as count 
-        FROM meetup_participants mp 
-        JOIN meetups m ON mp.meetup_id = m.id 
-        WHERE mp.user_id = $1 AND m.status = '종료'
+        FROM meetup_participants mp
+        JOIN meetups m ON mp.meetup_id = m.id
+        WHERE mp.user_id = $1 AND m.host_id != $2
+      `, [userId, userId]),
+      
+      // 과거 모임 참가 수 (완료된 모임)
+      pool.query(`
+        SELECT COUNT(*) as count 
+        FROM meetup_participants mp
+        JOIN meetups m ON mp.meetup_id = m.id
+        WHERE mp.user_id = $1 AND m.date < CURRENT_DATE
       `, [userId]),
       
       // 작성한 리뷰 수
@@ -2329,74 +2345,19 @@ apiRouter.get('/user/rice-index', authenticateToken, async (req, res) => {
     ]);
 
     const stats = {
-      joinedMeetups: parseInt(joinedMeetups.rows[0].count),
-      hostedMeetups: parseInt(hostedMeetups.rows[0].count),
-      completedMeetups: parseInt(completedMeetups.rows[0].count),
+      joinedMeetups: parseInt(joinedResult.rows[0].count),
+      hostedMeetups: parseInt(hostedResult.rows[0].count),
+      completedMeetups: parseInt(completedResult.rows[0].count),
       reviewsWritten: parseInt(reviews.rows[0].count),
       averageRating: parseFloat(averageRating.rows[0].avg_rating || 0)
     };
 
-    // 새로운 밥알지수 계산 알고리즘 (0.0 ~ 100.0)
-    let riceIndex = 40.0; // 기본 점수
+    // 사용자의 저장된 밥알지수 조회 (자동 계산 대신 저장된 값 사용)
+    const userResult = await pool.query(`
+      SELECT babal_score FROM users WHERE id = $1
+    `, [userId]);
     
-    // 완료한 모임 수에 따른 점수 계산
-    const completedMeetupsCount = stats.completedMeetups;
-    const reviewCount = stats.reviewsWritten;
-    const avgRating = stats.averageRating;
-    
-    // 후기가 있는 완료 모임에 대한 점수 계산
-    const reviewedMeetups = Math.min(reviewCount, completedMeetupsCount);
-    
-    if (reviewedMeetups > 0) {
-      // 현재 점수 구간에 따라 다른 상승폭 적용
-      let increment = 0;
-      
-      if (riceIndex < 40.0) {
-        increment = 1.5; // 0.0 ~ 39.9 구간
-      } else if (riceIndex < 60.0) {
-        increment = 1.0; // 40.0 ~ 59.9 구간  
-      } else if (riceIndex < 70.0) {
-        increment = 0.5; // 60.0 ~ 69.9 구간
-      } else if (riceIndex < 80.0) {
-        increment = 0.3; // 70.0 ~ 79.9 구간
-      } else if (riceIndex < 90.0) {
-        increment = 0.1; // 80.0 ~ 89.9 구간
-      } else {
-        increment = 0.05; // 90.0 ~ 99.9 구간
-      }
-      
-      // 후기 품질 보너스 (평점이 높을 경우)
-      let qualityMultiplier = 1.0;
-      if (avgRating >= 4.5) {
-        qualityMultiplier = 1.3;
-      } else if (avgRating >= 4.0) {
-        qualityMultiplier = 1.1;
-      } else if (avgRating >= 3.5) {
-        qualityMultiplier = 1.0;
-      } else if (avgRating >= 2.0) {
-        qualityMultiplier = 0.7; // 낮은 평점 시 감점
-      } else if (avgRating > 0) {
-        qualityMultiplier = 0.5; // 매우 낮은 평점 시 큰 감점
-      }
-      
-      riceIndex += (reviewedMeetups * increment * qualityMultiplier);
-    }
-    
-    // 연속 참여 보너스 (간접적으로 총 참여 모임으로 추정)
-    const totalMeetups = stats.joinedMeetups + stats.hostedMeetups;
-    if (totalMeetups >= 10) {
-      riceIndex += 2.0; // 10회 이상 참여 보너스
-    } else if (totalMeetups >= 5) {
-      riceIndex += 1.0; // 5회 이상 참여 보너스
-    }
-    
-    // 호스팅 경험 보너스
-    if (stats.hostedMeetups > 0) {
-      riceIndex += Math.min(stats.hostedMeetups * 0.5, 5.0); // 최대 5점
-    }
-    
-    // 최소/최대 점수 제한 (0.0 ~ 100.0)
-    riceIndex = Math.max(0.0, Math.min(100.0, Math.round(riceIndex * 10) / 10));
+    let riceIndex = userResult.rows[0]?.babal_score || 40.0; // 기본 점수
 
     // 밥알지수 레벨 계산
     const getRiceLevel = (score) => {
@@ -3137,13 +3098,13 @@ apiRouter.get('/legal/privacy', async (req, res) => {
   }
 });
 
-// 404 에러 핸들러 (API 라우터용)
-apiRouter.use('*', (req, res) => {
-  res.status(404).json({
-    error: 'API 엔드포인트를 찾을 수 없습니다.',
-    path: req.path
-  });
-});
+// 404 핸들러를 임시로 주석 처리 (파일 끝으로 이동)
+// apiRouter.use('*', (req, res) => {
+//   res.status(404).json({
+//     error: 'API 엔드포인트를 찾을 수 없습니다.',
+//     path: req.path
+//   });
+// });
 
 // 에러 핸들러
 app.use((err, req, res, next) => {
@@ -3472,9 +3433,16 @@ apiRouter.get('/user/points', authenticateToken, async (req, res) => {
     const userId = req.user.userId;
     console.log('🎁 포인트 조회 요청:', { userId });
 
-    // users 테이블에서 포인트 정보 조회
+    // user_points 테이블에서 포인트 정보 조회
     const userResult = await pool.query(`
-      SELECT id, name, email, points FROM users WHERE id = $1
+      SELECT u.id, u.name, u.email, 
+             COALESCE(up.total_points, 0) as total_points,
+             COALESCE(up.available_points, 0) as available_points,
+             COALESCE(up.used_points, 0) as used_points,
+             COALESCE(up.expired_points, 0) as expired_points
+      FROM users u
+      LEFT JOIN user_points up ON u.id = up.user_id
+      WHERE u.id = $1
     `, [userId]);
 
     if (userResult.rows.length === 0) {
@@ -3485,7 +3453,7 @@ apiRouter.get('/user/points', authenticateToken, async (req, res) => {
     }
 
     const user = userResult.rows[0];
-    const userPoints = user.points || 0;
+    const userPoints = user.available_points || 0;
 
     console.log('✅ 포인트 조회 성공:', { userId, points: userPoints });
 
@@ -3494,10 +3462,10 @@ apiRouter.get('/user/points', authenticateToken, async (req, res) => {
       data: {
         id: user.id,
         userId: user.id,
-        totalPoints: userPoints,
-        availablePoints: userPoints,
-        usedPoints: 0,
-        expiredPoints: 0,
+        totalPoints: user.total_points,
+        availablePoints: user.available_points,
+        usedPoints: user.used_points,
+        expiredPoints: user.expired_points,
         lastUpdatedAt: new Date().toISOString()
       }
     });
@@ -3579,17 +3547,40 @@ apiRouter.post('/deposits/payment', authenticateToken, async (req, res) => {
       });
     }
 
-    // 이미 결제한 약속금이 있는지 확인
-    const existingDeposit = await pool.query(`
-      SELECT id FROM promise_deposits 
-      WHERE meetup_id = $1 AND user_id = $2
-    `, [meetupId, userId]);
+    // 실제 meetupId가 아닌 임시 ID인 경우 임시 meetup 생성
+    const isTemporaryMeetupId = meetupId.startsWith('temp-');
+    let actualMeetupId = meetupId;
+    
+    if (isTemporaryMeetupId) {
+      // 임시 meetup 레코드 생성 (약속금 결제를 위한 placeholder)
+      const tempMeetupResult = await pool.query(`
+        INSERT INTO meetups (
+          id, title, description, location, date, time, 
+          max_participants, category, host_id, status,
+          created_at, updated_at
+        ) VALUES (
+          gen_random_uuid(), '임시 모임 (결제 진행 중)', '모임 생성 진행 중', '미정', 
+          CURRENT_DATE + INTERVAL '1 day', '12:00:00',
+          2, '기타', $1, '모집중',
+          NOW(), NOW()
+        ) RETURNING id
+      `, [userId]);
+      
+      actualMeetupId = tempMeetupResult.rows[0].id;
+      console.log('🎫 임시 meetup 생성:', actualMeetupId);
+    } else {
+      // 이미 결제한 약속금이 있는지 확인 (실제 모임ID인 경우에만)
+      const existingDeposit = await pool.query(`
+        SELECT id FROM promise_deposits 
+        WHERE meetup_id = $1 AND user_id = $2
+      `, [meetupId, userId]);
 
-    if (existingDeposit.rows.length > 0) {
-      return res.status(400).json({
-        success: false,
-        error: '이미 해당 모임의 약속금을 결제하셨습니다.'
-      });
+      if (existingDeposit.rows.length > 0) {
+        return res.status(400).json({
+          success: false,
+          error: '이미 해당 모임의 약속금을 결제하셨습니다.'
+        });
+      }
     }
 
     let paymentId;
@@ -3627,10 +3618,14 @@ apiRouter.post('/deposits/payment', authenticateToken, async (req, res) => {
         `, [amount, userId]);
 
         // 포인트 거래 내역 추가
+        const actualMeetupId = isTemporaryMeetupId ? null : meetupId;
+        const description = isTemporaryMeetupId 
+          ? '모임 약속금 결제 (임시 결제)'
+          : `모임 약속금 결제 (모임 ID: ${meetupId})`;
         await pool.query(`
           INSERT INTO point_transactions (user_id, type, amount, description, created_at)
           VALUES ($1, 'used', $2, $3, NOW())
-        `, [userId, amount, `모임 약속금 결제 (모임 ID: ${meetupId})`]);
+        `, [userId, amount, description]);
 
         paymentId = `points_${Date.now()}`;
         break;
@@ -3641,21 +3636,22 @@ apiRouter.post('/deposits/payment', authenticateToken, async (req, res) => {
         });
     }
 
-    // 약속금 기록 저장
+    // 약속금 기록 저장 (실제 meetupId 사용)
     const depositResult = await pool.query(`
       INSERT INTO promise_deposits (
         meetup_id, user_id, amount, status, payment_method, payment_id, deposited_at, created_at, updated_at
       ) VALUES ($1, $2, $3, 'paid', $4, $5, NOW(), NOW(), NOW())
       RETURNING id
-    `, [meetupId, userId, amount, paymentMethod, paymentId]);
+    `, [actualMeetupId, userId, amount, paymentMethod, paymentId]);
 
     const depositId = depositResult.rows[0].id;
 
-    console.log('✅ 약속금 결제 완료:', { depositId, paymentId });
+    console.log('✅ 약속금 결제 완료:', { depositId, paymentId, actualMeetupId });
 
     res.json({
       success: true,
       paymentId: depositId,
+      meetupId: actualMeetupId, // 실제 생성된 meetup ID 반환
       redirectUrl
     });
 
@@ -3856,6 +3852,14 @@ apiRouter.get('/user/deposits', authenticateToken, async (req, res) => {
       error: '약속금 내역을 조회할 수 없습니다.'
     });
   }
+});
+
+// 404 에러 핸들러 (API 라우터용) - 모든 라우트 정의 후 마지막에 위치
+apiRouter.use('*', (req, res) => {
+  res.status(404).json({
+    error: 'API 엔드포인트를 찾을 수 없습니다.',
+    path: req.path
+  });
 });
 
 // 서버 시작

@@ -14,8 +14,7 @@ import Toast from '../components/Toast';
 import { useToast } from '../hooks/useToast';
 import { useRouterNavigation } from '../components/RouterNavigation';
 import { FOOD_CATEGORY_NAMES, PRICE_RANGES } from '../constants/categories';
-import DepositSelector from '../components/DepositSelector';
-import depositService from '../services/depositService';
+import { DepositSelector } from '../components/DepositSelector';
 
 interface CreateMeetupScreenProps {
   navigation?: any;
@@ -55,19 +54,19 @@ const CreateMeetupScreen: React.FC<CreateMeetupScreenProps> = ({ user }) => {
     isRequired: false
   });
 
-  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(true);
+  const [showOptionalFilters, setShowOptionalFilters] = useState(false);
   const [showDepositSelector, setShowDepositSelector] = useState(false);
-  const [depositEnabled, setDepositEnabled] = useState(false);
-  const [depositId, setDepositId] = useState<string | null>(null);
+  const [tempMeetupData, setTempMeetupData] = useState<any>(null);
 
   const [loading, setLoading] = useState(false);
   const { toast, showSuccess, showError, hideToast } = useToast();
 
   const categories = FOOD_CATEGORY_NAMES;
   const priceRanges = PRICE_RANGES;
-  const defaultPolicy = depositService.getDefaultDepositPolicy();
 
   const handleInputChange = (field: string, value: string) => {
+    console.log(`📝 입력 변경: ${field} = "${value}"`);
     setFormData(prev => ({
       ...prev,
       [field]: value
@@ -90,43 +89,55 @@ const CreateMeetupScreen: React.FC<CreateMeetupScreenProps> = ({ user }) => {
     }));
   };
 
-  const handleDepositToggle = () => {
-    if (!depositEnabled) {
-      setDepositEnabled(true);
-      setShowDepositSelector(true);
-    } else {
-      setDepositEnabled(false);
-      setDepositId(null);
-    }
-  };
-
-  const handleDepositPaid = (paidDepositId: string, amount: number) => {
-    setDepositId(paidDepositId);
-    setDepositEnabled(true);
-    showSuccess(`약속금 ${amount.toLocaleString()}원이 결제되었습니다!`);
-  };
-
   const validateForm = () => {
+    console.log('🔍 폼 검증 시작');
+    console.log('📋 폼 데이터:', formData);
+    console.log('⚙️ 필터 데이터:', preferenceFilter);
+    
     if (!formData.title.trim()) {
+      console.log('❌ 제목 검증 실패:', formData.title);
       Alert.alert('오류', '모임 제목을 입력해주세요.');
       return false;
     }
+    console.log('✅ 제목 검증 통과');
+    
     if (!formData.location.trim()) {
+      console.log('❌ 장소 검증 실패:', formData.location);
       Alert.alert('오류', '모임 장소를 입력해주세요.');
       return false;
     }
-    if (!formData.date.trim()) {
+    console.log('✅ 장소 검증 통과');
+    
+    if (!formData.date || formData.date.trim() === '') {
+      console.log('❌ 날짜 검증 실패:', `"${formData.date}"`);
       Alert.alert('오류', '모임 날짜를 입력해주세요.');
       return false;
     }
-    if (!formData.time.trim()) {
+    console.log('✅ 날짜 검증 통과:', formData.date);
+    
+    if (!formData.time || formData.time.trim() === '') {
+      console.log('❌ 시간 검증 실패:', `"${formData.time}"`);
       Alert.alert('오류', '모임 시간을 입력해주세요.');
       return false;
     }
+    console.log('✅ 시간 검증 통과:', formData.time);
+    
     if (!formData.maxParticipants.trim() || parseInt(formData.maxParticipants) < 2) {
+      console.log('❌ 참가자 수 검증 실패:', formData.maxParticipants);
       Alert.alert('오류', '최대 참가자 수를 2명 이상으로 입력해주세요.');
       return false;
     }
+    console.log('✅ 참가자 수 검증 통과');
+    
+    // 필수 필터 검증 (기본값이 있으면 통과)
+    if (preferenceFilter.ageFilterMax < preferenceFilter.ageFilterMin) {
+      console.log('❌ 나이 범위 검증 실패:', preferenceFilter.ageFilterMin, '-', preferenceFilter.ageFilterMax);
+      Alert.alert('오류', '최대 나이는 최소 나이보다 크거나 같아야 합니다.');
+      return false;
+    }
+    console.log('✅ 나이 범위 검증 통과');
+    
+    console.log('✅ 모든 검증 통과');
     return true;
   };
 
@@ -168,8 +179,21 @@ const CreateMeetupScreen: React.FC<CreateMeetupScreenProps> = ({ user }) => {
   };
 
   const handleCreateMeetup = async () => {
-    if (!validateForm()) return;
+    console.log('🔍 모임 만들기 버튼 클릭됨');
+    console.log('📋 현재 폼 데이터:', formData);
+    console.log('⚙️ 현재 필터 데이터:', preferenceFilter);
+    
+    if (!validateForm()) {
+      console.log('❌ 폼 검증 실패');
+      return;
+    }
 
+    console.log('✅ 폼 검증 통과, 약속금 결제 팝업 표시');
+    // 먼저 임시 모임을 생성하여 meetupId를 얻습니다
+    await createTempMeetup();
+  };
+
+  const createTempMeetup = async () => {
     setLoading(true);
     
     try {
@@ -188,9 +212,26 @@ const CreateMeetupScreen: React.FC<CreateMeetupScreenProps> = ({ user }) => {
       formDataToSend.append('priceRange', formData.priceRange);
       formDataToSend.append('requirements', formData.requirements);
       
+      // 필터 정보 추가
+      formDataToSend.append('genderFilter', preferenceFilter.genderFilter);
+      formDataToSend.append('ageFilterMin', preferenceFilter.ageFilterMin.toString());
+      formDataToSend.append('ageFilterMax', preferenceFilter.ageFilterMax.toString());
+      formDataToSend.append('eatingSpeed', preferenceFilter.eatingSpeed);
+      formDataToSend.append('conversationDuringMeal', preferenceFilter.conversationDuringMeal);
+      formDataToSend.append('talkativeness', preferenceFilter.talkativeness);
+      formDataToSend.append('mealPurpose', preferenceFilter.mealPurpose);
+      formDataToSend.append('specificRestaurant', preferenceFilter.specificRestaurant);
+      formDataToSend.append('interests', JSON.stringify(preferenceFilter.interests));
+      formDataToSend.append('isRequired', preferenceFilter.isRequired.toString());
+      
       // 이미지 파일이 있으면 추가
       if (formData.image) {
         formDataToSend.append('image', formData.image);
+      }
+      
+      console.log('📤 전송할 FormData 내용:');
+      for (let [key, value] of formDataToSend.entries()) {
+        console.log(`  ${key}: ${value}`);
       }
       
       const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:3001/api'}/meetups`, {
@@ -205,57 +246,90 @@ const CreateMeetupScreen: React.FC<CreateMeetupScreenProps> = ({ user }) => {
       const data = await response.json();
 
       if (response.ok) {
-        // 모임 생성 성공 시 필터 설정
         const meetupId = data.meetup?.id;
-        if (meetupId && showAdvancedFilters) {
-          try {
-            const filterData = {
-              ...preferenceFilter,
-              locationFilter: formData.location || formData.address,
-              foodCategory: formData.category === '한식' ? 'korean' : 
-                          formData.category === '일식' ? 'japanese' :
-                          formData.category === '양식' ? 'western' :
-                          formData.category === '카페' ? 'dessert' : 'no_preference'
-            };
-            
-            const filterResponse = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:3001/api'}/meetups/${meetupId}/preference-filter`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`,
-              },
-              body: JSON.stringify(filterData),
-            });
-            
-            if (filterResponse.ok) {
-              console.log('✅ 모임 필터 설정 성공');
-            } else {
-              console.error('⚠️ 모임 필터 설정 실패');
-            }
-          } catch (filterError) {
-            console.error('⚠️ 모임 필터 설정 중 오류:', filterError);
-          }
-        }
+        console.log('✅ 임시 모임 생성 성공, meetupId:', meetupId);
         
-        showSuccess('모임이 성공적으로 생성되었습니다! 🎉');
+        // 임시 모임 데이터와 meetupId 저장
+        setTempMeetupData({ meetupId, formData, preferenceFilter });
         
-        // 3초 후 모임 상세 페이지로 이동
-        setTimeout(() => {
-          if (navigation && meetupId) {
-            navigation.navigate('MeetupDetail', { meetupId });
-          } else if (navigation) {
-            navigation.goBack();
-          }
-        }, 2000);
+        // 약속금 결제 팝업 표시
+        setShowDepositSelector(true);
       } else {
-        showError(data.error || '모임 생성에 실패했습니다.');
+        showError(data.error || '임시 모임 생성에 실패했습니다.');
       }
     } catch (error) {
-      console.error('모임 생성 오류:', error);
+      console.error('임시 모임 생성 오류:', error);
       showError('서버 연결에 실패했습니다.');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleDepositPaid = async (depositId: string, amount: number) => {
+    console.log('💰 약속금 결제 완료:', depositId, amount);
+    
+    if (!tempMeetupData) {
+      showError('모임 데이터를 찾을 수 없습니다.');
+      return;
+    }
+
+    try {
+      const { meetupId, formData: tempFormData, preferenceFilter: tempPreferenceFilter } = tempMeetupData;
+      
+      // 필터 설정
+      if (showAdvancedFilters) {
+        try {
+          const token = localStorage.getItem('token');
+          const filterData = {
+            ...tempPreferenceFilter,
+            locationFilter: tempFormData.location || tempFormData.address,
+            foodCategory: tempFormData.category === '한식' ? 'korean' : 
+                        tempFormData.category === '일식' ? 'japanese' :
+                        tempFormData.category === '양식' ? 'western' :
+                        tempFormData.category === '카페' ? 'dessert' : 'no_preference'
+          };
+          
+          const filterResponse = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:3001/api'}/meetups/${meetupId}/preference-filter`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`,
+            },
+            body: JSON.stringify(filterData),
+          });
+          
+          if (filterResponse.ok) {
+            console.log('✅ 모임 필터 설정 성공');
+          } else {
+            console.error('⚠️ 모임 필터 설정 실패');
+          }
+        } catch (filterError) {
+          console.error('⚠️ 모임 필터 설정 중 오류:', filterError);
+        }
+      }
+      
+      showSuccess('모임이 성공적으로 생성되고 약속금이 결제되었습니다! 🎉');
+      
+      // 모임 상세 페이지로 이동
+      setTimeout(() => {
+        if (navigation && meetupId) {
+          navigation.navigate('MeetupDetail', { meetupId });
+        } else if (navigation) {
+          navigation.goBack();
+        }
+      }, 2000);
+      
+    } catch (error) {
+      console.error('약속금 결제 후 처리 오류:', error);
+      showError('모임 생성 완료 중 오류가 발생했습니다.');
+    }
+  };
+
+  const handleDepositCancelled = () => {
+    console.log('💸 약속금 결제 취소됨');
+    // 임시 데이터 정리
+    setTempMeetupData(null);
+    setShowDepositSelector(false);
   };
 
   return (
@@ -374,21 +448,30 @@ const CreateMeetupScreen: React.FC<CreateMeetupScreenProps> = ({ user }) => {
           <View style={styles.row}>
             <View style={[styles.inputGroup, { flex: 1, marginRight: 10 }]}>
               <Text style={styles.label}>날짜 *</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="YYYY-MM-DD"
+              <input
+                type="date"
+                style={{
+                  ...styles.input as any,
+                  fontFamily: 'inherit',
+                  border: '1px solid #e2e8f0',
+                }}
                 value={formData.date}
-                onChangeText={(value) => handleInputChange('date', value)}
+                onChange={(e) => handleInputChange('date', e.target.value)}
+                min={new Date().toISOString().split('T')[0]}
               />
             </View>
             
             <View style={[styles.inputGroup, { flex: 1, marginLeft: 10 }]}>
               <Text style={styles.label}>시간 *</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="HH:MM"
+              <input
+                type="time"
+                style={{
+                  ...styles.input as any,
+                  fontFamily: 'inherit',
+                  border: '1px solid #e2e8f0',
+                }}
                 value={formData.time}
-                onChangeText={(value) => handleInputChange('time', value)}
+                onChange={(e) => handleInputChange('time', e.target.value)}
               />
             </View>
           </View>
@@ -473,154 +556,92 @@ const CreateMeetupScreen: React.FC<CreateMeetupScreenProps> = ({ user }) => {
           </View>
         </View>
 
-        {/* 약속금 설정 */}
+        {/* 필수 성향 필터 */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>약속금 설정</Text>
-          <Text style={styles.sectionSubtitle}>
-            노쇼 방지와 신뢰도 향상을 위한 약속금을 설정할 수 있습니다
-          </Text>
+          <Text style={styles.sectionTitle}>필수 성향 필터</Text>
           
-          <TouchableOpacity
-            style={styles.depositToggleRow}
-            onPress={handleDepositToggle}
-          >
-            <View style={styles.depositToggleLeft}>
-              <View style={styles.depositToggleIcon}>
-                <Text style={styles.depositToggleIconText}>💰</Text>
-              </View>
-              <View style={styles.depositToggleInfo}>
-                <Text style={styles.depositToggleTitle}>
-                  {defaultPolicy.name} ({defaultPolicy.amount.toLocaleString()}원)
-                </Text>
-                <Text style={styles.depositToggleDesc}>
-                  {depositEnabled && depositId 
-                    ? '결제 완료 ✅' 
-                    : defaultPolicy.description
-                  }
-                </Text>
-              </View>
-            </View>
-            <View style={[
-              styles.toggleSwitch,
-              depositEnabled && styles.toggleSwitchActive,
-            ]}>
-              <View style={[
-                styles.toggleSwitchThumb,
-                depositEnabled && styles.toggleSwitchThumbActive,
-              ]} />
-            </View>
-          </TouchableOpacity>
+          <Text style={styles.sectionSubtitle}>
+            모임 참가 시 필수로 설정되는 기본 조건입니다
+          </Text>
 
-          {depositEnabled && (
-            <View style={styles.depositPolicyInfo}>
-              <Text style={styles.policyTitle}>환불 정책</Text>
-              <View style={styles.policyItem}>
-                <Text style={styles.policyLabel}>• 정상 참석 + 후기 작성</Text>
-                <Text style={styles.policyValue}>100% 환불</Text>
+          <View style={styles.filterGroup}>
+            <Text style={styles.filterGroupTitle}>기본 조건 (필수)</Text>
+                
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>성별 제한</Text>
+              <View style={styles.categoryContainer}>
+                {[
+                  { key: 'anyone', label: '누구나' },
+                  { key: 'male', label: '남자만' },
+                  { key: 'female', label: '여자만' }
+                ].map((option) => (
+                  <TouchableOpacity
+                    key={option.key}
+                    style={[
+                      styles.categoryButton,
+                      preferenceFilter.genderFilter === option.key && styles.categoryButtonActive
+                    ]}
+                    onPress={() => handleFilterChange('genderFilter', option.key)}
+                  >
+                    <Text style={[
+                      styles.categoryButtonText,
+                      preferenceFilter.genderFilter === option.key && styles.categoryButtonTextActive
+                    ]}>
+                      {option.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
               </View>
-              <View style={styles.policyItem}>
-                <Text style={styles.policyLabel}>• 정상 참석 (후기 미작성)</Text>
-                <Text style={styles.policyValue}>포인트 전환</Text>
-              </View>
-              <View style={styles.policyItem}>
-                <Text style={styles.policyLabel}>• 노쇼</Text>
-                <Text style={styles.policyValue}>약속금 몰수</Text>
-              </View>
-              
-              {!depositId && (
-                <TouchableOpacity
-                  style={styles.payDepositButton}
-                  onPress={() => setShowDepositSelector(true)}
-                >
-                  <Text style={styles.payDepositButtonText}>
-                    {defaultPolicy.amount.toLocaleString()}원 결제하기
-                  </Text>
-                </TouchableOpacity>
-              )}
             </View>
-          )}
+
+            <View style={styles.row}>
+              <View style={[styles.inputGroup, { flex: 1, marginRight: 10 }]}>
+                <Text style={styles.label}>최소 나이</Text>
+                <select 
+                  style={styles.selectInput}
+                  value={preferenceFilter.ageFilterMin}
+                  onChange={(e) => handleFilterChange('ageFilterMin', parseInt(e.target.value))}
+                >
+                  {Array.from({ length: 43 }, (_, i) => i + 18).map((age) => (
+                    <option key={age} value={age}>{age}세</option>
+                  ))}
+                </select>
+              </View>
+              <View style={[styles.inputGroup, { flex: 1, marginLeft: 10 }]}>
+                <Text style={styles.label}>최대 나이</Text>
+                <select 
+                  style={styles.selectInput}
+                  value={preferenceFilter.ageFilterMax}
+                  onChange={(e) => handleFilterChange('ageFilterMax', parseInt(e.target.value))}
+                >
+                  {Array.from({ length: 43 }, (_, i) => i + 18).map((age) => (
+                    <option key={age} value={age}>{age}세</option>
+                  ))}
+                </select>
+              </View>
+            </View>
+          </View>
         </View>
 
-        {/* 식사 성향 필터 */}
+        {/* 선택 성향 필터 */}
         <View style={styles.section}>
-          <View style={styles.sectionHeaderRow}>
-            <Text style={styles.sectionTitle}>식사 성향 필터 (선택)</Text>
-            <TouchableOpacity
-              style={styles.toggleButton}
-              onPress={() => setShowAdvancedFilters(!showAdvancedFilters)}
-            >
-              <Text style={styles.toggleButtonText}>
-                {showAdvancedFilters ? '간단히' : '상세설정'}
-              </Text>
-              <Icon 
-                name={showAdvancedFilters ? 'chevron-up' : 'chevron-down'} 
-                size={16} 
-                color={COLORS.primary.main} 
-              />
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity 
+            style={styles.accordionHeader}
+            onPress={() => setShowOptionalFilters(!showOptionalFilters)}
+          >
+            <View style={styles.accordionHeaderLeft}>
+              <Text style={styles.sectionTitle}>선택 성향 필터</Text>
+              <Text style={styles.accordionSubtitle}>더욱 세밀한 설정 (선택사항)</Text>
+            </View>
+            <Icon 
+              name={showOptionalFilters ? "chevron-up" : "chevron-down"} 
+              size={20} 
+              color="#666" 
+            />
+          </TouchableOpacity>
           
-          <Text style={styles.sectionSubtitle}>
-            참가자들의 식사 성향을 미리 파악하여 더 좋은 모임을 만들어보세요
-          </Text>
-
-          {showAdvancedFilters && (
+          {showOptionalFilters && (
             <>
-              {/* 기본 조건 */}
-              <View style={styles.filterGroup}>
-                <Text style={styles.filterGroupTitle}>기본 조건</Text>
-                
-                <View style={styles.inputGroup}>
-                  <Text style={styles.label}>성별 제한</Text>
-                  <View style={styles.categoryContainer}>
-                    {[
-                      { key: 'anyone', label: '누구나' },
-                      { key: 'male', label: '남자만' },
-                      { key: 'female', label: '여자만' }
-                    ].map((option) => (
-                      <TouchableOpacity
-                        key={option.key}
-                        style={[
-                          styles.categoryButton,
-                          preferenceFilter.genderFilter === option.key && styles.categoryButtonActive
-                        ]}
-                        onPress={() => handleFilterChange('genderFilter', option.key)}
-                      >
-                        <Text style={[
-                          styles.categoryButtonText,
-                          preferenceFilter.genderFilter === option.key && styles.categoryButtonTextActive
-                        ]}>
-                          {option.label}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                </View>
-
-                <View style={styles.row}>
-                  <View style={[styles.inputGroup, { flex: 1, marginRight: 10 }]}>
-                    <Text style={styles.label}>최소 나이</Text>
-                    <TextInput
-                      style={styles.input}
-                      placeholder="18"
-                      value={preferenceFilter.ageFilterMin.toString()}
-                      onChangeText={(value) => handleFilterChange('ageFilterMin', parseInt(value) || 18)}
-                      keyboardType="numeric"
-                    />
-                  </View>
-                  <View style={[styles.inputGroup, { flex: 1, marginLeft: 10 }]}>
-                    <Text style={styles.label}>최대 나이</Text>
-                    <TextInput
-                      style={styles.input}
-                      placeholder="100"
-                      value={preferenceFilter.ageFilterMax.toString()}
-                      onChangeText={(value) => handleFilterChange('ageFilterMax', parseInt(value) || 100)}
-                      keyboardType="numeric"
-                    />
-                  </View>
-                </View>
-              </View>
-
               {/* 식사 성향 */}
               <View style={styles.filterGroup}>
                 <Text style={styles.filterGroupTitle}>식사 성향</Text>
@@ -813,16 +834,74 @@ const CreateMeetupScreen: React.FC<CreateMeetupScreenProps> = ({ user }) => {
           )}
         </View>
 
+        {/* 약속금 설정 */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>약속금 정책</Text>
+          <Text style={styles.sectionSubtitle}>
+            이 모임은 노쇼 방지와 신뢰도 향상을 위해 약속금 제도를 운영합니다
+          </Text>
+          
+          <View style={styles.depositPolicyInfo}>
+            <View style={styles.depositToggleRow}>
+              <View style={styles.depositToggleLeft}>
+                <View style={styles.depositToggleIcon}>
+                  <Text style={styles.depositToggleIconText}>💰</Text>
+                </View>
+                <View style={styles.depositToggleInfo}>
+                  <Text style={styles.depositToggleTitle}>
+                    약속금 3,000원
+                  </Text>
+                  <Text style={styles.depositToggleDesc}>
+                    모임 참가 신청 시 결제됩니다
+                  </Text>
+                </View>
+              </View>
+            </View>
+            
+            <Text style={styles.policyTitle}>환불 정책</Text>
+            <View style={styles.policyItem}>
+              <Text style={styles.policyLabel}>• 정상 참석 + 후기 작성</Text>
+              <Text style={styles.policyValue}>100% 환불</Text>
+            </View>
+            <View style={styles.policyItem}>
+              <Text style={styles.policyLabel}>• 정상 참석 (후기 미작성)</Text>
+              <Text style={styles.policyValue}>포인트 전환</Text>
+            </View>
+            <View style={styles.policyItem}>
+              <Text style={styles.policyLabel}>• 노쇼</Text>
+              <Text style={styles.policyValue}>약속금 몰수</Text>
+            </View>
+            
+            <View style={styles.policyNote}>
+              <Text style={styles.policyNoteText}>
+                💡 약속금은 모임 참가 신청 시에 결제되며, 참석 및 후기 작성 시 자동 환불됩니다.
+              </Text>
+            </View>
+          </View>
+        </View>
+
         {/* 생성 버튼 */}
-        <TouchableOpacity
-          style={[styles.createButton, loading && styles.createButtonDisabled]}
-          onPress={handleCreateMeetup}
+        <button
+          style={{
+            backgroundColor: loading ? '#a0aec0' : '#667eea',
+            color: '#ffffff',
+            fontSize: '18px',
+            fontWeight: '700',
+            borderRadius: '16px',
+            padding: '20px',
+            border: 'none',
+            width: '100%',
+            marginTop: '20px',
+            cursor: loading ? 'not-allowed' : 'pointer',
+          }}
+          onClick={() => {
+            console.log('🖱️ 버튼 클릭 이벤트 발생, loading 상태:', loading);
+            handleCreateMeetup();
+          }}
           disabled={loading}
         >
-          <Text style={styles.createButtonText}>
-            {loading ? '모임 생성 중...' : '모임 만들기'}
-          </Text>
-        </TouchableOpacity>
+          {loading ? '모임 생성 중...' : '모임 만들기'}
+        </button>
 
         <View style={{ height: 40 }} />
       </ScrollView>
@@ -834,12 +913,15 @@ const CreateMeetupScreen: React.FC<CreateMeetupScreenProps> = ({ user }) => {
         onHide={hideToast}
       />
 
-      <DepositSelector
-        visible={showDepositSelector}
-        onClose={() => setShowDepositSelector(false)}
-        onDepositPaid={handleDepositPaid}
-        meetupId="temp_meetup_id" // 실제로는 모임 생성 후 ID 사용
-      />
+      {tempMeetupData && (
+        <DepositSelector
+          visible={showDepositSelector}
+          onClose={handleDepositCancelled}
+          onDepositPaid={handleDepositPaid}
+          meetupId={tempMeetupData.meetupId}
+        />
+      )}
+
     </View>
   );
 };
@@ -1136,18 +1218,6 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: '#1A1A1A',
   },
-  payDepositButton: {
-    backgroundColor: '#007AFF',
-    borderRadius: 8,
-    paddingVertical: 12,
-    alignItems: 'center',
-    marginTop: 12,
-  },
-  payDepositButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
   imageUploadContainer: {
     marginTop: 8,
   },
@@ -1202,6 +1272,52 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  // 약속금 정책 안내 스타일 추가
+  policyNote: {
+    backgroundColor: '#F0F8FF',
+    borderRadius: 8,
+    padding: 16,
+    marginTop: 16,
+    borderLeftWidth: 4,
+    borderLeftColor: '#007AFF',
+  },
+  policyNoteText: {
+    fontSize: 14,
+    color: '#2E5BBA',
+    lineHeight: 20,
+    fontWeight: '500',
+  },
+  // 아코디언 스타일
+  accordionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 16,
+    paddingHorizontal: 4,
+    borderRadius: 8,
+    backgroundColor: '#F8F9FA',
+  },
+  accordionHeaderLeft: {
+    flex: 1,
+  },
+  accordionSubtitle: {
+    fontSize: 14,
+    color: '#666666',
+    marginTop: 4,
+    lineHeight: 20,
+  },
+  // select input 스타일
+  selectInput: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E5E5E5',
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    fontSize: 16,
+    color: '#333333',
+    minHeight: 48,
   },
 });
 

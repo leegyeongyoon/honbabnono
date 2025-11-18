@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Modal, View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert } from 'react-native';
 import depositService from '../services/depositService';
 import { PaymentMethod, PaymentRequest } from '../types/deposit';
 import { useUserStore } from '../store/userStore';
-import Icon from './Icon';
+import { Icon } from './Icon';
 
 interface DepositSelectorProps {
   visible: boolean;
@@ -20,9 +20,29 @@ export const DepositSelector: React.FC<DepositSelectorProps> = ({
 }) => {
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod>('kakaopay');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [userPoints, setUserPoints] = useState(0);
+  const [isPaymentComplete, setIsPaymentComplete] = useState(false);
+  const [completedPaymentId, setCompletedPaymentId] = useState<string | null>(null);
   const { user } = useUserStore();
 
   const defaultPolicy = depositService.getDefaultDepositPolicy();
+
+  // 사용자 포인트 조회
+  useEffect(() => {
+    const fetchUserPoints = async () => {
+      if (user && visible) {
+        try {
+          const points = await depositService.getUserPoints(user.id);
+          setUserPoints(points.availablePoints);
+        } catch (error) {
+          console.error('포인트 조회 실패:', error);
+          setUserPoints(0);
+        }
+      }
+    };
+    
+    fetchUserPoints();
+  }, [user, visible]);
 
   const paymentMethods = [
     {
@@ -42,15 +62,21 @@ export const DepositSelector: React.FC<DepositSelectorProps> = ({
     {
       id: 'points' as PaymentMethod,
       name: '포인트 결제',
-      description: '보유 포인트로 결제하세요',
+      description: `보유 포인트: ${userPoints.toLocaleString()}P ${userPoints >= defaultPolicy.amount ? '(결제 가능)' : '(포인트 부족)'}`,
       icon: '🎁',
-      color: '#FF6B6B',
+      color: userPoints >= defaultPolicy.amount ? '#FF6B6B' : '#CCCCCC',
     },
   ];
 
   const handlePayment = async () => {
     if (!user) {
       Alert.alert('오류', '로그인이 필요합니다.');
+      return;
+    }
+
+    // 포인트 결제 시 잔액 확인
+    if (selectedPaymentMethod === 'points' && userPoints < defaultPolicy.amount) {
+      Alert.alert('오류', '보유 포인트가 부족합니다.');
       return;
     }
 
@@ -64,33 +90,33 @@ export const DepositSelector: React.FC<DepositSelectorProps> = ({
         paymentMethod: selectedPaymentMethod,
       };
 
+      console.log('💳 약속금 결제 요청:', paymentRequest);
       const response = await depositService.processPayment(paymentRequest);
+      console.log('💳 약속금 결제 응답:', response);
 
       if (response.success) {
         // 실제로는 DB에서 생성된 약속금 ID를 받아와야 함
         const depositId = response.paymentId || `temp_${Date.now()}`;
         
-        Alert.alert(
-          '결제 완료',
-          '약속금이 성공적으로 결제되었습니다!',
-          [
-            {
-              text: '확인',
-              onPress: () => {
-                onDepositPaid(depositId, defaultPolicy.amount);
-                onClose();
-              },
-            },
-          ]
-        );
-
+        // 결제 완료 상태 설정
+        setCompletedPaymentId(depositId);
+        setIsPaymentComplete(true);
+        
         // 카카오페이의 경우 외부 브라우저 열기
         if (selectedPaymentMethod === 'kakaopay' && response.redirectUrl) {
-          // 웹에서는 새 창으로 열기
           if (typeof window !== 'undefined') {
             window.open(response.redirectUrl, '_blank');
           }
         }
+        
+        // 3초 후 자동으로 모달 닫기
+        setTimeout(() => {
+          onDepositPaid(depositId, defaultPolicy.amount);
+          onClose();
+          // 상태 리셋
+          setIsPaymentComplete(false);
+          setCompletedPaymentId(null);
+        }, 3000);
       } else {
         Alert.alert('결제 실패', response.errorMessage || '결제 처리 중 오류가 발생했습니다.');
       }
@@ -110,8 +136,27 @@ export const DepositSelector: React.FC<DepositSelectorProps> = ({
       onRequestClose={onClose}
     >
       <View style={styles.container}>
-        {/* 헤더 */}
-        <View style={styles.header}>
+        {isPaymentComplete ? (
+          // 결제 완료 화면
+          <View style={styles.successContainer}>
+            <View style={styles.successIcon}>
+              <Icon name="check" size={60} color="#4CAF50" />
+            </View>
+            <Text style={styles.successTitle}>결제 완료!</Text>
+            <Text style={styles.successMessage}>
+              약속금이 성공적으로 결제되었습니다
+            </Text>
+            <Text style={styles.successAmount}>
+              {defaultPolicy.amount.toLocaleString()}원
+            </Text>
+            <Text style={styles.successSubMessage}>
+              잠시 후 자동으로 화면이 닫힙니다
+            </Text>
+          </View>
+        ) : (
+          <>
+            {/* 헤더 */}
+            <View style={styles.header}>
           <View style={styles.headerLeft} />
           <Text style={styles.title}>약속금 결제</Text>
           <TouchableOpacity style={styles.closeButton} onPress={onClose}>
@@ -150,15 +195,19 @@ export const DepositSelector: React.FC<DepositSelectorProps> = ({
           {/* 결제 방법 선택 */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>결제 방법</Text>
-            {paymentMethods.map((method) => (
-              <TouchableOpacity
-                key={method.id}
-                style={[
-                  styles.paymentMethod,
-                  selectedPaymentMethod === method.id && styles.selectedPaymentMethod,
-                ]}
-                onPress={() => setSelectedPaymentMethod(method.id)}
-              >
+            {paymentMethods.map((method) => {
+              const isDisabled = method.id === 'points' && userPoints < defaultPolicy.amount;
+              return (
+                <TouchableOpacity
+                  key={method.id}
+                  style={[
+                    styles.paymentMethod,
+                    selectedPaymentMethod === method.id && styles.selectedPaymentMethod,
+                    isDisabled && styles.paymentMethodDisabled,
+                  ]}
+                  onPress={() => !isDisabled && setSelectedPaymentMethod(method.id)}
+                  disabled={isDisabled}
+                >
                 <View style={styles.paymentMethodLeft}>
                   <View style={[styles.paymentIcon, { backgroundColor: method.color }]}>
                     <Text style={styles.paymentIconText}>{method.icon}</Text>
@@ -177,22 +226,25 @@ export const DepositSelector: React.FC<DepositSelectorProps> = ({
                   )}
                 </View>
               </TouchableOpacity>
-            ))}
+              );
+            })}
           </View>
         </ScrollView>
 
-        {/* 결제 버튼 */}
-        <View style={styles.footer}>
-          <TouchableOpacity
-            style={[styles.payButton, isProcessing && styles.payButtonDisabled]}
-            onPress={handlePayment}
-            disabled={isProcessing}
-          >
-            <Text style={styles.payButtonText}>
-              {isProcessing ? '결제 중...' : `${defaultPolicy.amount.toLocaleString()}원 결제하기`}
-            </Text>
-          </TouchableOpacity>
-        </View>
+            {/* 결제 버튼 */}
+            <View style={styles.footer}>
+              <TouchableOpacity
+                style={[styles.payButton, isProcessing && styles.payButtonDisabled]}
+                onPress={handlePayment}
+                disabled={isProcessing}
+              >
+                <Text style={styles.payButtonText}>
+                  {isProcessing ? '결제 중...' : `${defaultPolicy.amount.toLocaleString()}원 결제하기`}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </>
+        )}
       </View>
     </Modal>
   );
@@ -305,6 +357,10 @@ const styles = StyleSheet.create({
     borderColor: '#007AFF',
     backgroundColor: '#F7F9FC',
   },
+  paymentMethodDisabled: {
+    opacity: 0.5,
+    backgroundColor: '#F5F5F5',
+  },
   paymentMethodLeft: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -370,6 +426,51 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#FFFFFF',
+  },
+  // 결제 완료 화면 스타일
+  successContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 32,
+    backgroundColor: '#FFFFFF',
+  },
+  successIcon: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: '#E8F5E8',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 32,
+  },
+  successTitle: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#4CAF50',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  successMessage: {
+    fontSize: 18,
+    fontWeight: '500',
+    color: '#1A1A1A',
+    marginBottom: 12,
+    textAlign: 'center',
+    lineHeight: 24,
+  },
+  successAmount: {
+    fontSize: 32,
+    fontWeight: '700',
+    color: '#007AFF',
+    marginBottom: 24,
+    textAlign: 'center',
+  },
+  successSubMessage: {
+    fontSize: 16,
+    color: '#666666',
+    textAlign: 'center',
+    lineHeight: 22,
   },
 });
 
