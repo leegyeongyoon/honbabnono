@@ -15,7 +15,7 @@ import { Icon } from '../components/Icon';
 import chatService from '../services/chatService';
 import chatApiService, { ChatRoom, ChatMessage } from '../services/chatApiService';
 import { getDetailedDateFormat, getChatDateHeader, isSameDay } from '../utils/timeUtils';
-import { useTypedNavigation } from '../hooks/useNavigation';
+import { useRouterNavigation } from '../components/RouterNavigation';
 
 interface ChatScreenProps {
   navigation?: any;
@@ -24,7 +24,7 @@ interface ChatScreenProps {
 
 const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, user }) => {
   const navigate = useNavigate();
-  const typedNavigation = useTypedNavigation();
+  const routerNavigation = useRouterNavigation();
   const { id: chatIdFromUrl } = useParams<{ id?: string }>();
   
   const [selectedTab, setSelectedTab] = useState('모임채팅');
@@ -273,7 +273,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, user }) => {
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => {
-            typedNavigation.goBack();
+            routerNavigation.goBack();
           }}
         >
           <Icon name="chevron-left" size={20} color={COLORS.text.primary} />
