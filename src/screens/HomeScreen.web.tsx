@@ -15,7 +15,7 @@ import NeighborhoodSelector from '../components/NeighborhoodSelector';
 import locationService from '../services/locationService';
 import { useUserStore } from '../store/userStore';
 import { useMeetupStore } from '../store/meetupStore';
-import { getChatTimeDifference } from '../utils/timeUtils';
+import { getTimeDifference } from '../utils/timeUtils';
 
 interface HomeScreenProps {
   navigateToLogin?: () => void;
@@ -185,19 +185,24 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, user }) => {
                 onPress={() => handleMeetupClick(meetup.id)}
               >
               <View style={styles.foodImageContainer}>
-                {index % 2 === 0 ? (
-                  <View style={styles.foodImageSample}>
-                    <Text style={styles.foodEmoji}>
-                      {meetup.category === '한식' ? '🍲' : 
-                       meetup.category === '양식' ? '🍝' : 
-                       meetup.category === '일식' ? '🍣' : '🥘'}
-                    </Text>
-                  </View>
-                ) : (
-                  <TouchableOpacity style={styles.foodImagePlaceholder}>
-                    <Icon name="camera" size={20} color="#999999" />
-                  </TouchableOpacity>
-                )}
+                {meetup.image ? (
+                  <img 
+                    src={meetup.image} 
+                    alt={meetup.title}
+                    style={styles.meetupImage}
+                    onError={(e) => {
+                      e.target.style.display = 'none';
+                      e.target.nextSibling.style.display = 'flex';
+                    }}
+                  />
+                ) : null}
+                <View style={[styles.foodImageSample, meetup.image ? { display: 'none' } : {}]}>
+                  <Text style={styles.foodEmoji}>
+                    {meetup.category === '한식' ? '🍲' : 
+                     meetup.category === '양식' ? '🍝' : 
+                     meetup.category === '일식' ? '🍣' : '🥘'}
+                  </Text>
+                </View>
               </View>
               <View style={styles.meetupContent}>
                 <Text style={styles.meetupTitle}>{meetup.title}</Text>
@@ -205,7 +210,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, user }) => {
                 <View style={styles.meetupMeta}>
                   <Text style={styles.metaText}>{meetup.location}</Text>
                   <Text style={styles.metaText}>{meetup.currentParticipants}/{meetup.maxParticipants}명</Text>
-                  <Text style={styles.metaTimeBlue}>{getChatTimeDifference(meetup.lastChatTime)}</Text>
+                  <Text style={styles.metaTimeBlue}>{getTimeDifference(meetup.createdAt || meetup.created_at)}</Text>
                 </View>
               </View>
             </TouchableOpacity>
@@ -230,19 +235,24 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, user }) => {
               onPress={() => handleMeetupClick(meetup.id)}
             >
               <View style={styles.foodImageContainer}>
-                {index % 2 === 0 ? (
-                  <View style={styles.foodImageSample}>
-                    <Text style={styles.foodEmoji}>
-                      {meetup.category === '한식' ? '🍱' : 
-                       meetup.category === '양식' ? '🍖' : 
-                       meetup.category === '일식' ? '🍜' : '🌶️'}
-                    </Text>
-                  </View>
-                ) : (
-                  <TouchableOpacity style={styles.foodImagePlaceholder}>
-                    <Icon name="camera" size={20} color="#999999" />
-                  </TouchableOpacity>
-                )}
+                {meetup.image ? (
+                  <img 
+                    src={meetup.image} 
+                    alt={meetup.title}
+                    style={styles.meetupImage}
+                    onError={(e) => {
+                      e.target.style.display = 'none';
+                      e.target.nextSibling.style.display = 'flex';
+                    }}
+                  />
+                ) : null}
+                <View style={[styles.foodImageSample, meetup.image ? { display: 'none' } : {}]}>
+                  <Text style={styles.foodEmoji}>
+                    {meetup.category === '한식' ? '🍱' : 
+                     meetup.category === '양식' ? '🍖' : 
+                     meetup.category === '일식' ? '🍜' : '🌶️'}
+                  </Text>
+                </View>
               </View>
               <View style={styles.meetupContent}>
                 <Text style={styles.meetupTitle}>{meetup.title}</Text>
@@ -250,12 +260,21 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, user }) => {
                 <View style={styles.meetupMeta}>
                   <Text style={styles.metaText}>{meetup.location}</Text>
                   <Text style={styles.metaText}>{meetup.currentParticipants}/{meetup.maxParticipants}명</Text>
-                  <Text style={styles.metaTimeBlue}>{getChatTimeDifference(meetup.lastChatTime)}</Text>
+                  <Text style={styles.metaTimeBlue}>{getTimeDifference(meetup.createdAt || meetup.created_at)}</Text>
                 </View>
               </View>
             </TouchableOpacity>
             );
           })}
+
+          {/* 더보기 버튼 */}
+          <TouchableOpacity 
+            style={styles.moreButton}
+            onPress={() => navigate('/meetup-list')}
+          >
+            <Text style={styles.moreText}>모든 모임 보기</Text>
+            <Text style={styles.moreArrow}>→</Text>
+          </TouchableOpacity>
         </View>
 
         {/* 하단 여백 */}
@@ -444,6 +463,12 @@ const styles = StyleSheet.create({
   foodEmoji: {
     fontSize: 32,
   },
+  meetupImage: {
+    width: 60,
+    height: 60,
+    borderRadius: 12,
+    objectFit: 'cover',
+  },
   meetupContent: {
     flex: 1,
   },
@@ -494,6 +519,29 @@ const styles = StyleSheet.create({
   },
   bottomPadding: {
     height: 20,
+  },
+  moreButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F8F9FA',
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 8,
+    marginHorizontal: 20,
+    borderWidth: 1,
+    borderColor: '#E9ECEF',
+  },
+  moreText: {
+    fontSize: 15,
+    color: '#495057',
+    fontWeight: '600',
+    marginRight: 6,
+  },
+  moreArrow: {
+    fontSize: 15,
+    color: '#495057',
+    fontWeight: 'bold',
   },
 });
 

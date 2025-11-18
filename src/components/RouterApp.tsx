@@ -15,6 +15,7 @@ import MeetupDetailScreen from '../screens/MeetupDetailScreen.web';
 import CreateMeetupScreen from '../screens/CreateMeetupScreen.web';
 import PaymentScreen from '../screens/PaymentScreen.web';
 import DepositPaymentScreen from '../screens/DepositPaymentScreen.web';
+import MeetupListScreen from '../screens/MeetupListScreen.web';
 
 // Components
 import BottomTabBar from './BottomTabBar';
@@ -241,6 +242,15 @@ const RouterApp: React.FC = () => {
             element={
               <ProtectedRoute>
                 <CreateMeetupScreen user={user} />
+              </ProtectedRoute>
+            } 
+          />
+
+          <Route 
+            path="/meetup-list" 
+            element={
+              <ProtectedRoute>
+                <MeetupListScreen />
               </ProtectedRoute>
             } 
           />

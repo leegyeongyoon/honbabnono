@@ -158,6 +158,8 @@ export const useMeetups = () => {
   return {
     meetups,
     loading,
+    error: false, // 에러 상태 추가
+    refreshMeetups: fetchMeetups, // refreshMeetups로 export
     createMeetup,
     joinMeetup,
     leaveMeetup,

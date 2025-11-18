@@ -5,6 +5,10 @@ import { COLORS, SHADOWS } from '../styles/colors';
 import { useUserStore } from '../store/userStore';
 import { useMeetupStore } from '../store/meetupStore';
 import apiClient from '../services/apiClient';
+import { DepositSelector } from '../components/DepositSelector';
+import { getChatTimeDifference } from '../utils/timeUtils';
+import { useTypedNavigation } from '../hooks/useNavigation';
+import { Icon } from '../components/Icon';
 
 // Window 타입 확장
 declare global {
@@ -89,6 +93,7 @@ const KakaoMap: React.FC<{ location: string; address: string }> = ({ location, a
 const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser }) => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const navigation = useTypedNavigation();
   const { user: storeUser } = useUserStore();
   const currentMeetup = useMeetupStore(state => state.currentMeetup);
   const loading = useMeetupStore(state => state.loading);
@@ -97,6 +102,7 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
   const fetchMeetupById = useMeetupStore(state => state.fetchMeetupById);
   const [showPromiseModal, setShowPromiseModal] = React.useState(false);
   const [showLeaveModal, setShowLeaveModal] = React.useState(false);
+  const [showDepositSelector, setShowDepositSelector] = React.useState(false);
   const [userRiceIndex, setUserRiceIndex] = React.useState<number>(0);
   
   // props로 받은 user가 있으면 사용, 없으면 store의 user 사용
@@ -147,8 +153,8 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
         // 이미 참여중이면 탈퇴 확인 모달 표시
         setShowLeaveModal(true);
       } else {
-        // 참여하기 - 약속금 결제 화면으로 이동
-        navigate(`/meetup/${id}/deposit-payment`);
+        // 참여하기 - 약속금 결제 모달 표시
+        setShowDepositSelector(true);
       }
     } catch (error) {
       console.error('모임 참여/탈퇴 실패:', error);
@@ -190,7 +196,24 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
     }
   };
 
-  // 보증금 결제 후 실제 참여
+  // 약속금 결제 완료 후 모임 참여
+  const handleDepositPaid = async (depositId: string, amount: number) => {
+    if (!user || !id) return;
+    
+    try {
+      console.log('약속금 결제 완료:', { depositId, amount, meetupId: id });
+      
+      // 실제 모임 참여 처리
+      await joinMeetup(id, user.id);
+      
+      alert(`약속금 ${amount.toLocaleString()}원이 결제되었습니다! 모임에 참여되었습니다.`);
+    } catch (error) {
+      console.error('모임 참여 실패:', error);
+      alert('모임 참여에 실패했습니다. 다시 시도해주세요.');
+    }
+  };
+
+  // 보증금 결제 후 실제 참여 (기존 함수 유지)
   const handleConfirmJoin = async () => {
     if (!user || !id) return;
     
@@ -242,8 +265,8 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
     <View style={styles.container}>
       {/* 상단 헤더 */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigate(-1)} style={styles.backButton}>
-          <Text style={styles.backButtonText}>←</Text>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+          <Icon name="chevron-left" size={24} color={COLORS.text.primary} />
         </TouchableOpacity>
         <View style={styles.headerIcons}>
           <TouchableOpacity style={styles.iconButton}>
@@ -297,7 +320,9 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
           </Text>
 
           <View style={styles.timeInfo}>
-            <Text style={styles.timeText}>2시간 전 · 조회 103</Text>
+            <Text style={styles.timeText}>
+              {meetup.createdAt ? getChatTimeDifference(meetup.createdAt) : '방금 전'} · 조회 {meetup.viewCount || 0}
+            </Text>
           </View>
         </View>
 
@@ -414,6 +439,14 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
           </View>
         </View>
       )}
+
+      {/* 약속금 결제 모달 */}
+      <DepositSelector
+        visible={showDepositSelector}
+        onClose={() => setShowDepositSelector(false)}
+        onDepositPaid={handleDepositPaid}
+        meetupId={id || ''}
+      />
     </View>
   );
 };

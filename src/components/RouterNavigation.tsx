@@ -28,6 +28,9 @@ export const useRouterNavigation = () => {
         case 'MeetupDetail':
           navigate(`/meetup/${params?.meetupId}`);
           break;
+        case 'MeetupList':
+          navigate('/meetup-list');
+          break;
         case 'ChatRoom':
           const title = params?.meetupTitle ? `?title=${encodeURIComponent(params.meetupTitle)}` : '';
           navigate(`/chat/${params?.meetupId}${title}`);

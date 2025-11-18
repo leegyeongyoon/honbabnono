@@ -47,7 +47,7 @@ const HomeScreen = () => {
           style={styles.searchCard}
           onPress={() => navigation.navigateToSearch()}
         >
-          <Text style={styles.searchTitle}>🔍 검색</Text>
+          <Text style={styles.searchTitle}>⌕ 검색</Text>
           <Text style={styles.searchSubtitle}>원하는 모임을 찾아보세요</Text>
         </TouchableOpacity>
       </View>
@@ -118,10 +118,14 @@ const HomeScreen = () => {
           </View>
         </TouchableOpacity>
 
-        {/* 더보기 표시 */}
-        <View style={styles.moreIndicator}>
-          <Text style={styles.moreDots}>•••</Text>
-        </View>
+        {/* 더보기 버튼 */}
+        <TouchableOpacity 
+          style={styles.moreButton}
+          onPress={() => navigation.navigate('MeetupList')}
+        >
+          <Text style={styles.moreText}>모든 모임 보기</Text>
+          <Text style={styles.moreArrow}>→</Text>
+        </TouchableOpacity>
       </View>
 
       {/* 하단 추천 기능들 */}
@@ -340,14 +344,26 @@ const styles = StyleSheet.create({
     color: COLORS.primary.dark,
     fontWeight: '500',
   },
-  moreIndicator: {
+  moreButton: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 10,
+    justifyContent: 'center',
+    backgroundColor: COLORS.primary.light,
+    borderRadius: 8,
+    padding: 12,
+    marginTop: 10,
+    ...SHADOWS.small,
   },
-  moreDots: {
-    fontSize: 20,
-    color: COLORS.text.secondary,
-    textAlign: 'center',
+  moreText: {
+    fontSize: 14,
+    color: COLORS.primary.dark,
+    fontWeight: '500',
+    marginRight: 5,
+  },
+  moreArrow: {
+    fontSize: 14,
+    color: COLORS.primary.dark,
+    fontWeight: 'bold',
   },
   recommendationCard: {
     backgroundColor: COLORS.primary.main,

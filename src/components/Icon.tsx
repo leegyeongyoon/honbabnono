@@ -26,7 +26,9 @@ export type IconName =
   | 'calendar'
   | 'send'
   | 'more-vertical'
-  | 'x';
+  | 'x'
+  | 'check'
+  | 'chevron-up';
 
 interface IconProps {
   name: IconName;
@@ -60,7 +62,9 @@ const iconPaths = {
   'calendar': 'M3 4a1 1 0 011-1h16a1 1 0 011 1v16a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM8 2v4M16 2v4M3 10h18',
   'send': 'M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z',
   'more-vertical': 'M12 13a1 1 0 100-2 1 1 0 000 2zM12 6a1 1 0 100-2 1 1 0 000 2zM12 20a1 1 0 100-2 1 1 0 000 2z',
-  'x': 'M18 6L6 18M6 6l12 12'
+  'x': 'M18 6L6 18M6 6l12 12',
+  'check': 'M20 6L9 17l-5-5',
+  'chevron-up': 'M18 15l-6-6-6 6'
 };
 
 // Simple SVG component for web
@@ -98,8 +102,8 @@ const SVGIcon: React.FC<{ path: string; size: number; color: string; style?: Vie
   
   // For React Native, use a simple text fallback or you could implement react-native-svg
   const iconEmojis = {
-    'search': '🔍',
-    'bell': '🔔',
+    'search': '⌕',
+    'bell': '○',
     'map-pin': '📍',
     'clock': '🕐',
     'star': '⭐',
@@ -121,7 +125,9 @@ const SVGIcon: React.FC<{ path: string; size: number; color: string; style?: Vie
     'calendar': '📅',
     'send': '✈️',
     'more-vertical': '⋮',
-    'x': '✕'
+    'x': '✕',
+    'check': '✓',
+    'chevron-up': '▲'
   };
   
   return (
