@@ -28,7 +28,12 @@ interface MeetupDetailScreenProps {
 }
 
 // 카카오맵 컴포넌트
-const KakaoMap: React.FC<{ location: string; address: string }> = ({ location, address }) => {
+const KakaoMap: React.FC<{ 
+  location: string; 
+  address: string;
+  latitude?: number;
+  longitude?: number;
+}> = ({ location, address, latitude, longitude }) => {
   const mapRef = React.useRef<HTMLDivElement>(null);
   const [mapLoaded, setMapLoaded] = React.useState(false);
   const [mapError, setMapError] = React.useState<string | null>(null);
@@ -37,40 +42,38 @@ const KakaoMap: React.FC<{ location: string; address: string }> = ({ location, a
     const loadKakaoMap = () => {
       try {
         if (window.kakao && window.kakao.maps && mapRef.current) {
-          console.log('🗺️ Kakao Maps API loaded successfully');
+          console.log('🗺️ 카카오 지도 로드 시작:', { location, latitude, longitude });
+          
+          // 좌표 우선 사용, 없으면 강남역 1번 출구 기본 좌표
+          const lat = latitude || 37.498095;
+          const lng = longitude || 127.027610;
+          
+          const coords = new window.kakao.maps.LatLng(lat, lng);
           const options = {
-            center: new window.kakao.maps.LatLng(37.498095, 127.027610),
+            center: coords,
             level: 3
           };
 
           const map = new window.kakao.maps.Map(mapRef.current, options);
-          const geocoder = new window.kakao.maps.services.Geocoder();
-
-          geocoder.addressSearch(location, function(result: any, status: any) {
-            console.log('🔍 Address search result:', { location, status, result });
-            if (status === window.kakao.maps.services.Status.OK) {
-              const coords = new window.kakao.maps.LatLng(result[0].y, result[0].x);
-              const marker = new window.kakao.maps.Marker({
-                map: map,
-                position: coords
-              });
-              const infowindow = new window.kakao.maps.InfoWindow({
-                content: `<div style="width:150px;text-align:center;padding:6px 0;">${location}</div>`
-              });
-              infowindow.open(map, marker);
-              map.setCenter(coords);
-              setMapLoaded(true);
-              setMapError(null);
-            } else {
-              console.error('❌ Address search failed:', status);
-              setMapError('주소 검색에 실패했습니다.');
-              // 기본 위치로 지도 표시
-              setMapLoaded(true);
-            }
+          
+          // 마커 생성 및 표시
+          const marker = new window.kakao.maps.Marker({
+            map: map,
+            position: coords
           });
+          
+          // 인포윈도우 생성 및 표시
+          const infowindow = new window.kakao.maps.InfoWindow({
+            content: `<div style="width:150px;text-align:center;padding:6px 0; font-size: 12px;">${location}</div>`
+          });
+          infowindow.open(map, marker);
+          
+          console.log('✅ 지도와 마커 표시 완료:', { lat, lng, location });
+          setMapLoaded(true);
+          setMapError(null);
         }
       } catch (error) {
-        console.error('❌ Map loading error:', error);
+        console.error('❌ 지도 로딩 에러:', error);
         setMapError('지도를 불러올 수 없습니다.');
       }
     };
@@ -94,7 +97,7 @@ const KakaoMap: React.FC<{ location: string; address: string }> = ({ location, a
     } else {
       loadKakaoMap();
     }
-  }, [location]);
+  }, [location, latitude, longitude]);
 
   return (
     <View style={styles.mapSection}>
@@ -359,7 +362,12 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
         </View>
 
         {/* 지도 섹션 */}
-        <KakaoMap location={meetup.location} address={meetup.address || meetup.location} />
+        <KakaoMap 
+          location={meetup.location} 
+          address={meetup.address || meetup.location}
+          latitude={meetup.latitude}
+          longitude={meetup.longitude}
+        />
 
         {/* 참여자 섹션 */}
         <View style={styles.participantSection}>
