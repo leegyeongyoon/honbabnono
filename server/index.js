@@ -4112,6 +4112,43 @@ apiRouter.get('/user/deposits', authenticateToken, async (req, res) => {
   }
 });
 
+// ===========================================
+// 포인트 관리 API
+// ===========================================
+
+// 사용자 포인트 조회
+apiRouter.get('/user/points', authenticateToken, async (req, res) => {
+  try {
+    console.log('💰 포인트 조회 요청:', req.userId);
+    const userId = req.userId;
+
+    // Mock 포인트 데이터 - 실제 환경에서는 데이터베이스에서 조회
+    // 현재는 기본값 반환
+    const mockPointsData = {
+      userId: userId,
+      totalPoints: 3000,      // 총 적립 포인트
+      availablePoints: 3000,  // 사용 가능한 포인트 
+      usedPoints: 0,          // 사용한 포인트
+      expiredPoints: 0,       // 만료된 포인트
+      lastUpdatedAt: new Date().toISOString()
+    };
+
+    res.json({
+      success: true,
+      data: mockPointsData
+    });
+
+    console.log('💰 포인트 조회 성공:', mockPointsData);
+
+  } catch (error) {
+    console.error('❌ 포인트 조회 실패:', error);
+    res.status(500).json({
+      success: false,
+      error: '포인트 정보를 조회할 수 없습니다.'
+    });
+  }
+});
+
 // 404 에러 핸들러 (API 라우터용) - 모든 라우트 정의 후 마지막에 위치
 apiRouter.use('*', (req, res) => {
   res.status(404).json({
