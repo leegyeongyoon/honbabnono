@@ -413,7 +413,7 @@ class DepositService {
       const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
       const token = localStorage.getItem('token');
       
-      const response = await fetch(`${apiUrl}/users/points`, {
+      const response = await fetch(`${apiUrl}/user/points`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',

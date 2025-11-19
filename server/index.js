@@ -12,6 +12,22 @@ const { Pool } = require('pg');
 const multer = require('multer');
 const fs = require('fs');
 
+// 환경변수 로드 - 다른 모든 것보다 먼저 실행
+const mode = process.env.NODE_ENV === 'production' ? 'production' : 'development';
+const envFile = mode === 'production' ? '.env.production' : '.env';
+
+console.log('🔧 Server mode:', mode);
+console.log('🔧 Loading env file:', envFile);
+
+dotenv.config({ path: envFile });
+
+console.log('🔧 Loaded DB config:', {
+  host: process.env.DB_HOST,
+  port: process.env.DB_PORT,
+  database: process.env.DB_NAME,
+  user: process.env.DB_USER
+});
+
 // PostgreSQL 연결 설정
 const pool = new Pool({
   host: process.env.DB_HOST,
@@ -23,9 +39,6 @@ const pool = new Pool({
     rejectUnauthorized: false
   }
 });
-
-// 환경변수 로드
-dotenv.config();
 
 const app = express();
 const server = http.createServer(app);
