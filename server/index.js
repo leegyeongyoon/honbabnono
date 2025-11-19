@@ -14,7 +14,7 @@ const fs = require('fs');
 
 // 환경변수 로드 - 다른 모든 것보다 먼저 실행
 const mode = process.env.NODE_ENV === 'production' ? 'production' : 'development';
-const envFile = '.env';
+const envFile = mode === 'production' ? '.env.production' : '.env.development';
 
 console.log('🔧 Server mode:', mode);
 console.log('🔧 Loading env file:', envFile);
@@ -282,7 +282,8 @@ apiRouter.get('/auth/kakao/callback', async (req, res) => {
     const jwtToken = generateJWT(user);
     
     // 5. 프론트엔드로 토큰과 함께 리다이렉트
-    res.redirect(`http://localhost:3000/login?success=true&token=${jwtToken}&user=${encodeURIComponent(JSON.stringify({
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    res.redirect(`${frontendUrl}/login?success=true&token=${jwtToken}&user=${encodeURIComponent(JSON.stringify({
       id: user.id,
       name: user.name,
       email: user.email,
@@ -291,7 +292,8 @@ apiRouter.get('/auth/kakao/callback', async (req, res) => {
     
   } catch (error) {
     console.error('카카오 로그인 처리 실패:', error);
-    res.redirect('http://localhost:3000/login?error=kakao_login_failed');
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    res.redirect(`${frontendUrl}/login?error=kakao_login_failed`);
   }
 });
 
