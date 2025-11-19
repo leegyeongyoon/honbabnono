@@ -2,18 +2,33 @@ import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
 
 // API 기본 URL을 런타임에 동적으로 설정
 const getApiBaseUrl = (): string => {
+  // 1. 환경변수가 설정되어 있으면 사용
   if (process.env.REACT_APP_API_URL) {
+    console.log('🔧 Using API URL from env:', process.env.REACT_APP_API_URL);
     return process.env.REACT_APP_API_URL;
   }
   
   if (typeof window !== 'undefined') {
-    return window.location.hostname === 'localhost' 
-      ? 'http://localhost:3001/api' 
-      : `${window.location.origin}/api`;
+    const hostname = window.location.hostname;
+    console.log('🔧 Detecting API URL for hostname:', hostname);
+    
+    // 2. localhost 개발 환경
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+      const url = 'http://localhost:3001/api';
+      console.log('🔧 Using localhost API URL:', url);
+      return url;
+    }
+    
+    // 3. 프로덕션 환경 - nginx 프록시를 통한 /api 경로
+    const url = `${window.location.origin}/api`;
+    console.log('🔧 Using production API URL:', url);
+    return url;
   }
   
   // SSR fallback
-  return '/api';
+  const url = '/api';
+  console.log('🔧 Using SSR fallback API URL:', url);
+  return url;
 };
 
 // Axios 인스턴스 생성
