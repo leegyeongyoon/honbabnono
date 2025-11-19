@@ -2175,6 +2175,134 @@ apiRouter.get('/user/hosted-meetups', authenticateToken, async (req, res) => {
   }
 });
 
+// 내 모임 목록 조회 (통합 엔드포인트)
+apiRouter.get('/my-meetups', authenticateToken, async (req, res) => {
+  try {
+    const { type = 'all', page = 1, limit = 10 } = req.query;
+    const offset = (page - 1) * limit;
+    const userId = req.user.userId;
+    
+    console.log('📱 내 모임 조회 요청:', { userId, type, page, limit });
+    
+    let query;
+    let params;
+    
+    if (type === 'hosted') {
+      // 호스팅한 모임만
+      query = `
+        SELECT 
+          m.id,
+          m.title,
+          m.description,
+          m.location,
+          m.date,
+          m.time,
+          m.max_participants as "maxParticipants",
+          m.current_participants as "currentParticipants",
+          m.category,
+          m.status,
+          m.created_at as "createdAt",
+          'hosted' as type
+        FROM meetups m
+        WHERE m.host_id = $1
+        ORDER BY m.created_at DESC
+        LIMIT $2 OFFSET $3
+      `;
+      params = [userId, parseInt(limit), parseInt(offset)];
+    } else if (type === 'joined') {
+      // 참가한 모임만
+      query = `
+        SELECT 
+          m.id,
+          m.title,
+          m.description,
+          m.location,
+          m.date,
+          m.time,
+          m.max_participants as "maxParticipants",
+          m.current_participants as "currentParticipants",
+          m.category,
+          m.status,
+          m.created_at as "createdAt",
+          mp.status as "participationStatus",
+          mp.created_at as "joinedAt",
+          u.name as "hostName",
+          'joined' as type
+        FROM meetup_participants mp
+        JOIN meetups m ON mp.meetup_id = m.id
+        JOIN users u ON m.host_id = u.id
+        WHERE mp.user_id = $1 AND m.host_id != $1
+        ORDER BY mp.created_at DESC
+        LIMIT $2 OFFSET $3
+      `;
+      params = [userId, parseInt(limit), parseInt(offset)];
+    } else {
+      // 모든 모임 (호스팅 + 참가)
+      query = `
+        (SELECT 
+          m.id,
+          m.title,
+          m.description,
+          m.location,
+          m.date,
+          m.time,
+          m.max_participants as "maxParticipants",
+          m.current_participants as "currentParticipants",
+          m.category,
+          m.status,
+          m.created_at as "createdAt",
+          null as "participationStatus",
+          null as "joinedAt",
+          null as "hostName",
+          'hosted' as type
+        FROM meetups m
+        WHERE m.host_id = $1)
+        UNION ALL
+        (SELECT 
+          m.id,
+          m.title,
+          m.description,
+          m.location,
+          m.date,
+          m.time,
+          m.max_participants as "maxParticipants",
+          m.current_participants as "currentParticipants",
+          m.category,
+          m.status,
+          m.created_at as "createdAt",
+          mp.status as "participationStatus",
+          mp.created_at as "joinedAt",
+          u.name as "hostName",
+          'joined' as type
+        FROM meetup_participants mp
+        JOIN meetups m ON mp.meetup_id = m.id
+        JOIN users u ON m.host_id = u.id
+        WHERE mp.user_id = $1 AND m.host_id != $1)
+        ORDER BY "createdAt" DESC
+        LIMIT $2 OFFSET $3
+      `;
+      params = [userId, parseInt(limit), parseInt(offset)];
+    }
+    
+    const meetupsResult = await pool.query(query, params);
+    
+    console.log('✅ 내 모임 조회 성공:', { count: meetupsResult.rows.length, type });
+    
+    res.json({
+      success: true,
+      data: meetupsResult.rows,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total: meetupsResult.rows.length
+      }
+    });
+  } catch (error) {
+    console.error('❌ 내 모임 조회 오류:', error);
+    res.status(500).json({ error: '서버 오류가 발생했습니다' });
+  }
+});
+
 // 내가 참가한 모임 목록 조회
 apiRouter.get('/user/joined-meetups', authenticateToken, async (req, res) => {
   try {

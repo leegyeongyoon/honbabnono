@@ -52,14 +52,17 @@ const MyMeetupsScreen: React.FC<MyMeetupsScreenProps> = ({ user: propsUser }) =>
 
   const loadAppliedMeetups = async () => {
     try {
+      console.log('🔍 신청한 모임 로드 시작...');
       const { data } = await userApiService.getJoinedMeetups(1, 50);
+      console.log('🔍 API 응답 데이터:', data);
       // 현재 진행중인 모임만 필터링
       const activeMeetups = data.filter(meetup => 
         meetup.status === '모집중' || meetup.status === '예정'
       );
+      console.log('🔍 필터링된 모임:', activeMeetups);
       setAppliedMeetups(activeMeetups);
     } catch (error) {
-      console.error('신청한 모임 로드 실패:', error);
+      console.error('❌ 신청한 모임 로드 실패:', error);
     }
   };
 
