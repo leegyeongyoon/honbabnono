@@ -44,33 +44,42 @@ const LoginScreen = () => {
     window.location.href = kakaoAuthUrl;
   };
 
-  const handleQuickLogin = () => {
-    setLoading(true);
-    // 테스트용 JWT 토큰과 사용자 정보 설정
-    const testToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIxMTExMTExMS0xMTExLTExMTEtMTExMS0xMTExMTExMTExMTEiLCJlbWFpbCI6InRlc3QxQHRlc3QuY29tIiwibmFtZSI6Iu2FjOyKpO2KuOycoOyggDEiLCJpYXQiOjE3NjEyMDM5MzcsImV4cCI6MTc2MTI5MDMzN30.IosszesySBCTu-1LPw82fQDpXn2FGIq7Nv7T78etaW0';
-    const testUser = {
-      id: '11111111-1111-1111-1111-111111111111',
-      name: '테스트유저1',
-      email: 'test1@test.com'
-    };
-    
-    localStorage.setItem('token', testToken);
-    localStorage.setItem('user', JSON.stringify(testUser));
-    
-    setTimeout(() => {
-      window.location.href = '/';
-    }, 500);
-  };
-
-  const handleTestLogin = async (email: string, password: string, name: string) => {
+  const handleQuickLogin = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:3001/api'}/auth/login`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:3001/api'}/auth/test-login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email: 'test1@test.com' }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('user', JSON.stringify(data.user));
+        Alert.alert('빠른 로그인 성공! 🚀', `${data.user.name}으로 로그인되었습니다.`);
+        window.location.href = '/';
+      } else {
+        Alert.alert('로그인 실패', '빠른 테스트 로그인에 실패했습니다.');
+      }
+    } catch (error) {
+      Alert.alert('로그인 실패', '서버 연결에 실패했습니다.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleTestLogin = async (email: string, name: string) => {
+    setLoading(true);
+    try {
+      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:3001/api'}/auth/test-login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email }),
       });
 
       if (response.ok) {
@@ -151,7 +160,7 @@ const LoginScreen = () => {
               
               <TouchableOpacity
                 style={[styles.testButton, loading && styles.disabledButton]}
-                onPress={() => handleTestLogin('test2@test.com', 'password123', '테스트유저2')}
+                onPress={() => handleTestLogin('test2@test.com', '테스트유저2')}
                 disabled={loading}
               >
                 <Text style={styles.testButtonText}>👤 테스트유저2</Text>
@@ -159,7 +168,7 @@ const LoginScreen = () => {
               
               <TouchableOpacity
                 style={[styles.testButton, loading && styles.disabledButton]}
-                onPress={() => handleTestLogin('test3@test.com', 'password123', '테스트유저3')}
+                onPress={() => handleTestLogin('test3@test.com', '테스트유저3')}
                 disabled={loading}
               >
                 <Text style={styles.testButtonText}>👤 테스트유저3</Text>
