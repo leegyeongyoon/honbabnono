@@ -432,11 +432,11 @@ class DepositService {
       return {
         id: pointsData.userId,
         userId: pointsData.userId,
-        totalPoints: pointsData.points || 0,
-        availablePoints: pointsData.points || 0,
-        usedPoints: 0,
-        expiredPoints: 0,
-        lastUpdatedAt: new Date().toISOString()
+        totalPoints: pointsData.totalPoints || 0,
+        availablePoints: pointsData.availablePoints || 0,
+        usedPoints: pointsData.usedPoints || 0,
+        expiredPoints: pointsData.expiredPoints || 0,
+        lastUpdatedAt: pointsData.lastUpdatedAt || new Date().toISOString()
       };
     } catch (error) {
       console.error('포인트 조회 오류:', error);

@@ -2566,6 +2566,7 @@ apiRouter.get('/user/rice-index', authenticateToken, async (req, res) => {
     res.json({
       success: true,
       riceIndex,
+      calculatedIndex: riceIndex,
       level: levelInfo,
       stats
     });

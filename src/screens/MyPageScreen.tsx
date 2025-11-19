@@ -47,12 +47,14 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ navigation, user, onLogout 
 
   // 컴포넌트 마운트 시 데이터 로드
   useEffect(() => {
+    console.log('🔍 MyPageScreen 마운트됨, 현재 사용자:', currentUser);
     loadUserData();
   }, []);
 
   // 사용자 데이터 로드
   const loadUserData = async () => {
     try {
+      console.log('📊 사용자 데이터 로드 시작');
       setLoading(true);
       await Promise.all([
         loadActivityStats(),
@@ -62,6 +64,7 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ navigation, user, onLogout 
         loadRiceLevel(),
         loadUserPoints()
       ]);
+      console.log('📊 사용자 데이터 로드 완료');
     } catch (error) {
       console.error('사용자 데이터 로드 실패:', error);
       Alert.alert('오류', '데이터를 불러올 수 없습니다.');
@@ -127,8 +130,12 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ navigation, user, onLogout 
   const loadUserPoints = async () => {
     try {
       if (currentUser?.id) {
+        console.log('💰 포인트 로딩 시작:', { userId: currentUser.id });
         const points = await depositService.getUserPoints(currentUser.id);
+        console.log('💰 포인트 로딩 완료:', points);
         setUserPoints(points);
+      } else {
+        console.warn('💰 사용자 ID가 없어 포인트를 로드할 수 없습니다');
       }
     } catch (error) {
       console.error('포인트 정보 로드 실패:', error);
@@ -423,6 +430,7 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ navigation, user, onLogout 
                 <Text style={styles.pointsLabel}>보유 포인트</Text>
                 <Text style={styles.pointsAmount}>
                   {userPoints?.availablePoints?.toLocaleString() || '0'}P
+                  {/* 디버그: {JSON.stringify(userPoints)} */}
                 </Text>
               </View>
             </View>

@@ -83,8 +83,10 @@ export const useUserStore = create<UserState>()(
           
           if (response.ok) {
             const riceData = await response.json();
-            if (riceData.success && riceData.riceIndex) {
-              babAlScore = riceData.riceIndex;
+            console.log('🍚 밥알지수 API 응답:', riceData);
+            if (riceData.calculatedIndex !== undefined) {
+              babAlScore = riceData.calculatedIndex;
+              console.log('🍚 밥알지수 설정됨:', babAlScore);
             }
           }
         } catch (error) {
@@ -171,8 +173,10 @@ export const useUserStore = create<UserState>()(
             // DB에서 가져온 밥알지수가 있으면 우선 사용
             if (riceIndexResponse.ok) {
               const riceData = await riceIndexResponse.json();
-              if (riceData.success && riceData.riceIndex) {
-                babAlScore = riceData.riceIndex;
+              console.log('🍚 fetchUserProfile - 밥알지수 API 응답:', riceData);
+              if (riceData.calculatedIndex !== undefined) {
+                babAlScore = riceData.calculatedIndex;
+                console.log('🍚 fetchUserProfile - 밥알지수 설정됨:', babAlScore);
               }
             }
             

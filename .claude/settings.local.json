@@ -97,7 +97,9 @@
       "Bash(kubectl exec:*)",
       "Bash(kubectl scale:*)",
       "Read(/dev/**)",
-      "Bash(PORT=3001 npm run server)"
+      "Bash(PORT=3001 npm run server)",
+      "Bash(grep:*)",
+      "Bash(NODE_ENV=production PORT=3001 npm run server)"
     ],
     "deny": [],
     "ask": []
