@@ -14,7 +14,7 @@ const fs = require('fs');
 
 // 환경변수 로드 - 다른 모든 것보다 먼저 실행
 const mode = process.env.NODE_ENV === 'production' ? 'production' : 'development';
-const envFile = mode === 'production' ? '.env.production' : '.env';
+const envFile = '.env';
 
 console.log('🔧 Server mode:', mode);
 console.log('🔧 Loading env file:', envFile);
@@ -26,6 +26,12 @@ console.log('🔧 Loaded DB config:', {
   port: process.env.DB_PORT,
   database: process.env.DB_NAME,
   user: process.env.DB_USER
+});
+
+console.log('🔧 Loaded Kakao config:', {
+  client_id: process.env.KAKAO_CLIENT_ID ? 'SET' : 'NOT SET',
+  client_secret: process.env.KAKAO_CLIENT_SECRET ? 'SET' : 'NOT SET',
+  redirect_uri: process.env.KAKAO_REDIRECT_URI
 });
 
 // PostgreSQL 연결 설정
