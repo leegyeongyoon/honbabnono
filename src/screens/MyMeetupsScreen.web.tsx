@@ -52,11 +52,31 @@ const MyMeetupsScreen: React.FC<MyMeetupsScreenProps> = ({ user: propsUser }) =>
 
   const loadAppliedMeetups = async () => {
     try {
-      const { data } = await userApiService.getJoinedMeetups(1, 50);
+      console.log('🔍 [MyMeetups] 신청한 모임 로드 시작...');
+      const response = await userApiService.getJoinedMeetups(1, 50);
+      console.log('🔍 [MyMeetups] API 전체 응답:', response);
+      const { data } = response;
+      console.log('🔍 [MyMeetups] 응답 데이터:', data, '타입:', typeof data, '배열여부:', Array.isArray(data));
+      
+      if (!Array.isArray(data)) {
+        console.error('❌ [MyMeetups] 데이터가 배열이 아님:', data);
+        setAppliedMeetups([]);
+        return;
+      }
+      
+      console.log('🔍 [MyMeetups] 각 모임 데이터 확인:');
+      data.forEach((meetup, index) => {
+        console.log(`  ${index + 1}. ${meetup.title} - 상태: "${meetup.status}"`);
+      });
+      
       // 현재 진행중인 모임만 필터링
-      const activeMeetups = data.filter(meetup => 
-        meetup.status === '모집중' || meetup.status === '예정'
-      );
+      const activeMeetups = data.filter(meetup => {
+        const isActive = meetup.status === '모집중' || meetup.status === '예정';
+        console.log(`🔍 [MyMeetups] "${meetup.title}" 필터링: ${meetup.status} -> ${isActive}`);
+        return isActive;
+      });
+      
+      console.log('🔍 [MyMeetups] 필터링된 결과:', activeMeetups.length, '개');
       setAppliedMeetups(activeMeetups);
     } catch (error) {
       console.error('❌ 신청한 모임 로드 실패:', error);
