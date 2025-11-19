@@ -3,12 +3,18 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 const webpack = require('webpack');
 const dotenv = require('dotenv');
 
-// 환경변수 로드
-const env = dotenv.config().parsed || {};
+// 환경변수 로드 - 모드에 따라 적절한 .env 파일 선택
+const mode = process.env.NODE_ENV === 'production' ? 'production' : 'development';
+const envFile = mode === 'production' ? '.env.production' : '.env';
+
+console.log('🔧 Webpack mode:', mode);
+console.log('🔧 Loading env file:', envFile);
+
+const env = dotenv.config({ path: envFile }).parsed || {};
 console.log('🔧 Loaded env vars:', env);
 
 module.exports = {
-  mode: 'development',
+  mode,
   entry: './index.web.js',
   output: {
     path: path.resolve(__dirname, 'dist'),

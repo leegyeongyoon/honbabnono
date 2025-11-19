@@ -32,8 +32,10 @@ const MyMeetupsScreen: React.FC<MyMeetupsScreenProps> = ({ user: propsUser }) =>
 
   useEffect(() => {
     console.log('🔍 [MyMeetups] useEffect 실행됨, user:', user);
-    loadMeetupData();
-  }, []);
+    if (user) {
+      loadMeetupData();
+    }
+  }, [user]); // user가 변경될 때마다 실행
 
   console.log('🔍 [MyMeetups] 컴포넌트 렌더링됨, user:', user, 'activeTab:', activeTab);
 
