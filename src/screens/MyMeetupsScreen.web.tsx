@@ -28,13 +28,21 @@ const MyMeetupsScreen: React.FC<MyMeetupsScreenProps> = ({ user: propsUser }) =>
 
   // props로 받은 user가 있으면 사용, 없으면 store의 user 사용
   const user = propsUser || storeUser;
+  console.log('🔍 [MyMeetups] User 상태:', { propsUser, storeUser, finalUser: user });
 
   useEffect(() => {
+    console.log('🔍 [MyMeetups] useEffect 실행됨, user:', user);
     loadMeetupData();
   }, []);
 
+  console.log('🔍 [MyMeetups] 컴포넌트 렌더링됨, user:', user, 'activeTab:', activeTab);
+
   const loadMeetupData = async () => {
-    if (!user) return;
+    console.log('🔍 [MyMeetups] loadMeetupData 시작, user:', user);
+    if (!user) {
+      console.log('❌ [MyMeetups] user가 없어서 종료');
+      return;
+    }
     
     try {
       setLoading(true);
