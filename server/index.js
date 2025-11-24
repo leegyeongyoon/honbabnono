@@ -244,7 +244,7 @@ apiRouter.get('/auth/kakao/callback', async (req, res) => {
     
     // 3. 데이터베이스에서 사용자 찾기 또는 생성
     let userResult = await pool.query(`
-      SELECT * FROM users WHERE provider = $1 AND provider_id = $2
+      SELECT * FROM users WHERE provider = $1 AND provider_id = $2 AND (is_deleted = false OR is_deleted IS NULL)
     `, ['kakao', kakaoUser.id.toString()]);
     
     let user;
@@ -359,11 +359,11 @@ apiRouter.post('/auth/verify-token', async (req, res) => {
     const userId = decoded.userId || decoded.id;
     console.log('🔍 Extracted userId:', userId);
     
-    // 사용자 정보 조회 (is_verified 조건 제거)
+    // 사용자 정보 조회 (삭제되지 않은 계정만)
     const userResult = await pool.query(`
       SELECT id, email, name, profile_image, provider, is_verified, created_at 
       FROM users 
-      WHERE id = $1
+      WHERE id = $1 AND (is_deleted = false OR is_deleted IS NULL)
     `, [userId]);
 
     console.log('🔍 User query result:', { found: userResult.rows.length, userId });
@@ -442,7 +442,7 @@ apiRouter.post('/auth/kakao', async (req, res) => {
     
     // 3. 데이터베이스에서 사용자 찾기 또는 생성
     let userResult = await pool.query(`
-      SELECT * FROM users WHERE provider = $1 AND provider_id = $2
+      SELECT * FROM users WHERE provider = $1 AND provider_id = $2 AND (is_deleted = false OR is_deleted IS NULL)
     `, ['kakao', kakaoUser.id.toString()]);
     
     let user;
@@ -569,7 +569,7 @@ apiRouter.post('/upload/image', authenticateToken, upload.single('image'), async
 apiRouter.get('/user/profile', authenticateToken, async (req, res) => {
   try {
     const userResult = await pool.query(`
-      SELECT id, email, name, profile_image, provider, provider_id, 
+      SELECT id, email, name, profile_image, bio, provider, provider_id, 
              is_verified, rating, meetups_hosted, created_at, updated_at
       FROM users 
       WHERE id = $1
@@ -1347,7 +1347,7 @@ apiRouter.get('/meetups/active', async (req, res) => {
 // 완료된 모임 목록 조회 API
 apiRouter.get('/meetups/completed', authenticateToken, async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user.userId;
     const { page = 1, limit = 10 } = req.query;
 
     console.log('🏁 완료된 모임 조회:', { userId, page, limit });
@@ -3492,11 +3492,11 @@ apiRouter.get('/user/rice-index', authenticateToken, async (req, res) => {
 apiRouter.put('/user/profile', authenticateToken, async (req, res) => {
   try {
     console.log('👤 프로필 수정 요청:', req.body);
-    const { name, email, profile_image } = req.body;
-    const userId = req.userId;
+    const { name, email, profile_image, bio } = req.body;
+    const userId = req.user.userId;
 
     // 입력 검증
-    if (!name && !email && !profile_image) {
+    if (!name && !email && !profile_image && !bio) {
       return res.status(400).json({
         success: false,
         error: '수정할 정보를 입력해주세요.'
@@ -3537,6 +3537,12 @@ apiRouter.put('/user/profile', authenticateToken, async (req, res) => {
       updateValues.push(profile_image);
       valueIndex++;
     }
+    
+    if (bio !== undefined) {
+      updateFields.push(`bio = $${valueIndex}`);
+      updateValues.push(bio);
+      valueIndex++;
+    }
 
     updateFields.push(`updated_at = $${valueIndex}`);
     updateValues.push(new Date());
@@ -3548,7 +3554,7 @@ apiRouter.put('/user/profile', authenticateToken, async (req, res) => {
       UPDATE users 
       SET ${updateFields.join(', ')}
       WHERE id = $${valueIndex}
-      RETURNING id, email, name, profile_image, provider, is_verified, created_at, updated_at
+      RETURNING id, email, name, profile_image, bio, provider, is_verified, created_at, updated_at
     `;
 
     const result = await pool.query(updateQuery, updateValues);
@@ -3581,7 +3587,7 @@ apiRouter.put('/user/password', authenticateToken, async (req, res) => {
   try {
     console.log('🔐 비밀번호 변경 요청');
     const { currentPassword, newPassword } = req.body;
-    const userId = req.userId;
+    const userId = req.user.userId;
 
     // 입력 검증
     if (!currentPassword || !newPassword) {
@@ -3659,7 +3665,7 @@ apiRouter.put('/user/password', authenticateToken, async (req, res) => {
 apiRouter.get('/user/notification-settings', authenticateToken, async (req, res) => {
   try {
     console.log('🔔 알림 설정 조회 요청');
-    const userId = req.userId;
+    const userId = req.user.userId;
 
     const result = await pool.query(`
       SELECT 
@@ -3715,7 +3721,7 @@ apiRouter.get('/user/notification-settings', authenticateToken, async (req, res)
 apiRouter.put('/user/notification-settings', authenticateToken, async (req, res) => {
   try {
     console.log('🔔 알림 설정 업데이트 요청:', req.body);
-    const userId = req.userId;
+    const userId = req.user.userId;
     const {
       push_notifications,
       email_notifications,
@@ -3806,7 +3812,7 @@ apiRouter.put('/user/notification-settings', authenticateToken, async (req, res)
 apiRouter.get('/user/data-export', authenticateToken, async (req, res) => {
   try {
     console.log('📁 개인정보 내보내기 요청');
-    const userId = req.userId;
+    const userId = req.user.userId;
 
     // 사용자 기본 정보
     const userResult = await pool.query(`
@@ -3872,74 +3878,27 @@ apiRouter.get('/user/data-export', authenticateToken, async (req, res) => {
 // 계정 탈퇴
 apiRouter.delete('/user/account', authenticateToken, async (req, res) => {
   try {
-    console.log('🗑️ 계정 탈퇴 요청');
-    const userId = req.userId;
-    const { password, reason } = req.body;
+    console.log('🗑️ 계정 탈퇴 요청 (Soft Delete)');
+    const userId = req.user.userId;
 
-    // 사용자 정보 조회
-    const userResult = await pool.query(
-      'SELECT password, provider, email FROM users WHERE id = $1',
+    // 사용자 계정을 논리적으로 삭제 (is_deleted = true, deleted_at = NOW())
+    const result = await pool.query(
+      'UPDATE users SET is_deleted = true, deleted_at = NOW(), updated_at = NOW() WHERE id = $1 AND (is_deleted = false OR is_deleted IS NULL) RETURNING id, email, name',
       [userId]
     );
 
-    if (userResult.rows.length === 0) {
+    if (result.rows.length === 0) {
       return res.status(404).json({
         success: false,
-        error: '사용자를 찾을 수 없습니다.'
+        error: '사용자를 찾을 수 없거나 이미 삭제된 계정입니다.'
       });
     }
 
-    const user = userResult.rows[0];
-
-    // 이메일 로그인 사용자인 경우 비밀번호 확인
-    if (user.provider === 'email' && password) {
-      const isPasswordValid = await bcrypt.compare(password, user.password);
-      if (!isPasswordValid) {
-        return res.status(400).json({
-          success: false,
-          error: '비밀번호가 올바르지 않습니다.'
-        });
-      }
-    }
-
-    const client = await pool.connect();
-    try {
-      await client.query('BEGIN');
-
-      // 탈퇴 로그 기록
-      await client.query(`
-        INSERT INTO user_deletion_logs (user_id, email, reason, deleted_at)
-        VALUES ($1, $2, $3, $4)
-      `, [userId, user.email, reason || '', new Date()]);
-
-      // 관련 데이터 삭제 (참조 무결성 고려)
-      await client.query('DELETE FROM chat_participants WHERE "userId" = $1', [userId]);
-      await client.query('DELETE FROM meetup_participants WHERE user_id = $1', [userId]);
-      await client.query('DELETE FROM reviews WHERE reviewer_id = $1', [userId]);
-      await client.query('DELETE FROM user_notification_settings WHERE user_id = $1', [userId]);
-      
-      // 호스팅한 모임들 상태 변경 (삭제하지 않고 비활성화)
-      await client.query(
-        'UPDATE meetups SET status = $1, updated_at = $2 WHERE host_id = $3',
-        ['취소', new Date(), userId]
-      );
-
-      // 사용자 계정 삭제
-      await client.query('DELETE FROM users WHERE id = $1', [userId]);
-
-      await client.query('COMMIT');
-      console.log('✅ 계정 탈퇴 성공');
-
-    } catch (error) {
-      await client.query('ROLLBACK');
-      throw error;
-    } finally {
-      client.release();
-    }
+    console.log('✅ 계정 논리적 삭제 완료:', result.rows[0].email);
 
     res.json({
       success: true,
-      message: '계정이 성공적으로 탈퇴되었습니다.'
+      message: '계정이 성공적으로 삭제되었습니다. 30일 후에 완전히 삭제됩니다.'
     });
 
   } catch (error) {
@@ -3993,7 +3952,7 @@ apiRouter.get('/support/faq', async (req, res) => {
 apiRouter.post('/support/inquiry', authenticateToken, async (req, res) => {
   try {
     console.log('💬 문의 접수 요청:', req.body);
-    const userId = req.userId;
+    const userId = req.user.userId;
     const { subject, content, category } = req.body;
 
     // 입력 검증
@@ -4030,7 +3989,7 @@ apiRouter.post('/support/inquiry', authenticateToken, async (req, res) => {
 apiRouter.get('/support/my-inquiries', authenticateToken, async (req, res) => {
   try {
     console.log('📋 내 문의 내역 조회 요청');
-    const userId = req.userId;
+    const userId = req.user.userId;
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const offset = (page - 1) * limit;
@@ -5048,7 +5007,7 @@ apiRouter.get('/user/deposits', authenticateToken, async (req, res) => {
 apiRouter.get('/user/points', authenticateToken, async (req, res) => {
   try {
     console.log('💰 포인트 조회 요청:', req.userId);
-    const userId = req.userId;
+    const userId = req.user.userId;
 
     // Mock 포인트 데이터 - 실제 환경에서는 데이터베이스에서 조회
     // 현재는 기본값 반환
@@ -6023,7 +5982,7 @@ apiRouter.post('/meetups/:meetupId/attendance/mutual-confirm', authenticateToken
 apiRouter.get('/meetups/:meetupId/attendance/confirmable-participants', authenticateToken, async (req, res) => {
   try {
     const { meetupId } = req.params;
-    const userId = req.user.id;
+    const userId = req.user.userId;
 
     // 해당 사용자가 승인된 참가자인지 확인
     const participantCheck = await pool.query(
@@ -6319,7 +6278,7 @@ apiRouter.get('/meetups/:meetupId/reviews', async (req, res) => {
 // 사용자의 리뷰 작성 가능한 모임 목록 조회
 apiRouter.get('/user/reviewable-meetups', authenticateToken, async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user.userId;
 
     const reviewableMeetupsResult = await pool.query(`
       SELECT DISTINCT
@@ -6543,7 +6502,7 @@ apiRouter.post('/meetups/:meetupId/apply-no-show-penalties', authenticateToken, 
 // 사용자 포인트 내역 조회 API (기존 코드 개선)
 apiRouter.get('/user/point-history', authenticateToken, async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user.userId;
 
     // 현재 보유 포인트 조회
     const userResult = await pool.query(
@@ -6595,7 +6554,7 @@ apiRouter.get('/user/point-history', authenticateToken, async (req, res) => {
 // 사용자 알림 목록 조회
 apiRouter.get('/notifications', authenticateToken, async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user.userId;
     const { page = 1, limit = 20 } = req.query;
 
     const offset = (parseInt(page) - 1) * parseInt(limit);
@@ -6648,7 +6607,7 @@ apiRouter.get('/notifications', authenticateToken, async (req, res) => {
 apiRouter.patch('/notifications/:notificationId/read', authenticateToken, async (req, res) => {
   try {
     const { notificationId } = req.params;
-    const userId = req.user.id;
+    const userId = req.user.userId;
 
     const result = await pool.query(`
       UPDATE notifications 
@@ -6681,7 +6640,7 @@ apiRouter.patch('/notifications/:notificationId/read', authenticateToken, async 
 // 모든 알림 읽음 처리
 apiRouter.patch('/notifications/read-all', authenticateToken, async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user.userId;
 
     await pool.query(
       'UPDATE notifications SET is_read = true WHERE user_id = $1 AND is_read = false',
@@ -6706,7 +6665,7 @@ apiRouter.patch('/notifications/read-all', authenticateToken, async (req, res) =
 apiRouter.delete('/notifications/:notificationId', authenticateToken, async (req, res) => {
   try {
     const { notificationId } = req.params;
-    const userId = req.user.id;
+    const userId = req.user.userId;
 
     const result = await pool.query(
       'DELETE FROM notifications WHERE id = $1 AND user_id = $2 RETURNING id',
@@ -7030,7 +6989,7 @@ const checkAndUpdateUserBadges = async (userId) => {
 // 사용자 뱃지 목록 조회 API
 apiRouter.get('/api/user/badges', authenticateToken, async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user.userId;
 
     // 최신 뱃지 상태 확인 및 업데이트
     const newBadges = await checkAndUpdateUserBadges(userId);
@@ -7068,6 +7027,276 @@ apiRouter.get('/api/user/badges', authenticateToken, async (req, res) => {
   }
 });
 
+// ===== 📝 사용자 프로필 관리 API =====
+
+// 프로필 업데이트 API
+apiRouter.put('/api/user/profile', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { name, bio } = req.body;
+
+    console.log('🔧 프로필 업데이트 디버그:', { userId, name, bio, userType: typeof userId });
+
+    const result = await pool.query(
+      'UPDATE users SET name = $1, bio = $2, updated_at = NOW() WHERE id = $3 RETURNING id, name, email, bio',
+      [name, bio, userId]
+    );
+
+    console.log('🔧 쿼리 결과:', { rowCount: result.rowCount, rows: result.rows });
+
+    if (result.rows.length === 0) {
+      console.log('❌ 사용자를 찾을 수 없음:', userId);
+      return res.status(404).json({
+        success: false,
+        error: '사용자를 찾을 수 없습니다.'
+      });
+    }
+
+    console.log('✅ 프로필 업데이트 성공');
+    res.json({
+      success: true,
+      user: result.rows[0],
+      message: '프로필이 성공적으로 업데이트되었습니다.'
+    });
+  } catch (error) {
+    console.error('프로필 업데이트 오류:', error);
+    res.status(500).json({
+      success: false,
+      message: '프로필 업데이트 중 오류가 발생했습니다.'
+    });
+  }
+});
+
+// 프로필 이미지 업로드 API
+apiRouter.post('/user/upload-profile-image', authenticateToken, upload.single('profileImage'), async (req, res) => {
+  try {
+    console.log('📷 프로필 이미지 업로드 요청');
+    
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        error: '업로드할 이미지 파일을 선택해주세요.'
+      });
+    }
+
+    // 업로드된 파일 정보
+    const imageUrl = `/uploads/${req.file.filename}`;
+    
+    console.log('✅ 프로필 이미지 업로드 성공:', imageUrl);
+    
+    res.json({
+      success: true,
+      imageUrl: imageUrl,
+      message: '이미지가 성공적으로 업로드되었습니다.'
+    });
+  } catch (error) {
+    console.error('❌ 프로필 이미지 업로드 실패:', error);
+    res.status(500).json({
+      success: false,
+      error: '이미지 업로드 중 오류가 발생했습니다.'
+    });
+  }
+});
+
+// 알림 설정 조회 API
+apiRouter.get('/api/user/notification-settings', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+
+    const result = await pool.query(`
+      SELECT 
+        COALESCE(push_notifications, true) as "pushNotifications",
+        COALESCE(email_notifications, true) as "emailNotifications", 
+        COALESCE(meetup_reminders, true) as "meetupReminders",
+        COALESCE(chat_messages, true) as "chatMessages",
+        COALESCE(marketing_emails, false) as "marketingEmails",
+        COALESCE(weekly_digest, true) as "weeklyDigest"
+      FROM user_notification_settings 
+      WHERE user_id = $1
+    `, [userId]);
+
+    let settings = {
+      pushNotifications: true,
+      emailNotifications: true,
+      meetupReminders: true,
+      chatMessages: true,
+      marketingEmails: false,
+      weeklyDigest: true
+    };
+
+    if (result.rows.length > 0) {
+      settings = result.rows[0];
+    }
+
+    res.json({
+      success: true,
+      settings
+    });
+  } catch (error) {
+    console.error('알림 설정 조회 오류:', error);
+    res.status(500).json({
+      success: false,
+      message: '알림 설정을 가져오는 중 오류가 발생했습니다.'
+    });
+  }
+});
+
+// 알림 설정 업데이트 API
+apiRouter.put('/api/user/notification-settings', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const settingsUpdate = req.body;
+
+    // 설정이 존재하는지 확인
+    const existingSettings = await pool.query(
+      'SELECT id FROM user_notification_settings WHERE user_id = $1',
+      [userId]
+    );
+
+    const updateFields = [];
+    const updateValues = [];
+    let paramIndex = 1;
+
+    // 동적으로 업데이트할 필드 구성
+    Object.entries(settingsUpdate).forEach(([key, value]) => {
+      const dbField = key.replace(/([A-Z])/g, '_$1').toLowerCase();
+      updateFields.push(`${dbField} = $${paramIndex}`);
+      updateValues.push(value);
+      paramIndex++;
+    });
+
+    if (existingSettings.rows.length === 0) {
+      // 새로 생성
+      const insertFields = Object.keys(settingsUpdate).map(key => 
+        key.replace(/([A-Z])/g, '_$1').toLowerCase()
+      ).join(', ');
+      const insertValues = Object.values(settingsUpdate).map((_, index) => `$${index + 2}`).join(', ');
+      
+      await pool.query(
+        `INSERT INTO user_notification_settings (user_id, ${insertFields}) VALUES ($1, ${insertValues})`,
+        [userId, ...Object.values(settingsUpdate)]
+      );
+    } else {
+      // 업데이트
+      updateValues.push(userId);
+      await pool.query(
+        `UPDATE user_notification_settings SET ${updateFields.join(', ')} WHERE user_id = $${paramIndex}`,
+        updateValues
+      );
+    }
+
+    res.json({
+      success: true,
+      message: '알림 설정이 업데이트되었습니다.'
+    });
+  } catch (error) {
+    console.error('알림 설정 업데이트 오류:', error);
+    res.status(500).json({
+      success: false,
+      message: '알림 설정 업데이트 중 오류가 발생했습니다.'
+    });
+  }
+});
+
+// 비밀번호 변경 API
+apiRouter.put('/api/user/change-password', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { currentPassword, newPassword } = req.body;
+
+    console.log('🔐 비밀번호 변경 요청:', { userId, hasCurrentPassword: !!currentPassword, hasNewPassword: !!newPassword });
+
+    // 현재 사용자 정보 조회
+    const userResult = await pool.query(
+      'SELECT password, provider FROM users WHERE id = $1',
+      [userId]
+    );
+
+    console.log('🔐 사용자 조회 결과:', { found: userResult.rows.length > 0, provider: userResult.rows[0]?.provider });
+
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: '사용자를 찾을 수 없습니다.'
+      });
+    }
+
+    const user = userResult.rows[0];
+
+    // 카카오 로그인 사용자는 비밀번호 변경 불가
+    if (user.provider !== 'email') {
+      return res.status(400).json({
+        success: false,
+        message: '카카오 로그인 사용자는 비밀번호를 변경할 수 없습니다.'
+      });
+    }
+
+    // 현재 비밀번호 확인
+    const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.password);
+    if (!isCurrentPasswordValid) {
+      return res.status(400).json({
+        success: false,
+        message: '현재 비밀번호가 올바르지 않습니다.'
+      });
+    }
+
+    // 새 비밀번호 해시화
+    const hashedNewPassword = await bcrypt.hash(newPassword, 12);
+
+    // 비밀번호 업데이트
+    await pool.query(
+      'UPDATE users SET password = $1, updated_at = NOW() WHERE id = $2',
+      [hashedNewPassword, userId]
+    );
+
+    res.json({
+      success: true,
+      message: '비밀번호가 성공적으로 변경되었습니다.'
+    });
+  } catch (error) {
+    console.error('비밀번호 변경 오류:', error);
+    res.status(500).json({
+      success: false,
+      message: '비밀번호 변경 중 오류가 발생했습니다.'
+    });
+  }
+});
+
+// 계정 삭제 API
+apiRouter.delete('/api/user/account', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+
+    console.log('🗑️ 계정 탈퇴 요청 (Soft Delete):', userId);
+
+    // 사용자 계정을 논리적으로 삭제 (is_deleted = true, deleted_at = NOW())
+    const result = await pool.query(
+      'UPDATE users SET is_deleted = true, deleted_at = NOW(), updated_at = NOW() WHERE id = $1 AND is_deleted = false RETURNING id, email, name',
+      [userId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: '사용자를 찾을 수 없거나 이미 삭제된 계정입니다.'
+      });
+    }
+
+    console.log('✅ 계정 논리적 삭제 완료:', result.rows[0].email);
+
+    res.json({
+      success: true,
+      message: '계정이 성공적으로 삭제되었습니다. 30일 후에 완전히 삭제됩니다.'
+    });
+  } catch (error) {
+    console.error('❌ 계정 삭제 실패:', error);
+    res.status(500).json({
+      success: false,
+      error: '계정 삭제 중 오류가 발생했습니다.'
+    });
+  }
+});
+
 // 서버 시작
 const startServer = async () => {
   try {
@@ -7095,7 +7324,7 @@ apiRouter.post('/api/meetups/:meetupId/attendance/gps-checkin', authenticateToke
   try {
     const { meetupId } = req.params;
     const { latitude, longitude } = req.body;
-    const userId = req.user.id;
+    const userId = req.user.userId;
 
     console.log('📍 GPS 체크인 요청:', { meetupId, userId, latitude, longitude });
 
@@ -7221,7 +7450,7 @@ apiRouter.post('/api/meetups/:meetupId/attendance/gps-checkin', authenticateToke
 apiRouter.get('/api/meetups/:meetupId/attendance/qr-code', authenticateToken, async (req, res) => {
   try {
     const { meetupId } = req.params;
-    const userId = req.user.id;
+    const userId = req.user.userId;
 
     console.log('🔗 QR코드 생성 요청:', { meetupId, userId });
 
@@ -7278,7 +7507,7 @@ apiRouter.post('/api/meetups/:meetupId/attendance/qr-scan', authenticateToken, a
   try {
     const { meetupId } = req.params;
     const { qrCodeData } = req.body;
-    const userId = req.user.id;
+    const userId = req.user.userId;
 
     console.log('📱 QR코드 스캔 체크인 요청:', { meetupId, userId });
 
@@ -7377,7 +7606,7 @@ apiRouter.post('/api/meetups/:meetupId/reviews', authenticateToken, async (req, 
   try {
     const { meetupId } = req.params;
     const { rating, comment, isAnonymous = false } = req.body;
-    const userId = req.user.id;
+    const userId = req.user.userId;
 
     console.log('📝 모임 후기 작성 요청:', { meetupId, userId, rating, isAnonymous });
 
@@ -7583,7 +7812,7 @@ apiRouter.get('/api/meetups/:meetupId/reviews', async (req, res) => {
 // 사용자의 후기 작성 가능한 모임 목록 조회
 apiRouter.get('/api/user/reviewable-meetups', authenticateToken, async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user.userId;
 
     console.log('📋 후기 작성 가능한 모임 조회:', { userId });
 
@@ -7640,7 +7869,7 @@ apiRouter.get('/api/user/reviewable-meetups', authenticateToken, async (req, res
 // 사용자가 작성한 후기 목록 조회
 apiRouter.get('/api/user/my-reviews', authenticateToken, async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user.userId;
     const { page = 1, limit = 10 } = req.query;
 
     console.log('📝 내가 작성한 후기 조회:', { userId, page, limit });
@@ -7695,7 +7924,7 @@ apiRouter.get('/api/user/my-reviews', authenticateToken, async (req, res) => {
 // 사용자 알림 목록 조회
 apiRouter.get('/api/notifications', authenticateToken, async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user.userId;
     const { page = 1, limit = 20 } = req.query;
 
     console.log('📬 알림 목록 조회:', { userId, page, limit });
@@ -7760,7 +7989,7 @@ apiRouter.get('/api/notifications', authenticateToken, async (req, res) => {
 apiRouter.patch('/api/notifications/:notificationId/read', authenticateToken, async (req, res) => {
   try {
     const { notificationId } = req.params;
-    const userId = req.user.id;
+    const userId = req.user.userId;
 
     console.log('📖 알림 읽음 처리:', { notificationId, userId });
 

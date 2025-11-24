@@ -23,6 +23,8 @@ import MyReviewsScreen from '../screens/MyReviewsScreen.web';
 import ReviewManagementScreen from '../screens/ReviewManagementScreen.web';
 import PointHistoryScreen from '../screens/PointHistoryScreen.web';
 import PointChargeScreen from '../screens/PointChargeScreen.web';
+import NotificationSettingsScreen from '../screens/NotificationSettingsScreen.web';
+import PrivacySettingsScreen from '../screens/PrivacySettingsScreen.web';
 
 // Components
 import BottomTabBar from './BottomTabBar';
@@ -330,6 +332,24 @@ const RouterApp: React.FC = () => {
             element={
               <ProtectedRoute>
                 <ReviewManagementScreen />
+              </ProtectedRoute>
+            } 
+          />
+
+          <Route 
+            path="/notification-settings" 
+            element={
+              <ProtectedRoute>
+                <NotificationSettingsScreen />
+              </ProtectedRoute>
+            } 
+          />
+
+          <Route 
+            path="/privacy-settings" 
+            element={
+              <ProtectedRoute>
+                <PrivacySettingsScreen />
               </ProtectedRoute>
             } 
           />

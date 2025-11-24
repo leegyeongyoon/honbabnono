@@ -84,11 +84,11 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, user }) => {
           <Text style={styles.locationText}>
             {currentNeighborhood ? `${currentNeighborhood.district} ${currentNeighborhood.neighborhood}` : '신도림역[2호선] 3번출구'}
           </Text>
-          <Icon name="chevron-down" size={14} color="#000000" />
+          <Icon name="chevron-down" size={14} color={COLORS.text.primary} />
         </TouchableOpacity>
         
         <TouchableOpacity style={styles.notificationButton}>
-          <Icon name="bell" size={20} color="#000000" />
+          <Icon name="bell" size={20} color={COLORS.text.primary} />
         </TouchableOpacity>
       </View>
 
@@ -96,7 +96,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, user }) => {
         {/* 검색창 */}
         <View style={styles.searchContainer}>
           <View style={styles.searchBox}>
-            <Icon name="search" size={16} color="#999999" />
+            <Icon name="search" size={16} color={COLORS.text.secondary} />
             <Text style={styles.searchPlaceholder}>뜨끈한 국물모임 어때요?</Text>
           </View>
         </View>
@@ -309,7 +309,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, user }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: COLORS.neutral.background,
   },
   header: {
     flexDirection: 'row',
@@ -318,7 +318,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
     paddingTop: 52,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.neutral.white,
     ...SHADOWS.small,
   },
   locationButton: {
@@ -329,12 +329,12 @@ const styles = StyleSheet.create({
   locationText: {
     fontSize: 17,
     fontWeight: '700',
-    color: '#000000',
+    color: COLORS.text.primary,
   },
   notificationButton: {
     padding: 10,
     borderRadius: 12,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: COLORS.neutral.background,
   },
   scrollView: {
     flex: 1,
@@ -342,26 +342,26 @@ const styles = StyleSheet.create({
   searchContainer: {
     paddingHorizontal: 20,
     paddingVertical: 20,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.neutral.white,
   },
   searchBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F8F9FA',
+    backgroundColor: COLORS.neutral.background,
     borderRadius: 24,
     paddingHorizontal: 20,
     paddingVertical: 14,
     gap: 10,
     borderWidth: 1,
-    borderColor: '#E9ECEF',
+    borderColor: COLORS.neutral.grey200,
   },
   searchPlaceholder: {
     fontSize: 14,
-    color: '#999999',
+    color: COLORS.text.secondary,
     flex: 1,
   },
   categorySection: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.neutral.white,
     paddingVertical: 24,
     paddingHorizontal: 20,
     marginBottom: 12,
@@ -382,12 +382,12 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 16,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: COLORS.neutral.background,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 10,
     borderWidth: 1,
-    borderColor: '#E9ECEF',
+    borderColor: COLORS.neutral.grey200,
   },
   categoryIcon: {
     fontSize: 32,
@@ -395,26 +395,26 @@ const styles = StyleSheet.create({
   categoryName: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#495057',
+    color: COLORS.text.primary,
     textAlign: 'center',
   },
   adBanner: {
-    backgroundColor: '#F8F9FA',
+    backgroundColor: COLORS.neutral.background,
     paddingVertical: 24,
     alignItems: 'center',
     marginVertical: 12,
     borderRadius: 12,
     marginHorizontal: 20,
     borderWidth: 1,
-    borderColor: '#E9ECEF',
+    borderColor: COLORS.neutral.grey200,
   },
   adText: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#666666',
+    color: COLORS.text.secondary,
   },
   section: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.neutral.white,
     marginBottom: 12,
     paddingVertical: 20,
     borderRadius: 16,
@@ -424,7 +424,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontWeight: '800',
-    color: '#212529',
+    color: COLORS.text.primary,
     paddingHorizontal: 20,
     marginBottom: 16,
     letterSpacing: -0.5,
@@ -434,7 +434,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F3F4',
+    borderBottomColor: COLORS.neutral.grey100,
     alignItems: 'flex-start',
   },
   foodImageContainer: {
@@ -444,21 +444,21 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 12,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: COLORS.neutral.background,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#DEE2E6',
+    borderColor: COLORS.neutral.grey200,
   },
   foodImageSample: {
     width: 60,
     height: 60,
     borderRadius: 12,
-    backgroundColor: '#FFF8E1',
+    backgroundColor: COLORS.primary.light,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#FFE0B2',
+    borderColor: COLORS.primary.main,
   },
   foodEmoji: {
     fontSize: 32,
@@ -475,13 +475,13 @@ const styles = StyleSheet.create({
   meetupTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#212529',
+    color: COLORS.text.primary,
     marginBottom: 6,
     letterSpacing: -0.2,
   },
   meetupDescription: {
     fontSize: 14,
-    color: '#6C757D',
+    color: COLORS.text.secondary,
     marginBottom: 10,
     lineHeight: 20,
   },
@@ -492,12 +492,12 @@ const styles = StyleSheet.create({
   },
   metaText: {
     fontSize: 13,
-    color: '#868E96',
+    color: COLORS.text.secondary,
     fontWeight: '600',
   },
   metaTimeBlue: {
     fontSize: 13,
-    color: '#4263EB',
+    color: COLORS.primary.main,
     fontWeight: '600',
   },
   fab: {
@@ -507,11 +507,11 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: '#495057',
+    backgroundColor: COLORS.primary.main,
     justifyContent: 'center',
     alignItems: 'center',
     ...SHADOWS.large,
-    shadowColor: 'rgba(73, 80, 87, 0.3)',
+    shadowColor: COLORS.primary.main + '4D',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 1,
     shadowRadius: 16,
@@ -524,23 +524,23 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F8F9FA',
+    backgroundColor: COLORS.neutral.background,
     borderRadius: 12,
     padding: 16,
     marginTop: 8,
     marginHorizontal: 20,
     borderWidth: 1,
-    borderColor: '#E9ECEF',
+    borderColor: COLORS.neutral.grey200,
   },
   moreText: {
     fontSize: 15,
-    color: '#495057',
+    color: COLORS.text.primary,
     fontWeight: '600',
     marginRight: 6,
   },
   moreArrow: {
     fontSize: 15,
-    color: '#495057',
+    color: COLORS.text.primary,
     fontWeight: 'bold',
   },
 });

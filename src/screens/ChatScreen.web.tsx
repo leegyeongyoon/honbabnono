@@ -386,10 +386,10 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, user }) => {
         <Text style={styles.headerTitle}>채팅</Text>
         <View style={styles.headerIcons}>
           <TouchableOpacity style={styles.headerIcon}>
-            <Icon name="search" size={20} color="#333" />
+            <Icon name="search" size={20} color={COLORS.text.primary} />
           </TouchableOpacity>
           <TouchableOpacity style={styles.headerIcon}>
-            <Icon name="bell" size={20} color="#333" />
+            <Icon name="bell" size={20} color={COLORS.text.primary} />
           </TouchableOpacity>
         </View>
       </View>
@@ -424,22 +424,22 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, user }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: COLORS.neutral.background,
   },
   header: {
     height: 60,
-    backgroundColor: 'white',
+    backgroundColor: COLORS.neutral.white,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: COLORS.neutral.grey200,
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#333',
+    color: COLORS.text.primary,
   },
   headerIcons: {
     flexDirection: 'row',
@@ -450,9 +450,9 @@ const styles = StyleSheet.create({
   },
   tabNavigation: {
     flexDirection: 'row',
-    backgroundColor: 'white',
+    backgroundColor: COLORS.neutral.white,
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: COLORS.neutral.grey200,
   },
   tabButton: {
     flex: 1,
@@ -462,20 +462,20 @@ const styles = StyleSheet.create({
     borderBottomColor: 'transparent',
   },
   selectedTabButton: {
-    borderBottomColor: '#007AFF',
+    borderBottomColor: COLORS.primary.main,
   },
   tabButtonText: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#666',
+    color: COLORS.text.secondary,
   },
   selectedTabButtonText: {
-    color: '#007AFF',
+    color: COLORS.primary.main,
     fontWeight: '600',
   },
   chatList: {
     flex: 1,
-    backgroundColor: 'white',
+    backgroundColor: COLORS.neutral.white,
   },
   chatListContainer: {
     paddingBottom: 20,
@@ -485,15 +485,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 16,
-    backgroundColor: 'white',
+    backgroundColor: COLORS.neutral.white,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: COLORS.neutral.grey100,
   },
   chatAvatar: {
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: '#e0e0e0',
+    backgroundColor: COLORS.neutral.grey200,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -501,7 +501,7 @@ const styles = StyleSheet.create({
   chatAvatarText: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#333',
+    color: COLORS.text.primary,
   },
   chatInfo: {
     flex: 1,
@@ -509,20 +509,20 @@ const styles = StyleSheet.create({
   chatTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
+    color: COLORS.text.primary,
     marginBottom: 4,
   },
   lastMessage: {
     fontSize: 14,
-    color: '#666',
+    color: COLORS.text.secondary,
     marginBottom: 4,
   },
   chatTime: {
     fontSize: 12,
-    color: '#999',
+    color: COLORS.text.secondary,
   },
   unreadBadge: {
-    backgroundColor: '#FF3B30',
+    backgroundColor: COLORS.primary.main,
     borderRadius: 12,
     minWidth: 24,
     height: 24,
@@ -533,44 +533,44 @@ const styles = StyleSheet.create({
   unreadCount: {
     fontSize: 12,
     fontWeight: '600',
-    color: 'white',
+    color: COLORS.text.white,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 40,
-    backgroundColor: 'white',
+    backgroundColor: COLORS.neutral.white,
   },
   loadingText: {
     fontSize: 16,
-    color: '#666',
+    color: COLORS.text.secondary,
   },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 40,
-    backgroundColor: 'white',
+    backgroundColor: COLORS.neutral.white,
   },
   emptyText: {
     fontSize: 16,
-    color: '#666',
+    color: COLORS.text.secondary,
     textAlign: 'center',
   },
   chatRoom: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: COLORS.neutral.background,
   },
   chatRoomHeader: {
     height: 60,
-    backgroundColor: 'white',
+    backgroundColor: COLORS.neutral.white,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: COLORS.neutral.grey200,
   },
   backButton: {
     padding: 8,
@@ -578,7 +578,7 @@ const styles = StyleSheet.create({
   chatRoomTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#333',
+    color: COLORS.text.primary,
     flex: 1,
     textAlign: 'center',
   },
@@ -587,7 +587,7 @@ const styles = StyleSheet.create({
   },
   messageList: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: COLORS.neutral.background,
   },
   messageListContainer: {
     padding: 16,
@@ -605,36 +605,36 @@ const styles = StyleSheet.create({
   },
   senderName: {
     fontSize: 12,
-    color: '#666',
+    color: COLORS.text.secondary,
     fontWeight: '500',
   },
   messageBubble: {
-    backgroundColor: 'white',
+    backgroundColor: COLORS.neutral.white,
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 16,
   },
   myMessageBubble: {
-    backgroundColor: '#007AFF',
+    backgroundColor: COLORS.primary.main,
   },
   messageText: {
     fontSize: 14,
-    color: '#333',
+    color: COLORS.text.primary,
     lineHeight: 20,
   },
   myMessageText: {
-    color: 'white',
+    color: COLORS.text.white,
   },
   messageTime: {
     fontSize: 10,
-    color: '#999',
+    color: COLORS.text.secondary,
     marginTop: 4,
   },
   myMessageTime: {
     textAlign: 'right',
   },
   messageInput: {
-    backgroundColor: 'white',
+    backgroundColor: COLORS.neutral.white,
     borderTopWidth: 1,
     borderTopColor: '#e0e0e0',
     padding: 16,
@@ -642,7 +642,7 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    backgroundColor: '#f5f5f5',
+    backgroundColor: COLORS.neutral.background,
     borderRadius: 20,
     paddingHorizontal: 16,
     paddingVertical: 8,
@@ -651,7 +651,7 @@ const styles = StyleSheet.create({
   textInput: {
     flex: 1,
     fontSize: 14,
-    color: '#333',
+    color: COLORS.text.primary,
     maxHeight: 100,
     paddingVertical: 8,
   },
@@ -660,12 +660,12 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#e0e0e0',
+    backgroundColor: COLORS.neutral.grey200,
     justifyContent: 'center',
     alignItems: 'center',
   },
   sendButtonActive: {
-    backgroundColor: '#007AFF',
+    backgroundColor: COLORS.primary.main,
   },
   dateHeader: {
     alignItems: 'center',
@@ -674,7 +674,7 @@ const styles = StyleSheet.create({
   dateHeaderText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#999',
+    color: COLORS.text.secondary,
     backgroundColor: 'rgba(0, 0, 0, 0.05)',
     paddingHorizontal: 16,
     paddingVertical: 6,

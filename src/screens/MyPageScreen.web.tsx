@@ -133,7 +133,8 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ user: propsUser }) => {
   const [profileData, setProfileData] = useState({
     name: user?.name || '',
     bio: '',
-    profileImage: null
+    profileImage: null,
+    profileImageUrl: null
   });
 
   // 뱃지 데이터
@@ -209,6 +210,81 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ user: propsUser }) => {
     }
   }, [user]);
 
+  // 프로필 저장 함수
+  const handleSaveProfile = async () => {
+    try {
+      let profileImageUrl = null;
+      
+      // 이미지가 있으면 먼저 업로드
+      if (profileData.profileImage) {
+        const formData = new FormData();
+        formData.append('profileImage', profileData.profileImage);
+        
+        try {
+          const uploadResponse = await apiClient.post('/user/upload-profile-image', formData, {
+            headers: {
+              'Content-Type': 'multipart/form-data',
+            },
+          });
+          
+          if (uploadResponse.data.success) {
+            profileImageUrl = uploadResponse.data.imageUrl;
+          }
+        } catch (uploadError) {
+          console.error('이미지 업로드 실패:', uploadError);
+          alert('이미지 업로드에 실패했습니다.');
+          return;
+        }
+      }
+      
+      // 프로필 정보 업데이트
+      const response = await apiClient.put('/user/profile', {
+        name: profileData.name,
+        bio: profileData.bio,
+        profileImage: profileImageUrl
+      });
+      
+      if (response.data.success) {
+        // 성공적으로 저장되면 로컬 상태 업데이트
+        console.log('프로필이 성공적으로 업데이트되었습니다.');
+        alert('프로필이 성공적으로 업데이트되었습니다.');
+        setShowProfileEdit(false);
+        
+        // 사용자 정보 다시 로드
+        window.location.reload(); // 간단한 방법으로 페이지 새로고침
+      }
+    } catch (error) {
+      console.error('프로필 업데이트 실패:', error);
+      alert('프로필 업데이트에 실패했습니다.');
+    }
+  };
+
+  // 프로필 이미지 변경 함수
+  const handleChangeProfileImage = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = (event) => {
+      const file = (event.target as HTMLInputElement).files?.[0];
+      if (file) {
+        // 파일 크기 체크 (5MB 제한)
+        if (file.size > 5 * 1024 * 1024) {
+          alert('파일 크기가 5MB를 초과할 수 없습니다.');
+          return;
+        }
+
+        // 이미지 미리보기용 URL 생성
+        const imageUrl = URL.createObjectURL(file);
+        setProfileData(prev => ({ 
+          ...prev, 
+          profileImage: file,
+          profileImageUrl: imageUrl
+        }));
+      }
+    };
+    input.click();
+  };
+
   const handleMenuPress = (menuId: string) => {
     console.log('메뉴 선택:', menuId);
     
@@ -226,7 +302,7 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ user: propsUser }) => {
         break;
         
       case 'profile-edit':
-        navigate('/profile-edit');
+        setShowProfileEdit(true);
         break;
         
       case 'notification-settings':
@@ -484,10 +560,7 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ user: propsUser }) => {
               </TouchableOpacity>
               <Text style={styles.modalTitle}>프로필 수정</Text>
               <TouchableOpacity 
-                onPress={() => {
-                  // TODO: Implement profile save functionality
-                  setShowProfileEdit(false);
-                }}
+                onPress={handleSaveProfile}
               >
                 <Text style={styles.saveText}>저장</Text>
               </TouchableOpacity>
@@ -496,11 +569,21 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ user: propsUser }) => {
             <View style={styles.modalContent}>
               <View style={styles.editProfileImageContainer}>
                 <View style={styles.editProfileImage}>
-                  <Text style={styles.editProfileInitial}>
-                    {profileData.name.charAt(0) || '사'}
-                  </Text>
+                  {profileData.profileImageUrl ? (
+                    <Image 
+                      source={{ uri: profileData.profileImageUrl }} 
+                      style={styles.editProfileImagePreview}
+                    />
+                  ) : (
+                    <Text style={styles.editProfileInitial}>
+                      {profileData.name.charAt(0) || '사'}
+                    </Text>
+                  )}
                 </View>
-                <TouchableOpacity style={styles.changeImageButton}>
+                <TouchableOpacity 
+                  style={styles.changeImageButton}
+                  onPress={handleChangeProfileImage}
+                >
                   <Icon name="camera" size={20} color={COLORS.primary.main} />
                   <Text style={styles.changeImageText}>사진 변경</Text>
                 </TouchableOpacity>
@@ -960,6 +1043,11 @@ const styles = StyleSheet.create({
     fontSize: 36,
     fontWeight: 'bold',
     color: COLORS.text.secondary,
+  },
+  editProfileImagePreview: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
   },
   changeImageButton: {
     flexDirection: 'row',
