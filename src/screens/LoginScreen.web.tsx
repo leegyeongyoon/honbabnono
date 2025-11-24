@@ -319,7 +319,7 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   kakaoButton: {
-    backgroundColor: '#FEE500',
+    backgroundColor: COLORS.functional.warning,
     borderRadius: 20,
     padding: 20,
     marginBottom: 32,
@@ -346,7 +346,7 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   kakaoLogoText: {
-    color: '#FEE500',
+    color: COLORS.functional.warning,
     fontSize: 14,
     fontWeight: 'bold',
   },

@@ -18,13 +18,13 @@ const BabAlIndex: React.FC<BabAlIndexProps> = ({
   const percentage = Math.min((score / maxScore) * 100, 100);
   
   const getBabAlLevel = (score: number): { level: string; color: string; emoji: string } => {
-    if (score >= 90) return { level: '밥신', color: '#FFD700', emoji: '👑' };
-    if (score >= 80) return { level: '밥마스터', color: '#FF6B35', emoji: '🔥' };
-    if (score >= 70) return { level: '밥프로', color: '#F5CB76', emoji: '⭐' };
-    if (score >= 60) return { level: '밥러버', color: '#98D8C8', emoji: '💚' };
-    if (score >= 50) return { level: '밥친구', color: '#A8DADC', emoji: '😊' };
-    if (score >= 30) return { level: '밥초보', color: '#F1FAEE', emoji: '🌱' };
-    return { level: '신입', color: '#E9C46A', emoji: '👶' };
+    if (score >= 90) return { level: '밥신', color: COLORS.primary.accent, emoji: '👑' };
+    if (score >= 80) return { level: '밥마스터', color: COLORS.primary.dark, emoji: '🔥' };
+    if (score >= 70) return { level: '밥프로', color: COLORS.primary.main, emoji: '⭐' };
+    if (score >= 60) return { level: '밥러버', color: COLORS.secondary.main, emoji: '💚' };
+    if (score >= 50) return { level: '밥친구', color: COLORS.secondary.light, emoji: '😊' };
+    if (score >= 30) return { level: '밥초보', color: COLORS.primary.light, emoji: '🌱' };
+    return { level: '신입', color: COLORS.neutral.grey300, emoji: '👶' };
   };
 
   const { level, color, emoji } = getBabAlLevel(score);

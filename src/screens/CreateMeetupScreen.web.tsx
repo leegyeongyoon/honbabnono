@@ -959,7 +959,7 @@ const CreateMeetupScreen: React.FC<CreateMeetupScreenProps> = ({ user }) => {
             <Icon 
               name={showOptionalFilters ? "chevron-up" : "chevron-down"} 
               size={20} 
-              color="#666" 
+              color={COLORS.text.secondary} 
             />
           </TouchableOpacity>
           
@@ -1207,7 +1207,7 @@ const CreateMeetupScreen: React.FC<CreateMeetupScreenProps> = ({ user }) => {
         <button
           style={{
             backgroundColor: loading ? '#a0aec0' : '#667eea',
-            color: '#ffffff',
+            color: COLORS.neutral.white,
             fontSize: '18px',
             fontWeight: '700',
             borderRadius: '16px',
@@ -1311,7 +1311,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   input: {
-    backgroundColor: '#ffffff',
+    backgroundColor: COLORS.neutral.white,
     borderRadius: 12,
     padding: 16,
     fontSize: 16,
@@ -1335,7 +1335,7 @@ const styles = StyleSheet.create({
   categoryButton: {
     paddingHorizontal: 16,
     paddingVertical: 8,
-    backgroundColor: '#ffffff',
+    backgroundColor: COLORS.neutral.white,
     borderRadius: 20,
     borderWidth: 1,
     borderColor: '#e2e8f0',
@@ -1350,7 +1350,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   categoryTextSelected: {
-    color: '#ffffff',
+    color: COLORS.neutral.white,
   },
   createButton: {
     backgroundColor: '#667eea',
@@ -1368,7 +1368,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#a0aec0',
   },
   createButtonText: {
-    color: '#ffffff',
+    color: COLORS.neutral.white,
     fontSize: 18,
     fontWeight: '700',
   },
@@ -1384,7 +1384,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 12,
     paddingVertical: 6,
-    backgroundColor: '#ffffff',
+    backgroundColor: COLORS.neutral.white,
     borderRadius: 16,
     borderWidth: 1,
     borderColor: '#667eea',
@@ -1483,29 +1483,29 @@ const styles = StyleSheet.create({
   depositToggleTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1A1A1A',
+    color: COLORS.text.primary,
     marginBottom: 2,
   },
   depositToggleDesc: {
     fontSize: 14,
-    color: '#666666',
+    color: COLORS.text.secondary,
   },
   toggleSwitch: {
     width: 44,
     height: 24,
     borderRadius: 12,
-    backgroundColor: '#E5E5E5',
+    backgroundColor: COLORS.neutral.grey200,
     padding: 2,
     justifyContent: 'center',
   },
   toggleSwitchActive: {
-    backgroundColor: '#007AFF',
+    backgroundColor: COLORS.primary.main,
   },
   toggleSwitchThumb: {
     width: 20,
     height: 20,
     borderRadius: 10,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.neutral.white,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.2,
@@ -1515,7 +1515,7 @@ const styles = StyleSheet.create({
     transform: [{ translateX: 20 }],
   },
   depositPolicyInfo: {
-    backgroundColor: '#F8F9FA',
+    backgroundColor: COLORS.neutral.background,
     borderRadius: 12,
     padding: 16,
     marginTop: 8,
@@ -1523,7 +1523,7 @@ const styles = StyleSheet.create({
   policyTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1A1A1A',
+    color: COLORS.text.primary,
     marginBottom: 12,
   },
   policyItem: {
@@ -1533,20 +1533,20 @@ const styles = StyleSheet.create({
   },
   policyLabel: {
     fontSize: 14,
-    color: '#666666',
+    color: COLORS.text.secondary,
     flex: 1,
   },
   policyValue: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#1A1A1A',
+    color: COLORS.text.primary,
   },
   imageUploadContainer: {
     marginTop: 8,
   },
   imageUploadButton: {
     borderWidth: 2,
-    borderColor: '#E0E0E0',
+    borderColor: COLORS.neutral.grey200,
     borderStyle: 'dashed',
     borderRadius: 12,
     padding: 32,
@@ -1562,12 +1562,12 @@ const styles = StyleSheet.create({
   imageUploadText: {
     fontSize: 16,
     fontWeight: '500',
-    color: '#333',
+    color: COLORS.text.primary,
     marginBottom: 4,
   },
   imageUploadSubText: {
     fontSize: 12,
-    color: '#666',
+    color: COLORS.text.secondary,
   },
   imagePreviewContainer: {
     position: 'relative',
@@ -1603,7 +1603,7 @@ const styles = StyleSheet.create({
     padding: 16,
     marginTop: 16,
     borderLeftWidth: 4,
-    borderLeftColor: '#007AFF',
+    borderLeftColor: COLORS.primary.main,
   },
   policyNoteText: {
     fontSize: 14,
@@ -1619,27 +1619,27 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     paddingHorizontal: 4,
     borderRadius: 8,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: COLORS.neutral.background,
   },
   accordionHeaderLeft: {
     flex: 1,
   },
   accordionSubtitle: {
     fontSize: 14,
-    color: '#666666',
+    color: COLORS.text.secondary,
     marginTop: 4,
     lineHeight: 20,
   },
   // select input 스타일
   selectInput: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.neutral.white,
     borderWidth: 1,
-    borderColor: '#E5E5E5',
+    borderColor: COLORS.neutral.grey200,
     borderRadius: 8,
     paddingVertical: 12,
     paddingHorizontal: 12,
     fontSize: 16,
-    color: '#333333',
+    color: COLORS.text.primary,
     minHeight: 48,
   },
   // 위치 선택 지도 스타일
@@ -1674,7 +1674,7 @@ const styles = StyleSheet.create({
   },
   mapLoadingText: {
     fontSize: 14,
-    color: '#666',
+    color: COLORS.text.secondary,
   },
   mapErrorContainer: {
     position: 'absolute',
@@ -1748,7 +1748,7 @@ const styles = StyleSheet.create({
   },
   locationHint: {
     fontSize: 14,
-    color: '#666',
+    color: COLORS.text.secondary,
     fontStyle: 'italic',
   },
   confirmLocationButton: {
@@ -1775,9 +1775,9 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   addressDisplayBox: {
-    backgroundColor: '#F8F9FA',
+    backgroundColor: COLORS.neutral.background,
     borderWidth: 1,
-    borderColor: '#E5E5E5',
+    borderColor: COLORS.neutral.grey200,
     borderRadius: 12,
     padding: 16,
   },
@@ -1789,7 +1789,7 @@ const styles = StyleSheet.create({
   },
   addressDisplayNote: {
     fontSize: 12,
-    color: '#666',
+    color: COLORS.text.secondary,
     fontStyle: 'italic',
   },
   // 입력 힌트 스타일
@@ -1801,10 +1801,10 @@ const styles = StyleSheet.create({
   },
   selectedLocationInfo: {
     padding: 12,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: COLORS.neutral.background,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#E5E5E5',
+    borderColor: COLORS.neutral.grey200,
   },
   selectedLocationText: {
     fontSize: 16,
@@ -1826,14 +1826,14 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.neutral.white,
     borderWidth: 1,
-    borderColor: '#E5E5E5',
+    borderColor: COLORS.neutral.grey200,
     borderRadius: 8,
     paddingVertical: 12,
     paddingHorizontal: 12,
     fontSize: 16,
-    color: '#333333',
+    color: COLORS.text.primary,
   },
   searchButton: {
     backgroundColor: COLORS.primary.main,

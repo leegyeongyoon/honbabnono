@@ -102,7 +102,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   activeTabItem: {
-    backgroundColor: '#ede0c8',
+    backgroundColor: COLORS.primary.light,
     ...SHADOWS.small,
   },
   tabIcon: {

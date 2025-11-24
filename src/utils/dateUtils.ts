@@ -154,7 +154,7 @@ export const getMeetupStatus = (meetupDate: string, meetupTime: string): {
       return {
         status: 'upcoming',
         label: '예정',
-        color: '#2196F3'
+        color: COLORS.primary.dark
       };
     }
     
@@ -165,13 +165,13 @@ export const getMeetupStatus = (meetupDate: string, meetupTime: string): {
       return {
         status: 'finished',
         label: '종료됨',
-        color: '#999999'
+        color: COLORS.text.tertiary
       };
     } else if (diff < 0) { // 시작 시간 지남
       return {
         status: 'ongoing',
         label: '진행중',
-        color: '#4CAF50'
+        color: COLORS.functional.success
       };
     } else if (diff <= 1800000) { // 30분 이내
       return {
@@ -183,7 +183,7 @@ export const getMeetupStatus = (meetupDate: string, meetupTime: string): {
       return {
         status: 'upcoming',
         label: '예정',
-        color: '#2196F3'
+        color: COLORS.primary.dark
       };
     }
   } catch (error) {
@@ -191,7 +191,7 @@ export const getMeetupStatus = (meetupDate: string, meetupTime: string): {
     return {
       status: 'upcoming',
       label: '예정',
-      color: '#2196F3'
+      color: COLORS.primary.dark
     };
   }
 };
@@ -213,9 +213,9 @@ export const getDayColor = (date: Date): string => {
     0: '#FF5722', // 일요일 - 빨간색
     1: '#607D8B', // 월요일 - 블루그레이
     2: '#795548', // 화요일 - 브라운
-    3: '#4CAF50', // 수요일 - 그린
+    3: COLORS.functional.success, // 수요일 - 그린
     4: '#FF9800', // 목요일 - 오렌지
-    5: '#2196F3', // 금요일 - 블루
+    5: COLORS.primary.dark, // 금요일 - 블루
     6: '#9C27B0', // 토요일 - 퍼플
   };
   return colors[day as keyof typeof colors] || '#607D8B';

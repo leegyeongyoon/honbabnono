@@ -113,7 +113,7 @@ const KakaoMap: React.FC<{
           display: mapError ? 'flex' : 'block',
           alignItems: 'center',
           justifyContent: 'center',
-          color: '#666',
+          color: COLORS.text.secondary,
           fontSize: '14px'
         }}
       >
@@ -646,7 +646,7 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.neutral.white,
   },
   scrollView: {
     flex: 1,
@@ -655,11 +655,11 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.neutral.white,
   },
   loadingText: {
     fontSize: 16,
-    color: '#666',
+    color: COLORS.text.secondary,
   },
   header: {
     flexDirection: 'row',
@@ -668,7 +668,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
     paddingTop: 50,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.neutral.white,
   },
   backButton: {
     padding: 8,
@@ -707,10 +707,10 @@ const styles = StyleSheet.create({
   },
   hostLocation: {
     fontSize: 14,
-    color: '#666666',
+    color: COLORS.text.secondary,
   },
   riceIndicator: {
-    backgroundColor: '#F0F0F0',
+    backgroundColor: COLORS.neutral.grey200,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 12,
@@ -721,13 +721,13 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   mainCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.neutral.white,
     marginHorizontal: 20,
     marginBottom: 16,
     padding: 20,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#F0F0F0',
+    borderColor: COLORS.neutral.grey200,
   },
   meetupTitle: {
     fontSize: 24,
@@ -743,7 +743,7 @@ const styles = StyleSheet.create({
   },
   infoLabel: {
     fontSize: 16,
-    color: '#666666',
+    color: COLORS.text.secondary,
     fontWeight: '500',
   },
   infoRow: {
@@ -751,22 +751,22 @@ const styles = StyleSheet.create({
   },
   infoDetails: {
     fontSize: 14,
-    color: '#999999',
+    color: COLORS.text.tertiary,
   },
   description: {
     fontSize: 16,
-    color: '#333333',
+    color: COLORS.text.primary,
     lineHeight: 24,
     marginBottom: 16,
   },
   timeInfo: {
     paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: '#F0F0F0',
+    borderTopColor: COLORS.neutral.grey200,
   },
   timeText: {
     fontSize: 13,
-    color: '#999999',
+    color: COLORS.text.tertiary,
   },
   mapSection: {
     marginHorizontal: 20,
@@ -779,11 +779,11 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   locationCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.neutral.white,
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#E5E5E5',
+    borderColor: COLORS.neutral.grey200,
     flexDirection: 'row',
     alignItems: 'center',
   },
@@ -794,7 +794,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: COLORS.neutral.background,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -819,12 +819,12 @@ const styles = StyleSheet.create({
   },
   openMapText: {
     fontSize: 14,
-    color: '#FFFFFF',
+    color: COLORS.neutral.white,
     fontWeight: '500',
   },
   mapLocationText: {
     fontSize: 14,
-    color: '#333333',
+    color: COLORS.text.primary,
     fontWeight: '500',
     textAlign: 'center',
   },
@@ -864,25 +864,25 @@ const styles = StyleSheet.create({
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: '#4CAF50',
+    backgroundColor: COLORS.functional.success,
   },
   subwayText: {
     fontSize: 12,
-    color: '#666666',
+    color: COLORS.text.secondary,
     marginLeft: 4,
   },
   statusText: {
     fontSize: 12,
-    color: '#666666',
+    color: COLORS.text.secondary,
   },
   participantSection: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.neutral.white,
     marginHorizontal: 20,
     marginBottom: 16,
     padding: 20,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#F0F0F0',
+    borderColor: COLORS.neutral.grey200,
   },
   participantTitle: {
     fontSize: 18,
@@ -913,7 +913,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#E0E0E0',
+    backgroundColor: COLORS.neutral.grey200,
     marginRight: 12,
   },
   participantInfo: {
@@ -927,7 +927,7 @@ const styles = StyleSheet.create({
   },
   participantRole: {
     fontSize: 14,
-    color: '#666666',
+    color: COLORS.text.secondary,
   },
   bottomPadding: {
     height: 100,
@@ -937,12 +937,12 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.neutral.white,
     paddingHorizontal: 20,
     paddingVertical: 20,
     paddingBottom: 34,
     borderTopWidth: 1,
-    borderTopColor: '#F0F0F0',
+    borderTopColor: COLORS.neutral.grey200,
   },
   joinButton: {
     backgroundColor: '#495057',
@@ -953,7 +953,7 @@ const styles = StyleSheet.create({
   joinButtonText: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: COLORS.neutral.white,
   },
   modalOverlay: {
     position: 'absolute',
@@ -976,13 +976,13 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#333',
+    color: COLORS.text.primary,
     textAlign: 'center',
     marginBottom: 16,
   },
   modalDescription: {
     fontSize: 14,
-    color: '#666',
+    color: COLORS.text.secondary,
     textAlign: 'center',
     lineHeight: 20,
     marginBottom: 20,
@@ -997,7 +997,7 @@ const styles = StyleSheet.create({
   modalAmount: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#333',
+    color: COLORS.text.primary,
   },
   modalButtonContainer: {
     flexDirection: 'row',
@@ -1013,7 +1013,7 @@ const styles = StyleSheet.create({
   modalCancelText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
+    color: COLORS.text.primary,
   },
   modalPayButton: {
     flex: 1,
@@ -1029,7 +1029,7 @@ const styles = StyleSheet.create({
   },
   noParticipants: {
     fontSize: 14,
-    color: '#999',
+    color: COLORS.text.tertiary,
     textAlign: 'center',
     marginTop: 20,
     fontStyle: 'italic',
@@ -1065,7 +1065,7 @@ const styles = StyleSheet.create({
   chatButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: COLORS.neutral.white,
   },
   hostButton: {
     flex: 1,
@@ -1078,7 +1078,7 @@ const styles = StyleSheet.create({
   hostButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: COLORS.neutral.white,
   },
   leaveButton: {
     flex: 1,
@@ -1091,7 +1091,7 @@ const styles = StyleSheet.create({
   leaveButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: COLORS.neutral.white,
   },
   modalConfirmButton: {
     flex: 1,
@@ -1117,7 +1117,7 @@ const styles = StyleSheet.create({
   pastMeetupText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#666666',
+    color: COLORS.text.secondary,
     textAlign: 'center',
   },
 });

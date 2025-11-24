@@ -216,7 +216,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     marginHorizontal: 4,
     marginLeft: 12,
-    backgroundColor: '#ffffff',
+    backgroundColor: COLORS.neutral.white,
     borderRadius: 20,
     borderWidth: 1,
     borderColor: '#e9ecef',
@@ -231,7 +231,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   selectedTabButtonText: {
-    color: '#ffffff',
+    color: COLORS.neutral.white,
     fontWeight: '600',
   },
   tabBadge: {
@@ -261,13 +261,13 @@ const styles = StyleSheet.create({
   unreadNotificationCard: {
     borderLeftWidth: 4,
     borderLeftColor: '#ede0c8',
-    backgroundColor: '#ffffff',
+    backgroundColor: COLORS.neutral.white,
   },
   notificationIcon: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#ffffff',
+    backgroundColor: COLORS.neutral.white,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,

@@ -266,7 +266,7 @@ class LocationService {
       return {
         grade: 'excellent',
         description: '매우 정확함',
-        color: '#4CAF50',
+        color: COLORS.functional.success,
       };
     } else if (accuracy <= 20) {
       return {
@@ -284,7 +284,7 @@ class LocationService {
       return {
         grade: 'poor',
         description: '부정확함',
-        color: '#F44336',
+        color: COLORS.functional.error,
       };
     }
   }

@@ -283,7 +283,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, user }) => {
 
       {/* 플로팅 버튼 */}
       <TouchableOpacity style={styles.fab} onPress={() => setShowCreateMeetup(true)}>
-        <Icon name="plus" size={28} color="#FFFFFF" />
+        <Icon name="plus" size={28} color={COLORS.neutral.white} />
       </TouchableOpacity>
 
 

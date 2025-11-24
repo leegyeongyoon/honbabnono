@@ -279,10 +279,10 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.neutral.white,
   },
   meetupCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.neutral.white,
     marginBottom: 0,
     borderBottomWidth: 1,
     borderBottomColor: '#F1F3F4',

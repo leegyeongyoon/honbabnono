@@ -424,22 +424,22 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   locationGuideContainer: {
-    backgroundColor: '#FFF8DC',
+    backgroundColor: COLORS.secondary.light,
     borderRadius: 8,
     padding: 12,
     marginVertical: 12,
     borderLeftWidth: 4,
-    borderLeftColor: '#FFD700',
+    borderLeftColor: COLORS.primary.main,
   },
   locationGuideTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#B8860B',
+    color: COLORS.primary.dark,
     marginBottom: 8,
   },
   locationGuideText: {
     fontSize: 13,
-    color: '#8B7355',
+    color: COLORS.text.secondary,
     lineHeight: 18,
   },
   sectionTitle: {

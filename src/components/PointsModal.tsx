@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert } from 'react-native';
+import { COLORS, SHADOWS } from '../styles/colors';
 import { useUserStore } from '../store/userStore';
 import depositService from '../services/depositService';
 import { UserPoints, PointTransaction, PointUsageOption } from '../types/deposit';
@@ -173,7 +174,7 @@ export const PointsModal: React.FC<PointsModalProps> = ({
           <Icon
             name="chevron-right"
             size={20}
-            color={userPoints && userPoints.availablePoints >= option.pointsRequired ? "#666" : "#CCC"}
+            color={userPoints && userPoints.availablePoints >= option.pointsRequired ? COLORS.text.secondary : COLORS.neutral.grey400}
           />
         </TouchableOpacity>
       ))}
@@ -229,7 +230,7 @@ export const PointsModal: React.FC<PointsModalProps> = ({
           <View style={styles.headerLeft} />
           <Text style={styles.title}>포인트</Text>
           <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-            <Icon name="x" size={24} color="#666" />
+            <Icon name="x" size={24} color={COLORS.text.secondary} />
           </TouchableOpacity>
         </View>
 
@@ -275,7 +276,7 @@ export const PointsModal: React.FC<PointsModalProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.neutral.white,
   },
   header: {
     flexDirection: 'row',
@@ -284,7 +285,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
+    borderBottomColor: COLORS.neutral.grey200,
   },
   headerLeft: {
     width: 24,
@@ -292,7 +293,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#1A1A1A',
+    color: COLORS.text.primary,
   },
   closeButton: {
     padding: 4,
@@ -300,7 +301,7 @@ const styles = StyleSheet.create({
   tabBar: {
     flexDirection: 'row',
     borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
+    borderBottomColor: COLORS.neutral.grey200,
   },
   tab: {
     flex: 1,
@@ -309,15 +310,15 @@ const styles = StyleSheet.create({
   },
   activeTab: {
     borderBottomWidth: 2,
-    borderBottomColor: '#007AFF',
+    borderBottomColor: COLORS.primary.main,
   },
   tabText: {
     fontSize: 16,
     fontWeight: '500',
-    color: '#666666',
+    color: COLORS.text.secondary,
   },
   activeTabText: {
-    color: '#007AFF',
+    color: COLORS.primary.main,
     fontWeight: '600',
   },
   content: {
@@ -328,21 +329,21 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   pointsCard: {
-    backgroundColor: '#007AFF',
+    backgroundColor: COLORS.primary.main,
     borderRadius: 16,
     padding: 24,
     marginBottom: 24,
   },
   pointsLabel: {
     fontSize: 14,
-    color: '#FFFFFF',
+    color: COLORS.neutral.white,
     opacity: 0.8,
     marginBottom: 8,
   },
   pointsAmount: {
     fontSize: 32,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: COLORS.neutral.white,
     marginBottom: 16,
   },
   pointsDetails: {
@@ -354,14 +355,14 @@ const styles = StyleSheet.create({
   },
   pointDetailLabel: {
     fontSize: 12,
-    color: '#FFFFFF',
+    color: COLORS.neutral.white,
     opacity: 0.8,
     marginBottom: 4,
   },
   pointDetailValue: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: COLORS.neutral.white,
   },
   howToEarnSection: {
     marginBottom: 24,
@@ -369,7 +370,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#1A1A1A',
+    color: COLORS.text.primary,
     marginBottom: 16,
   },
   earnMethod: {
@@ -387,12 +388,12 @@ const styles = StyleSheet.create({
   earnMethodTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1A1A1A',
+    color: COLORS.text.primary,
     marginBottom: 4,
   },
   earnMethodDesc: {
     fontSize: 14,
-    color: '#666666',
+    color: COLORS.text.secondary,
     lineHeight: 20,
   },
   usageOption: {
@@ -400,9 +401,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.neutral.white,
     borderWidth: 1,
-    borderColor: '#E5E5E5',
+    borderColor: COLORS.neutral.grey200,
     borderRadius: 12,
     marginBottom: 12,
   },
@@ -418,7 +419,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: COLORS.neutral.background,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
@@ -432,17 +433,17 @@ const styles = StyleSheet.create({
   usageOptionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1A1A1A',
+    color: COLORS.text.primary,
     marginBottom: 2,
   },
   usageOptionDesc: {
     fontSize: 14,
-    color: '#666666',
+    color: COLORS.text.secondary,
     marginBottom: 4,
   },
   usageOptionPoints: {
     fontSize: 12,
-    color: '#007AFF',
+    color: COLORS.primary.main,
     fontWeight: '500',
   },
   historyItem: {
@@ -451,7 +452,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
+    borderBottomColor: COLORS.neutral.grey200,
   },
   historyItemLeft: {
     flex: 1,
@@ -459,12 +460,12 @@ const styles = StyleSheet.create({
   historyItemTitle: {
     fontSize: 16,
     fontWeight: '500',
-    color: '#1A1A1A',
+    color: COLORS.text.primary,
     marginBottom: 4,
   },
   historyItemDate: {
     fontSize: 14,
-    color: '#666666',
+    color: COLORS.text.secondary,
   },
   historyItemRight: {
     alignItems: 'flex-end',
@@ -475,14 +476,14 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   historyItemAmountPositive: {
-    color: '#4CAF50',
+    color: COLORS.functional.success,
   },
   historyItemAmountNegative: {
-    color: '#F44336',
+    color: COLORS.functional.error,
   },
   historyItemType: {
     fontSize: 12,
-    color: '#666666',
+    color: COLORS.text.secondary,
   },
   emptyState: {
     alignItems: 'center',
@@ -491,7 +492,7 @@ const styles = StyleSheet.create({
   },
   emptyStateText: {
     fontSize: 16,
-    color: '#666666',
+    color: COLORS.text.secondary,
   },
 });
 

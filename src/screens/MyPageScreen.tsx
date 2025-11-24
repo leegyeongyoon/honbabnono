@@ -711,7 +711,7 @@ const styles = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: 36,
-    backgroundColor: '#ffffff',
+    backgroundColor: COLORS.neutral.white,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 16,
@@ -743,7 +743,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   profileEditButton: {
-    backgroundColor: '#ffffff',
+    backgroundColor: COLORS.neutral.white,
     borderWidth: 1,
     borderColor: '#e2e8f0',
     borderRadius: 16,
@@ -758,7 +758,7 @@ const styles = StyleSheet.create({
   },
   riceIndexSection: {
     marginTop: 20,
-    backgroundColor: '#ffffff',
+    backgroundColor: COLORS.neutral.white,
     borderRadius: 20,
     padding: 20,
     borderWidth: 1,

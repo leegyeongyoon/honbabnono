@@ -306,7 +306,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     marginRight: 8,
-    backgroundColor: '#ffffff',
+    backgroundColor: COLORS.neutral.white,
     borderRadius: 20,
     borderWidth: 1,
     borderColor: '#e9ecef',
@@ -427,7 +427,7 @@ const styles = StyleSheet.create({
     color: COLORS.text.secondary,
   },
   categoryBadge: {
-    backgroundColor: '#ffffff',
+    backgroundColor: COLORS.neutral.white,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,

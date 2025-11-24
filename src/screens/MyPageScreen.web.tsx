@@ -85,7 +85,7 @@ const Badge: React.FC<{
 
 // 밥알지수 색상 및 레벨 시스템
 const getRiceIndexColor = (riceIndex: number) => {
-  if (riceIndex >= 90) return '#FF6B6B'; // 빨간색 - 최고급
+  if (riceIndex >= 90) return COLORS.functional.error; // 빨간색 - 최고급
   if (riceIndex >= 80) return '#FF9500'; // 주황색 - 고급
   if (riceIndex >= 70) return '#F5B041'; // 황금색 - 중급
   if (riceIndex >= 50) return '#28A745'; // 초록색 - 초급
@@ -217,21 +217,41 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ user: propsUser }) => {
       
       // 이미지가 있으면 먼저 업로드
       if (profileData.profileImage) {
+        console.log('🔄 이미지 업로드 시작:', {
+          hasFile: !!profileData.profileImage,
+          fileType: profileData.profileImage?.type,
+          fileSize: profileData.profileImage?.size,
+          fileName: profileData.profileImage?.name
+        });
+
         const formData = new FormData();
         formData.append('profileImage', profileData.profileImage);
         
+        // FormData 내용 확인
+        console.log('📦 FormData 준비 완료:', {
+          hasFormData: !!formData,
+          hasFile: formData.has('profileImage')
+        });
+        
         try {
+          console.log('🚀 API 호출 시작: /user/upload-profile-image');
+          
           const uploadResponse = await apiClient.post('/user/upload-profile-image', formData, {
             headers: {
               'Content-Type': 'multipart/form-data',
             },
           });
           
+          console.log('✅ 업로드 응답 받음:', uploadResponse.data);
+          
           if (uploadResponse.data.success) {
             profileImageUrl = uploadResponse.data.imageUrl;
+            console.log('🖼️ 이미지 URL 설정됨:', profileImageUrl);
           }
         } catch (uploadError) {
-          console.error('이미지 업로드 실패:', uploadError);
+          console.error('❌ 이미지 업로드 실패:', uploadError);
+          console.error('에러 응답 데이터:', uploadError.response?.data);
+          console.error('에러 상태 코드:', uploadError.response?.status);
           alert('이미지 업로드에 실패했습니다.');
           return;
         }
@@ -658,7 +678,7 @@ const styles = StyleSheet.create({
   },
   // 프로필 섹션
   profileSection: {
-    backgroundColor: '#F8F9FA',
+    backgroundColor: COLORS.neutral.background,
     paddingVertical: 24,
     paddingHorizontal: 20,
     marginBottom: 0,
@@ -746,7 +766,7 @@ const styles = StyleSheet.create({
   },
   riceIndexLabel: {
     fontSize: 16,
-    color: '#333333',
+    color: COLORS.text.primary,
     fontWeight: '500',
   },
   riceIndexValue: {
@@ -762,7 +782,7 @@ const styles = StyleSheet.create({
   progressBar: {
     flex: 1,
     height: 12,
-    backgroundColor: '#E0E0E0',
+    backgroundColor: COLORS.neutral.grey200,
     borderRadius: 20,
     overflow: 'hidden',
   },
@@ -780,7 +800,7 @@ const styles = StyleSheet.create({
   levelText: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#333333',
+    color: COLORS.text.primary,
   },
   levelEmoji: {
     fontSize: 16,
@@ -834,17 +854,17 @@ const styles = StyleSheet.create({
   },
   pointsLabel: {
     fontSize: 16,
-    color: '#FFFFFF',
+    color: COLORS.neutral.white,
     fontWeight: '500',
   },
   pointsValue: {
     fontSize: 18,
-    color: '#FFFFFF',
+    color: COLORS.neutral.white,
     fontWeight: '700',
   },
   // 활동 통계
   activityStatsSection: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.neutral.white,
     paddingVertical: 20,
     paddingHorizontal: 20,
     marginBottom: 8,
@@ -857,13 +877,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
+    borderBottomColor: COLORS.neutral.grey200,
   },
   activityIconContainer: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: COLORS.neutral.background,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -905,15 +925,15 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#666666',
+    color: COLORS.text.secondary,
     paddingHorizontal: 20,
     paddingVertical: 16,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: COLORS.neutral.background,
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
   },
   menuContainer: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.neutral.white,
     borderBottomLeftRadius: 16,
     borderBottomRightRadius: 16,
     ...SHADOWS.small,
@@ -925,7 +945,7 @@ const styles = StyleSheet.create({
     paddingVertical: 18,
     paddingHorizontal: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
+    borderBottomColor: COLORS.neutral.grey200,
   },
   menuItemText: {
     fontSize: 16,

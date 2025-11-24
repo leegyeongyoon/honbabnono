@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, ScrollView } from 'react-native';
+import { COLORS, SHADOWS } from '../styles/colors';
 import { useNavigate } from 'react-router-dom';
 
 interface User {
@@ -173,7 +174,7 @@ const PaymentScreen: React.FC = () => {
             <View style={styles.meetupInfoRow}>
               <Text style={styles.meetupInfoLabel}>현재 포인트</Text>
               <Text style={[styles.meetupInfoAmount, { 
-                color: user.points >= requiredAmount ? '#4CAF50' : '#f44336' 
+                color: user.points >= requiredAmount ? COLORS.functional.success : '#f44336' 
               }]}>
                 {user.points.toLocaleString()}원
               </Text>
@@ -340,19 +341,19 @@ const styles = StyleSheet.create({
   },
   backButtonText: {
     fontSize: 20,
-    color: '#333',
+    color: COLORS.text.primary,
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#333',
+    color: COLORS.text.primary,
   },
   content: {
     flex: 1,
     padding: 16,
   },
   pointsSection: {
-    backgroundColor: '#4A90E2',
+    backgroundColor: COLORS.primary.main,
     borderRadius: 12,
     padding: 20,
     marginBottom: 24,
@@ -381,7 +382,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#333',
+    color: COLORS.text.primary,
     marginBottom: 16,
   },
   amountGrid: {
@@ -401,13 +402,13 @@ const styles = StyleSheet.create({
     borderColor: '#e9ecef',
   },
   selectedAmountButton: {
-    backgroundColor: '#4A90E2',
-    borderColor: '#4A90E2',
+    backgroundColor: COLORS.primary.main,
+    borderColor: COLORS.primary.main,
   },
   amountButtonText: {
     fontSize: 16,
     fontWeight: '500',
-    color: '#333',
+    color: COLORS.text.primary,
   },
   selectedAmountButtonText: {
     color: '#fff',
@@ -418,7 +419,7 @@ const styles = StyleSheet.create({
   customAmountLabel: {
     fontSize: 16,
     fontWeight: '500',
-    color: '#333',
+    color: COLORS.text.primary,
     marginBottom: 8,
   },
   customAmountInput: {
@@ -437,7 +438,7 @@ const styles = StyleSheet.create({
     borderColor: '#e9ecef',
   },
   selectedPaymentMethod: {
-    borderColor: '#4A90E2',
+    borderColor: COLORS.primary.main,
     backgroundColor: '#f0f7ff',
   },
   paymentMethodRow: {
@@ -459,16 +460,16 @@ const styles = StyleSheet.create({
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: '#4A90E2',
+    backgroundColor: COLORS.primary.main,
   },
   paymentMethodText: {
     fontSize: 16,
     fontWeight: '500',
-    color: '#333',
+    color: COLORS.text.primary,
   },
   paymentMethodSubtext: {
     fontSize: 14,
-    color: '#666',
+    color: COLORS.text.secondary,
     marginLeft: 32,
   },
   paymentInfo: {
@@ -480,7 +481,7 @@ const styles = StyleSheet.create({
   paymentInfoTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
+    color: COLORS.text.primary,
     marginBottom: 12,
   },
   paymentInfoRow: {
@@ -490,12 +491,12 @@ const styles = StyleSheet.create({
   },
   paymentInfoLabel: {
     fontSize: 14,
-    color: '#666',
+    color: COLORS.text.secondary,
   },
   paymentInfoValue: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#333',
+    color: COLORS.text.primary,
   },
   footer: {
     padding: 16,
@@ -503,7 +504,7 @@ const styles = StyleSheet.create({
     borderTopColor: '#f0f0f0',
   },
   payButton: {
-    backgroundColor: '#4A90E2',
+    backgroundColor: COLORS.primary.main,
     borderRadius: 8,
     padding: 16,
     alignItems: 'center',
@@ -539,13 +540,13 @@ const styles = StyleSheet.create({
   },
   meetupInfoLabel: {
     fontSize: 14,
-    color: '#666',
+    color: COLORS.text.secondary,
     fontWeight: '500',
   },
   meetupInfoAmount: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#333',
+    color: COLORS.text.primary,
   },
 });
 

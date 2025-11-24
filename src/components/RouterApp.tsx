@@ -156,11 +156,11 @@ const RouterApp: React.FC = () => {
         justifyContent: 'center',
         alignItems: 'center',
         height: '100vh',
-        backgroundColor: '#ffffff'
+        backgroundColor: COLORS.neutral.white
       }}>
         <div style={{
           fontSize: '16px',
-          color: '#333333'
+          color: COLORS.text.primary
         }}>
           로딩 중...
         </div>

@@ -5617,13 +5617,7 @@ apiRouter.post('/meetups/:id/checkin/qr', authenticateToken, async (req, res) =>
   }
 });
 
-// 404 에러 핸들러 (API 라우터용) - 모든 라우트 정의 후 마지막에 위치
-apiRouter.use('*', (req, res) => {
-  res.status(404).json({
-    error: 'API 엔드포인트를 찾을 수 없습니다.',
-    path: req.path
-  });
-});
+// 404 에러 핸들러는 파일 끝에서 정의됨
 
 // 호스트 확인 API - 호스트가 참가자의 참석을 확인하는 API
 apiRouter.post('/meetups/:meetupId/attendance/host-confirm', authenticateToken, async (req, res) => {
@@ -7068,11 +7062,41 @@ apiRouter.put('/api/user/profile', authenticateToken, async (req, res) => {
 });
 
 // 프로필 이미지 업로드 API
-apiRouter.post('/user/upload-profile-image', authenticateToken, upload.single('profileImage'), async (req, res) => {
+apiRouter.post('/user/upload-profile-image', authenticateToken, (req, res, next) => {
+  console.log('🔍 프로필 이미지 업로드 미들웨어 진입:', {
+    method: req.method,
+    url: req.url,
+    contentType: req.headers['content-type'],
+    bodyExists: !!req.body,
+    userId: req.user?.userId
+  });
+  
+  upload.single('profileImage')(req, res, (err) => {
+    if (err) {
+      console.error('❌ Multer 에러:', err);
+      return res.status(400).json({
+        success: false,
+        error: `파일 업로드 에러: ${err.message}`
+      });
+    }
+    next();
+  });
+}, async (req, res) => {
   try {
-    console.log('📷 프로필 이미지 업로드 요청');
+    console.log('📷 프로필 이미지 업로드 요청:', {
+      hasFile: !!req.file,
+      fileName: req.file?.filename,
+      fileSize: req.file?.size,
+      mimeType: req.file?.mimetype,
+      headers: req.headers['content-type']
+    });
     
     if (!req.file) {
+      console.error('❌ 파일이 없습니다:', {
+        body: req.body,
+        files: req.files,
+        file: req.file
+      });
       return res.status(400).json({
         success: false,
         error: '업로드할 이미지 파일을 선택해주세요.'
@@ -8155,6 +8179,15 @@ setInterval(autoCompleteExpiredMeetups, 10 * 60 * 1000); // 10분
 
 // 서버 시작 시 한 번 실행
 setTimeout(autoCompleteExpiredMeetups, 5000); // 5초 후 실행
+
+// 404 에러 핸들러 (API 라우터용) - 모든 라우트 정의 후 마지막에 위치
+apiRouter.use('*', (req, res) => {
+  console.log('❌ 404 에러 발생:', { path: req.path, method: req.method });
+  res.status(404).json({
+    error: 'API 엔드포인트를 찾을 수 없습니다.',
+    path: req.path
+  });
+});
 
 startServer();
 

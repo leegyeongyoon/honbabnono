@@ -1,61 +1,63 @@
-// 혼밥시러 따뜻한 밥 컬러 팔레트
+// 혼밥시러 세련된 베이지 컬러 팔레트 (새로운 정제된 색감)
 export const COLORS = {
-  // 메인 골든 컬러 (밥 느낌)
+  // 메인 컬러 (세련된 베이지 톤)
   primary: {
-    main: '#F5CB76',      // 따뜻한 골든 옐로우 (밥 색깔)
-    light: '#F8E5A3',     // 연한 골든
-    dark: '#E6B85C',      // 진한 골든
-    accent: '#F2D68A',    // 포인트 골든
+    main: '#C9B59C',      // 세련된 베이지 (일반 버튼, 메인 액션)
+    light: '#F9F8F6',     // 가장 연한 크림 (배경, 연한 요소)
+    dark: '#D9CFC7',      // 중간 베이지 (강조 요소)
+    accent: '#EFE9E3',    // 따뜻한 오프화이트 (카드 배경용)
   },
   
-  // 보조 컬러 (따뜻한 브라운 계열)
+  // 보조 컬러 (확장된 베이지 톤)
   secondary: {
-    main: '#D4A574',      // 따뜻한 브라운
-    light: '#F9E5B8',     // 연한 크림 베이지
-    dark: '#B8956A',      // 진한 브라운
-    warm: '#FDF2D9',      // 따뜻한 크림
+    main: '#D9CFC7',      // 중간 베이지
+    light: '#F9F8F6',     // 가장 연한 크림
+    dark: '#C9B59C',      // 진한 베이지
+    warm: '#EFE9E3',      // 따뜻한 오프화이트
   },
   
-  // 중성 컬러
+  // 중성 컬러 (세련된 베이지 톤 기반)
   neutral: {
-    white: '#FFFFFF',
-    light: '#FEFCF7',     // 따뜻한 오프화이트
-    background: '#FDF9F0', // 따뜻한 베이지 배경
-    grey100: '#F5F2EB',
-    grey200: '#EFEBE0',
-    grey300: '#E0DAC7',
-    grey400: '#C5B896',
-    grey500: '#A69B7B',
-    grey600: '#8B7D5B',
-    grey700: '#6B5E42',
-    grey800: '#4A3F2A',
-    grey900: '#2D2419',
-    black: '#1A1510',
+    white: '#FFFFFF',     // 순수한 화이트
+    light: '#F9F8F6',     // 가장 연한 크림
+    background: '#F9F8F6', // 새로운 배경색
+    grey100: '#EFE9E3',   // 따뜻한 오프화이트
+    grey200: '#D9CFC7',   // 중간 베이지
+    grey300: '#C9B59C',   // 세련된 베이지
+    grey400: '#B5A08D',   // 약간 진한 베이지
+    grey500: '#A08B7A',   // 더 진한 베이지
+    grey600: '#8B7866',   // 브라운 베이지
+    grey700: '#766653',   // 진한 브라운
+    grey800: '#61543F',   // 매우 진한 브라운
+    grey900: '#4C422C',   // 다크 브라운
+    black: '#2A2520',     // 새로운 블랙
   },
   
-  // 기능적 컬러
+  // 기능적 컬러 (세련된 베이지톤에 맞게 조정)
   functional: {
-    success: '#98C379',   // 자연스러운 초록
-    warning: '#E5C07B',   // 따뜻한 노란색
-    error: '#E06C75',     // 부드러운 빨강
-    info: '#61AFEF',      // 부드러운 파랑
+    success: '#7A8A6E',   // 베이지톤에 맞는 자연스러운 초록
+    warning: '#C9B59C',   // 베이지 계열의 경고색
+    error: '#B5857A',     // 베이지톤에 맞는 차분한 빨강
+    info: '#8B9AAB',      // 베이지톤에 맞는 차분한 파랑
   },
   
-  // 텍스트 컬러
+  // 텍스트 컬러 (세련된 베이지 색감 기반)
   text: {
-    primary: '#3D2914',   // 진한 브라운
-    secondary: '#6B5E42', // 중간 브라운
-    tertiary: '#8B7D5B',  // 연한 브라운
-    white: '#FFFFFF',
-    light: '#F8F8F8',
+    primary: '#4C422C',   // 다크 브라운 (가장 진한 텍스트)
+    secondary: '#766653', // 진한 브라운 (보조 텍스트)
+    tertiary: '#A08B7A',  // 연한 브라운 (부가 텍스트)
+    white: '#FFFFFF',     // 순수한 화이트
+    light: '#F9F8F6',     // 연한 크림
+    error: '#B5857A',     // 에러 텍스트용
   },
   
-  // 그라데이션
+  // 그라데이션 (세련된 베이지 색감)
   gradient: {
-    primary: ['#F5CB76', '#F8E5A3'],
-    secondary: ['#F9E5B8', '#FDF2D9'],
-    warm: ['#E6B85C', '#F5CB76'],
-    sunset: ['#F5CB76', '#F2D68A', '#F9E5B8'],
+    primary: ['#C9B59C', '#F9F8F6'],           // 메인 베이지 그라데이션
+    secondary: ['#D9CFC7', '#EFE9E3'],         // 연한 베이지 그라데이션  
+    warm: ['#B5A08D', '#C9B59C'],              // 따뜻한 베이지 그라데이션
+    sunset: ['#F9F8F6', '#EFE9E3', '#D9CFC7'], // 자연스러운 3단계 그라데이션
+    accent: ['#766653', '#A08B7A'],            // 강조용 진한 그라데이션
   },
 } as const;
 

@@ -45,7 +45,7 @@ const MyReviewsScreen: React.FC = () => {
           key={i}
           name={i <= rating ? "star" : "star"}
           size={16}
-          color={i <= rating ? "#FFD700" : "#E0E0E0"}
+          color={i <= rating ? "#FFD700" : COLORS.neutral.grey200}
         />
       );
     }
@@ -272,7 +272,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     paddingHorizontal: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
+    borderBottomColor: COLORS.neutral.grey200,
   },
   profileImage: {
     marginRight: 16,

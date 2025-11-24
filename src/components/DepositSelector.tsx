@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert } from 'react-native';
+import { COLORS, SHADOWS } from '../styles/colors';
 import depositService from '../services/depositService';
 import { PaymentMethod, PaymentRequest } from '../types/deposit';
 import { useUserStore } from '../store/userStore';
@@ -50,21 +51,21 @@ export const DepositSelector: React.FC<DepositSelectorProps> = ({
       name: '카카오페이',
       description: '간편하게 결제하세요',
       icon: '💳',
-      color: '#FEE500',
+      color: COLORS.functional.warning,
     },
     {
       id: 'card' as PaymentMethod,
       name: '신용/체크카드',
       description: '카드로 결제하세요',
       icon: '💳',
-      color: '#4A90E2',
+      color: COLORS.primary.main,
     },
     {
       id: 'points' as PaymentMethod,
       name: '포인트 결제',
       description: `보유 포인트: ${userPoints.toLocaleString()}P ${userPoints >= defaultPolicy.amount ? '(결제 가능)' : '(포인트 부족)'}`,
       icon: '🎁',
-      color: userPoints >= defaultPolicy.amount ? '#FF6B6B' : '#CCCCCC',
+      color: userPoints >= defaultPolicy.amount ? COLORS.functional.error : COLORS.neutral.grey400,
     },
   ];
 
@@ -140,7 +141,7 @@ export const DepositSelector: React.FC<DepositSelectorProps> = ({
           // 결제 완료 화면
           <View style={styles.successContainer}>
             <View style={styles.successIcon}>
-              <Icon name="check" size={60} color="#4CAF50" />
+              <Icon name="check" size={60} color={COLORS.functional.success} />
             </View>
             <Text style={styles.successTitle}>결제 완료!</Text>
             <Text style={styles.successMessage}>
@@ -160,7 +161,7 @@ export const DepositSelector: React.FC<DepositSelectorProps> = ({
           <View style={styles.headerLeft} />
           <Text style={styles.title}>약속금 결제</Text>
           <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-            <Icon name="x" size={24} color="#666" />
+            <Icon name="x" size={24} color={COLORS.text.secondary} />
           </TouchableOpacity>
         </View>
 
@@ -253,7 +254,7 @@ export const DepositSelector: React.FC<DepositSelectorProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.neutral.white,
   },
   header: {
     flexDirection: 'row',
@@ -262,7 +263,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
+    borderBottomColor: COLORS.neutral.grey200,
   },
   headerLeft: {
     width: 24,
@@ -270,7 +271,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#1A1A1A',
+    color: COLORS.text.primary,
   },
   closeButton: {
     padding: 4,
@@ -280,7 +281,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   depositInfoCard: {
-    backgroundColor: '#F8F9FA',
+    backgroundColor: COLORS.neutral.background,
     borderRadius: 12,
     padding: 20,
     marginVertical: 16,
@@ -294,28 +295,28 @@ const styles = StyleSheet.create({
   depositTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#1A1A1A',
+    color: COLORS.text.primary,
   },
   depositAmount: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#007AFF',
+    color: COLORS.primary.main,
   },
   depositDescription: {
     fontSize: 14,
-    color: '#666666',
+    color: COLORS.text.secondary,
     marginBottom: 16,
     lineHeight: 20,
   },
   policyInfo: {
     borderTopWidth: 1,
-    borderTopColor: '#E5E5E5',
+    borderTopColor: COLORS.neutral.grey200,
     paddingTop: 16,
   },
   policyTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1A1A1A',
+    color: COLORS.text.primary,
     marginBottom: 12,
   },
   policyItem: {
@@ -325,13 +326,13 @@ const styles = StyleSheet.create({
   },
   policyLabel: {
     fontSize: 14,
-    color: '#666666',
+    color: COLORS.text.secondary,
     flex: 1,
   },
   policyValue: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#1A1A1A',
+    color: COLORS.text.primary,
   },
   section: {
     marginBottom: 24,
@@ -339,7 +340,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#1A1A1A',
+    color: COLORS.text.primary,
     marginBottom: 16,
   },
   paymentMethod: {
@@ -347,19 +348,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.neutral.white,
     borderWidth: 1,
-    borderColor: '#E5E5E5',
+    borderColor: COLORS.neutral.grey200,
     borderRadius: 12,
     marginBottom: 12,
   },
   selectedPaymentMethod: {
-    borderColor: '#007AFF',
-    backgroundColor: '#F7F9FC',
+    borderColor: COLORS.primary.main,
+    backgroundColor: COLORS.secondary.light,
   },
   paymentMethodDisabled: {
     opacity: 0.5,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: COLORS.neutral.grey100,
   },
   paymentMethodLeft: {
     flexDirection: 'row',
@@ -383,49 +384,49 @@ const styles = StyleSheet.create({
   paymentMethodName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1A1A1A',
+    color: COLORS.text.primary,
     marginBottom: 2,
   },
   paymentMethodDescription: {
     fontSize: 14,
-    color: '#666666',
+    color: COLORS.text.secondary,
   },
   radioButton: {
     width: 20,
     height: 20,
     borderRadius: 10,
     borderWidth: 2,
-    borderColor: '#E5E5E5',
+    borderColor: COLORS.neutral.grey200,
     alignItems: 'center',
     justifyContent: 'center',
   },
   radioButtonSelected: {
-    borderColor: '#007AFF',
+    borderColor: COLORS.primary.main,
   },
   radioButtonInner: {
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: '#007AFF',
+    backgroundColor: COLORS.primary.main,
   },
   footer: {
     padding: 16,
     borderTopWidth: 1,
-    borderTopColor: '#F0F0F0',
+    borderTopColor: COLORS.neutral.grey200,
   },
   payButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: COLORS.primary.main,
     borderRadius: 12,
     paddingVertical: 16,
     alignItems: 'center',
   },
   payButtonDisabled: {
-    backgroundColor: '#C7C7CC',
+    backgroundColor: COLORS.neutral.grey400,
   },
   payButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: COLORS.neutral.white,
   },
   // 결제 완료 화면 스타일
   successContainer: {
@@ -433,13 +434,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 32,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.neutral.white,
   },
   successIcon: {
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: '#E8F5E8',
+    backgroundColor: COLORS.secondary.warm,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 32,
@@ -447,14 +448,14 @@ const styles = StyleSheet.create({
   successTitle: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#4CAF50',
+    color: COLORS.functional.success,
     marginBottom: 16,
     textAlign: 'center',
   },
   successMessage: {
     fontSize: 18,
     fontWeight: '500',
-    color: '#1A1A1A',
+    color: COLORS.text.primary,
     marginBottom: 12,
     textAlign: 'center',
     lineHeight: 24,
@@ -462,13 +463,13 @@ const styles = StyleSheet.create({
   successAmount: {
     fontSize: 32,
     fontWeight: '700',
-    color: '#007AFF',
+    color: COLORS.primary.main,
     marginBottom: 24,
     textAlign: 'center',
   },
   successSubMessage: {
     fontSize: 16,
-    color: '#666666',
+    color: COLORS.text.secondary,
     textAlign: 'center',
     lineHeight: 22,
   },
