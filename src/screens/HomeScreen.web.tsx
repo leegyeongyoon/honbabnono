@@ -26,7 +26,7 @@ interface HomeScreenProps {
 const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, user }) => {
   const navigate = useNavigate();
   const { updateNeighborhood } = useUserStore();
-  const { meetups, fetchMeetups } = useMeetupStore();
+  const { meetups, fetchHomeMeetups } = useMeetupStore();
   const [showCreateMeetup, setShowCreateMeetup] = useState(false);
   const [showNeighborhoodSelector, setShowNeighborhoodSelector] = useState(false);
   const [currentNeighborhood, setCurrentNeighborhood] = useState<{ district: string; neighborhood: string } | null>(null);
@@ -44,8 +44,8 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, user }) => {
 
   useEffect(() => {
     loadSavedNeighborhood();
-    fetchMeetups();
-  }, [fetchMeetups]);
+    fetchHomeMeetups();
+  }, [fetchHomeMeetups]);
 
   useEffect(() => {
     console.log('🎯 Meetups data updated:', {

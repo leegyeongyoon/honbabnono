@@ -16,6 +16,13 @@ import CreateMeetupScreen from '../screens/CreateMeetupScreen.web';
 import PaymentScreen from '../screens/PaymentScreen.web';
 import DepositPaymentScreen from '../screens/DepositPaymentScreen.web';
 import MeetupListScreen from '../screens/MeetupListScreen.web';
+import MyActivitiesScreen from '../screens/MyActivitiesScreen.web';
+import JoinedMeetupsScreen from '../screens/JoinedMeetupsScreen.web';
+import WishlistScreen from '../screens/WishlistScreen.web';
+import MyReviewsScreen from '../screens/MyReviewsScreen.web';
+import ReviewManagementScreen from '../screens/ReviewManagementScreen.web';
+import PointHistoryScreen from '../screens/PointHistoryScreen.web';
+import PointChargeScreen from '../screens/PointChargeScreen.web';
 
 // Components
 import BottomTabBar from './BottomTabBar';
@@ -260,6 +267,69 @@ const RouterApp: React.FC = () => {
             element={
               <ProtectedRoute>
                 <PaymentScreen />
+              </ProtectedRoute>
+            } 
+          />
+
+          <Route 
+            path="/my-activities" 
+            element={
+              <ProtectedRoute>
+                <MyActivitiesScreen />
+              </ProtectedRoute>
+            } 
+          />
+
+          <Route 
+            path="/wishlist" 
+            element={
+              <ProtectedRoute>
+                <WishlistScreen />
+              </ProtectedRoute>
+            } 
+          />
+
+          <Route 
+            path="/my-reviews" 
+            element={
+              <ProtectedRoute>
+                <MyReviewsScreen />
+              </ProtectedRoute>
+            } 
+          />
+
+          <Route 
+            path="/joined-meetups" 
+            element={
+              <ProtectedRoute>
+                <JoinedMeetupsScreen />
+              </ProtectedRoute>
+            } 
+          />
+
+          <Route 
+            path="/point-history" 
+            element={
+              <ProtectedRoute>
+                <PointHistoryScreen />
+              </ProtectedRoute>
+            } 
+          />
+
+          <Route 
+            path="/point-charge" 
+            element={
+              <ProtectedRoute>
+                <PointChargeScreen />
+              </ProtectedRoute>
+            } 
+          />
+
+          <Route 
+            path="/review-management" 
+            element={
+              <ProtectedRoute>
+                <ReviewManagementScreen />
               </ProtectedRoute>
             } 
           />

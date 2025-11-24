@@ -47,17 +47,17 @@ const LocationSelector: React.FC<{
         if (window.kakao && window.kakao.maps && mapRef.current) {
           console.log('🗺️ 위치 선택 지도 로드됨');
           
-          // 강남역 1번 출구 좌표
-          const gangnamStation = new window.kakao.maps.LatLng(37.498095, 127.027610);
+          // 서울 시청 좌표 (중립적인 기본 위치)
+          const seoulCityHall = new window.kakao.maps.LatLng(37.5665, 126.9780);
           
           const options = {
-            center: gangnamStation,
-            level: 3
+            center: seoulCityHall,
+            level: 5  // 좀 더 넓은 범위로 표시
           };
 
           const map = new window.kakao.maps.Map(mapRef.current, options);
           const marker = new window.kakao.maps.Marker({
-            position: gangnamStation,
+            position: seoulCityHall,
             map: map
           });
 
@@ -65,8 +65,41 @@ const LocationSelector: React.FC<{
           setMapInstance(map);
           setMarkerInstance(marker);
 
-          // 기본값으로 강남역 1번 출구 설정
-          onLocationSelect('강남역 1번 출구', '서울 강남구 강남대로 390', 37.498095, 127.027610);
+          // 사용자 현재 위치 가져오기 시도
+          if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+              (position) => {
+                const userLat = position.coords.latitude;
+                const userLng = position.coords.longitude;
+                const userLocation = new window.kakao.maps.LatLng(userLat, userLng);
+                
+                // 지도 중심을 사용자 위치로 이동
+                map.setCenter(userLocation);
+                marker.setPosition(userLocation);
+                
+                // 사용자 위치 주소 검색
+                const geocoder = new window.kakao.maps.services.Geocoder();
+                geocoder.coord2Address(userLng, userLat, function(result: any, status: any) {
+                  if (status === window.kakao.maps.services.Status.OK) {
+                    const detailAddr = result[0];
+                    const roadAddress = detailAddr.road_address;
+                    const basicAddress = detailAddr.address;
+                    const displayAddress = roadAddress ? roadAddress.address_name : basicAddress.address_name;
+                    onLocationSelect('현재 위치', displayAddress, userLat, userLng);
+                  }
+                });
+              },
+              (error) => {
+                console.log('위치 정보를 가져올 수 없어 서울 시청으로 설정합니다.');
+                // 위치 정보를 가져올 수 없는 경우 서울 시청으로 설정
+                onLocationSelect('서울 시청', '서울특별시 중구 세종대로 110', 37.5665, 126.9780);
+              },
+              { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+            );
+          } else {
+            // Geolocation을 지원하지 않는 경우 서울 시청으로 설정
+            onLocationSelect('서울 시청', '서울특별시 중구 세종대로 110', 37.5665, 126.9780);
+          }
 
           // 지도 클릭 이벤트
           window.kakao.maps.event.addListener(map, 'click', function(mouseEvent: any) {
@@ -80,11 +113,28 @@ const LocationSelector: React.FC<{
             geocoder.coord2Address(latlng.getLng(), latlng.getLat(), function(result: any, status: any) {
               if (status === window.kakao.maps.services.Status.OK) {
                 const detailAddr = result[0];
-                const address = detailAddr.address || detailAddr.road_address;
-                const locationName = address.address_name || address.road_address_name;
+                const roadAddress = detailAddr.road_address;
+                const basicAddress = detailAddr.address;
                 
-                console.log('📍 선택된 위치:', { locationName, address, lat: latlng.getLat(), lng: latlng.getLng() });
-                onLocationSelect(locationName, address.address_name, latlng.getLat(), latlng.getLng());
+                // 도로명 주소를 우선적으로 사용
+                const displayAddress = roadAddress ? roadAddress.address_name : basicAddress.address_name;
+                const addressType = roadAddress ? '도로명' : '지번';
+                
+                console.log('📍 지도에서 선택된 위치:', { 
+                  roadAddress: roadAddress?.address_name,
+                  basicAddress: basicAddress.address_name,
+                  selectedAddress: displayAddress,
+                  addressType,
+                  lat: latlng.getLat(), 
+                  lng: latlng.getLng()
+                });
+                
+                // 도로명 주소가 없으면 경고
+                if (!roadAddress) {
+                  console.warn('⚠️ 도로명 주소가 없는 위치입니다. 지번 주소를 사용합니다.');
+                }
+                
+                onLocationSelect(displayAddress, displayAddress, latlng.getLat(), latlng.getLng());
               }
             });
           });
@@ -117,17 +167,28 @@ const LocationSelector: React.FC<{
     }
   }, []);
 
-  // 주소 검색 함수
+  // 키워드 및 주소 검색 함수
   const searchAddress = () => {
     if (!searchQuery.trim() || !window.kakao) return;
 
-    const geocoder = new window.kakao.maps.services.Geocoder();
-    geocoder.addressSearch(searchQuery, function(result: any, status: any) {
-      if (status === window.kakao.maps.services.Status.OK) {
-        const coords = new window.kakao.maps.LatLng(result[0].y, result[0].x);
-        const locationName = result[0].address_name;
+    console.log('🔍 검색 시작:', searchQuery);
+
+    // 1. 먼저 키워드 검색 (가게명, 장소명)
+    const places = new window.kakao.maps.services.Places();
+    
+    places.keywordSearch(searchQuery, function(keywordResult: any, keywordStatus: any) {
+      if (keywordStatus === window.kakao.maps.services.Status.OK && keywordResult.length > 0) {
+        // 키워드 검색 성공
+        const place = keywordResult[0]; // 첫 번째 결과 사용
+        const coords = new window.kakao.maps.LatLng(place.y, place.x);
         
-        console.log('🔍 검색 결과:', { locationName, coords, result: result[0] });
+        console.log('🎯 키워드 검색 성공:', { 
+          placeName: place.place_name, 
+          categoryName: place.category_name,
+          address: place.address_name,
+          roadAddress: place.road_address_name,
+          coords 
+        });
         
         // 지도 중심 이동 및 마커 업데이트
         if (mapInstance && markerInstance) {
@@ -135,9 +196,55 @@ const LocationSelector: React.FC<{
           markerInstance.setPosition(coords);
         }
         
-        onLocationSelect(searchQuery, locationName, parseFloat(result[0].y), parseFloat(result[0].x));
+        // 가게명을 location으로, 도로명 주소를 우선적으로 사용
+        const displayLocation = place.place_name;
+        const displayAddress = place.road_address_name || place.address_name;
+        
+        // 도로명 주소가 없으면 경고 표시
+        if (!place.road_address_name) {
+          console.warn('⚠️ 도로명 주소가 없는 장소:', place.place_name);
+        }
+        
+        onLocationSelect(displayLocation, displayAddress, parseFloat(place.y), parseFloat(place.x));
       } else {
-        alert('주소를 찾을 수 없습니다. 다른 검색어를 시도해보세요.');
+        // 키워드 검색 실패 시 주소 검색 시도
+        console.log('🔍 키워드 검색 실패, 주소 검색 시도');
+        
+        const geocoder = new window.kakao.maps.services.Geocoder();
+        geocoder.addressSearch(searchQuery, function(addressResult: any, addressStatus: any) {
+          if (addressStatus === window.kakao.maps.services.Status.OK && addressResult.length > 0) {
+            const address = addressResult[0];
+            const coords = new window.kakao.maps.LatLng(address.y, address.x);
+            
+            // 도로명 주소 우선 사용
+            const displayAddress = address.road_address_name || address.address_name;
+            const addressType = address.road_address_name ? '도로명' : '지번';
+            
+            console.log('📍 주소 검색 성공:', { 
+              roadAddress: address.road_address_name,
+              basicAddress: address.address_name,
+              selectedAddress: displayAddress,
+              addressType,
+              coords 
+            });
+            
+            // 도로명 주소가 없으면 경고
+            if (!address.road_address_name) {
+              console.warn('⚠️ 도로명 주소가 없습니다. 지번 주소를 사용합니다.');
+            }
+            
+            // 지도 중심 이동 및 마커 업데이트
+            if (mapInstance && markerInstance) {
+              mapInstance.setCenter(coords);
+              markerInstance.setPosition(coords);
+            }
+            
+            onLocationSelect(displayAddress, displayAddress, parseFloat(address.y), parseFloat(address.x));
+          } else {
+            console.log('❌ 검색 실패');
+            alert('장소를 찾을 수 없습니다. 가게명, 지역명 또는 도로명 주소를 다시 확인해주세요.');
+          }
+        });
       }
     });
   };
@@ -153,7 +260,7 @@ const LocationSelector: React.FC<{
             <View style={styles.inputWithButton}>
               <TextInput
                 style={styles.searchInput}
-                placeholder="주소나 장소명을 검색하세요 (예: 강남역, 역삼동 카페)"
+                placeholder="도로명 주소를 검색하세요 (예: 서울 강남구 강남대로 390)"
                 value={searchQuery}
                 onChangeText={setSearchQuery}
                 onSubmitEditing={searchAddress}
@@ -168,33 +275,40 @@ const LocationSelector: React.FC<{
             </View>
           </View>
 
-          <Text style={styles.mapSelectorDescription}>또는 지도를 직접 클릭해서 위치를 선택하세요</Text>
+          <Text style={styles.mapSelectorDescription}>또는 지도를 직접 클릭해서 도로명 주소를 선택하세요</Text>
           
-          <div 
-            ref={mapRef}
-            style={{
-              width: '100%',
-              height: '300px',
-              backgroundColor: '#f5f5f5',
-              borderRadius: '8px',
-              marginBottom: '12px',
-              display: mapError ? 'flex' : 'block',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#666',
-              fontSize: '14px'
-            }}
-          >
-            {!mapLoaded && !mapError && '지도를 불러오는 중...'}
-            {mapError && mapError}
-          </div>
+          <View style={styles.mapContainer}>
+            <div 
+              ref={mapRef}
+              style={{
+                width: '100%',
+                height: '400px',
+                backgroundColor: '#f5f5f5',
+                borderRadius: '12px',
+                position: 'relative'
+              }}
+            />
+            
+            {/* 지도 위 툴팁 */}
+            {mapLoaded && selectedLocation && (
+              <View style={styles.mapTooltip}>
+                <Text style={styles.tooltipText}>선택한 위치가 맞는지 확인해주세요</Text>
+                <View style={styles.tooltipArrow} />
+              </View>
+            )}
+            
+            {!mapLoaded && !mapError && (
+              <View style={styles.mapLoadingContainer}>
+                <Text style={styles.mapLoadingText}>지도를 불러오는 중...</Text>
+              </View>
+            )}
+            {mapError && (
+              <View style={styles.mapErrorContainer}>
+                <Text style={styles.mapErrorText}>{mapError}</Text>
+              </View>
+            )}
+          </View>
       
-      {selectedLocation && (
-        <View style={styles.selectedLocationInfo}>
-          <Text style={styles.selectedLocationText}>📍 {selectedLocation}</Text>
-          <Text style={styles.selectedAddressText}>{selectedAddress}</Text>
-        </View>
-      )}
     </View>
   );
 };
@@ -206,6 +320,7 @@ const CreateMeetupScreen: React.FC<CreateMeetupScreenProps> = ({ user }) => {
     description: '',
     location: '',
     address: '',
+    detailAddress: '', // 상세 주소 전용 필드 추가
     latitude: 37.498095, // 강남역 1번 출구 기본 좌표
     longitude: 127.027610,
     date: '',
@@ -380,52 +495,58 @@ const CreateMeetupScreen: React.FC<CreateMeetupScreenProps> = ({ user }) => {
     }
 
     console.log('✅ 폼 검증 통과, 약속금 결제 팝업 표시');
-    // 먼저 임시 모임을 생성하여 meetupId를 얻습니다
-    await createTempMeetup();
+    // 모임 데이터를 임시로 저장하고 약속금 결제 팝업만 표시
+    setTempMeetupData({ meetupId: '', formData, preferenceFilter });
+    setShowDepositSelector(true);
   };
 
-  const createTempMeetup = async () => {
+  const createActualMeetup = async (depositId: string) => {
+    if (!tempMeetupData) {
+      showError('모임 데이터를 찾을 수 없습니다.');
+      return null;
+    }
+
     setLoading(true);
     
     try {
       const token = localStorage.getItem('token');
+      const { formData: meetupFormData, preferenceFilter: meetupPreferenceFilter } = tempMeetupData;
       
       // FormData 생성 (이미지 업로드를 위해)
       const formDataToSend = new FormData();
-      formDataToSend.append('title', formData.title);
-      formDataToSend.append('description', formData.description);
-      formDataToSend.append('category', formData.category);
-      formDataToSend.append('location', formData.location);
-      formDataToSend.append('address', formData.address);
-      formDataToSend.append('latitude', formData.latitude.toString());
-      formDataToSend.append('longitude', formData.longitude.toString());
-      formDataToSend.append('date', formData.date);
-      formDataToSend.append('time', formData.time);
-      formDataToSend.append('maxParticipants', formData.maxParticipants);
-      formDataToSend.append('priceRange', formData.priceRange);
-      formDataToSend.append('requirements', formData.requirements);
+      formDataToSend.append('title', meetupFormData.title);
+      formDataToSend.append('description', meetupFormData.description);
+      formDataToSend.append('category', meetupFormData.category);
+      formDataToSend.append('location', meetupFormData.location);
+      formDataToSend.append('address', meetupFormData.address);
+      formDataToSend.append('detailAddress', meetupFormData.detailAddress);
+      formDataToSend.append('latitude', meetupFormData.latitude.toString());
+      formDataToSend.append('longitude', meetupFormData.longitude.toString());
+      formDataToSend.append('date', meetupFormData.date);
+      formDataToSend.append('time', meetupFormData.time);
+      formDataToSend.append('maxParticipants', meetupFormData.maxParticipants);
+      formDataToSend.append('priceRange', meetupFormData.priceRange);
+      formDataToSend.append('requirements', meetupFormData.requirements);
+      formDataToSend.append('depositId', depositId); // 결제된 약속금 ID 추가
       
       // 필터 정보 추가
-      formDataToSend.append('genderFilter', preferenceFilter.genderFilter);
-      formDataToSend.append('ageFilterMin', preferenceFilter.ageFilterMin.toString());
-      formDataToSend.append('ageFilterMax', preferenceFilter.ageFilterMax.toString());
-      formDataToSend.append('eatingSpeed', preferenceFilter.eatingSpeed);
-      formDataToSend.append('conversationDuringMeal', preferenceFilter.conversationDuringMeal);
-      formDataToSend.append('talkativeness', preferenceFilter.talkativeness);
-      formDataToSend.append('mealPurpose', preferenceFilter.mealPurpose);
-      formDataToSend.append('specificRestaurant', preferenceFilter.specificRestaurant);
-      formDataToSend.append('interests', JSON.stringify(preferenceFilter.interests));
-      formDataToSend.append('isRequired', preferenceFilter.isRequired.toString());
+      formDataToSend.append('genderFilter', meetupPreferenceFilter.genderFilter);
+      formDataToSend.append('ageFilterMin', meetupPreferenceFilter.ageFilterMin.toString());
+      formDataToSend.append('ageFilterMax', meetupPreferenceFilter.ageFilterMax.toString());
+      formDataToSend.append('eatingSpeed', meetupPreferenceFilter.eatingSpeed);
+      formDataToSend.append('conversationDuringMeal', meetupPreferenceFilter.conversationDuringMeal);
+      formDataToSend.append('talkativeness', meetupPreferenceFilter.talkativeness);
+      formDataToSend.append('mealPurpose', meetupPreferenceFilter.mealPurpose);
+      formDataToSend.append('specificRestaurant', meetupPreferenceFilter.specificRestaurant);
+      formDataToSend.append('interests', JSON.stringify(meetupPreferenceFilter.interests));
+      formDataToSend.append('isRequired', meetupPreferenceFilter.isRequired.toString());
       
       // 이미지 파일이 있으면 추가
-      if (formData.image) {
-        formDataToSend.append('image', formData.image);
+      if (meetupFormData.image) {
+        formDataToSend.append('image', meetupFormData.image);
       }
       
-      console.log('📤 전송할 FormData 내용:');
-      for (let [key, value] of formDataToSend.entries()) {
-        console.log(`  ${key}: ${value}`);
-      }
+      console.log('📤 약속금 결제 후 실제 모임 생성 요청:', depositId);
       
       const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:3001/api'}/meetups`, {
         method: 'POST',
@@ -440,19 +561,16 @@ const CreateMeetupScreen: React.FC<CreateMeetupScreenProps> = ({ user }) => {
 
       if (response.ok) {
         const meetupId = data.meetup?.id;
-        console.log('✅ 임시 모임 생성 성공, meetupId:', meetupId);
-        
-        // 임시 모임 데이터와 meetupId 저장
-        setTempMeetupData({ meetupId, formData, preferenceFilter });
-        
-        // 약속금 결제 팝업 표시
-        setShowDepositSelector(true);
+        console.log('✅ 모임 생성 성공, meetupId:', meetupId);
+        return meetupId;
       } else {
-        showError(data.error || '임시 모임 생성에 실패했습니다.');
+        showError(data.error || '모임 생성에 실패했습니다.');
+        return null;
       }
     } catch (error) {
-      console.error('임시 모임 생성 오류:', error);
+      console.error('모임 생성 오류:', error);
       showError('서버 연결에 실패했습니다.');
+      return null;
     } finally {
       setLoading(false);
     }
@@ -461,13 +579,16 @@ const CreateMeetupScreen: React.FC<CreateMeetupScreenProps> = ({ user }) => {
   const handleDepositPaid = async (depositId: string, amount: number) => {
     console.log('💰 약속금 결제 완료:', depositId, amount);
     
-    if (!tempMeetupData) {
-      showError('모임 데이터를 찾을 수 없습니다.');
+    // 약속금 결제 완료 후 실제 모임 생성
+    const meetupId = await createActualMeetup(depositId);
+    
+    if (!meetupId) {
+      showError('모임 생성에 실패했습니다.');
       return;
     }
 
     try {
-      const { meetupId, formData: tempFormData, preferenceFilter: tempPreferenceFilter } = tempMeetupData;
+      const { formData: tempFormData, preferenceFilter: tempPreferenceFilter } = tempMeetupData!;
       
       // 필터 설정
       if (showAdvancedFilters) {
@@ -617,16 +738,29 @@ const CreateMeetupScreen: React.FC<CreateMeetupScreenProps> = ({ user }) => {
             selectedAddress={formData.address}
             onLocationSelect={handleLocationSelect}
           />
+          
+          {/* 선택된 도로명 주소 표시 */}
+          {formData.address && (
+            <View style={styles.addressDisplayContainer}>
+              <Text style={styles.addressDisplayLabel}>선택된 주소 (도로명)</Text>
+              <View style={styles.addressDisplayBox}>
+                <Text style={styles.addressDisplayText}>{formData.address}</Text>
+                <Text style={styles.addressDisplayNote}>* 위 지도에서 다른 위치를 선택하여 주소를 변경할 수 있습니다</Text>
+              </View>
+            </View>
+          )}
 
+          {/* 상세 주소 입력란 */}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>상세 주소</Text>
             <TextInput
               style={styles.input}
-              placeholder="구체적인 주소나 랜드마크"
-              value={formData.address}
-              onChangeText={(value) => handleInputChange('address', value)}
+              placeholder="건물명, 층수, 호수 등 구체적인 위치 (예: 스타벅스 강남점 2층)"
+              value={formData.detailAddress}
+              onChangeText={(value) => handleInputChange('detailAddress', value)}
               maxLength={200}
             />
+            <Text style={styles.inputHint}>선택사항 - 구체적인 위치나 랜드마크를 입력하세요</Text>
           </View>
         </View>
 
@@ -1107,7 +1241,7 @@ const CreateMeetupScreen: React.FC<CreateMeetupScreenProps> = ({ user }) => {
           visible={showDepositSelector}
           onClose={handleDepositCancelled}
           onDepositPaid={handleDepositPaid}
-          meetupId={tempMeetupData.meetupId}
+          meetupId={''} // 실제 모임 생성 전이므로 빈 문자열
         />
       )}
 
@@ -1522,6 +1656,148 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: COLORS.text.secondary,
     marginBottom: 12,
+  },
+  mapContainer: {
+    position: 'relative',
+    marginBottom: 16,
+  },
+  mapLoadingContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f5f5f5',
+    borderRadius: 12,
+  },
+  mapLoadingText: {
+    fontSize: 14,
+    color: '#666',
+  },
+  mapErrorContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f5f5f5',
+    borderRadius: 12,
+  },
+  mapErrorText: {
+    fontSize: 14,
+    color: '#d32f2f',
+  },
+  // 지도 위 툴팁
+  mapTooltip: {
+    position: 'absolute',
+    top: 20,
+    left: '50%',
+    transform: [{ translateX: -50 }],
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    zIndex: 1000,
+  },
+  tooltipText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '500',
+    textAlign: 'center',
+  },
+  tooltipArrow: {
+    position: 'absolute',
+    bottom: -6,
+    left: '50%',
+    marginLeft: -6,
+    width: 0,
+    height: 0,
+    borderLeftWidth: 6,
+    borderRightWidth: 6,
+    borderTopWidth: 6,
+    borderLeftColor: 'transparent',
+    borderRightColor: 'transparent',
+    borderTopColor: 'rgba(0, 0, 0, 0.8)',
+  },
+  // 위치 확인 컨테이너
+  locationConfirmContainer: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    ...SHADOWS.small,
+    marginTop: 16,
+  },
+  selectedLocationCard: {
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  selectedLocationTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+    marginBottom: 8,
+  },
+  selectedLocationAddress: {
+    fontSize: 16,
+    color: COLORS.text.secondary,
+    marginBottom: 8,
+  },
+  locationHint: {
+    fontSize: 14,
+    color: '#666',
+    fontStyle: 'italic',
+  },
+  confirmLocationButton: {
+    backgroundColor: COLORS.primary.main,
+    margin: 16,
+    borderRadius: 12,
+    paddingVertical: 16,
+    alignItems: 'center',
+    ...SHADOWS.small,
+  },
+  confirmLocationText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  // 주소 표시 컨테이너
+  addressDisplayContainer: {
+    marginTop: 16,
+  },
+  addressDisplayLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+    marginBottom: 8,
+  },
+  addressDisplayBox: {
+    backgroundColor: '#F8F9FA',
+    borderWidth: 1,
+    borderColor: '#E5E5E5',
+    borderRadius: 12,
+    padding: 16,
+  },
+  addressDisplayText: {
+    fontSize: 16,
+    color: COLORS.text.primary,
+    fontWeight: '500',
+    marginBottom: 8,
+  },
+  addressDisplayNote: {
+    fontSize: 12,
+    color: '#666',
+    fontStyle: 'italic',
+  },
+  // 입력 힌트 스타일
+  inputHint: {
+    fontSize: 12,
+    color: '#888',
+    marginTop: 6,
+    fontStyle: 'italic',
   },
   selectedLocationInfo: {
     padding: 12,

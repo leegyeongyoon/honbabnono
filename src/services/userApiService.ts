@@ -93,10 +93,14 @@ const userApiService = {
       const response = await apiClient.get('/user/hosted-meetups', {
         params: { page, limit }
       });
-      console.log('✅ 호스팅 모임 조회 성공:', response.data.data.length, '개');
+      // 응답 구조: { success: true, data: [...], pagination: {...} }
+      const data = Array.isArray(response.data.data) ? response.data.data : [];
+      const pagination = response.data.pagination || { total: 0, page: 1, limit: 10, totalPages: 0 };
+      
+      console.log('✅ 호스팅 모임 조회 성공:', data.length, '개');
       return {
-        data: response.data.data,
-        pagination: response.data.pagination
+        data,
+        pagination
       };
     } catch (error) {
       console.error('❌ 호스팅 모임 조회 실패:', error);
@@ -111,10 +115,14 @@ const userApiService = {
       const response = await apiClient.get('/user/joined-meetups', {
         params: { page, limit }
       });
-      console.log('✅ 참가 모임 조회 성공:', response.data.data.length, '개');
+      // 응답 구조: { success: true, data: [...], pagination: {...} }
+      const data = Array.isArray(response.data.data) ? response.data.data : [];
+      const pagination = response.data.pagination || { total: 0, page: 1, limit: 10, totalPages: 0 };
+      
+      console.log('✅ 참가 모임 조회 성공:', data.length, '개');
       return {
-        data: response.data.data,
-        pagination: response.data.pagination
+        data,
+        pagination
       };
     } catch (error) {
       console.error('❌ 참가 모임 조회 실패:', error);

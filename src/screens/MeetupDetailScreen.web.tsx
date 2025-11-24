@@ -44,9 +44,9 @@ const KakaoMap: React.FC<{
         if (window.kakao && window.kakao.maps && mapRef.current) {
           console.log('🗺️ 카카오 지도 로드 시작:', { location, latitude, longitude });
           
-          // 좌표 우선 사용, 없으면 강남역 1번 출구 기본 좌표
-          const lat = latitude || 37.498095;
-          const lng = longitude || 127.027610;
+          // 좌표 우선 사용, 없으면 서울 시청 기본 좌표
+          const lat = latitude || 37.5665;
+          const lng = longitude || 126.9780;
           
           const coords = new window.kakao.maps.LatLng(lat, lng);
           const options = {
@@ -179,6 +179,15 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
   const meetup = currentMeetup;
   const participants = meetup.participants || [];
   const isHost = meetup.hostId === user?.id;
+  
+  // 모임 상태 확인 (지난 모임인지)
+  const isPastMeetup = meetup.status === '완료' || meetup.status === '종료' || 
+                      meetup.status === '취소' || meetup.status === '파토';
+  
+  // 현재 시간이 모임 시간을 지났는지 확인
+  const now = new Date();
+  const meetupDateTime = new Date(`${meetup.date} ${meetup.time}`);
+  const isTimeExpired = now > meetupDateTime;
 
   // 모임 참여하기
   const handleJoinMeetup = async () => {
@@ -250,12 +259,37 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
   };
 
   // 채팅방으로 이동
-  const handleGoToChat = () => {
+  const handleGoToChat = async () => {
     if (!user || !id) return;
 
-    // 모임 채팅방으로 이동 (채팅 시스템에서 모임 ID로 채팅방을 찾거나 생성)
-    navigate(`/chat/${id}`);
-    console.log('🗨️ 채팅방 이동:', { meetupId: id, userId: user.id });
+    try {
+      console.log('🔍 모임 채팅방 조회 시작:', { meetupId: id });
+      
+      // 모임 ID로 채팅방 ID 조회
+      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:3001/api'}/chat/rooms/by-meetup/${id}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const data = await response.json();
+      console.log('📡 채팅방 조회 응답:', data);
+
+      if (data.success && data.data.chatRoomId) {
+        // 채팅방 ID로 이동
+        const chatRoomId = data.data.chatRoomId;
+        navigate(`/chat/${chatRoomId}`);
+        console.log('✅ 채팅방 이동 성공:', { meetupId: id, chatRoomId });
+      } else {
+        console.error('❌ 채팅방 조회 실패:', data.error);
+        alert('채팅방을 찾을 수 없습니다. 모임에 참여해주세요.');
+      }
+    } catch (error) {
+      console.error('❌ 채팅방 이동 오류:', error);
+      alert('채팅방 이동 중 오류가 발생했습니다.');
+    }
   };
 
   // 모임 확정/취소 처리
@@ -443,47 +477,63 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
 
       {/* 하단 고정 버튼 */}
       <View style={styles.fixedBottom}>
-        {/* 참여자 또는 호스트인 경우 */}
-        {(participants.some(p => p.id === user?.id) || isHost) ? (
-          <View style={styles.bottomButtonContainer}>
-            {/* 채팅방 가기 버튼 */}
-            <TouchableOpacity
-              onPress={() => handleGoToChat()}
-              style={styles.chatButton}
-            >
-              <Text style={styles.chatButtonText}>💬 채팅방</Text>
-            </TouchableOpacity>
-            
-            {/* 호스트 전용 버튼들 */}
-            {isHost && (
-              <TouchableOpacity
-                onPress={() => setShowHostModal(true)}
-                style={styles.hostButton}
-              >
-                <Text style={styles.hostButtonText}>
-                  {meetup.status === 'confirmed' ? '모임취소' : '모임확정'}
-                </Text>
-              </TouchableOpacity>
-            )}
-            
-            {/* 참가자 탈퇴 버튼 */}
-            {!isHost && (
-              <TouchableOpacity
-                onPress={() => setShowLeaveModal(true)}
-                style={styles.leaveButton}
-              >
-                <Text style={styles.leaveButtonText}>참여취소</Text>
-              </TouchableOpacity>
-            )}
+        {isPastMeetup ? (
+          /* 지난 모임인 경우 - 상태만 표시 */
+          <View style={styles.pastMeetupContainer}>
+            <Text style={styles.pastMeetupText}>
+              {meetup.status === '완료' || meetup.status === '종료' ? 
+                '✅ 완료된 모임이에요' :
+                meetup.status === '취소' ? 
+                '❌ 취소된 모임이에요' :
+                '💥 파토된 모임이에요'
+              }
+            </Text>
           </View>
         ) : (
-          /* 미참여자 - 기존 참여하기 버튼 */
-          <TouchableOpacity
-            onPress={() => handleJoinMeetup()}
-            style={styles.joinButton}
-          >
-            <Text style={styles.joinButtonText}>같이먹기</Text>
-          </TouchableOpacity>
+          /* 진행중/예정 모임인 경우 - 기존 버튼들 */
+          <>
+            {(participants.some(p => p.id === user?.id) || isHost) ? (
+              <View style={styles.bottomButtonContainer}>
+                {/* 채팅방 가기 버튼 */}
+                <TouchableOpacity
+                  onPress={() => handleGoToChat()}
+                  style={styles.chatButton}
+                >
+                  <Text style={styles.chatButtonText}>💬 채팅방</Text>
+                </TouchableOpacity>
+                
+                {/* 호스트 전용 버튼들 */}
+                {isHost && (
+                  <TouchableOpacity
+                    onPress={() => setShowHostModal(true)}
+                    style={styles.hostButton}
+                  >
+                    <Text style={styles.hostButtonText}>
+                      {meetup.status === 'confirmed' ? '모임취소' : '모임확정'}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+                
+                {/* 참가자 탈퇴 버튼 */}
+                {!isHost && (
+                  <TouchableOpacity
+                    onPress={() => setShowLeaveModal(true)}
+                    style={styles.leaveButton}
+                  >
+                    <Text style={styles.leaveButtonText}>참여취소</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            ) : (
+              /* 미참여자 - 참여하기 버튼 */
+              <TouchableOpacity
+                onPress={() => handleJoinMeetup()}
+                style={styles.joinButton}
+              >
+                <Text style={styles.joinButtonText}>같이먹기</Text>
+              </TouchableOpacity>
+            )}
+          </>
         )}
       </View>
 
@@ -1054,6 +1104,21 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: 'white',
+  },
+  pastMeetupContainer: {
+    backgroundColor: '#f8f9fa',
+    borderRadius: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#e9ecef',
+  },
+  pastMeetupText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#666666',
+    textAlign: 'center',
   },
 });
 

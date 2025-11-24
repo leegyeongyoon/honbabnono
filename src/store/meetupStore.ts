@@ -54,6 +54,9 @@ interface MeetupState {
   
   // CRUD Actions
   fetchMeetups: () => Promise<void>;
+  fetchHomeMeetups: () => Promise<void>;
+  fetchActiveMeetups: () => Promise<void>;
+  fetchCompletedMeetups: () => Promise<void>;
   fetchMeetupById: (id: string) => Promise<Meetup | null>;
   createMeetup: (meetupData: Partial<Meetup>) => Promise<Meetup | null>;
   updateMeetup: (id: string, updates: Partial<Meetup>) => Promise<void>;
@@ -187,6 +190,57 @@ export const useMeetupStore = create<MeetupState>()(
         set({ meetups: transformedMeetups, loading: false });
       } catch (error) {
         console.error('모임 목록 조회 실패:', error);
+        set({ error: (error as Error).message, loading: false });
+      }
+    },
+
+    fetchHomeMeetups: async () => {
+      set({ loading: true, error: null });
+      try {
+        console.log('🏠 Fetching home meetups list (active only)');
+        const response = await apiCall('/meetups/home');
+        
+        console.log('🎯 Response received in fetchHomeMeetups:', {
+          response,
+          responseType: typeof response,
+          responseKeys: Object.keys(response || {}),
+          meetupsArray: response?.meetups,
+          meetupsLength: response?.meetups?.length,
+          stringified: JSON.stringify(response)
+        });
+        
+        const transformedMeetups = response.meetups?.map(transformMeetupData) || [];
+        set({ meetups: transformedMeetups, loading: false });
+      } catch (error) {
+        console.error('홈 모임 목록 조회 실패:', error);
+        set({ error: (error as Error).message, loading: false });
+      }
+    },
+
+    fetchActiveMeetups: async () => {
+      set({ loading: true, error: null });
+      try {
+        console.log('⚡ Fetching active meetups list');
+        const response = await apiCall('/meetups/active');
+        
+        const transformedMeetups = response.meetups?.map(transformMeetupData) || [];
+        set({ meetups: transformedMeetups, loading: false });
+      } catch (error) {
+        console.error('활성 모임 목록 조회 실패:', error);
+        set({ error: (error as Error).message, loading: false });
+      }
+    },
+
+    fetchCompletedMeetups: async () => {
+      set({ loading: true, error: null });
+      try {
+        console.log('✅ Fetching completed meetups list');
+        const response = await apiCall('/meetups/completed');
+        
+        const transformedMeetups = response.meetups?.map(transformMeetupData) || [];
+        set({ meetups: transformedMeetups, loading: false });
+      } catch (error) {
+        console.error('완료된 모임 목록 조회 실패:', error);
         set({ error: (error as Error).message, loading: false });
       }
     },

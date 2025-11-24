@@ -21,6 +21,10 @@ export type IconName =
   | 'chevron-down'
   | 'chevron-right'
   | 'chevron-left'
+  | 'arrow-left'
+  | 'edit'
+  | 'trash-2'
+  | 'image'
   | 'home'
   | 'users'
   | 'calendar'
@@ -57,6 +61,10 @@ const iconPaths = {
   'chevron-down': 'M6 9l6 6 6-6',
   'chevron-right': 'M9 18l6-6-6-6',
   'chevron-left': 'M15 18l-6-6 6-6',
+  'arrow-left': 'M19 12H5M12 19l-7-7 7-7',
+  'edit': 'M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z',
+  'trash-2': 'M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6M10 11v6M14 11v6',
+  'image': 'M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2zM5 21l5-5L14 20M14 8h.01',
   'home': 'M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9zM9 22V12h6v10',
   'users': 'M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75',
   'calendar': 'M3 4a1 1 0 011-1h16a1 1 0 011 1v16a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM8 2v4M16 2v4M3 10h18',
@@ -120,6 +128,10 @@ const SVGIcon: React.FC<{ path: string; size: number; color: string; style?: Vie
     'chevron-down': '▼',
     'chevron-right': '▶',
     'chevron-left': '◀',
+    'arrow-left': '←',
+    'edit': '✏️',
+    'trash-2': '🗑️',
+    'image': '🖼️',
     'home': '🏠',
     'users': '👥',
     'calendar': '📅',

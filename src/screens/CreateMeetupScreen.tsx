@@ -21,6 +21,7 @@ const CreateMeetupScreen: React.FC<CreateMeetupScreenProps> = ({ onClose }) => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [location, setLocation] = useState('');
+  const [locationCoords, setLocationCoords] = useState<{ latitude: number; longitude: number } | null>(null);
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
   const [maxParticipants, setMaxParticipants] = useState('');
@@ -31,6 +32,7 @@ const CreateMeetupScreen: React.FC<CreateMeetupScreenProps> = ({ onClose }) => {
     restriction: [],
     atmosphere: []
   });
+  const [showMapPicker, setShowMapPicker] = useState(false);
   const { createMeetup } = useMeetups();
 
   const categories = [
@@ -54,6 +56,9 @@ const CreateMeetupScreen: React.FC<CreateMeetupScreenProps> = ({ onClose }) => {
         description,
         category,
         location,
+        address: location,
+        latitude: locationCoords?.latitude,
+        longitude: locationCoords?.longitude,
         date,
         time,
         maxParticipants: parseInt(maxParticipants, 10),
@@ -117,12 +122,26 @@ const CreateMeetupScreen: React.FC<CreateMeetupScreenProps> = ({ onClose }) => {
 
         <View style={styles.inputGroup}>
           <Text style={styles.label}>장소 *</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="ex) 강남역 2번 출구"
-            value={location}
-            onChangeText={setLocation}
-          />
+          <TouchableOpacity 
+            style={styles.mapPickerButton}
+            onPress={() => setShowMapPicker(true)}
+          >
+            <Text style={styles.mapPickerButtonText}>
+              {location ? location : '📍 지도에서 장소 선택하기'}
+            </Text>
+            <Text style={styles.mapPickerArrow}>{'>'}</Text>
+          </TouchableOpacity>
+          {location && (
+            <TouchableOpacity 
+              style={styles.clearLocationButton}
+              onPress={() => {
+                setLocation('');
+                setLocationCoords(null);
+              }}
+            >
+              <Text style={styles.clearLocationText}>다른 장소 선택</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         <View style={styles.row}>
@@ -310,6 +329,36 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     color: COLORS.text.white,
+  },
+  mapPickerButton: {
+    borderWidth: 1,
+    borderColor: COLORS.primary.light,
+    borderRadius: 12,
+    padding: 16,
+    backgroundColor: COLORS.neutral.white,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    ...SHADOWS.small,
+  },
+  mapPickerButtonText: {
+    fontSize: 16,
+    color: COLORS.text.primary,
+    flex: 1,
+  },
+  mapPickerArrow: {
+    fontSize: 16,
+    color: COLORS.text.secondary,
+    marginLeft: 8,
+  },
+  clearLocationButton: {
+    marginTop: 8,
+    alignSelf: 'flex-start',
+  },
+  clearLocationText: {
+    fontSize: 14,
+    color: COLORS.primary.main,
+    textDecorationLine: 'underline',
   },
 });
 

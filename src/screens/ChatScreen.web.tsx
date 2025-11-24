@@ -65,14 +65,21 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, user }) => {
 
   // URL에서 채팅방 ID가 있으면 해당 채팅방 로드
   useEffect(() => {
-    if (chatIdFromUrl && chatRooms.length > 0) {
+    console.log('🔍 useEffect 실행:', { chatIdFromUrl, loading, selectedChatId });
+    
+    if (chatIdFromUrl) {
       const roomId = parseInt(chatIdFromUrl);
-      const room = chatRooms.find(r => r.id === roomId);
-      if (room && selectedChatId !== roomId) {
-        selectChatRoomFromUrl(roomId);
+      
+      // 이미 선택된 채팅방이면 중복 호출 방지
+      if (selectedChatId === roomId && currentChatRoom) {
+        console.log('🔍 이미 로드된 채팅방:', roomId);
+        return;
       }
+      
+      console.log('🔍 URL에서 채팅방 ID 감지, 강제 로드:', roomId);
+      selectChatRoomFromUrl(roomId);
     } else if (!chatIdFromUrl && selectedChatId) {
-      // URL에 채팅방 ID가 없으면 채팅방 목록으로 돌아가기
+      console.log('🔍 URL에 채팅방 ID 없음, 목록으로 돌아가기');
       if (selectedChatId) {
         chatService.leaveRoom(selectedChatId);
       }
@@ -80,7 +87,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, user }) => {
       setCurrentChatRoom(null);
       setMessages([]);
     }
-  }, [chatIdFromUrl, chatRooms]);
+  }, [chatIdFromUrl]);
 
   // 채팅방 목록 로드
   const loadChatRooms = async () => {
@@ -118,6 +125,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, user }) => {
   // URL에서 채팅방 로드 (navigate 호출 없음)
   const selectChatRoomFromUrl = async (roomId: number) => {
     try {
+      console.log('🔍 selectChatRoomFromUrl 시작:', roomId);
       setLoading(true);
       
       // 이전 채팅방에서 나가기
@@ -128,8 +136,11 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, user }) => {
       // 새 채팅방 입장
       chatService.joinRoom(roomId);
       
+      console.log('🔍 API 호출 시작: getChatMessages');
       // 메시지 로드
       const { chatRoom, messages: roomMessages } = await chatApiService.getChatMessages(roomId, userId);
+      
+      console.log('🔍 API 호출 완료, 채팅방:', chatRoom?.title, '메시지 수:', roomMessages?.length);
       
       setSelectedChatId(roomId);
       setCurrentChatRoom(chatRoom);
@@ -139,6 +150,8 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, user }) => {
       setChatRooms(prev => prev.map(room => 
         room.id === roomId ? { ...room, unreadCount: 0 } : room
       ));
+      
+      console.log('🔍 상태 설정 완료, selectedChatId:', roomId, 'currentChatRoom:', chatRoom?.title);
     } catch (error) {
       console.error('채팅방 선택 실패:', error);
       Alert.alert('오류', '채팅방을 열 수 없습니다.');
@@ -360,7 +373,9 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, user }) => {
   );
 
   // 채팅방이 선택된 경우 채팅방 UI 표시
+  console.log('🔍 렌더링 조건 체크:', { selectedChatId, currentChatRoom: currentChatRoom?.title, loading });
   if (selectedChatId && currentChatRoom) {
+    console.log('🔍 채팅방 UI 렌더링');
     return renderChatRoom();
   }
 

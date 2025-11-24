@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
 import { useNavigate } from 'react-router-dom';
 import { COLORS, SHADOWS } from '../styles/colors';
+import { Icon } from '../components/Icon';
 import { useUserStore } from '../store/userStore';
 import userApiService, { JoinedMeetup, HostedMeetup } from '../services/userApiService';
 import { formatKoreanDateTime } from '../utils/dateUtils';
@@ -113,9 +114,15 @@ const MyMeetupsScreen: React.FC<MyMeetupsScreenProps> = ({ user: propsUser }) =>
         userApiService.getHostedMeetups(1, 50)
       ]);
       
-      // 완료된 모임만 필터링
-      const pastJoined = joinedResponse.data.filter(meetup => meetup.status === '완료');
-      const pastHosted = hostedResponse.data.filter(meetup => meetup.status === '완료');
+      // 지난 모임 필터링 (완료/종료/취소/파토 모두 포함)
+      const pastJoined = joinedResponse.data.filter(meetup => 
+        meetup.status === '완료' || meetup.status === '종료' || 
+        meetup.status === '취소' || meetup.status === '파토'
+      );
+      const pastHosted = hostedResponse.data.filter(meetup => 
+        meetup.status === '완료' || meetup.status === '종료' || 
+        meetup.status === '취소' || meetup.status === '파토'
+      );
       
       // 두 배열을 합치고 날짜순으로 정렬
       const allPast = [...pastJoined, ...pastHosted].sort((a, b) => 
@@ -140,10 +147,29 @@ const MyMeetupsScreen: React.FC<MyMeetupsScreenProps> = ({ user: propsUser }) =>
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case '완료': return COLORS.neutral.grey400;
+      case '완료': return COLORS.functional.success;
+      case '종료': return COLORS.functional.success;
+      case '취소': return COLORS.text.error;
+      case '파토': return COLORS.text.error;
       case '예정': return COLORS.functional.warning;
       case '모집중': return COLORS.functional.success;
+      case '모집완료': return COLORS.primary.main;
+      case '진행중': return COLORS.secondary.main;
       default: return COLORS.neutral.grey400;
+    }
+  };
+
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case '완료': return '✅ 정상 완료';
+      case '종료': return '✅ 정상 완료';
+      case '취소': return '❌ 취소됨';
+      case '파토': return '💥 파토됨';
+      case '예정': return '⏰ 예정';
+      case '모집중': return '🔥 모집중';
+      case '모집완료': return '👥 모집완료';
+      case '진행중': return '🍽️ 진행중';
+      default: return status;
     }
   };
 
@@ -153,21 +179,23 @@ const MyMeetupsScreen: React.FC<MyMeetupsScreenProps> = ({ user: propsUser }) =>
       style={styles.meetupItem}
       onPress={() => handleMeetupPress(meetup.id)}
     >
+      <View style={styles.profileImage}>
+        <View style={styles.avatarCircle}>
+          <Text style={styles.avatarText}>🍚</Text>
+        </View>
+      </View>
+
       <View style={styles.meetupInfo}>
         <Text style={styles.meetupTitle}>{meetup.title}</Text>
-        <Text style={styles.meetupLocation}>{meetup.location}</Text>
-        <Text style={styles.meetupDate}>{formatKoreanDateTime(meetup.date, 'datetime')}</Text>
-        {showHostInfo && 'hostName' in meetup && (
-          <Text style={styles.hostName}>호스트: {meetup.hostName}</Text>
-        )}
-      </View>
-      <View style={styles.meetupRight}>
-        <View style={[styles.statusBadge, { backgroundColor: getStatusColor(meetup.status) }]}>
-          <Text style={styles.statusText}>{meetup.status}</Text>
+        <Text style={styles.meetupCategory}>{meetup.category || '일반'}</Text>
+        <View style={styles.meetupMeta}>
+          <Text style={styles.metaText}>
+            {meetup.location} • {meetup.currentParticipants}/{meetup.maxParticipants}명 • 
+            <Text style={[styles.statusText, { color: getStatusColor(meetup.status) }]}>
+              {' '}{getStatusText(meetup.status)}
+            </Text>
+          </Text>
         </View>
-        <Text style={styles.participantInfo}>
-          {meetup.currentParticipants}/{meetup.maxParticipants}명
-        </Text>
       </View>
     </TouchableOpacity>
   );
@@ -184,7 +212,8 @@ const MyMeetupsScreen: React.FC<MyMeetupsScreenProps> = ({ user: propsUser }) =>
     switch (activeTab) {
       case 'applied':
         return (
-          <View style={styles.tabContent}>
+          <View style={styles.meetupsList}>
+            <Text style={styles.sectionTitle}>신청한 모임 ({appliedMeetups.length}개)</Text>
             {appliedMeetups.length === 0 ? (
               <View style={styles.emptyContainer}>
                 <Text style={styles.emptyText}>신청한 모임이 없습니다</Text>
@@ -198,7 +227,8 @@ const MyMeetupsScreen: React.FC<MyMeetupsScreenProps> = ({ user: propsUser }) =>
       
       case 'created':
         return (
-          <View style={styles.tabContent}>
+          <View style={styles.meetupsList}>
+            <Text style={styles.sectionTitle}>만든 모임 ({createdMeetups.length}개)</Text>
             {createdMeetups.length === 0 ? (
               <View style={styles.emptyContainer}>
                 <Text style={styles.emptyText}>만든 모임이 없습니다</Text>
@@ -212,7 +242,8 @@ const MyMeetupsScreen: React.FC<MyMeetupsScreenProps> = ({ user: propsUser }) =>
       
       case 'past':
         return (
-          <View style={styles.tabContent}>
+          <View style={styles.meetupsList}>
+            <Text style={styles.sectionTitle}>지난 모임 ({pastMeetups.length}개)</Text>
             {pastMeetups.length === 0 ? (
               <View style={styles.emptyContainer}>
                 <Text style={styles.emptyText}>지난 모임이 없습니다</Text>
@@ -328,28 +359,67 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
   },
-  tabContent: {
-    padding: 16,
+  meetupsList: {
+    backgroundColor: COLORS.neutral.white,
+    marginTop: 8,
+    marginHorizontal: 16,
+    borderRadius: 16,
+    ...SHADOWS.small,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: COLORS.text.primary,
+    padding: 20,
+    paddingBottom: 0,
   },
   meetupItem: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    ...SHADOWS.small,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+  },
+  profileImage: {
+    marginRight: 16,
+  },
+  avatarCircle: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: '#FFE0B2',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarText: {
+    fontSize: 20,
   },
   meetupInfo: {
     flex: 1,
-    marginRight: 12,
   },
   meetupTitle: {
     fontSize: 16,
     fontWeight: '600',
     color: COLORS.text.primary,
     marginBottom: 4,
+  },
+  meetupCategory: {
+    fontSize: 14,
+    color: COLORS.text.secondary,
+    marginBottom: 4,
+  },
+  meetupMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  metaText: {
+    fontSize: 12,
+    color: COLORS.text.secondary,
+  },
+  statusText: {
+    fontSize: 12,
+    fontWeight: '500',
   },
   meetupLocation: {
     fontSize: 14,
