@@ -6892,6 +6892,182 @@ const sendChatNotification = async (chatRoomId, senderId, message, messageType =
 // 5분마다 알림 체크 (모임 시작 알림)
 setInterval(scheduleNotificationChecks, 5 * 60 * 1000); // 5분
 
+// ===== 🏆 뱃지 시스템 API =====
+
+// 뱃지 조건 정의
+const BADGE_CONDITIONS = {
+  first_meetup: {
+    title: '첫 모임',
+    emoji: '🌟',
+    description: '첫 번째 모임 참여',
+    condition: async (userId) => {
+      const result = await pool.query(`
+        SELECT COUNT(*) as count FROM meetup_participants 
+        WHERE user_id = $1 AND status = 'attended'
+      `, [userId]);
+      return parseInt(result.rows[0].count) >= 1;
+    }
+  },
+  meetup_king: {
+    title: '모임왕',
+    emoji: '👑',
+    description: '10회 이상 모임 참여',
+    condition: async (userId) => {
+      const result = await pool.query(`
+        SELECT COUNT(*) as count FROM meetup_participants 
+        WHERE user_id = $1 AND status = 'attended'
+      `, [userId]);
+      return parseInt(result.rows[0].count) >= 10;
+    }
+  },
+  host_master: {
+    title: '호스트',
+    emoji: '🏠',
+    description: '모임 개최하기',
+    condition: async (userId) => {
+      const result = await pool.query(`
+        SELECT COUNT(*) as count FROM meetups 
+        WHERE host_id = $1 AND status = 'completed'
+      `, [userId]);
+      return parseInt(result.rows[0].count) >= 1;
+    }
+  },
+  reviewer: {
+    title: '리뷰어',
+    emoji: '✍️',
+    description: '리뷰 10개 이상 작성',
+    condition: async (userId) => {
+      const result = await pool.query(`
+        SELECT COUNT(*) as count FROM reviews 
+        WHERE user_id = $1
+      `, [userId]);
+      return parseInt(result.rows[0].count) >= 10;
+    }
+  },
+  friend_maker: {
+    title: '밥친구',
+    emoji: '👥',
+    description: '같은 사람과 3회 모임',
+    condition: async (userId) => {
+      const result = await pool.query(`
+        WITH user_meetups AS (
+          SELECT meetup_id FROM meetup_participants 
+          WHERE user_id = $1 AND status = 'attended'
+        ),
+        friend_counts AS (
+          SELECT other_user.user_id, COUNT(*) as meetup_count
+          FROM user_meetups um
+          JOIN meetup_participants other_user ON um.meetup_id = other_user.meetup_id
+          WHERE other_user.user_id != $1 AND other_user.status = 'attended'
+          GROUP BY other_user.user_id
+        )
+        SELECT COUNT(*) as friend_count FROM friend_counts 
+        WHERE meetup_count >= 3
+      `, [userId]);
+      return parseInt(result.rows[0].friend_count) >= 1;
+    }
+  },
+  explorer: {
+    title: '탐험가',
+    emoji: '🗺️',
+    description: '5개 지역 모임 참여',
+    condition: async (userId) => {
+      const result = await pool.query(`
+        SELECT COUNT(DISTINCT m.location) as location_count
+        FROM meetup_participants mp
+        JOIN meetups m ON mp.meetup_id = m.id
+        WHERE mp.user_id = $1 AND mp.status = 'attended'
+      `, [userId]);
+      return parseInt(result.rows[0].location_count) >= 5;
+    }
+  }
+};
+
+// 사용자 뱃지 획득 여부 확인 및 업데이트
+const checkAndUpdateUserBadges = async (userId) => {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    const earnedBadges = [];
+    
+    for (const [badgeKey, badgeInfo] of Object.entries(BADGE_CONDITIONS)) {
+      // 이미 획득한 뱃지인지 확인
+      const existingBadge = await client.query(
+        'SELECT * FROM user_badges WHERE user_id = $1 AND badge_type = $2',
+        [userId, badgeKey]
+      );
+
+      if (existingBadge.rows.length === 0) {
+        // 뱃지 조건 확인
+        const isEarned = await badgeInfo.condition(userId);
+        
+        if (isEarned) {
+          // 뱃지 부여
+          await client.query(
+            'INSERT INTO user_badges (user_id, badge_type, earned_at) VALUES ($1, $2, NOW())',
+            [userId, badgeKey]
+          );
+          
+          earnedBadges.push({
+            type: badgeKey,
+            ...badgeInfo
+          });
+        }
+      }
+    }
+
+    await client.query('COMMIT');
+    return earnedBadges;
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+};
+
+// 사용자 뱃지 목록 조회 API
+apiRouter.get('/api/user/badges', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    // 최신 뱃지 상태 확인 및 업데이트
+    const newBadges = await checkAndUpdateUserBadges(userId);
+
+    // 사용자가 획득한 뱃지 목록 조회
+    const userBadges = await pool.query(`
+      SELECT badge_type, earned_at FROM user_badges 
+      WHERE user_id = $1 ORDER BY earned_at DESC
+    `, [userId]);
+
+    // 전체 뱃지 정보와 획득 여부 매핑
+    const badgeList = Object.entries(BADGE_CONDITIONS).map(([key, info]) => {
+      const earned = userBadges.rows.find(badge => badge.badge_type === key);
+      return {
+        id: key,
+        title: info.title,
+        emoji: info.emoji,
+        description: info.description,
+        earned: !!earned,
+        earnedAt: earned ? earned.earned_at : null
+      };
+    });
+
+    res.json({
+      success: true,
+      badges: badgeList,
+      newBadges: newBadges // 방금 획득한 새 뱃지들
+    });
+  } catch (error) {
+    console.error('뱃지 목록 조회 오류:', error);
+    res.status(500).json({
+      success: false,
+      message: '뱃지 정보를 가져오는 중 오류가 발생했습니다.'
+    });
+  }
+});
+
 // 서버 시작
 const startServer = async () => {
   try {
