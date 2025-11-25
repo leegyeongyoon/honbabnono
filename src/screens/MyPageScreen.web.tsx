@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { COLORS, SHADOWS } from '../styles/colors';
 import { useUserStore } from '../store/userStore';
 import { Icon } from '../components/Icon';
+import { Users, Target, FileText, Gift, Award, Home, Star, TrendingUp, Crown, MapPin, Heart } from 'lucide-react';
 import apiClient from '../services/apiClient';
 
 interface User {
@@ -70,12 +71,14 @@ const CircularProgress: React.FC<{
 // 뱃지 컴포넌트
 const Badge: React.FC<{ 
   title: string; 
-  emoji: string; 
+  icon: React.ReactNode; 
   description: string;
   earned: boolean;
-}> = ({ title, emoji, description, earned }) => (
+}> = ({ title, icon, description, earned }) => (
   <TouchableOpacity style={[styles.badge, !earned && styles.badgeDisabled]}>
-    <Text style={[styles.badgeEmoji, !earned && styles.badgeEmojiDisabled]}>{emoji}</Text>
+    <View style={[styles.badgeIconContainer, !earned && styles.badgeIconDisabled]}>
+      {icon}
+    </View>
     <Text style={[styles.badgeTitle, !earned && styles.badgeTitleDisabled]}>{title}</Text>
     <Text style={[styles.badgeDescription, !earned && styles.badgeDescriptionDisabled]}>
       {description}
@@ -194,12 +197,12 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ user: propsUser }) => {
         console.error('뱃지 정보 조회 실패:', error);
         // 실패시 기본 뱃지 표시
         setBadges([
-          { id: 'first_meetup', title: '첫 모임', emoji: '🌟', description: '첫 번째 모임 참여', earned: false },
-          { id: 'meetup_king', title: '모임왕', emoji: '👑', description: '10회 이상 모임 참여', earned: false },
-          { id: 'host_master', title: '호스트', emoji: '🏠', description: '모임 개최하기', earned: false },
-          { id: 'reviewer', title: '리뷰어', emoji: '✍️', description: '리뷰 10개 이상 작성', earned: false },
-          { id: 'friend_maker', title: '밥친구', emoji: '👥', description: '같은 사람과 3회 모임', earned: false },
-          { id: 'explorer', title: '탐험가', emoji: '🗺️', description: '5개 지역 모임 참여', earned: false }
+          { id: 'first_meetup', title: '첫 모임', icon: <Star size={16} color={COLORS.primary.main} />, description: '첫 번째 모임 참여', earned: false },
+          { id: 'meetup_king', title: '모임왕', icon: <Crown size={16} color={COLORS.primary.main} />, description: '10회 이상 모임 참여', earned: false },
+          { id: 'host_master', title: '호스트', icon: <Home size={16} color={COLORS.primary.main} />, description: '모임 개최하기', earned: false },
+          { id: 'reviewer', title: '리뷰어', icon: <FileText size={16} color={COLORS.primary.main} />, description: '리뷰 10개 이상 작성', earned: false },
+          { id: 'friend_maker', title: '밥친구', icon: <Heart size={16} color={COLORS.primary.main} />, description: '같은 사람과 3회 모임', earned: false },
+          { id: 'explorer', title: '탐험가', icon: <MapPin size={16} color={COLORS.primary.main} />, description: '5개 지역 모임 참여', earned: false }
         ]);
       }
     };
@@ -474,7 +477,7 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ user: propsUser }) => {
                 <Badge
                   key={index}
                   title={badge.title}
-                  emoji={badge.emoji}
+                  icon={badge.icon}
                   description={badge.description}
                   earned={badge.earned}
                 />
@@ -492,7 +495,7 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ user: propsUser }) => {
             onPress={() => navigate('/my-meetups')}
           >
             <View style={styles.activityIconContainer}>
-              <Text style={styles.activityIcon}>👥</Text>
+              <Users size={20} color={COLORS.primary.main} />
             </View>
             <View style={styles.activityInfo}>
               <Text style={styles.activityStatLabel}>참여한 모임</Text>
@@ -509,7 +512,7 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ user: propsUser }) => {
             onPress={() => navigate('/my-meetups')}
           >
             <View style={styles.activityIconContainer}>
-              <Text style={styles.activityIcon}>🏠</Text>
+              <Target size={20} color={COLORS.primary.main} />
             </View>
             <View style={styles.activityInfo}>
               <Text style={styles.activityStatLabel}>주최한 모임</Text>
@@ -526,7 +529,7 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ user: propsUser }) => {
             onPress={() => navigate('/my-reviews')}
           >
             <View style={styles.activityIconContainer}>
-              <Text style={styles.activityIcon}>⭐</Text>
+              <FileText size={20} color={COLORS.primary.main} />
             </View>
             <View style={styles.activityInfo}>
               <Text style={styles.activityStatLabel}>작성한 리뷰</Text>
@@ -543,7 +546,7 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ user: propsUser }) => {
             onPress={() => navigate('/point-history')}
           >
             <View style={styles.activityIconContainer}>
-              <Text style={styles.activityIcon}>💰</Text>
+              <Gift size={20} color={COLORS.primary.main} />
             </View>
             <View style={styles.activityInfo}>
               <Text style={styles.activityStatLabel}>보유 포인트</Text>
@@ -888,9 +891,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginRight: 12,
   },
-  activityIcon: {
-    fontSize: 20,
-  },
   activityInfo: {
     flex: 1,
   },
@@ -979,11 +979,17 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.neutral.grey100,
     borderColor: COLORS.neutral.grey200,
   },
-  badgeEmoji: {
-    fontSize: 22,
-    marginBottom: 6,
+  badgeIconContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: COLORS.primary.light,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
   },
-  badgeEmojiDisabled: {
+  badgeIconDisabled: {
+    backgroundColor: COLORS.neutral.grey200,
     opacity: 0.5,
   },
   badgeTitle: {
