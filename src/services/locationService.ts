@@ -1,4 +1,5 @@
 // GPS 기반 위치 서비스
+import { COLORS } from '../styles/colors';
 
 export interface LocationData {
   latitude: number;
