@@ -45,7 +45,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, user }) => {
   useEffect(() => {
     loadSavedNeighborhood();
     fetchHomeMeetups();
-  }, [fetchHomeMeetups]);
+  }, []);
 
   useEffect(() => {
     console.log('🎯 Meetups data updated:', {

@@ -376,16 +376,24 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ user: propsUser }) => {
         console.log('프로필이 성공적으로 업데이트되었습니다.');
         alert('프로필이 성공적으로 업데이트되었습니다.');
         
+        // 프로필 이미지 URL 업데이트 (우선 실행)
+        if (profileImageUrl) {
+          setUserProfileImageUrl(profileImageUrl);
+          console.log('🔄 userProfileImageUrl 업데이트됨:', profileImageUrl);
+        }
+        
         // 사용자 스토어 업데이트
         updateProfile({
           name: profileData.name,
           profileImage: profileImageUrl
         });
         
-        // 프로필 이미지 URL 업데이트
-        if (profileImageUrl) {
-          setUserProfileImageUrl(profileImageUrl);
-        }
+        // profileData의 profileImageUrl도 업데이트
+        setProfileData(prev => ({
+          ...prev,
+          profileImageUrl: profileImageUrl,
+          profileImage: null // 파일 객체 초기화
+        }));
         
         setShowProfileEdit(false);
       }
@@ -509,7 +517,7 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ user: propsUser }) => {
               <View style={styles.compactProfileImage}>
                 {userProfileImageUrl ? (
                   <Image 
-                    source={{ uri: userProfileImageUrl }} 
+                    source={{ uri: userProfileImageUrl.startsWith('http') ? userProfileImageUrl : `http://localhost:3001${userProfileImageUrl}` }} 
                     style={styles.compactProfileImagePreview}
                   />
                 ) : (
@@ -712,7 +720,7 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ user: propsUser }) => {
                 <View style={styles.editProfileImage}>
                   {profileData.profileImageUrl ? (
                     <Image 
-                      source={{ uri: profileData.profileImageUrl }} 
+                      source={{ uri: profileData.profileImageUrl.startsWith('http') ? profileData.profileImageUrl : `http://localhost:3001${profileData.profileImageUrl}` }} 
                       style={styles.editProfileImagePreview}
                     />
                   ) : (

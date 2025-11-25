@@ -1,6 +1,6 @@
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
 import { COLORS, SHADOWS } from '../styles/colors';
 import { useUserStore } from '../store/userStore';
 import { useMeetupStore } from '../store/meetupStore';
@@ -9,6 +9,8 @@ import { DepositSelector } from '../components/DepositSelector';
 import { getChatTimeDifference } from '../utils/timeUtils';
 import { useRouterNavigation } from '../components/RouterNavigation';
 import { Icon } from '../components/Icon';
+import { ProfileImage } from '../components/ProfileImage';
+
 
 // Window 타입 확장
 declare global {
@@ -135,6 +137,7 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
   const joinMeetup = useMeetupStore(state => state.joinMeetup);
   const leaveMeetup = useMeetupStore(state => state.leaveMeetup);
   const fetchMeetupById = useMeetupStore(state => state.fetchMeetupById);
+  const setCurrentMeetup = useMeetupStore(state => state.setCurrentMeetup);
   const [showPromiseModal, setShowPromiseModal] = React.useState(false);
   const [showLeaveModal, setShowLeaveModal] = React.useState(false);
   const [showDepositSelector, setShowDepositSelector] = React.useState(false);
@@ -145,10 +148,13 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
   const user = propsUser || storeUser;
 
   React.useEffect(() => {
+    console.log('🔍 MeetupDetailScreen useParams id:', id);
     if (id) {
+      // 캐시된 데이터를 클리어하고 새로운 데이터를 가져옴
+      setCurrentMeetup(null);
       fetchMeetupById(id);
     }
-  }, [id, fetchMeetupById]);
+  }, [id, fetchMeetupById, setCurrentMeetup]);
 
   // 사용자 밥알지수 로드
   React.useEffect(() => {
@@ -243,7 +249,11 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
 
   // 약속금 결제 완료 후 모임 참여
   const handleDepositPaid = async (depositId: string, amount: number) => {
-    if (!user || !id) return;
+    console.log('💰 handleDepositPaid 호출됨:', { depositId, amount, meetupId: id, userId: user?.id });
+    if (!user || !id) {
+      console.error('❌ handleDepositPaid: user 또는 id가 없음:', { user: !!user, id });
+      return;
+    }
     
     try {
       console.log('약속금 결제 완료:', { depositId, amount, meetupId: id });
@@ -387,7 +397,12 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
         {/* 호스트 정보 */}
         <View style={styles.hostSection}>
           <View style={styles.hostInfo}>
-            <View style={styles.avatar} />
+            <ProfileImage
+              profileImage={meetup.host?.profileImage}
+              name={meetup.host?.name || meetup.hostName}
+              size={60}
+              style={styles.avatar}
+            />
             <View>
               <Text style={styles.hostName}>{meetup.hostName || '익명'}</Text>
               <Text style={styles.hostLocation}>{meetup.location || '위치 미정'}</Text>
@@ -441,32 +456,55 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
 
         {/* 참여자 섹션 */}
         <View style={styles.participantSection}>
-          <Text style={styles.participantTitle}>참여자 ({participants.length}명)</Text>
+          <Text style={styles.participantTitle}>참여자 ({participants.filter(p => p.id !== meetup.hostId).length + 1}명)</Text>
           
           {/* 호스트 */}
           <View style={styles.participantItem}>
-            <View style={styles.hostAvatar} />
+            <View style={styles.hostAvatar}>
+              {(() => {
+                console.log('🏠 호스트 렌더링 데이터:', {
+                  hostName: meetup.hostName,
+                  hostObject: meetup.host,
+                  hostProfileImage: meetup.host?.profileImage,
+                  hostId: meetup.hostId
+                });
+                return (
+                  <ProfileImage
+                    profileImage={meetup.host?.profileImage}
+                    name={meetup.host?.name || meetup.hostName}
+                    size={48}
+                  />
+                );
+              })()}
+            </View>
             <View style={styles.participantInfo}>
-              <Text style={styles.participantName}>{meetup.hostName} (호스트)</Text>
+              <Text style={styles.participantName}>{meetup.host?.name || meetup.hostName} (호스트)</Text>
               <Text style={styles.participantRole}>호스트입니다</Text>
             </View>
           </View>
 
-          {/* 참여자들 */}
-          {participants.map((participant) => (
+          {/* 참여자들 (호스트 제외) */}
+          {participants.filter(participant => participant.id !== meetup.hostId).map((participant) => (
             <View key={participant.id} style={styles.participantItem}>
-              <View style={styles.participantAvatar} />
+              <View style={styles.participantAvatar}>
+                <ProfileImage
+                  profileImage={participant.profileImage}
+                  name={participant.name}
+                  size={48}
+                />
+              </View>
               <View style={styles.participantInfo}>
                 <Text style={styles.participantName}>{participant.name}</Text>
                 <Text style={styles.participantRole}>
                   {participant.status === 'approved' ? '참가승인' : 
-                   participant.status === 'pending' ? '참가신청' : '거절됨'}
+                   participant.status === 'pending' ? '참가신청' : 
+                   participant.status === 'rejected' ? '참가거절' : '참가취소'}
                 </Text>
               </View>
             </View>
           ))}
           
-          {participants.length === 0 && (
+          {participants.filter(p => p.id !== meetup.hostId).length === 0 && (
             <Text style={styles.noParticipants}>아직 참여자가 없습니다.</Text>
           )}
         </View>
@@ -637,7 +675,7 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
         visible={showDepositSelector}
         onClose={() => setShowDepositSelector(false)}
         onDepositPaid={handleDepositPaid}
-        meetupId={id || ''}
+        meetupId={id || currentMeetup?.id || ''}
       />
     </View>
   );

@@ -11,6 +11,14 @@ export interface Participant {
   babAlScore?: number;
 }
 
+export interface Host {
+  id: string;
+  name: string;
+  profileImage?: string;
+  rating?: string;
+  babAlScore: number;
+}
+
 export interface Meetup {
   id: string;
   title: string;
@@ -30,6 +38,7 @@ export interface Meetup {
   hostId: string;
   hostName: string;
   hostBabAlScore: number;
+  host?: Host;
   requirements?: string;
   tags?: string[];
   createdAt: string;
@@ -139,6 +148,13 @@ const transformMeetupData = (meetupData: any): Meetup => {
     hostId: actualData.hostId,
     hostName: actualData.host?.name || '익명',
     hostBabAlScore: actualData.host?.babAlScore || 98,
+    host: actualData.host ? {
+      id: actualData.host.id || actualData.hostId,
+      name: actualData.host.name || '익명',
+      profileImage: actualData.host.profileImage,
+      rating: actualData.host.rating,
+      babAlScore: actualData.host.babAlScore || 98,
+    } : undefined,
     requirements: actualData.requirements,
     tags: actualData.tags || [],
     createdAt: actualData.createdAt,

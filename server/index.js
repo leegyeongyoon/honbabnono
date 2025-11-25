@@ -566,26 +566,7 @@ apiRouter.post('/upload/image', authenticateToken, upload.single('image'), async
 });
 
 // 사용자 프로필 조회 (인증 필요)
-apiRouter.get('/user/profile', authenticateToken, async (req, res) => {
-  try {
-    const userResult = await pool.query(`
-      SELECT id, email, name, profile_image, bio, provider, provider_id, 
-             is_verified, rating, meetups_hosted, created_at, updated_at
-      FROM users 
-      WHERE id = $1
-    `, [req.user.userId]);
-
-    if (userResult.rows.length === 0) {
-      return res.status(404).json({ error: '사용자를 찾을 수 없습니다' });
-    }
-
-    const user = userResult.rows[0];
-    res.json({ user });
-  } catch (error) {
-    console.error('프로필 조회 오류:', error);
-    res.status(500).json({ error: '서버 오류가 발생했습니다' });
-  }
-});
+// 사용자 프로필 조회 API (이전 버전 - 제거됨)
 
 // 사용자 통계 조회 API
 apiRouter.get('/user/stats', authenticateToken, async (req, res) => {
@@ -1193,8 +1174,6 @@ apiRouter.get('/meetups/home', async (req, res) => {
       FROM meetups m
       LEFT JOIN users h ON m.host_id = h.id
       WHERE m.status IN ('모집중', '모집완료')
-      AND (m.date::date + m.time::time) > NOW()
-      AND m.current_participants < m.max_participants
       ORDER BY 
         CASE WHEN m.status = '모집중' THEN 1 ELSE 2 END,
         m.date ASC, m.time ASC
@@ -7071,6 +7050,13 @@ apiRouter.get('/user/profile', authenticateToken, async (req, res) => {
     }
     
     const user = userQuery.rows[0];
+    
+    console.log('📝 프로필 조회 응답:', {
+      userId: user.id,
+      name: user.name,
+      profileImage: user.profile_image,
+      hasProfileImage: !!user.profile_image
+    });
     
     res.json({
       success: true,
