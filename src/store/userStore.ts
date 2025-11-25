@@ -33,6 +33,7 @@ interface UserState {
   updateBabAlScore: (score: number) => void;
   updateUserStats: (stats: Partial<Pick<User, 'meetupsHosted' | 'meetupsJoined' | 'rating'>>) => void;
   updateNeighborhood: (district: string, neighborhood: string) => void;
+  updateProfile: (profileData: { name?: string; profileImage?: string; bio?: string }) => void;
   
   // API Actions
   fetchUserProfile: () => Promise<void>;
@@ -141,6 +142,13 @@ export const useUserStore = create<UserState>()(
         user: state.user ? { 
           ...state.user, 
           neighborhood: { district, neighborhood } 
+        } : null
+      })),
+
+      updateProfile: (profileData) => set((state) => ({
+        user: state.user ? { 
+          ...state.user, 
+          ...profileData
         } : null
       })),
       

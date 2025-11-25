@@ -142,7 +142,7 @@ const upload = multer({
   storage: storage,
   fileFilter: fileFilter,
   limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB 제한
+    fileSize: 10 * 1024 * 1024, // 10MB 제한
   }
 });
 
@@ -151,8 +151,8 @@ app.use(cors({
   origin: ['http://localhost:3000', 'https://honbabnono.com'],
   credentials: true
 }));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // 정적 파일 제공 (업로드된 이미지)
 app.use('/uploads', express.static(uploadDir));
@@ -7023,18 +7023,113 @@ apiRouter.get('/api/user/badges', authenticateToken, async (req, res) => {
 
 // ===== 📝 사용자 프로필 관리 API =====
 
+// 사용자 뱃지 조회 API
+apiRouter.get('/user/badges', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    
+    // 뱃지 정보는 임시로 하드코딩된 데이터 반환
+    // 실제로는 데이터베이스에서 사용자 활동을 기반으로 계산해야 함
+    const badges = [
+      { id: 'first_meetup', title: '첫 모임', description: '첫 번째 모임 참여', earned: true },
+      { id: 'meetup_king', title: '모임왕', description: '10회 이상 모임 참여', earned: false },
+      { id: 'host_master', title: '호스트', description: '모임 개최하기', earned: true },
+      { id: 'reviewer', title: '리뷰어', description: '리뷰 10개 이상 작성', earned: false },
+      { id: 'friend_maker', title: '밥친구', description: '같은 사람과 3회 모임', earned: false },
+      { id: 'explorer', title: '탐험가', description: '5개 지역 모임 참여', earned: false }
+    ];
+
+    res.json({
+      success: true,
+      badges
+    });
+    
+  } catch (error) {
+    console.error('뱃지 조회 실패:', error);
+    res.status(500).json({
+      success: false,
+      error: '뱃지 조회 중 오류가 발생했습니다.'
+    });
+  }
+});
+
+// 프로필 조회 API
+apiRouter.get('/user/profile', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    
+    const userQuery = await pool.query(
+      'SELECT id, name, email, profile_image, bio, created_at FROM users WHERE id = $1',
+      [userId]
+    );
+    
+    if (userQuery.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: '사용자를 찾을 수 없습니다.'
+      });
+    }
+    
+    const user = userQuery.rows[0];
+    
+    res.json({
+      success: true,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        profileImage: user.profile_image,
+        bio: user.bio || '',
+        createdAt: user.created_at
+      }
+    });
+    
+  } catch (error) {
+    console.error('프로필 조회 실패:', error);
+    res.status(500).json({
+      success: false,
+      error: '프로필 조회 중 오류가 발생했습니다.'
+    });
+  }
+});
+
 // 프로필 업데이트 API
 apiRouter.put('/api/user/profile', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.userId;
-    const { name, bio } = req.body;
+    const { name, bio, profileImage } = req.body;
 
-    console.log('🔧 프로필 업데이트 디버그:', { userId, name, bio, userType: typeof userId });
+    console.log('🔧 프로필 업데이트 디버그:', { userId, name, bio, profileImage, userType: typeof userId });
 
-    const result = await pool.query(
-      'UPDATE users SET name = $1, bio = $2, updated_at = NOW() WHERE id = $3 RETURNING id, name, email, bio',
-      [name, bio, userId]
-    );
+    // 업데이트할 필드들과 값들을 동적으로 구성
+    let updateFields = [];
+    let updateValues = [];
+    let valueIndex = 1;
+
+    if (name !== undefined) {
+      updateFields.push(`name = $${valueIndex}`);
+      updateValues.push(name);
+      valueIndex++;
+    }
+    
+    if (bio !== undefined) {
+      updateFields.push(`bio = $${valueIndex}`);
+      updateValues.push(bio);
+      valueIndex++;
+    }
+    
+    if (profileImage !== undefined) {
+      updateFields.push(`profile_image = $${valueIndex}`);
+      updateValues.push(profileImage);
+      valueIndex++;
+    }
+
+    updateFields.push(`updated_at = NOW()`);
+    updateValues.push(userId);
+
+    const query = `UPDATE users SET ${updateFields.join(', ')} WHERE id = $${valueIndex} RETURNING id, name, email, bio, profile_image`;
+
+    const result = await pool.query(query, updateValues);
 
     console.log('🔧 쿼리 결과:', { rowCount: result.rowCount, rows: result.rows });
 
@@ -7062,7 +7157,7 @@ apiRouter.put('/api/user/profile', authenticateToken, async (req, res) => {
 });
 
 // 프로필 이미지 업로드 API
-apiRouter.post('/user/upload-profile-image', authenticateToken, (req, res, next) => {
+apiRouter.post('/api/user/upload-profile-image', authenticateToken, (req, res, next) => {
   console.log('🔍 프로필 이미지 업로드 미들웨어 진입:', {
     method: req.method,
     url: req.url,

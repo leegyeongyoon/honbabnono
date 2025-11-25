@@ -68,6 +68,71 @@ const CircularProgress: React.FC<{
   );
 };
 
+// 기본 프로필 이미지 컴포넌트 (귀여운 밥알 캐릭터)
+const DefaultProfileImage: React.FC<{ size?: number }> = ({ size = 60 }) => (
+  <div 
+    style={{
+      width: size,
+      height: size,
+      borderRadius: '50%',
+      background: 'linear-gradient(135deg, #F5F5DC 0%, #E6E6DC 100%)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      position: 'relative',
+      border: '2px solid #E0E0E0'
+    }}
+  >
+    {/* 밥알 모양 */}
+    <div
+      style={{
+        width: size * 0.5,
+        height: size * 0.7,
+        background: 'linear-gradient(135deg, #FFFEF7 0%, #F5F5DC 50%, #E6E6DC 100%)',
+        borderRadius: `${size * 0.25}px / ${size * 0.35}px`,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        position: 'relative',
+        boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.1)'
+      }}
+    >
+      {/* 눈 */}
+      <div style={{ display: 'flex', gap: size * 0.08, marginTop: size * 0.1 }}>
+        <div
+          style={{
+            width: size * 0.06,
+            height: size * 0.06,
+            backgroundColor: '#333',
+            borderRadius: '50%'
+          }}
+        />
+        <div
+          style={{
+            width: size * 0.06,
+            height: size * 0.06,
+            backgroundColor: '#333',
+            borderRadius: '50%'
+          }}
+        />
+      </div>
+      
+      {/* 입 */}
+      <div
+        style={{
+          width: size * 0.12,
+          height: size * 0.06,
+          border: '1.5px solid #333',
+          borderTop: 'none',
+          borderRadius: '0 0 50px 50px',
+          marginTop: size * 0.02
+        }}
+      />
+    </div>
+  </div>
+);
+
 // 뱃지 컴포넌트
 const Badge: React.FC<{ 
   title: string; 
@@ -116,7 +181,7 @@ const getNextLevelRequirement = (riceIndex: number) => {
 
 const MyPageScreen: React.FC<MyPageScreenProps> = ({ user: propsUser }) => {
   const navigate = useNavigate();
-  const { user: storeUser } = useUserStore();
+  const { user: storeUser, updateProfile } = useUserStore();
   
   // props로 받은 user가 있으면 사용, 없으면 store의 user 사용
   const user = propsUser || storeUser;
@@ -139,6 +204,9 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ user: propsUser }) => {
     profileImage: null,
     profileImageUrl: null
   });
+
+  // 사용자 프로필 이미지 URL 상태
+  const [userProfileImageUrl, setUserProfileImageUrl] = useState(null);
 
   // 뱃지 데이터
   const [badges, setBadges] = useState([]);
@@ -184,10 +252,45 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ user: propsUser }) => {
       }
     };
 
+    const fetchUserProfile = async () => {
+      try {
+        const response = await apiClient.get('/user/profile');
+        if (response.data.success && response.data.user) {
+          const userData = response.data.user;
+          setUserProfileImageUrl(userData.profileImage);
+          setProfileData(prev => ({
+            ...prev,
+            name: userData.name || user?.name || '',
+            bio: userData.bio || '',
+            profileImageUrl: userData.profileImage
+          }));
+        }
+      } catch (error) {
+        console.error('프로필 정보 조회 실패:', error);
+      }
+    };
+
     const fetchUserBadges = async () => {
       try {
         const response = await apiClient.get('/user/badges');
-        setBadges(response.data.badges);
+        
+        // 아이콘 매핑 객체
+        const iconMap = {
+          'first_meetup': <Star size={16} color={COLORS.primary.main} />,
+          'meetup_king': <Crown size={16} color={COLORS.primary.main} />,
+          'host_master': <Home size={16} color={COLORS.primary.main} />,
+          'reviewer': <FileText size={16} color={COLORS.primary.main} />,
+          'friend_maker': <Heart size={16} color={COLORS.primary.main} />,
+          'explorer': <MapPin size={16} color={COLORS.primary.main} />
+        };
+        
+        // 서버에서 받은 뱃지 데이터에 아이콘 추가
+        const badgesWithIcons = response.data.badges.map(badge => ({
+          ...badge,
+          icon: iconMap[badge.id] || <Star size={16} color={COLORS.primary.main} />
+        }));
+        
+        setBadges(badgesWithIcons);
         
         // 새로 획득한 뱃지가 있으면 알림 표시 (옵션)
         if (response.data.newBadges && response.data.newBadges.length > 0) {
@@ -209,6 +312,7 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ user: propsUser }) => {
 
     if (user) {
       fetchUserStats();
+      fetchUserProfile();
       fetchUserBadges();
     }
   }, [user]);
@@ -239,7 +343,7 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ user: propsUser }) => {
         try {
           console.log('🚀 API 호출 시작: /user/upload-profile-image');
           
-          const uploadResponse = await apiClient.post('/user/upload-profile-image', formData, {
+          const uploadResponse = await apiClient.post('/api/user/upload-profile-image', formData, {
             headers: {
               'Content-Type': 'multipart/form-data',
             },
@@ -261,7 +365,7 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ user: propsUser }) => {
       }
       
       // 프로필 정보 업데이트
-      const response = await apiClient.put('/user/profile', {
+      const response = await apiClient.put('/api/user/profile', {
         name: profileData.name,
         bio: profileData.bio,
         profileImage: profileImageUrl
@@ -271,10 +375,19 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ user: propsUser }) => {
         // 성공적으로 저장되면 로컬 상태 업데이트
         console.log('프로필이 성공적으로 업데이트되었습니다.');
         alert('프로필이 성공적으로 업데이트되었습니다.');
-        setShowProfileEdit(false);
         
-        // 사용자 정보 다시 로드
-        window.location.reload(); // 간단한 방법으로 페이지 새로고침
+        // 사용자 스토어 업데이트
+        updateProfile({
+          name: profileData.name,
+          profileImage: profileImageUrl
+        });
+        
+        // 프로필 이미지 URL 업데이트
+        if (profileImageUrl) {
+          setUserProfileImageUrl(profileImageUrl);
+        }
+        
+        setShowProfileEdit(false);
       }
     } catch (error) {
       console.error('프로필 업데이트 실패:', error);
@@ -290,9 +403,9 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ user: propsUser }) => {
     input.onchange = (event) => {
       const file = (event.target as HTMLInputElement).files?.[0];
       if (file) {
-        // 파일 크기 체크 (5MB 제한)
-        if (file.size > 5 * 1024 * 1024) {
-          alert('파일 크기가 5MB를 초과할 수 없습니다.');
+        // 파일 크기 체크 (10MB 제한)
+        if (file.size > 10 * 1024 * 1024) {
+          alert('파일 크기가 10MB를 초과할 수 없습니다.');
           return;
         }
 
@@ -394,9 +507,14 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ user: propsUser }) => {
               onPress={() => setShowProfileEdit(true)}
             >
               <View style={styles.compactProfileImage}>
-                <Text style={styles.compactProfileInitial}>
-                  {user?.name ? user.name.charAt(0) : '사'}
-                </Text>
+                {userProfileImageUrl ? (
+                  <Image 
+                    source={{ uri: userProfileImageUrl }} 
+                    style={styles.compactProfileImagePreview}
+                  />
+                ) : (
+                  <DefaultProfileImage size={60} />
+                )}
               </View>
               <View style={styles.editIconContainer}>
                 <Icon name="edit-2" size={12} color={COLORS.text.white} />
@@ -598,9 +716,7 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ user: propsUser }) => {
                       style={styles.editProfileImagePreview}
                     />
                   ) : (
-                    <Text style={styles.editProfileInitial}>
-                      {profileData.name.charAt(0) || '사'}
-                    </Text>
+                    <DefaultProfileImage size={100} />
                   )}
                 </View>
                 <TouchableOpacity 
@@ -707,6 +823,11 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     color: COLORS.text.secondary,
+  },
+  compactProfileImagePreview: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
   },
   userInfoContainer: {
     flex: 1,
