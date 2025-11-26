@@ -150,8 +150,29 @@ const NeighborhoodSelector: React.FC<NeighborhoodSelectorProps> = ({
     onClose();
   };
 
+  // 빠른 구 선택 - 대표 동네로 자동 설정
+  const handleQuickDistrictSelect = (district: string) => {
+    const districtDefaults = {
+      '강남구': '역삼동',
+      '서초구': '서초동', 
+      '송파구': '잠실동',
+      '마포구': '홍대입구',
+      '용산구': '한남동',
+      '종로구': '종로1가',
+      '중구': '을지로동',
+      '영등포구': '여의도동',
+      '관악구': '신림동',
+      '동작구': '사당동'
+    };
+    
+    const defaultNeighborhood = districtDefaults[district as keyof typeof districtDefaults] || '역삼동';
+    onSelect(district, defaultNeighborhood);
+    onClose();
+  };
+
   const renderCurrentLocationTab = () => (
     <View style={styles.tabContent}>
+      {/* GPS 현재 위치 자동 감지 */}
       <TouchableOpacity
         style={[styles.locationButton, loading && styles.locationButtonDisabled]}
         onPress={handleGetCurrentLocation}
@@ -160,25 +181,72 @@ const NeighborhoodSelector: React.FC<NeighborhoodSelectorProps> = ({
         <Icon name="map-pin" size={24} color={COLORS.primary.main} />
         <View style={styles.locationButtonText}>
           <Text style={styles.locationButtonTitle}>
-            {loading ? '위치 조회 중...' : '현재 위치 사용'}
+            {loading ? '위치 조회 중...' : '현재 위치 자동 감지'}
           </Text>
           <Text style={styles.locationButtonSubtitle}>
             {loading 
-              ? '잠시만 기다려주세요' 
-              : 'GPS로 정확한 위치를 찾아드려요'
+              ? '카카오 지도로 정확한 위치 찾는 중...' 
+              : 'GPS + 카카오 지도로 정확한 구/동을 찾아드려요'
             }
           </Text>
         </View>
         <Icon name="chevron-right" size={20} color={COLORS.text.secondary} />
       </TouchableOpacity>
 
+      {/* 추천 동네 (GPS 대신 사용) */}
+      <View style={styles.recommendedContainer}>
+        <Text style={styles.recommendedTitle}>🎯 추천 동네 (GPS 대신 선택)</Text>
+        <TouchableOpacity
+          style={styles.recommendedButton}
+          onPress={() => handleQuickDistrictSelect('강남구')}
+        >
+          <Text style={styles.recommendedEmoji}>🏢</Text>
+          <View style={styles.recommendedTextContainer}>
+            <Text style={styles.recommendedMainText}>강남구 역삼동</Text>
+            <Text style={styles.recommendedSubText}>직장인들의 핫플레이스</Text>
+          </View>
+        </TouchableOpacity>
+      </View>
+
+      {/* 서울시 구별 빠른 선택 */}
+      <View style={styles.quickSelectContainer}>
+        <Text style={styles.quickSelectTitle}>📍 서울시 구별 빠른 선택</Text>
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false}
+          style={styles.quickSelectScroll}
+        >
+          {[
+            { district: '강남구', emoji: '🏢' },
+            { district: '서초구', emoji: '🌳' },
+            { district: '송파구', emoji: '🏊' },
+            { district: '마포구', emoji: '🎭' },
+            { district: '용산구', emoji: '🗼' },
+            { district: '종로구', emoji: '🏛️' },
+            { district: '중구', emoji: '💼' },
+            { district: '영등포구', emoji: '🏦' },
+            { district: '관악구', emoji: '🏫' },
+            { district: '동작구', emoji: '🌉' }
+          ].map((item, index) => (
+            <TouchableOpacity
+              key={index}
+              style={styles.quickSelectButton}
+              onPress={() => handleQuickDistrictSelect(item.district)}
+            >
+              <Text style={styles.quickSelectEmoji}>{item.emoji}</Text>
+              <Text style={styles.quickSelectText}>{item.district}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
+
       {/* 위치 권한 안내 */}
       <View style={styles.locationGuideContainer}>
-        <Text style={styles.locationGuideTitle}>💡 위치 권한 안내</Text>
+        <Text style={styles.locationGuideTitle}>⚠️ 위치 감지 안내</Text>
         <Text style={styles.locationGuideText}>
-          • 브라우저 주소창에서 위치 권한을 허용해주세요{'\n'}
-          • 로컬 개발환경(HTTP)에서는 위치 서비스가 제한될 수 있습니다{'\n'}
-          • 권한이 작동하지 않으면 아래 '인기 동네'나 '검색' 탭을 이용해주세요
+          • HTTP 환경(localhost)에서는 위치 서비스가 제한됩니다{'\n'}
+          • 크롬: 주소창 🔒 → 위치 → 허용 → 새로고침{'\n'}
+          • 위치가 안 잡히면 아래 '서울시 구별 선택' 또는 '인기 동네' 이용하세요
         </Text>
       </View>
 
@@ -529,6 +597,85 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   searchResultAddress: {
+    fontSize: 14,
+    color: COLORS.text.secondary,
+  },
+  quickSelectContainer: {
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    ...SHADOWS.small,
+  },
+  quickSelectTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+    marginBottom: 12,
+  },
+  quickSelectScroll: {
+    flexDirection: 'row',
+  },
+  quickSelectButton: {
+    alignItems: 'center',
+    backgroundColor: COLORS.primary.light,
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    marginRight: 8,
+    minWidth: 80,
+    borderWidth: 1,
+    borderColor: COLORS.primary.main,
+  },
+  quickSelectEmoji: {
+    fontSize: 20,
+    marginBottom: 4,
+  },
+  quickSelectText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: COLORS.primary.dark,
+    textAlign: 'center',
+  },
+  recommendedContainer: {
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 2,
+    borderColor: COLORS.primary.main,
+    ...SHADOWS.medium,
+  },
+  recommendedTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: COLORS.primary.main,
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  recommendedButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.primary.light,
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 2,
+    borderColor: COLORS.primary.main,
+  },
+  recommendedEmoji: {
+    fontSize: 32,
+    marginRight: 16,
+  },
+  recommendedTextContainer: {
+    flex: 1,
+  },
+  recommendedMainText: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: COLORS.primary.dark,
+    marginBottom: 4,
+  },
+  recommendedSubText: {
     fontSize: 14,
     color: COLORS.text.secondary,
   },
