@@ -60,9 +60,11 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, user }) => {
   const loadSavedNeighborhood = () => {
     const saved = locationService.getUserNeighborhood();
     if (saved) {
+      console.log('💾 Loaded saved neighborhood:', saved);
       setCurrentNeighborhood(saved);
     } else {
-      setCurrentNeighborhood({ district: '신도림역[2호선]', neighborhood: '3번출구' });
+      console.log('🏠 Using default neighborhood');
+      setCurrentNeighborhood({ district: '강남구', neighborhood: '역삼동' });
     }
   };
 
