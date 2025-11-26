@@ -16,6 +16,7 @@ import locationService from '../services/locationService';
 import { useUserStore } from '../store/userStore';
 import { useMeetupStore } from '../store/meetupStore';
 import { getTimeDifference } from '../utils/timeUtils';
+import { FOOD_CATEGORIES } from '../constants/categories';
 
 interface HomeScreenProps {
   navigateToLogin?: () => void;
@@ -72,6 +73,16 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, user }) => {
     updateNeighborhood(district, neighborhood);
   };
 
+  const getCategoryIcon = (categoryName: string) => {
+    const category = FOOD_CATEGORIES.find(cat => cat.name === categoryName);
+    return category ? category.icon : 'utensils';
+  };
+
+  const getCategoryColor = (categoryName: string) => {
+    const category = FOOD_CATEGORIES.find(cat => cat.name === categoryName);
+    return category ? category.color : COLORS.primary.main;
+  };
+
   const openNeighborhoodSelector = () => {
     setShowNeighborhoodSelector(true);
   };
@@ -104,61 +115,14 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, user }) => {
         {/* 카테고리 그리드 */}
         <View style={styles.categorySection}>
           <View style={styles.categoryGrid}>
-            <TouchableOpacity style={styles.categoryItem}>
-              <View style={styles.categoryBox}>
-                <Text style={styles.categoryIcon}>🍚</Text>
-              </View>
-              <Text style={styles.categoryName}>한식</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity style={styles.categoryItem}>
-              <View style={styles.categoryBox}>
-                <Text style={styles.categoryIcon}>🥘</Text>
-              </View>
-              <Text style={styles.categoryName}>양식</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity style={styles.categoryItem}>
-              <View style={styles.categoryBox}>
-                <Text style={styles.categoryIcon}>🍜</Text>
-              </View>
-              <Text style={styles.categoryName}>중식</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity style={styles.categoryItem}>
-              <View style={styles.categoryBox}>
-                <Text style={styles.categoryIcon}>🍣</Text>
-              </View>
-              <Text style={styles.categoryName}>일식</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.categoryItem}>
-              <View style={styles.categoryBox}>
-                <Text style={styles.categoryIcon}>☕</Text>
-              </View>
-              <Text style={styles.categoryName}>카페</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity style={styles.categoryItem}>
-              <View style={styles.categoryBox}>
-                <Text style={styles.categoryIcon}>🍻</Text>
-              </View>
-              <Text style={styles.categoryName}>술집</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity style={styles.categoryItem}>
-              <View style={styles.categoryBox}>
-                <Text style={styles.categoryIcon}>🥗</Text>
-              </View>
-              <Text style={styles.categoryName}>슐럭킨</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity style={styles.categoryItem}>
-              <View style={styles.categoryBox}>
-                <Text style={styles.categoryIcon}>🏪</Text>
-              </View>
-              <Text style={styles.categoryName}>다른애류</Text>
-            </TouchableOpacity>
+            {FOOD_CATEGORIES.map((category, index) => (
+              <TouchableOpacity key={category.id} style={styles.categoryItem}>
+                <View style={[styles.categoryBox, { backgroundColor: category.bgColor }]}>
+                  <Icon name={category.icon as any} size={24} color={category.color} />
+                </View>
+                <Text style={styles.categoryName}>{category.name}</Text>
+              </TouchableOpacity>
+            ))}
           </View>
         </View>
 
@@ -197,11 +161,11 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, user }) => {
                   />
                 ) : null}
                 <View style={[styles.foodImageSample, meetup.image ? { display: 'none' } : {}]}>
-                  <Text style={styles.foodEmoji}>
-                    {meetup.category === '한식' ? '🍲' : 
-                     meetup.category === '양식' ? '🍝' : 
-                     meetup.category === '일식' ? '🍣' : '🥘'}
-                  </Text>
+                  <Icon 
+                    name={getCategoryIcon(meetup.category) as any} 
+                    size={32} 
+                    color={getCategoryColor(meetup.category)} 
+                  />
                 </View>
               </View>
               <View style={styles.meetupContent}>
@@ -247,11 +211,11 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, user }) => {
                   />
                 ) : null}
                 <View style={[styles.foodImageSample, meetup.image ? { display: 'none' } : {}]}>
-                  <Text style={styles.foodEmoji}>
-                    {meetup.category === '한식' ? '🍱' : 
-                     meetup.category === '양식' ? '🍖' : 
-                     meetup.category === '일식' ? '🍜' : '🌶️'}
-                  </Text>
+                  <Icon 
+                    name={getCategoryIcon(meetup.category) as any} 
+                    size={32} 
+                    color={getCategoryColor(meetup.category)} 
+                  />
                 </View>
               </View>
               <View style={styles.meetupContent}>

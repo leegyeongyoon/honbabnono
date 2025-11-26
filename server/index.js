@@ -3207,7 +3207,7 @@ apiRouter.get('/user/joined-meetups', authenticateToken, async (req, res) => {
     
     console.log('👥 참가 모임 조회 요청:', { userId, page, limit });
     
-    // 내가 참가한 모임 목록 조회 (호스팅한 모임 제외)
+    // 내가 참가한 모임 목록 조회 (모든 모임 포함)
     const meetupsResult = await pool.query(`
       SELECT 
         m.id,
@@ -3227,7 +3227,7 @@ apiRouter.get('/user/joined-meetups', authenticateToken, async (req, res) => {
       FROM meetup_participants mp
       JOIN meetups m ON mp.meetup_id = m.id
       JOIN users u ON m.host_id = u.id
-      WHERE mp.user_id = $1 AND m.host_id != $1
+      WHERE mp.user_id = $1
       ORDER BY mp.created_at DESC
       LIMIT $2 OFFSET $3
     `, [userId, parseInt(limit), parseInt(offset)]);
@@ -3237,7 +3237,7 @@ apiRouter.get('/user/joined-meetups', authenticateToken, async (req, res) => {
       SELECT COUNT(*) as total 
       FROM meetup_participants mp
       JOIN meetups m ON mp.meetup_id = m.id
-      WHERE mp.user_id = $1 AND m.host_id != $1
+      WHERE mp.user_id = $1
     `, [userId]);
     
     const total = parseInt(countResult.rows[0].total);

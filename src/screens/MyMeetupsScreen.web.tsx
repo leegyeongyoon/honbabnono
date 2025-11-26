@@ -109,26 +109,38 @@ const MyMeetupsScreen: React.FC<MyMeetupsScreenProps> = ({ user: propsUser }) =>
 
   const loadPastMeetups = async () => {
     try {
+      console.log('🔍 [MyMeetups] 지난 모임 로드 시작...');
       const [joinedResponse, hostedResponse] = await Promise.all([
         userApiService.getJoinedMeetups(1, 50),
         userApiService.getHostedMeetups(1, 50)
       ]);
       
+      console.log('🔍 [MyMeetups] 참가 모임 응답:', joinedResponse);
+      console.log('🔍 [MyMeetups] 호스팅 모임 응답:', hostedResponse);
+      
       // 지난 모임 필터링 (완료/종료/취소/파토 모두 포함)
-      const pastJoined = joinedResponse.data.filter(meetup => 
-        meetup.status === '완료' || meetup.status === '종료' || 
-        meetup.status === '취소' || meetup.status === '파토'
-      );
-      const pastHosted = hostedResponse.data.filter(meetup => 
-        meetup.status === '완료' || meetup.status === '종료' || 
-        meetup.status === '취소' || meetup.status === '파토'
-      );
+      const pastJoined = joinedResponse.data.filter(meetup => {
+        const isPast = meetup.status === '완료' || meetup.status === '종료' || 
+                       meetup.status === '취소' || meetup.status === '파토';
+        console.log(`🔍 [MyMeetups] 참가모임 "${meetup.title}" 상태: "${meetup.status}" -> isPast: ${isPast}`);
+        return isPast;
+      });
+      const pastHosted = hostedResponse.data.filter(meetup => {
+        const isPast = meetup.status === '완료' || meetup.status === '종료' || 
+                       meetup.status === '취소' || meetup.status === '파토';
+        console.log(`🔍 [MyMeetups] 호스팅모임 "${meetup.title}" 상태: "${meetup.status}" -> isPast: ${isPast}`);
+        return isPast;
+      });
+      
+      console.log('🔍 [MyMeetups] 필터링된 참가 지난 모임:', pastJoined.length, '개');
+      console.log('🔍 [MyMeetups] 필터링된 호스팅 지난 모임:', pastHosted.length, '개');
       
       // 두 배열을 합치고 날짜순으로 정렬
       const allPast = [...pastJoined, ...pastHosted].sort((a, b) => 
         new Date(b.date).getTime() - new Date(a.date).getTime()
       );
       
+      console.log('🔍 [MyMeetups] 전체 지난 모임:', allPast.length, '개');
       setPastMeetups(allPast);
     } catch (error) {
       console.error('지난 모임 로드 실패:', error);
@@ -443,11 +455,6 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 12,
     marginBottom: 4,
-  },
-  statusText: {
-    fontSize: 11,
-    fontWeight: '500',
-    color: 'white',
   },
   participantInfo: {
     fontSize: 11,
