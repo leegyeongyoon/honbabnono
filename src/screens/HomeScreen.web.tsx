@@ -173,9 +173,49 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, user }) => {
               <View style={styles.meetupContent}>
                 <Text style={styles.meetupTitle}>{meetup.title}</Text>
                 <Text style={styles.meetupDescription}>{meetup.description || '맛있는 식사 함께 해요!'}</Text>
+                
+                {/* 카테고리 + 가격대 */}
+                <View style={styles.meetupTags}>
+                  <View style={[styles.categoryTag, { backgroundColor: getCategoryColor(meetup.category) + '20' }]}>
+                    <Icon 
+                      name={getCategoryIcon(meetup.category) as any} 
+                      size={12} 
+                      color={getCategoryColor(meetup.category)} 
+                    />
+                    <Text style={[styles.categoryTagText, { color: getCategoryColor(meetup.category) }]}>
+                      {meetup.category}
+                    </Text>
+                  </View>
+                  {meetup.priceRange && (
+                    <View style={styles.priceTag}>
+                      <Icon name="utensils" size={12} color={COLORS.functional.success} />
+                      <Text style={styles.priceTagText}>{meetup.priceRange}</Text>
+                    </View>
+                  )}
+                </View>
+
+                {/* 시간 + 장소 정보 */}
+                <View style={styles.meetupDetails}>
+                  <View style={styles.detailRow}>
+                    <Icon name="clock" size={14} color={COLORS.primary.main} />
+                    <Text style={styles.detailText}>
+                      {meetup.date} {meetup.time}
+                    </Text>
+                  </View>
+                  <View style={styles.detailRow}>
+                    <Icon name="map-pin" size={14} color={COLORS.text.secondary} />
+                    <Text style={styles.detailText} numberOfLines={1}>
+                      {meetup.address || meetup.location}
+                    </Text>
+                  </View>
+                </View>
+
+                {/* 참가자 + 생성시간 */}
                 <View style={styles.meetupMeta}>
-                  <Text style={styles.metaText}>{meetup.location}</Text>
-                  <Text style={styles.metaText}>{meetup.currentParticipants}/{meetup.maxParticipants}명</Text>
+                  <View style={styles.participantInfo}>
+                    <Icon name="users" size={12} color={COLORS.text.secondary} />
+                    <Text style={styles.metaText}>{meetup.currentParticipants}/{meetup.maxParticipants}명</Text>
+                  </View>
                   <Text style={styles.metaTimeBlue}>{getTimeDifference(meetup.createdAt || meetup.created_at)}</Text>
                 </View>
               </View>
@@ -223,9 +263,49 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, user }) => {
               <View style={styles.meetupContent}>
                 <Text style={styles.meetupTitle}>{meetup.title}</Text>
                 <Text style={styles.meetupDescription}>{meetup.description || '함께 식사하실 분들 모집해요!'}</Text>
+                
+                {/* 카테고리 + 가격대 */}
+                <View style={styles.meetupTags}>
+                  <View style={[styles.categoryTag, { backgroundColor: getCategoryColor(meetup.category) + '20' }]}>
+                    <Icon 
+                      name={getCategoryIcon(meetup.category) as any} 
+                      size={12} 
+                      color={getCategoryColor(meetup.category)} 
+                    />
+                    <Text style={[styles.categoryTagText, { color: getCategoryColor(meetup.category) }]}>
+                      {meetup.category}
+                    </Text>
+                  </View>
+                  {meetup.priceRange && (
+                    <View style={styles.priceTag}>
+                      <Icon name="utensils" size={12} color={COLORS.functional.success} />
+                      <Text style={styles.priceTagText}>{meetup.priceRange}</Text>
+                    </View>
+                  )}
+                </View>
+
+                {/* 시간 + 장소 정보 */}
+                <View style={styles.meetupDetails}>
+                  <View style={styles.detailRow}>
+                    <Icon name="clock" size={14} color={COLORS.primary.main} />
+                    <Text style={styles.detailText}>
+                      {meetup.date} {meetup.time}
+                    </Text>
+                  </View>
+                  <View style={styles.detailRow}>
+                    <Icon name="map-pin" size={14} color={COLORS.text.secondary} />
+                    <Text style={styles.detailText} numberOfLines={1}>
+                      {meetup.address || meetup.location}
+                    </Text>
+                  </View>
+                </View>
+
+                {/* 참가자 + 생성시간 */}
                 <View style={styles.meetupMeta}>
-                  <Text style={styles.metaText}>{meetup.location}</Text>
-                  <Text style={styles.metaText}>{meetup.currentParticipants}/{meetup.maxParticipants}명</Text>
+                  <View style={styles.participantInfo}>
+                    <Icon name="users" size={12} color={COLORS.text.secondary} />
+                    <Text style={styles.metaText}>{meetup.currentParticipants}/{meetup.maxParticipants}명</Text>
+                  </View>
                   <Text style={styles.metaTimeBlue}>{getTimeDifference(meetup.createdAt || meetup.created_at)}</Text>
                 </View>
               </View>
@@ -451,10 +531,62 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     lineHeight: 20,
   },
+  meetupTags: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 10,
+  },
+  categoryTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    gap: 4,
+  },
+  categoryTagText: {
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  priceTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    backgroundColor: COLORS.functional.success + '20',
+    gap: 4,
+  },
+  priceTagText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: COLORS.functional.success,
+  },
+  meetupDetails: {
+    marginBottom: 8,
+    gap: 4,
+  },
+  detailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  detailText: {
+    fontSize: 13,
+    color: COLORS.text.primary,
+    fontWeight: '500',
+    flex: 1,
+  },
   meetupMeta: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    justifyContent: 'space-between',
+  },
+  participantInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
   metaText: {
     fontSize: 13,

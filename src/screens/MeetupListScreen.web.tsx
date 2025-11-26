@@ -12,11 +12,23 @@ import { COLORS, SHADOWS } from '../styles/colors';
 import { useMeetups } from '../hooks/useMeetups';
 import { formatKoreanDateTime } from '../utils/dateUtils';
 import { Icon } from '../components/Icon';
+import { FOOD_CATEGORIES } from '../constants/categories';
 
 interface MeetupCardProps {
   meetup: any;
   onPress: () => void;
 }
+
+// 카테고리 관련 유틸 함수들
+const getCategoryIcon = (categoryName: string) => {
+  const category = FOOD_CATEGORIES.find(cat => cat.name === categoryName);
+  return category ? category.icon : 'utensils';
+};
+
+const getCategoryColor = (categoryName: string) => {
+  const category = FOOD_CATEGORIES.find(cat => cat.name === categoryName);
+  return category ? category.color : COLORS.primary.main;
+};
 
 const MeetupCard: React.FC<MeetupCardProps> = ({ meetup, onPress }) => {
   return (
@@ -36,14 +48,11 @@ const MeetupCard: React.FC<MeetupCardProps> = ({ meetup, onPress }) => {
             />
           ) : null}
           <View style={[styles.foodImageSample, meetup.image ? { display: 'none' } : {}]}>
-            <Text style={styles.foodEmoji}>
-              {meetup.category === '한식' ? '🍲' : 
-               meetup.category === '양식' ? '🍝' : 
-               meetup.category === '중식' ? '🍜' :
-               meetup.category === '일식' ? '🍣' : 
-               meetup.category === '카페' ? '☕' :
-               meetup.category === '술집' ? '🍻' : '🥘'}
-            </Text>
+            <Icon 
+              name={getCategoryIcon(meetup.category) as any} 
+              size={32} 
+              color={getCategoryColor(meetup.category)} 
+            />
           </View>
         </View>
 
@@ -51,12 +60,59 @@ const MeetupCard: React.FC<MeetupCardProps> = ({ meetup, onPress }) => {
         <View style={styles.meetupContent}>
           <Text style={styles.meetupTitle}>{meetup.title}</Text>
           <Text style={styles.meetupDescription}>{meetup.description || '맛있는 식사 함께 해요!'}</Text>
+          
+          {/* 카테고리 + 가격대 태그 */}
+          <View style={styles.meetupTags}>
+            <View style={[styles.categoryTag, { backgroundColor: getCategoryColor(meetup.category) + '20' }]}>
+              <Icon 
+                name={getCategoryIcon(meetup.category) as any} 
+                size={12} 
+                color={getCategoryColor(meetup.category)} 
+              />
+              <Text style={[styles.categoryTagText, { color: getCategoryColor(meetup.category) }]}>
+                {meetup.category}
+              </Text>
+            </View>
+            {meetup.priceRange && (
+              <View style={styles.priceTag}>
+                <Icon name="utensils" size={12} color={COLORS.functional.success} />
+                <Text style={styles.priceTagText}>{meetup.priceRange}</Text>
+              </View>
+            )}
+          </View>
+
+          {/* 시간 + 장소 정보 */}
+          <View style={styles.meetupDetails}>
+            <View style={styles.detailRow}>
+              <Icon name="clock" size={14} color={COLORS.primary.main} />
+              <Text style={styles.detailText}>
+                {formatKoreanDateTime(meetup.date, meetup.time)}
+              </Text>
+            </View>
+            <View style={styles.detailRow}>
+              <Icon name="map-pin" size={14} color={COLORS.text.secondary} />
+              <Text style={styles.detailText} numberOfLines={1}>
+                {meetup.address || meetup.location}
+              </Text>
+            </View>
+          </View>
+
+          {/* 참가자 정보 */}
           <View style={styles.meetupMeta}>
-            <Text style={styles.metaText}>{meetup.location}</Text>
-            <Text style={styles.metaText}>{meetup.currentParticipants || meetup.current_participants}/{meetup.maxParticipants || meetup.max_participants}명</Text>
-            <Text style={styles.metaTimeBlue}>
-              {formatKoreanDateTime(meetup.date, meetup.time)}
-            </Text>
+            <View style={styles.participantInfo}>
+              <Icon name="users" size={12} color={COLORS.text.secondary} />
+              <Text style={styles.metaText}>
+                {meetup.currentParticipants || meetup.current_participants}/{meetup.maxParticipants || meetup.max_participants}명
+              </Text>
+            </View>
+            <View style={styles.statusBadge}>
+              <Text style={[
+                styles.statusText,
+                { color: meetup.status === '모집중' ? COLORS.functional.success : COLORS.text.secondary }
+              ]}>
+                {meetup.status || '모집중'}
+              </Text>
+            </View>
           </View>
         </View>
       </View>
@@ -331,14 +387,76 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     lineHeight: 20,
   },
+  meetupTags: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 10,
+  },
+  categoryTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    gap: 4,
+  },
+  categoryTagText: {
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  priceTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    backgroundColor: COLORS.functional.success + '20',
+    gap: 4,
+  },
+  priceTagText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: COLORS.functional.success,
+  },
+  meetupDetails: {
+    marginBottom: 8,
+    gap: 4,
+  },
+  detailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  detailText: {
+    fontSize: 13,
+    color: COLORS.text.primary,
+    fontWeight: '500',
+    flex: 1,
+  },
   meetupMeta: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    justifyContent: 'space-between',
+  },
+  participantInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
   metaText: {
     fontSize: 13,
-    color: '#868E96',
+    color: COLORS.text.secondary,
+    fontWeight: '600',
+  },
+  statusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
+    backgroundColor: COLORS.neutral.grey100,
+  },
+  statusText: {
+    fontSize: 11,
     fontWeight: '600',
   },
   metaTimeBlue: {
