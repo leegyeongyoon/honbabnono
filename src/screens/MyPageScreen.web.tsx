@@ -136,18 +136,51 @@ const DefaultProfileImage: React.FC<{ size?: number }> = ({ size = 60 }) => (
 // 뱃지 컴포넌트
 const Badge: React.FC<{ 
   title: string; 
+  emoji?: string;
   icon: React.ReactNode; 
   description: string;
+  requirement?: string;
+  progress?: number;
+  target?: number;
+  progressPercent?: number;
   earned: boolean;
-}> = ({ title, icon, description, earned }) => (
+}> = ({ title, emoji, icon, description, requirement, progress, target, progressPercent, earned }) => (
   <TouchableOpacity style={[styles.badge, !earned && styles.badgeDisabled]}>
     <View style={[styles.badgeIconContainer, !earned && styles.badgeIconDisabled]}>
-      {icon}
+      {earned ? (
+        <Text style={{ fontSize: 20 }}>{emoji}</Text>
+      ) : (
+        <Text style={{ fontSize: 16, opacity: 0.5 }}>{emoji}</Text>
+      )}
     </View>
-    <Text style={[styles.badgeTitle, !earned && styles.badgeTitleDisabled]}>{title}</Text>
-    <Text style={[styles.badgeDescription, !earned && styles.badgeDescriptionDisabled]}>
-      {description}
+    
+    <Text style={[styles.badgeTitle, !earned && styles.badgeTitleDisabled]}>
+      {title} {earned && '✓'}
     </Text>
+    
+    <Text style={[styles.badgeDescription, !earned && styles.badgeDescriptionDisabled]}>
+      {earned ? description : requirement || description}
+    </Text>
+
+    {!earned && progress !== undefined && target !== undefined && (
+      <View style={styles.progressContainer}>
+        <View style={styles.progressBar}>
+          <View 
+            style={[
+              styles.progressFill, 
+              { width: `${Math.min(progressPercent || 0, 100)}%` }
+            ]} 
+          />
+        </View>
+        <Text style={styles.progressText}>
+          {progress}/{target}
+        </Text>
+      </View>
+    )}
+
+    {!earned && (
+      <Text style={styles.badgeStatus}>미획득</Text>
+    )}
   </TouchableOpacity>
 );
 
@@ -290,7 +323,14 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ user: propsUser }) => {
           icon: iconMap[badge.id] || <Star size={16} color={COLORS.primary.main} />
         }));
         
-        setBadges(badgesWithIcons);
+        // 획득한 뱃지를 맨 앞으로 정렬
+        const sortedBadges = badgesWithIcons.sort((a, b) => {
+          if (a.earned && !b.earned) return -1;  // 획득한 뱃지가 앞으로
+          if (!a.earned && b.earned) return 1;   // 미획득 뱃지가 뒤로
+          return 0;  // 같은 상태면 기존 순서 유지
+        });
+        
+        setBadges(sortedBadges);
         
         // 새로 획득한 뱃지가 있으면 알림 표시 (옵션)
         if (response.data.newBadges && response.data.newBadges.length > 0) {
@@ -603,8 +643,13 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ user: propsUser }) => {
                 <Badge
                   key={index}
                   title={badge.title}
+                  emoji={badge.emoji}
                   icon={badge.icon}
                   description={badge.description}
+                  requirement={badge.requirement}
+                  progress={badge.progress}
+                  target={badge.target}
+                  progressPercent={badge.progressPercent}
                   earned={badge.earned}
                 />
               ))}
@@ -1139,6 +1184,30 @@ const styles = StyleSheet.create({
   },
   badgeDescriptionDisabled: {
     color: COLORS.neutral.grey300,
+  },
+  progressContainer: {
+    marginTop: 6,
+    height: 4,
+    backgroundColor: COLORS.neutral.grey100,
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  progressBar: {
+    height: '100%',
+    backgroundColor: COLORS.primary.main,
+    borderRadius: 2,
+  },
+  progressText: {
+    fontSize: 8,
+    color: COLORS.text.secondary,
+    marginTop: 2,
+    textAlign: 'center',
+  },
+  badgeStatus: {
+    fontSize: 8,
+    fontWeight: '600',
+    color: COLORS.neutral.grey400,
+    marginTop: 2,
   },
   // 프로필 수정 모달
   modalOverlay: {

@@ -6973,14 +6973,76 @@ apiRouter.get('/api/user/badges', authenticateToken, async (req, res) => {
       WHERE user_id = $1 ORDER BY earned_at DESC
     `, [userId]);
 
+    // 사용자 활동 데이터 조회 (진행률 계산용)
+    const [attendedMeetups, hostedMeetups, reviewCount, locationCount] = await Promise.all([
+      pool.query(`SELECT COUNT(*) as count FROM meetup_participants WHERE user_id = $1 AND status = 'attended'`, [userId]),
+      pool.query(`SELECT COUNT(*) as count FROM meetups WHERE host_id = $1 AND status = '종료'`, [userId]),
+      pool.query(`SELECT COUNT(*) as count FROM reviews WHERE user_id = $1`, [userId]),
+      pool.query(`
+        SELECT COUNT(DISTINCT m.location) as count
+        FROM meetup_participants mp
+        JOIN meetups m ON mp.meetup_id = m.id
+        WHERE mp.user_id = $1 AND mp.status = 'attended'
+      `, [userId])
+    ]);
+
+    const stats = {
+      attendedCount: parseInt(attendedMeetups.rows[0].count),
+      hostedCount: parseInt(hostedMeetups.rows[0].count),
+      reviewCount: parseInt(reviewCount.rows[0].count),
+      locationCount: parseInt(locationCount.rows[0].count)
+    };
+
     // 전체 뱃지 정보와 획득 여부 매핑
     const badgeList = Object.entries(BADGE_CONDITIONS).map(([key, info]) => {
       const earned = userBadges.rows.find(badge => badge.badge_type === key);
+      let progress = 0;
+      let requirement = '';
+      let target = 1;
+
+      // 각 뱃지별 진행률 계산
+      switch(key) {
+        case 'first_meetup':
+          target = 1;
+          progress = Math.min(stats.attendedCount, target);
+          requirement = `모임 1회 참여 (현재: ${stats.attendedCount}/1)`;
+          break;
+        case 'meetup_king':
+          target = 10;
+          progress = Math.min(stats.attendedCount, target);
+          requirement = `모임 10회 참여 (현재: ${stats.attendedCount}/10)`;
+          break;
+        case 'host_master':
+          target = 1;
+          progress = Math.min(stats.hostedCount, target);
+          requirement = `모임 1회 개최 (현재: ${stats.hostedCount}/1)`;
+          break;
+        case 'reviewer':
+          target = 10;
+          progress = Math.min(stats.reviewCount, target);
+          requirement = `후기 10개 작성 (현재: ${stats.reviewCount}/10)`;
+          break;
+        case 'friend_maker':
+          target = 1;
+          progress = 0; // 복잡한 계산이라 일단 0으로
+          requirement = '같은 사람과 3회 모임 참여';
+          break;
+        case 'explorer':
+          target = 5;
+          progress = Math.min(stats.locationCount, target);
+          requirement = `5개 지역 모임 참여 (현재: ${stats.locationCount}/5)`;
+          break;
+      }
+
       return {
         id: key,
         title: info.title,
         emoji: info.emoji,
         description: info.description,
+        requirement: requirement,
+        progress: progress,
+        target: target,
+        progressPercent: Math.round((progress / target) * 100),
         earned: !!earned,
         earnedAt: earned ? earned.earned_at : null
       };
