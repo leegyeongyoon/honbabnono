@@ -26,13 +26,19 @@ export interface HostedMeetup {
   title: string;
   description?: string;
   location: string;
+  address?: string;
   date: string;
   time: string;
   maxParticipants: number;
   currentParticipants: number;
   category: string;
+  priceRange?: string;
+  ageRange?: string;
+  genderPreference?: string;
   status: string;
+  image?: string;
   createdAt: string;
+  created_at?: string;
 }
 
 export interface JoinedMeetup {
@@ -40,13 +46,19 @@ export interface JoinedMeetup {
   title: string;
   description?: string;
   location: string;
+  address?: string;
   date: string;
   time: string;
   maxParticipants: number;
   currentParticipants: number;
   category: string;
+  priceRange?: string;
+  ageRange?: string;
+  genderPreference?: string;
   status: string;
+  image?: string;
   createdAt: string;
+  created_at?: string;
   participationStatus: string;
   joinedAt: string;
   hostName: string;
@@ -89,21 +101,29 @@ const userApiService = {
   // 내가 호스팅한 모임 목록 조회
   getHostedMeetups: async (page: number = 1, limit: number = 10): Promise<{ data: HostedMeetup[], pagination: PaginationInfo }> => {
     try {
-      console.log('🏠 호스팅 모임 조회 요청:', { page, limit });
+      console.log('🏠 [API] 호스팅 모임 조회 요청 시작:', { page, limit });
+      console.log('🏠 [API] API 호출: /user/hosted-meetups');
+      
       const response = await apiClient.get('/user/hosted-meetups', {
         params: { page, limit }
       });
-      // 응답 구조: { success: true, data: [...], pagination: {...} }
-      const data = Array.isArray(response.data.data) ? response.data.data : [];
+      
+      console.log('🏠 [API] 응답 받음:', response.data);
+      
+      // 실제 API 응답 구조: { meetups: [...], pagination: {...} } 또는 { success: true, data: [...], pagination: {...} }
+      const data = Array.isArray(response.data.meetups) ? response.data.meetups : 
+                   Array.isArray(response.data.data) ? response.data.data : [];
       const pagination = response.data.pagination || { total: 0, page: 1, limit: 10, totalPages: 0 };
       
-      console.log('✅ 호스팅 모임 조회 성공:', data.length, '개');
+      console.log('✅ [API] 호스팅 모임 조회 성공:', data.length, '개');
+      console.log('📊 [API] 데이터 샘플:', data.slice(0, 2));
+      
       return {
         data,
         pagination
       };
     } catch (error) {
-      console.error('❌ 호스팅 모임 조회 실패:', error);
+      console.error('❌ [API] 호스팅 모임 조회 실패:', error);
       throw error;
     }
   },
@@ -111,21 +131,29 @@ const userApiService = {
   // 내가 참가한 모임 목록 조회
   getJoinedMeetups: async (page: number = 1, limit: number = 10): Promise<{ data: JoinedMeetup[], pagination: PaginationInfo }> => {
     try {
-      console.log('👥 참가 모임 조회 요청:', { page, limit });
+      console.log('👥 [API] 참가 모임 조회 요청 시작:', { page, limit });
+      console.log('👥 [API] API 호출: /user/joined-meetups');
+      
       const response = await apiClient.get('/user/joined-meetups', {
         params: { page, limit }
       });
-      // 응답 구조: { success: true, data: [...], pagination: {...} }
-      const data = Array.isArray(response.data.data) ? response.data.data : [];
+      
+      console.log('👥 [API] 응답 받음:', response.data);
+      
+      // 실제 API 응답 구조: { meetups: [...], pagination: {...} } 또는 { success: true, data: [...], pagination: {...} }
+      const data = Array.isArray(response.data.meetups) ? response.data.meetups : 
+                   Array.isArray(response.data.data) ? response.data.data : [];
       const pagination = response.data.pagination || { total: 0, page: 1, limit: 10, totalPages: 0 };
       
-      console.log('✅ 참가 모임 조회 성공:', data.length, '개');
+      console.log('✅ [API] 참가 모임 조회 성공:', data.length, '개');
+      console.log('📊 [API] 데이터 샘플:', data.slice(0, 2));
+      
       return {
         data,
         pagination
       };
     } catch (error) {
-      console.error('❌ 참가 모임 조회 실패:', error);
+      console.error('❌ [API] 참가 모임 조회 실패:', error);
       throw error;
     }
   },

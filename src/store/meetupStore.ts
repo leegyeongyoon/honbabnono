@@ -33,6 +33,8 @@ export interface Meetup {
   maxParticipants: number;
   currentParticipants: number;
   priceRange?: string;
+  ageRange?: string;
+  genderPreference?: string;
   image?: string;
   status: 'recruiting' | 'confirmed' | 'completed' | 'cancelled';
   hostId: string;
@@ -143,6 +145,8 @@ const transformMeetupData = (meetupData: any): Meetup => {
     maxParticipants: actualData.maxParticipants,
     currentParticipants: actualData.currentParticipants,
     priceRange: actualData.priceRange,
+    ageRange: actualData.ageRange,
+    genderPreference: actualData.genderPreference,
     image: actualData.image,
     status: actualData.status === '모집중' ? 'recruiting' : actualData.status,
     hostId: actualData.hostId || actualData.host?.id || 'unknown',

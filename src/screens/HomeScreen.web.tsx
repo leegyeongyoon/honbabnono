@@ -12,11 +12,40 @@ import {COLORS, SHADOWS} from '../styles/colors';
 import {Icon} from '../components/Icon';
 import CreateMeetupScreen from './CreateMeetupScreen';
 import NeighborhoodSelector from '../components/NeighborhoodSelector';
+import MeetupCard from '../components/MeetupCard';
 import locationService from '../services/locationService';
 import { useUserStore } from '../store/userStore';
 import { useMeetupStore } from '../store/meetupStore';
 import { getTimeDifference } from '../utils/timeUtils';
 import { FOOD_CATEGORIES } from '../constants/categories';
+
+// 모임 시간 포맷팅 함수
+const formatMeetupDateTime = (date: string, time: string) => {
+  try {
+    if (!date || !time) return '시간 미정';
+    
+    // ISO 문자열 형태로 변환
+    const dateTimeStr = `${date}T${time}`;
+    const dateObj = new Date(dateTimeStr);
+    
+    if (isNaN(dateObj.getTime())) {
+      return `${date} ${time}`;
+    }
+
+    const month = dateObj.getMonth() + 1;
+    const day = dateObj.getDate();
+    const hours = dateObj.getHours();
+    const minutes = dateObj.getMinutes();
+    
+    const ampm = hours >= 12 ? '오후' : '오전';
+    const displayHours = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
+    
+    return `${month}월 ${day}일 ${ampm} ${displayHours}:${minutes.toString().padStart(2, '0')}`;
+  } catch (error) {
+    console.error('formatMeetupDateTime error:', error);
+    return `${date} ${time}`;
+  }
+};
 
 interface HomeScreenProps {
   navigateToLogin?: () => void;
@@ -31,6 +60,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, user }) => {
   const [showCreateMeetup, setShowCreateMeetup] = useState(false);
   const [showNeighborhoodSelector, setShowNeighborhoodSelector] = useState(false);
   const [currentNeighborhood, setCurrentNeighborhood] = useState<{ district: string; neighborhood: string } | null>(null);
+  
 
   const handleMeetupClick = (meetupId: string) => {
     console.log('🎯 Clicking meetup with ID:', meetupId);
@@ -110,7 +140,11 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, user }) => {
         <View style={styles.searchContainer}>
           <View style={styles.searchBox}>
             <Icon name="search" size={16} color={COLORS.text.secondary} />
-            <Text style={styles.searchPlaceholder}>뜨끈한 국물모임 어때요?</Text>
+            <input 
+              style={styles.searchInput}
+              placeholder="모임 제목, 설명, 위치를 검색하세요..."
+              onFocus={() => navigate('/search')}
+            />
           </View>
         </View>
 
@@ -118,21 +152,35 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, user }) => {
         <View style={styles.categorySection}>
           <View style={styles.categoryGrid}>
             {FOOD_CATEGORIES.map((category, index) => (
-              <TouchableOpacity key={category.id} style={styles.categoryItem}>
-                <View style={[styles.categoryBox, { backgroundColor: category.bgColor }]}>
+              <TouchableOpacity 
+                key={category.id} 
+                style={styles.categoryItem}
+                onPress={() => navigate('/meetups', { state: { category: category.name } })}
+              >
+                <View style={[
+                  styles.categoryBox, 
+                  { backgroundColor: category.bgColor }
+                ]}>
                   <Icon name={category.icon as any} size={24} color={category.color} />
                 </View>
-                <Text style={styles.categoryName}>{category.name}</Text>
+                <Text style={styles.categoryName}>
+                  {category.name}
+                </Text>
               </TouchableOpacity>
             ))}
           </View>
         </View>
 
-        {/* 광고 배너 */}
-        <View style={styles.adBanner}>
-          <Text style={styles.adText}>광고없이</Text>
+        {/* 광고 섹션 */}
+        <View style={styles.adSection}>
+          <View style={styles.adBanner}>
+            <Text style={styles.adTitle}>🎉 혼밥노노와 함께하는 특별한 모임</Text>
+            <Text style={styles.adDescription}>새로운 친구들과 맛있는 식사를 함께 해보세요!</Text>
+            <TouchableOpacity style={styles.adButton}>
+              <Text style={styles.adButtonText}>더 알아보기</Text>
+            </TouchableOpacity>
+          </View>
         </View>
-
 
         {/* 바로 참여할 수 있는 번개 */}
         <View style={styles.section}>
@@ -145,81 +193,11 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, user }) => {
               return null;
             }
             return (
-              <TouchableOpacity 
-                key={meetup.id} 
-                style={styles.meetupItem} 
-                onPress={() => handleMeetupClick(meetup.id)}
-              >
-              <View style={styles.foodImageContainer}>
-                {meetup.image ? (
-                  <img 
-                    src={meetup.image} 
-                    alt={meetup.title}
-                    style={styles.meetupImage}
-                    onError={(e) => {
-                      e.target.style.display = 'none';
-                      e.target.nextSibling.style.display = 'flex';
-                    }}
-                  />
-                ) : null}
-                <View style={[styles.foodImageSample, meetup.image ? { display: 'none' } : {}]}>
-                  <Icon 
-                    name={getCategoryIcon(meetup.category) as any} 
-                    size={32} 
-                    color={getCategoryColor(meetup.category)} 
-                  />
-                </View>
-              </View>
-              <View style={styles.meetupContent}>
-                <Text style={styles.meetupTitle}>{meetup.title}</Text>
-                <Text style={styles.meetupDescription}>{meetup.description || '맛있는 식사 함께 해요!'}</Text>
-                
-                {/* 카테고리 + 가격대 */}
-                <View style={styles.meetupTags}>
-                  <View style={[styles.categoryTag, { backgroundColor: getCategoryColor(meetup.category) + '20' }]}>
-                    <Icon 
-                      name={getCategoryIcon(meetup.category) as any} 
-                      size={12} 
-                      color={getCategoryColor(meetup.category)} 
-                    />
-                    <Text style={[styles.categoryTagText, { color: getCategoryColor(meetup.category) }]}>
-                      {meetup.category}
-                    </Text>
-                  </View>
-                  {meetup.priceRange && (
-                    <View style={styles.priceTag}>
-                      <Icon name="utensils" size={12} color={COLORS.functional.success} />
-                      <Text style={styles.priceTagText}>{meetup.priceRange}</Text>
-                    </View>
-                  )}
-                </View>
-
-                {/* 시간 + 장소 정보 */}
-                <View style={styles.meetupDetails}>
-                  <View style={styles.detailRow}>
-                    <Icon name="clock" size={14} color={COLORS.primary.main} />
-                    <Text style={styles.detailText}>
-                      {meetup.date} {meetup.time}
-                    </Text>
-                  </View>
-                  <View style={styles.detailRow}>
-                    <Icon name="map-pin" size={14} color={COLORS.text.secondary} />
-                    <Text style={styles.detailText} numberOfLines={1}>
-                      {meetup.address || meetup.location}
-                    </Text>
-                  </View>
-                </View>
-
-                {/* 참가자 + 생성시간 */}
-                <View style={styles.meetupMeta}>
-                  <View style={styles.participantInfo}>
-                    <Icon name="users" size={12} color={COLORS.text.secondary} />
-                    <Text style={styles.metaText}>{meetup.currentParticipants}/{meetup.maxParticipants}명</Text>
-                  </View>
-                  <Text style={styles.metaTimeBlue}>{getTimeDifference(meetup.createdAt || meetup.created_at)}</Text>
-                </View>
-              </View>
-            </TouchableOpacity>
+              <MeetupCard 
+                key={meetup.id}
+                meetup={meetup}
+                onPress={handleMeetupClick}
+              />
             );
           })}
         </View>
@@ -235,81 +213,11 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, user }) => {
               return null;
             }
             return (
-            <TouchableOpacity 
-              key={meetup.id} 
-              style={styles.meetupItem} 
-              onPress={() => handleMeetupClick(meetup.id)}
-            >
-              <View style={styles.foodImageContainer}>
-                {meetup.image ? (
-                  <img 
-                    src={meetup.image} 
-                    alt={meetup.title}
-                    style={styles.meetupImage}
-                    onError={(e) => {
-                      e.target.style.display = 'none';
-                      e.target.nextSibling.style.display = 'flex';
-                    }}
-                  />
-                ) : null}
-                <View style={[styles.foodImageSample, meetup.image ? { display: 'none' } : {}]}>
-                  <Icon 
-                    name={getCategoryIcon(meetup.category) as any} 
-                    size={32} 
-                    color={getCategoryColor(meetup.category)} 
-                  />
-                </View>
-              </View>
-              <View style={styles.meetupContent}>
-                <Text style={styles.meetupTitle}>{meetup.title}</Text>
-                <Text style={styles.meetupDescription}>{meetup.description || '함께 식사하실 분들 모집해요!'}</Text>
-                
-                {/* 카테고리 + 가격대 */}
-                <View style={styles.meetupTags}>
-                  <View style={[styles.categoryTag, { backgroundColor: getCategoryColor(meetup.category) + '20' }]}>
-                    <Icon 
-                      name={getCategoryIcon(meetup.category) as any} 
-                      size={12} 
-                      color={getCategoryColor(meetup.category)} 
-                    />
-                    <Text style={[styles.categoryTagText, { color: getCategoryColor(meetup.category) }]}>
-                      {meetup.category}
-                    </Text>
-                  </View>
-                  {meetup.priceRange && (
-                    <View style={styles.priceTag}>
-                      <Icon name="utensils" size={12} color={COLORS.functional.success} />
-                      <Text style={styles.priceTagText}>{meetup.priceRange}</Text>
-                    </View>
-                  )}
-                </View>
-
-                {/* 시간 + 장소 정보 */}
-                <View style={styles.meetupDetails}>
-                  <View style={styles.detailRow}>
-                    <Icon name="clock" size={14} color={COLORS.primary.main} />
-                    <Text style={styles.detailText}>
-                      {meetup.date} {meetup.time}
-                    </Text>
-                  </View>
-                  <View style={styles.detailRow}>
-                    <Icon name="map-pin" size={14} color={COLORS.text.secondary} />
-                    <Text style={styles.detailText} numberOfLines={1}>
-                      {meetup.address || meetup.location}
-                    </Text>
-                  </View>
-                </View>
-
-                {/* 참가자 + 생성시간 */}
-                <View style={styles.meetupMeta}>
-                  <View style={styles.participantInfo}>
-                    <Icon name="users" size={12} color={COLORS.text.secondary} />
-                    <Text style={styles.metaText}>{meetup.currentParticipants}/{meetup.maxParticipants}명</Text>
-                  </View>
-                  <Text style={styles.metaTimeBlue}>{getTimeDifference(meetup.createdAt || meetup.created_at)}</Text>
-                </View>
-              </View>
-            </TouchableOpacity>
+              <MeetupCard 
+                key={meetup.id}
+                meetup={meetup}
+                onPress={handleMeetupClick}
+              />
             );
           })}
 
@@ -406,6 +314,15 @@ const styles = StyleSheet.create({
     color: COLORS.text.secondary,
     flex: 1,
   },
+  searchInput: {
+    flex: 1,
+    fontSize: 14,
+    border: 'none',
+    outline: 'none',
+    backgroundColor: 'transparent',
+    color: COLORS.text.primary,
+    marginLeft: 10,
+  },
   categorySection: {
     backgroundColor: COLORS.neutral.white,
     paddingVertical: 24,
@@ -416,13 +333,14 @@ const styles = StyleSheet.create({
   categoryGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    paddingHorizontal: 8,
+    justifyContent: 'space-around',
+    paddingHorizontal: 4,
+    gap: 8,
   },
   categoryItem: {
-    width: '22%',
+    width: '22.5%',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 20,
   },
   categoryBox: {
     width: 60,
@@ -563,6 +481,34 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: COLORS.functional.success,
   },
+  ageTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    backgroundColor: COLORS.text.secondary + '20',
+    gap: 4,
+  },
+  ageTagText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: COLORS.text.secondary,
+  },
+  genderTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    backgroundColor: COLORS.primary.main + '20',
+    gap: 4,
+  },
+  genderTagText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: COLORS.primary.main,
+  },
   meetupDetails: {
     marginBottom: 8,
     gap: 4,
@@ -640,6 +586,138 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: COLORS.text.primary,
     fontWeight: 'bold',
+  },
+  // 필터 뱃지 스타일
+  filterBadgeContainer: {
+    backgroundColor: COLORS.neutral.white,
+    paddingVertical: 20,
+    paddingHorizontal: 0,
+    marginBottom: 12,
+    borderRadius: 16,
+    marginHorizontal: 20,
+    ...SHADOWS.medium,
+  },
+  filterBadgeScroll: {
+    paddingHorizontal: 20,
+  },
+  filterBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 25,
+    borderWidth: 2,
+    backgroundColor: 'white',
+    marginRight: 10,
+    gap: 8,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  activeBadge: {
+    backgroundColor: COLORS.primary.main,
+    borderColor: COLORS.primary.main,
+  },
+  priceBadge: {
+    borderColor: COLORS.functional.success,
+  },
+  activePriceBadge: {
+    backgroundColor: COLORS.functional.success,
+    borderColor: COLORS.functional.success,
+  },
+  filterBadgeText: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  activeBadgeText: {
+    color: 'white',
+  },
+  clearFilterBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: COLORS.neutral.grey100,
+    marginRight: 8,
+    gap: 6,
+  },
+  clearFilterText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: COLORS.text.secondary,
+  },
+  categoryHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    marginBottom: 16,
+  },
+  categorySectionTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: COLORS.text.primary,
+  },
+  clearButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    backgroundColor: COLORS.neutral.grey100,
+  },
+  clearButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: COLORS.text.secondary,
+  },
+  selectedCategoryBox: {
+    borderWidth: 2,
+    borderColor: COLORS.primary.main,
+  },
+  selectedCategoryName: {
+    color: COLORS.primary.main,
+    fontWeight: '700',
+  },
+  adSection: {
+    marginHorizontal: 20,
+    marginBottom: 16,
+  },
+  adBanner: {
+    backgroundColor: '#FF6B6B',
+    borderRadius: 16,
+    padding: 20,
+    alignItems: 'center',
+    ...SHADOWS.medium,
+  },
+  adTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: COLORS.neutral.white,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  adDescription: {
+    fontSize: 14,
+    color: COLORS.neutral.white,
+    marginBottom: 16,
+    textAlign: 'center',
+    opacity: 0.9,
+  },
+  adButton: {
+    backgroundColor: COLORS.neutral.white,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 20,
+  },
+  adButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FF6B6B',
   },
 });
 

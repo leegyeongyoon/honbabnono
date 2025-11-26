@@ -276,47 +276,57 @@ app.get('/api/user/hosted-meetups', authenticateToken, async (req, res) => {
     const offset = (page - 1) * limit;
     const userId = req.user.userId;
     
-    console.log('🏠 호스팅 모임 조회 요청:', { userId, page, limit });
+    console.log('🏠 [API] 호스팅 모임 조회 요청:', { userId, page, limit, offset });
     
-    // 데이터베이스 연결 확인
-    if (!User) {
-      return res.status(503).json({ 
-        success: false, 
-        error: '데이터베이스 연결이 필요합니다.' 
-      });
-    }
+    // 실제 데이터베이스 쿼리로 호스팅 모임 조회
+    const meetups = await sequelize.query(`
+      SELECT 
+        id, title, description, location, address, 
+        latitude, longitude, date, time, 
+        max_participants, current_participants, 
+        category, price_range, age_range, gender_preference,
+        dining_preferences, promise_deposit_amount, promise_deposit_required,
+        status, image, created_at, updated_at
+      FROM meetups 
+      WHERE host_id = :userId 
+      ORDER BY created_at DESC
+      LIMIT :limit OFFSET :offset
+    `, {
+      replacements: { 
+        userId, 
+        limit: parseInt(limit), 
+        offset: parseInt(offset) 
+      },
+      type: sequelize.QueryTypes.SELECT
+    });
+
+    // 총 개수 조회
+    const [countResult] = await sequelize.query(`
+      SELECT COUNT(*) as total FROM meetups WHERE host_id = :userId
+    `, {
+      replacements: { userId },
+      type: sequelize.QueryTypes.SELECT
+    });
+
+    const totalPages = Math.ceil(countResult.total / limit);
     
-    // 임시 데이터 반환 (실제 구현에서는 데이터베이스 쿼리 사용)
-    const mockData = {
-      meetups: [
-        {
-          id: 1,
-          title: "홍대 맛집 투어",
-          description: "홍대 근처 맛집을 함께 탐방해요!",
-          location: "홍대입구역",
-          date: "2025-11-01",
-          time: "18:00",
-          maxParticipants: 4,
-          currentParticipants: 2,
-          category: "맛집탐방",
-          status: "active",
-          createdAt: "2025-10-25T10:00:00Z"
-        }
-      ],
+    console.log('✅ [API] 호스팅 모임 조회 성공:', meetups.length, '개');
+    console.log('📊 [API] 쿼리 결과 샘플:', meetups.slice(0, 2));
+    console.log('📈 [API] 총 개수:', countResult.total);
+    
+    const responseData = { 
+      success: true, 
+      data: meetups,
       pagination: {
-        total: 1,
+        total: parseInt(countResult.total),
         page: parseInt(page),
         limit: parseInt(limit),
-        totalPages: 1
+        totalPages: totalPages
       }
     };
     
-    console.log('✅ 호스팅 모임 조회 성공');
-    res.json({ 
-      success: true, 
-      data: mockData.meetups,
-      pagination: mockData.pagination 
-    });
+    console.log('📤 [API] 응답 데이터:', responseData);
+    res.json(responseData);
 
   } catch (error) {
     console.error('❌ 호스팅 모임 조회 실패:', error);
@@ -575,50 +585,75 @@ app.post('/api/user/profile/upload-image', authenticateToken, upload.single('pro
 app.get('/api/user/joined-meetups', authenticateToken, async (req, res) => {
   try {
     const { page = 1, limit = 10 } = req.query;
+    const offset = (page - 1) * limit;
     const userId = req.user.userId;
     
-    console.log('👥 참가 모임 조회 요청:', { userId, page, limit });
+    console.log('👥 [API] 참가 모임 조회 요청:', { userId, page, limit, offset });
     
-    // 임시 데이터
-    const mockData = {
-      data: [
-        {
-          id: "2",
-          title: "강남 카페 투어",
-          description: "강남역 주변 예쁜 카페들을 탐방해요",
-          location: "강남역",
-          date: "2025-11-05",
-          time: "14:00",
-          maxParticipants: 6,
-          currentParticipants: 4,
-          category: "카페탐방",
-          status: "active",
-          createdAt: "2025-10-20T10:00:00Z",
-          participationStatus: "confirmed",
-          joinedAt: "2025-10-21T10:00:00Z",
-          hostName: "카페러버"
-        }
-      ],
+    // 실제 데이터베이스 쿼리로 참가한 모임 조회 (JOIN 사용)
+    const meetups = await sequelize.query(`
+      SELECT 
+        m.id, m.title, m.description, m.location, m.address, 
+        m.latitude, m.longitude, m.date, m.time, 
+        m.max_participants, m.current_participants, 
+        m.category, m.price_range, m.age_range, m.gender_preference,
+        m.dining_preferences, m.promise_deposit_amount, m.promise_deposit_required,
+        m.status, m.image, m.created_at, m.updated_at,
+        mp.status as participation_status,
+        mp.joined_at,
+        u.name as host_name
+      FROM meetups m
+      INNER JOIN meetup_participants mp ON m.id = mp.meetup_id
+      INNER JOIN users u ON m.host_id = u.id
+      WHERE mp.user_id = :userId 
+      ORDER BY mp.joined_at DESC
+      LIMIT :limit OFFSET :offset
+    `, {
+      replacements: { 
+        userId, 
+        limit: parseInt(limit), 
+        offset: parseInt(offset) 
+      },
+      type: sequelize.QueryTypes.SELECT
+    });
+    
+    console.log('📝 참가한 모임 쿼리 결과:', meetups.length, '개');
+
+    // 총 개수 조회
+    const [countResult] = await sequelize.query(`
+      SELECT COUNT(*) as total 
+      FROM meetup_participants mp 
+      WHERE mp.user_id = :userId
+    `, {
+      replacements: { userId },
+      type: sequelize.QueryTypes.SELECT
+    });
+
+    const totalPages = Math.ceil(countResult.total / limit);
+    
+    console.log('✅ [API] 참가 모임 조회 성공:', meetups.length, '개');
+    console.log('📊 [API] 쿼리 결과 샘플:', meetups.slice(0, 2));
+    console.log('📈 [API] 총 개수:', countResult.total);
+    
+    const responseData = { 
+      success: true, 
+      data: meetups,
       pagination: {
-        total: 1,
+        total: parseInt(countResult.total),
         page: parseInt(page),
         limit: parseInt(limit),
-        totalPages: 1
+        totalPages: totalPages
       }
     };
     
-    console.log('✅ 참가 모임 조회 성공');
-    res.json({ 
-      success: true, 
-      data: mockData.data,
-      pagination: mockData.pagination
-    });
+    console.log('📤 [API] 응답 데이터:', responseData);
+    res.json(responseData);
 
   } catch (error) {
     console.error('❌ 참가 모임 조회 실패:', error);
     res.status(500).json({ 
-      success: false, 
-      error: '서버 오류가 발생했습니다.' 
+      success: false,
+      error: '서버 오류가 발생했습니다.'
     });
   }
 });

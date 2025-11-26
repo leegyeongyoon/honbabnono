@@ -82,6 +82,31 @@ const Meetup = sequelize.define('Meetup', {
   tags: {
     type: DataTypes.ARRAY(DataTypes.STRING),
     defaultValue: []
+  },
+  ageRange: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    field: 'age_range'
+  },
+  genderPreference: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    field: 'gender_preference'
+  },
+  diningPreferences: {
+    type: DataTypes.JSONB,
+    defaultValue: {},
+    field: 'dining_preferences'
+  },
+  promiseDepositAmount: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0,
+    field: 'promise_deposit_amount'
+  },
+  promiseDepositRequired: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
+    field: 'promise_deposit_required'
   }
 }, {
   tableName: 'meetups',

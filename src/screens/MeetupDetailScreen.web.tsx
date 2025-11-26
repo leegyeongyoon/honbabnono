@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
 import { COLORS, SHADOWS } from '../styles/colors';
@@ -10,7 +10,143 @@ import { getChatTimeDifference } from '../utils/timeUtils';
 import { useRouterNavigation } from '../components/RouterNavigation';
 import { Icon } from '../components/Icon';
 import { ProfileImage } from '../components/ProfileImage';
+import { FOOD_CATEGORIES } from '../constants/categories';
 
+
+// 카테고리 관련 유틸 함수들
+const getCategoryIcon = (categoryName: string) => {
+  const category = FOOD_CATEGORIES.find(cat => cat.name === categoryName);
+  return category ? category.icon : 'utensils';
+};
+
+const getCategoryColor = (categoryName: string) => {
+  const category = FOOD_CATEGORIES.find(cat => cat.name === categoryName);
+  return category ? category.color : COLORS.primary.main;
+};
+
+// 필터 정보 아코디언 컴포넌트
+const FilterAccordion: React.FC<{ 
+  diningPreferences?: any; 
+  promiseDepositRequired?: boolean; 
+  promiseDepositAmount?: number;
+}> = ({ diningPreferences, promiseDepositRequired, promiseDepositAmount }) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  // 필터 정보가 있는지 확인
+  const hasFilterInfo = diningPreferences && (
+    diningPreferences.eatingSpeed ||
+    diningPreferences.conversationDuringMeal ||
+    diningPreferences.talkativeness ||
+    diningPreferences.mealPurpose ||
+    diningPreferences.specificRestaurant ||
+    (diningPreferences.interests && diningPreferences.interests.length > 0)
+  );
+
+  const hasDepositInfo = promiseDepositRequired && promiseDepositAmount;
+
+  if (!hasFilterInfo && !hasDepositInfo) {
+    return null;
+  }
+
+  return (
+    <View style={styles.accordionContainer}>
+      <TouchableOpacity 
+        style={styles.accordionHeader}
+        onPress={() => setIsExpanded(!isExpanded)}
+      >
+        <Text style={styles.accordionTitle}>선택 성향 필터</Text>
+        <Icon 
+          name={isExpanded ? "chevron-up" : "chevron-down"} 
+          size={20} 
+          color={COLORS.text.secondary} 
+        />
+      </TouchableOpacity>
+      
+      {isExpanded && (
+        <View style={styles.accordionContent}>
+          {/* 약속금 정보 */}
+          {hasDepositInfo && (
+            <View style={styles.filterSection}>
+              <Text style={styles.filterSectionTitle}>💰 약속금</Text>
+              <View style={styles.filterItem}>
+                <Text style={styles.filterValue}>
+                  {promiseDepositAmount?.toLocaleString()}원
+                </Text>
+                <Text style={styles.filterDescription}>노쇼 방지를 위한 약속금입니다</Text>
+              </View>
+            </View>
+          )}
+
+          {/* 식사 스타일 */}
+          {diningPreferences?.eatingSpeed && (
+            <View style={styles.filterSection}>
+              <Text style={styles.filterSectionTitle}>🍽️ 식사 속도</Text>
+              <View style={styles.filterItem}>
+                <Text style={styles.filterValue}>{diningPreferences.eatingSpeed}</Text>
+              </View>
+            </View>
+          )}
+
+          {/* 대화 선호도 */}
+          {diningPreferences?.conversationDuringMeal && (
+            <View style={styles.filterSection}>
+              <Text style={styles.filterSectionTitle}>💬 식사 중 대화</Text>
+              <View style={styles.filterItem}>
+                <Text style={styles.filterValue}>{diningPreferences.conversationDuringMeal}</Text>
+              </View>
+            </View>
+          )}
+
+          {/* 수다 정도 */}
+          {diningPreferences?.talkativeness && (
+            <View style={styles.filterSection}>
+              <Text style={styles.filterSectionTitle}>🗣️ 수다 정도</Text>
+              <View style={styles.filterItem}>
+                <Text style={styles.filterValue}>{diningPreferences.talkativeness}</Text>
+              </View>
+            </View>
+          )}
+
+          {/* 식사 목적 */}
+          {diningPreferences?.mealPurpose && (
+            <View style={styles.filterSection}>
+              <Text style={styles.filterSectionTitle}>🎯 식사 목적</Text>
+              <View style={styles.filterItem}>
+                <Text style={styles.filterValue}>{diningPreferences.mealPurpose}</Text>
+              </View>
+            </View>
+          )}
+
+          {/* 특정 음식점 */}
+          {diningPreferences?.specificRestaurant && (
+            <View style={styles.filterSection}>
+              <Text style={styles.filterSectionTitle}>🏪 선호 음식점</Text>
+              <View style={styles.filterItem}>
+                <Text style={styles.filterValue}>{diningPreferences.specificRestaurant}</Text>
+              </View>
+            </View>
+          )}
+
+          {/* 관심사 */}
+          {diningPreferences?.interests && diningPreferences.interests.length > 0 && (
+            <View style={styles.filterSection}>
+              <Text style={styles.filterSectionTitle}>🎨 관심사</Text>
+              <View style={styles.filterItem}>
+                <View style={styles.interestTags}>
+                  {diningPreferences.interests.map((interest: string, index: number) => (
+                    <View key={index} style={styles.interestTag}>
+                      <Text style={styles.interestTagText}>{interest}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            </View>
+          )}
+        </View>
+      )}
+    </View>
+  );
+};
 
 // Window 타입 확장
 declare global {
@@ -417,21 +553,94 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
         <View style={styles.mainCard}>
           <Text style={styles.meetupTitle}>{meetup.title || '급한 때실 시밥'}</Text>
           
+          {/* 필수 성향 필터 뱃지 */}
+          <View style={styles.filterBadgeContainer}>
+            <Text style={styles.filterBadgeTitle}>필수 성향</Text>
+            <View style={styles.filterBadges}>
+              {/* 카테고리 뱃지 */}
+              {meetup.category && (
+                <View style={[styles.filterBadge, { backgroundColor: getCategoryColor(meetup.category) + '20' }]}>
+                  <Icon 
+                    name={getCategoryIcon(meetup.category) as any} 
+                    size={14} 
+                    color={getCategoryColor(meetup.category)} 
+                  />
+                  <Text style={[styles.filterBadgeText, { color: getCategoryColor(meetup.category) }]}>
+                    {meetup.category}
+                  </Text>
+                </View>
+              )}
+              
+              {/* 가격대 뱃지 */}
+              {meetup.priceRange && (
+                <View style={styles.priceBadge}>
+                  <Icon name="dollar-sign" size={14} color={COLORS.functional.success} />
+                  <Text style={styles.priceBadgeText}>{meetup.priceRange}</Text>
+                </View>
+              )}
+              
+              {/* 연령대 필터 - API 데이터가 있을 때만 표시 */}
+              {meetup.ageRange && (
+                <View style={styles.ageBadge}>
+                  <Icon name="user" size={14} color={COLORS.text.secondary} />
+                  <Text style={styles.ageBadgeText}>{meetup.ageRange}</Text>
+                </View>
+              )}
+              
+              {/* 성별 필터 - API 데이터가 있을 때만 표시 */}
+              {meetup.genderPreference && (
+                <View style={styles.genderBadge}>
+                  <Icon name="users" size={14} color={COLORS.primary.main} />
+                  <Text style={styles.genderBadgeText}>{meetup.genderPreference}</Text>
+                </View>
+              )}
+            </View>
+          </View>
+
+          {/* 선택 성향 필터 뱃지 */}
+          <View style={styles.filterBadgeContainer}>
+            <Text style={styles.filterBadgeTitle}>선택 성향</Text>
+            <View style={styles.filterBadges}>
+              {/* 기분 조건 */}
+              <View style={styles.optionalBadge}>
+                <Icon name="smile" size={14} color={COLORS.primary.main} />
+                <Text style={styles.optionalBadgeText}>분위기 좋은 곳</Text>
+              </View>
+              
+              {/* 위치 조건 */}
+              <View style={styles.optionalBadge}>
+                <Icon name="map" size={14} color={COLORS.functional.warning} />
+                <Text style={styles.optionalBadgeText}>역 근처</Text>
+              </View>
+              
+              {/* 시간 조건 */}
+              <View style={styles.optionalBadge}>
+                <Icon name="clock" size={14} color={COLORS.text.secondary} />
+                <Text style={styles.optionalBadgeText}>1-2시간</Text>
+              </View>
+              
+              {/* 음료 조건 */}
+              <View style={styles.optionalBadge}>
+                <Icon name="coffee" size={14} color="#8B4513" />
+                <Text style={styles.optionalBadgeText}>무알코올</Text>
+              </View>
+            </View>
+          </View>
+
           <View style={styles.infoGrid}>
-            <View style={styles.infoItem}>
+            <View style={styles.infoRow}>
+              <Icon name="map-pin" size={16} color={COLORS.text.secondary} />
               <Text style={styles.infoLabel}>{meetup.location}</Text>
             </View>
             
-            <View style={styles.infoItem}>
+            <View style={styles.infoRow}>
+              <Icon name="clock" size={16} color={COLORS.text.secondary} />
               <Text style={styles.infoLabel}>{meetup.date} {meetup.time}</Text>
             </View>
             
-            <View style={styles.infoItem}>
-              <Text style={styles.infoLabel}>{meetup.currentParticipants}/{meetup.maxParticipants}명</Text>
-            </View>
-            
             <View style={styles.infoRow}>
-              <Text style={styles.infoDetails}>{meetup.category}    {meetup.priceRange || '가격미정'}    {meetup.tags?.join(' ') || ''}</Text>
+              <Icon name="users" size={16} color={COLORS.text.secondary} />
+              <Text style={styles.infoLabel}>{meetup.currentParticipants}/{meetup.maxParticipants}명</Text>
             </View>
           </View>
 
@@ -445,6 +654,13 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
             </Text>
           </View>
         </View>
+
+        {/* 필터 정보 아코디언 */}
+        <FilterAccordion 
+          diningPreferences={meetup.diningPreferences}
+          promiseDepositRequired={meetup.promiseDepositRequired}
+          promiseDepositAmount={meetup.promiseDepositAmount}
+        />
 
         {/* 지도 섹션 */}
         <KakaoMap 
@@ -780,12 +996,15 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   infoLabel: {
-    fontSize: 16,
+    fontSize: 14,
     color: COLORS.text.secondary,
     fontWeight: '500',
+    marginLeft: 8,
   },
   infoRow: {
-    marginTop: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
   },
   infoDetails: {
     fontSize: 14,
@@ -1157,6 +1376,155 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: COLORS.text.secondary,
     textAlign: 'center',
+  },
+  // 필터 뱃지 스타일
+  filterBadgeContainer: {
+    marginBottom: 20,
+  },
+  filterBadgeTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: COLORS.text.primary,
+    marginBottom: 12,
+  },
+  filterBadges: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  filterBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    gap: 6,
+  },
+  filterBadgeText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  priceBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    backgroundColor: COLORS.functional.success + '20',
+    gap: 6,
+  },
+  priceBadgeText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: COLORS.functional.success,
+  },
+  ageBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    backgroundColor: COLORS.text.secondary + '20',
+    gap: 6,
+  },
+  ageBadgeText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: COLORS.text.secondary,
+  },
+  genderBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    backgroundColor: COLORS.primary.main + '20',
+    gap: 6,
+  },
+  genderBadgeText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: COLORS.primary.main,
+  },
+  optionalBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    backgroundColor: '#F8F9FA',
+    borderWidth: 1,
+    borderColor: '#E9ECEF',
+    gap: 6,
+  },
+  optionalBadgeText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: COLORS.text.secondary,
+  },
+  // 아코디언 스타일
+  accordionContainer: {
+    marginHorizontal: 20,
+    marginBottom: 20,
+    backgroundColor: COLORS.neutral.white,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.neutral.grey200,
+    overflow: 'hidden',
+  },
+  accordionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
+    backgroundColor: COLORS.neutral.background,
+  },
+  accordionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+  },
+  accordionContent: {
+    padding: 16,
+    backgroundColor: COLORS.neutral.white,
+  },
+  filterSection: {
+    marginBottom: 16,
+  },
+  filterSectionTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+    marginBottom: 8,
+  },
+  filterItem: {
+    marginBottom: 4,
+  },
+  filterValue: {
+    fontSize: 14,
+    color: COLORS.text.secondary,
+    fontWeight: '500',
+  },
+  filterDescription: {
+    fontSize: 12,
+    color: COLORS.text.tertiary,
+    marginTop: 2,
+  },
+  interestTags: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  interestTag: {
+    backgroundColor: COLORS.primary.main + '20',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  interestTagText: {
+    fontSize: 12,
+    color: COLORS.primary.main,
+    fontWeight: '500',
   },
 });
 

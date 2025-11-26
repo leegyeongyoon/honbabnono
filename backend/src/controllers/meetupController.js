@@ -82,7 +82,20 @@ const createMeetup = async (req, res) => {
       priceRange,
       image,
       requirements,
-      tags
+      tags,
+      depositId,
+      // 필수 필터
+      genderFilter,
+      ageFilterMin,
+      ageFilterMax,
+      // 선택 필터  
+      eatingSpeed,
+      conversationDuringMeal,
+      talkativeness,
+      mealPurpose,
+      specificRestaurant,
+      interests,
+      isRequired
     } = req.body;
 
     const hostId = req.user.userId;
@@ -90,6 +103,22 @@ const createMeetup = async (req, res) => {
     if (!title || !location || !date || !time || !maxParticipants || !category) {
       return res.status(400).json({ error: '필수 필드를 모두 입력해주세요' });
     }
+
+    // 필터 데이터 처리
+    const ageRange = ageFilterMin && ageFilterMax ? `${ageFilterMin}-${ageFilterMax}세` : null;
+    const genderPreference = genderFilter === 'anyone' ? '상관없음' : 
+                           genderFilter === 'male' ? '남성만' : 
+                           genderFilter === 'female' ? '여성만' : '상관없음';
+                           
+    const diningPreferences = {
+      eatingSpeed: eatingSpeed || null,
+      conversationDuringMeal: conversationDuringMeal || null,
+      talkativeness: talkativeness || null,
+      mealPurpose: mealPurpose || null,
+      specificRestaurant: specificRestaurant || null,
+      interests: interests ? JSON.parse(interests) : [],
+      isRequired: isRequired === 'true'
+    };
 
     const meetup = await Meetup.create({
       title,
@@ -103,10 +132,15 @@ const createMeetup = async (req, res) => {
       maxParticipants,
       category,
       priceRange,
+      ageRange,
+      genderPreference,
       image,
       hostId,
       requirements,
-      tags: tags || []
+      tags: tags || [],
+      diningPreferences,
+      promiseDepositAmount: depositId ? 5000 : 0, // 기본 약속금 5000원
+      promiseDepositRequired: !!depositId
     });
 
     // 호스트를 자동으로 참가자로 추가
