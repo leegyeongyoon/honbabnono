@@ -20,9 +20,16 @@ class LocationService {
   private currentLocation: LocationData | null = null;
 
   /**
-   * 현재 위치 가져오기
+   * 현재 위치 가져오기 (개선된 에러 처리)
    */
   async getCurrentLocation(): Promise<LocationData> {
+    // 먼저 권한 상태 확인
+    const permissionState = await this.checkLocationPermission();
+    
+    if (permissionState === 'denied') {
+      throw new Error('위치 접근 권한이 차단되었습니다. 브라우저 설정에서 위치 권한을 허용해주세요.');
+    }
+
     return new Promise((resolve, reject) => {
       if (!navigator.geolocation) {
         reject(new Error('이 브라우저는 위치 서비스를 지원하지 않습니다.'));
@@ -43,20 +50,25 @@ class LocationService {
         },
         (error) => {
           let errorMessage = '위치를 가져올 수 없습니다.';
+          let userAction = '';
           
           switch (error.code) {
             case error.PERMISSION_DENIED:
               errorMessage = '위치 접근 권한이 거부되었습니다.';
+              userAction = '브라우저 주소창 왼쪽 🔒 아이콘을 클릭하여 위치 권한을 허용해주세요.';
               break;
             case error.POSITION_UNAVAILABLE:
               errorMessage = '위치 정보를 사용할 수 없습니다.';
+              userAction = 'GPS가 켜져있는지 확인하거나 실외에서 다시 시도해주세요.';
               break;
             case error.TIMEOUT:
               errorMessage = '위치 요청 시간이 초과되었습니다.';
+              userAction = '잠시 후 다시 시도해주세요.';
               break;
           }
           
-          reject(new Error(errorMessage));
+          const fullError = userAction ? `${errorMessage}\n\n해결방법: ${userAction}` : errorMessage;
+          reject(new Error(fullError));
         },
         {
           enableHighAccuracy: true, // GPS 사용
@@ -242,11 +254,11 @@ class LocationService {
   /**
    * 위치 권한 상태 확인
    */
-  async checkLocationPermission(): Promise<PermissionState> {
+  async checkLocationPermission(): Promise<'granted' | 'denied' | 'prompt'> {
     try {
-      if ('permissions' in navigator) {
-        const result = await navigator.permissions.query({ name: 'geolocation' });
-        return result.state;
+      if ('permissions' in navigator && (navigator as any).permissions) {
+        const result = await (navigator as any).permissions.query({ name: 'geolocation' });
+        return result.state as 'granted' | 'denied' | 'prompt';
       }
       return 'granted'; // 권한 API가 없으면 허용으로 가정
     } catch (error) {

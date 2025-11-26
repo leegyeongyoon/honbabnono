@@ -47,11 +47,11 @@ const NeighborhoodSelector: React.FC<NeighborhoodSelectorProps> = ({
       setLoading(true);
       
       // 위치 권한 확인
-      const hasPermission = await locationService.checkLocationPermission();
-      if (!hasPermission) {
+      const permissionState = await locationService.checkLocationPermission();
+      if (permissionState === 'denied') {
         Alert.alert(
-          '위치 권한 필요',
-          '현재 위치를 사용하려면 위치 권한을 허용해주세요.\n\n브라우저 설정에서 위치 권한을 허용하거나, 아래 옵션을 선택해주세요:',
+          '위치 권한이 차단됨',
+          '위치 권한이 차단되어 있습니다.\n\n📍 해결방법:\n1. 브라우저 주소창 왼쪽 🔒 아이콘 클릭\n2. 위치 설정을 "허용"으로 변경\n3. 페이지 새로고침 후 다시 시도',
           [
             {
               text: '인기 동네 보기',
@@ -62,10 +62,11 @@ const NeighborhoodSelector: React.FC<NeighborhoodSelectorProps> = ({
               onPress: () => setActiveTab('search')
             },
             {
-              text: '다시 시도',
+              text: '페이지 새로고침',
               onPress: () => {
-                // 권한 재요청을 위해 함수 재호출
-                setTimeout(() => handleGetCurrentLocation(), 100);
+                if (typeof window !== 'undefined') {
+                  window.location.reload();
+                }
               }
             }
           ]
@@ -83,38 +84,38 @@ const NeighborhoodSelector: React.FC<NeighborhoodSelectorProps> = ({
         onSelect(address.district, address.neighborhood);
         onClose();
       } else {
-        Alert.alert('오류', '현재 위치의 주소를 가져올 수 없습니다.');
+        Alert.alert('오류', '현재 위치의 주소를 가져올 수 없습니다.\n인기 동네나 검색을 이용해주세요.');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('현재 위치 조회 실패:', error);
       
-      let errorMessage = '현재 위치를 가져올 수 없습니다.';
-      if (error.message.includes('권한')) {
-        errorMessage = '위치 접근 권한이 필요합니다.\n브라우저 설정에서 위치 권한을 허용해주세요.';
-      } else if (error.message.includes('시간')) {
-        errorMessage = '위치 조회 시간이 초과되었습니다.\n다시 시도해주세요.';
-      } else if (error.message.includes('사용할 수 없습니다')) {
-        errorMessage = 'GPS 서비스를 사용할 수 없습니다.\n인기 동네나 검색을 이용해주세요.';
+      let title = '위치 조회 실패';
+      let message = '현재 위치를 가져올 수 없습니다.';
+      let actions = [
+        { text: '인기 동네 보기', onPress: () => setActiveTab('popular') },
+        { text: '직접 검색', onPress: () => setActiveTab('search') }
+      ];
+
+      if (error?.message?.includes('권한')) {
+        title = '위치 권한 필요';
+        message = '위치 접근 권한이 필요합니다.\n\n📍 브라우저 주소창 왼쪽 🔒 아이콘을 클릭하여\n위치 권한을 허용해주세요.';
+        actions.push({ 
+          text: '다시 시도', 
+          onPress: () => setTimeout(() => handleGetCurrentLocation(), 100)
+        });
+      } else if (error?.message?.includes('시간')) {
+        title = '시간 초과';
+        message = '위치 조회 시간이 초과되었습니다.\n잠시 후 다시 시도해주세요.';
+        actions.push({ 
+          text: '다시 시도', 
+          onPress: () => setTimeout(() => handleGetCurrentLocation(), 1000)
+        });
+      } else if (error?.message?.includes('사용할 수 없습니다')) {
+        title = 'GPS 서비스 오류';
+        message = 'GPS 서비스를 사용할 수 없습니다.\n실외에서 다시 시도하거나 다른 방법을 이용해주세요.';
       }
       
-      Alert.alert(
-        '위치 조회 실패',
-        errorMessage,
-        [
-          {
-            text: '인기 동네 보기',
-            onPress: () => setActiveTab('popular')
-          },
-          {
-            text: '직접 검색',
-            onPress: () => setActiveTab('search')
-          },
-          {
-            text: '확인',
-            style: 'cancel'
-          }
-        ]
-      );
+      Alert.alert(title, message, actions);
     } finally {
       setLoading(false);
     }
