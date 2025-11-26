@@ -8,6 +8,7 @@ import {
   Image,
 } from 'react-native';
 import {COLORS, SHADOWS} from '../styles/colors';
+import apiClient from '../services/apiClient';
 
 const LoginScreen = () => {
   const [loading, setLoading] = useState(false);
@@ -74,24 +75,18 @@ const LoginScreen = () => {
   const handleTestLogin = async (email: string, name: string) => {
     setLoading(true);
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:3001/api'}/auth/test-login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('user', JSON.stringify(data.user));
+      const response = await apiClient.post('/auth/test-login', { email });
+      
+      if (response.data) {
+        localStorage.setItem('token', response.data.token);
+        localStorage.setItem('user', JSON.stringify(response.data.user));
         Alert.alert('테스트 로그인 성공! 🎉', `${name}으로 로그인되었습니다.`);
         window.location.href = '/';
       } else {
         Alert.alert('로그인 실패', '테스트 로그인에 실패했습니다.');
       }
     } catch (error) {
+      console.error('테스트 로그인 오류:', error);
       Alert.alert('로그인 실패', '서버 연결에 실패했습니다.');
     } finally {
       setLoading(false);
