@@ -88,7 +88,12 @@ class LocationService {
               break;
             case error.POSITION_UNAVAILABLE:
               errorMessage = '위치 정보를 사용할 수 없습니다.';
-              userAction = '📍 다음을 확인해주세요:\n• 기기의 위치 서비스 켜기\n• WiFi나 모바일 데이터 연결 확인\n• 실내에서는 창가로 이동\n• 브라우저 재시작';
+              // iOS Safari 특별 처리
+              if (userAgent.includes('iPhone') || userAgent.includes('iPad')) {
+                userAction = '📱 iPhone/iPad에서 위치 문제 해결:\n\n1️⃣ 설정 → 개인정보 보호 및 보안 → 위치 서비스 → 켜기\n2️⃣ 설정 → Safari → 위치 → 허용\n3️⃣ Safari 완전 종료 후 재실행\n4️⃣ 또는 아래 목록에서 수동 선택';
+              } else {
+                userAction = '📍 다음을 확인해주세요:\n• 기기의 위치 서비스 켜기\n• WiFi나 모바일 데이터 연결 확인\n• 실내에서는 창가로 이동\n• 브라우저 재시작';
+              }
               break;
             case error.TIMEOUT:
               errorMessage = '위치 요청 시간이 초과되었습니다.';
@@ -99,15 +104,15 @@ class LocationService {
               userAction = '📍 다음을 시도해보세요:\n• 브라우저 새로고침\n• 다른 브라우저 사용\n• 아래 목록에서 수동 선택';
           }
           
-          // 운영환경에서 디버깅 정보 로그
+          // 운영환경에서는 간단한 warn으로만 기록 (iOS는 더 조용히)
           if (isProduction) {
-            console.error('🚨 운영환경 GPS 오류:', {
-              code: error.code,
-              message: error.message,
-              protocol: protocol,
-              userAgent: userAgent.substring(0, 100),
-              timestamp: new Date().toISOString()
-            });
+            const isIOS = userAgent.includes('iPhone') || userAgent.includes('iPad');
+            if (isIOS) {
+              // iOS에서는 GPS 실패가 흔하므로 아예 로깅하지 않음
+              console.debug('📱 iOS GPS 제한 (정상)');
+            } else {
+              console.warn('📍 GPS 실패:', { code: error.code, protocol });
+            }
           }
           
           // 개발 환경에서는 더 조용한 로깅
@@ -122,9 +127,9 @@ class LocationService {
           reject(new Error(fullError));
         },
         {
-          enableHighAccuracy: !isDevelopment, // 운영환경에서는 고정밀도 사용
-          timeout: isDevelopment ? 5000 : 30000, // 운영환경에서는 30초로 충분한 시간
-          maximumAge: isDevelopment ? 300000 : 60000, // 운영환경에서는 1분 캐시
+          enableHighAccuracy: false, // iOS에서 문제가 있으므로 false로 설정
+          timeout: isDevelopment ? 5000 : 15000, // iOS에서는 15초가 적당
+          maximumAge: isDevelopment ? 300000 : 300000, // 5분 캐시로 통일
         }
       );
     });

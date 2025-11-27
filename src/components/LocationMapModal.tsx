@@ -142,24 +142,9 @@ const LocationMapModal: React.FC<LocationMapModalProps> = ({
         console.error('GPS 자동 위치 감지 실패:', error);
       }
 
-      // 에러 타입에 따른 사용자 친화적 메시지
-      let title = 'GPS 감지 실패';
-      let message = '현재 위치를 자동으로 감지할 수 없습니다.';
-      
-      if (error.message?.includes('권한')) {
-        title = '위치 권한 필요';
-        message = '📍 브라우저에서 위치 권한을 허용해주세요.\n\n• 주소창 왼쪽 🔒 아이콘 클릭\n• 위치 → "허용" 선택\n• 페이지 새로고침';
-      } else if (error.message?.includes('시간') || error.message?.includes('timeout')) {
-        title = 'GPS 신호 약함';
-        message = '📍 GPS 신호가 약합니다.\n\n• 창가나 실외에서 시도\n• 잠시 후 다시 시도\n• 또는 아래에서 수동 선택';
-      } else if (error.message?.includes('사용할 수 없습니다') || error.message?.includes('LocationUnknown')) {
-        title = 'GPS 서비스 제한';
-        message = '📍 현재 환경에서 GPS를 사용할 수 없습니다.\n\n• HTTP 환경에서는 GPS가 제한됨\n• 아래 목록에서 동네를 선택해주세요';
-      }
-
-      Alert.alert(title, message, [
-        { text: '목록에서 선택', style: 'default' }
-      ]);
+      // GPS 실패 시 Alert 대신 조용히 처리 
+      // 사용자가 직접 클릭했을 때만 간단한 안내 제공
+      console.warn('📍 GPS 자동감지 실패:', error.message);
     }
   };
 
@@ -246,7 +231,12 @@ const LocationMapModal: React.FC<LocationMapModalProps> = ({
             <Icon name="navigation" size={24} color={COLORS.primary.main} />
             <View style={styles.autoDetectText}>
               <Text style={styles.autoDetectTitle}>📍 현재 위치 자동 감지</Text>
-              <Text style={styles.autoDetectSubtitle}>GPS로 정확한 위치를 찾아드려요</Text>
+              <Text style={styles.autoDetectSubtitle}>
+                {typeof navigator !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent) 
+                  ? 'iOS에서는 제한적일 수 있어요. 아래 목록에서 선택하는 것을 추천해요!'
+                  : 'GPS로 정확한 위치를 찾아드려요'
+                }
+              </Text>
             </View>
             <Icon name="chevron-right" size={20} color={COLORS.text.secondary} />
           </TouchableOpacity>

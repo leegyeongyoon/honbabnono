@@ -140,7 +140,9 @@ const NeighborhoodSelector: React.FC<NeighborhoodSelectorProps> = ({
         message = 'GPS 서비스를 사용할 수 없습니다.\n실외에서 다시 시도하거나 다른 방법을 이용해주세요.';
       }
       
-      Alert.alert(title, message, actions);
+      // GPS 실패 시 Alert 대신 조용히 처리하고 인기 동네 탭으로 이동
+      console.warn(`📍 GPS 실패: ${title} - ${error.message.substring(0, 50)}`);
+      setActiveTab('popular'); // 자동으로 인기 동네 탭으로 이동
     } finally {
       setLoading(false);
     }
