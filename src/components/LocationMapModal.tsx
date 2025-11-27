@@ -103,6 +103,11 @@ const LocationMapModal: React.FC<LocationMapModalProps> = ({
   // 현재 위치 자동 감지 시도
   const handleAutoDetectLocation = async () => {
     try {
+      // 개발 환경 감지
+      const isDevelopment = process.env.NODE_ENV === 'development' || 
+                            window.location.hostname === 'localhost' || 
+                            window.location.hostname === '127.0.0.1';
+
       const position = await locationService.getCurrentLocation();
       const address = await locationService.reverseGeocode(position.latitude, position.longitude);
       
@@ -123,11 +128,38 @@ const LocationMapModal: React.FC<LocationMapModalProps> = ({
         );
         onClose();
       } else {
-        Alert.alert('위치 오류', '현재 위치의 주소를 가져올 수 없습니다.');
+        Alert.alert('위치 오류', '현재 위치의 주소를 가져올 수 없습니다.\n아래 목록에서 수동으로 선택해주세요.');
       }
-    } catch (error) {
-      console.error('자동 위치 감지 실패:', error);
-      Alert.alert('GPS 오류', '현재 위치를 감지할 수 없습니다.\n아래 목록에서 위치를 선택해주세요.');
+    } catch (error: any) {
+      // 개발 환경에서는 조용한 로깅
+      const isDevelopment = process.env.NODE_ENV === 'development' || 
+                            window.location.hostname === 'localhost' || 
+                            window.location.hostname === '127.0.0.1';
+      
+      if (isDevelopment) {
+        console.warn('📍 개발환경: GPS 자동감지 실패 (정상)', error.message);
+      } else {
+        console.error('GPS 자동 위치 감지 실패:', error);
+      }
+
+      // 에러 타입에 따른 사용자 친화적 메시지
+      let title = 'GPS 감지 실패';
+      let message = '현재 위치를 자동으로 감지할 수 없습니다.';
+      
+      if (error.message?.includes('권한')) {
+        title = '위치 권한 필요';
+        message = '📍 브라우저에서 위치 권한을 허용해주세요.\n\n• 주소창 왼쪽 🔒 아이콘 클릭\n• 위치 → "허용" 선택\n• 페이지 새로고침';
+      } else if (error.message?.includes('시간') || error.message?.includes('timeout')) {
+        title = 'GPS 신호 약함';
+        message = '📍 GPS 신호가 약합니다.\n\n• 창가나 실외에서 시도\n• 잠시 후 다시 시도\n• 또는 아래에서 수동 선택';
+      } else if (error.message?.includes('사용할 수 없습니다') || error.message?.includes('LocationUnknown')) {
+        title = 'GPS 서비스 제한';
+        message = '📍 현재 환경에서 GPS를 사용할 수 없습니다.\n\n• HTTP 환경에서는 GPS가 제한됨\n• 아래 목록에서 동네를 선택해주세요';
+      }
+
+      Alert.alert(title, message, [
+        { text: '목록에서 선택', style: 'default' }
+      ]);
     }
   };
 

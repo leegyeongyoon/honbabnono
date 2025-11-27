@@ -49,6 +49,13 @@ class LocationService {
         return;
       }
 
+      // 운영환경에서 HTTPS 확인
+      const isSecure = typeof window !== 'undefined' && window.location.protocol === 'https:';
+      if (!isDevelopment && !isSecure) {
+        reject(new Error('위치 서비스는 HTTPS 환경에서만 사용할 수 있습니다.\n\nHTTPS 사이트에서 접속하거나 아래 목록에서 선택해주세요.'));
+        return;
+      }
+
       navigator.geolocation.getCurrentPosition(
         (position) => {
           const locationData: LocationData = {
@@ -65,19 +72,42 @@ class LocationService {
           let errorMessage = '위치를 가져올 수 없습니다.';
           let userAction = '';
           
+          // 운영환경에서 상세한 디버깅 정보 제공
+          const isProduction = process.env.NODE_ENV === 'production';
+          const protocol = typeof window !== 'undefined' ? window.location.protocol : 'unknown';
+          const userAgent = typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown';
+          
           switch (error.code) {
             case error.PERMISSION_DENIED:
               errorMessage = '위치 접근 권한이 거부되었습니다.';
-              userAction = '브라우저 주소창 왼쪽 🔒 아이콘을 클릭하여 위치 권한을 허용해주세요.';
+              if (protocol === 'http:') {
+                userAction = '🚨 HTTP 사이트는 위치 서비스가 제한됩니다.\n\nHTTPS 사이트에서 이용하거나:\n• 브라우저 설정 → 사이트 설정 → 위치 → 허용\n• 또는 아래 목록에서 수동 선택';
+              } else {
+                userAction = '📍 브라우저 주소창 왼쪽 아이콘을 클릭하여:\n• 위치 → "허용" 선택\n• 페이지 새로고침 후 재시도';
+              }
               break;
             case error.POSITION_UNAVAILABLE:
               errorMessage = '위치 정보를 사용할 수 없습니다.';
-              userAction = 'GPS가 켜져있는지 확인하거나 실외에서 다시 시도해주세요.';
+              userAction = '📍 다음을 확인해주세요:\n• 기기의 위치 서비스 켜기\n• WiFi나 모바일 데이터 연결 확인\n• 실내에서는 창가로 이동\n• 브라우저 재시작';
               break;
             case error.TIMEOUT:
               errorMessage = '위치 요청 시간이 초과되었습니다.';
-              userAction = '잠시 후 다시 시도해주세요.';
+              userAction = '📍 GPS 신호가 약합니다:\n• 실외로 이동하여 재시도\n• 잠시 후 다시 시도\n• WiFi 환경에서 재시도';
               break;
+            default:
+              errorMessage = `알 수 없는 위치 오류가 발생했습니다. (코드: ${error.code})`;
+              userAction = '📍 다음을 시도해보세요:\n• 브라우저 새로고침\n• 다른 브라우저 사용\n• 아래 목록에서 수동 선택';
+          }
+          
+          // 운영환경에서 디버깅 정보 로그
+          if (isProduction) {
+            console.error('🚨 운영환경 GPS 오류:', {
+              code: error.code,
+              message: error.message,
+              protocol: protocol,
+              userAgent: userAgent.substring(0, 100),
+              timestamp: new Date().toISOString()
+            });
           }
           
           // 개발 환경에서는 더 조용한 로깅
@@ -92,9 +122,9 @@ class LocationService {
           reject(new Error(fullError));
         },
         {
-          enableHighAccuracy: false, // 개발 환경에서는 정확도 낮춰서 더 빠르게
-          timeout: isDevelopment ? 5000 : 15000, // 개발 환경에서는 5초로 단축
-          maximumAge: 300000, // 5분간 캐시 사용 (더 길게)
+          enableHighAccuracy: !isDevelopment, // 운영환경에서는 고정밀도 사용
+          timeout: isDevelopment ? 5000 : 30000, // 운영환경에서는 30초로 충분한 시간
+          maximumAge: isDevelopment ? 300000 : 60000, // 운영환경에서는 1분 캐시
         }
       );
     });

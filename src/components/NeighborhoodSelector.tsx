@@ -108,7 +108,8 @@ const NeighborhoodSelector: React.FC<NeighborhoodSelectorProps> = ({
                             window.location.hostname === '127.0.0.1';
       
       if (isDevelopment) {
-        console.warn('📍 개발 환경: 위치 조회 실패', error.message);
+        // 개발 환경에서는 GPS 실패를 warn으로만 표시하고 반복 방지
+        console.warn('📍 개발환경: GPS 실패 (정상) -', error.message.substring(0, 50));
       } else {
         console.error('현재 위치 조회 실패:', error);
       }
