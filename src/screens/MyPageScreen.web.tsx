@@ -5,8 +5,7 @@ import { COLORS, SHADOWS } from '../styles/colors';
 import { useUserStore } from '../store/userStore';
 import { Icon } from '../components/Icon';
 import { Users, Target, FileText, Gift, Award, Home, Star, TrendingUp, Crown, MapPin, Heart } from 'lucide-react';
-import apiClient from '../services/apiClient';
-// import userApiService from '../services/userApiService'; // 롤백
+import userApiService from '../services/userApiService';
 
 interface User {
   id: string;
@@ -384,37 +383,26 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ user: propsUser }) => {
         });
         
         try {
-          console.log('🚀 API 호출 시작: /user/upload-profile-image');
+          const uploadResponse = await userApiService.uploadProfileImage(profileData.profileImage);
           
-          const uploadResponse = await apiClient.post('/api/user/upload-profile-image', formData, {
-            headers: {
-              'Content-Type': 'multipart/form-data',
-            },
-          });
-          
-          console.log('✅ 업로드 응답 받음:', uploadResponse.data);
-          
-          if (uploadResponse.data.success) {
-            profileImageUrl = uploadResponse.data.imageUrl;
+          if (uploadResponse.success) {
+            profileImageUrl = uploadResponse.imageUrl;
             console.log('🖼️ 이미지 URL 설정됨:', profileImageUrl);
           }
         } catch (uploadError) {
           console.error('❌ 이미지 업로드 실패:', uploadError);
-          console.error('에러 응답 데이터:', uploadError.response?.data);
-          console.error('에러 상태 코드:', uploadError.response?.status);
           alert('이미지 업로드에 실패했습니다.');
           return;
         }
       }
       
       // 프로필 정보 업데이트
-      const response = await apiClient.put('/api/user/profile', {
+      const response = await userApiService.updateProfile({
         name: profileData.name,
-        bio: profileData.bio,
         profileImage: profileImageUrl
       });
       
-      if (response.data.success) {
+      if (response.success) {
         // 성공적으로 저장되면 로컬 상태 업데이트
         console.log('프로필이 성공적으로 업데이트되었습니다.');
         alert('프로필이 성공적으로 업데이트되었습니다.');

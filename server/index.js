@@ -7160,9 +7160,9 @@ apiRouter.get('/user/profile', authenticateToken, async (req, res) => {
 apiRouter.put('/api/user/profile', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.userId;
-    const { name, bio, profileImage } = req.body;
+    const { name, profileImage } = req.body;
 
-    console.log('🔧 프로필 업데이트 디버그:', { userId, name, bio, profileImage, userType: typeof userId });
+    console.log('🔧 프로필 업데이트 디버그:', { userId, name, profileImage, userType: typeof userId });
 
     // 업데이트할 필드들과 값들을 동적으로 구성
     let updateFields = [];
@@ -7175,12 +7175,6 @@ apiRouter.put('/api/user/profile', authenticateToken, async (req, res) => {
       valueIndex++;
     }
     
-    if (bio !== undefined) {
-      updateFields.push(`bio = $${valueIndex}`);
-      updateValues.push(bio);
-      valueIndex++;
-    }
-    
     if (profileImage !== undefined) {
       updateFields.push(`profile_image = $${valueIndex}`);
       updateValues.push(profileImage);
@@ -7190,7 +7184,7 @@ apiRouter.put('/api/user/profile', authenticateToken, async (req, res) => {
     updateFields.push(`updated_at = NOW()`);
     updateValues.push(userId);
 
-    const query = `UPDATE users SET ${updateFields.join(', ')} WHERE id = $${valueIndex} RETURNING id, name, email, bio, profile_image`;
+    const query = `UPDATE users SET ${updateFields.join(', ')} WHERE id = $${valueIndex} RETURNING id, name, email, profile_image`;
 
     const result = await pool.query(query, updateValues);
 

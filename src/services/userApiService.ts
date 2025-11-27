@@ -158,6 +158,47 @@ const userApiService = {
     }
   },
 
+  // 프로필 이미지 업로드
+  uploadProfileImage: async (file: File): Promise<{ success: boolean; imageUrl?: string }> => {
+    try {
+      console.log('📷 프로필 이미지 업로드 요청', { 
+        fileName: file.name, 
+        fileSize: file.size, 
+        fileType: file.type 
+      });
+
+      const formData = new FormData();
+      formData.append('profileImage', file);
+
+      const response = await apiClient.post('/user/upload-profile-image', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      console.log('✅ 프로필 이미지 업로드 성공');
+      return response.data;
+    } catch (error) {
+      console.error('❌ 프로필 이미지 업로드 실패:', error);
+      throw error;
+    }
+  },
+
+  // 프로필 업데이트
+  updateProfile: async (profileData: { name?: string; profileImage?: string }): Promise<any> => {
+    try {
+      console.log('🔄 프로필 업데이트 요청', profileData);
+
+      const response = await apiClient.put('/user/profile', profileData);
+
+      console.log('✅ 프로필 업데이트 성공');
+      return response.data;
+    } catch (error) {
+      console.error('❌ 프로필 업데이트 실패:', error);
+      throw error;
+    }
+  },
+
 };
 
 export default userApiService;
