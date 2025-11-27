@@ -6,6 +6,7 @@ import { useUserStore } from '../store/userStore';
 import { Icon } from '../components/Icon';
 import { Users, Target, FileText, Gift, Award, Home, Star, TrendingUp, Crown, MapPin, Heart } from 'lucide-react';
 import userApiService from '../services/userApiService';
+import { ProfileImage } from '../components/ProfileImage';
 
 interface User {
   id: string;
@@ -69,70 +70,6 @@ const CircularProgress: React.FC<{
 };
 
 
-// 기본 프로필 이미지 컴포넌트 (귀여운 밥알 캐릭터)
-const DefaultProfileImage: React.FC<{ size?: number }> = ({ size = 60 }) => (
-  <div 
-    style={{
-      width: size,
-      height: size,
-      borderRadius: '50%',
-      background: 'linear-gradient(135deg, #F5F5DC 0%, #E6E6DC 100%)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      position: 'relative',
-      border: '2px solid #E0E0E0'
-    }}
-  >
-    {/* 밥알 모양 */}
-    <div
-      style={{
-        width: size * 0.5,
-        height: size * 0.7,
-        background: 'linear-gradient(135deg, #FFFEF7 0%, #F5F5DC 50%, #E6E6DC 100%)',
-        borderRadius: `${size * 0.25}px / ${size * 0.35}px`,
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        position: 'relative',
-        boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.1)'
-      }}
-    >
-      {/* 눈 */}
-      <div style={{ display: 'flex', gap: size * 0.08, marginTop: size * 0.1 }}>
-        <div
-          style={{
-            width: size * 0.06,
-            height: size * 0.06,
-            backgroundColor: '#333',
-            borderRadius: '50%'
-          }}
-        />
-        <div
-          style={{
-            width: size * 0.06,
-            height: size * 0.06,
-            backgroundColor: '#333',
-            borderRadius: '50%'
-          }}
-        />
-      </div>
-      
-      {/* 입 */}
-      <div
-        style={{
-          width: size * 0.12,
-          height: size * 0.06,
-          border: '1.5px solid #333',
-          borderTop: 'none',
-          borderRadius: '0 0 50px 50px',
-          marginTop: size * 0.02
-        }}
-      />
-    </div>
-  </div>
-);
 
 // 뱃지 컴포넌트
 const Badge: React.FC<{ 
@@ -278,8 +215,8 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ user: propsUser }) => {
     const fetchUserStats = async () => {
       try {
         setLoading(true);
-        const response = await apiClient.get('/user/stats');
-        setUserStats(response.data.stats);
+        const stats = await userApiService.getUserStats();
+        setUserStats(stats);
       } catch (error) {
         console.error('유저 통계 조회 실패:', error);
       } finally {
@@ -289,25 +226,29 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ user: propsUser }) => {
 
     const fetchUserProfile = async () => {
       try {
-        const response = await apiClient.get('/user/profile');
-        if (response.data.success && response.data.user) {
-          const userData = response.data.user;
-          setUserProfileImageUrl(userData.profileImage);
-          setProfileData(prev => ({
-            ...prev,
-            name: userData.name || user?.name || '',
-            bio: userData.bio || '',
-            profileImageUrl: userData.profileImage
-          }));
-        }
+        console.log('🔄 사용자 프로필 정보 요청 시작');
+        const userData = await userApiService.getProfile();
+        console.log('📝 서버에서 받은 프로필 데이터:', userData);
+        console.log('🖼️ 프로필 이미지 URL:', userData.profileImage);
+        setUserProfileImageUrl(userData.profileImage);
+        setProfileData(prev => ({
+          ...prev,
+          name: userData.name || user?.name || '',
+          bio: '',
+          profileImageUrl: userData.profileImage
+        }));
+        console.log('✅ 프로필 상태 업데이트 완료:', {
+          profileImageUrl: userData.profileImage,
+          name: userData.name
+        });
       } catch (error) {
-        console.error('프로필 정보 조회 실패:', error);
+        console.error('❌ 프로필 정보 조회 실패:', error);
       }
     };
 
     const fetchUserBadges = async () => {
       try {
-        const response = await apiClient.get('/user/badges');
+        const badges = await userApiService.getUserBadges();
         
         // 아이콘 매핑 객체
         const iconMap = {
@@ -320,7 +261,7 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ user: propsUser }) => {
         };
         
         // 서버에서 받은 뱃지 데이터에 아이콘 추가
-        const badgesWithIcons = response.data.badges.map(badge => ({
+        const badgesWithIcons = (badges || []).map(badge => ({
           ...badge,
           icon: iconMap[badge.id] || <Star size={16} color={COLORS.primary.main} />
         }));
@@ -335,9 +276,7 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ user: propsUser }) => {
         setBadges(sortedBadges);
         
         // 새로 획득한 뱃지가 있으면 알림 표시 (옵션)
-        if (response.data.newBadges && response.data.newBadges.length > 0) {
-          console.log('🏆 새 뱃지 획득:', response.data.newBadges);
-        }
+        console.log('🏆 뱃지 로딩 완료:', badgesWithIcons.length, '개');
       } catch (error) {
         console.error('뱃지 정보 조회 실패:', error);
         // 실패시 기본 뱃지 표시
@@ -407,24 +346,41 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ user: propsUser }) => {
         console.log('프로필이 성공적으로 업데이트되었습니다.');
         alert('프로필이 성공적으로 업데이트되었습니다.');
         
-        // 프로필 이미지 URL 업데이트 (우선 실행)
-        if (profileImageUrl) {
-          setUserProfileImageUrl(profileImageUrl);
-          console.log('🔄 userProfileImageUrl 업데이트됨:', profileImageUrl);
+        // 프로필 데이터 새로 불러오기 (UI 새로고침) - 먼저 실행
+        try {
+          const updatedUserData = await userApiService.getProfile();
+          
+          // 모든 상태를 새로운 데이터로 업데이트
+          setUserProfileImageUrl(updatedUserData.profileImage);
+          setProfileData(prev => ({
+            ...prev,
+            name: updatedUserData.name,
+            profileImageUrl: updatedUserData.profileImage,
+            profileImage: null // 파일 객체 초기화
+          }));
+          
+          // 사용자 스토어 업데이트
+          updateProfile({
+            name: updatedUserData.name,
+            profileImage: updatedUserData.profileImage
+          });
+          
+          console.log('🔄 최신 프로필 데이터로 모든 상태 업데이트됨:', {
+            name: updatedUserData.name,
+            image: updatedUserData.profileImage
+          });
+        } catch (refreshError) {
+          console.error('프로필 새로고침 실패:', refreshError);
+          // 실패했을 경우 기본 상태 업데이트
+          if (profileImageUrl) {
+            setUserProfileImageUrl(profileImageUrl);
+            setProfileData(prev => ({
+              ...prev,
+              profileImageUrl: profileImageUrl,
+              profileImage: null
+            }));
+          }
         }
-        
-        // 사용자 스토어 업데이트
-        updateProfile({
-          name: profileData.name,
-          profileImage: profileImageUrl
-        });
-        
-        // profileData의 profileImageUrl도 업데이트
-        setProfileData(prev => ({
-          ...prev,
-          profileImageUrl: profileImageUrl,
-          profileImage: null // 파일 객체 초기화
-        }));
         
         setShowProfileEdit(false);
       }
@@ -546,14 +502,16 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ user: propsUser }) => {
               onPress={() => setShowProfileEdit(true)}
             >
               <View style={styles.compactProfileImage}>
-                {userProfileImageUrl ? (
-                  <Image 
-                    source={{ uri: userProfileImageUrl.startsWith('http') ? userProfileImageUrl : `http://localhost:3001${userProfileImageUrl}` }} 
-                    style={styles.compactProfileImagePreview}
-                  />
-                ) : (
-                  <DefaultProfileImage size={60} />
-                )}
+                {console.log('🔍 마이페이지 프로필 이미지 상태:', { 
+                  userProfileImageUrl, 
+                  hasImageUrl: !!userProfileImageUrl,
+                  imageUrlType: typeof userProfileImageUrl 
+                })}
+                <ProfileImage 
+                  profileImage={userProfileImageUrl}
+                  name={user?.name || '사용자'}
+                  size={60}
+                />
               </View>
               <View style={styles.editIconContainer}>
                 <Icon name="edit-2" size={12} color={COLORS.text.white} />
@@ -755,14 +713,11 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ user: propsUser }) => {
             <View style={styles.modalContent}>
               <View style={styles.editProfileImageContainer}>
                 <View style={styles.editProfileImage}>
-                  {profileData.profileImageUrl ? (
-                    <Image 
-                      source={{ uri: profileData.profileImageUrl.startsWith('http') ? profileData.profileImageUrl : `http://localhost:3001${profileData.profileImageUrl}` }} 
-                      style={styles.editProfileImagePreview}
-                    />
-                  ) : (
-                    <DefaultProfileImage size={100} />
-                  )}
+                  <ProfileImage 
+                    profileImage={profileData.profileImageUrl}
+                    name={user?.name || '사용자'}
+                    size={100}
+                  />
                 </View>
                 <TouchableOpacity 
                   style={styles.changeImageButton}

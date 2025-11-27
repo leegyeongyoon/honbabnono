@@ -11,6 +11,7 @@ const { Server } = require('socket.io');
 const { Pool } = require('pg');
 const multer = require('multer');
 const fs = require('fs');
+const { initializeS3Upload, deleteFromS3 } = require('./config/s3Config');
 
 // 환경변수 로드 - 다른 모든 것보다 먼저 실행
 const mode = process.env.NODE_ENV === 'production' ? 'production' : 'development';
@@ -33,6 +34,19 @@ console.log('🔧 Loaded Kakao config:', {
   client_secret: process.env.KAKAO_CLIENT_SECRET ? 'SET' : 'NOT SET',
   redirect_uri: process.env.KAKAO_REDIRECT_URI
 });
+
+// S3 업로드 초기화 (환경변수 로드 후)
+let uploadToMemory = null;
+let uploadToS3Direct = null;
+try {
+  const s3Config = initializeS3Upload();
+  uploadToMemory = s3Config.uploadToMemory;
+  uploadToS3Direct = s3Config.uploadToS3Direct;
+  console.log('✅ S3 업로드 설정 초기화 완료');
+} catch (error) {
+  console.error('❌ S3 업로드 설정 초기화 실패:', error.message);
+  console.log('⚠️  로컬 파일 업로드로 fallback 됩니다.');
+}
 
 // PostgreSQL 연결 설정
 const pool = new Pool({
@@ -3487,11 +3501,14 @@ apiRouter.get('/user/rice-index', authenticateToken, async (req, res) => {
 apiRouter.put('/user/profile', authenticateToken, async (req, res) => {
   try {
     console.log('👤 프로필 수정 요청:', req.body);
-    const { name, email, profile_image, bio } = req.body;
+    const { name, email, profile_image, profileImage, bio } = req.body;
+    
+    // profileImage가 있으면 profile_image로 사용
+    const imageToUpdate = profileImage || profile_image;
     const userId = req.user.userId;
 
     // 입력 검증
-    if (!name && !email && !profile_image && !bio) {
+    if (!name && !email && !imageToUpdate && !bio) {
       return res.status(400).json({
         success: false,
         error: '수정할 정보를 입력해주세요.'
@@ -3527,9 +3544,9 @@ apiRouter.put('/user/profile', authenticateToken, async (req, res) => {
       updateValues.push(email);
       valueIndex++;
     }
-    if (profile_image) {
+    if (imageToUpdate) {
       updateFields.push(`profile_image = $${valueIndex}`);
-      updateValues.push(profile_image);
+      updateValues.push(imageToUpdate);
       valueIndex++;
     }
     
@@ -3549,7 +3566,7 @@ apiRouter.put('/user/profile', authenticateToken, async (req, res) => {
       UPDATE users 
       SET ${updateFields.join(', ')}
       WHERE id = $${valueIndex}
-      RETURNING id, email, name, profile_image, bio, provider, is_verified, created_at, updated_at
+      RETURNING id, email, name, profile_image, provider, is_verified, created_at, updated_at
     `;
 
     const result = await pool.query(updateQuery, updateValues);
@@ -7157,7 +7174,7 @@ apiRouter.get('/user/profile', authenticateToken, async (req, res) => {
 });
 
 // 프로필 업데이트 API
-apiRouter.put('/api/user/profile', authenticateToken, async (req, res) => {
+apiRouter.put('/user/profile', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.userId;
     const { name, profileImage } = req.body;
@@ -7213,19 +7230,23 @@ apiRouter.put('/api/user/profile', authenticateToken, async (req, res) => {
   }
 });
 
-// 프로필 이미지 업로드 API
-apiRouter.post('/api/user/upload-profile-image', authenticateToken, (req, res, next) => {
+// 프로필 이미지 업로드 API (S3 직접 업로드)
+apiRouter.post('/user/upload-profile-image', authenticateToken, (req, res, next) => {
   console.log('🔍 프로필 이미지 업로드 미들웨어 진입:', {
     method: req.method,
     url: req.url,
     contentType: req.headers['content-type'],
     bodyExists: !!req.body,
-    userId: req.user?.userId
+    userId: req.user?.userId,
+    s3Available: !!uploadToMemory
   });
   
-  upload.single('profileImage')(req, res, (err) => {
+  // 메모리로 업로드 (S3 직접 업로드를 위해)
+  const uploader = uploadToMemory || upload;
+  
+  uploader.single('profileImage')(req, res, (err) => {
     if (err) {
-      console.error('❌ Multer 에러:', err);
+      console.error('❌ 업로드 에러:', err);
       return res.status(400).json({
         success: false,
         error: `파일 업로드 에러: ${err.message}`
@@ -7237,9 +7258,11 @@ apiRouter.post('/api/user/upload-profile-image', authenticateToken, (req, res, n
   try {
     console.log('📷 프로필 이미지 업로드 요청:', {
       hasFile: !!req.file,
-      fileName: req.file?.filename,
+      fileName: req.file?.originalname,
       fileSize: req.file?.size,
       mimeType: req.file?.mimetype,
+      hasBuffer: !!req.file?.buffer,
+      userId: req.user.userId,
       headers: req.headers['content-type']
     });
     
@@ -7255,14 +7278,71 @@ apiRouter.post('/api/user/upload-profile-image', authenticateToken, (req, res, n
       });
     }
 
-    // 업로드된 파일 정보
-    const imageUrl = `/uploads/${req.file.filename}`;
+    let imageUrl = null;
+    let uploadType = 'Local';
+
+    // S3 업로드 시도
+    if (uploadToS3Direct && req.file.buffer) {
+      try {
+        const s3Result = await uploadToS3Direct(req.file, req.user.userId);
+        if (s3Result.success) {
+          imageUrl = s3Result.location;
+          uploadType = 'S3';
+          console.log('✅ S3 업로드 성공:', imageUrl);
+        }
+      } catch (s3Error) {
+        console.error('❌ S3 업로드 실패, 로컬로 fallback:', s3Error.message);
+        // S3 실패시 로컬 업로드로 fallback
+        // 메모리에서 로컬 파일로 저장
+        const fs = require('fs');
+        const path = require('path');
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        const fileName = `meetup-${uniqueSuffix}${path.extname(req.file.originalname)}`;
+        const filePath = path.join(__dirname, '..', 'uploads', fileName);
+        
+        // uploads 디렉토리가 없으면 생성
+        const uploadsDir = path.join(__dirname, '..', 'uploads');
+        if (!fs.existsSync(uploadsDir)) {
+          fs.mkdirSync(uploadsDir, { recursive: true });
+        }
+        
+        fs.writeFileSync(filePath, req.file.buffer);
+        imageUrl = `/uploads/${fileName}`;
+        uploadType = 'Local';
+        console.log('✅ 로컬 업로드 성공:', imageUrl);
+      }
+    } else {
+      // S3가 설정되지 않은 경우 로컬 업로드
+      const fs = require('fs');
+      const path = require('path');
+      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+      const fileName = `meetup-${uniqueSuffix}${path.extname(req.file.originalname)}`;
+      const filePath = path.join(__dirname, '..', 'uploads', fileName);
+      
+      const uploadsDir = path.join(__dirname, '..', 'uploads');
+      if (!fs.existsSync(uploadsDir)) {
+        fs.mkdirSync(uploadsDir, { recursive: true });
+      }
+      
+      fs.writeFileSync(filePath, req.file.buffer);
+      imageUrl = `/uploads/${fileName}`;
+      uploadType = 'Local';
+      console.log('✅ 로컬 업로드 성공:', imageUrl);
+    }
     
-    console.log('✅ 프로필 이미지 업로드 성공:', imageUrl);
+    if (!imageUrl) {
+      return res.status(500).json({
+        success: false,
+        error: '이미지 업로드에 실패했습니다.'
+      });
+    }
+    
+    console.log(`✅ 프로필 이미지 업로드 성공 (${uploadType}):`, imageUrl);
     
     res.json({
       success: true,
       imageUrl: imageUrl,
+      uploadType: uploadType,
       message: '이미지가 성공적으로 업로드되었습니다.'
     });
   } catch (error) {

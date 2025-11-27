@@ -77,8 +77,8 @@ const userApiService = {
     try {
       console.log('👤 사용자 프로필 조회 요청');
       const response = await apiClient.get('/user/profile');
-      console.log('✅ 사용자 프로필 조회 성공');
-      return response.data.user;
+      console.log('✅ 사용자 프로필 조회 성공', response.data);
+      return response.data.user; // .user 다시 추가
     } catch (error) {
       console.error('❌ 사용자 프로필 조회 실패:', error);
       throw error;
@@ -195,6 +195,32 @@ const userApiService = {
       return response.data;
     } catch (error) {
       console.error('❌ 프로필 업데이트 실패:', error);
+      throw error;
+    }
+  },
+
+  // 사용자 통계 조회
+  getUserStats: async (): Promise<any> => {
+    try {
+      console.log('📈 사용자 통계 조회 요청');
+      const response = await apiClient.get('/user/stats');
+      console.log('✅ 사용자 통계 조회 성공');
+      return response.data.stats;
+    } catch (error) {
+      console.error('❌ 사용자 통계 조회 실패:', error);
+      throw error;
+    }
+  },
+
+  // 사용자 뱃지 조회
+  getUserBadges: async (): Promise<any> => {
+    try {
+      console.log('🏆 사용자 뱃지 조회 요청');
+      const response = await apiClient.get('/user/badges');
+      console.log('✅ 사용자 뱃지 조회 성공');
+      return response.data.badges;
+    } catch (error) {
+      console.error('❌ 사용자 뱃지 조회 실패:', error);
       throw error;
     }
   },
