@@ -12,7 +12,7 @@ import {
 import { COLORS, SHADOWS } from '../styles/colors';
 import { Icon } from './Icon';
 import locationService from '../services/locationService';
-import LocationMapModal from './LocationMapModal';
+import KakaoMapModal from './KakaoMapModal';
 
 interface NeighborhoodSelectorProps {
   visible: boolean;
@@ -43,14 +43,14 @@ const NeighborhoodSelector: React.FC<NeighborhoodSelectorProps> = ({
 
   const popularNeighborhoods = locationService.getPopularNeighborhoods();
 
-  // GPS 지도 모달 열기
-  const handleOpenMapModal = () => {
+  // 카카오 지도 모달 열기
+  const handleOpenKakaoMap = () => {
     setShowMapModal(true);
   };
 
-  // 지도에서 위치 선택 처리
-  const handleMapLocationSelect = (district: string, neighborhood: string, lat: number, lng: number) => {
-    console.log('🗺️ 지도에서 위치 선택됨:', { district, neighborhood, lat, lng });
+  // 카카오 지도에서 위치 선택 처리 (GPS 권한 체크 포함)
+  const handleKakaoMapLocationSelect = (district: string, neighborhood: string, lat: number, lng: number, address: string) => {
+    console.log('🗺️ 카카오 지도에서 위치 선택됨:', { district, neighborhood, lat, lng, address });
     onSelect(district, neighborhood);
     setShowMapModal(false);
     onClose();
@@ -200,10 +200,10 @@ const NeighborhoodSelector: React.FC<NeighborhoodSelectorProps> = ({
 
   const renderCurrentLocationTab = () => (
     <View style={styles.tabContent}>
-      {/* GPS 지도로 위치 선택 */}
+      {/* 카카오 지도로 위치 선택 */}
       <TouchableOpacity
         style={styles.locationButton}
-        onPress={handleOpenMapModal}
+        onPress={handleOpenKakaoMap}
       >
         <Icon name="map" size={24} color={COLORS.primary.main} />
         <View style={styles.locationButtonText}>
@@ -211,7 +211,7 @@ const NeighborhoodSelector: React.FC<NeighborhoodSelectorProps> = ({
             🗺️ 지도에서 위치 선택
           </Text>
           <Text style={styles.locationButtonSubtitle}>
-            지도를 보면서 정확한 위치를 선택할 수 있어요
+            카카오 지도로 정확한 위치를 선택할 수 있어요
           </Text>
         </View>
         <Icon name="chevron-right" size={20} color={COLORS.text.secondary} />
@@ -433,11 +433,11 @@ const NeighborhoodSelector: React.FC<NeighborhoodSelectorProps> = ({
         {activeTab === 'search' && renderSearchTab()}
       </View>
 
-      {/* 지도 모달 */}
-      <LocationMapModal
+      {/* 카카오 지도 모달 */}
+      <KakaoMapModal
         visible={showMapModal}
         onClose={() => setShowMapModal(false)}
-        onLocationSelect={handleMapLocationSelect}
+        onLocationSelect={handleKakaoMapLocationSelect}
       />
     </Modal>
   );
