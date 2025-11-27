@@ -104,36 +104,52 @@ const KakaoMapModal: React.FC<KakaoMapModalProps> = ({
       // 현재 위치 가져오기 시도
       let initialPosition = { lat: 37.5665, lng: 126.978 }; // 서울시청 기본 위치
       
-      try {
-        console.log('📍 GPS로 현재 위치 감지 시도...');
-        
-        // GPS 권한 먼저 확인
-        const permissionStatus = await locationService.checkLocationPermission();
-        console.log('📍 GPS 권한 상태:', permissionStatus);
-        
-        if (permissionStatus === 'denied') {
-          console.warn('📍 GPS 권한 거부됨, 기본 위치 사용');
-          throw new Error('GPS 권한이 거부되었습니다.');
-        }
-        
-        const position = await locationService.getCurrentLocation();
-        initialPosition = {
-          lat: position.latitude,
-          lng: position.longitude
-        };
-        console.log('✅ GPS 위치 감지 성공:', initialPosition);
-        
-        // 현재 위치의 주소 가져오기
-        await updateAddressFromCoords(initialPosition.lat, initialPosition.lng);
-      } catch (error: any) {
-        console.warn('📍 GPS 실패, 기본 위치 사용:', error.message);
-        
-        // GPS 실패 시 서울시청으로 기본 설정하고 안내 메시지 표시
-        setCurrentAddress('📍 서울시청 (GPS 미사용시 기본 위치)');
-        
-        // GPS 권한 관련 안내
-        if (error.message?.includes('권한') || error.message?.includes('denied')) {
-          setCurrentAddress('📍 위치 권한이 필요합니다. 브라우저 설정에서 허용해주세요.');
+      // GPS 위치 감지를 더 적극적으로 시도
+      let gpsAttempt = 0;
+      const maxGpsAttempts = 2;
+      
+      while (gpsAttempt < maxGpsAttempts) {
+        try {
+          console.log(`📍 GPS 위치 감지 시도 (${gpsAttempt + 1}/${maxGpsAttempts})...`);
+          
+          // GPS 권한 먼저 확인
+          const permissionStatus = await locationService.checkLocationPermission();
+          console.log('📍 GPS 권한 상태:', permissionStatus);
+          
+          if (permissionStatus === 'denied') {
+            console.warn('📍 GPS 권한 거부됨');
+            throw new Error('GPS 권한이 거부되었습니다.');
+          }
+          
+          const position = await locationService.getCurrentLocation();
+          initialPosition = {
+            lat: position.latitude,
+            lng: position.longitude
+          };
+          console.log('✅ GPS 위치 감지 성공:', initialPosition);
+          
+          // 현재 위치의 주소 가져오기
+          await updateAddressFromCoords(initialPosition.lat, initialPosition.lng);
+          break; // 성공하면 루프 종료
+          
+        } catch (error: any) {
+          gpsAttempt++;
+          console.warn(`📍 GPS 시도 ${gpsAttempt} 실패:`, error.message);
+          
+          // 마지막 시도였다면 기본 위치 사용
+          if (gpsAttempt >= maxGpsAttempts) {
+            console.warn('📍 GPS 최대 시도 횟수 초과, 기본 위치 사용');
+            
+            // GPS 실패 시 사용자에게 안내
+            if (error.message?.includes('권한') || error.message?.includes('denied')) {
+              setCurrentAddress('📍 위치 권한을 허용하면 현재 위치를 자동으로 찾을 수 있습니다');
+            } else {
+              setCurrentAddress('📍 GPS 신호가 약해 기본 위치(서울시청)로 설정했습니다');
+            }
+          } else {
+            // 재시도 전 잠시 대기
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          }
         }
       }
 
@@ -224,10 +240,10 @@ const KakaoMapModal: React.FC<KakaoMapModalProps> = ({
     }
   };
 
-  // 현재 위치로 이동
+  // 현재 위치로 이동 (더 적극적인 GPS 시도)
   const moveToCurrentLocation = async () => {
     try {
-      console.log('📍 현재 위치로 이동 시도...');
+      console.log('📍 GPS로 현재 위치 이동 시도...');
       
       // GPS 권한 먼저 확인
       const permissionStatus = await locationService.checkLocationPermission();
@@ -236,49 +252,75 @@ const KakaoMapModal: React.FC<KakaoMapModalProps> = ({
       if (permissionStatus === 'denied') {
         Alert.alert(
           'GPS 권한 필요', 
-          '현재 위치를 사용하려면 위치 권한이 필요합니다.\n\n📱 설정 방법:\n• 브라우저 주소창 왼쪽 🔒 아이콘 클릭\n• 위치 → "허용" 선택\n• 페이지 새로고침',
+          '📱 위치 권한 설정 방법:\n\n1️⃣ 브라우저 주소창 왼쪽 🔒 클릭\n2️⃣ 위치 → "허용" 선택\n3️⃣ 페이지 새로고침\n\niOS의 경우:\n• 설정 → Safari → 위치 → 허용\n• 설정 → 개인정보보호 → 위치서비스 → 켜기',
           [
-            { text: '직접 선택', style: 'cancel' },
-            { text: '설정 안내', onPress: () => {
-              Alert.alert('위치 권한 설정', '1. 브라우저 주소창 왼쪽 자물쇠 아이콘 클릭\n2. "위치" → "허용" 선택\n3. 페이지 새로고침 후 다시 시도');
-            }}
+            { text: '설정 방법 보기', onPress: () => {
+              const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+              const message = isIOS 
+                ? 'iOS 설정:\n\n1️⃣ 설정 → 개인정보보호 → 위치서비스 → 켜기\n2️⃣ 설정 → Safari → 웹사이트용 → 위치 → 허용\n3️⃣ Safari 완전 종료 후 재시작\n4️⃣ https://honbabnono.com 재접속'
+                : '브라우저 설정:\n\n1️⃣ 주소창 왼쪽 🔒 아이콘 클릭\n2️⃣ 위치 → "허용" 선택\n3️⃣ 페이지 새로고침';
+              Alert.alert('GPS 설정 방법', message);
+            }},
+            { text: '지도에서 직접 선택', style: 'cancel' }
           ]
         );
         return;
       }
       
-      const position = await locationService.getCurrentLocation();
-      const newPosition = {
-        lat: position.latitude,
-        lng: position.longitude
-      };
+      // 여러 번 시도
+      let success = false;
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+          console.log(`📍 GPS 시도 ${attempt}/3...`);
+          const position = await locationService.getCurrentLocation();
+          const newPosition = {
+            lat: position.latitude,
+            lng: position.longitude
+          };
 
-      if (mapRef.current && markerRef.current) {
-        const kakaoPosition = new window.kakao.maps.LatLng(newPosition.lat, newPosition.lng);
-        mapRef.current.setCenter(kakaoPosition);
-        markerRef.current.setPosition(kakaoPosition);
-        await updateAddressFromCoords(newPosition.lat, newPosition.lng);
-        console.log('✅ 현재 위치 이동 완료');
+          if (mapRef.current && markerRef.current) {
+            const kakaoPosition = new window.kakao.maps.LatLng(newPosition.lat, newPosition.lng);
+            mapRef.current.setCenter(kakaoPosition);
+            markerRef.current.setPosition(kakaoPosition);
+            await updateAddressFromCoords(newPosition.lat, newPosition.lng);
+            console.log('✅ 현재 위치 이동 완료:', newPosition);
+            success = true;
+            break;
+          }
+        } catch (attemptError: any) {
+          console.warn(`📍 GPS 시도 ${attempt} 실패:`, attemptError.message);
+          if (attempt < 3) {
+            await new Promise(resolve => setTimeout(resolve, 2000)); // 2초 대기
+          }
+        }
       }
+      
+      if (!success) {
+        throw new Error('GPS 3회 시도 모두 실패');
+      }
+      
     } catch (error: any) {
       console.error('현재 위치 이동 실패:', error);
       
-      let title = '위치 오류';
-      let message = '현재 위치를 가져올 수 없습니다.\n지도에서 직접 위치를 선택해주세요.';
+      let title = 'GPS 오류';
+      let message = '현재 위치를 가져올 수 없습니다.';
       
       // 에러 타입별 안내
       if (error.message?.includes('권한')) {
         title = 'GPS 권한 필요';
-        message = '위치 권한을 허용해주세요.\n\n브라우저 설정에서 위치 권한을 허용하고\n페이지를 새로고침해주세요.';
+        message = 'GPS 권한을 허용해주세요.\n\n📱 설정 → 개인정보보호 → 위치서비스\n🌐 브라우저 → 주소창 🔒 → 위치 허용';
       } else if (error.message?.includes('시간') || error.message?.includes('timeout')) {
-        title = 'GPS 신호 약함';
-        message = 'GPS 신호가 약합니다.\n\n• 실외로 이동해보세요\n• 잠시 후 다시 시도해보세요\n• 또는 지도에서 직접 선택해주세요';
-      } else if (error.message?.includes('사용할 수 없습니다')) {
-        title = 'GPS 서비스 제한';
-        message = '현재 환경에서 GPS를 사용할 수 없습니다.\n\n지도에서 직접 위치를 선택해주세요.';
+        title = '📡 GPS 신호 약함';
+        message = '• 실외로 이동해서 재시도\n• WiFi 연결 확인\n• 잠시 후 다시 시도';
+      } else {
+        title = '📍 위치 감지 실패';
+        message = '• 실외에서 시도해보세요\n• WiFi/데이터 연결 확인\n• 지도에서 직접 선택하셔도 됩니다';
       }
       
-      Alert.alert(title, message);
+      Alert.alert(title, message, [
+        { text: '지도에서 선택', style: 'cancel' },
+        { text: '다시 시도', onPress: moveToCurrentLocation }
+      ]);
     }
   };
 

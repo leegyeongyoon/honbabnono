@@ -90,9 +90,9 @@ class LocationService {
               errorMessage = '위치 정보를 사용할 수 없습니다.';
               // iOS Safari 특별 처리
               if (userAgent.includes('iPhone') || userAgent.includes('iPad')) {
-                userAction = '📱 iPhone/iPad에서 위치 문제 해결:\n\n1️⃣ 설정 → 개인정보 보호 및 보안 → 위치 서비스 → 켜기\n2️⃣ 설정 → Safari → 위치 → 허용\n3️⃣ Safari 완전 종료 후 재실행\n4️⃣ 또는 아래 목록에서 수동 선택';
+                userAction = '📱 iOS에서 GPS 사용법:\n\n✅ 설정 → 개인정보보호 → 위치서비스 → 켜기\n✅ Safari → 위치접근 → 허용\n✅ https:// 사이트에서만 GPS 동작\n✅ 실외에서 시도해보세요';
               } else {
-                userAction = '📍 다음을 확인해주세요:\n• 기기의 위치 서비스 켜기\n• WiFi나 모바일 데이터 연결 확인\n• 실내에서는 창가로 이동\n• 브라우저 재시작';
+                userAction = '📍 GPS 문제 해결:\n• 기기 위치 서비스 켜기\n• WiFi/모바일 데이터 확인\n• 실외에서 시도\n• 브라우저 재시작';
               }
               break;
             case error.TIMEOUT:
@@ -127,9 +127,9 @@ class LocationService {
           reject(new Error(fullError));
         },
         {
-          enableHighAccuracy: false, // iOS에서 문제가 있으므로 false로 설정
-          timeout: isDevelopment ? 5000 : 15000, // iOS에서는 15초가 적당
-          maximumAge: isDevelopment ? 300000 : 300000, // 5분 캐시로 통일
+          enableHighAccuracy: true, // 운영환경에서는 정확한 위치 필요
+          timeout: 20000, // 20초로 충분한 시간
+          maximumAge: 60000, // 1분 캐시
         }
       );
     });
