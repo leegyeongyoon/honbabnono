@@ -1,0 +1,26 @@
+<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+  <!-- 해산물/회 아이콘 -->
+  <g>
+    <!-- 접시 -->
+    <ellipse cx="32" cy="45" rx="26" ry="10" fill="#F5F5DC" stroke="#DDD" stroke-width="2"/>
+    <ellipse cx="32" cy="42" rx="24" ry="8" fill="#FFF"/>
+    
+    <!-- 회 조각들 -->
+    <ellipse cx="20" cy="38" rx="6" ry="3" fill="#FFB6C1" stroke="#FF69B4" stroke-width="1"/>
+    <ellipse cx="32" cy="36" rx="6" ry="3" fill="#FFA07A" stroke="#FF6347" stroke-width="1"/>
+    <ellipse cx="44" cy="38" rx="6" ry="3" fill="#FFB6C1" stroke="#FF69B4" stroke-width="1"/>
+    
+    <!-- 와사비 -->
+    <circle cx="26" cy="42" r="2" fill="#9ACD32"/>
+    
+    <!-- 생강 -->
+    <ellipse cx="38" cy="43" rx="3" ry="1.5" fill="#FFF8DC" stroke="#F0E68C" stroke-width="1"/>
+    
+    <!-- 젓가락 -->
+    <rect x="10" y="25" width="1.5" height="20" fill="#8B4513" transform="rotate(15 10 25)"/>
+    <rect x="13" y="25" width="1.5" height="20" fill="#8B4513" transform="rotate(15 13 25)"/>
+    
+    <!-- 장식 잎사귀 -->
+    <path d="M 48 30 Q 52 25 56 30 Q 52 35 48 30" fill="#228B22"/>
+  </g>
+</svg>

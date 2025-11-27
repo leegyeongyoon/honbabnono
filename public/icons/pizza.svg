@@ -1,0 +1,30 @@
+<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+  <!-- 피자/치킨 아이콘 -->
+  <g>
+    <!-- 피자 조각 -->
+    <path d="M 32 8 L 15 45 L 49 45 Z" fill="#FFD700" stroke="#FF8C00" stroke-width="2"/>
+    
+    <!-- 피자 크러스트 -->
+    <path d="M 15 45 Q 32 50, 49 45" fill="#DEB887" stroke="#CD853F" stroke-width="2"/>
+    
+    <!-- 피자 토핑들 -->
+    <circle cx="25" cy="30" r="3" fill="#FF6347"/> <!-- 토마토 -->
+    <circle cx="38" cy="28" r="2.5" fill="#32CD32"/> <!-- 피망 -->
+    <circle cx="30" cy="35" r="2" fill="#8B4513"/> <!-- 페퍼로니 -->
+    <circle cx="42" cy="38" r="2" fill="#FF69B4"/> <!-- 햄 -->
+    <ellipse cx="22" cy="38" rx="3" ry="1.5" fill="white"/> <!-- 치즈 -->
+    
+    <!-- 치킨 다리 -->
+    <ellipse cx="45" cy="15" rx="4" ry="8" fill="#DEB887" stroke="#CD853F" stroke-width="2"/>
+    <ellipse cx="45" cy="12" rx="3" ry="2" fill="#F4A460"/>
+    
+    <!-- 치킨 윙 -->
+    <ellipse cx="20" cy="18" rx="6" ry="3" fill="#DEB887" stroke="#CD853F" stroke-width="2"/>
+    <ellipse cx="18" cy="16" rx="2" ry="1" fill="#F4A460"/>
+    
+    <!-- 기름 반짝임 효과 -->
+    <circle cx="27" cy="25" r="1" fill="white" opacity="0.7"/>
+    <circle cx="35" cy="32" r="1" fill="white" opacity="0.7"/>
+    <circle cx="40" cy="20" r="1" fill="white" opacity="0.7"/>
+  </g>
+</svg>

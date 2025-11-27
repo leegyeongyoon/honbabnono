@@ -1,0 +1,31 @@
+<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+  <!-- 코스요리 아이콘 -->
+  <g>
+    <!-- 메인 플레이트 -->
+    <circle cx="32" cy="35" r="18" fill="#F5F5DC" stroke="#DDD" stroke-width="2"/>
+    <circle cx="32" cy="35" r="15" fill="#FFF"/>
+    
+    <!-- 코스요리 (정교한 플레이팅) -->
+    <circle cx="32" cy="32" r="6" fill="#8B4513"/> <!-- 메인 요리 -->
+    
+    <!-- 가니쉬 -->
+    <circle cx="25" cy="38" r="2" fill="#32CD32"/> <!-- 녹색 가니쉬 -->
+    <circle cx="39" cy="38" r="2" fill="#FF6347"/> <!-- 빨간 가니쉬 -->
+    <path d="M 28 28 Q 32 25 36 28" stroke="#9ACD32" stroke-width="2" fill="none"/> <!-- 허브 -->
+    
+    <!-- 포크 (왼쪽) -->
+    <rect x="8" y="25" width="2" height="20" fill="#C0C0C0"/>
+    <rect x="6" y="25" width="6" height="3" fill="#C0C0C0"/>
+    
+    <!-- 나이프 (오른쪽) -->
+    <rect x="54" y="25" width="2" height="20" fill="#C0C0C0"/>
+    <path d="M 54 25 L 56 25 L 58 27 L 56 29 L 54 27 Z" fill="#C0C0C0"/>
+    
+    <!-- 와인잔 -->
+    <path d="M 45 15 Q 50 15 50 20 Q 50 25 47.5 28 L 47.5 35 L 52.5 35 L 52.5 38 L 42.5 38 L 42.5 35 L 47.5 35 L 47.5 28 Q 45 25 45 20 Q 45 15 45 15" 
+          fill="none" stroke="#8B008B" stroke-width="2"/>
+    
+    <!-- 와인 -->
+    <ellipse cx="47.5" cy="18" rx="2" ry="3" fill="#8B008B" opacity="0.7"/>
+  </g>
+</svg>

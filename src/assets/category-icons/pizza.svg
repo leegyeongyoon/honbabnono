@@ -1,0 +1,26 @@
+<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+  <!-- 피자/치킨 아이콘 -->
+  <g>
+    <!-- 피자 조각 -->
+    <path d="M 15 45 L 35 15 L 45 45 Z" fill="#F4A460" stroke="#D2691E" stroke-width="2"/>
+    
+    <!-- 피자 토핑 -->
+    <circle cx="25" cy="35" r="3" fill="#DC143C"/> <!-- 토마토 -->
+    <circle cx="35" cy="30" r="2" fill="#32CD32"/> <!-- 올리브 -->
+    <circle cx="30" cy="40" r="2.5" fill="#FFD700"/> <!-- 치즈 -->
+    
+    <!-- 치킨 -->
+    <ellipse cx="45" cy="35" rx="12" ry="8" fill="#DEB887" stroke="#CD853F" stroke-width="2"/>
+    
+    <!-- 치킨 다리뼈 -->
+    <rect x="52" y="38" width="8" height="3" fill="#F5DEB3" stroke="#DEB887" stroke-width="1" rx="1"/>
+    
+    <!-- 치킨 표면 질감 -->
+    <circle cx="42" cy="32" r="1.5" fill="#CD853F" opacity="0.7"/>
+    <circle cx="48" cy="35" r="1.5" fill="#CD853F" opacity="0.7"/>
+    <circle cx="45" cy="38" r="1.5" fill="#CD853F" opacity="0.7"/>
+    
+    <!-- 접시 -->
+    <ellipse cx="32" cy="50" rx="28" ry="8" fill="#F5F5DC" stroke="#DDD" stroke-width="1"/>
+  </g>
+</svg>

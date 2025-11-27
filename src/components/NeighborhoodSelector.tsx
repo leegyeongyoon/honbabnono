@@ -12,6 +12,7 @@ import {
 import { COLORS, SHADOWS } from '../styles/colors';
 import { Icon } from './Icon';
 import locationService from '../services/locationService';
+import LocationMapModal from './LocationMapModal';
 
 interface NeighborhoodSelectorProps {
   visible: boolean;
@@ -38,10 +39,24 @@ const NeighborhoodSelector: React.FC<NeighborhoodSelectorProps> = ({
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'current' | 'popular' | 'search'>('popular');
+  const [showMapModal, setShowMapModal] = useState(false);
 
   const popularNeighborhoods = locationService.getPopularNeighborhoods();
 
-  // 현재 위치 가져오기
+  // GPS 지도 모달 열기
+  const handleOpenMapModal = () => {
+    setShowMapModal(true);
+  };
+
+  // 지도에서 위치 선택 처리
+  const handleMapLocationSelect = (district: string, neighborhood: string, lat: number, lng: number) => {
+    console.log('🗺️ 지도에서 위치 선택됨:', { district, neighborhood, lat, lng });
+    onSelect(district, neighborhood);
+    setShowMapModal(false);
+    onClose();
+  };
+
+  // 현재 위치 가져오기 (기존 GPS 기능)
   const handleGetCurrentLocation = async () => {
     try {
       setLoading(true);
@@ -149,6 +164,7 @@ const NeighborhoodSelector: React.FC<NeighborhoodSelectorProps> = ({
 
   // 인기 동네 선택
   const handlePopularSelect = (district: string, neighborhood: string) => {
+    console.log('📍 인기 동네 클릭됨:', { district, neighborhood });
     onSelect(district, neighborhood);
     onClose();
   };
@@ -181,21 +197,38 @@ const NeighborhoodSelector: React.FC<NeighborhoodSelectorProps> = ({
 
   const renderCurrentLocationTab = () => (
     <View style={styles.tabContent}>
+      {/* GPS 지도로 위치 선택 */}
+      <TouchableOpacity
+        style={styles.locationButton}
+        onPress={handleOpenMapModal}
+      >
+        <Icon name="map" size={24} color={COLORS.primary.main} />
+        <View style={styles.locationButtonText}>
+          <Text style={styles.locationButtonTitle}>
+            🗺️ 지도에서 위치 선택
+          </Text>
+          <Text style={styles.locationButtonSubtitle}>
+            지도를 보면서 정확한 위치를 선택할 수 있어요
+          </Text>
+        </View>
+        <Icon name="chevron-right" size={20} color={COLORS.text.secondary} />
+      </TouchableOpacity>
+
       {/* GPS 현재 위치 자동 감지 */}
       <TouchableOpacity
         style={[styles.locationButton, loading && styles.locationButtonDisabled]}
         onPress={handleGetCurrentLocation}
         disabled={loading}
       >
-        <Icon name="map-pin" size={24} color={COLORS.primary.main} />
+        <Icon name="navigation" size={24} color={COLORS.secondary.main} />
         <View style={styles.locationButtonText}>
           <Text style={styles.locationButtonTitle}>
-            {loading ? '위치 조회 중...' : '현재 위치 자동 감지'}
+            {loading ? '위치 조회 중...' : '📍 GPS 자동 감지'}
           </Text>
           <Text style={styles.locationButtonSubtitle}>
             {loading 
               ? '카카오 지도로 정확한 위치 찾는 중...' 
-              : 'GPS + 카카오 지도로 정확한 구/동을 찾아드려요'
+              : 'GPS로 현재 위치를 자동으로 찾아드려요'
             }
           </Text>
         </View>
@@ -396,6 +429,13 @@ const NeighborhoodSelector: React.FC<NeighborhoodSelectorProps> = ({
         {activeTab === 'popular' && renderPopularTab()}
         {activeTab === 'search' && renderSearchTab()}
       </View>
+
+      {/* 지도 모달 */}
+      <LocationMapModal
+        visible={showMapModal}
+        onClose={() => setShowMapModal(false)}
+        onLocationSelect={handleMapLocationSelect}
+      />
     </Modal>
   );
 };

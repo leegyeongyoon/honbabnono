@@ -1,0 +1,36 @@
+<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+  <!-- 파티룸 아이콘 -->
+  <g>
+    <!-- 파티 모자 -->
+    <path d="M 20 35 L 30 15 L 40 35 Z" fill="#FF69B4" stroke="#FF1493" stroke-width="2"/>
+    
+    <!-- 파티 모자 장식 -->
+    <circle cx="30" cy="15" r="3" fill="#FFD700" stroke="#FF8C00" stroke-width="1"/>
+    <rect x="22" y="30" width="16" height="3" fill="#FF1493"/>
+    <circle cx="25" cy="27" r="1.5" fill="#FFD700"/>
+    <circle cx="30" cy="25" r="1.5" fill="#32CD32"/>
+    <circle cx="35" cy="27" r="1.5" fill="#FF6347"/>
+    
+    <!-- 선물 상자 -->
+    <rect x="42" y="35" width="16" height="12" fill="#32CD32" stroke="#228B22" stroke-width="2"/>
+    
+    <!-- 선물 리본 (세로) -->
+    <rect x="48" y="30" width="4" height="22" fill="#FFD700"/>
+    
+    <!-- 선물 리본 (가로) -->
+    <rect x="40" y="39" width="20" height="4" fill="#FFD700"/>
+    
+    <!-- 리본 매듭 -->
+    <ellipse cx="50" cy="33" rx="4" ry="2" fill="#FF6347"/>
+    
+    <!-- 풍선들 -->
+    <circle cx="15" cy="20" r="4" fill="#FF69B4" stroke="#FF1493" stroke-width="1"/>
+    <rect x="14" y="24" width="2" height="8" fill="#8B4513"/>
+    
+    <circle cx="10" cy="25" r="3.5" fill="#32CD32" stroke="#228B22" stroke-width="1"/>
+    <rect x="9" y="28" width="2" height="7" fill="#8B4513"/>
+    
+    <circle cx="52" cy="18" r="4" fill="#FFD700" stroke="#FF8C00" stroke-width="1"/>
+    <rect x="51" y="22" width="2" height="8" fill="#8B4513"/>
+  </g>
+</svg>

@@ -1,0 +1,22 @@
+<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+  <!-- BBQ 그릴 아이콘 -->
+  <g>
+    <!-- 그릴 상판 -->
+    <ellipse cx="32" cy="25" rx="28" ry="8" fill="#8B4513" stroke="#654321" stroke-width="2"/>
+    
+    <!-- 그릴 하판 -->
+    <ellipse cx="32" cy="45" rx="25" ry="6" fill="#654321"/>
+    
+    <!-- 그릴 다리 -->
+    <rect x="30" y="32" width="4" height="15" fill="#333"/>
+    
+    <!-- 고기 -->
+    <ellipse cx="24" cy="23" rx="6" ry="4" fill="#8B0000" stroke="#654321" stroke-width="1"/>
+    <ellipse cx="40" cy="23" rx="6" ry="4" fill="#8B0000" stroke="#654321" stroke-width="1"/>
+    
+    <!-- 연기 -->
+    <circle cx="20" cy="15" r="2" fill="#E0E0E0" opacity="0.7"/>
+    <circle cx="32" cy="12" r="2.5" fill="#E0E0E0" opacity="0.6"/>
+    <circle cx="44" cy="15" r="2" fill="#E0E0E0" opacity="0.7"/>
+  </g>
+</svg>

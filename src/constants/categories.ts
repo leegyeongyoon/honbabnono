@@ -1,13 +1,69 @@
 // 카테고리 관련 상수 (혼밥하기 어려운 카테고리 중심)
 export const FOOD_CATEGORIES = [
-  { id: 'bbq', name: '고기/구이', icon: 'flame', desc: '삼겹살/갈비/곱창', color: '#FF6B35', bgColor: '#FFF4F0' },
-  { id: 'hotpot', name: '전골/찌개', icon: 'soup', desc: '부대찌개/김치찌개', color: '#E74C3C', bgColor: '#FDF2F2' },
-  { id: 'buffet', name: '뷔페/무한리필', icon: 'utensils', desc: '고기뷔페/샐러드바', color: '#F39C12', bgColor: '#FEF9E7' },
-  { id: 'seafood', name: '해산물/회', icon: 'fish', desc: '회/조개구이/랍스터', color: '#3498DB', bgColor: '#EBF5FB' },
-  { id: 'pizza', name: '피자/치킨', icon: 'pizza', desc: '피자/후라이드치킨', color: '#E67E22', bgColor: '#FDF5E6' },
-  { id: 'bar', name: '주점/술집', icon: 'wine', desc: '호프집/이자카야', color: '#9B59B6', bgColor: '#F4ECF7' },
-  { id: 'course', name: '코스요리', icon: 'chef', desc: '오마카세/프렌치', color: '#2ECC71', bgColor: '#E8F8F5' },
-  { id: 'party', name: '파티룸', icon: 'users', desc: '생일파티/회식', color: '#E91E63', bgColor: '#FCE4EC' },
+  { 
+    id: 'bbq', 
+    name: '고기/구이', 
+    icon: '/icons/bbq.svg', 
+    desc: '삼겹살/갈비/곱창', 
+    color: '#FF6B35', 
+    bgColor: '#FFF4F0' 
+  },
+  { 
+    id: 'hotpot', 
+    name: '전골/찌개', 
+    icon: '/icons/hotpot.svg', 
+    desc: '부대찌개/김치찌개', 
+    color: '#E74C3C', 
+    bgColor: '#FDF2F2' 
+  },
+  { 
+    id: 'buffet', 
+    name: '뷔페/무한리필', 
+    icon: '/icons/buffet.svg', 
+    desc: '고기뷔페/샐러드바', 
+    color: '#F39C12', 
+    bgColor: '#FEF9E7' 
+  },
+  { 
+    id: 'seafood', 
+    name: '해산물/회', 
+    icon: '/icons/seafood.svg', 
+    desc: '회/조개구이/랍스터', 
+    color: '#3498DB', 
+    bgColor: '#EBF5FB' 
+  },
+  { 
+    id: 'pizza', 
+    name: '피자/치킨', 
+    icon: '/icons/pizza.svg', 
+    desc: '피자/후라이드치킨', 
+    color: '#E67E22', 
+    bgColor: '#FDF5E6' 
+  },
+  { 
+    id: 'bar', 
+    name: '주점/술집', 
+    icon: '/icons/bar.svg', 
+    desc: '호프집/이자카야', 
+    color: '#9B59B6', 
+    bgColor: '#F4ECF7' 
+  },
+  { 
+    id: 'course', 
+    name: '코스요리', 
+    icon: '/icons/course.svg', 
+    desc: '오마카세/프렌치', 
+    color: '#2ECC71', 
+    bgColor: '#E8F8F5' 
+  },
+  { 
+    id: 'party', 
+    name: '파티룸', 
+    icon: '/icons/party.svg', 
+    desc: '생일파티/회식', 
+    color: '#E91E63', 
+    bgColor: '#FCE4EC' 
+  },
 ];
 
 export const FOOD_CATEGORY_NAMES = FOOD_CATEGORIES.map(cat => cat.name);

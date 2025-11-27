@@ -6,6 +6,7 @@ import {
   ScrollView,
   TouchableOpacity,
   Modal,
+  Image,
 } from 'react-native';
 import { useNavigate } from 'react-router-dom';
 import {COLORS, SHADOWS} from '../styles/colors';
@@ -99,15 +100,28 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, user }) => {
   };
 
   const handleNeighborhoodSelect = (district: string, neighborhood: string) => {
+    console.log('🏠 동네 선택됨:', { district, neighborhood });
     const newNeighborhood = { district, neighborhood };
+    console.log('🏠 새로운 동네 설정:', newNeighborhood);
     setCurrentNeighborhood(newNeighborhood);
     locationService.saveUserNeighborhood(district, neighborhood);
     updateNeighborhood(district, neighborhood);
+    console.log('🏠 동네 설정 완료');
   };
 
   const getCategoryIcon = (categoryName: string) => {
-    const category = FOOD_CATEGORIES.find(cat => cat.name === categoryName);
-    return category ? category.icon : 'utensils';
+    const iconMap: { [key: string]: string } = {
+      '고기/구이': 'fire',
+      '전골/찌개': 'utensils',
+      '뷔페/무한리필': 'utensils',
+      '해산물/회': 'fish',
+      '피자/치킨': 'utensils',
+      '주점/술집': 'glass',
+      '코스요리': 'utensils',
+      '파티룸': 'gift'
+    };
+    
+    return iconMap[categoryName] || 'utensils';
   };
 
   const getCategoryColor = (categoryName: string) => {
@@ -115,8 +129,11 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, user }) => {
     return category ? category.color : COLORS.primary.main;
   };
 
+
   const openNeighborhoodSelector = () => {
+    console.log('🏠 동네 선택 버튼 클릭됨');
     setShowNeighborhoodSelector(true);
+    console.log('🏠 동네 선택 모달 열림');
   };
 
   return (
@@ -157,11 +174,12 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, user }) => {
                 style={styles.categoryItem}
                 onPress={() => navigate('/meetups', { state: { category: category.name } })}
               >
-                <View style={[
-                  styles.categoryBox, 
-                  { backgroundColor: category.bgColor }
-                ]}>
-                  <Icon name={category.icon as any} size={24} color={category.color} />
+                <View style={[styles.categoryBox, { backgroundColor: category.bgColor }]}>
+                  <Icon 
+                    name={getCategoryIcon(category.name)} 
+                    size={40} 
+                    color={category.color} 
+                  />
                 </View>
                 <Text style={styles.categoryName}>
                   {category.name}
@@ -343,8 +361,8 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   categoryBox: {
-    width: 60,
-    height: 60,
+    width: 70,
+    height: 70,
     borderRadius: 16,
     backgroundColor: COLORS.neutral.background,
     justifyContent: 'center',
@@ -354,7 +372,8 @@ const styles = StyleSheet.create({
     borderColor: COLORS.neutral.grey200,
   },
   categoryIcon: {
-    fontSize: 32,
+    width: 40,
+    height: 40,
   },
   categoryName: {
     fontSize: 12,
