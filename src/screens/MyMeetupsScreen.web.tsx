@@ -263,9 +263,9 @@ const MyMeetupsScreen: React.FC<MyMeetupsScreenProps> = ({ user: propsUser }) =>
     }
   };
 
-  const renderMeetupItem = (meetup: JoinedMeetup | HostedMeetup, showHostInfo: boolean = false) => (
+  const renderMeetupItem = (meetup: JoinedMeetup | HostedMeetup, showHostInfo: boolean = false, keyPrefix?: string) => (
     <MeetupCard
-      key={meetup.id}
+      key={keyPrefix ? `${keyPrefix}-${meetup.id}` : meetup.id}
       meetup={meetup}
       onPress={handleMeetupPress}
     />
@@ -291,7 +291,7 @@ const MyMeetupsScreen: React.FC<MyMeetupsScreenProps> = ({ user: propsUser }) =>
                 <Text style={styles.emptySubtext}>홈에서 모임을 찾아보세요!</Text>
               </View>
             ) : (
-              appliedMeetups.map(meetup => renderMeetupItem(meetup, true))
+              appliedMeetups.map((meetup, index) => renderMeetupItem(meetup, true, `applied-${index}`))
             )}
           </View>
         );
@@ -306,7 +306,7 @@ const MyMeetupsScreen: React.FC<MyMeetupsScreenProps> = ({ user: propsUser }) =>
                 <Text style={styles.emptySubtext}>새로운 모임을 만들어보세요!</Text>
               </View>
             ) : (
-              createdMeetups.map(meetup => renderMeetupItem(meetup, false))
+              createdMeetups.map((meetup, index) => renderMeetupItem(meetup, false, `created-${index}`))
             )}
           </View>
         );
@@ -321,7 +321,7 @@ const MyMeetupsScreen: React.FC<MyMeetupsScreenProps> = ({ user: propsUser }) =>
                 <Text style={styles.emptySubtext}>모임에 참여해보세요!</Text>
               </View>
             ) : (
-              pastMeetups.map(meetup => renderMeetupItem(meetup, !('hostName' in meetup)))
+              pastMeetups.map((meetup, index) => renderMeetupItem(meetup, !('hostName' in meetup), `past-${index}`))
             )}
           </View>
         );

@@ -6,6 +6,7 @@ import { useUserStore } from '../store/userStore';
 import { Icon } from '../components/Icon';
 import { Users, Target, FileText, Gift, Award, Home, Star, TrendingUp, Crown, MapPin, Heart } from 'lucide-react';
 import apiClient from '../services/apiClient';
+// import userApiService from '../services/userApiService'; // 롤백
 
 interface User {
   id: string;
@@ -67,6 +68,7 @@ const CircularProgress: React.FC<{
     </div>
   );
 };
+
 
 // 기본 프로필 이미지 컴포넌트 (귀여운 밥알 캐릭터)
 const DefaultProfileImage: React.FC<{ size?: number }> = ({ size = 60 }) => (
@@ -243,6 +245,7 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ user: propsUser }) => {
 
   // 뱃지 데이터
   const [badges, setBadges] = useState([]);
+
 
   // 메뉴 섹션들 - 마이페이지 특화 기능들
   const menuSections = [
@@ -632,6 +635,7 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ user: propsUser }) => {
               💡 모임 참여와 리뷰 작성으로 밥알지수를 올려보세요!
             </Text>
           </View>
+
         </View>
 
         {/* 뱃지 시스템 */}

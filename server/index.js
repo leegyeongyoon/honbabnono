@@ -3046,6 +3046,9 @@ apiRouter.get('/user/hosted-meetups', authenticateToken, async (req, res) => {
         m.max_participants as "maxParticipants",
         m.current_participants as "currentParticipants",
         m.category,
+        m.price_range as "priceRange",
+        m.age_range as "ageRange", 
+        m.gender_preference as "genderPreference",
         m.status,
         m.created_at as "createdAt"
       FROM meetups m
@@ -3228,6 +3231,9 @@ apiRouter.get('/user/joined-meetups', authenticateToken, async (req, res) => {
         m.max_participants as "maxParticipants",
         m.current_participants as "currentParticipants",
         m.category,
+        m.price_range as "priceRange",
+        m.age_range as "ageRange", 
+        m.gender_preference as "genderPreference",
         m.status,
         m.created_at as "createdAt",
         mp.status as "participationStatus",
@@ -3470,6 +3476,7 @@ apiRouter.get('/user/rice-index', authenticateToken, async (req, res) => {
     });
   }
 });
+
 
 // ===========================================
 // 마이페이지 상세 기능 API들
@@ -7109,7 +7116,7 @@ apiRouter.get('/user/profile', authenticateToken, async (req, res) => {
     const userId = req.user.userId;
     
     const userQuery = await pool.query(
-      'SELECT id, name, email, profile_image, bio, created_at FROM users WHERE id = $1',
+      'SELECT id, name, email, profile_image, created_at FROM users WHERE id = $1',
       [userId]
     );
     
@@ -7136,7 +7143,6 @@ apiRouter.get('/user/profile', authenticateToken, async (req, res) => {
         name: user.name,
         email: user.email,
         profileImage: user.profile_image,
-        bio: user.bio || '',
         createdAt: user.created_at
       }
     });
