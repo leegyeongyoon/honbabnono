@@ -87,7 +87,16 @@ const NeighborhoodSelector: React.FC<NeighborhoodSelectorProps> = ({
         Alert.alert('오류', '현재 위치의 주소를 가져올 수 없습니다.\n인기 동네나 검색을 이용해주세요.');
       }
     } catch (error: any) {
-      console.error('현재 위치 조회 실패:', error);
+      // 개발 환경에서는 더 조용한 로깅
+      const isDevelopment = process.env.NODE_ENV === 'development' || 
+                            window.location.hostname === 'localhost' || 
+                            window.location.hostname === '127.0.0.1';
+      
+      if (isDevelopment) {
+        console.warn('📍 개발 환경: 위치 조회 실패', error.message);
+      } else {
+        console.error('현재 위치 조회 실패:', error);
+      }
       
       let title = '위치 조회 실패';
       let message = '현재 위치를 가져올 수 없습니다.';

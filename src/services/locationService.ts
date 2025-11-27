@@ -23,16 +23,29 @@ class LocationService {
    * 현재 위치 가져오기 (개선된 에러 처리)
    */
   async getCurrentLocation(): Promise<LocationData> {
+    // 개발 환경에서는 더 조용한 에러 처리
+    const isDevelopment = process.env.NODE_ENV === 'development' || 
+                          window.location.hostname === 'localhost' || 
+                          window.location.hostname === '127.0.0.1';
+
     // 먼저 권한 상태 확인
     const permissionState = await this.checkLocationPermission();
     
     if (permissionState === 'denied') {
-      throw new Error('위치 접근 권한이 차단되었습니다. 브라우저 설정에서 위치 권한을 허용해주세요.');
+      const error = new Error('위치 접근 권한이 차단되었습니다. 브라우저 설정에서 위치 권한을 허용해주세요.');
+      if (isDevelopment) {
+        console.warn('🔒 개발 환경: 위치 권한이 차단됨');
+      }
+      throw error;
     }
 
     return new Promise((resolve, reject) => {
       if (!navigator.geolocation) {
-        reject(new Error('이 브라우저는 위치 서비스를 지원하지 않습니다.'));
+        const error = new Error('이 브라우저는 위치 서비스를 지원하지 않습니다.');
+        if (isDevelopment) {
+          console.warn('📍 개발 환경: 위치 서비스 미지원');
+        }
+        reject(error);
         return;
       }
 
@@ -67,13 +80,21 @@ class LocationService {
               break;
           }
           
+          // 개발 환경에서는 더 조용한 로깅
+          if (isDevelopment) {
+            console.warn(`📍 개발 환경 위치 오류 (${error.code}):`, errorMessage);
+            if (userAction) {
+              console.info('💡 해결방법:', userAction);
+            }
+          }
+          
           const fullError = userAction ? `${errorMessage}\n\n해결방법: ${userAction}` : errorMessage;
           reject(new Error(fullError));
         },
         {
-          enableHighAccuracy: true, // GPS 사용
-          timeout: 15000, // 15초 타임아웃
-          maximumAge: 60000, // 1분간 캐시 사용
+          enableHighAccuracy: false, // 개발 환경에서는 정확도 낮춰서 더 빠르게
+          timeout: isDevelopment ? 5000 : 15000, // 개발 환경에서는 5초로 단축
+          maximumAge: 300000, // 5분간 캐시 사용 (더 길게)
         }
       );
     });
