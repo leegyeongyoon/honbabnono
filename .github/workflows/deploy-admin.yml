@@ -14,7 +14,7 @@ env:
   ECS_SERVICE: honbabnono-admin-service
   ECS_CLUSTER: honbabnono-cluster
   ECS_TASK_DEFINITION: honbabnono-admin-task
-  CONTAINER_NAME: honbabnono-admin
+  CONTAINER_NAME: honbabnono-admin-container
 
 jobs:
   deploy:
