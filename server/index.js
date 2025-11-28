@@ -49,16 +49,22 @@ try {
 }
 
 // PostgreSQL 연결 설정
-const pool = new Pool({
+const dbConfig = {
   host: process.env.DB_HOST,
   port: process.env.DB_PORT,
   database: process.env.DB_NAME,
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
-  ssl: {
+};
+
+// SSL 설정을 환경변수에 따라 조건부로 추가
+if (process.env.DB_SSL !== 'false' && process.env.NODE_ENV === 'production') {
+  dbConfig.ssl = {
     rejectUnauthorized: false
-  }
-});
+  };
+}
+
+const pool = new Pool(dbConfig);
 
 const app = express();
 const server = http.createServer(app);
