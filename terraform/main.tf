@@ -65,7 +65,7 @@ resource "aws_ecs_cluster_capacity_providers" "main" {
   }
 }
 
-# ECR 리포지토리 (고유 이름으로 중복 방지)
+# ECR 리포지토리 - 메인 앱 (고유 이름으로 중복 방지)
 resource "aws_ecr_repository" "app" {
   name                 = "${local.resource_prefix}-app"
   image_tag_mutability = "MUTABLE"
@@ -86,9 +86,52 @@ resource "aws_ecr_repository" "app" {
   }
 }
 
-# ECR 라이프사이클 정책
+# ECR 리포지토리 - 관리자 대시보드
+resource "aws_ecr_repository" "admin" {
+  name                 = "${local.resource_prefix}-admin"
+  image_tag_mutability = "MUTABLE"
+  force_delete         = true
+
+  image_scanning_configuration {
+    scan_on_push = true
+  }
+
+  lifecycle {
+    create_before_destroy = true
+    prevent_destroy       = false
+  }
+
+  tags = {
+    Name        = "${local.resource_prefix}-admin"
+    Environment = var.environment
+  }
+}
+
+# ECR 라이프사이클 정책 - 메인 앱
 resource "aws_ecr_lifecycle_policy" "app" {
   repository = aws_ecr_repository.app.name
+
+  policy = jsonencode({
+    rules = [
+      {
+        rulePriority = 1
+        description  = "Keep last 10 images"
+        selection = {
+          tagStatus   = "any"
+          countType   = "imageCountMoreThan"
+          countNumber = 10
+        }
+        action = {
+          type = "expire"
+        }
+      }
+    ]
+  })
+}
+
+# ECR 라이프사이클 정책 - 관리자 대시보드
+resource "aws_ecr_lifecycle_policy" "admin" {
+  repository = aws_ecr_repository.admin.name
 
   policy = jsonencode({
     rules = [

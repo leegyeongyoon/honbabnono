@@ -64,9 +64,27 @@ resource "aws_lb_listener" "https" {
   ssl_policy        = "ELBSecurityPolicy-2016-08"
   certificate_arn   = "arn:aws:acm:ap-northeast-2:975050251584:certificate/26e43f91-c274-4731-b357-b929ee2c0074"
 
+  # 기본 액션: 메인 앱으로 포워딩
   default_action {
     type             = "forward"
     target_group_arn = aws_lb_target_group.app.arn
+  }
+}
+
+# HTTPS 리스너 룰: admin 서브도메인을 관리자 대시보드로 라우팅
+resource "aws_lb_listener_rule" "admin" {
+  listener_arn = aws_lb_listener.https.arn
+  priority     = 100
+
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.admin.arn
+  }
+
+  condition {
+    host_header {
+      values = ["admin.honbabnono.com"]
+    }
   }
 }
 
@@ -120,5 +138,24 @@ resource "aws_route53_record" "www" {
   depends_on = [
     aws_lb_listener.https,
     aws_lb_listener.redirect
+  ]
+}
+
+# 관리자 서브도메인 레코드 추가
+resource "aws_route53_record" "admin" {
+  zone_id = "Z063704727QK0JIQO9M5I"
+  name    = "admin.honbabnono.com"
+  type    = "A"
+
+  alias {
+    name                   = aws_lb.main.dns_name
+    zone_id                = aws_lb.main.zone_id
+    evaluate_target_health = false
+  }
+
+  depends_on = [
+    aws_lb_listener.https,
+    aws_lb_listener.redirect,
+    aws_lb_listener_rule.admin
   ]
 }
