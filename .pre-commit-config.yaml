@@ -1,0 +1,105 @@
+# Pre-commit configuration for automated testing
+repos:
+  # JavaScript/Node.js linting and testing
+  - repo: local
+    hooks:
+      # ESLint for code style
+      - id: eslint
+        name: ESLint
+        entry: npx eslint --fix
+        language: node
+        files: \.(js|jsx|ts|tsx)$
+        exclude: node_modules/
+      
+      # Unit tests
+      - id: unit-tests
+        name: Unit Tests
+        entry: npm run test:unit
+        language: node
+        pass_filenames: false
+        always_run: true
+        
+      # Comprehensive API tests
+      - id: comprehensive-api-tests
+        name: Comprehensive API Tests
+        entry: NODE_ENV=test npm test tests/comprehensive-api.test.js
+        language: node  
+        pass_filenames: false
+        files: ^(server/|tests/).*\.(js|ts)$
+
+      # Authentication tests
+      - id: auth-tests
+        name: Authentication Tests
+        entry: NODE_ENV=test npm test tests/auth-detailed.test.js
+        language: node
+        pass_filenames: false
+        files: ^(server/.*auth|tests/.*auth).*\.(js|ts)$
+
+      # Meetup API tests
+      - id: meetup-tests
+        name: Meetup API Tests
+        entry: NODE_ENV=test npm test tests/meetup-detailed.test.js
+        language: node
+        pass_filenames: false
+        files: ^(server/.*meetup|tests/.*meetup).*\.(js|ts)$
+
+      # Payment & Points tests
+      - id: payment-tests
+        name: Payment & Points Tests
+        entry: NODE_ENV=test npm test tests/payment-points.test.js
+        language: node
+        pass_filenames: false
+        files: ^(server/.*(payment|point)|tests/.*(payment|point)).*\.(js|ts)$
+
+      # Chat API tests
+      - id: chat-tests
+        name: Chat API Tests
+        entry: NODE_ENV=test npm test tests/chat-api.test.js
+        language: node
+        pass_filenames: false
+        files: ^(server/.*chat|tests/.*chat).*\.(js|ts)$
+
+      # Admin & Upload tests
+      - id: admin-upload-tests
+        name: Admin & Upload Tests
+        entry: NODE_ENV=test npm test tests/admin-upload.test.js
+        language: node
+        pass_filenames: false
+        files: ^(server/.*(admin|upload)|tests/.*(admin|upload)).*\.(js|ts)$
+        
+      # Test coverage check with threshold
+      - id: coverage-check
+        name: Coverage Check (70% minimum)
+        entry: bash -c 'npm run test:coverage && COVERAGE=$(npx nyc report --reporter=text-summary | grep "Lines" | grep -o "[0-9.]*%" | head -1 | sed "s/%//"); if (( $(echo "$COVERAGE < 70" | bc -l) )); then echo "❌ Coverage ${COVERAGE}% below 70% threshold"; exit 1; fi'
+        language: node
+        pass_filenames: false
+        always_run: true
+
+  # Generic hooks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.4.0
+    hooks:
+      # Basic file checks
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-json
+      - id: check-merge-conflict
+      
+      # Security checks
+      - id: detect-private-key
+      - id: check-case-conflict
+      
+      # Large file prevention
+      - id: check-added-large-files
+        args: ['--maxkb=1000']
+
+# Global configuration
+default_language_version:
+  node: 20
+
+fail_fast: false
+
+# Minimum coverage thresholds (can be adjusted)
+ci:
+  skip: [unit-tests, api-tests, coverage-check]

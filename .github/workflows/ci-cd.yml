@@ -56,8 +56,58 @@ jobs:
     - name: Run simple tests
       run: npm run test:simple
 
-    - name: Run unit tests with coverage
+    - name: Run comprehensive API tests
+      run: NODE_ENV=test npm test tests/comprehensive-api.test.js
+      env:
+        JWT_SECRET: test-jwt-secret-for-ci
+        PORT: 3003
+
+    - name: Run authentication tests
+      run: NODE_ENV=test npm test tests/auth-detailed.test.js
+      env:
+        JWT_SECRET: test-jwt-secret-for-ci
+        PORT: 3003
+
+    - name: Run meetup API tests
+      run: NODE_ENV=test npm test tests/meetup-detailed.test.js
+      env:
+        JWT_SECRET: test-jwt-secret-for-ci
+        PORT: 3003
+
+    - name: Run payment & points tests
+      run: NODE_ENV=test npm test tests/payment-points.test.js
+      env:
+        JWT_SECRET: test-jwt-secret-for-ci
+        PORT: 3003
+
+    - name: Run chat API tests
+      run: NODE_ENV=test npm test tests/chat-api.test.js
+      env:
+        JWT_SECRET: test-jwt-secret-for-ci
+        PORT: 3003
+
+    - name: Run admin & upload tests
+      run: NODE_ENV=test npm test tests/admin-upload.test.js
+      env:
+        JWT_SECRET: test-jwt-secret-for-ci
+        PORT: 3003
+
+    - name: Run all unit tests with coverage
       run: npm run test:coverage
+      env:
+        JWT_SECRET: test-jwt-secret-for-ci
+        CI: true
+
+    - name: Check test coverage threshold
+      run: |
+        COVERAGE=$(npx nyc report --reporter=text-summary | grep "Lines" | grep -o '[0-9.]*%' | head -1 | sed 's/%//')
+        echo "Current coverage: ${COVERAGE}%"
+        if (( $(echo "$COVERAGE < 70" | bc -l) )); then
+          echo "❌ Coverage ${COVERAGE}% is below 70% threshold"
+          exit 1
+        else
+          echo "✅ Coverage ${COVERAGE}% meets threshold"
+        fi
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3
@@ -93,11 +143,88 @@ jobs:
         name: web-build
         path: dist/
 
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    needs: test
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Run npm audit
+      run: |
+        npm audit --audit-level=high
+        
+    - name: Check for sensitive data
+      run: |
+        # Check for potential secrets in code
+        if grep -r "password.*=" server/ --exclude-dir=node_modules || \
+           grep -r "secret.*=" server/ --exclude-dir=node_modules || \
+           grep -r "api_key.*=" server/ --exclude-dir=node_modules; then
+          echo "❌ Potential secrets found in code"
+          exit 1
+        else
+          echo "✅ No obvious secrets found"
+        fi
+
+  performance-test:
+    name: Performance Tests
+    runs-on: ubuntu-latest
+    needs: test
+    
+    services:
+      postgres:
+        image: postgres:13
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: honbabnono_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Run API load tests
+      run: |
+        # Start server in background
+        NODE_ENV=test JWT_SECRET=test-secret PORT=3004 npm run server &
+        SERVER_PID=$!
+        
+        # Wait for server to start
+        sleep 10
+        
+        # Run basic load test
+        for i in {1..50}; do
+          curl -f http://localhost:3004/api/health &
+        done
+        wait
+        
+        # Cleanup
+        kill $SERVER_PID
+        
+        echo "✅ Load test completed successfully"
+
   deploy:
     name: Deploy to AWS
     runs-on: ubuntu-latest
-    needs: [test, build]
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    needs: [test, build, security-scan, performance-test]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push' && success()
 
     steps:
     - name: Checkout code
