@@ -8329,6 +8329,240 @@ apiRouter.get('/app-info', async (req, res) => {
   }
 });
 
+// =============================================================================
+// 포인트 관련 API
+// =============================================================================
+
+// 포인트 내역 조회 API
+apiRouter.get('/user/point-transactions', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { page = 1, limit = 20, type } = req.query;
+    const offset = (page - 1) * limit;
+
+    console.log('💰 [API] 포인트 내역 조회 요청:', { userId, page, limit, type });
+
+    // 포인트 내역 조회 쿼리
+    let whereClause = 'WHERE user_id = $1';
+    let queryParams = [userId];
+    
+    if (type && type !== 'all') {
+      whereClause += ' AND transaction_type = $' + (queryParams.length + 1);
+      queryParams.push(type);
+    }
+
+    const query = `
+      SELECT 
+        id,
+        transaction_type,
+        amount,
+        description,
+        related_id,
+        created_at,
+        balance_after
+      FROM user_points_transactions 
+      ${whereClause}
+      ORDER BY created_at DESC 
+      LIMIT $${queryParams.length + 1} OFFSET $${queryParams.length + 2}
+    `;
+    
+    queryParams.push(limit, offset);
+    
+    const result = await pool.query(query, queryParams);
+    
+    // 총 개수 조회
+    const countQuery = `
+      SELECT COUNT(*) as total 
+      FROM user_points_transactions 
+      ${whereClause}
+    `;
+    const countResult = await pool.query(countQuery, queryParams.slice(0, -2));
+    const total = parseInt(countResult.rows[0].total);
+
+    console.log('✅ [API] 포인트 내역 조회 성공:', result.rows.length, '건');
+
+    res.json({
+      success: true,
+      data: {
+        transactions: result.rows,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total,
+          totalPages: Math.ceil(total / limit)
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ [API] 포인트 내역 조회 실패:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: '포인트 내역을 불러오는 중 오류가 발생했습니다.' 
+    });
+  }
+});
+
+// 포인트 충전 API
+apiRouter.post('/user/charge-points', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { amount, paymentMethod } = req.body;
+
+    console.log('💳 [API] 포인트 충전 요청:', { userId, amount, paymentMethod });
+
+    if (!amount || amount <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: '유효하지 않은 충전 금액입니다.'
+      });
+    }
+
+    const client = await pool.connect();
+    
+    try {
+      await client.query('BEGIN');
+
+      // 현재 포인트 잔액 조회
+      const currentPointsQuery = 'SELECT available_points FROM users WHERE id = $1';
+      const currentPointsResult = await client.query(currentPointsQuery, [userId]);
+      const currentPoints = currentPointsResult.rows[0]?.available_points || 0;
+      const newBalance = currentPoints + amount;
+
+      // 포인트 업데이트
+      const updateQuery = 'UPDATE users SET available_points = $1 WHERE id = $2';
+      await client.query(updateQuery, [newBalance, userId]);
+
+      // 포인트 거래 내역 추가
+      const transactionQuery = `
+        INSERT INTO user_points_transactions 
+        (user_id, transaction_type, amount, description, balance_after, related_id) 
+        VALUES ($1, $2, $3, $4, $5, $6)
+        RETURNING id
+      `;
+      const transactionResult = await client.query(transactionQuery, [
+        userId,
+        'charge',
+        amount,
+        `포인트 충전 (${paymentMethod})`,
+        newBalance,
+        null
+      ]);
+
+      await client.query('COMMIT');
+
+      console.log('✅ [API] 포인트 충전 성공:', { amount, newBalance });
+
+      res.json({
+        success: true,
+        message: '포인트가 성공적으로 충전되었습니다.',
+        data: {
+          transactionId: transactionResult.rows[0].id,
+          chargedAmount: amount,
+          newBalance: newBalance
+        }
+      });
+
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+
+  } catch (error) {
+    console.error('❌ [API] 포인트 충전 실패:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: '포인트 충전 중 오류가 발생했습니다.' 
+    });
+  }
+});
+
+// 포인트 사용 API (내부용 - 모임 결제 등에서 사용)
+apiRouter.post('/user/spend-points', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { amount, description, relatedId } = req.body;
+
+    console.log('💸 [API] 포인트 사용 요청:', { userId, amount, description, relatedId });
+
+    if (!amount || amount <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: '유효하지 않은 사용 금액입니다.'
+      });
+    }
+
+    const client = await pool.connect();
+    
+    try {
+      await client.query('BEGIN');
+
+      // 현재 포인트 잔액 조회
+      const currentPointsQuery = 'SELECT available_points FROM users WHERE id = $1';
+      const currentPointsResult = await client.query(currentPointsQuery, [userId]);
+      const currentPoints = currentPointsResult.rows[0]?.available_points || 0;
+
+      if (currentPoints < amount) {
+        return res.status(400).json({
+          success: false,
+          message: '보유 포인트가 부족합니다.'
+        });
+      }
+
+      const newBalance = currentPoints - amount;
+
+      // 포인트 업데이트
+      const updateQuery = 'UPDATE users SET available_points = $1 WHERE id = $2';
+      await client.query(updateQuery, [newBalance, userId]);
+
+      // 포인트 거래 내역 추가
+      const transactionQuery = `
+        INSERT INTO user_points_transactions 
+        (user_id, transaction_type, amount, description, balance_after, related_id) 
+        VALUES ($1, $2, $3, $4, $5, $6)
+        RETURNING id
+      `;
+      const transactionResult = await client.query(transactionQuery, [
+        userId,
+        'spend',
+        -amount, // 음수로 저장
+        description,
+        newBalance,
+        relatedId
+      ]);
+
+      await client.query('COMMIT');
+
+      console.log('✅ [API] 포인트 사용 성공:', { amount, newBalance });
+
+      res.json({
+        success: true,
+        message: '포인트가 성공적으로 사용되었습니다.',
+        data: {
+          transactionId: transactionResult.rows[0].id,
+          spentAmount: amount,
+          newBalance: newBalance
+        }
+      });
+
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+
+  } catch (error) {
+    console.error('❌ [API] 포인트 사용 실패:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: '포인트 사용 중 오류가 발생했습니다.' 
+    });
+  }
+});
+
 // 서버 시작
 const startServer = async () => {
   try {

@@ -30,9 +30,7 @@ const MenuCard: React.FC<{
     id: string;
     title: string;
     subtitle?: string;
-    icon: React.ReactNode;
     onPress: () => void;
-    color?: string;
   }>;
 }> = ({ title, icon, items }) => (
   <View style={styles.menuCard}>
@@ -53,9 +51,6 @@ const MenuCard: React.FC<{
           onPress={item.onPress}
         >
           <View style={styles.menuItemLeft}>
-            <View style={[styles.menuItemIcon, { backgroundColor: item.color || COLORS.primary.light }]}>
-              {item.icon}
-            </View>
             <View style={styles.menuItemText}>
               <Text style={styles.menuItemTitle}>{item.title}</Text>
               {item.subtitle && (
@@ -215,36 +210,22 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ user: propsUser }) => {
       icon: <User size={20} color={COLORS.primary.main} />,
       items: [
         {
-          id: 'badge-info',
-          title: '뱃지 정보',
-          subtitle: '획득한 뱃지를 확인해보세요',
-          icon: <Award size={16} color={COLORS.neutral.white} />,
-          onPress: () => handleMenuPress('badge-info'),
-          color: '#FFB800'
-        },
-        {
           id: 'point-balance',
           title: '보유 포인트',
           subtitle: `${userStats.availablePoints?.toLocaleString() || '0'}P`,
-          icon: <Gift size={16} color={COLORS.neutral.white} />,
-          onPress: () => handleMenuPress('point-balance'),
-          color: '#FF6B6B'
+          onPress: () => handleMenuPress('point-balance')
         },
         {
           id: 'my-meetups',
           title: '참가한 모임',
           subtitle: `총 ${userStats.totalMeetups || 0}회 참가`,
-          icon: <Users size={16} color={COLORS.neutral.white} />,
-          onPress: () => handleMenuPress('my-meetups'),
-          color: '#4ECDC4'
+          onPress: () => handleMenuPress('my-meetups')
         },
         {
           id: 'review-management',
           title: '후기 관리',
           subtitle: `작성한 리뷰 ${userStats.reviewCount || 0}개`,
-          icon: <FileText size={16} color={COLORS.neutral.white} />,
-          onPress: () => handleMenuPress('review-management'),
-          color: '#45B7D1'
+          onPress: () => handleMenuPress('review-management')
         }
       ]
     },
@@ -256,33 +237,25 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ user: propsUser }) => {
           id: 'wishlist',
           title: '찜 목록',
           subtitle: '관심있는 모임들',
-          icon: <Heart size={16} color={COLORS.neutral.white} />,
-          onPress: () => handleMenuPress('wishlist'),
-          color: '#FF69B4'
+          onPress: () => handleMenuPress('wishlist')
         },
         {
           id: 'recent-views',
           title: '최근 본 글',
           subtitle: '최근에 본 모임들',
-          icon: <Eye size={16} color={COLORS.neutral.white} />,
-          onPress: () => handleMenuPress('recent-views'),
-          color: '#9B59B6'
+          onPress: () => handleMenuPress('recent-views')
         },
         {
           id: 'blocked-users',
           title: '차단 회원관리',
           subtitle: '차단한 사용자 목록',
-          icon: <UserX size={16} color={COLORS.neutral.white} />,
-          onPress: () => handleMenuPress('blocked-users'),
-          color: '#E74C3C'
+          onPress: () => handleMenuPress('blocked-users')
         },
         {
           id: 'my-reviews',
           title: '리뷰 관리',
           subtitle: '내가 작성한 리뷰들',
-          icon: <FileText size={16} color={COLORS.neutral.white} />,
-          onPress: () => handleMenuPress('my-reviews'),
-          color: '#3498DB'
+          onPress: () => handleMenuPress('my-reviews')
         }
       ]
     },
@@ -294,17 +267,13 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ user: propsUser }) => {
           id: 'payment-history',
           title: '약속금 결제 내역',
           subtitle: '결제 및 환불 내역',
-          icon: <CreditCard size={16} color={COLORS.neutral.white} />,
-          onPress: () => handleMenuPress('payment-history'),
-          color: '#2ECC71'
+          onPress: () => handleMenuPress('payment-history')
         },
         {
           id: 'point-charge',
           title: '포인트 충전/ 사용',
           subtitle: '포인트 관리',
-          icon: <DollarSign size={16} color={COLORS.neutral.white} />,
-          onPress: () => handleMenuPress('point-charge'),
-          color: '#F39C12'
+          onPress: () => handleMenuPress('point-charge')
         }
       ]
     },
@@ -316,9 +285,7 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ user: propsUser }) => {
           id: 'invite-friends',
           title: '친구코드/초대코드',
           subtitle: '친구를 초대하고 포인트 받기',
-          icon: <UserPlus size={16} color={COLORS.neutral.white} />,
-          onPress: () => handleMenuPress('invite-friends'),
-          color: '#8E44AD'
+          onPress: () => handleMenuPress('invite-friends')
         }
       ]
     },
@@ -330,41 +297,31 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ user: propsUser }) => {
           id: 'notices',
           title: '공지사항',
           subtitle: '최신 소식과 공지',
-          icon: <Bell size={16} color={COLORS.neutral.white} />,
-          onPress: () => handleMenuPress('notices'),
-          color: '#FF6B35'
+          onPress: () => handleMenuPress('notices')
         },
         {
           id: 'faq',
           title: '자주 묻는 질문',
           subtitle: 'FAQ 및 도움말',
-          icon: <HelpCircle size={16} color={COLORS.neutral.white} />,
-          onPress: () => handleMenuPress('faq'),
-          color: '#1ABC9C'
+          onPress: () => handleMenuPress('faq')
         },
         {
           id: 'customer-support',
           title: '고객 센터',
           subtitle: '문의사항 등록 및 확인',
-          icon: <Phone size={16} color={COLORS.neutral.white} />,
-          onPress: () => handleMenuPress('customer-support'),
-          color: '#34495E'
+          onPress: () => handleMenuPress('customer-support')
         },
         {
           id: 'terms',
           title: '약관 및 정책',
           subtitle: '이용약관 및 개인정보처리방침',
-          icon: <FileCheck size={16} color={COLORS.neutral.white} />,
-          onPress: () => handleMenuPress('terms'),
-          color: '#95A5A6'
+          onPress: () => handleMenuPress('terms')
         },
         {
           id: 'app-info',
           title: '버전 정보',
           subtitle: 'v1.0.0',
-          icon: <Info size={16} color={COLORS.neutral.white} />,
-          onPress: () => handleMenuPress('app-info'),
-          color: '#7F8C8D'
+          onPress: () => handleMenuPress('app-info')
         }
       ]
     },
@@ -376,25 +333,19 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ user: propsUser }) => {
           id: 'notification-settings',
           title: '알림 설정',
           subtitle: '푸시 알림 설정 관리',
-          icon: <Bell size={16} color={COLORS.neutral.white} />,
-          onPress: () => handleMenuPress('notification-settings'),
-          color: '#6C5CE7'
+          onPress: () => handleMenuPress('notification-settings')
         },
         {
           id: 'logout',
           title: '로그아웃',
           subtitle: '안전하게 로그아웃',
-          icon: <LogOut size={16} color={COLORS.neutral.white} />,
-          onPress: () => handleMenuPress('logout'),
-          color: '#FD79A8'
+          onPress: () => handleMenuPress('logout')
         },
         {
           id: 'delete-account',
           title: '회원 탈퇴',
           subtitle: '계정을 영구적으로 삭제',
-          icon: <Trash2 size={16} color={COLORS.neutral.white} />,
-          onPress: () => handleMenuPress('delete-account'),
-          color: '#D63031'
+          onPress: () => handleMenuPress('delete-account')
         }
       ]
     }
@@ -470,6 +421,31 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ user: propsUser }) => {
                   styles.progressFill, 
                   { width: `${userStats.riceIndex}%` }
                 ]} />
+              </View>
+            </View>
+            
+            {/* 뱃지 섹션 */}
+            <View style={styles.badgeSection}>
+              <Text style={styles.badgeLabel}>내 뱃지</Text>
+              <View style={styles.badgeContainer}>
+                <View style={styles.badge}>
+                  <Text style={styles.badgeEmoji}>🥇</Text>
+                  <Text style={styles.badgeTitle}>첫걸음</Text>
+                </View>
+                <View style={styles.badge}>
+                  <Text style={styles.badgeEmoji}>🤝</Text>
+                  <Text style={styles.badgeTitle}>밥친구</Text>
+                </View>
+                <View style={styles.badge}>
+                  <Text style={styles.badgeEmoji}>⭐</Text>
+                  <Text style={styles.badgeTitle}>우수회원</Text>
+                </View>
+                <TouchableOpacity 
+                  style={styles.moreBadges}
+                  onPress={() => navigate('/my-badges')}
+                >
+                  <Text style={styles.moreBadgesText}>+</Text>
+                </TouchableOpacity>
               </View>
             </View>
           </View>
@@ -694,6 +670,61 @@ const styles = StyleSheet.create({
   menuItemSubtitle: {
     fontSize: 13,
     color: COLORS.text.secondary,
+  },
+  
+  // 뱃지 스타일
+  badgeSection: {
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.neutral.border,
+  },
+  badgeLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+    marginBottom: 12,
+  },
+  badgeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  badge: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.neutral.white,
+    borderRadius: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    minWidth: 60,
+    ...SHADOWS.small,
+  },
+  badgeEmoji: {
+    fontSize: 18,
+    marginBottom: 4,
+  },
+  badgeTitle: {
+    fontSize: 11,
+    fontWeight: '500',
+    color: COLORS.text.secondary,
+    textAlign: 'center',
+  },
+  moreBadges: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.neutral.light,
+    borderRadius: 12,
+    width: 40,
+    height: 40,
+    borderWidth: 1,
+    borderColor: COLORS.neutral.border,
+    borderStyle: 'dashed',
+  },
+  moreBadgesText: {
+    fontSize: 16,
+    color: COLORS.text.secondary,
+    fontWeight: '600',
   },
   
   bottomSpacing: {

@@ -25,6 +25,8 @@ import PointHistoryScreen from '../screens/PointHistoryScreen.web';
 import PointChargeScreen from '../screens/PointChargeScreen.web';
 import NotificationSettingsScreen from '../screens/NotificationSettingsScreen.web';
 import PrivacySettingsScreen from '../screens/PrivacySettingsScreen.web';
+import MyBadgesScreen from '../screens/MyBadgesScreen';
+import PointBalanceScreen from '../screens/PointBalanceScreen';
 
 // Components
 import BottomTabBar from './BottomTabBar';
@@ -350,6 +352,24 @@ const RouterApp: React.FC = () => {
             element={
               <ProtectedRoute>
                 <PrivacySettingsScreen />
+              </ProtectedRoute>
+            } 
+          />
+
+          <Route 
+            path="/my-badges" 
+            element={
+              <ProtectedRoute>
+                <MyBadgesScreen />
+              </ProtectedRoute>
+            } 
+          />
+
+          <Route 
+            path="/point-balance" 
+            element={
+              <ProtectedRoute>
+                <PointBalanceScreen />
               </ProtectedRoute>
             } 
           />
