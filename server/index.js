@@ -312,41 +312,6 @@ apiRouter.get('/auth/kakao/callback', async (req, res) => {
 });
 
 // 토큰 검증 및 자동 로그인 API
-// 테스트 로그인 API (개발용)
-apiRouter.post('/auth/test-login', async (req, res) => {
-  try {
-    const testUser = {
-      id: '11111111-1111-1111-1111-111111111111',
-      name: '테스트유저1',
-      email: 'test1@test.com'
-    };
-
-    // JWT 토큰 생성
-    const token = jwt.sign(
-      { 
-        userId: testUser.id,
-        email: testUser.email,
-        name: testUser.name
-      },
-      process.env.JWT_SECRET,
-      { expiresIn: '7d' }
-    );
-
-    console.log('✅ 테스트 로그인 성공:', testUser.email);
-    
-    res.json({
-      success: true,
-      token,
-      user: testUser
-    });
-  } catch (error) {
-    console.error('❌ 테스트 로그인 실패:', error);
-    res.status(500).json({ 
-      success: false, 
-      error: '테스트 로그인 중 오류가 발생했습니다.' 
-    });
-  }
-});
 
 apiRouter.post('/auth/verify-token', async (req, res) => {
   console.log('🔍 토큰 검증 API 호출됨:', { 
@@ -542,6 +507,41 @@ const authenticateToken = (req, res, next) => {
       return res.status(403).json({ error: '유효하지 않은 토큰입니다' });
     }
     console.log('✅ 토큰 검증 성공:', { userId: user.userId || user.id, email: user.email, url: req.originalUrl });
+    req.user = { userId: user.userId || user.id, email: user.email, name: user.name };
+    next();
+  });
+};
+
+// 관리자 인증 미들웨어
+const authenticateAdmin = (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+
+  console.log('🔐 관리자 토큰 검증 시작:', { 
+    url: req.originalUrl, 
+    method: req.method,
+    authHeader: authHeader?.substring(0, 20) + '...', 
+    token: token?.substring(0, 20) + '...' 
+  });
+
+  if (!token) {
+    console.log('❌ 관리자 토큰이 없습니다');
+    return res.status(401).json({ error: '관리자 접근 토큰이 필요합니다' });
+  }
+
+  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+    if (err) {
+      console.log('❌ 관리자 토큰 검증 실패:', err.message);
+      return res.status(403).json({ error: '유효하지 않은 관리자 토큰입니다' });
+    }
+    
+    // 관리자 권한 확인 (이메일 기반)
+    if (!user.email || !user.email.includes('@')) {
+      console.log('❌ 관리자 권한 없음:', { email: user.email });
+      return res.status(403).json({ error: '관리자 권한이 필요합니다' });
+    }
+    
+    console.log('✅ 관리자 토큰 검증 성공:', { userId: user.userId || user.id, email: user.email, url: req.originalUrl });
     req.user = { userId: user.userId || user.id, email: user.email, name: user.name };
     next();
   });
@@ -4714,11 +4714,6 @@ apiRouter.post('/meetups/:id/verify-location', authenticateToken, async (req, re
 // 약속금 및 포인트 시스템 API
 // ===========================================
 
-// 테스트 API
-apiRouter.get('/user/test-api', (req, res) => {
-  console.log('✅ 테스트 API 도달!');
-  res.json({ success: true, message: '테스트 성공!' });
-});
 
 // 사용자 포인트 조회
 apiRouter.get('/user/points', authenticateToken, async (req, res) => {
