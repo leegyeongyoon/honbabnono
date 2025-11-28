@@ -22,8 +22,8 @@ import axios from 'axios';
 interface DashboardStats {
   totalUsers: number;
   totalMeetups: number;
+  todayMeetups: number;
   activeMeetups: number;
-  totalRevenue: number;
 }
 
 interface RecentMeetup {
@@ -32,27 +32,16 @@ interface RecentMeetup {
   hostName: string;
   currentParticipants: number;
   maxParticipants: number;
-  status: string;
+  status: '모집중' | '모집완료' | '진행중' | '종료' | '취소';
   createdAt: string;
-}
-
-interface UsersCountResponse {
-  count: number;
-}
-
-interface MeetupsStatsResponse {
-  total: number;
-  active: number;
-  revenue: number;
-  recent: RecentMeetup[];
 }
 
 const Dashboard: React.FC = () => {
   const [stats, setStats] = useState<DashboardStats>({
     totalUsers: 0,
     totalMeetups: 0,
+    todayMeetups: 0,
     activeMeetups: 0,
-    totalRevenue: 0,
   });
   const [recentMeetups, setRecentMeetups] = useState<RecentMeetup[]>([]);
 
@@ -62,19 +51,15 @@ const Dashboard: React.FC = () => {
 
   const fetchDashboardData = async () => {
     try {
-      const [usersResponse, meetupsResponse] = await Promise.all([
-        axios.get<UsersCountResponse>('http://localhost:3001/api/admin/users/count'),
-        axios.get<MeetupsStatsResponse>('http://localhost:3001/api/admin/meetups/stats'),
+      const [statsResponse, meetupsResponse] = await Promise.all([
+        axios.get<DashboardStats>('http://localhost:3001/api/admin/stats'),
+        axios.get<RecentMeetup[]>('http://localhost:3001/api/admin/meetups'),
       ]);
 
-      setStats({
-        totalUsers: usersResponse.data.count || 0,
-        totalMeetups: meetupsResponse.data.total || 0,
-        activeMeetups: meetupsResponse.data.active || 0,
-        totalRevenue: meetupsResponse.data.revenue || 0,
-      });
-
-      setRecentMeetups(meetupsResponse.data.recent || []);
+      setStats(statsResponse.data);
+      
+      // 최근 5개 모임만 표시
+      setRecentMeetups(meetupsResponse.data.slice(0, 5));
     } catch (error) {
       console.error('대시보드 데이터 로드 실패:', error);
     }
@@ -82,11 +67,15 @@ const Dashboard: React.FC = () => {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'active':
+      case '모집중':
         return 'success';
-      case 'completed':
+      case '모집완료':
+        return 'info';
+      case '진행중':
+        return 'warning';
+      case '종료':
         return 'default';
-      case 'cancelled':
+      case '취소':
         return 'error';
       default:
         return 'default';
@@ -94,16 +83,7 @@ const Dashboard: React.FC = () => {
   };
 
   const getStatusText = (status: string) => {
-    switch (status) {
-      case 'active':
-        return '활성';
-      case 'completed':
-        return '완료';
-      case 'cancelled':
-        return '취소';
-      default:
-        return status;
-    }
+    return status;
   };
 
   const StatCard = ({ title, value, icon, color }: { 
@@ -160,14 +140,14 @@ const Dashboard: React.FC = () => {
           color="#D9CFC7"
         />
         <StatCard
-          title="활성 모임"
-          value={stats.activeMeetups}
+          title="오늘 생성된 모임"
+          value={stats.todayMeetups}
           icon={<TrendingUpIcon fontSize="large" />}
           color="#7A8A6E"
         />
         <StatCard
-          title="총 수익"
-          value={`₩${stats.totalRevenue.toLocaleString()}`}
+          title="활성 모임"
+          value={stats.activeMeetups}
           icon={<AttachMoneyIcon fontSize="large" />}
           color="#B5857A"
         />

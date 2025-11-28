@@ -35,7 +35,7 @@ interface Meetup {
   currentParticipants: number;
   maxParticipants: number;
   category: string;
-  status: 'active' | 'completed' | 'cancelled';
+  status: '모집중' | '모집완료' | '진행중' | '종료' | '취소';
   createdAt: string;
 }
 
@@ -70,11 +70,15 @@ const MeetupManagement: React.FC = () => {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'active':
+      case '모집중':
         return 'success';
-      case 'completed':
+      case '모집완료':
+        return 'info';
+      case '진행중':
+        return 'warning';
+      case '종료':
         return 'default';
-      case 'cancelled':
+      case '취소':
         return 'error';
       default:
         return 'default';
@@ -82,16 +86,7 @@ const MeetupManagement: React.FC = () => {
   };
 
   const getStatusText = (status: string) => {
-    switch (status) {
-      case 'active':
-        return '활성';
-      case 'completed':
-        return '완료';
-      case 'cancelled':
-        return '취소';
-      default:
-        return status;
-    }
+    return status;
   };
 
   const getCategoryText = (category: string) => {
@@ -209,7 +204,7 @@ const MeetupManagement: React.FC = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setDialogOpen(false)}>닫기</Button>
-          {selectedMeetup && selectedMeetup.status === 'active' && (
+          {selectedMeetup && selectedMeetup.status === '모집중' && (
             <>
               <Button
                 onClick={() => handleMeetupAction(selectedMeetup.id, 'approve')}
