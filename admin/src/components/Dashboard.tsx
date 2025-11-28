@@ -52,8 +52,8 @@ const Dashboard: React.FC = () => {
   const fetchDashboardData = async () => {
     try {
       const [statsResponse, meetupsResponse] = await Promise.all([
-        axios.get<DashboardStats>('http://localhost:3001/api/admin/stats'),
-        axios.get<RecentMeetup[]>('http://localhost:3001/api/admin/meetups'),
+        axios.get<DashboardStats>(`${process.env.REACT_APP_API_URL}/admin/stats`),
+        axios.get<RecentMeetup[]>(`${process.env.REACT_APP_API_URL}/admin/meetups`),
       ]);
 
       setStats(statsResponse.data);

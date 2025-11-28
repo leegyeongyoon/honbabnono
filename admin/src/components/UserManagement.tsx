@@ -48,7 +48,7 @@ const UserManagement: React.FC = () => {
 
   const fetchUsers = async () => {
     try {
-      const response = await axios.get<User[]>('http://localhost:3001/api/admin/users');
+      const response = await axios.get<User[]>('${process.env.REACT_APP_API_URL}/admin/users');
       setUsers(response.data);
     } catch (error) {
       console.error('사용자 목록 로드 실패:', error);
@@ -57,7 +57,7 @@ const UserManagement: React.FC = () => {
 
   const handleUserAction = async (userId: string, action: 'block' | 'unblock' | 'verify') => {
     try {
-      await axios.post(`http://localhost:3001/api/admin/users/${userId}/${action}`);
+      await axios.post(`${process.env.REACT_APP_API_URL}/admin/users/${userId}/${action}`);
       fetchUsers();
       setDialogOpen(false);
     } catch (error) {

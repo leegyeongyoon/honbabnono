@@ -51,7 +51,7 @@ const MeetupManagement: React.FC = () => {
 
   const fetchMeetups = async () => {
     try {
-      const response = await axios.get<Meetup[]>('http://localhost:3001/api/admin/meetups');
+      const response = await axios.get<Meetup[]>('${process.env.REACT_APP_API_URL}/admin/meetups');
       setMeetups(response.data);
     } catch (error) {
       console.error('모임 목록 로드 실패:', error);
@@ -60,7 +60,7 @@ const MeetupManagement: React.FC = () => {
 
   const handleMeetupAction = async (meetupId: string, action: 'cancel' | 'approve') => {
     try {
-      await axios.post(`http://localhost:3001/api/admin/meetups/${meetupId}/${action}`);
+      await axios.post(`${process.env.REACT_APP_API_URL}/admin/meetups/${meetupId}/${action}`);
       fetchMeetups();
       setDialogOpen(false);
     } catch (error) {

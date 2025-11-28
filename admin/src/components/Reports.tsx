@@ -44,7 +44,7 @@ const Reports: React.FC = () => {
   const fetchReportData = async () => {
     setLoading(true);
     try {
-      const response = await axios.get<ReportData[]>(`http://localhost:3001/api/admin/reports/${reportType}`);
+      const response = await axios.get<ReportData[]>(`${process.env.REACT_APP_API_URL}/admin/reports/${reportType}`);
       setReportData(response.data);
     } catch (error) {
       console.error('리포트 데이터 로드 실패:', error);
@@ -56,7 +56,7 @@ const Reports: React.FC = () => {
   const downloadReport = async () => {
     try {
       const response = await axios.get<Blob>(
-        `http://localhost:3001/api/admin/reports/download/${reportType}`,
+        `${process.env.REACT_APP_API_URL}/admin/reports/download/${reportType}`,
         { responseType: 'blob' }
       );
       
