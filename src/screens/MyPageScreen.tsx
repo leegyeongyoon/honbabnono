@@ -184,6 +184,8 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ navigation, user, onLogout 
   // 설정 메뉴
   const settingsMenu = [
     { id: 'profile', title: '프로필 관리', icon: 'user', action: handleProfileEdit },
+    { id: 'recentViews', title: '최근 본 글', icon: 'clock', action: () => window.location.href = '/recent-views' },
+    { id: 'blockedUsers', title: '차단 회원 관리', icon: 'user-x', action: () => window.location.href = '/blocked-users' },
     { id: 'notification', title: '알림 설정', icon: 'bell', action: handleNotificationSettings },
     { id: 'privacy', title: '개인정보 관리', icon: 'shield', action: handlePrivacyManagement },
     { id: 'help', title: '도움말', icon: 'help-circle', action: handleHelp },

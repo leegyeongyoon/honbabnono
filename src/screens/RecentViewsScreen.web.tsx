@@ -3,13 +3,13 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'rea
 import { useNavigate } from 'react-router-dom';
 import { COLORS, SHADOWS } from '../styles/colors';
 import { Icon } from '../components/Icon';
-import { Heart, ArrowLeft, Clock, Users, MapPin } from 'lucide-react';
+import { ArrowLeft, Clock, Users, MapPin, Trash2, History } from 'lucide-react';
 import apiClient from '../services/apiClient';
 
-interface WishlistItem {
-  wishlist_id: string;
-  wishlisted_at: string;
+interface RecentViewItem {
   id: string;
+  viewed_at: string;
+  meetup_id: string;
   title: string;
   description: string;
   date: string;
@@ -28,55 +28,94 @@ interface WishlistItem {
   created_at: string;
 }
 
-const WishlistScreen: React.FC = () => {
+const RecentViewsScreen: React.FC = () => {
   const navigate = useNavigate();
-  const [wishlist, setWishlist] = useState<WishlistItem[]>([]);
+  const [recentViews, setRecentViews] = useState<RecentViewItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchWishlist = async () => {
-      try {
-        setLoading(true);
-        console.log('🤍 찜 목록 조회 시작');
-        const response = await apiClient.get('/user/wishlists', {
-          params: { page: 1, limit: 50 }
-        });
-        
-        if (response.data && response.data.success) {
-          setWishlist(response.data.data || []);
-          console.log('✅ 찜 목록 조회 성공:', response.data.data?.length, '건');
-        } else {
-          console.error('❌ 찜 목록 조회 실패:', response.data?.message || 'Unknown error');
-          setWishlist([]);
-        }
-      } catch (error) {
-        console.error('❌ 찜 목록 조회 실패:', error);
-        setWishlist([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchWishlist();
+    fetchRecentViews();
   }, []);
 
-  const removeFromWishlist = async (meetupId: string) => {
+  const fetchRecentViews = async () => {
     try {
-      console.log('🤍 찜 제거 시도:', meetupId);
-      const response = await apiClient.delete(`/meetups/${meetupId}/wishlist`);
+      setLoading(true);
+      console.log('📖 최근 본 글 목록 조회 시작');
+      const response = await apiClient.get('/user/recent-views', {
+        params: { page: 1, limit: 50 }
+      });
       
       if (response.data && response.data.success) {
-        setWishlist(prev => prev.filter(item => item.id !== meetupId));
-        console.log('✅ 찜 제거 성공');
+        setRecentViews(response.data.data || []);
+        console.log('✅ 최근 본 글 목록 조회 성공:', response.data.data?.length, '건');
       } else {
-        console.error('❌ 찜 제거 실패:', response.data?.message);
+        console.error('❌ 최근 본 글 목록 조회 실패:', response.data?.message || 'Unknown error');
+        setRecentViews([]);
       }
     } catch (error) {
-      console.error('위시리스트 제거 실패:', error);
+      console.error('❌ 최근 본 글 목록 조회 실패:', error);
+      setRecentViews([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const removeFromRecentViews = async (viewId: string) => {
+    try {
+      console.log('🗑️ 최근 본 글 제거 시도:', viewId);
+      const response = await apiClient.delete(`/user/recent-views/${viewId}`);
+      
+      if (response.data && response.data.success) {
+        setRecentViews(prev => prev.filter(item => item.id !== viewId));
+        console.log('✅ 최근 본 글 제거 성공');
+      } else {
+        console.error('❌ 최근 본 글 제거 실패:', response.data?.message);
+      }
+    } catch (error) {
+      console.error('❌ 최근 본 글 제거 실패:', error);
+    }
+  };
+
+  const clearAllRecentViews = async () => {
+    try {
+      console.log('🗑️ 전체 최근 본 글 삭제 시도');
+      const response = await apiClient.delete('/user/recent-views');
+      
+      if (response.data && response.data.success) {
+        setRecentViews([]);
+        console.log('✅ 전체 최근 본 글 삭제 성공');
+      } else {
+        console.error('❌ 전체 최근 본 글 삭제 실패:', response.data?.message);
+      }
+    } catch (error) {
+      console.error('❌ 전체 최근 본 글 삭제 실패:', error);
     }
   };
 
   const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
+    
+    if (diffInHours < 1) {
+      const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
+      return `${diffInMinutes}분 전`;
+    } else if (diffInHours < 24) {
+      return `${diffInHours}시간 전`;
+    } else {
+      const diffInDays = Math.floor(diffInHours / 24);
+      if (diffInDays < 7) {
+        return `${diffInDays}일 전`;
+      } else {
+        return date.toLocaleDateString('ko-KR', {
+          month: 'short',
+          day: 'numeric'
+        });
+      }
+    }
+  };
+
+  const formatMeetupDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('ko-KR', {
       month: 'short',
@@ -95,7 +134,7 @@ const WishlistScreen: React.FC = () => {
     });
   };
 
-  const getStatusText = (item: WishlistItem) => {
+  const getStatusText = (item: RecentViewItem) => {
     if (item.is_ended) {
       return '이미 종료된 모임';
     }
@@ -109,7 +148,7 @@ const WishlistScreen: React.FC = () => {
     }
   };
 
-  const getStatusColor = (item: WishlistItem) => {
+  const getStatusColor = (item: RecentViewItem) => {
     if (item.is_ended) {
       return COLORS.text.disabled;
     }
@@ -123,14 +162,14 @@ const WishlistScreen: React.FC = () => {
     }
   };
 
-  const renderWishlistItem = (item: WishlistItem) => (
+  const renderRecentViewItem = (item: RecentViewItem) => (
     <TouchableOpacity
-      key={item.wishlist_id}
+      key={item.id}
       style={[
-        styles.wishlistCard,
+        styles.recentViewCard,
         item.is_ended && styles.endedCard
       ]}
-      onPress={() => navigate(`/meetup/${item.id}`)}
+      onPress={() => navigate(`/meetup/${item.meetup_id}`)}
     >
       {/* 모임 이미지 */}
       <View style={styles.imageContainer}>
@@ -149,7 +188,7 @@ const WishlistScreen: React.FC = () => {
         {/* 종료 오버레이 */}
         {item.is_ended && (
           <View style={styles.endedOverlay}>
-            <Text style={styles.endedText}>종료된 모임</Text>
+            <Text style={styles.endedOverlayText}>종료된 모임</Text>
           </View>
         )}
       </View>
@@ -164,17 +203,13 @@ const WishlistScreen: React.FC = () => {
             {item.title}
           </Text>
           <TouchableOpacity
-            style={styles.heartButton}
+            style={styles.removeButton}
             onPress={(e) => {
               e.stopPropagation();
-              removeFromWishlist(item.id);
+              removeFromRecentViews(item.id);
             }}
           >
-            <Heart 
-              size={18} 
-              color="#E74C3C" 
-              fill="#E74C3C"
-            />
+            <Trash2 size={16} color={COLORS.text.secondary} />
           </TouchableOpacity>
         </View>
 
@@ -192,7 +227,7 @@ const WishlistScreen: React.FC = () => {
               styles.metaText,
               item.is_ended && styles.endedText
             ]}>
-              {formatDate(item.date)} {formatTime(item.time)}
+              {formatMeetupDate(item.date)} {formatTime(item.time)}
             </Text>
           </View>
 
@@ -230,14 +265,9 @@ const WishlistScreen: React.FC = () => {
             </Text>
           </View>
           
-          {item.deposit_amount > 0 && (
-            <Text style={[
-              styles.depositText,
-              item.is_ended && styles.endedText
-            ]}>
-              약속금 3,000원
-            </Text>
-          )}
+          <Text style={styles.viewedAtText}>
+            {formatDate(item.viewed_at)} 조회
+          </Text>
         </View>
       </View>
     </TouchableOpacity>
@@ -246,7 +276,7 @@ const WishlistScreen: React.FC = () => {
   if (loading) {
     return (
       <View style={[styles.container, styles.centerContent]}>
-        <Text style={styles.loadingText}>위시리스트를 불러오는 중...</Text>
+        <Text style={styles.loadingText}>최근 본 글을 불러오는 중...</Text>
       </View>
     );
   }
@@ -261,20 +291,27 @@ const WishlistScreen: React.FC = () => {
         >
           <ArrowLeft size={24} color={COLORS.text.primary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>찜 목록</Text>
-        <View style={styles.placeholder} />
+        <Text style={styles.headerTitle}>최근 본 글</Text>
+        {recentViews.length > 0 && (
+          <TouchableOpacity
+            style={styles.clearAllButton}
+            onPress={clearAllRecentViews}
+          >
+            <Text style={styles.clearAllText}>전체 삭제</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* 통계 정보 */}
-      {wishlist.length > 0 && (
+      {recentViews.length > 0 && (
         <View style={styles.statsContainer}>
           <View style={styles.statCard}>
-            <Text style={styles.statNumber}>{wishlist.length}</Text>
-            <Text style={styles.statLabel}>총 찜한 모임</Text>
+            <Text style={styles.statNumber}>{recentViews.length}</Text>
+            <Text style={styles.statLabel}>최근 본 글</Text>
           </View>
           <View style={styles.statCard}>
             <Text style={styles.statNumber}>
-              {wishlist.filter(item => !item.is_ended).length}
+              {recentViews.filter(item => !item.is_ended).length}
             </Text>
             <Text style={styles.statLabel}>참여 가능한 모임</Text>
           </View>
@@ -282,24 +319,24 @@ const WishlistScreen: React.FC = () => {
       )}
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {wishlist.length === 0 ? (
+        {recentViews.length === 0 ? (
           <View style={styles.emptyState}>
-            <Text style={styles.emptyIcon}>💝</Text>
-            <Text style={styles.emptyTitle}>아직 찜한 모임이 없어요</Text>
+            <Text style={styles.emptyIcon}>📖</Text>
+            <Text style={styles.emptyTitle}>아직 본 글이 없어요</Text>
             <Text style={styles.emptyDescription}>
-              마음에 드는 모임을 찜해보세요!{'\n'}언제든지 다시 확인할 수 있어요.
+              모임을 둘러보고 관심있는 모임을 확인해보세요!{'\n'}최근 본 글 내역이 여기에 표시됩니다.
             </Text>
             <TouchableOpacity
               style={styles.exploreButton}
               onPress={() => navigate('/home')}
             >
-              <Text style={styles.exploreButtonText}>모임 찾아보기</Text>
+              <Text style={styles.exploreButtonText}>모임 둘러보기</Text>
             </TouchableOpacity>
           </View>
         ) : (
-          <View style={styles.wishlistGrid}>
-            <Text style={styles.sectionTitle}>저장한 모임 ({wishlist.length}개)</Text>
-            {wishlist.map(renderWishlistItem)}
+          <View style={styles.recentViewsGrid}>
+            <Text style={styles.sectionTitle}>최근 본 글 ({recentViews.length}개)</Text>
+            {recentViews.map(renderRecentViewItem)}
           </View>
         )}
       </ScrollView>
@@ -340,8 +377,13 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: COLORS.text.primary,
   },
-  placeholder: {
-    width: 40,
+  clearAllButton: {
+    padding: 8,
+  },
+  clearAllText: {
+    fontSize: 14,
+    color: COLORS.text.error,
+    fontWeight: '500',
   },
   
   // 통계
@@ -412,8 +454,8 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   
-  // 찜 목록
-  wishlistGrid: {
+  // 최근 본 글 목록
+  recentViewsGrid: {
     paddingHorizontal: 20,
     paddingVertical: 16,
   },
@@ -424,8 +466,8 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   
-  // 찜 카드
-  wishlistCard: {
+  // 최근 본 글 카드
+  recentViewCard: {
     backgroundColor: COLORS.neutral.white,
     borderRadius: 12,
     marginBottom: 16,
@@ -463,7 +505,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  endedText: {
+  endedOverlayText: {
     color: COLORS.neutral.white,
     fontSize: 16,
     fontWeight: '600',
@@ -489,13 +531,16 @@ const styles = StyleSheet.create({
   endedTitle: {
     color: COLORS.text.disabled,
   },
-  heartButton: {
+  removeButton: {
     padding: 4,
   },
   cardCategory: {
     fontSize: 14,
     color: COLORS.text.secondary,
     marginBottom: 12,
+  },
+  endedText: {
+    color: COLORS.text.disabled,
   },
   
   // 메타 정보
@@ -528,11 +573,11 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '500',
   },
-  depositText: {
-    fontSize: 13,
+  viewedAtText: {
+    fontSize: 12,
     color: COLORS.text.secondary,
     fontWeight: '500',
   },
 });
 
-export default WishlistScreen;
+export default RecentViewsScreen;

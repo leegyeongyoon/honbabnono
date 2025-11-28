@@ -27,6 +27,8 @@ import NotificationSettingsScreen from '../screens/NotificationSettingsScreen.we
 import PrivacySettingsScreen from '../screens/PrivacySettingsScreen.web';
 import MyBadgesScreen from '../screens/MyBadgesScreen';
 import PointBalanceScreen from '../screens/PointBalanceScreen';
+import RecentViewsScreen from '../screens/RecentViewsScreen.web';
+import BlockedUsersScreen from '../screens/BlockedUsersScreen.web';
 
 // Components
 import BottomTabBar from './BottomTabBar';
@@ -370,6 +372,24 @@ const RouterApp: React.FC = () => {
             element={
               <ProtectedRoute>
                 <PointBalanceScreen />
+              </ProtectedRoute>
+            } 
+          />
+
+          <Route 
+            path="/recent-views" 
+            element={
+              <ProtectedRoute>
+                <RecentViewsScreen />
+              </ProtectedRoute>
+            } 
+          />
+
+          <Route 
+            path="/blocked-users" 
+            element={
+              <ProtectedRoute>
+                <BlockedUsersScreen />
               </ProtectedRoute>
             } 
           />

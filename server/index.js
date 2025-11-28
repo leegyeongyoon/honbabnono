@@ -1075,16 +1075,45 @@ apiRouter.get('/meetups', async (req, res) => {
       ];
     }
 
-    // 전체 개수 조회
-    const countResult = await pool.query(`
+    // 인증된 사용자의 차단 필터링을 위한 사용자 ID 추출
+    let currentUserId = null;
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      try {
+        const token = authHeader.substring(7);
+        const decoded = jwt.verify(token, JWT_SECRET);
+        currentUserId = decoded.userId;
+      } catch (error) {
+        // 토큰이 유효하지 않으면 인증되지 않은 상태로 처리
+        currentUserId = null;
+      }
+    }
+
+    // 전체 개수 조회 (차단된 사용자 제외)
+    let countQuery = `
       SELECT COUNT(*) as total
       FROM meetups m
       WHERE m.status = '모집중'
-    `);
+    `;
+    
+    let countParams = [];
+    
+    if (currentUserId) {
+      countQuery += `
+        AND m.host_id NOT IN (
+          SELECT blocked_user_id 
+          FROM user_blocked_users 
+          WHERE user_id = $1
+        )
+      `;
+      countParams = [currentUserId];
+    }
+
+    const countResult = await pool.query(countQuery, countParams);
     const total = parseInt(countResult.rows[0].total);
 
-    // 모임 목록 조회 (채팅방 마지막 메시지 시간 포함)
-    const meetupsResult = await pool.query(`
+    // 모임 목록 조회 (차단된 사용자 제외, 채팅방 마지막 메시지 시간 포함)
+    let meetupsQuery = `
       SELECT DISTINCT ON (m.id)
         m.id,
         m.title,
@@ -1126,9 +1155,34 @@ apiRouter.get('/meetups', async (req, res) => {
         ORDER BY "meetupId", "lastMessageTime" DESC
       ) cr ON m.id = cr."meetupId"
       WHERE m.status = '모집중'
+    `;
+    
+    let meetupsParams = [parseInt(limit), parseInt(offset)];
+    
+    if (currentUserId) {
+      meetupsQuery += `
+        AND m.host_id NOT IN (
+          SELECT blocked_user_id 
+          FROM user_blocked_users 
+          WHERE user_id = $3
+        )
+      `;
+      meetupsParams = [parseInt(limit), parseInt(offset), currentUserId];
+    }
+    
+    meetupsQuery += `
       ORDER BY m.id, m.created_at DESC
       LIMIT $1 OFFSET $2
-    `, [parseInt(limit), parseInt(offset)]);
+    `;
+
+    console.log('🔍 모임 목록 조회 - 차단 필터링:', {
+      currentUserId: currentUserId || 'anonymous',
+      isAuthenticated: !!currentUserId,
+      page: parseInt(page),
+      limit: parseInt(limit)
+    });
+
+    const meetupsResult = await pool.query(meetupsQuery, meetupsParams);
 
     const meetups = meetupsResult.rows;
 
@@ -1177,8 +1231,22 @@ apiRouter.get('/meetups/home', async (req, res) => {
   try {
     console.log('🏠 홈화면 모임 목록 조회');
 
-    // 활성 상태이고 미래 날짜인 모임만 조회
-    const activeMeetupsResult = await pool.query(`
+    // 인증된 사용자의 차단 필터링을 위한 사용자 ID 추출
+    let currentUserId = null;
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      try {
+        const token = authHeader.substring(7);
+        const decoded = jwt.verify(token, JWT_SECRET);
+        currentUserId = decoded.userId;
+      } catch (error) {
+        // 토큰이 유효하지 않으면 인증되지 않은 상태로 처리
+        currentUserId = null;
+      }
+    }
+
+    // 활성 상태이고 미래 날짜인 모임만 조회 (차단된 사용자 제외)
+    let homeQuery = `
       SELECT 
         m.id, m.title, m.description, m.location, m.address,
         m.date, m.time, m.max_participants, m.current_participants,
@@ -1191,11 +1259,34 @@ apiRouter.get('/meetups/home', async (req, res) => {
       FROM meetups m
       LEFT JOIN users h ON m.host_id = h.id
       WHERE m.status IN ('모집중', '모집완료')
+    `;
+    
+    let homeParams = [];
+    
+    if (currentUserId) {
+      homeQuery += `
+        AND m.host_id NOT IN (
+          SELECT blocked_user_id 
+          FROM user_blocked_users 
+          WHERE user_id = $1
+        )
+      `;
+      homeParams = [currentUserId];
+    }
+    
+    homeQuery += `
       ORDER BY 
         CASE WHEN m.status = '모집중' THEN 1 ELSE 2 END,
         m.date ASC, m.time ASC
       LIMIT 20
-    `);
+    `;
+
+    console.log('🔍 홈화면 모임 조회 - 차단 필터링:', {
+      currentUserId: currentUserId || 'anonymous',
+      isAuthenticated: !!currentUserId
+    });
+
+    const activeMeetupsResult = await pool.query(homeQuery, homeParams);
 
     const meetups = activeMeetupsResult.rows.map(meetup => ({
       id: meetup.id,
@@ -1251,6 +1342,20 @@ apiRouter.get('/meetups/active', async (req, res) => {
 
     console.log('🏠 활성 모임 목록 조회:', { category, location, priceRange, page, limit });
 
+    // 인증된 사용자의 차단 필터링을 위한 사용자 ID 추출
+    let currentUserId = null;
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      try {
+        const token = authHeader.substring(7);
+        const decoded = jwt.verify(token, JWT_SECRET);
+        currentUserId = decoded.userId;
+      } catch (error) {
+        // 토큰이 유효하지 않으면 인증되지 않은 상태로 처리
+        currentUserId = null;
+      }
+    }
+
     let whereConditions = [
       "m.status IN ('모집중', '모집완료')", // 활성 상태만
       "(m.date::date + m.time::time) > NOW()" // 미래 날짜만
@@ -1258,6 +1363,17 @@ apiRouter.get('/meetups/active', async (req, res) => {
     
     let queryParams = [];
     let paramIndex = 1;
+
+    // 차단된 사용자 필터링
+    if (currentUserId) {
+      whereConditions.push(`m.host_id NOT IN (
+        SELECT blocked_user_id 
+        FROM user_blocked_users 
+        WHERE user_id = $${paramIndex}
+      )`);
+      queryParams.push(currentUserId);
+      paramIndex++;
+    }
 
     // 카테고리 필터
     if (category) {
@@ -1282,6 +1398,12 @@ apiRouter.get('/meetups/active', async (req, res) => {
 
     const offset = (parseInt(page) - 1) * parseInt(limit);
     queryParams.push(parseInt(limit), offset);
+
+    console.log('🔍 활성 모임 조회 - 차단 필터링:', {
+      currentUserId: currentUserId || 'anonymous',
+      isAuthenticated: !!currentUserId,
+      category, location, priceRange, page, limit
+    });
 
     const meetupsQuery = `
       SELECT 
@@ -2324,7 +2446,8 @@ apiRouter.get('/chat/rooms/:id/messages', authenticateToken, async (req, res) =>
       WHERE cp."chatRoomId" = $1 AND cp."isActive" = true
     `, [id]);
     
-    // 채팅 메시지 조회 (최신순)
+    // 채팅 메시지 조회 (최신순, 차단된 사용자 메시지 제외)
+    const currentUserId = req.user.userId;
     const messagesResult = await pool.query(`
       SELECT 
         cm.id,
@@ -2343,10 +2466,23 @@ apiRouter.get('/chat/rooms/:id/messages', authenticateToken, async (req, res) =>
         cm."createdAt",
         cm."updatedAt"
       FROM chat_messages cm
-      WHERE cm."chatRoomId" = $1 AND cm."isDeleted" = false
+      WHERE cm."chatRoomId" = $1 
+        AND cm."isDeleted" = false
+        AND cm."senderId" NOT IN (
+          SELECT blocked_user_id 
+          FROM user_blocked_users 
+          WHERE user_id = $4
+        )
       ORDER BY cm."createdAt" DESC
       LIMIT $2 OFFSET $3
-    `, [id, parseInt(limit), parseInt(offset)]);
+    `, [id, parseInt(limit), parseInt(offset), currentUserId]);
+    
+    console.log('🔍 채팅 메시지 조회 - 차단 필터링:', {
+      chatRoomId: id,
+      currentUserId,
+      page, limit,
+      totalMessages: messagesResult.rows.length
+    });
     
     // 메시지를 시간순 정렬 (오래된 것부터)
     const messages = messagesResult.rows.reverse().map(msg => ({
@@ -6240,8 +6376,22 @@ apiRouter.get('/meetups/:meetupId/reviews', async (req, res) => {
       });
     }
 
-    // 리뷰 목록 조회
-    const reviewsResult = await pool.query(`
+    // 인증된 사용자의 차단 필터링을 위한 사용자 ID 추출
+    let currentUserId = null;
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      try {
+        const token = authHeader.substring(7);
+        const decoded = jwt.verify(token, JWT_SECRET);
+        currentUserId = decoded.userId;
+      } catch (error) {
+        // 토큰이 유효하지 않으면 인증되지 않은 상태로 처리
+        currentUserId = null;
+      }
+    }
+
+    // 리뷰 목록 조회 (차단된 사용자 리뷰 제외)
+    let reviewQuery = `
       SELECT 
         r.id, r.rating, r.comment, r.is_anonymous, r.created_at,
         CASE 
@@ -6255,8 +6405,30 @@ apiRouter.get('/meetups/:meetupId/reviews', async (req, res) => {
       FROM reviews r
       JOIN users u ON r.reviewer_id = u.id
       WHERE r.meetup_id = $1
-      ORDER BY r.created_at DESC
-    `, [meetupId]);
+    `;
+    
+    let reviewParams = [meetupId];
+    
+    if (currentUserId) {
+      reviewQuery += `
+        AND r.reviewer_id NOT IN (
+          SELECT blocked_user_id 
+          FROM user_blocked_users 
+          WHERE user_id = $2
+        )
+      `;
+      reviewParams = [meetupId, currentUserId];
+    }
+    
+    reviewQuery += ` ORDER BY r.created_at DESC`;
+
+    console.log('🔍 리뷰 조회 - 차단 필터링:', {
+      meetupId,
+      currentUserId: currentUserId || 'anonymous',
+      isAuthenticated: !!currentUserId
+    });
+
+    const reviewsResult = await pool.query(reviewQuery, reviewParams);
 
     const meetup = meetupResult.rows[0];
     const reviews = reviewsResult.rows;
@@ -7824,7 +7996,8 @@ apiRouter.delete('/users/wishlist/:meetupId', authenticateToken, async (req, res
   }
 });
 
-// 최근 본 글 조회
+// 최근 본 글 조회 (구버전 - 삭제 예정)
+/*
 apiRouter.get('/users/recent-views', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.userId;
@@ -7857,7 +8030,7 @@ apiRouter.get('/users/recent-views', authenticateToken, async (req, res) => {
   }
 });
 
-// 최근 본 글에 추가
+// 최근 본 글에 추가 (구버전 - 삭제 예정)
 apiRouter.post('/users/recent-views/:meetupId', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.userId;
@@ -7876,67 +8049,9 @@ apiRouter.post('/users/recent-views/:meetupId', authenticateToken, async (req, r
     res.status(500).json({ success: false, message: '최근 본 글 추가에 실패했습니다.' });
   }
 });
+*/
 
 // 차단 회원 목록 조회
-apiRouter.get('/users/blocked-users', authenticateToken, async (req, res) => {
-  try {
-    const userId = req.user.userId;
-
-    const result = await pool.query(`
-      SELECT 
-        u.id,
-        u.name,
-        u.email,
-        bu.blocked_at
-      FROM blocked_users bu
-      JOIN users u ON bu.blocked_user_id = u.id
-      WHERE bu.user_id = $1
-      ORDER BY bu.blocked_at DESC
-    `, [userId]);
-
-    res.json({ success: true, data: result.rows });
-  } catch (error) {
-    console.error('차단 회원 목록 조회 오류:', error);
-    res.status(500).json({ success: false, message: '차단 회원 목록을 불러올 수 없습니다.' });
-  }
-});
-
-// 회원 차단
-apiRouter.post('/users/block/:targetUserId', authenticateToken, async (req, res) => {
-  try {
-    const userId = req.user.userId;
-    const { targetUserId } = req.params;
-
-    await pool.query(`
-      INSERT INTO blocked_users (user_id, blocked_user_id, blocked_at)
-      VALUES ($1, $2, NOW())
-      ON CONFLICT (user_id, blocked_user_id) DO NOTHING
-    `, [userId, targetUserId]);
-
-    res.json({ success: true, message: '사용자가 차단되었습니다.' });
-  } catch (error) {
-    console.error('회원 차단 오류:', error);
-    res.status(500).json({ success: false, message: '회원 차단에 실패했습니다.' });
-  }
-});
-
-// 회원 차단 해제
-apiRouter.delete('/users/block/:targetUserId', authenticateToken, async (req, res) => {
-  try {
-    const userId = req.user.userId;
-    const { targetUserId } = req.params;
-
-    await pool.query(`
-      DELETE FROM blocked_users 
-      WHERE user_id = $1 AND blocked_user_id = $2
-    `, [userId, targetUserId]);
-
-    res.json({ success: true, message: '사용자 차단이 해제되었습니다.' });
-  } catch (error) {
-    console.error('회원 차단 해제 오류:', error);
-    res.status(500).json({ success: false, message: '회원 차단 해제에 실패했습니다.' });
-  }
-});
 
 // 참가한 모임 목록 조회
 apiRouter.get('/users/my-meetups', authenticateToken, async (req, res) => {
@@ -8559,6 +8674,577 @@ apiRouter.post('/user/spend-points', authenticateToken, async (req, res) => {
     res.status(500).json({ 
       success: false, 
       message: '포인트 사용 중 오류가 발생했습니다.' 
+    });
+  }
+});
+
+// ===== 🤍 찜 관리 API =====
+
+// 찜 추가
+apiRouter.post('/meetups/:meetupId/wishlist', authenticateToken, async (req, res) => {
+  try {
+    const { meetupId } = req.params;
+    const userId = req.user.userId;
+
+    console.log('🤍 찜 추가 요청:', { meetupId, userId });
+
+    // 모임이 존재하는지 확인
+    const meetupResult = await pool.query('SELECT id FROM meetups WHERE id = $1', [meetupId]);
+    if (meetupResult.rows.length === 0) {
+      return res.status(404).json({ 
+        success: false, 
+        message: '모임을 찾을 수 없습니다.' 
+      });
+    }
+
+    // 이미 찜한 모임인지 확인
+    const existingWishlist = await pool.query(
+      'SELECT id FROM meetup_wishlists WHERE user_id = $1 AND meetup_id = $2',
+      [userId, meetupId]
+    );
+
+    if (existingWishlist.rows.length > 0) {
+      return res.status(400).json({ 
+        success: false, 
+        message: '이미 찜한 모임입니다.' 
+      });
+    }
+
+    // 찜 추가
+    const result = await pool.query(
+      'INSERT INTO meetup_wishlists (user_id, meetup_id) VALUES ($1, $2) RETURNING id, created_at',
+      [userId, meetupId]
+    );
+
+    console.log('✅ 찜 추가 성공:', result.rows[0]);
+
+    res.json({ 
+      success: true, 
+      data: {
+        id: result.rows[0].id,
+        createdAt: result.rows[0].created_at
+      },
+      message: '찜 목록에 추가되었습니다.' 
+    });
+
+  } catch (error) {
+    console.error('찜 추가 오류:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: '찜 추가 중 오류가 발생했습니다.' 
+    });
+  }
+});
+
+// 찜 제거
+apiRouter.delete('/meetups/:meetupId/wishlist', authenticateToken, async (req, res) => {
+  try {
+    const { meetupId } = req.params;
+    const userId = req.user.userId;
+
+    console.log('🤍 찜 제거 요청:', { meetupId, userId });
+
+    // 찜 제거
+    const result = await pool.query(
+      'DELETE FROM meetup_wishlists WHERE user_id = $1 AND meetup_id = $2 RETURNING id',
+      [userId, meetupId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ 
+        success: false, 
+        message: '찜한 모임을 찾을 수 없습니다.' 
+      });
+    }
+
+    console.log('✅ 찜 제거 성공:', result.rows[0]);
+
+    res.json({ 
+      success: true, 
+      message: '찜 목록에서 제거되었습니다.' 
+    });
+
+  } catch (error) {
+    console.error('찜 제거 오류:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: '찜 제거 중 오류가 발생했습니다.' 
+    });
+  }
+});
+
+// 찜 상태 확인
+apiRouter.get('/meetups/:meetupId/wishlist', authenticateToken, async (req, res) => {
+  try {
+    const { meetupId } = req.params;
+    const userId = req.user.userId;
+
+    const result = await pool.query(
+      'SELECT id FROM meetup_wishlists WHERE user_id = $1 AND meetup_id = $2',
+      [userId, meetupId]
+    );
+
+    res.json({ 
+      success: true, 
+      data: { 
+        isWishlisted: result.rows.length > 0 
+      } 
+    });
+
+  } catch (error) {
+    console.error('찜 상태 확인 오류:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: '찜 상태 확인 중 오류가 발생했습니다.' 
+    });
+  }
+});
+
+// 찜 목록 조회 (기존 API 수정)
+apiRouter.get('/user/wishlists', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { page = 1, limit = 10 } = req.query;
+    const offset = (page - 1) * limit;
+
+    console.log('🤍 찜 목록 조회:', { userId, page, limit });
+
+    const result = await pool.query(`
+      SELECT 
+        mw.id as wishlist_id,
+        mw.created_at as wishlisted_at,
+        m.id,
+        m.title,
+        m.description,
+        m.location,
+        m.address,
+        m.date,
+        m.time,
+        m.current_participants,
+        m.max_participants,
+        CASE WHEN m.promise_deposit_required = true THEN 3000 ELSE 0 END as deposit_amount,
+        m.category,
+        m.status,
+        m.image,
+        m.created_at,
+        u.name as host_name,
+        u.profile_image as host_profile_image,
+        CASE 
+          WHEN m.status IN ('모집완료', '진행중', '종료', '취소') 
+            OR (m.date::date + m.time::time) < NOW()
+          THEN true 
+          ELSE false 
+        END as is_ended
+      FROM meetup_wishlists mw
+      JOIN meetups m ON mw.meetup_id = m.id
+      LEFT JOIN users u ON m.host_id = u.id
+      WHERE mw.user_id = $1
+      ORDER BY mw.created_at DESC
+      LIMIT $2 OFFSET $3
+    `, [userId, limit, offset]);
+
+    // 총 개수 조회
+    const countResult = await pool.query(
+      'SELECT COUNT(*) FROM meetup_wishlists WHERE user_id = $1',
+      [userId]
+    );
+
+    const totalCount = parseInt(countResult.rows[0].count);
+
+    console.log('✅ 찜 목록 조회 성공:', result.rows.length, '건');
+
+    res.json({
+      success: true,
+      data: result.rows,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        totalCount,
+        totalPages: Math.ceil(totalCount / limit)
+      }
+    });
+
+  } catch (error) {
+    console.error('찜 목록 조회 오류:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: '찜 목록 조회 중 오류가 발생했습니다.' 
+    });
+  }
+});
+
+// ===== 👀 최근 본 글 관리 API =====
+
+// 최근 본 글 추가 (모임 조회 시 자동 호출)
+apiRouter.post('/meetups/:meetupId/view', authenticateToken, async (req, res) => {
+  try {
+    const { meetupId } = req.params;
+    const userId = req.user.userId;
+
+    console.log('👀 최근 본 글 추가 요청:', { meetupId, userId });
+
+    // 모임이 존재하는지 확인
+    const meetupResult = await pool.query('SELECT id FROM meetups WHERE id = $1', [meetupId]);
+    if (meetupResult.rows.length === 0) {
+      return res.status(404).json({ 
+        success: false, 
+        message: '모임을 찾을 수 없습니다.' 
+      });
+    }
+
+    // 최근 본 글에 추가 (트리거가 중복 처리)
+    await pool.query(
+      'INSERT INTO user_recent_views (user_id, meetup_id) VALUES ($1, $2) ON CONFLICT (user_id, meetup_id) DO UPDATE SET viewed_at = NOW()',
+      [userId, meetupId]
+    );
+
+    console.log('✅ 최근 본 글 추가 성공');
+
+    res.json({ 
+      success: true, 
+      message: '최근 본 글에 추가되었습니다.' 
+    });
+
+  } catch (error) {
+    console.error('최근 본 글 추가 오류:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: '최근 본 글 추가 중 오류가 발생했습니다.' 
+    });
+  }
+});
+
+// 최근 본 글 목록 조회
+apiRouter.get('/user/recent-views', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { page = 1, limit = 20 } = req.query;
+    const offset = (page - 1) * limit;
+
+    console.log('👀 최근 본 글 목록 조회:', { userId, page, limit });
+
+    const result = await pool.query(`
+      SELECT 
+        urv.id as view_id,
+        urv.viewed_at,
+        m.id,
+        m.title,
+        m.description,
+        m.location,
+        m.address,
+        m.date,
+        m.time,
+        m.current_participants,
+        m.max_participants,
+        CASE WHEN m.promise_deposit_required = true THEN 3000 ELSE 0 END as deposit_amount,
+        m.category,
+        m.status,
+        m.image,
+        m.created_at,
+        u.name as host_name,
+        u.profile_image as host_profile_image,
+        CASE 
+          WHEN m.status IN ('모집완료', '진행중', '종료', '취소') 
+            OR (m.date::date + m.time::time) < NOW()
+          THEN true 
+          ELSE false 
+        END as is_ended
+      FROM user_recent_views urv
+      JOIN meetups m ON urv.meetup_id = m.id
+      LEFT JOIN users u ON m.host_id = u.id
+      WHERE urv.user_id = $1
+      ORDER BY urv.viewed_at DESC
+      LIMIT $2 OFFSET $3
+    `, [userId, limit, offset]);
+
+    // 총 개수 조회
+    const countResult = await pool.query(
+      'SELECT COUNT(*) FROM user_recent_views WHERE user_id = $1',
+      [userId]
+    );
+
+    const totalCount = parseInt(countResult.rows[0].count);
+
+    console.log('✅ 최근 본 글 목록 조회 성공:', result.rows.length, '건');
+
+    res.json({
+      success: true,
+      data: result.rows,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        totalCount,
+        totalPages: Math.ceil(totalCount / limit)
+      }
+    });
+
+  } catch (error) {
+    console.error('최근 본 글 목록 조회 오류:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: '최근 본 글 목록 조회 중 오류가 발생했습니다.' 
+    });
+  }
+});
+
+// 최근 본 글에서 특정 항목 제거
+apiRouter.delete('/user/recent-views/:viewId', authenticateToken, async (req, res) => {
+  try {
+    const { viewId } = req.params;
+    const userId = req.user.userId;
+
+    console.log('👀 최근 본 글 제거 요청:', { viewId, userId });
+
+    // 최근 본 글 제거 (본인 것만)
+    const result = await pool.query(
+      'DELETE FROM user_recent_views WHERE id = $1 AND user_id = $2 RETURNING id',
+      [viewId, userId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ 
+        success: false, 
+        message: '최근 본 글을 찾을 수 없습니다.' 
+      });
+    }
+
+    console.log('✅ 최근 본 글 제거 성공:', result.rows[0]);
+
+    res.json({ 
+      success: true, 
+      message: '최근 본 글에서 제거되었습니다.' 
+    });
+
+  } catch (error) {
+    console.error('최근 본 글 제거 오류:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: '최근 본 글 제거 중 오류가 발생했습니다.' 
+    });
+  }
+});
+
+// 최근 본 글 전체 삭제
+apiRouter.delete('/user/recent-views', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+
+    console.log('👀 최근 본 글 전체 삭제 요청:', { userId });
+
+    const result = await pool.query(
+      'DELETE FROM user_recent_views WHERE user_id = $1',
+      [userId]
+    );
+
+    console.log('✅ 최근 본 글 전체 삭제 성공:', result.rowCount, '건');
+
+    res.json({ 
+      success: true, 
+      message: `최근 본 글 ${result.rowCount}건이 모두 삭제되었습니다.` 
+    });
+
+  } catch (error) {
+    console.error('최근 본 글 전체 삭제 오류:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: '최근 본 글 전체 삭제 중 오류가 발생했습니다.' 
+    });
+  }
+});
+
+// ===== 🚫 회원 차단 관리 API =====
+
+// 회원 차단
+apiRouter.post('/users/:userId/block', authenticateToken, async (req, res) => {
+  try {
+    const blockerId = req.user.userId;
+    const { userId: blockedUserId } = req.params;
+    const { reason } = req.body;
+
+    console.log('🚫 회원 차단 요청:', { blockerId, blockedUserId, reason });
+
+    // 자기 자신을 차단하려는 경우
+    if (blockerId === blockedUserId) {
+      return res.status(400).json({
+        success: false,
+        message: '자기 자신을 차단할 수 없습니다.'
+      });
+    }
+
+    // 차단할 사용자가 존재하는지 확인
+    const userCheck = await pool.query('SELECT id, name FROM users WHERE id = $1', [blockedUserId]);
+    if (userCheck.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: '사용자를 찾을 수 없습니다.'
+      });
+    }
+
+    // 이미 차단된 사용자인지 확인
+    const existingBlock = await pool.query(
+      'SELECT id FROM user_blocked_users WHERE user_id = $1 AND blocked_user_id = $2',
+      [blockerId, blockedUserId]
+    );
+
+    if (existingBlock.rows.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: '이미 차단된 사용자입니다.'
+      });
+    }
+
+    // 회원 차단 추가
+    const result = await pool.query(
+      'INSERT INTO user_blocked_users (user_id, blocked_user_id, reason) VALUES ($1, $2, $3) RETURNING id',
+      [blockerId, blockedUserId, reason || null]
+    );
+
+    console.log('✅ 회원 차단 성공:', { blockId: result.rows[0].id });
+
+    res.json({
+      success: true,
+      message: `${userCheck.rows[0].name}님을 차단했습니다.`,
+      data: {
+        blockId: result.rows[0].id,
+        blockedUser: userCheck.rows[0]
+      }
+    });
+
+  } catch (error) {
+    console.error('회원 차단 오류:', error);
+    res.status(500).json({
+      success: false,
+      message: '회원 차단 중 오류가 발생했습니다.'
+    });
+  }
+});
+
+// 회원 차단 해제
+apiRouter.delete('/users/:userId/block', authenticateToken, async (req, res) => {
+  try {
+    const blockerId = req.user.userId;
+    const { userId: blockedUserId } = req.params;
+
+    console.log('🔓 회원 차단 해제 요청:', { blockerId, blockedUserId });
+
+    // 차단 해제할 사용자 이름 조회
+    const userCheck = await pool.query('SELECT name FROM users WHERE id = $1', [blockedUserId]);
+    if (userCheck.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: '사용자를 찾을 수 없습니다.'
+      });
+    }
+
+    // 차단 기록 삭제
+    const result = await pool.query(
+      'DELETE FROM user_blocked_users WHERE user_id = $1 AND blocked_user_id = $2 RETURNING id',
+      [blockerId, blockedUserId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: '차단되지 않은 사용자입니다.'
+      });
+    }
+
+    console.log('✅ 회원 차단 해제 성공');
+
+    res.json({
+      success: true,
+      message: `${userCheck.rows[0].name}님의 차단을 해제했습니다.`
+    });
+
+  } catch (error) {
+    console.error('회원 차단 해제 오류:', error);
+    res.status(500).json({
+      success: false,
+      message: '회원 차단 해제 중 오류가 발생했습니다.'
+    });
+  }
+});
+
+// 차단한 회원 목록 조회
+apiRouter.get('/user/blocked-users', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { page = 1, limit = 20 } = req.query;
+    const offset = (page - 1) * limit;
+
+    console.log('🚫 차단 회원 목록 조회:', { userId, page, limit });
+
+    const result = await pool.query(`
+      SELECT 
+        ub.id as block_id,
+        ub.reason,
+        ub.blocked_at,
+        u.id,
+        u.name,
+        u.email,
+        u.profile_image
+      FROM user_blocked_users ub
+      LEFT JOIN users u ON ub.blocked_user_id = u.id
+      WHERE ub.user_id = $1
+      ORDER BY ub.blocked_at DESC
+      LIMIT $2 OFFSET $3
+    `, [userId, limit, offset]);
+
+    // 총 개수 조회
+    const countResult = await pool.query(
+      'SELECT COUNT(*) FROM user_blocked_users WHERE user_id = $1',
+      [userId]
+    );
+
+    const totalCount = parseInt(countResult.rows[0].count);
+    const totalPages = Math.ceil(totalCount / limit);
+
+    console.log('✅ 차단 회원 목록 조회 성공:', result.rows.length, '건');
+
+    res.json({
+      success: true,
+      data: result.rows,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        totalCount,
+        totalPages
+      }
+    });
+
+  } catch (error) {
+    console.error('차단 회원 목록 조회 오류:', error);
+    res.status(500).json({
+      success: false,
+      message: '차단 회원 목록을 불러올 수 없습니다.'
+    });
+  }
+});
+
+// 특정 사용자가 차단되었는지 확인
+apiRouter.get('/users/:userId/blocked-status', authenticateToken, async (req, res) => {
+  try {
+    const checkerId = req.user.userId;
+    const { userId: targetUserId } = req.params;
+
+    const result = await pool.query(
+      'SELECT id FROM user_blocked_users WHERE user_id = $1 AND blocked_user_id = $2',
+      [checkerId, targetUserId]
+    );
+
+    res.json({
+      success: true,
+      data: {
+        isBlocked: result.rows.length > 0,
+        blockId: result.rows.length > 0 ? result.rows[0].id : null
+      }
+    });
+
+  } catch (error) {
+    console.error('차단 상태 확인 오류:', error);
+    res.status(500).json({
+      success: false,
+      message: '차단 상태를 확인할 수 없습니다.'
     });
   }
 });

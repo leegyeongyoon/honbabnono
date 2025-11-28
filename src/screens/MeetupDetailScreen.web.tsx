@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
 import { COLORS, SHADOWS } from '../styles/colors';
@@ -11,6 +11,7 @@ import { useRouterNavigation } from '../components/RouterNavigation';
 import { Icon } from '../components/Icon';
 import { ProfileImage } from '../components/ProfileImage';
 import { FOOD_CATEGORIES } from '../constants/categories';
+import { Heart } from 'lucide-react';
 
 
 // 카테고리 관련 유틸 함수들
@@ -279,6 +280,8 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
   const [showDepositSelector, setShowDepositSelector] = React.useState(false);
   const [showHostModal, setShowHostModal] = React.useState(false);
   const [userRiceIndex, setUserRiceIndex] = React.useState<number>(0);
+  const [isWishlisted, setIsWishlisted] = React.useState<boolean>(false);
+  const [wishlistLoading, setWishlistLoading] = React.useState<boolean>(false);
   
   // props로 받은 user가 있으면 사용, 없으면 store의 user 사용
   const user = propsUser || storeUser;
@@ -289,8 +292,23 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
       // 캐시된 데이터를 클리어하고 새로운 데이터를 가져옴
       setCurrentMeetup(null);
       fetchMeetupById(id);
+      
+      // 최근 본 글 기록 추가
+      const recordRecentView = async () => {
+        try {
+          await apiClient.post(`/meetups/${id}/view`);
+          console.log('✅ 최근 본 글 기록 완료');
+        } catch (error) {
+          console.error('❌ 최근 본 글 기록 실패:', error);
+        }
+      };
+
+      // 사용자가 로그인되어 있을 때만 기록
+      if (user) {
+        recordRecentView();
+      }
     }
-  }, [id, fetchMeetupById, setCurrentMeetup]);
+  }, [id, fetchMeetupById, setCurrentMeetup, user]);
 
   // 사용자 밥알지수 로드
   React.useEffect(() => {
@@ -309,6 +327,52 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
       loadUserRiceIndex();
     }
   }, [user]);
+
+  // 찜 상태 확인
+  React.useEffect(() => {
+    const checkWishlistStatus = async () => {
+      if (currentMeetup && user) {
+        try {
+          const response = await apiClient.get(`/meetups/${currentMeetup.id}/wishlist`);
+          if (response.data && response.data.success) {
+            setIsWishlisted(response.data.data.isWishlisted);
+          }
+        } catch (error) {
+          console.error('찜 상태 확인 실패:', error);
+        }
+      }
+    };
+
+    checkWishlistStatus();
+  }, [currentMeetup, user]);
+
+  // 찜 토글 함수
+  const toggleWishlist = async () => {
+    if (!currentMeetup || !user || wishlistLoading) return;
+
+    setWishlistLoading(true);
+    try {
+      if (isWishlisted) {
+        // 찜 제거
+        const response = await apiClient.delete(`/meetups/${currentMeetup.id}/wishlist`);
+        if (response.data && response.data.success) {
+          setIsWishlisted(false);
+          console.log('✅ 찜 제거 성공');
+        }
+      } else {
+        // 찜 추가
+        const response = await apiClient.post(`/meetups/${currentMeetup.id}/wishlist`);
+        if (response.data && response.data.success) {
+          setIsWishlisted(true);
+          console.log('✅ 찜 추가 성공');
+        }
+      }
+    } catch (error) {
+      console.error('찜 토글 실패:', error);
+    } finally {
+      setWishlistLoading(false);
+    }
+  };
 
   if (loading || !currentMeetup) {
     return (
@@ -520,6 +584,17 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
           <Icon name="chevron-left" size={24} color={COLORS.text.primary} />
         </TouchableOpacity>
         <View style={styles.headerIcons}>
+          <TouchableOpacity 
+            style={styles.iconButton}
+            onPress={toggleWishlist}
+            disabled={wishlistLoading}
+          >
+            <Heart 
+              size={22} 
+              color={isWishlisted ? '#E74C3C' : COLORS.text.secondary} 
+              fill={isWishlisted ? '#E74C3C' : 'transparent'}
+            />
+          </TouchableOpacity>
           <TouchableOpacity style={styles.iconButton}>
             <Text style={styles.iconText}>🔍</Text>
           </TouchableOpacity>
