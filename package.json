@@ -5,7 +5,7 @@
   "scripts": {
     "android": "react-native run-android",
     "ios": "react-native run-ios",
-    "lint": "eslint .",
+    "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
     "start": "react-native start",
     "web": "webpack serve --mode development",
     "build:web": "NODE_ENV=production webpack --mode production",
@@ -77,6 +77,7 @@
     "babel-loader": "^10.0.0",
     "concurrently": "^7.6.0",
     "eslint": "^8.19.0",
+    "eslint-plugin-jest": "^29.2.1",
     "html-webpack-plugin": "^5.6.4",
     "jest": "^29.6.3",
     "jest-environment-node": "^30.2.0",
