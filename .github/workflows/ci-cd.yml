@@ -60,7 +60,7 @@ jobs:
         done
         
         # Initialize database schema
-        PGPASSWORD=postgres psql -h localhost -U postgres -d honbabnono_test -f database_schema.sql || echo "Schema setup completed with warnings"
+        PGPASSWORD=postgres psql -h localhost -U postgres -d honbabnono_test -f database_schema_clean.sql || echo "Schema setup completed with warnings"
 
     - name: Run linting
       run: npm run lint -- --max-warnings 50 || echo "Linting completed with warnings"
