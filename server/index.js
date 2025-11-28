@@ -258,7 +258,7 @@ apiRouter.get('/auth/kakao/callback', async (req, res) => {
     
     // 3. 데이터베이스에서 사용자 찾기 또는 생성
     let userResult = await pool.query(`
-      SELECT * FROM users WHERE provider = $1 AND provider_id = $2 AND (is_deleted = false OR is_deleted IS NULL)
+      SELECT * FROM users WHERE provider = $1 AND provider_id = $2
     `, ['kakao', kakaoUser.id.toString()]);
     
     let user;
@@ -377,7 +377,7 @@ apiRouter.post('/auth/verify-token', async (req, res) => {
     const userResult = await pool.query(`
       SELECT id, email, name, profile_image, provider, is_verified, created_at 
       FROM users 
-      WHERE id = $1 AND (is_deleted = false OR is_deleted IS NULL)
+      WHERE id = $1
     `, [userId]);
 
     console.log('🔍 User query result:', { found: userResult.rows.length, userId });
@@ -456,7 +456,7 @@ apiRouter.post('/auth/kakao', async (req, res) => {
     
     // 3. 데이터베이스에서 사용자 찾기 또는 생성
     let userResult = await pool.query(`
-      SELECT * FROM users WHERE provider = $1 AND provider_id = $2 AND (is_deleted = false OR is_deleted IS NULL)
+      SELECT * FROM users WHERE provider = $1 AND provider_id = $2
     `, ['kakao', kakaoUser.id.toString()]);
     
     let user;
@@ -3893,9 +3893,9 @@ apiRouter.delete('/user/account', authenticateToken, async (req, res) => {
     console.log('🗑️ 계정 탈퇴 요청 (Soft Delete)');
     const userId = req.user.userId;
 
-    // 사용자 계정을 논리적으로 삭제 (is_deleted = true, deleted_at = NOW())
+    // 사용자 계정을 물리적으로 삭제
     const result = await pool.query(
-      'UPDATE users SET is_deleted = true, deleted_at = NOW(), updated_at = NOW() WHERE id = $1 AND (is_deleted = false OR is_deleted IS NULL) RETURNING id, email, name',
+      'DELETE FROM users WHERE id = $1 RETURNING id, email, name',
       [userId]
     );
 
@@ -7525,9 +7525,9 @@ apiRouter.delete('/api/user/account', authenticateToken, async (req, res) => {
 
     console.log('🗑️ 계정 탈퇴 요청 (Soft Delete):', userId);
 
-    // 사용자 계정을 논리적으로 삭제 (is_deleted = true, deleted_at = NOW())
+    // 사용자 계정을 물리적으로 삭제
     const result = await pool.query(
-      'UPDATE users SET is_deleted = true, deleted_at = NOW(), updated_at = NOW() WHERE id = $1 AND is_deleted = false RETURNING id, email, name',
+      'DELETE FROM users WHERE id = $1 RETURNING id, email, name',
       [userId]
     );
 
