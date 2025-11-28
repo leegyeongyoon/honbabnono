@@ -51,7 +51,7 @@ const MeetupManagement: React.FC = () => {
 
   const fetchMeetups = async () => {
     try {
-      const response = await axios.get('http://localhost:3001/api/admin/meetups');
+      const response = await axios.get<Meetup[]>('http://localhost:3001/api/admin/meetups');
       setMeetups(response.data);
     } catch (error) {
       console.error('모임 목록 로드 실패:', error);

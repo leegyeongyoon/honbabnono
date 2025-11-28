@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import {
   Box,
   Typography,
-  Grid,
   Card,
   CardContent,
   FormControl,
@@ -45,7 +44,7 @@ const Reports: React.FC = () => {
   const fetchReportData = async () => {
     setLoading(true);
     try {
-      const response = await axios.get(`http://localhost:3001/api/admin/reports/${reportType}`);
+      const response = await axios.get<ReportData[]>(`http://localhost:3001/api/admin/reports/${reportType}`);
       setReportData(response.data);
     } catch (error) {
       console.error('리포트 데이터 로드 실패:', error);
@@ -56,7 +55,7 @@ const Reports: React.FC = () => {
 
   const downloadReport = async () => {
     try {
-      const response = await axios.get(
+      const response = await axios.get<Blob>(
         `http://localhost:3001/api/admin/reports/download/${reportType}`,
         { responseType: 'blob' }
       );
@@ -139,40 +138,41 @@ const Reports: React.FC = () => {
         </FormControl>
       </Box>
 
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} sm={6} md={3}>
-          <StatCard
-            title="총 신규 사용자"
-            value={totalStats.newUsers}
-            icon={<PeopleIcon fontSize="large" />}
-            color="#C9B59C"
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <StatCard
-            title="총 신규 모임"
-            value={totalStats.newMeetups}
-            icon={<EventIcon fontSize="large" />}
-            color="#D9CFC7"
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <StatCard
-            title="총 완료된 모임"
-            value={totalStats.completedMeetups}
-            icon={<TrendingUpIcon fontSize="large" />}
-            color="#7A8A6E"
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <StatCard
-            title="총 수익"
-            value={`₩${totalStats.revenue.toLocaleString()}`}
-            icon={<TrendingUpIcon fontSize="large" />}
-            color="#B5857A"
-          />
-        </Grid>
-      </Grid>
+      <Box sx={{ 
+        display: 'grid', 
+        gridTemplateColumns: { 
+          xs: '1fr', 
+          sm: '1fr 1fr', 
+          md: '1fr 1fr 1fr 1fr' 
+        }, 
+        gap: 3, 
+        mb: 4 
+      }}>
+        <StatCard
+          title="총 신규 사용자"
+          value={totalStats.newUsers}
+          icon={<PeopleIcon fontSize="large" />}
+          color="#C9B59C"
+        />
+        <StatCard
+          title="총 신규 모임"
+          value={totalStats.newMeetups}
+          icon={<EventIcon fontSize="large" />}
+          color="#D9CFC7"
+        />
+        <StatCard
+          title="총 완료된 모임"
+          value={totalStats.completedMeetups}
+          icon={<TrendingUpIcon fontSize="large" />}
+          color="#7A8A6E"
+        />
+        <StatCard
+          title="총 수익"
+          value={`₩${totalStats.revenue.toLocaleString()}`}
+          icon={<TrendingUpIcon fontSize="large" />}
+          color="#B5857A"
+        />
+      </Box>
 
       <Card>
         <CardContent>

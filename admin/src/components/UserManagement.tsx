@@ -48,7 +48,7 @@ const UserManagement: React.FC = () => {
 
   const fetchUsers = async () => {
     try {
-      const response = await axios.get('http://localhost:3001/api/admin/users');
+      const response = await axios.get<User[]>('http://localhost:3001/api/admin/users');
       setUsers(response.data);
     } catch (error) {
       console.error('사용자 목록 로드 실패:', error);

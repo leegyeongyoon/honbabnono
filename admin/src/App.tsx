@@ -9,6 +9,7 @@ import Typography from '@mui/material/Typography';
 import Drawer from '@mui/material/Drawer';
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
+import ListItemButton from '@mui/material/ListItemButton';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
 import DashboardIcon from '@mui/icons-material/Dashboard';
@@ -106,29 +107,29 @@ function App() {
             </Toolbar>
             <List>
               {menuItems.map((item) => (
-                <ListItem
-                  button
-                  key={item.text}
-                  component="a"
-                  href={item.path}
-                  sx={{
-                    '&:hover': {
-                      backgroundColor: '#F9F8F6',
-                    },
-                  }}
-                >
-                  <ListItemIcon sx={{ color: '#C9B59C' }}>
-                    {item.icon}
-                  </ListItemIcon>
-                  <ListItemText 
-                    primary={item.text} 
-                    sx={{ 
-                      '& .MuiTypography-root': { 
-                        color: '#4C422C',
-                        fontWeight: 500,
-                      } 
-                    }} 
-                  />
+                <ListItem key={item.text} disablePadding>
+                  <ListItemButton
+                    component="a"
+                    href={item.path}
+                    sx={{
+                      '&:hover': {
+                        backgroundColor: '#F9F8F6',
+                      },
+                    }}
+                  >
+                    <ListItemIcon sx={{ color: '#C9B59C' }}>
+                      {item.icon}
+                    </ListItemIcon>
+                    <ListItemText 
+                      primary={item.text} 
+                      sx={{ 
+                        '& .MuiTypography-root': { 
+                          color: '#4C422C',
+                          fontWeight: 500,
+                        } 
+                      }} 
+                    />
+                  </ListItemButton>
                 </ListItem>
               ))}
             </List>
