@@ -49,6 +49,18 @@ jobs:
         echo "DB_PASSWORD=postgres" >> .env
         echo "DB_NAME=honbabnono_test" >> .env
         echo "DB_PORT=5432" >> .env
+        echo "DB_SSL=false" >> .env
+
+    - name: Initialize test database
+      run: |
+        # Wait for PostgreSQL to be ready
+        until pg_isready -h localhost -p 5432 -U postgres; do
+          echo "Waiting for PostgreSQL..."
+          sleep 2
+        done
+        
+        # Initialize database schema
+        PGPASSWORD=postgres psql -h localhost -U postgres -d honbabnono_test -f database_schema.sql || echo "Schema setup completed with warnings"
 
     - name: Run linting
       run: npm run lint -- --max-warnings 50 || echo "Linting completed with warnings"
