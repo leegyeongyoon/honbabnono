@@ -7753,6 +7753,582 @@ apiRouter.get('/admin/reports/download/:type', async (req, res) => {
   }
 });
 
+// ===== 마이페이지 API 엔드포인트 =====
+
+// 찜 목록 조회
+apiRouter.get('/users/wishlist', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+
+    const result = await pool.query(`
+      SELECT 
+        m.id,
+        m.title,
+        m.date,
+        m.time,
+        m.location,
+        m.category,
+        m.max_participants,
+        m.current_participants,
+        m.status,
+        w.created_at as wishlisted_at,
+        u.name as host_name
+      FROM wishlists w
+      JOIN meetups m ON w.meetup_id = m.id
+      JOIN users u ON m.host_id = u.id
+      WHERE w.user_id = $1
+      ORDER BY w.created_at DESC
+    `, [userId]);
+
+    res.json({ success: true, data: result.rows });
+  } catch (error) {
+    console.error('찜 목록 조회 오류:', error);
+    res.status(500).json({ success: false, message: '찜 목록을 불러올 수 없습니다.' });
+  }
+});
+
+// 찜 목록에 추가
+apiRouter.post('/users/wishlist/:meetupId', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { meetupId } = req.params;
+
+    await pool.query(`
+      INSERT INTO wishlists (user_id, meetup_id, created_at)
+      VALUES ($1, $2, NOW())
+      ON CONFLICT (user_id, meetup_id) DO NOTHING
+    `, [userId, meetupId]);
+
+    res.json({ success: true, message: '찜 목록에 추가되었습니다.' });
+  } catch (error) {
+    console.error('찜 목록 추가 오류:', error);
+    res.status(500).json({ success: false, message: '찜 목록 추가에 실패했습니다.' });
+  }
+});
+
+// 찜 목록에서 제거
+apiRouter.delete('/users/wishlist/:meetupId', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { meetupId } = req.params;
+
+    await pool.query(`
+      DELETE FROM wishlists 
+      WHERE user_id = $1 AND meetup_id = $2
+    `, [userId, meetupId]);
+
+    res.json({ success: true, message: '찜 목록에서 제거되었습니다.' });
+  } catch (error) {
+    console.error('찜 목록 제거 오류:', error);
+    res.status(500).json({ success: false, message: '찜 목록 제거에 실패했습니다.' });
+  }
+});
+
+// 최근 본 글 조회
+apiRouter.get('/users/recent-views', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+
+    const result = await pool.query(`
+      SELECT 
+        m.id,
+        m.title,
+        m.date,
+        m.time,
+        m.location,
+        m.category,
+        m.max_participants,
+        m.current_participants,
+        m.status,
+        rv.viewed_at,
+        u.name as host_name
+      FROM recent_views rv
+      JOIN meetups m ON rv.meetup_id = m.id
+      JOIN users u ON m.host_id = u.id
+      WHERE rv.user_id = $1
+      ORDER BY rv.viewed_at DESC
+      LIMIT 20
+    `, [userId]);
+
+    res.json({ success: true, data: result.rows });
+  } catch (error) {
+    console.error('최근 본 글 조회 오류:', error);
+    res.status(500).json({ success: false, message: '최근 본 글을 불러올 수 없습니다.' });
+  }
+});
+
+// 최근 본 글에 추가
+apiRouter.post('/users/recent-views/:meetupId', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { meetupId } = req.params;
+
+    await pool.query(`
+      INSERT INTO recent_views (user_id, meetup_id, viewed_at)
+      VALUES ($1, $2, NOW())
+      ON CONFLICT (user_id, meetup_id) 
+      DO UPDATE SET viewed_at = NOW()
+    `, [userId, meetupId]);
+
+    res.json({ success: true, message: '최근 본 글에 추가되었습니다.' });
+  } catch (error) {
+    console.error('최근 본 글 추가 오류:', error);
+    res.status(500).json({ success: false, message: '최근 본 글 추가에 실패했습니다.' });
+  }
+});
+
+// 차단 회원 목록 조회
+apiRouter.get('/users/blocked-users', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+
+    const result = await pool.query(`
+      SELECT 
+        u.id,
+        u.name,
+        u.email,
+        bu.blocked_at
+      FROM blocked_users bu
+      JOIN users u ON bu.blocked_user_id = u.id
+      WHERE bu.user_id = $1
+      ORDER BY bu.blocked_at DESC
+    `, [userId]);
+
+    res.json({ success: true, data: result.rows });
+  } catch (error) {
+    console.error('차단 회원 목록 조회 오류:', error);
+    res.status(500).json({ success: false, message: '차단 회원 목록을 불러올 수 없습니다.' });
+  }
+});
+
+// 회원 차단
+apiRouter.post('/users/block/:targetUserId', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { targetUserId } = req.params;
+
+    await pool.query(`
+      INSERT INTO blocked_users (user_id, blocked_user_id, blocked_at)
+      VALUES ($1, $2, NOW())
+      ON CONFLICT (user_id, blocked_user_id) DO NOTHING
+    `, [userId, targetUserId]);
+
+    res.json({ success: true, message: '사용자가 차단되었습니다.' });
+  } catch (error) {
+    console.error('회원 차단 오류:', error);
+    res.status(500).json({ success: false, message: '회원 차단에 실패했습니다.' });
+  }
+});
+
+// 회원 차단 해제
+apiRouter.delete('/users/block/:targetUserId', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { targetUserId } = req.params;
+
+    await pool.query(`
+      DELETE FROM blocked_users 
+      WHERE user_id = $1 AND blocked_user_id = $2
+    `, [userId, targetUserId]);
+
+    res.json({ success: true, message: '사용자 차단이 해제되었습니다.' });
+  } catch (error) {
+    console.error('회원 차단 해제 오류:', error);
+    res.status(500).json({ success: false, message: '회원 차단 해제에 실패했습니다.' });
+  }
+});
+
+// 참가한 모임 목록 조회
+apiRouter.get('/users/my-meetups', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+
+    const result = await pool.query(`
+      SELECT 
+        m.id,
+        m.title,
+        m.date,
+        m.time,
+        m.location,
+        m.category,
+        m.max_participants,
+        m.current_participants,
+        m.status,
+        mp.status as participation_status,
+        mp.joined_at,
+        u.name as host_name,
+        CASE WHEN m.host_id = $1 THEN true ELSE false END as is_host
+      FROM meetup_participants mp
+      JOIN meetups m ON mp.meetup_id = m.id
+      JOIN users u ON m.host_id = u.id
+      WHERE mp.user_id = $1
+      ORDER BY m.date DESC, m.time DESC
+    `, [userId]);
+
+    res.json({ success: true, data: result.rows });
+  } catch (error) {
+    console.error('참가한 모임 목록 조회 오류:', error);
+    res.status(500).json({ success: false, message: '참가한 모임 목록을 불러올 수 없습니다.' });
+  }
+});
+
+// 내 리뷰 관리 - 작성한 리뷰 목록
+apiRouter.get('/users/my-reviews', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+
+    const result = await pool.query(`
+      SELECT 
+        r.id,
+        r.content,
+        r.rating,
+        r.created_at,
+        m.id as meetup_id,
+        m.title as meetup_title,
+        m.date as meetup_date,
+        u.name as host_name
+      FROM reviews r
+      JOIN meetups m ON r.meetup_id = m.id
+      JOIN users u ON m.host_id = u.id
+      WHERE r.user_id = $1
+      ORDER BY r.created_at DESC
+    `, [userId]);
+
+    res.json({ success: true, data: result.rows });
+  } catch (error) {
+    console.error('내 리뷰 목록 조회 오류:', error);
+    res.status(500).json({ success: false, message: '리뷰 목록을 불러올 수 없습니다.' });
+  }
+});
+
+// 리뷰 수정
+apiRouter.put('/users/my-reviews/:reviewId', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { reviewId } = req.params;
+    const { content, rating } = req.body;
+
+    await pool.query(`
+      UPDATE reviews 
+      SET content = $1, rating = $2, updated_at = NOW()
+      WHERE id = $3 AND user_id = $4
+    `, [content, rating, reviewId, userId]);
+
+    res.json({ success: true, message: '리뷰가 수정되었습니다.' });
+  } catch (error) {
+    console.error('리뷰 수정 오류:', error);
+    res.status(500).json({ success: false, message: '리뷰 수정에 실패했습니다.' });
+  }
+});
+
+// 리뷰 삭제
+apiRouter.delete('/users/my-reviews/:reviewId', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { reviewId } = req.params;
+
+    await pool.query(`
+      DELETE FROM reviews 
+      WHERE id = $1 AND user_id = $2
+    `, [reviewId, userId]);
+
+    res.json({ success: true, message: '리뷰가 삭제되었습니다.' });
+  } catch (error) {
+    console.error('리뷰 삭제 오류:', error);
+    res.status(500).json({ success: false, message: '리뷰 삭제에 실패했습니다.' });
+  }
+});
+
+// 약속금 결제 내역 조회
+apiRouter.get('/users/payment-history', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+
+    const result = await pool.query(`
+      SELECT 
+        ph.id,
+        ph.amount,
+        ph.payment_method,
+        ph.status,
+        ph.created_at,
+        m.title as meetup_title,
+        m.date as meetup_date
+      FROM payment_history ph
+      LEFT JOIN meetups m ON ph.meetup_id = m.id
+      WHERE ph.user_id = $1
+      ORDER BY ph.created_at DESC
+    `, [userId]);
+
+    res.json({ success: true, data: result.rows });
+  } catch (error) {
+    console.error('결제 내역 조회 오류:', error);
+    res.status(500).json({ success: false, message: '결제 내역을 불러올 수 없습니다.' });
+  }
+});
+
+// 친구 초대 코드 조회/생성
+apiRouter.get('/users/invite-code', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+
+    let result = await pool.query(`
+      SELECT invite_code, created_at
+      FROM user_invite_codes
+      WHERE user_id = $1
+    `, [userId]);
+
+    if (result.rows.length === 0) {
+      // 초대 코드가 없으면 생성
+      const inviteCode = Math.random().toString(36).substring(2, 10).toUpperCase();
+      
+      await pool.query(`
+        INSERT INTO user_invite_codes (user_id, invite_code, created_at)
+        VALUES ($1, $2, NOW())
+      `, [userId, inviteCode]);
+
+      result = await pool.query(`
+        SELECT invite_code, created_at
+        FROM user_invite_codes
+        WHERE user_id = $1
+      `, [userId]);
+    }
+
+    res.json({ success: true, data: result.rows[0] });
+  } catch (error) {
+    console.error('초대 코드 조회 오류:', error);
+    res.status(500).json({ success: false, message: '초대 코드를 불러올 수 없습니다.' });
+  }
+});
+
+// 초대 코드로 가입 보너스 받기
+apiRouter.post('/users/use-invite-code', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { inviteCode } = req.body;
+
+    // 초대 코드 유효성 검사
+    const inviteResult = await pool.query(`
+      SELECT user_id
+      FROM user_invite_codes
+      WHERE invite_code = $1 AND user_id != $2
+    `, [inviteCode, userId]);
+
+    if (inviteResult.rows.length === 0) {
+      return res.status(400).json({ success: false, message: '유효하지 않은 초대 코드입니다.' });
+    }
+
+    const inviterUserId = inviteResult.rows[0].user_id;
+
+    // 이미 사용했는지 확인
+    const usedResult = await pool.query(`
+      SELECT id
+      FROM invite_code_usage
+      WHERE invitee_user_id = $1
+    `, [userId]);
+
+    if (usedResult.rows.length > 0) {
+      return res.status(400).json({ success: false, message: '이미 초대 코드를 사용했습니다.' });
+    }
+
+    // 초대 코드 사용 기록 및 포인트 지급
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      // 사용 기록
+      await client.query(`
+        INSERT INTO invite_code_usage (inviter_user_id, invitee_user_id, invite_code, used_at)
+        VALUES ($1, $2, $3, NOW())
+      `, [inviterUserId, userId, inviteCode]);
+
+      // 초대한 사람에게 포인트 지급
+      await client.query(`
+        INSERT INTO user_points_transactions (user_id, transaction_type, amount, description, created_at)
+        VALUES ($1, 'earn', 1000, '친구 초대 보너스', NOW())
+      `, [inviterUserId]);
+
+      // 초대받은 사람에게도 포인트 지급
+      await client.query(`
+        INSERT INTO user_points_transactions (user_id, transaction_type, amount, description, created_at)
+        VALUES ($1, 'earn', 500, '초대 코드 사용 보너스', NOW())
+      `, [userId]);
+
+      await client.query('COMMIT');
+      res.json({ success: true, message: '초대 코드가 적용되었습니다. 보너스 포인트가 지급되었습니다!' });
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+  } catch (error) {
+    console.error('초대 코드 사용 오류:', error);
+    res.status(500).json({ success: false, message: '초대 코드 사용에 실패했습니다.' });
+  }
+});
+
+// 공지사항 조회
+apiRouter.get('/notices', async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT id, title, content, created_at, is_important
+      FROM notices
+      WHERE is_active = true
+      ORDER BY is_important DESC, created_at DESC
+    `);
+
+    res.json({ success: true, data: result.rows });
+  } catch (error) {
+    console.error('공지사항 조회 오류:', error);
+    res.status(500).json({ success: false, message: '공지사항을 불러올 수 없습니다.' });
+  }
+});
+
+// 자주 묻는 질문 조회
+apiRouter.get('/faq', async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT id, question, answer, category, created_at
+      FROM faq
+      WHERE is_active = true
+      ORDER BY display_order ASC, created_at DESC
+    `);
+
+    res.json({ success: true, data: result.rows });
+  } catch (error) {
+    console.error('FAQ 조회 오류:', error);
+    res.status(500).json({ success: false, message: 'FAQ를 불러올 수 없습니다.' });
+  }
+});
+
+// 고객 센터 문의 등록
+apiRouter.post('/support/inquiry', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { title, content, category } = req.body;
+
+    const result = await pool.query(`
+      INSERT INTO support_inquiries (user_id, title, content, category, status, created_at)
+      VALUES ($1, $2, $3, $4, 'pending', NOW())
+      RETURNING id
+    `, [userId, title, content, category]);
+
+    res.json({ 
+      success: true, 
+      message: '문의가 등록되었습니다.', 
+      data: { inquiryId: result.rows[0].id } 
+    });
+  } catch (error) {
+    console.error('고객 센터 문의 등록 오류:', error);
+    res.status(500).json({ success: false, message: '문의 등록에 실패했습니다.' });
+  }
+});
+
+// 내 문의 내역 조회
+apiRouter.get('/support/my-inquiries', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+
+    const result = await pool.query(`
+      SELECT id, title, content, category, status, created_at, admin_response, responded_at
+      FROM support_inquiries
+      WHERE user_id = $1
+      ORDER BY created_at DESC
+    `, [userId]);
+
+    res.json({ success: true, data: result.rows });
+  } catch (error) {
+    console.error('내 문의 내역 조회 오류:', error);
+    res.status(500).json({ success: false, message: '문의 내역을 불러올 수 없습니다.' });
+  }
+});
+
+// 알림 설정 조회
+apiRouter.get('/users/notification-settings', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+
+    let result = await pool.query(`
+      SELECT *
+      FROM user_notification_settings
+      WHERE user_id = $1
+    `, [userId]);
+
+    if (result.rows.length === 0) {
+      // 기본 설정 생성
+      await pool.query(`
+        INSERT INTO user_notification_settings 
+        (user_id, meetup_reminders, chat_messages, review_notifications, marketing_notifications)
+        VALUES ($1, true, true, true, false)
+      `, [userId]);
+
+      result = await pool.query(`
+        SELECT *
+        FROM user_notification_settings
+        WHERE user_id = $1
+      `, [userId]);
+    }
+
+    res.json({ success: true, data: result.rows[0] });
+  } catch (error) {
+    console.error('알림 설정 조회 오류:', error);
+    res.status(500).json({ success: false, message: '알림 설정을 불러올 수 없습니다.' });
+  }
+});
+
+// 알림 설정 업데이트
+apiRouter.put('/users/notification-settings', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { 
+      meetupReminders, 
+      chatMessages, 
+      reviewNotifications, 
+      marketingNotifications 
+    } = req.body;
+
+    await pool.query(`
+      UPDATE user_notification_settings 
+      SET 
+        meetup_reminders = $1,
+        chat_messages = $2,
+        review_notifications = $3,
+        marketing_notifications = $4,
+        updated_at = NOW()
+      WHERE user_id = $5
+    `, [meetupReminders, chatMessages, reviewNotifications, marketingNotifications, userId]);
+
+    res.json({ success: true, message: '알림 설정이 업데이트되었습니다.' });
+  } catch (error) {
+    console.error('알림 설정 업데이트 오류:', error);
+    res.status(500).json({ success: false, message: '알림 설정 업데이트에 실패했습니다.' });
+  }
+});
+
+// 앱 버전 정보 조회
+apiRouter.get('/app-info', async (req, res) => {
+  try {
+    res.json({ 
+      success: true, 
+      data: {
+        version: '1.0.0',
+        buildNumber: '2024.11.28.001',
+        lastUpdated: '2024-11-28',
+        features: [
+          '모임 생성 및 참가',
+          '실시간 채팅',
+          '리뷰 시스템',
+          '포인트 시스템',
+          '위치 기반 체크인'
+        ]
+      }
+    });
+  } catch (error) {
+    console.error('앱 정보 조회 오류:', error);
+    res.status(500).json({ success: false, message: '앱 정보를 불러올 수 없습니다.' });
+  }
+});
+
 // 서버 시작
 const startServer = async () => {
   try {
