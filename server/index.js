@@ -64,7 +64,7 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: ['http://localhost:3000', 'https://honbabnono.com'],
+    origin: ['http://localhost:3000', 'https://honbabnono.com', 'https://admin.honbabnono.com', 'http://localhost:3002'],
     methods: ['GET', 'POST'],
     credentials: true
   }
@@ -162,7 +162,7 @@ const upload = multer({
 
 // 미들웨어 설정
 app.use(cors({
-  origin: ['http://localhost:3000', 'https://honbabnono.com'],
+  origin: ['http://localhost:3000', 'https://honbabnono.com', 'https://admin.honbabnono.com', 'http://localhost:3002'],
   credentials: true
 }));
 app.use(express.json({ limit: '10mb' }));
@@ -7550,6 +7550,206 @@ apiRouter.delete('/api/user/account', authenticateToken, async (req, res) => {
       success: false,
       error: '계정 삭제 중 오류가 발생했습니다.'
     });
+  }
+});
+
+// ===== 관리자 API 엔드포인트 =====
+
+// 관리자 통계 조회
+apiRouter.get('/admin/stats', async (req, res) => {
+  try {
+    // 총 사용자 수
+    const totalUsersResult = await pool.query('SELECT COUNT(*) as count FROM users');
+    const totalUsers = parseInt(totalUsersResult.rows[0].count);
+
+    // 총 모임 수
+    const totalMeetupsResult = await pool.query('SELECT COUNT(*) as count FROM meetups');
+    const totalMeetups = parseInt(totalMeetupsResult.rows[0].count);
+
+    // 오늘 생성된 모임 수
+    const todayMeetupsResult = await pool.query(`
+      SELECT COUNT(*) as count 
+      FROM meetups 
+      WHERE DATE(created_at) = CURRENT_DATE
+    `);
+    const todayMeetups = parseInt(todayMeetupsResult.rows[0].count);
+
+    // 활성 모임 수 (모집중 + 모집완료 + 진행중)
+    const activeMeetupsResult = await pool.query(`
+      SELECT COUNT(*) as count 
+      FROM meetups 
+      WHERE status IN ('모집중', '모집완료', '진행중')
+    `);
+    const activeMeetups = parseInt(activeMeetupsResult.rows[0].count);
+
+    res.json({
+      totalUsers,
+      totalMeetups,
+      todayMeetups,
+      activeMeetups
+    });
+  } catch (error) {
+    console.error('관리자 통계 조회 오류:', error);
+    res.status(500).json({ message: '통계 조회 중 오류가 발생했습니다.' });
+  }
+});
+
+// 관리자 사용자 목록 조회
+apiRouter.get('/admin/users', async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT 
+        u.id,
+        u.name,
+        u.email,
+        u.provider,
+        u.is_verified as "isVerified",
+        u.created_at as "createdAt",
+        'active' as status
+      FROM users u
+      ORDER BY u.created_at DESC
+    `);
+
+    res.json(result.rows);
+  } catch (error) {
+    console.error('사용자 목록 조회 오류:', error);
+    res.status(500).json({ message: '사용자 목록 조회 중 오류가 발생했습니다.' });
+  }
+});
+
+// 관리자 모임 목록 조회
+apiRouter.get('/admin/meetups', async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT 
+        m.id,
+        m.title,
+        u.name as "hostName",
+        m.location,
+        m.date,
+        m.time,
+        m.current_participants as "currentParticipants",
+        m.max_participants as "maxParticipants",
+        m.category,
+        m.status,
+        m.created_at as "createdAt"
+      FROM meetups m
+      JOIN users u ON m.host_id = u.id
+      ORDER BY m.created_at DESC
+    `);
+
+    res.json(result.rows);
+  } catch (error) {
+    console.error('모임 목록 조회 오류:', error);
+    res.status(500).json({ message: '모임 목록 조회 중 오류가 발생했습니다.' });
+  }
+});
+
+// 관리자 모임 승인/취소
+apiRouter.post('/admin/meetups/:id/:action', async (req, res) => {
+  try {
+    const { id, action } = req.params;
+    
+    let newStatus;
+    if (action === 'approve') {
+      newStatus = '모집중';
+    } else if (action === 'cancel') {
+      newStatus = '취소';
+    } else {
+      return res.status(400).json({ message: '잘못된 액션입니다.' });
+    }
+
+    await pool.query(`
+      UPDATE meetups 
+      SET status = $1, updated_at = NOW()
+      WHERE id = $2
+    `, [newStatus, id]);
+
+    res.json({ message: `모임이 ${action === 'approve' ? '승인' : '취소'}되었습니다.` });
+  } catch (error) {
+    console.error('모임 상태 변경 오류:', error);
+    res.status(500).json({ message: '모임 상태 변경 중 오류가 발생했습니다.' });
+  }
+});
+
+// 관리자 사용자 관리 (차단/해제/인증)
+apiRouter.post('/admin/users/:id/:action', async (req, res) => {
+  try {
+    const { id, action } = req.params;
+    
+    if (action === 'verify') {
+      await pool.query(`
+        UPDATE users 
+        SET is_verified = true, updated_at = NOW()
+        WHERE id = $1
+      `, [id]);
+      res.json({ message: '사용자가 인증되었습니다.' });
+    } else if (action === 'block' || action === 'unblock') {
+      // 실제 환경에서는 blocked_at 컬럼이나 별도 테이블로 관리
+      res.json({ message: `사용자가 ${action === 'block' ? '차단' : '차단 해제'}되었습니다.` });
+    } else {
+      return res.status(400).json({ message: '잘못된 액션입니다.' });
+    }
+  } catch (error) {
+    console.error('사용자 관리 오류:', error);
+    res.status(500).json({ message: '사용자 관리 중 오류가 발생했습니다.' });
+  }
+});
+
+// 관리자 설정 저장 (더미 구현)
+apiRouter.put('/admin/settings', async (req, res) => {
+  try {
+    // 실제 환경에서는 settings 테이블에 저장
+    res.json({ message: '설정이 저장되었습니다.' });
+  } catch (error) {
+    console.error('설정 저장 오류:', error);
+    res.status(500).json({ message: '설정 저장 중 오류가 발생했습니다.' });
+  }
+});
+
+// 관리자 리포트 조회 (더미 구현)
+apiRouter.get('/admin/reports/:type', async (req, res) => {
+  try {
+    const { type } = req.params;
+    
+    // 더미 데이터 반환
+    const reportData = [];
+    const now = new Date();
+    
+    for (let i = 7; i >= 0; i--) {
+      const date = new Date(now);
+      date.setDate(date.getDate() - i);
+      
+      reportData.push({
+        period: date.toLocaleDateString('ko-KR'),
+        newUsers: Math.floor(Math.random() * 10) + 1,
+        newMeetups: Math.floor(Math.random() * 5) + 1,
+        completedMeetups: Math.floor(Math.random() * 3) + 1,
+        revenue: Math.floor(Math.random() * 50000) + 10000,
+        activeUsers: Math.floor(Math.random() * 50) + 20
+      });
+    }
+
+    res.json(reportData);
+  } catch (error) {
+    console.error('리포트 조회 오류:', error);
+    res.status(500).json({ message: '리포트 조회 중 오류가 발생했습니다.' });
+  }
+});
+
+// 관리자 리포트 다운로드 (더미 구현)
+apiRouter.get('/admin/reports/download/:type', async (req, res) => {
+  try {
+    const csvContent = 'Period,New Users,New Meetups,Completed Meetups,Revenue,Active Users\n' +
+      '2024-11-28,5,3,2,25000,35\n' +
+      '2024-11-27,8,2,1,15000,32\n';
+    
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename="report.csv"');
+    res.send(csvContent);
+  } catch (error) {
+    console.error('리포트 다운로드 오류:', error);
+    res.status(500).json({ message: '리포트 다운로드 중 오류가 발생했습니다.' });
   }
 });
 
