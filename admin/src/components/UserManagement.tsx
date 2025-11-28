@@ -18,11 +18,14 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  Alert,
+  Snackbar,
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import EditIcon from '@mui/icons-material/Edit';
 import BlockIcon from '@mui/icons-material/Block';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import axios from 'axios';
 
 interface User {
@@ -41,6 +44,9 @@ const UserManagement: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [blockDialogOpen, setBlockDialogOpen] = useState(false);
+  const [blockReason, setBlockReason] = useState('');
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
 
   useEffect(() => {
     fetchUsers();
@@ -58,11 +64,51 @@ const UserManagement: React.FC = () => {
 
   const handleUserAction = async (userId: string, action: 'block' | 'unblock' | 'verify') => {
     try {
+      if (action === 'block') {
+        // 차단은 별도 다이얼로그에서 처리
+        return;
+      }
+      
       await axios.post(`${process.env.REACT_APP_API_URL}/admin/users/${userId}/${action}`);
       fetchUsers();
       setDialogOpen(false);
+      setSnackbar({ 
+        open: true, 
+        message: `${action === 'verify' ? '인증' : '차단 해제'}가 완료되었습니다.`, 
+        severity: 'success' 
+      });
     } catch (error) {
       console.error(`사용자 ${action} 실패:`, error);
+      setSnackbar({ 
+        open: true, 
+        message: `${action === 'verify' ? '인증' : '차단 해제'} 중 오류가 발생했습니다.`, 
+        severity: 'error' 
+      });
+    }
+  };
+
+  const handleBlockUser = async () => {
+    if (!selectedUser || !blockReason) return;
+
+    try {
+      await axios.post(`${process.env.REACT_APP_API_URL}/admin/users/${selectedUser.id}/block`, {
+        reason: blockReason,
+      });
+      fetchUsers();
+      setBlockDialogOpen(false);
+      setBlockReason('');
+      setSnackbar({ 
+        open: true, 
+        message: '사용자가 차단되었습니다.', 
+        severity: 'success' 
+      });
+    } catch (error) {
+      console.error('사용자 차단 실패:', error);
+      setSnackbar({ 
+        open: true, 
+        message: '사용자 차단 중 오류가 발생했습니다.', 
+        severity: 'error' 
+      });
     }
   };
 
@@ -217,7 +263,10 @@ const UserManagement: React.FC = () => {
               )}
               {selectedUser.status === 'active' ? (
                 <Button
-                  onClick={() => handleUserAction(selectedUser.id, 'block')}
+                  onClick={() => {
+                    setBlockDialogOpen(true);
+                    setDialogOpen(false);
+                  }}
                   color="error"
                   startIcon={<BlockIcon />}
                 >
@@ -235,6 +284,71 @@ const UserManagement: React.FC = () => {
           )}
         </DialogActions>
       </Dialog>
+
+      {/* 회원 차단 다이얼로그 */}
+      <Dialog open={blockDialogOpen} onClose={() => setBlockDialogOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>
+          <Box display="flex" alignItems="center">
+            <AdminPanelSettingsIcon sx={{ mr: 1, color: 'error.main' }} />
+            관리자 회원 차단
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          {selectedUser && (
+            <Box sx={{ pt: 2 }}>
+              <Alert severity="warning" sx={{ mb: 2 }}>
+                관리자 권한으로 회원을 차단합니다. 이 작업은 신중하게 진행해주세요.
+              </Alert>
+              <Typography gutterBottom>
+                <strong>{selectedUser.name}</strong>님 ({selectedUser.email})을 차단하시겠습니까?
+              </Typography>
+              <TextField
+                fullWidth
+                label="차단 사유"
+                multiline
+                rows={3}
+                value={blockReason}
+                onChange={(e) => setBlockReason(e.target.value)}
+                placeholder="관리자 차단 사유를 입력해주세요 (5글자 이상)"
+                sx={{ mt: 2 }}
+                helperText={`${blockReason.length}/5 글자 이상 입력해주세요`}
+              />
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => {
+            setBlockDialogOpen(false);
+            setBlockReason('');
+          }}>
+            취소
+          </Button>
+          <Button 
+            onClick={handleBlockUser} 
+            color="error" 
+            variant="contained"
+            disabled={blockReason.length < 5}
+            startIcon={<BlockIcon />}
+          >
+            관리자 차단
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* 알림 스낵바 */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+      >
+        <Alert 
+          onClose={() => setSnackbar({ ...snackbar, open: false })} 
+          severity={snackbar.severity}
+          sx={{ width: '100%' }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

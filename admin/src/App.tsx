@@ -17,12 +17,14 @@ import PeopleIcon from '@mui/icons-material/People';
 import EventIcon from '@mui/icons-material/Event';
 import ReportIcon from '@mui/icons-material/Report';
 import SettingsIcon from '@mui/icons-material/Settings';
+import BlockIcon from '@mui/icons-material/Block';
 
 import Dashboard from './components/Dashboard';
 import UserManagement from './components/UserManagement';
 import MeetupManagement from './components/MeetupManagement';
 import Reports from './components/Reports';
 import Settings from './components/Settings';
+import BlockedUserManagement from './components/BlockedUserManagement';
 
 const theme = createTheme({
   palette: {
@@ -60,6 +62,7 @@ const drawerWidth = 240;
 const menuItems = [
   { text: '대시보드', icon: <DashboardIcon />, path: '/dashboard' },
   { text: '사용자 관리', icon: <PeopleIcon />, path: '/users' },
+  { text: '차단 관리', icon: <BlockIcon />, path: '/blocked-users' },
   { text: '모임 관리', icon: <EventIcon />, path: '/meetups' },
   { text: '리포트', icon: <ReportIcon />, path: '/reports' },
   { text: '설정', icon: <SettingsIcon />, path: '/settings' },
@@ -149,6 +152,7 @@ function App() {
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/users" element={<UserManagement />} />
+              <Route path="/blocked-users" element={<BlockedUserManagement />} />
               <Route path="/meetups" element={<MeetupManagement />} />
               <Route path="/reports" element={<Reports />} />
               <Route path="/settings" element={<Settings />} />
