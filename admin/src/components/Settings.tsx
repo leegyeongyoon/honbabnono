@@ -59,7 +59,7 @@ const Settings: React.FC = () => {
 
   const saveSettings = async () => {
     try {
-      await axios.put('${process.env.REACT_APP_API_URL}/admin/settings', settings);
+      await axios.put(`${process.env.REACT_APP_API_URL}/admin/settings`, settings);
       setSnackbar({
         open: true,
         message: '설정이 성공적으로 저장되었습니다.',

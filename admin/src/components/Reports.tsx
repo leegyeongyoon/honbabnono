@@ -35,23 +35,20 @@ interface ReportData {
 const Reports: React.FC = () => {
   const [reportData, setReportData] = useState<ReportData[]>([]);
   const [reportType, setReportType] = useState('weekly');
-  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    const fetchReportData = async () => {
+      try {
+        const response = await axios.get<ReportData[]>(`${process.env.REACT_APP_API_URL}/admin/reports/${reportType}`);
+        setReportData(Array.isArray(response.data) ? response.data : []);
+      } catch (error) {
+        console.error('리포트 데이터 로드 실패:', error);
+        setReportData([]);
+      }
+    };
+
     fetchReportData();
   }, [reportType]);
-
-  const fetchReportData = async () => {
-    setLoading(true);
-    try {
-      const response = await axios.get<ReportData[]>(`${process.env.REACT_APP_API_URL}/admin/reports/${reportType}`);
-      setReportData(response.data);
-    } catch (error) {
-      console.error('리포트 데이터 로드 실패:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const downloadReport = async () => {
     try {

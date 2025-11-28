@@ -56,12 +56,19 @@ const Dashboard: React.FC = () => {
         axios.get<RecentMeetup[]>(`${process.env.REACT_APP_API_URL}/admin/meetups`),
       ]);
 
-      setStats(statsResponse.data);
+      setStats(statsResponse.data || {
+        totalUsers: 0,
+        totalMeetups: 0,
+        todayMeetups: 0,
+        activeMeetups: 0,
+      });
       
       // 최근 5개 모임만 표시
-      setRecentMeetups(meetupsResponse.data.slice(0, 5));
+      const meetupsData = Array.isArray(meetupsResponse.data) ? meetupsResponse.data : [];
+      setRecentMeetups(meetupsData.slice(0, 5));
     } catch (error) {
       console.error('대시보드 데이터 로드 실패:', error);
+      setRecentMeetups([]);
     }
   };
 

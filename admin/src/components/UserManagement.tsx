@@ -48,10 +48,11 @@ const UserManagement: React.FC = () => {
 
   const fetchUsers = async () => {
     try {
-      const response = await axios.get<User[]>('${process.env.REACT_APP_API_URL}/admin/users');
-      setUsers(response.data);
+      const response = await axios.get<User[]>(`${process.env.REACT_APP_API_URL}/admin/users`);
+      setUsers(Array.isArray(response.data) ? response.data : []);
     } catch (error) {
       console.error('사용자 목록 로드 실패:', error);
+      setUsers([]);
     }
   };
 
