@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
@@ -12,12 +12,15 @@ import ListItem from '@mui/material/ListItem';
 import ListItemButton from '@mui/material/ListItemButton';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
+import Button from '@mui/material/Button';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import PeopleIcon from '@mui/icons-material/People';
 import EventIcon from '@mui/icons-material/Event';
 import ReportIcon from '@mui/icons-material/Report';
 import SettingsIcon from '@mui/icons-material/Settings';
 import BlockIcon from '@mui/icons-material/Block';
+import LogoutIcon from '@mui/icons-material/Logout';
+import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 
 import Dashboard from './components/Dashboard';
 import UserManagement from './components/UserManagement';
@@ -25,6 +28,8 @@ import MeetupManagement from './components/MeetupManagement';
 import Reports from './components/Reports';
 import Settings from './components/Settings';
 import BlockedUserManagement from './components/BlockedUserManagement';
+import AdminManagement from './components/AdminManagement';
+import Login from './components/Login';
 
 const theme = createTheme({
   palette: {
@@ -64,11 +69,72 @@ const menuItems = [
   { text: '사용자 관리', icon: <PeopleIcon />, path: '/users' },
   { text: '차단 관리', icon: <BlockIcon />, path: '/blocked-users' },
   { text: '모임 관리', icon: <EventIcon />, path: '/meetups' },
+  { text: '관리자 계정', icon: <AdminPanelSettingsIcon />, path: '/admin-accounts' },
   { text: '리포트', icon: <ReportIcon />, path: '/reports' },
   { text: '설정', icon: <SettingsIcon />, path: '/settings' },
 ];
 
 function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [adminData, setAdminData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    checkAuthStatus();
+  }, []);
+
+  const checkAuthStatus = () => {
+    const token = localStorage.getItem('adminToken');
+    const storedAdminData = localStorage.getItem('adminData');
+
+    if (token && storedAdminData) {
+      try {
+        const adminInfo = JSON.parse(storedAdminData);
+        setAdminData(adminInfo);
+        setIsAuthenticated(true);
+      } catch (error) {
+        console.error('토큰 파싱 오류:', error);
+        handleLogout();
+      }
+    }
+    setLoading(false);
+  };
+
+  const handleLoginSuccess = (token: string, adminInfo: any) => {
+    setIsAuthenticated(true);
+    setAdminData(adminInfo);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('adminToken');
+    localStorage.removeItem('adminData');
+    setIsAuthenticated(false);
+    setAdminData(null);
+  };
+
+  if (loading) {
+    return (
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
+        <Box
+          sx={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            height: '100vh',
+            backgroundColor: '#F9F8F6',
+          }}
+        >
+          <Typography>로딩 중...</Typography>
+        </Box>
+      </ThemeProvider>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <Login onLoginSuccess={handleLoginSuccess} />;
+  }
+
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
@@ -83,9 +149,24 @@ function App() {
             }}
           >
             <Toolbar>
-              <Typography variant="h6" noWrap component="div">
+              <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
                 혼밥시러 관리자 패널
               </Typography>
+              <Typography variant="body2" sx={{ mr: 2 }}>
+                {adminData?.username || '관리자'}님
+              </Typography>
+              <Button 
+                color="inherit" 
+                onClick={handleLogout}
+                startIcon={<LogoutIcon />}
+                sx={{ 
+                  '&:hover': {
+                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                  }
+                }}
+              >
+                로그아웃
+              </Button>
             </Toolbar>
           </AppBar>
           
@@ -154,6 +235,7 @@ function App() {
               <Route path="/users" element={<UserManagement />} />
               <Route path="/blocked-users" element={<BlockedUserManagement />} />
               <Route path="/meetups" element={<MeetupManagement />} />
+              <Route path="/admin-accounts" element={<AdminManagement />} />
               <Route path="/reports" element={<Reports />} />
               <Route path="/settings" element={<Settings />} />
             </Routes>

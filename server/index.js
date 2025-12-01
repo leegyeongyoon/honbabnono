@@ -7874,16 +7874,16 @@ apiRouter.post('/admin/users/:id/:action', async (req, res) => {
   }
 });
 
-// 관리자 설정 저장 (더미 구현)
-apiRouter.put('/admin/settings', async (req, res) => {
-  try {
-    // 실제 환경에서는 settings 테이블에 저장
-    res.json({ message: '설정이 저장되었습니다.' });
-  } catch (error) {
-    console.error('설정 저장 오류:', error);
-    res.status(500).json({ message: '설정 저장 중 오류가 발생했습니다.' });
-  }
-});
+// 관리자 설정 저장 (더미 구현) - 주석처리됨. 새로운 인증 방식 사용
+// apiRouter.put('/admin/settings', async (req, res) => {
+//   try {
+//     // 실제 환경에서는 settings 테이블에 저장
+//     res.json({ message: '설정이 저장되었습니다.' });
+//   } catch (error) {
+//     console.error('설정 저장 오류:', error);
+//     res.status(500).json({ message: '설정 저장 중 오류가 발생했습니다.' });
+//   }
+// });
 
 // 관리자 리포트 조회 (더미 구현)
 apiRouter.get('/admin/reports/:type', async (req, res) => {
@@ -9631,12 +9631,64 @@ apiRouter.get('/users/:userId/blocked-status', authenticateToken, async (req, re
   }
 });
 
+// Admin 테이블 초기화 및 기본 관리자 계정 생성
+const initializeAdminTable = async () => {
+  try {
+    console.log('🔧 Admin 테이블 초기화 시작...');
+    
+    // Admin 테이블 생성
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS admins (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        username VARCHAR(100) UNIQUE NOT NULL,
+        password VARCHAR(255) NOT NULL,
+        email VARCHAR(255),
+        role VARCHAR(50) DEFAULT 'admin',
+        is_active BOOLEAN DEFAULT true,
+        last_login TIMESTAMP,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    
+    console.log('✅ Admin 테이블 생성 완료');
+    
+    // 기본 관리자 계정 확인
+    const existingAdmin = await pool.query(
+      'SELECT id FROM admins WHERE username = $1',
+      ['honbabnono']
+    );
+    
+    if (existingAdmin.rows.length === 0) {
+      // 비밀번호 암호화
+      const hashedPassword = await bcrypt.hash('honbabnono123', 12);
+      
+      // 기본 관리자 계정 생성
+      await pool.query(`
+        INSERT INTO admins (username, password, email, role)
+        VALUES ($1, $2, $3, $4)
+      `, ['honbabnono', hashedPassword, 'admin@honbabnono.com', 'super_admin']);
+      
+      console.log('✅ 기본 관리자 계정 생성 완료 (honbabnono/honbabnono123)');
+    } else {
+      console.log('ℹ️  기본 관리자 계정이 이미 존재합니다');
+    }
+    
+  } catch (error) {
+    console.error('❌ Admin 테이블 초기화 실패:', error);
+    throw error;
+  }
+};
+
 // 서버 시작
 const startServer = async () => {
   try {
     // PostgreSQL 연결 테스트
     await pool.query('SELECT 1+1 AS result');
     console.log('✅ PostgreSQL 데이터베이스 연결 성공');
+    
+    // Admin 테이블 생성 및 초기 계정 설정
+    await initializeAdminTable();
     
     server.listen(PORT, '0.0.0.0', () => {
       console.log(`🚀 혼밥시러 API 서버가 포트 ${PORT}에서 실행 중입니다.`);
@@ -11687,6 +11739,566 @@ apiRouter.get('/chat/rooms/:id/stats', authenticateToken, async (req, res) => {
     res.status(401).json({ error: '인증이 필요합니다.' });
   } catch (error) {
     res.status(500).json({ error: '통계 조회 실패' });
+  }
+});
+
+// 관리자 인증 미들웨어 (새 버전)
+const authenticateAdminNew = async (req, res, next) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+      return res.status(401).json({ 
+        success: false, 
+        error: '관리자 인증 토큰이 필요합니다.' 
+      });
+    }
+
+    const token = authHeader.split(' ')[1];
+    if (!token) {
+      return res.status(401).json({ 
+        success: false, 
+        error: '유효하지 않은 토큰 형식입니다.' 
+      });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    
+    // 관리자 권한 확인
+    if (!decoded.isAdmin) {
+      return res.status(403).json({ 
+        success: false, 
+        error: '관리자 권한이 필요합니다.' 
+      });
+    }
+
+    // 관리자 계정 활성화 상태 확인
+    const result = await pool.query(
+      'SELECT id, username, email, role, is_active FROM admins WHERE id = $1 AND is_active = true',
+      [decoded.adminId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(403).json({ 
+        success: false, 
+        error: '비활성화되거나 존재하지 않는 관리자 계정입니다.' 
+      });
+    }
+
+    req.admin = result.rows[0];
+    next();
+  } catch (error) {
+    console.error('관리자 인증 오류:', error);
+    return res.status(401).json({ 
+      success: false, 
+      error: '유효하지 않은 관리자 토큰입니다.' 
+    });
+  }
+};
+
+// 관리자 로그인
+apiRouter.post('/admin/login', async (req, res) => {
+  try {
+    const { username, password } = req.body;
+
+    if (!username || !password) {
+      return res.status(400).json({
+        success: false,
+        error: '사용자명과 비밀번호가 필요합니다.'
+      });
+    }
+
+    // 관리자 계정 조회
+    const result = await pool.query(
+      'SELECT id, username, password, email, role, is_active FROM admins WHERE username = $1 AND is_active = true',
+      [username]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(401).json({
+        success: false,
+        error: '잘못된 사용자명 또는 비밀번호입니다.'
+      });
+    }
+
+    const admin = result.rows[0];
+    
+    // 비밀번호 검증
+    const isValidPassword = await bcrypt.compare(password, admin.password);
+    if (!isValidPassword) {
+      return res.status(401).json({
+        success: false,
+        error: '잘못된 사용자명 또는 비밀번호입니다.'
+      });
+    }
+
+    // JWT 토큰 생성 (관리자용)
+    const token = jwt.sign(
+      { 
+        adminId: admin.id,
+        username: admin.username,
+        role: admin.role,
+        isAdmin: true
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: '8h' }
+    );
+
+    // 마지막 로그인 시간 업데이트
+    await pool.query(
+      'UPDATE admins SET last_login = CURRENT_TIMESTAMP WHERE id = $1',
+      [admin.id]
+    );
+
+    res.json({
+      success: true,
+      message: '관리자 로그인 성공',
+      token,
+      admin: {
+        id: admin.id,
+        username: admin.username,
+        email: admin.email,
+        role: admin.role
+      }
+    });
+
+  } catch (error) {
+    console.error('관리자 로그인 오류:', error);
+    res.status(500).json({
+      success: false,
+      error: '서버 오류가 발생했습니다.'
+    });
+  }
+});
+
+// 관리자 로그아웃
+apiRouter.post('/admin/logout', authenticateAdminNew, async (req, res) => {
+  try {
+    res.json({
+      success: true,
+      message: '관리자 로그아웃 완료'
+    });
+  } catch (error) {
+    console.error('관리자 로그아웃 오류:', error);
+    res.status(500).json({
+      success: false,
+      error: '로그아웃 중 오류가 발생했습니다.'
+    });
+  }
+});
+
+// 관리자 프로필 조회
+apiRouter.get('/admin/profile', authenticateAdminNew, async (req, res) => {
+  try {
+    res.json({
+      success: true,
+      admin: {
+        id: req.admin.id,
+        username: req.admin.username,
+        email: req.admin.email,
+        role: req.admin.role
+      }
+    });
+  } catch (error) {
+    console.error('관리자 프로필 조회 오류:', error);
+    res.status(500).json({
+      success: false,
+      error: '프로필 조회 중 오류가 발생했습니다.'
+    });
+  }
+});
+
+// 관리자 대시보드 통계
+apiRouter.get('/admin/dashboard/stats', authenticateAdminNew, async (req, res) => {
+  try {
+    const stats = {
+      totalUsers: 0,
+      totalMeetups: 0,
+      activeMeetups: 0,
+      totalReviews: 0
+    };
+
+    // 실제 통계 쿼리는 추후 구현
+    res.json({
+      success: true,
+      data: stats
+    });
+  } catch (error) {
+    console.error('관리자 대시보드 통계 오류:', error);
+    res.status(500).json({
+      success: false,
+      error: '통계 조회 중 오류가 발생했습니다.'
+    });
+  }
+});
+
+// 시스템 설정 조회
+apiRouter.get('/admin/settings', authenticateAdminNew, async (req, res) => {
+  try {
+    // 시스템 설정을 데이터베이스에서 조회하거나 기본값 반환
+    const settings = {
+      maintenanceMode: false,
+      allowNewSignups: true,
+      maxMeetupParticipants: 4,
+      meetupCreationCooldown: 60,
+      autoApprovalEnabled: true,
+      emailNotificationsEnabled: true,
+      smsNotificationsEnabled: false,
+      depositAmount: 3000,
+      platformFee: 0
+    };
+
+    res.json({
+      success: true,
+      data: settings
+    });
+  } catch (error) {
+    console.error('시스템 설정 조회 오류:', error);
+    res.status(500).json({
+      success: false,
+      error: '시스템 설정 조회 중 오류가 발생했습니다.'
+    });
+  }
+});
+
+// 시스템 설정 저장
+apiRouter.put('/admin/settings', authenticateAdminNew, async (req, res) => {
+  try {
+    const {
+      maintenanceMode,
+      allowNewSignups,
+      maxMeetupParticipants,
+      meetupCreationCooldown,
+      autoApprovalEnabled,
+      emailNotificationsEnabled,
+      smsNotificationsEnabled,
+      depositAmount,
+      platformFee
+    } = req.body;
+
+    // 입력값 검증
+    if (typeof maxMeetupParticipants !== 'number' || maxMeetupParticipants < 1 || maxMeetupParticipants > 50) {
+      return res.status(400).json({
+        success: false,
+        error: '최대 참가자 수는 1명 이상 50명 이하여야 합니다.'
+      });
+    }
+
+    if (typeof depositAmount !== 'number' || depositAmount < 0) {
+      return res.status(400).json({
+        success: false,
+        error: '예약금은 0원 이상이어야 합니다.'
+      });
+    }
+
+    if (typeof platformFee !== 'number' || platformFee < 0) {
+      return res.status(400).json({
+        success: false,
+        error: '플랫폼 수수료는 0원 이상이어야 합니다.'
+      });
+    }
+
+    // 실제로는 데이터베이스에 저장해야 하지만, 현재는 로그만 출력
+    console.log('💾 시스템 설정 저장:', {
+      maintenanceMode,
+      allowNewSignups,
+      maxMeetupParticipants,
+      meetupCreationCooldown,
+      autoApprovalEnabled,
+      emailNotificationsEnabled,
+      smsNotificationsEnabled,
+      depositAmount,
+      platformFee,
+      updatedBy: req.admin.username,
+      updatedAt: new Date()
+    });
+
+    // 설정 저장 성공 로그
+    await pool.query(
+      'INSERT INTO admin_activity_log (admin_id, action, details, created_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP)',
+      [
+        req.admin.id,
+        'SYSTEM_SETTINGS_UPDATE',
+        JSON.stringify({
+          maxMeetupParticipants,
+          depositAmount,
+          platformFee,
+          maintenanceMode,
+          allowNewSignups
+        })
+      ]
+    ).catch(() => {
+      // 로그 테이블이 없어도 설정 저장은 계속 진행
+      console.log('📝 관리자 활동 로그 기록 생략 (테이블 미존재)');
+    });
+
+    res.json({
+      success: true,
+      message: '시스템 설정이 성공적으로 저장되었습니다.',
+      data: {
+        maintenanceMode,
+        allowNewSignups,
+        maxMeetupParticipants,
+        meetupCreationCooldown,
+        autoApprovalEnabled,
+        emailNotificationsEnabled,
+        smsNotificationsEnabled,
+        depositAmount,
+        platformFee
+      }
+    });
+  } catch (error) {
+    console.error('시스템 설정 저장 오류:', error);
+    res.status(500).json({
+      success: false,
+      error: '시스템 설정 저장 중 오류가 발생했습니다.'
+    });
+  }
+});
+
+// 관리자 계정 목록 조회
+apiRouter.get('/admin/accounts', authenticateAdminNew, async (req, res) => {
+  try {
+    const { page = 1, limit = 10 } = req.query;
+    const offset = (parseInt(page) - 1) * parseInt(limit);
+
+    // 관리자 목록 조회 (비밀번호 제외)
+    const result = await pool.query(
+      `SELECT id, username, email, role, is_active, last_login, created_at, updated_at 
+       FROM admins 
+       ORDER BY created_at DESC 
+       LIMIT $1 OFFSET $2`,
+      [parseInt(limit), offset]
+    );
+
+    // 전체 관리자 수 조회
+    const countResult = await pool.query('SELECT COUNT(*) FROM admins');
+    const totalCount = parseInt(countResult.rows[0].count);
+
+    res.json({
+      success: true,
+      data: result.rows,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total: totalCount,
+        totalPages: Math.ceil(totalCount / parseInt(limit))
+      }
+    });
+  } catch (error) {
+    console.error('관리자 계정 목록 조회 오류:', error);
+    res.status(500).json({
+      success: false,
+      error: '관리자 계정 목록 조회 중 오류가 발생했습니다.'
+    });
+  }
+});
+
+// 새 관리자 계정 생성
+apiRouter.post('/admin/accounts', authenticateAdminNew, async (req, res) => {
+  try {
+    const { username, email, password, role = 'admin' } = req.body;
+
+    // 입력값 검증
+    if (!username || !email || !password) {
+      return res.status(400).json({
+        success: false,
+        error: '사용자명, 이메일, 비밀번호는 필수입니다.'
+      });
+    }
+
+    if (password.length < 8) {
+      return res.status(400).json({
+        success: false,
+        error: '비밀번호는 최소 8자 이상이어야 합니다.'
+      });
+    }
+
+    // 중복 확인
+    const existingAdmin = await pool.query(
+      'SELECT id FROM admins WHERE username = $1 OR email = $2',
+      [username, email]
+    );
+
+    if (existingAdmin.rows.length > 0) {
+      return res.status(400).json({
+        success: false,
+        error: '이미 존재하는 사용자명 또는 이메일입니다.'
+      });
+    }
+
+    // 비밀번호 해시화
+    const hashedPassword = await bcrypt.hash(password, 12);
+
+    // 새 관리자 계정 생성
+    const newAdmin = await pool.query(
+      `INSERT INTO admins (username, email, password, role) 
+       VALUES ($1, $2, $3, $4) 
+       RETURNING id, username, email, role, is_active, created_at`,
+      [username, email, hashedPassword, role]
+    );
+
+    console.log('✅ 새 관리자 계정 생성:', {
+      id: newAdmin.rows[0].id,
+      username,
+      email,
+      role,
+      createdBy: req.admin.username
+    });
+
+    res.status(201).json({
+      success: true,
+      message: '관리자 계정이 성공적으로 생성되었습니다.',
+      data: newAdmin.rows[0]
+    });
+  } catch (error) {
+    console.error('관리자 계정 생성 오류:', error);
+    res.status(500).json({
+      success: false,
+      error: '관리자 계정 생성 중 오류가 발생했습니다.'
+    });
+  }
+});
+
+// 관리자 계정 정보 수정
+apiRouter.put('/admin/accounts/:adminId', authenticateAdminNew, async (req, res) => {
+  try {
+    const { adminId } = req.params;
+    const { username, email, role, is_active } = req.body;
+
+    // 자신의 계정을 비활성화하는 것을 방지
+    if (adminId === req.admin.id && is_active === false) {
+      return res.status(400).json({
+        success: false,
+        error: '자신의 계정을 비활성화할 수 없습니다.'
+      });
+    }
+
+    // 관리자 계정 업데이트
+    const result = await pool.query(
+      `UPDATE admins 
+       SET username = $1, email = $2, role = $3, is_active = $4, updated_at = CURRENT_TIMESTAMP
+       WHERE id = $5 
+       RETURNING id, username, email, role, is_active, updated_at`,
+      [username, email, role, is_active, adminId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: '관리자 계정을 찾을 수 없습니다.'
+      });
+    }
+
+    console.log('✅ 관리자 계정 수정:', {
+      adminId,
+      changes: { username, email, role, is_active },
+      updatedBy: req.admin.username
+    });
+
+    res.json({
+      success: true,
+      message: '관리자 계정이 성공적으로 수정되었습니다.',
+      data: result.rows[0]
+    });
+  } catch (error) {
+    console.error('관리자 계정 수정 오류:', error);
+    res.status(500).json({
+      success: false,
+      error: '관리자 계정 수정 중 오류가 발생했습니다.'
+    });
+  }
+});
+
+// 관리자 계정 비밀번호 변경
+apiRouter.put('/admin/accounts/:adminId/password', authenticateAdminNew, async (req, res) => {
+  try {
+    const { adminId } = req.params;
+    const { newPassword } = req.body;
+
+    if (!newPassword || newPassword.length < 8) {
+      return res.status(400).json({
+        success: false,
+        error: '새 비밀번호는 최소 8자 이상이어야 합니다.'
+      });
+    }
+
+    // 비밀번호 해시화
+    const hashedPassword = await bcrypt.hash(newPassword, 12);
+
+    // 비밀번호 업데이트
+    const result = await pool.query(
+      'UPDATE admins SET password = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING id, username',
+      [hashedPassword, adminId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: '관리자 계정을 찾을 수 없습니다.'
+      });
+    }
+
+    console.log('🔒 관리자 비밀번호 변경:', {
+      adminId,
+      targetUser: result.rows[0].username,
+      changedBy: req.admin.username
+    });
+
+    res.json({
+      success: true,
+      message: '관리자 비밀번호가 성공적으로 변경되었습니다.'
+    });
+  } catch (error) {
+    console.error('관리자 비밀번호 변경 오류:', error);
+    res.status(500).json({
+      success: false,
+      error: '관리자 비밀번호 변경 중 오류가 발생했습니다.'
+    });
+  }
+});
+
+// 관리자 계정 삭제 (실제로는 비활성화)
+apiRouter.delete('/admin/accounts/:adminId', authenticateAdminNew, async (req, res) => {
+  try {
+    const { adminId } = req.params;
+
+    // 자신의 계정을 삭제하는 것을 방지
+    if (adminId === req.admin.id) {
+      return res.status(400).json({
+        success: false,
+        error: '자신의 계정을 삭제할 수 없습니다.'
+      });
+    }
+
+    // 관리자 계정 비활성화 (실제 삭제 대신)
+    const result = await pool.query(
+      'UPDATE admins SET is_active = false, updated_at = CURRENT_TIMESTAMP WHERE id = $1 RETURNING username',
+      [adminId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: '관리자 계정을 찾을 수 없습니다.'
+      });
+    }
+
+    console.log('🗑️ 관리자 계정 비활성화:', {
+      adminId,
+      targetUser: result.rows[0].username,
+      deactivatedBy: req.admin.username
+    });
+
+    res.json({
+      success: true,
+      message: '관리자 계정이 성공적으로 비활성화되었습니다.'
+    });
+  } catch (error) {
+    console.error('관리자 계정 삭제 오류:', error);
+    res.status(500).json({
+      success: false,
+      error: '관리자 계정 삭제 중 오류가 발생했습니다.'
+    });
   }
 });
 

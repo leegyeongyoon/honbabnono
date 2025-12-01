@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -11,6 +11,7 @@ import {
   Divider,
   Alert,
   Snackbar,
+  CircularProgress,
 } from '@mui/material';
 import SaveIcon from '@mui/icons-material/Save';
 import axios from 'axios';
@@ -27,18 +28,28 @@ interface SystemSettings {
   platformFee: number;
 }
 
+interface ApiResponse<T> {
+  success: boolean;
+  data: T;
+  message?: string;
+  error?: string;
+}
+
 const Settings: React.FC = () => {
   const [settings, setSettings] = useState<SystemSettings>({
     maintenanceMode: false,
     allowNewSignups: true,
-    maxMeetupParticipants: 10,
+    maxMeetupParticipants: 4,
     meetupCreationCooldown: 60,
     autoApprovalEnabled: true,
     emailNotificationsEnabled: true,
     smsNotificationsEnabled: false,
-    depositAmount: 5000,
-    platformFee: 500,
+    depositAmount: 3000,
+    platformFee: 0,
   });
+
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
   const [snackbar, setSnackbar] = useState<{
     open: boolean;
@@ -50,6 +61,39 @@ const Settings: React.FC = () => {
     severity: 'success',
   });
 
+  const getAuthHeader = () => {
+    const token = localStorage.getItem('adminToken');
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  };
+
+  const loadSettings = async () => {
+    try {
+      setLoading(true);
+      const response = await axios.get('http://localhost:3001/api/admin/settings', {
+        headers: getAuthHeader(),
+      });
+      
+      const data = response.data as ApiResponse<SystemSettings>;
+      if (data.success) {
+        setSettings(data.data);
+      }
+    } catch (error) {
+      console.error('설정 로드 실패:', error);
+      setSnackbar({
+        open: true,
+        message: '설정을 불러오는데 실패했습니다.',
+        severity: 'error',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadSettings();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const handleSettingChange = (key: keyof SystemSettings, value: any) => {
     setSettings(prev => ({
       ...prev,
@@ -59,21 +103,42 @@ const Settings: React.FC = () => {
 
   const saveSettings = async () => {
     try {
-      await axios.put(`${process.env.REACT_APP_API_URL}/admin/settings`, settings);
-      setSnackbar({
-        open: true,
-        message: '설정이 성공적으로 저장되었습니다.',
-        severity: 'success',
+      setSaving(true);
+      const response = await axios.put('http://localhost:3001/api/admin/settings', settings, {
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeader(),
+        },
       });
-    } catch (error) {
+
+      const data = response.data as ApiResponse<SystemSettings>;
+      if (data.success) {
+        setSnackbar({
+          open: true,
+          message: data.message || '설정이 성공적으로 저장되었습니다.',
+          severity: 'success',
+        });
+      }
+    } catch (error: any) {
+      console.error('설정 저장 실패:', error);
+      const errorMessage = error.response?.data?.error || '설정 저장에 실패했습니다.';
       setSnackbar({
         open: true,
-        message: '설정 저장에 실패했습니다.',
+        message: errorMessage,
         severity: 'error',
       });
-      console.error('설정 저장 실패:', error);
+    } finally {
+      setSaving(false);
     }
   };
+
+  if (loading) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight={400}>
+        <CircularProgress />
+      </Box>
+    );
+  }
 
   return (
     <Box>
@@ -206,11 +271,20 @@ const Settings: React.FC = () => {
       <Box sx={{ mt: 4, display: 'flex', justifyContent: 'flex-end' }}>
         <Button
           variant="contained"
-          startIcon={<SaveIcon />}
+          startIcon={saving ? <CircularProgress size={20} color="inherit" /> : <SaveIcon />}
           onClick={saveSettings}
-          sx={{ backgroundColor: '#C9B59C' }}
+          disabled={saving}
+          sx={{ 
+            backgroundColor: '#C9B59C',
+            '&:hover': {
+              backgroundColor: '#A08B7A',
+            },
+            '&:disabled': {
+              backgroundColor: '#D9CFC7',
+            },
+          }}
         >
-          설정 저장
+          {saving ? '저장 중...' : '설정 저장'}
         </Button>
       </Box>
 
