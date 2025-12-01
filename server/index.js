@@ -179,7 +179,7 @@ const upload = multer({
 
 // 미들웨어 설정
 app.use(cors({
-  origin: ['http://localhost:3000', 'https://honbabnono.com', 'https://admin.honbabnono.com', 'http://localhost:3002'],
+  origin: ['http://localhost:3000', 'https://honbabnono.com', 'https://admin.honbabnono.com', 'http://localhost:3002', 'http://localhost:3003'],
   credentials: true
 }));
 app.use(express.json({ limit: '10mb' }));
@@ -12298,6 +12298,319 @@ apiRouter.delete('/admin/accounts/:adminId', authenticateAdminNew, async (req, r
     res.status(500).json({
       success: false,
       error: '관리자 계정 삭제 중 오류가 발생했습니다.'
+    });
+  }
+});
+
+// 사용자 상세 정보 조회 (관리자용)
+apiRouter.get('/admin/users/:userId/details', authenticateAdminNew, async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    // 기본 사용자 정보
+    const userResult = await pool.query(`
+      SELECT 
+        id, name, email, provider, provider_id, 
+        is_verified, phone, profile_image,
+        created_at, updated_at
+      FROM users 
+      WHERE id = $1
+    `, [userId]);
+
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: '사용자를 찾을 수 없습니다.'
+      });
+    }
+
+    const user = userResult.rows[0];
+
+    // 포인트 정보
+    const pointsResult = await pool.query(`
+      SELECT 
+        COALESCE(total_points, 0) as total_points
+      FROM user_points 
+      WHERE user_id = $1
+    `, [userId]);
+
+    // 포인트 히스토리 (단순화)
+    const pointHistoryResult = { rows: [] }; // 임시로 빈 배열 반환
+
+    // 호스팅한 모임 수
+    const hostedMeetupsResult = await pool.query(`
+      SELECT COUNT(*) as count FROM meetups WHERE host_id = $1
+    `, [userId]);
+
+    // 참가한 모임 수
+    const joinedMeetupsResult = await pool.query(`
+      SELECT COUNT(*) as count FROM meetup_participants WHERE user_id = $1
+    `, [userId]);
+
+    // 작성한 리뷰 수
+    const reviewsResult = await pool.query(`
+      SELECT COUNT(*) as count FROM meetup_reviews WHERE user_id = $1
+    `, [userId]);
+
+    // 최근 리뷰들
+    const recentReviewsResult = await pool.query(`
+      SELECT 
+        r.id, r.rating, r.content as comment, r.created_at,
+        m.title as meetup_title, m.id as meetup_id
+      FROM meetup_reviews r
+      JOIN meetups m ON r.meetup_id = m.id
+      WHERE r.user_id = $1
+      ORDER BY r.created_at DESC
+      LIMIT 5
+    `, [userId]);
+
+    // 받은 리뷰 평점 평균
+    const receivedRatingResult = await pool.query(`
+      SELECT AVG(rating) as avg_rating, COUNT(*) as review_count
+      FROM meetup_reviews r
+      JOIN meetups m ON r.meetup_id = m.id
+      WHERE m.host_id = $1
+    `, [userId]);
+
+    // 최근 활동 로그
+    const activityResult = await pool.query(`
+      SELECT 
+        'meetup_created' as type, m.title as description, m.created_at as timestamp
+      FROM meetups m WHERE m.host_id = $1
+      UNION ALL
+      SELECT 
+        'meetup_joined' as type, m.title as description, mp.joined_at as timestamp
+      FROM meetup_participants mp
+      JOIN meetups m ON mp.meetup_id = m.id
+      WHERE mp.user_id = $1
+      ORDER BY timestamp DESC
+      LIMIT 10
+    `, [userId]);
+
+    res.json({
+      success: true,
+      data: {
+        user,
+        stats: {
+          totalPoints: parseInt(pointsResult.rows[0]?.total_points) || 0,
+          hostedMeetups: parseInt(hostedMeetupsResult.rows[0].count),
+          joinedMeetups: parseInt(joinedMeetupsResult.rows[0].count),
+          reviewsWritten: parseInt(reviewsResult.rows[0].count),
+          avgRatingReceived: parseFloat(receivedRatingResult.rows[0]?.avg_rating) || 0,
+          reviewsReceived: parseInt(receivedRatingResult.rows[0]?.review_count) || 0
+        },
+        pointHistory: pointHistoryResult.rows,
+        recentReviews: recentReviewsResult.rows,
+        recentActivity: activityResult.rows
+      }
+    });
+
+  } catch (error) {
+    console.error('사용자 상세 정보 조회 오류:', error);
+    res.status(500).json({
+      success: false,
+      error: '사용자 상세 정보 조회 중 오류가 발생했습니다.'
+    });
+  }
+});
+
+// 모임 상세 정보 조회 (관리자용)
+apiRouter.get('/admin/meetups/:meetupId/details', authenticateAdminNew, async (req, res) => {
+  try {
+    const { meetupId } = req.params;
+
+    // 기본 모임 정보
+    const meetupResult = await pool.query(`
+      SELECT 
+        m.*, u.name as host_name, u.email as host_email,
+        COUNT(mp.id) as participant_count
+      FROM meetups m
+      JOIN users u ON m.host_id = u.id
+      LEFT JOIN meetup_participants mp ON m.id = mp.meetup_id
+      WHERE m.id = $1
+      GROUP BY m.id, u.name, u.email
+    `, [meetupId]);
+
+    if (meetupResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: '모임을 찾을 수 없습니다.'
+      });
+    }
+
+    const meetup = meetupResult.rows[0];
+
+    // 참가자 목록
+    const participantsResult = await pool.query(`
+      SELECT 
+        u.id, u.name, u.email, u.profile_image,
+        mp.joined_at, mp.status as participation_status,
+        COALESCE(up.total_points, 0) as user_points
+      FROM meetup_participants mp
+      JOIN users u ON mp.user_id = u.id
+      LEFT JOIN user_points up ON u.id = up.user_id
+      WHERE mp.meetup_id = $1
+      ORDER BY mp.joined_at ASC
+    `, [meetupId]);
+
+    // 리뷰 목록
+    const reviewsResult = await pool.query(`
+      SELECT 
+        r.id, r.rating, r.content as comment, r.created_at,
+        u.name as reviewer_name, u.profile_image as reviewer_image
+      FROM meetup_reviews r
+      JOIN users u ON r.user_id = u.id
+      WHERE r.meetup_id = $1
+      ORDER BY r.created_at DESC
+    `, [meetupId]);
+
+    // 평균 평점
+    const ratingResult = await pool.query(`
+      SELECT AVG(rating) as avg_rating, COUNT(*) as review_count
+      FROM meetup_reviews
+      WHERE meetup_id = $1
+    `, [meetupId]);
+
+    // 결제 정보 (예약금)
+    const paymentResult = await pool.query(`
+      SELECT 
+        pd.user_id, pd.amount, pd.status, pd.created_at,
+        u.name as user_name
+      FROM promise_deposits pd
+      JOIN users u ON pd.user_id = u.id
+      WHERE pd.meetup_id = $1
+      ORDER BY pd.created_at DESC
+    `, [meetupId]);
+
+    res.json({
+      success: true,
+      data: {
+        meetup,
+        participants: participantsResult.rows,
+        reviews: reviewsResult.rows,
+        stats: {
+          avgRating: parseFloat(ratingResult.rows[0]?.avg_rating) || 0,
+          reviewCount: parseInt(ratingResult.rows[0]?.review_count) || 0,
+          participantCount: parseInt(meetup.participant_count)
+        },
+        payments: paymentResult.rows
+      }
+    });
+
+  } catch (error) {
+    console.error('모임 상세 정보 조회 오류:', error);
+    res.status(500).json({
+      success: false,
+      error: '모임 상세 정보 조회 중 오류가 발생했습니다.'
+    });
+  }
+});
+
+// 포인트 조정 API (관리자용)
+apiRouter.post('/admin/users/:userId/points', authenticateAdminNew, async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { amount, description, type } = req.body;
+    const adminId = req.admin.id;
+
+    if (!amount || !description || !type) {
+      return res.status(400).json({
+        success: false,
+        error: '필수 정보가 누락되었습니다.'
+      });
+    }
+
+    if (!['earned', 'spent'].includes(type)) {
+      return res.status(400).json({
+        success: false,
+        error: '유효하지 않은 포인트 타입입니다.'
+      });
+    }
+
+    // 포인트 내역 추가
+    await pool.query(`
+      INSERT INTO user_points (user_id, amount, type, description, admin_id)
+      VALUES ($1, $2, $3, $4, $5)
+    `, [userId, Math.abs(amount), type, `[관리자 조정] ${description}`, adminId]);
+
+    res.json({
+      success: true,
+      message: '포인트가 성공적으로 조정되었습니다.'
+    });
+
+  } catch (error) {
+    console.error('포인트 조정 오류:', error);
+    res.status(500).json({
+      success: false,
+      error: '포인트 조정 중 오류가 발생했습니다.'
+    });
+  }
+});
+
+// 리뷰 삭제 API (관리자용)
+apiRouter.delete('/admin/reviews/:reviewId', authenticateAdminNew, async (req, res) => {
+  try {
+    const { reviewId } = req.params;
+    const { reason } = req.body;
+
+    if (!reason) {
+      return res.status(400).json({
+        success: false,
+        error: '삭제 사유를 입력해주세요.'
+      });
+    }
+
+    // 리뷰 삭제 (실제로는 비활성화)
+    await pool.query(`
+      UPDATE meetup_reviews 
+      SET is_active = false, admin_deleted_reason = $2, deleted_at = NOW()
+      WHERE id = $1
+    `, [reviewId, reason]);
+
+    res.json({
+      success: true,
+      message: '리뷰가 성공적으로 삭제되었습니다.'
+    });
+
+  } catch (error) {
+    console.error('리뷰 삭제 오류:', error);
+    res.status(500).json({
+      success: false,
+      error: '리뷰 삭제 중 오류가 발생했습니다.'
+    });
+  }
+});
+
+// 리뷰 삭제 API (관리자용) - PATCH 버전
+apiRouter.patch('/admin/reviews/:reviewId/delete', authenticateAdminNew, async (req, res) => {
+  try {
+    const { reviewId } = req.params;
+    const { reason } = req.body;
+
+    if (!reason) {
+      return res.status(400).json({
+        success: false,
+        error: '삭제 사유를 입력해주세요.'
+      });
+    }
+
+    // 리뷰 삭제 (실제로는 비활성화)
+    await pool.query(`
+      UPDATE meetup_reviews 
+      SET is_active = false, admin_deleted_reason = $2, deleted_at = NOW()
+      WHERE id = $1
+    `, [reviewId, reason]);
+
+    res.json({
+      success: true,
+      message: '리뷰가 성공적으로 삭제되었습니다.'
+    });
+
+  } catch (error) {
+    console.error('리뷰 삭제 오류:', error);
+    res.status(500).json({
+      success: false,
+      error: '리뷰 삭제 중 오류가 발생했습니다.'
     });
   }
 });
