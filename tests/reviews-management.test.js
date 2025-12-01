@@ -8,12 +8,12 @@ describe('Reviews Management API Tests', () => {
   
   beforeAll(async () => {
     process.env.NODE_ENV = 'test';
-    process.env.JWT_SECRET = 'test-jwt-secret';
+    process.env.JWT_SECRET = 'test_jwt_secret_key_123456789';
     process.env.PORT = '3003';
     
     userToken = jwt.sign(
       { 
-        userId: 'test-user-id', 
+        userId: '550e8400-e29b-41d4-a716-446655440001', 
         email: 'user@example.com',
         name: 'Test User' 
       },
@@ -23,7 +23,7 @@ describe('Reviews Management API Tests', () => {
 
     reviewerToken = jwt.sign(
       { 
-        userId: 'reviewer-user-id', 
+        userId: '550e8400-e29b-41d4-a716-446655440002', 
         email: 'reviewer@example.com',
         name: 'Test Reviewer' 
       },

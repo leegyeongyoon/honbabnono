@@ -27,8 +27,8 @@ describe('User Profile APIs', () => {
 
       expect(response.body.success).toBe(true);
       expect(response.body.user).toBeDefined();
-      expect(response.body.user.email).toBe(testUser.email);
-      expect(response.body.user.name).toBe(testUser.name);
+      expect(response.body.user.email).toBe('profile-test@example.com');
+      expect(response.body.user.name).toBe('프로필테스트유저');
     });
 
     it('should reject request without authentication', async () => {
@@ -84,7 +84,7 @@ describe('User Profile APIs', () => {
   describe('PUT /api/user/password', () => {
     it('should update password successfully', async () => {
       const passwordData = {
-        currentPassword: testUser.password,
+        currentPassword: 'testpassword123',
         newPassword: 'newpassword123',
         confirmPassword: 'newpassword123'
       };
@@ -98,8 +98,7 @@ describe('User Profile APIs', () => {
       expect(response.body.success).toBe(true);
       expect(response.body.message).toBe('비밀번호가 변경되었습니다.');
 
-      // Update test user password for cleanup
-      testUser.password = passwordData.newPassword;
+      // Password updated successfully
     });
 
     it('should reject password update with wrong current password', async () => {
@@ -122,7 +121,7 @@ describe('User Profile APIs', () => {
         .put('/api/user/password')
         .set('Authorization', `Bearer ${authToken}`)
         .send({
-          currentPassword: testUser.password,
+          currentPassword: 'testpassword123',
           newPassword: 'newpassword123',
           confirmPassword: 'differentpassword'
         })

@@ -28,7 +28,7 @@ if (mode === 'production') {
 console.log('🔧 Server mode:', mode);
 console.log('🔧 Loading env file:', envFile);
 
-dotenv.config({ path: envFile });
+dotenv.config({ path: envFile, override: true });
 
 console.log('🔧 Loaded DB config:', {
   host: process.env.DB_HOST,
@@ -42,6 +42,8 @@ console.log('🔧 Loaded Kakao config:', {
   client_secret: process.env.KAKAO_CLIENT_SECRET ? 'SET' : 'NOT SET',
   redirect_uri: process.env.KAKAO_REDIRECT_URI
 });
+
+console.log('🔧 JWT_SECRET loaded:', process.env.JWT_SECRET);
 
 // S3 업로드 초기화 (환경변수 로드 후)
 let uploadToMemory = null;
@@ -1091,7 +1093,7 @@ apiRouter.get('/meetups', async (req, res) => {
     if (authHeader && authHeader.startsWith('Bearer ')) {
       try {
         const token = authHeader.substring(7);
-        const decoded = jwt.verify(token, JWT_SECRET);
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
         currentUserId = decoded.userId;
       } catch (error) {
         // 토큰이 유효하지 않으면 인증되지 않은 상태로 처리
@@ -1246,7 +1248,7 @@ apiRouter.get('/meetups/home', async (req, res) => {
     if (authHeader && authHeader.startsWith('Bearer ')) {
       try {
         const token = authHeader.substring(7);
-        const decoded = jwt.verify(token, JWT_SECRET);
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
         currentUserId = decoded.userId;
       } catch (error) {
         // 토큰이 유효하지 않으면 인증되지 않은 상태로 처리
@@ -1357,7 +1359,7 @@ apiRouter.get('/meetups/active', async (req, res) => {
     if (authHeader && authHeader.startsWith('Bearer ')) {
       try {
         const token = authHeader.substring(7);
-        const decoded = jwt.verify(token, JWT_SECRET);
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
         currentUserId = decoded.userId;
       } catch (error) {
         // 토큰이 유효하지 않으면 인증되지 않은 상태로 처리
@@ -3643,7 +3645,7 @@ apiRouter.get('/user/rice-index', authenticateToken, async (req, res) => {
 
 // 1. 프로필 관리 API
 // 프로필 정보 수정
-apiRouter.put('/user/profile', authenticateToken, async (req, res) => {
+/* apiRouter.put('/user/profile', authenticateToken, async (req, res) => {
   try {
     console.log('👤 프로필 수정 요청:', req.body);
     const { name, email, profile_image, profileImage, bio } = req.body;
@@ -3737,7 +3739,7 @@ apiRouter.put('/user/profile', authenticateToken, async (req, res) => {
       error: '프로필 수정 중 오류가 발생했습니다.'
     });
   }
-});
+}); */
 
 // 비밀번호 변경 (이메일 로그인 사용자만)
 apiRouter.put('/user/password', authenticateToken, async (req, res) => {
@@ -6386,7 +6388,7 @@ apiRouter.get('/meetups/:meetupId/reviews', async (req, res) => {
     if (authHeader && authHeader.startsWith('Bearer ')) {
       try {
         const token = authHeader.substring(7);
-        const decoded = jwt.verify(token, JWT_SECRET);
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
         currentUserId = decoded.userId;
       } catch (error) {
         // 토큰이 유효하지 않으면 인증되지 않은 상태로 처리
@@ -7304,7 +7306,7 @@ apiRouter.get('/user/badges', authenticateToken, async (req, res) => {
 });
 
 // 프로필 조회 API
-apiRouter.get('/user/profile', authenticateToken, async (req, res) => {
+/* apiRouter.get('/user/profile', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.userId;
     
@@ -7347,10 +7349,10 @@ apiRouter.get('/user/profile', authenticateToken, async (req, res) => {
       error: '프로필 조회 중 오류가 발생했습니다.'
     });
   }
-});
+}); */
 
 // 프로필 업데이트 API
-apiRouter.put('/user/profile', authenticateToken, async (req, res) => {
+/* apiRouter.put('/user/profile', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.userId;
     const { name, profileImage } = req.body;
@@ -7404,7 +7406,7 @@ apiRouter.put('/user/profile', authenticateToken, async (req, res) => {
       message: '프로필 업데이트 중 오류가 발생했습니다.'
     });
   }
-});
+}); */
 
 // 프로필 이미지 업로드 API (S3 직접 업로드)
 apiRouter.post('/user/upload-profile-image', authenticateToken, (req, res, next) => {
