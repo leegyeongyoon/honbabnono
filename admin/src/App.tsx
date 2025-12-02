@@ -21,6 +21,7 @@ import SettingsIcon from '@mui/icons-material/Settings';
 import BlockIcon from '@mui/icons-material/Block';
 import LogoutIcon from '@mui/icons-material/Logout';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
+import SmartToyIcon from '@mui/icons-material/SmartToy';
 
 import Dashboard from './components/Dashboard';
 import UserManagement from './components/UserManagement';
@@ -29,6 +30,7 @@ import Reports from './components/Reports';
 import Settings from './components/Settings';
 import BlockedUserManagement from './components/BlockedUserManagement';
 import AdminManagement from './components/AdminManagement';
+import ChatbotSettings from './components/ChatbotSettings';
 import Login from './components/Login';
 
 const theme = createTheme({
@@ -70,6 +72,7 @@ const menuItems = [
   { text: '차단 관리', icon: <BlockIcon />, path: '/blocked-users' },
   { text: '모임 관리', icon: <EventIcon />, path: '/meetups' },
   { text: '관리자 계정', icon: <AdminPanelSettingsIcon />, path: '/admin-accounts' },
+  { text: '챗봇 설정', icon: <SmartToyIcon />, path: '/chatbot-settings' },
   { text: '리포트', icon: <ReportIcon />, path: '/reports' },
   { text: '설정', icon: <SettingsIcon />, path: '/settings' },
 ];
@@ -236,6 +239,7 @@ function App() {
               <Route path="/blocked-users" element={<BlockedUserManagement />} />
               <Route path="/meetups" element={<MeetupManagement />} />
               <Route path="/admin-accounts" element={<AdminManagement />} />
+              <Route path="/chatbot-settings" element={<ChatbotSettings />} />
               <Route path="/reports" element={<Reports />} />
               <Route path="/settings" element={<Settings />} />
             </Routes>

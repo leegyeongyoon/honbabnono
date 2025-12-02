@@ -75,8 +75,9 @@ const Reports: React.FC = () => {
       newMeetups: acc.newMeetups + curr.newMeetups,
       completedMeetups: acc.completedMeetups + curr.completedMeetups,
       revenue: acc.revenue + curr.revenue,
+      maxActiveUsers: Math.max(acc.maxActiveUsers, curr.activeUsers),
     }),
-    { newUsers: 0, newMeetups: 0, completedMeetups: 0, revenue: 0 }
+    { newUsers: 0, newMeetups: 0, completedMeetups: 0, revenue: 0, maxActiveUsers: 0 }
   );
 
   const StatCard = ({ title, value, icon, color }: { 
@@ -140,7 +141,8 @@ const Reports: React.FC = () => {
         gridTemplateColumns: { 
           xs: '1fr', 
           sm: '1fr 1fr', 
-          md: '1fr 1fr 1fr 1fr' 
+          md: '1fr 1fr 1fr',
+          lg: '1fr 1fr 1fr 1fr 1fr' 
         }, 
         gap: 3, 
         mb: 4 
@@ -164,7 +166,13 @@ const Reports: React.FC = () => {
           color="#7A8A6E"
         />
         <StatCard
-          title="총 수익"
+          title="최대 활성 사용자"
+          value={totalStats.maxActiveUsers}
+          icon={<PeopleIcon fontSize="large" />}
+          color="#7A8A6E"
+        />
+        <StatCard
+          title="광고 수익"
           value={`₩${totalStats.revenue.toLocaleString()}`}
           icon={<TrendingUpIcon fontSize="large" />}
           color="#B5857A"
@@ -185,7 +193,7 @@ const Reports: React.FC = () => {
                   <TableCell align="right">신규 모임</TableCell>
                   <TableCell align="right">완료된 모임</TableCell>
                   <TableCell align="right">활성 사용자</TableCell>
-                  <TableCell align="right">수익</TableCell>
+                  <TableCell align="right">광고 수익</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>

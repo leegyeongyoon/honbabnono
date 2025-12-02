@@ -8,6 +8,7 @@ import {
   FlatList,
   TextInput,
   Alert,
+  Image,
 } from 'react-native';
 import { useNavigate, useParams } from 'react-router-dom';
 import { COLORS, SHADOWS, LAYOUT } from '../styles/colors';
@@ -322,22 +323,61 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, user }) => {
                 style={[styles.messageItem, message.isMe && styles.myMessage]}
               >
                 {!message.isMe && (
-                  <View style={styles.messageHeader}>
-                    <Text style={styles.senderName}>{message.senderName}</Text>
+                  <View style={styles.messageWithProfile}>
+                    <View style={styles.profileImageContainer}>
+                      {message.profileImage ? (
+                        <Image 
+                          source={{ uri: message.profileImage }} 
+                          style={styles.profileImage}
+                        />
+                      ) : (
+                        <View style={styles.defaultProfileImage}>
+                          <Text style={styles.defaultProfileText}>
+                            {message.senderName.charAt(0)}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                    <View style={styles.messageContentWrapper}>
+                      <View style={styles.messageHeader}>
+                        <Text style={styles.senderName}>{message.senderName}</Text>
+                        {message.riceIndex && (
+                          <Text style={styles.riceIndex}>
+                            {message.riceIndex.level.emoji} {message.riceIndex.calculatedIndex}
+                          </Text>
+                        )}
+                      </View>
+                      <View style={[styles.messageBubble]}>
+                        <Text style={[styles.messageText]}>
+                          {message.message}
+                        </Text>
+                      </View>
+                      <Text style={[styles.messageTime]}>
+                        {new Date(message.timestamp).toLocaleTimeString('ko-KR', { 
+                          hour: '2-digit', 
+                          minute: '2-digit',
+                          hour12: true 
+                        })}
+                      </Text>
+                    </View>
                   </View>
                 )}
-                <View style={[styles.messageBubble, message.isMe && styles.myMessageBubble]}>
-                  <Text style={[styles.messageText, message.isMe && styles.myMessageText]}>
-                    {message.message}
-                  </Text>
-                </View>
-                <Text style={[styles.messageTime, message.isMe && styles.myMessageTime]}>
-                  {new Date(message.timestamp).toLocaleTimeString('ko-KR', { 
-                    hour: '2-digit', 
-                    minute: '2-digit',
-                    hour12: true 
-                  })}
-                </Text>
+                {message.isMe && (
+                  <View>
+                    <View style={[styles.messageBubble, styles.myMessageBubble]}>
+                      <Text style={[styles.messageText, styles.myMessageText]}>
+                        {message.message}
+                      </Text>
+                    </View>
+                    <Text style={[styles.messageTime, styles.myMessageTime]}>
+                      {new Date(message.timestamp).toLocaleTimeString('ko-KR', { 
+                        hour: '2-digit', 
+                        minute: '2-digit',
+                        hour12: true 
+                      })}
+                    </Text>
+                  </View>
+                )}
               </View>
             </View>
           );
@@ -680,6 +720,48 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 16,
     textAlign: 'center',
+  },
+  messageWithProfile: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+  },
+  profileImageContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    overflow: 'hidden',
+    backgroundColor: COLORS.neutral.grey200,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  profileImage: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    resizeMode: 'cover',
+  },
+  defaultProfileImage: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: COLORS.primary.main,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  defaultProfileText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.text.white,
+  },
+  messageContentWrapper: {
+    flex: 1,
+  },
+  riceIndex: {
+    fontSize: 11,
+    color: COLORS.primary.main,
+    marginLeft: 8,
+    fontWeight: '600',
   },
 });
 
