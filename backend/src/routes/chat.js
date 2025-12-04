@@ -1,7 +1,54 @@
 const express = require('express');
 const router = express.Router();
-const { ChatRoom, ChatMessage, ChatParticipant, Meetup, sequelize } = require('../models');
+const { ChatRoom, ChatMessage, ChatParticipant, Meetup, User, sequelize } = require('../models');
 const { Op } = require('sequelize');
+
+// 1대1 채팅 권한 체크 함수
+async function canStartDirectChat(currentUserId, targetUserId, meetupId = null) {
+  try {
+    // 사용자 정보 조회
+    const [currentUser, targetUser] = await Promise.all([
+      User.findByPk(currentUserId),
+      User.findByPk(targetUserId)
+    ]);
+
+    if (!currentUser || !targetUser) {
+      return { allowed: false, reason: 'USER_NOT_FOUND' };
+    }
+
+    // 대상 사용자가 모든 1대1 채팅을 차단했는지 확인
+    if (targetUser.directChatSetting === 'BLOCKED') {
+      return { allowed: false, reason: 'TARGET_BLOCKED_ALL' };
+    }
+
+    // 성별 체크
+    const isSameGender = currentUser.gender === targetUser.gender;
+    const allowOppositeGender = targetUser.directChatSetting === 'ALLOW_ALL';
+
+    // 모임 컨텍스트에서의 체크
+    if (meetupId) {
+      const meetup = await Meetup.findByPk(meetupId);
+      if (!meetup || !meetup.allowDirectChat) {
+        return { allowed: false, reason: 'MEETUP_DISABLED' };
+      }
+
+      // 성별 기반 권한 체크
+      if (!isSameGender && !allowOppositeGender) {
+        return { allowed: false, reason: 'GENDER_RESTRICTED' };
+      }
+    } else {
+      // 일반 1대1 채팅의 경우 더 엄격한 체크
+      if (targetUser.directChatSetting === 'SAME_GENDER' && !isSameGender) {
+        return { allowed: false, reason: 'GENDER_RESTRICTED' };
+      }
+    }
+
+    return { allowed: true };
+  } catch (error) {
+    console.error('Direct chat permission check error:', error);
+    return { allowed: false, reason: 'ERROR' };
+  }
+}
 
 // 채팅방 목록 조회
 router.get('/rooms', async (req, res) => {
@@ -432,15 +479,52 @@ router.post('/rooms/meetup/:meetupId/add-user', async (req, res) => {
   }
 });
 
+// 1대1 채팅 권한 체크 API
+router.get('/check-direct-chat-permission', async (req, res) => {
+  try {
+    const { currentUserId, targetUserId, meetupId } = req.query;
+
+    if (!currentUserId || !targetUserId) {
+      return res.status(400).json({
+        success: false,
+        message: '필수 파라미터가 누락되었습니다.',
+      });
+    }
+
+    const permission = await canStartDirectChat(currentUserId, targetUserId, meetupId);
+
+    res.json({
+      success: true,
+      data: permission,
+    });
+  } catch (error) {
+    console.error('Check direct chat permission error:', error);
+    res.status(500).json({
+      success: false,
+      message: '권한 체크에 실패했습니다.',
+    });
+  }
+});
+
 // 1:1 채팅방 생성
 router.post('/rooms/direct', async (req, res) => {
   try {
-    const { participantId, participantName, userId, userName } = req.body;
+    const { participantId, participantName, userId, userName, meetupId } = req.body;
 
     if (!participantId || !userId) {
       return res.status(400).json({
         success: false,
         message: '필수 정보가 누락되었습니다.',
+      });
+    }
+
+    // 권한 체크
+    const permission = await canStartDirectChat(userId, participantId, meetupId);
+    if (!permission.allowed) {
+      return res.status(403).json({
+        success: false,
+        message: '1대1 채팅 권한이 없습니다.',
+        reason: permission.reason
       });
     }
 

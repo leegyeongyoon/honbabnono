@@ -95,7 +95,8 @@ const createMeetup = async (req, res) => {
       mealPurpose,
       specificRestaurant,
       interests,
-      isRequired
+      isRequired,
+      allowDirectChat
     } = req.body;
 
     const hostId = req.user.userId;
@@ -140,7 +141,8 @@ const createMeetup = async (req, res) => {
       tags: tags || [],
       diningPreferences,
       promiseDepositAmount: depositId ? 5000 : 0, // 기본 약속금 5000원
-      promiseDepositRequired: !!depositId
+      promiseDepositRequired: !!depositId,
+      allowDirectChat: allowDirectChat || false
     });
 
     // 호스트를 자동으로 참가자로 추가

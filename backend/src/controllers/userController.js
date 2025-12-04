@@ -23,7 +23,7 @@ const getProfile = async (req, res) => {
 // 사용자 프로필 업데이트
 const updateProfile = async (req, res) => {
   try {
-    const { name, phone, preferences } = req.body;
+    const { name, phone, preferences, gender, directChatSetting } = req.body;
     const userId = req.user.userId;
 
     const user = await User.findByPk(userId);
@@ -31,10 +31,17 @@ const updateProfile = async (req, res) => {
       return res.status(404).json({ error: '사용자를 찾을 수 없습니다' });
     }
 
+    // directChatSetting 유효성 검사
+    if (directChatSetting && !['ALLOW_ALL', 'SAME_GENDER', 'BLOCKED'].includes(directChatSetting)) {
+      return res.status(400).json({ error: '유효하지 않은 1대1 채팅 설정입니다' });
+    }
+
     await user.update({
       name: name || user.name,
       phone: phone || user.phone,
-      preferences: preferences || user.preferences
+      preferences: preferences || user.preferences,
+      gender: gender || user.gender,
+      directChatSetting: directChatSetting || user.directChatSetting
     });
 
     const updatedUser = await User.findByPk(userId, {

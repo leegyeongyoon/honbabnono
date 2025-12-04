@@ -68,6 +68,15 @@ const User = sequelize.define('User', {
   preferences: {
     type: DataTypes.JSONB,
     allowNull: true // 식사 선호도 등 저장
+  },
+  gender: {
+    type: DataTypes.ENUM('male', 'female', 'other'),
+    allowNull: true
+  },
+  directChatSetting: {
+    type: DataTypes.ENUM('ALLOW_ALL', 'SAME_GENDER', 'BLOCKED'),
+    defaultValue: 'BLOCKED',
+    field: 'direct_chat_setting'
   }
 }, {
   tableName: 'users',

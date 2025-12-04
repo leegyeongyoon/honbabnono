@@ -37,9 +37,68 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, user }) => {
   const [messageText, setMessageText] = useState('');
   const [loading, setLoading] = useState(false);
   const [currentChatRoom, setCurrentChatRoom] = useState<ChatRoom | null>(null);
+  const [selectedUserForDM, setSelectedUserForDM] = useState<any>(null);
+  const [showDMModal, setShowDMModal] = useState(false);
 
   const tabs = ['모임채팅', '1:1채팅'];
   const userId = user?.id || 'user1';
+
+  // 1대1 채팅 권한 체크
+  const checkDirectChatPermission = async (targetUserId: string) => {
+    try {
+      const meetupId = currentChatRoom?.meetupId;
+      const response = await fetch(`${chatApiService.baseURL}/check-direct-chat-permission?currentUserId=${userId}&targetUserId=${targetUserId}&meetupId=${meetupId || ''}`);
+      const data = await response.json();
+      return data.data || { allowed: false };
+    } catch (error) {
+      console.error('1대1 채팅 권한 체크 실패:', error);
+      return { allowed: false };
+    }
+  };
+
+  // 1대1 채팅 시작
+  const startDirectChat = async (targetUser: any) => {
+    try {
+      const permission = await checkDirectChatPermission(targetUser.id);
+      if (!permission.allowed) {
+        Alert.alert('알림', '1대1 채팅을 시작할 수 없습니다.');
+        return;
+      }
+
+      const response = await chatApiService.createDirectChatRoom({
+        participantId: targetUser.id,
+        participantName: targetUser.name,
+        userId,
+        userName: user?.name || '사용자',
+        meetupId: currentChatRoom?.meetupId
+      });
+
+      if (response.success) {
+        setSelectedChatId(response.data.id);
+        setShowDMModal(false);
+        await loadMessages(response.data.id);
+      } else {
+        Alert.alert('오류', response.message || '1대1 채팅방을 생성할 수 없습니다.');
+      }
+    } catch (error) {
+      console.error('1대1 채팅 시작 실패:', error);
+      Alert.alert('오류', '1대1 채팅을 시작할 수 없습니다.');
+    }
+  };
+
+  // 사용자 프로필 클릭 핸들러
+  const handleUserProfileClick = async (message: ChatMessage) => {
+    if (message.senderId === userId) return; // 자기 자신은 클릭 불가
+
+    const permission = await checkDirectChatPermission(message.senderId);
+    if (permission.allowed) {
+      setSelectedUserForDM({
+        id: message.senderId,
+        name: message.senderName
+      });
+      setShowDMModal(true);
+    }
+  };
 
   // 컴포넌트 마운트 시 WebSocket 연결 및 채팅방 목록 로드
   useEffect(() => {
@@ -324,7 +383,10 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, user }) => {
               >
                 {!message.isMe && (
                   <View style={styles.messageWithProfile}>
-                    <View style={styles.profileImageContainer}>
+                    <TouchableOpacity 
+                      style={styles.profileImageContainer}
+                      onPress={() => handleUserProfileClick(message)}
+                    >
                       {message.profileImage ? (
                         <Image 
                           source={{ uri: message.profileImage }} 
@@ -337,10 +399,12 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, user }) => {
                           </Text>
                         </View>
                       )}
-                    </View>
+                    </TouchableOpacity>
                     <View style={styles.messageContentWrapper}>
                       <View style={styles.messageHeader}>
-                        <Text style={styles.senderName}>{message.senderName}</Text>
+                        <TouchableOpacity onPress={() => handleUserProfileClick(message)}>
+                          <Text style={styles.senderName}>{message.senderName}</Text>
+                        </TouchableOpacity>
                         {message.riceIndex && (
                           <Text style={styles.riceIndex}>
                             {message.riceIndex.level.emoji} {message.riceIndex.calculatedIndex}
@@ -457,6 +521,32 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, user }) => {
 
       {/* 채팅 목록 */}
       {renderChatList()}
+
+      {/* 1대1 채팅 시작 모달 */}
+      {showDMModal && selectedUserForDM && (
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>{selectedUserForDM.name}님과 1대1 채팅</Text>
+            <Text style={styles.modalDescription}>
+              {selectedUserForDM.name}님과 개인적인 대화를 나누시겠습니까?
+            </Text>
+            <View style={styles.modalButtons}>
+              <TouchableOpacity 
+                style={styles.modalButtonCancel} 
+                onPress={() => setShowDMModal(false)}
+              >
+                <Text style={styles.modalButtonCancelText}>취소</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.modalButtonConfirm} 
+                onPress={() => startDirectChat(selectedUserForDM)}
+              >
+                <Text style={styles.modalButtonConfirmText}>채팅 시작</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      )}
     </View>
   );
 };
@@ -762,6 +852,73 @@ const styles = StyleSheet.create({
     color: COLORS.primary.main,
     marginLeft: 8,
     fontWeight: '600',
+  },
+  // 모달 스타일
+  modalOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+  },
+  modalContent: {
+    backgroundColor: COLORS.neutral.white,
+    borderRadius: 12,
+    padding: 24,
+    margin: 20,
+    maxWidth: 400,
+    width: '90%',
+    ...SHADOWS.medium,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  modalDescription: {
+    fontSize: 14,
+    color: COLORS.text.secondary,
+    textAlign: 'center',
+    marginBottom: 24,
+    lineHeight: 20,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  modalButtonCancel: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: COLORS.neutral.grey300,
+    backgroundColor: COLORS.neutral.white,
+    alignItems: 'center',
+  },
+  modalButtonCancelText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: COLORS.text.secondary,
+  },
+  modalButtonConfirm: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    backgroundColor: COLORS.primary.main,
+    alignItems: 'center',
+  },
+  modalButtonConfirmText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.text.white,
   },
 });
 

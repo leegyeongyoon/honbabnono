@@ -107,6 +107,11 @@ const Meetup = sequelize.define('Meetup', {
     type: DataTypes.BOOLEAN,
     defaultValue: false,
     field: 'promise_deposit_required'
+  },
+  allowDirectChat: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
+    field: 'allow_direct_chat'
   }
 }, {
   tableName: 'meetups',

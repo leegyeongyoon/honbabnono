@@ -331,6 +331,7 @@ const CreateMeetupScreen: React.FC<CreateMeetupScreenProps> = ({ user }) => {
     requirements: '',
     image: null as File | null,
     imagePreview: '' as string,
+    allowDirectChat: false,
   });
 
   const [preferenceFilter, setPreferenceFilter] = useState({
@@ -527,6 +528,7 @@ const CreateMeetupScreen: React.FC<CreateMeetupScreenProps> = ({ user }) => {
       formDataToSend.append('maxParticipants', meetupFormData.maxParticipants);
       formDataToSend.append('priceRange', meetupFormData.priceRange);
       formDataToSend.append('requirements', meetupFormData.requirements);
+      formDataToSend.append('allowDirectChat', meetupFormData.allowDirectChat.toString());
       formDataToSend.append('depositId', depositId); // 결제된 약속금 ID 추가
       
       // 필터 정보 추가
@@ -876,6 +878,25 @@ const CreateMeetupScreen: React.FC<CreateMeetupScreenProps> = ({ user }) => {
               numberOfLines={3}
               maxLength={300}
             />
+          </View>
+
+          {/* 1대1 채팅 허용 설정 */}
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>모임 내 1대1 채팅</Text>
+            <TouchableOpacity 
+              style={styles.checkboxContainer} 
+              onPress={() => handleInputChange('allowDirectChat', !formData.allowDirectChat)}
+            >
+              <View style={[styles.checkbox, formData.allowDirectChat && styles.checkboxActive]}>
+                {formData.allowDirectChat && (
+                  <Text style={styles.checkboxCheck}>✓</Text>
+                )}
+              </View>
+              <Text style={styles.checkboxLabel}>모임 참가자 간 1대1 채팅 허용</Text>
+            </TouchableOpacity>
+            <Text style={styles.helperText}>
+              체크 시 모임 참가자들이 서로 개인 메시지를 주고받을 수 있습니다
+            </Text>
           </View>
         </View>
 
@@ -1847,6 +1868,43 @@ const styles = StyleSheet.create({
     color: COLORS.text.white,
     fontSize: 14,
     fontWeight: '600',
+  },
+  // 체크박스 스타일
+  checkboxContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 8,
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 4,
+    borderWidth: 2,
+    borderColor: COLORS.neutral.grey300,
+    backgroundColor: COLORS.neutral.white,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  checkboxActive: {
+    backgroundColor: COLORS.primary.main,
+    borderColor: COLORS.primary.main,
+  },
+  checkboxCheck: {
+    color: COLORS.text.white,
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  checkboxLabel: {
+    fontSize: 14,
+    color: COLORS.text.primary,
+    flex: 1,
+  },
+  helperText: {
+    fontSize: 12,
+    color: COLORS.text.secondary,
+    marginTop: 4,
+    lineHeight: 16,
   },
 });
 

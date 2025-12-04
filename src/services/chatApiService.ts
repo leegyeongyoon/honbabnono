@@ -40,6 +40,8 @@ export interface CreateChatRoomRequest {
 }
 
 class ChatApiService {
+  public baseURL = API_BASE_URL + '/chat';
+
   // 채팅방 목록 조회
   async getChatRooms(userId: string = 'user1'): Promise<ChatRoom[]> {
     try {

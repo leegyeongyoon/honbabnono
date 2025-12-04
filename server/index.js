@@ -2402,6 +2402,105 @@ apiRouter.post('/meetups/:id/leave', authenticateToken, async (req, res) => {
   }
 });
 
+// 1대1 채팅 권한 체크 API
+apiRouter.get('/chat/check-direct-chat-permission', async (req, res) => {
+  try {
+    const { currentUserId, targetUserId, meetupId } = req.query;
+
+    if (!currentUserId || !targetUserId) {
+      return res.status(400).json({
+        success: false,
+        message: '필수 파라미터가 누락되었습니다.',
+      });
+    }
+
+    // 자기 자신과의 채팅 방지
+    if (currentUserId === targetUserId) {
+      return res.json({
+        success: true,
+        data: { allowed: false, reason: 'SELF_CHAT_NOT_ALLOWED' }
+      });
+    }
+
+    // 사용자 정보 조회
+    const userQuery = `
+      SELECT id, gender, direct_chat_setting 
+      FROM users 
+      WHERE id IN ($1, $2)
+    `;
+    const userResult = await pool.query(userQuery, [currentUserId, targetUserId]);
+    
+    if (userResult.rows.length !== 2) {
+      return res.json({
+        success: true,
+        data: { allowed: false, reason: 'USER_NOT_FOUND' }
+      });
+    }
+
+    const currentUser = userResult.rows.find(u => u.id === currentUserId);
+    const targetUser = userResult.rows.find(u => u.id === targetUserId);
+
+    // 대상 사용자가 모든 1대1 채팅을 차단했는지 확인
+    if (targetUser.direct_chat_setting === 'BLOCKED') {
+      return res.json({
+        success: true,
+        data: { allowed: false, reason: 'TARGET_BLOCKED_ALL' }
+      });
+    }
+
+    // 성별 체크
+    const isSameGender = currentUser.gender === targetUser.gender;
+    const allowOppositeGender = targetUser.direct_chat_setting === 'ALLOW_ALL';
+
+    // 모임 컨텍스트에서의 체크
+    if (meetupId) {
+      const meetupQuery = `SELECT allow_direct_chat FROM meetups WHERE id = $1`;
+      const meetupResult = await pool.query(meetupQuery, [meetupId]);
+      
+      if (meetupResult.rows.length === 0) {
+        return res.json({
+          success: true,
+          data: { allowed: false, reason: 'MEETUP_NOT_FOUND' }
+        });
+      }
+      
+      if (!meetupResult.rows[0].allow_direct_chat) {
+        return res.json({
+          success: true,
+          data: { allowed: false, reason: 'MEETUP_DISABLED' }
+        });
+      }
+
+      // 성별 기반 권한 체크
+      if (!isSameGender && !allowOppositeGender) {
+        return res.json({
+          success: true,
+          data: { allowed: false, reason: 'GENDER_RESTRICTED' }
+        });
+      }
+    } else {
+      // 일반 1대1 채팅의 경우 더 엄격한 체크
+      if (targetUser.direct_chat_setting === 'SAME_GENDER' && !isSameGender) {
+        return res.json({
+          success: true,
+          data: { allowed: false, reason: 'GENDER_RESTRICTED' }
+        });
+      }
+    }
+
+    res.json({
+      success: true,
+      data: { allowed: true }
+    });
+  } catch (error) {
+    console.error('Direct chat permission check error:', error);
+    res.status(500).json({
+      success: false,
+      message: '권한 체크에 실패했습니다.',
+    });
+  }
+});
+
 // 채팅방 목록 조회 API
 apiRouter.get('/chat/rooms', authenticateToken, async (req, res) => {
   try {
