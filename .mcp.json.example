@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "notion-dev-log": {
+      "command": "npx",
+      "args": [
+        "@notion-md/mcp-server"
+      ],
+      "env": {
+        "NOTION_API_KEY": "secret_YOUR_NOTION_INTEGRATION_TOKEN_HERE",
+        "NOTION_DATABASE_ID": "YOUR_NOTION_DATABASE_ID_HERE"
+      }
+    }
+  }
+}

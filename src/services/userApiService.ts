@@ -4,14 +4,14 @@ export interface UserProfile {
   id: string;
   email: string;
   name: string;
-  profile_image?: string;
+  profileImage?: string;
   provider: string;
-  provider_id: string;
-  is_verified: boolean;
+  providerId: string;
+  isVerified: boolean;
   rating?: number;
-  meetups_hosted?: number;
-  created_at: string;
-  updated_at: string;
+  meetupsHosted?: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface ActivityStats {
@@ -78,6 +78,8 @@ const userApiService = {
       console.log('👤 사용자 프로필 조회 요청');
       const response = await apiClient.get('/user/profile');
       console.log('✅ 사용자 프로필 조회 성공', response.data);
+      console.log('🔍 response.data.user:', response.data.user);
+      console.log('🖼️ profileImage:', response.data.user?.profileImage);
       return response.data.user; // .user 다시 추가
     } catch (error) {
       console.error('❌ 사용자 프로필 조회 실패:', error);

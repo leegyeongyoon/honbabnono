@@ -478,9 +478,9 @@ app.get('/api/user/profile', authenticateToken, async (req, res) => {
     // 실제 데이터베이스에서 사용자 프로필 조회 (Sequelize ORM 사용)
     const userProfile = await User.findByPk(userId, {
       attributes: [
-        'id', 'email', 'name', 'profile_image', 'provider', 'provider_id', 'phone',
-        'is_verified', 'rating', 'meetups_joined', 'meetups_hosted', 'babal_score',
-        'preferences', 'last_login_at', 'created_at', 'updated_at'
+        'id', 'email', 'name', 'profileImage', 'provider', 'providerId', 'phone',
+        'isVerified', 'rating', 'meetupsJoined', 'meetupsHosted', 'babAlScore',
+        'preferences', 'lastLoginAt', 'createdAt', 'updatedAt'
       ]
     });
     
@@ -1364,6 +1364,59 @@ app.get('/api/meetups/:meetupId/participants-preferences', authenticateToken, as
     res.status(500).json({
       success: false,
       error: '참가자 성향 조회 중 오류가 발생했습니다'
+    });
+  }
+});
+
+// 사용자 통계 조회 API (이전 버전과의 호환성을 위해 직접 정의)
+app.get('/api/user/stats', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    
+    // user_points 테이블에서 포인트 조회 (개발환경과 동일한 방식)
+    const [pointsResult] = await sequelize.query(`
+      SELECT COALESCE(available_points, 0) as available_points
+      FROM user_points 
+      WHERE user_id = :userId
+    `, {
+      replacements: { userId },
+      type: sequelize.QueryTypes.SELECT
+    });
+    
+    // 사용자 정보 조회 (밥알지수 등)
+    const user = await User.findByPk(userId, {
+      attributes: ['meetupsHosted', 'meetupsJoined', 'babAlScore']
+    });
+
+    // 참가 모임 통계 조회
+    const [participantStats] = await sequelize.query(`
+      SELECT 
+        COUNT(*) as total_joined,
+        COUNT(CASE WHEN status = '참가승인' THEN 1 END) as completed_meetups,
+        COUNT(CASE WHEN status = '참가취소' THEN 1 END) as no_shows
+      FROM meetup_participants 
+      WHERE user_id = :userId
+    `, {
+      replacements: { userId },
+      type: sequelize.QueryTypes.SELECT
+    });
+    
+    // 개발환경과 동일한 API 구조로 응답
+    const stats = {
+      availablePoints: pointsResult?.available_points || 0,
+      totalMeetups: parseInt(participantStats?.total_joined || 0),
+      hostedMeetups: user?.meetupsHosted || 0,
+      reviewCount: 0,
+      riceIndex: user?.babAlScore || 50
+    };
+    
+    console.log('✅ 사용자 통계 조회 성공:', stats);
+    res.json({ stats });
+  } catch (error) {
+    console.error('❌ 사용자 통계 조회 실패:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: '서버 오류가 발생했습니다.' 
     });
   }
 });

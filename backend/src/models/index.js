@@ -131,7 +131,7 @@ const initDatabase = async () => {
 
     // 테이블 생성 (개발 환경에서만)
     if (process.env.NODE_ENV === 'development') {
-      await sequelize.sync({ alter: true });
+      await sequelize.sync({ force: false, alter: false });
       console.log('✅ 데이터베이스 테이블 동기화 완료');
     }
 

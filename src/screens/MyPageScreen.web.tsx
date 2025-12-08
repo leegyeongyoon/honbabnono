@@ -95,6 +95,8 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ user: propsUser }) => {
         
         // 프로필 정보 가져오기
         const userData = await userApiService.getProfile();
+        console.log('🔍 받아온 프로필 데이터:', userData);
+        console.log('🖼️ 프로필 이미지 URL:', userData.profileImage);
         setUserProfileImageUrl(userData.profileImage);
         
       } catch (error) {

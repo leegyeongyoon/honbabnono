@@ -77,6 +77,11 @@ const User = sequelize.define('User', {
     type: DataTypes.ENUM('ALLOW_ALL', 'SAME_GENDER', 'BLOCKED'),
     defaultValue: 'BLOCKED',
     field: 'direct_chat_setting'
+  },
+  lastLoginAt: {
+    type: DataTypes.DATE,
+    allowNull: true,
+    field: 'last_login_at'
   }
 }, {
   tableName: 'users',

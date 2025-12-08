@@ -87,3 +87,6 @@ terraform/terraform.tfstate*
 .env.development
 .env.test
 !.env.production
+
+# MCP configuration (contains API keys)
+.mcp.json
