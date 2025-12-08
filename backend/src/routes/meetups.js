@@ -6,6 +6,9 @@ const authenticateToken = require('../middleware/auth');
 // 모임 목록 조회 (인증 불필요)
 router.get('/', meetupController.getMeetups);
 
+// 특정 경로 라우트를 /:id 보다 먼저 정의 (URL 충돌 방지)
+router.get('/home', meetupController.getHomeMeetups);
+
 // 모임 상세 조회 (인증 불필요)
 router.get('/:id', meetupController.getMeetupById);
 

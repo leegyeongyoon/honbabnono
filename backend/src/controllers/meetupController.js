@@ -239,6 +239,41 @@ const getMeetups = async (req, res) => {
   }
 };
 
+// 홈 화면 모임 목록 조회 (모집중인 모임만)
+const getHomeMeetups = async (req, res) => {
+  try {
+    const { page = 1, limit = 20 } = req.query;
+    const offset = (page - 1) * limit;
+
+    const { count, rows: meetups } = await Meetup.findAndCountAll({
+      where: { status: '모집중' },
+      include: [
+        {
+          model: User,
+          as: 'host',
+          attributes: ['id', 'name', 'profileImage', 'rating']
+        }
+      ],
+      offset: parseInt(offset),
+      limit: parseInt(limit),
+      order: [['createdAt', 'DESC']]
+    });
+
+    res.json({
+      meetups,
+      pagination: {
+        total: count,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        totalPages: Math.ceil(count / limit)
+      }
+    });
+  } catch (error) {
+    console.error('홈 모임 목록 조회 오류:', error);
+    res.status(500).json({ error: '서버 오류가 발생했습니다' });
+  }
+};
+
 // 모임 상세 조회
 const getMeetupById = async (req, res) => {
   try {
@@ -482,6 +517,7 @@ const getMyMeetups = async (req, res) => {
 module.exports = {
   createMeetup,
   getMeetups,
+  getHomeMeetups,
   getMeetupById,
   joinMeetup,
   updateParticipantStatus,
