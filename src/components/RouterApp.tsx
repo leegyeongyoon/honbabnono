@@ -29,6 +29,8 @@ import MyBadgesScreen from '../screens/MyBadgesScreen';
 import PointBalanceScreen from '../screens/PointBalanceScreen';
 import RecentViewsScreen from '../screens/RecentViewsScreen.web';
 import BlockedUsersScreen from '../screens/BlockedUsersScreen.web';
+import NotificationScreen from '../screens/NotificationScreen.web';
+import AdvertisementDetailScreen from '../screens/AdvertisementDetailScreen';
 
 // Components
 import BottomTabBar from './BottomTabBar';
@@ -151,6 +153,28 @@ const RouterApp: React.FC = () => {
     logout: handleLogout,
   });
 
+  // React Router 기반 네비게이션 객체
+  const getReactRouterNavigation = () => ({
+    navigate: (screenName: string, params?: any) => {
+      if (screenName === 'Notifications') {
+        window.location.href = '/notifications';
+      } else if (screenName === 'MeetupDetail') {
+        window.location.href = `/meetup/${params.meetupId}`;
+      } else if (screenName === 'CreateMeetup') {
+        window.location.href = '/create-meetup';
+      } else if (screenName === 'Chat') {
+        window.location.href = `/chat/${params.meetupId}?title=${encodeURIComponent(params.meetupTitle)}`;
+      }
+    },
+    navigateToNotifications: () => {
+      window.location.href = '/notifications';
+    },
+    goBack: () => {
+      window.history.back();
+    },
+    user: user
+  });
+
   // 로딩 중이면 로딩 화면 표시
   if (isLoading) {
     return (
@@ -176,6 +200,14 @@ const RouterApp: React.FC = () => {
     <Router>
       <View style={styles.container}>
         <Routes>
+          {/* 공개 라우트들 - 로그인 불필요 */}
+          <Route 
+            path="/advertisement/:id" 
+            element={
+              <AdvertisementDetailScreen user={user} navigation={getReactRouterNavigation()} />
+            } 
+          />
+
           {/* 보호된 라우트들 - 구체적인 경로부터 먼저 */}
           <Route 
             path="/chat/:id" 
@@ -211,7 +243,18 @@ const RouterApp: React.FC = () => {
             element={
               <ProtectedRoute>
                 <MainLayout>
-                  <HomeScreen user={user} />
+                  <HomeScreen user={user} navigation={getReactRouterNavigation()} />
+                </MainLayout>
+              </ProtectedRoute>
+            } 
+          />
+
+          <Route 
+            path="/notifications" 
+            element={
+              <ProtectedRoute>
+                <MainLayout>
+                  <NotificationScreen user={user} navigation={getReactRouterNavigation()} />
                 </MainLayout>
               </ProtectedRoute>
             } 

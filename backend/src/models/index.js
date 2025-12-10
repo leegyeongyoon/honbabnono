@@ -7,6 +7,10 @@ const ChatMessage = require('./ChatMessage');
 const ChatParticipant = require('./ChatParticipant');
 const MeetupPreferenceFilter = require('./MeetupPreferenceFilter');
 const MeetupParticipantPreference = require('./MeetupParticipantPreference');
+const Notification = require('./Notification');
+const UserNotificationSetting = require('./UserNotificationSetting');
+const Advertisement = require('./Advertisement');
+const Admin = require('./Admin');
 
 // 모델 간 관계 설정
 // User와 Meetup 관계 (호스트)
@@ -122,6 +126,46 @@ MeetupParticipantPreference.belongsTo(User, {
   as: 'user'
 });
 
+// User와 Notification 관계
+User.hasMany(Notification, {
+  foreignKey: 'userId',
+  as: 'notifications'
+});
+Notification.belongsTo(User, {
+  foreignKey: 'userId',
+  as: 'user'
+});
+
+// User와 Notification 관계 (관련 사용자)
+User.hasMany(Notification, {
+  foreignKey: 'relatedUserId',
+  as: 'relatedNotifications'
+});
+Notification.belongsTo(User, {
+  foreignKey: 'relatedUserId',
+  as: 'relatedUser'
+});
+
+// Meetup과 Notification 관계
+Meetup.hasMany(Notification, {
+  foreignKey: 'meetupId',
+  as: 'notifications'
+});
+Notification.belongsTo(Meetup, {
+  foreignKey: 'meetupId',
+  as: 'meetup'
+});
+
+// User와 UserNotificationSetting 관계
+User.hasOne(UserNotificationSetting, {
+  foreignKey: 'userId',
+  as: 'notificationSettings'
+});
+UserNotificationSetting.belongsTo(User, {
+  foreignKey: 'userId',
+  as: 'user'
+});
+
 // 데이터베이스 초기화 함수
 const initDatabase = async () => {
   try {
@@ -153,5 +197,8 @@ module.exports = {
   ChatParticipant,
   MeetupPreferenceFilter,
   MeetupParticipantPreference,
+  Notification,
+  UserNotificationSetting,
+  Advertisement,
   initDatabase
 };

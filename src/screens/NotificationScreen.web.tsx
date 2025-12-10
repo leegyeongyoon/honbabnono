@@ -5,12 +5,15 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Image,
-  FlatList,
+  Alert,
+  SafeAreaView,
 } from 'react-native';
 import { COLORS, SHADOWS, LAYOUT } from '../styles/colors';
 import { TYPOGRAPHY } from '../styles/typography';
 import { Icon } from '../components/Icon';
+import { NotificationList } from '../components/NotificationList';
+import { Notification } from '../types/notification';
+import notificationApiService from '../services/notificationApiService';
 
 interface NotificationScreenProps {
   navigation?: any;
@@ -28,291 +31,149 @@ interface NotificationItem {
 }
 
 const NotificationScreen: React.FC<NotificationScreenProps> = ({ navigation, user }) => {
-  const [selectedTab, setSelectedTab] = useState('전체');
-  const [notifications, setNotifications] = useState<NotificationItem[]>([
-    {
-      id: 1,
-      type: 'meetup',
-      title: '강남역 맛집 탐방',
-      message: '모임에 새로운 참가자가 있습니다.',
-      time: '5분 전',
-      isRead: false,
-    },
-    {
-      id: 2,
-      type: 'message',
-      title: '김혼밥님이 메시지를 보냈습니다',
-      message: '안녕하세요! 내일 모임 시간 확인차 연락드립니다.',
-      time: '1시간 전',
-      isRead: false,
-    },
-    {
-      id: 3,
-      type: 'system',
-      title: '새로운 이벤트',
-      message: '혼밥시러 첫 모임 참여 시 5,000원 쿠폰을 드립니다!',
-      time: '3시간 전',
-      isRead: true,
-    },
-    {
-      id: 4,
-      type: 'meetup',
-      title: '홍대 치킨 모임',
-      message: '모임이 내일 오후 7시로 확정되었습니다.',
-      time: '1일 전',
-      isRead: true,
-    },
-    {
-      id: 5,
-      type: 'system',
-      title: '안전 수칙 안내',
-      message: '안전한 모임을 위한 가이드라인을 확인해주세요.',
-      time: '2일 전',
-      isRead: true,
-    },
-  ]);
+  const [showUnreadOnly, setShowUnreadOnly] = useState(false);
 
-  const tabs = ['전체', '모임', '메시지', '시스템'];
-
-  const getNotificationIcon = (type: string) => {
-    switch (type) {
-      case 'meetup': return <Icon name="utensils" size={20} color={COLORS.primary.main} />;
-      case 'message': return <Icon name="message-circle" size={20} color={COLORS.functional.info} />;
-      case 'system': return <Icon name="megaphone" size={20} color={COLORS.functional.success} />;
-      default: return <Icon name="bell" size={20} color={COLORS.text.secondary} />;
+  const handleNotificationPress = (notification: Notification) => {
+    console.log('알림 클릭:', notification);
+    
+    // 알림 타입별로 적절한 화면으로 이동하는 로직 추가
+    switch (notification.type) {
+      case 'chat_message':
+        // 채팅방으로 이동
+        break;
+      case 'meetup_join_request':
+      case 'meetup_join_approved':
+      case 'meetup_join_rejected':
+        // 해당 모임 상세 화면으로 이동
+        break;
+      case 'direct_chat_request':
+        // 1대1 채팅 요청 화면으로 이동
+        break;
+      default:
+        // 기본 동작
+        break;
     }
   };
 
-  const filteredNotifications = notifications.filter(notification => {
-    if (selectedTab === '전체') return true;
-    if (selectedTab === '모임') return notification.type === 'meetup';
-    if (selectedTab === '메시지') return notification.type === 'message';
-    if (selectedTab === '시스템') return notification.type === 'system';
-    return true;
-  });
-
-  const unreadCount = notifications.filter(n => !n.isRead).length;
-
-  const markAsRead = (id: number) => {
-    setNotifications(prev => 
-      prev.map(notification => 
-        notification.id === id 
-          ? { ...notification, isRead: true }
-          : notification
-      )
-    );
+  const handleMarkAllAsRead = async () => {
+    try {
+      await notificationApiService.markAllAsRead();
+      Alert.alert('알림', '모든 알림을 읽음으로 표시했습니다.');
+    } catch (error) {
+      Alert.alert('오류', '알림 읽음 처리에 실패했습니다.');
+    }
   };
-
-  const markAllAsRead = () => {
-    setNotifications(prev => 
-      prev.map(notification => ({ ...notification, isRead: true }))
-    );
-  };
-
-  const renderNotificationItem = (notification: NotificationItem) => (
-    <TouchableOpacity 
-      key={notification.id}
-      style={[
-        styles.notificationCard,
-        !notification.isRead && styles.unreadNotificationCard
-      ]}
-      onPress={() => markAsRead(notification.id)}
-    >
-      <View style={styles.notificationIcon}>
-        {getNotificationIcon(notification.type)}
-      </View>
-      
-      <View style={styles.notificationContent}>
-        <Text style={[
-          styles.notificationTitle,
-          !notification.isRead && styles.unreadTitle
-        ]}>
-          {notification.title}
-        </Text>
-        <Text style={styles.notificationMessage} numberOfLines={2}>
-          {notification.message}
-        </Text>
-        <Text style={styles.notificationTime}>{notification.time}</Text>
-      </View>
-      
-      {!notification.isRead && (
-        <View style={styles.unreadDot} />
-      )}
-    </TouchableOpacity>
-  );
 
   return (
-    <View style={styles.container}>
-      {/* 탭 버튼들 */}
-      <View style={styles.tabsContainer}>
-        <View style={styles.tabsContent}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            {tabs.map((tab) => (
-              <TouchableOpacity
-                key={tab}
-                style={[
-                  styles.tabButton,
-                  selectedTab === tab && styles.selectedTabButton
-                ]}
-                onPress={() => setSelectedTab(tab)}
-              >
-                <Text style={[
-                  styles.tabButtonText,
-                  selectedTab === tab && styles.selectedTabButtonText
-                ]}>
-                  {tab}
-                  {tab === '전체' && unreadCount > 0 && (
-                    <Text style={styles.tabBadge}> {unreadCount}</Text>
-                  )}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
+    <SafeAreaView style={styles.container}>
+      {/* 헤더 */}
+      <View style={styles.header}>
+        <TouchableOpacity 
+          style={styles.backButton}
+          onPress={() => {
+            if (navigation?.goBack) {
+              navigation.goBack();
+            } else {
+              window.history.back();
+            }
+          }}
+        >
+          <Icon name="arrow-left" size={24} color="#333" />
+        </TouchableOpacity>
+        <Text style={styles.title}>알림</Text>
+        <View style={styles.headerActions}>
+          <TouchableOpacity
+            style={[
+              styles.filterButton,
+              showUnreadOnly && styles.filterButtonActive
+            ]}
+            onPress={() => setShowUnreadOnly(!showUnreadOnly)}
+          >
+            <Icon 
+              name="filter-list" 
+              size={20} 
+              color={showUnreadOnly ? '#FF6B6B' : '#666'} 
+            />
+            <Text style={[
+              styles.filterButtonText,
+              showUnreadOnly && styles.filterButtonTextActive
+            ]}>
+              읽지 않음
+            </Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity
+            style={styles.markAllButton}
+            onPress={handleMarkAllAsRead}
+          >
+            <Icon name="done-all" size={20} color="#666" />
+          </TouchableOpacity>
         </View>
       </View>
 
       {/* 알림 목록 */}
-      <FlatList
-        data={filteredNotifications}
-        keyExtractor={(item) => item.id.toString()}
-        renderItem={({ item }) => renderNotificationItem(item)}
-        style={styles.notificationsList}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.notificationsContainer}
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Icon name="mail-open" size={48} color={COLORS.text.tertiary} />
-            <Text style={styles.emptyMessage}>알림이 없습니다</Text>
-          </View>
-        }
+      <NotificationList
+        onNotificationPress={handleNotificationPress}
+        showUnreadOnly={showUnreadOnly}
       />
-    </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.neutral.background,
+    backgroundColor: '#F5F5F5',
   },
-  tabsContainer: {
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    backdropFilter: 'blur(20px)',
-    WebkitBackdropFilter: 'blur(20px)',
-    height: LAYOUT.HEADER_HEIGHT,
-    borderBottomWidth: 0,
-    justifyContent: 'center',
-    ...SHADOWS.medium,
-    shadowColor: 'rgba(0,0,0,0.05)',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 1,
-    shadowRadius: 12,
-  },
-  tabsContent: {
-    paddingHorizontal: 8,
-  },
-  tabButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    marginHorizontal: 4,
-    marginLeft: 12,
-    backgroundColor: COLORS.neutral.white,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#e9ecef',
-  },
-  selectedTabButton: {
-    backgroundColor: '#667eea',
-    borderColor: '#667eea',
-  },
-  tabButtonText: {
-    fontSize: 14,
-    color: '#718096',
-    fontWeight: '500',
-  },
-  selectedTabButtonText: {
-    color: COLORS.neutral.white,
-    fontWeight: '600',
-  },
-  tabBadge: {
-    fontSize: 12,
-    color: '#e53e3e',
-    fontWeight: '600',
-  },
-  notificationsList: {
-    flex: 1,
-  },
-  notificationsContainer: {
-    paddingBottom: 20,
-  },
-  notificationCard: {
-    backgroundColor: COLORS.neutral.white,
-    marginHorizontal: 0,
-    marginTop: 0,
-    padding: 16,
-    paddingHorizontal: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+  header: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-  },
-  unreadNotificationCard: {
-    borderLeftWidth: 4,
-    borderLeftColor: '#ede0c8',
-    backgroundColor: COLORS.neutral.white,
-  },
-  notificationIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: COLORS.neutral.white,
-    justifyContent: 'center',
+    justifyContent: 'space-between',
     alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    backgroundColor: 'white',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E0E0',
+  },
+  backButton: {
+    padding: 8,
     marginRight: 12,
   },
-  notificationEmoji: {
-    fontSize: 20,
-  },
-  notificationContent: {
+  title: {
     flex: 1,
-  },
-  notificationTitle: {
-    ...TYPOGRAPHY.card.title,
-    marginBottom: 4,
-  },
-  unreadTitle: {
+    fontSize: 24,
     fontWeight: 'bold',
+    color: '#333',
   },
-  notificationMessage: {
-    ...TYPOGRAPHY.body.medium,
-    marginBottom: 8,
-  },
-  notificationTime: {
-    ...TYPOGRAPHY.card.meta,
-    color: COLORS.text.secondary,
-  },
-  unreadDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: COLORS.primary.main,
-    marginTop: 4,
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
+  headerActions: {
+    flexDirection: 'row',
     alignItems: 'center',
-    paddingTop: 100,
   },
-  emptyText: {
-    fontSize: 48,
-    marginBottom: 16,
+  filterButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#F5F5F5',
+    marginRight: 8,
   },
-  emptyMessage: {
-    fontSize: 16,
-    color: COLORS.text.secondary,
+  filterButtonActive: {
+    backgroundColor: '#FFE5E5',
+  },
+  filterButtonText: {
+    marginLeft: 4,
+    fontSize: 14,
+    color: '#666',
+  },
+  filterButtonTextActive: {
+    color: '#FF6B6B',
+    fontWeight: '600',
+  },
+  markAllButton: {
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: '#F5F5F5',
   },
 });
 

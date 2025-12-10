@@ -28,6 +28,9 @@ const userRoutes = require('./routes/users');
 const meetupRoutes = require('./routes/meetups');
 const testRoutes = require('./routes/test');
 const chatRoutes = require('./routes/chat');
+const notificationRoutes = require('./routes/notifications');
+const advertisementRoutes = require('./routes/advertisements');
+const adminRoutes = require('./routes/admin');
 
 const app = express();
 const server = http.createServer(app);
@@ -45,9 +48,12 @@ app.use((req, res, next) => {
   next();
 });
 
+// 전역으로 io 객체 설정 (NotificationService에서 사용)
+global.io = io;
+
 // 미들웨어
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://localhost:3000'],
+  origin: ['http://localhost:3000', 'http://localhost:3002'],
   credentials: true
 }));
 app.use(express.json());
@@ -90,6 +96,12 @@ const upload = multer({
 // WebSocket 연결 처리
 io.on('connection', (socket) => {
   console.log('🔌 새 클라이언트 연결:', socket.id);
+
+  // 사용자 인증 및 개인 room 입장
+  socket.on('authenticate', (userId) => {
+    socket.join(`user_${userId}`);
+    console.log(`👤 User ${userId} authenticated and joined personal room`);
+  });
 
   // 채팅방 입장
   socket.on('join_room', (roomId) => {
@@ -1425,6 +1437,9 @@ app.get('/api/user/stats', authenticateToken, async (req, res) => {
 app.use('/api/users', userRoutes);
 app.use('/api/meetups', meetupRoutes);
 app.use('/api/chat', chatRoutes);
+app.use('/api/notifications', notificationRoutes);
+app.use('/api/advertisements', advertisementRoutes);
+app.use('/api/admin', adminRoutes);
 app.use('/api/test', testRoutes);
 
 // 데이터베이스 초기화 및 서버 시작

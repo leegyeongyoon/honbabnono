@@ -11,6 +11,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import {COLORS, SHADOWS} from '../styles/colors';
 import {Icon} from '../components/Icon';
+import { NotificationBell } from '../components/NotificationBell';
 import CreateMeetupScreen from './CreateMeetupScreen';
 import NeighborhoodSelector from '../components/NeighborhoodSelector';
 import MeetupCard from '../components/MeetupCard';
@@ -19,6 +20,7 @@ import { useUserStore } from '../store/userStore';
 import { useMeetupStore } from '../store/meetupStore';
 import { getTimeDifference } from '../utils/timeUtils';
 import { FOOD_CATEGORIES } from '../constants/categories';
+import AdvertisementBanner from '../components/AdvertisementBanner';
 
 // 모임 시간 포맷팅 함수
 const formatMeetupDateTime = (date: string, time: string) => {
@@ -54,7 +56,7 @@ interface HomeScreenProps {
   user?: any;
 }
 
-const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, user }) => {
+const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, user }) => {
   const navigate = useNavigate();
   const { updateNeighborhood } = useUserStore();
   const { meetups, fetchHomeMeetups } = useMeetupStore();
@@ -147,9 +149,23 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, user }) => {
           <Icon name="chevron-down" size={14} color={COLORS.text.primary} />
         </TouchableOpacity>
         
-        <TouchableOpacity style={styles.notificationButton}>
-          <Icon name="bell" size={20} color={COLORS.text.primary} />
-        </TouchableOpacity>
+        <NotificationBell
+          userId={user?.id?.toString()}
+          onPress={() => {
+            console.log('🔔 알림 버튼 클릭됨');
+            console.log('📍 navigation 객체:', navigation);
+            console.log('📍 navigation 메서드들:', Object.keys(navigation || {}));
+            if (navigation?.navigateToNotifications) {
+              navigation.navigateToNotifications();
+            } else if (navigation?.navigate) {
+              navigation.navigate('Notifications');
+            } else {
+              console.warn('navigation.navigateToNotifications가 없습니다');
+            }
+          }}
+          color={COLORS.text.primary}
+          size={20}
+        />
       </View>
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
@@ -190,15 +206,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, user }) => {
         </View>
 
         {/* 광고 섹션 */}
-        <View style={styles.adSection}>
-          <View style={styles.adBanner}>
-            <Text style={styles.adTitle}>🎉 혼밥노노와 함께하는 특별한 모임</Text>
-            <Text style={styles.adDescription}>새로운 친구들과 맛있는 식사를 함께 해보세요!</Text>
-            <TouchableOpacity style={styles.adButton}>
-              <Text style={styles.adButtonText}>더 알아보기</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+        <AdvertisementBanner position="home_banner" navigation={navigation} />
 
         {/* 바로 참여할 수 있는 번개 */}
         <View style={styles.section}>

@@ -10,6 +10,7 @@ import LoginScreen from '../screens/LoginScreen.web';
 import MeetupDetailScreen from '../screens/MeetupDetailScreen';
 import CreateMeetupScreen from '../screens/CreateMeetupScreen.web';
 import ChatScreen from '../screens/ChatScreen.web';
+import AdvertisementDetailScreen from '../screens/AdvertisementDetailScreen';
 
 const WebTabNavigator = () => {
   const [activeTab, setActiveTab] = useState('Home');
@@ -21,6 +22,7 @@ const WebTabNavigator = () => {
   const tabs = [
     {key: 'Home', title: '홈', icon: 'home' as IconName, component: HomeScreen},
     {key: 'Search', title: '검색', icon: 'search' as IconName, component: SearchScreen},
+    {key: 'Notifications', title: '알림', icon: 'bell' as IconName, component: NotificationScreen},
     {key: 'Chat', title: '채팅', icon: 'message-circle' as IconName, component: ChatScreen},
     {key: 'MyPage', title: '마이페이지', icon: 'user' as IconName, component: MyPageScreen},
   ];
@@ -43,10 +45,26 @@ const WebTabNavigator = () => {
     handleUrlChange();
   }, [isLoggedIn]);
 
+  // URL 변경을 감지하기 위한 추가 effect
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const currentPath = window.location.pathname;
+      if (currentPath !== window.lastCheckedPath) {
+        console.log('🔄 URL 변경 감지:', { from: window.lastCheckedPath, to: currentPath });
+        window.lastCheckedPath = currentPath;
+        handleUrlChange();
+      }
+    }, 100);
+
+    return () => clearInterval(interval);
+  }, []);
+
   // URL 변경 처리
   const handleUrlChange = () => {
     const path = window.location.pathname;
     const urlParams = new URLSearchParams(window.location.search);
+    
+    console.log('🔄 URL 변경 처리:', { path, isLoggedIn });
     
     // 루트 경로 처리 - 로그인 상태에 따라 분기
     if (path === '/') {
@@ -62,8 +80,21 @@ const WebTabNavigator = () => {
     }
     
     // 로그인이 필요한 페이지들 - 로그인하지 않은 경우 로그인 페이지로 리다이렉트
-    const protectedPaths = ['/home', '/search', '/chat', '/mypage', '/create-meetup'];
+    const protectedPaths = ['/home', '/search', '/notifications', '/chat', '/mypage', '/create-meetup'];
     const isProtectedPath = protectedPaths.includes(path) || path.startsWith('/meetup/') || path.startsWith('/chat/');
+    
+    // 광고 디테일 페이지는 공개 (로그인 불필요)
+    if (path.startsWith('/advertisement/')) {
+      console.log('🎯 광고 디테일 페이지 감지:', path);
+      const advertisementId = parseInt(path.split('/')[2]);
+      console.log('🎯 광고 ID:', advertisementId);
+      if (!isNaN(advertisementId)) {
+        console.log('✅ 광고 디테일 페이지로 설정');
+        setCurrentScreen('advertisementDetail');
+        setScreenParams({ advertisementId });
+        return;
+      }
+    }
     
     if (isProtectedPath && !isLoggedIn) {
       window.history.replaceState({}, '', '/login');
@@ -101,6 +132,10 @@ const WebTabNavigator = () => {
     } else if (path === '/search') {
       setCurrentScreen('tabs');
       setActiveTab('Search');
+    } else if (path === '/notifications') {
+      console.log('✅ 알림 페이지로 이동');
+      setCurrentScreen('tabs');
+      setActiveTab('Notifications');
     } else if (path === '/chat') {
       setCurrentScreen('tabs');
       setActiveTab('Chat');
@@ -171,6 +206,12 @@ const WebTabNavigator = () => {
     setScreenParams({});
   };
 
+  const navigateToAdvertisementDetail = (advertisementId: number) => {
+    window.history.pushState({}, '', `/advertisement/${advertisementId}`);
+    setCurrentScreen('advertisementDetail');
+    setScreenParams({ advertisementId });
+  };
+
   const navigateBack = () => {
     window.history.pushState({}, '', '/home');
     setCurrentScreen('tabs');
@@ -180,7 +221,8 @@ const WebTabNavigator = () => {
   const navigateToTab = (tabKey: string) => {
     const paths = {
       'Home': '/home',
-      'Search': '/search', 
+      'Search': '/search',
+      'Notifications': '/notifications',
       'Chat': '/chat',
       'MyPage': '/mypage'
     };
@@ -202,6 +244,10 @@ const WebTabNavigator = () => {
         navigateToChat(params.meetupId, params.meetupTitle);
       } else if (screenName === 'Home') {
         navigateBack();
+      } else if (screenName === 'Notifications') {
+        navigateToTab('Notifications');
+      } else if (screenName === 'AdvertisementDetail') {
+        navigateToAdvertisementDetail(params.advertisementId);
       }
     },
     goBack: () => {
@@ -209,6 +255,9 @@ const WebTabNavigator = () => {
     },
     navigateToSearch: () => {
       setActiveTab('Search');
+    },
+    navigateToNotifications: () => {
+      navigateToTab('Notifications');
     },
     logout: handleLogout,
     user: user
@@ -231,6 +280,10 @@ const WebTabNavigator = () => {
       return <ChatScreen route={{ params: screenParams }} navigation={webNavigation} />;
     }
     
+    if (currentScreen === 'advertisementDetail') {
+      return <AdvertisementDetailScreen route={{ params: screenParams }} navigation={webNavigation} user={user} />;
+    }
+    
     const currentTab = tabs.find(tab => tab.key === activeTab);
     if (!currentTab) return null;
     
@@ -238,6 +291,8 @@ const WebTabNavigator = () => {
     
     // HomeScreen에 네비게이션 함수들 전달
     if (activeTab === 'Home') {
+      console.log('🏠 HomeScreen 렌더링 - webNavigation:', webNavigation);
+      console.log('🏠 HomeScreen 렌더링 - webNavigation 메서드들:', Object.keys(webNavigation));
       return <ScreenComponent navigateToLogin={navigateToLogin} navigation={webNavigation} user={user} />;
     }
     

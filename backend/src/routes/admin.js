@@ -1,14 +1,19 @@
-import { Router } from 'express';
-import { Pool } from 'pg';
-import jwt from 'jsonwebtoken';
-import bcrypt from 'bcryptjs';
+const { Router } = require('express');
+const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
 
 const router = Router();
 
-// PostgreSQL 연결 풀
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL || 'postgresql://postgres:honbabnono@honbabnono.c3iokeig2kd8.ap-northeast-2.rds.amazonaws.com:5432/honbabnono'
-});
+// Sequelize 연결을 가져옴 (메인 서버와 같은 연결 사용)
+let sequelize;
+try {
+  const models = require('../models');
+  sequelize = models.sequelize;
+} catch (error) {
+  console.log('⚠️ Sequelize 모델을 가져올 수 없어 직접 연결');
+  const { Sequelize } = require('sequelize');
+  sequelize = new Sequelize(process.env.DATABASE_URL || 'postgresql://postgres:honbabnono@honbabnono.c3iokeig2kd8.ap-northeast-2.rds.amazonaws.com:5432/honbabnono');
+}
 
 // 관리자 로그인
 router.post('/login', async (req, res) => {
@@ -18,18 +23,21 @@ router.post('/login', async (req, res) => {
     console.log('🔐 관리자 로그인 시도:', { username, passwordLength: password?.length });
     
     // DB에서 관리자 계정 조회
-    const result = await pool.query(
-      'SELECT id, username, password, email, role, is_active FROM admins WHERE username = $1 AND is_active = true',
-      [username]
+    const result = await sequelize.query(
+      'SELECT id, username, password, email, role, is_active FROM admins WHERE username = :username AND is_active = true',
+      {
+        replacements: { username },
+        type: sequelize.QueryTypes.SELECT
+      }
     );
     
     console.log('📊 DB 조회 결과:', { 
-      found: result.rows.length > 0, 
-      username: result.rows[0]?.username,
-      hasPassword: !!result.rows[0]?.password
+      found: result.length > 0, 
+      username: result[0]?.username,
+      hasPassword: !!result[0]?.password
     });
     
-    if (result.rows.length === 0) {
+    if (result.length === 0) {
       console.log('❌ 사용자를 찾을 수 없음');
       return res.status(401).json({
         success: false,
@@ -37,7 +45,7 @@ router.post('/login', async (req, res) => {
       });
     }
     
-    const admin = result.rows[0];
+    const admin = result[0];
     
     console.log('🔍 비밀번호 비교 시작:', { 
       inputPassword: password,
@@ -58,9 +66,12 @@ router.post('/login', async (req, res) => {
     }
     
     // 로그인 시간 업데이트
-    await pool.query(
-      'UPDATE admins SET last_login = CURRENT_TIMESTAMP WHERE id = $1',
-      [admin.id]
+    await sequelize.query(
+      'UPDATE admins SET last_login = CURRENT_TIMESTAMP WHERE id = :id',
+      {
+        replacements: { id: admin.id },
+        type: sequelize.QueryTypes.UPDATE
+      }
     );
     
     // JWT 토큰 생성
@@ -73,6 +84,8 @@ router.post('/login', async (req, res) => {
       process.env.JWT_SECRET || 'honbabnono_jwt_secret_key_2024',
       { expiresIn: '24h' }
     );
+    
+    console.log('✅ 관리자 로그인 성공');
     
     res.json({
       success: true,
@@ -99,7 +112,7 @@ router.post('/login', async (req, res) => {
 // 사용자 목록 조회
 router.get('/users', async (req, res) => {
   try {
-    const result = await pool.query(`
+    const result = await sequelize.query(`
       SELECT 
         id, 
         name, 
@@ -115,9 +128,11 @@ router.get('/users', async (req, res) => {
         END as status
       FROM users 
       ORDER BY created_at DESC
-    `);
+    `, {
+      type: sequelize.QueryTypes.SELECT
+    });
     
-    res.json(result.rows);
+    res.json(result);
   } catch (error) {
     console.error('사용자 목록 조회 실패:', error);
     res.status(500).json({ error: '사용자 목록을 불러올 수 없습니다.' });
@@ -128,7 +143,10 @@ router.get('/users', async (req, res) => {
 router.post('/users/:userId/verify', async (req, res) => {
   try {
     const { userId } = req.params;
-    await pool.query('UPDATE users SET is_verified = true WHERE id = $1', [userId]);
+    await sequelize.query('UPDATE users SET is_verified = true WHERE id = :userId', {
+      replacements: { userId },
+      type: sequelize.QueryTypes.UPDATE
+    });
     res.json({ success: true });
   } catch (error) {
     console.error('사용자 인증 실패:', error);
@@ -142,7 +160,10 @@ router.post('/users/:userId/block', async (req, res) => {
     const { userId } = req.params;
     // 실제로는 별도 blocked 컬럼이나 테이블을 사용해야 하지만, 
     // 현재 스키마에서는 is_verified를 false로 설정
-    await pool.query('UPDATE users SET is_verified = false WHERE id = $1', [userId]);
+    await sequelize.query('UPDATE users SET is_verified = false WHERE id = :userId', {
+      replacements: { userId },
+      type: sequelize.QueryTypes.UPDATE
+    });
     res.json({ success: true });
   } catch (error) {
     console.error('사용자 차단 실패:', error);
@@ -154,7 +175,10 @@ router.post('/users/:userId/block', async (req, res) => {
 router.post('/users/:userId/unblock', async (req, res) => {
   try {
     const { userId } = req.params;
-    await pool.query('UPDATE users SET is_verified = true WHERE id = $1', [userId]);
+    await sequelize.query('UPDATE users SET is_verified = true WHERE id = :userId', {
+      replacements: { userId },
+      type: sequelize.QueryTypes.UPDATE
+    });
     res.json({ success: true });
   } catch (error) {
     console.error('사용자 차단 해제 실패:', error);
@@ -165,7 +189,7 @@ router.post('/users/:userId/unblock', async (req, res) => {
 // 모임 목록 조회
 router.get('/meetups', async (req, res) => {
   try {
-    const result = await pool.query(`
+    const result = await sequelize.query(`
       SELECT 
         m.id,
         m.title,
@@ -181,9 +205,11 @@ router.get('/meetups', async (req, res) => {
       FROM meetups m
       LEFT JOIN users u ON m.host_id = u.id
       ORDER BY m.created_at DESC
-    `);
+    `, {
+      type: sequelize.QueryTypes.SELECT
+    });
     
-    res.json(result.rows);
+    res.json(result);
   } catch (error) {
     console.error('모임 목록 조회 실패:', error);
     res.status(500).json({ error: '모임 목록을 불러올 수 없습니다.' });
@@ -194,7 +220,10 @@ router.get('/meetups', async (req, res) => {
 router.post('/meetups/:meetupId/cancel', async (req, res) => {
   try {
     const { meetupId } = req.params;
-    await pool.query('UPDATE meetups SET status = $1 WHERE id = $2', ['cancelled', meetupId]);
+    await sequelize.query('UPDATE meetups SET status = :status WHERE id = :meetupId', {
+      replacements: { status: '취소', meetupId },
+      type: sequelize.QueryTypes.UPDATE
+    });
     res.json({ success: true });
   } catch (error) {
     console.error('모임 취소 실패:', error);
@@ -202,11 +231,14 @@ router.post('/meetups/:meetupId/cancel', async (req, res) => {
   }
 });
 
-// 모임 승인 (현재 스키마에서는 active 상태로 변경)
+// 모임 승인 (현재 스키마에서는 모집중 상태로 변경)
 router.post('/meetups/:meetupId/approve', async (req, res) => {
   try {
     const { meetupId } = req.params;
-    await pool.query('UPDATE meetups SET status = $1 WHERE id = $2', ['active', meetupId]);
+    await sequelize.query('UPDATE meetups SET status = :status WHERE id = :id', {
+      replacements: { status: '모집중', id: meetupId },
+      type: sequelize.QueryTypes.UPDATE
+    });
     res.json({ success: true });
   } catch (error) {
     console.error('모임 승인 실패:', error);
@@ -218,17 +250,20 @@ router.post('/meetups/:meetupId/approve', async (req, res) => {
 router.get('/stats', async (req, res) => {
   try {
     const [usersResult, meetupsResult, todayMeetupsResult, activeMeetupsResult] = await Promise.all([
-      pool.query('SELECT COUNT(*) as total FROM users'),
-      pool.query('SELECT COUNT(*) as total FROM meetups'),
-      pool.query('SELECT COUNT(*) as total FROM meetups WHERE DATE(created_at) = CURRENT_DATE'),
-      pool.query('SELECT COUNT(*) as total FROM meetups WHERE status = $1', ['active'])
+      sequelize.query('SELECT COUNT(*) as total FROM users', { type: sequelize.QueryTypes.SELECT }),
+      sequelize.query('SELECT COUNT(*) as total FROM meetups', { type: sequelize.QueryTypes.SELECT }),
+      sequelize.query('SELECT COUNT(*) as total FROM meetups WHERE DATE(created_at) = CURRENT_DATE', { type: sequelize.QueryTypes.SELECT }),
+      sequelize.query('SELECT COUNT(*) as total FROM meetups WHERE status = :status', { 
+        replacements: { status: '모집중' }, 
+        type: sequelize.QueryTypes.SELECT 
+      })
     ]);
 
     const stats = {
-      totalUsers: parseInt(usersResult.rows[0].total),
-      totalMeetups: parseInt(meetupsResult.rows[0].total),
-      todayMeetups: parseInt(todayMeetupsResult.rows[0].total),
-      activeMeetups: parseInt(activeMeetupsResult.rows[0].total)
+      totalUsers: parseInt(usersResult[0].total),
+      totalMeetups: parseInt(meetupsResult[0].total),
+      todayMeetups: parseInt(todayMeetupsResult[0].total),
+      activeMeetups: parseInt(activeMeetupsResult[0].total)
     };
 
     res.json(stats);
@@ -272,27 +307,39 @@ router.get('/reports/:type', async (req, res) => {
       
       try {
         // 신규 사용자 수
-        const newUsersQuery = await pool.query(
-          'SELECT COUNT(*) as count FROM users WHERE created_at >= $1 AND created_at < $2',
-          [startDate.toISOString(), endDate.toISOString()]
+        const newUsersQuery = await sequelize.query(
+          'SELECT COUNT(*) as count FROM users WHERE created_at >= :startDate AND created_at < :endDate',
+          {
+            replacements: { startDate: startDate.toISOString(), endDate: endDate.toISOString() },
+            type: sequelize.QueryTypes.SELECT
+          }
         );
         
         // 신규 모임 수
-        const newMeetupsQuery = await pool.query(
-          'SELECT COUNT(*) as count FROM meetups WHERE created_at >= $1 AND created_at < $2',
-          [startDate.toISOString(), endDate.toISOString()]
+        const newMeetupsQuery = await sequelize.query(
+          'SELECT COUNT(*) as count FROM meetups WHERE created_at >= :startDate AND created_at < :endDate',
+          {
+            replacements: { startDate: startDate.toISOString(), endDate: endDate.toISOString() },
+            type: sequelize.QueryTypes.SELECT
+          }
         );
         
         // 완료된 모임 수
-        const completedMeetupsQuery = await pool.query(
-          'SELECT COUNT(*) as count FROM meetups WHERE status = $1 AND updated_at >= $2 AND updated_at < $3',
-          ['completed', startDate.toISOString(), endDate.toISOString()]
+        const completedMeetupsQuery = await sequelize.query(
+          'SELECT COUNT(*) as count FROM meetups WHERE status = :status AND updated_at >= :startDate AND updated_at < :endDate',
+          {
+            replacements: { status: '종료', startDate: startDate.toISOString(), endDate: endDate.toISOString() },
+            type: sequelize.QueryTypes.SELECT
+          }
         );
         
-        // 활성 사용자 수 (해당 기간에 로그인한 사용자)
-        const activeUsersQuery = await pool.query(
-          'SELECT COUNT(DISTINCT user_id) as count FROM user_sessions WHERE created_at >= $1 AND created_at < $2',
-          [startDate.toISOString(), endDate.toISOString()]
+        // 활성 사용자 수 (해당 기간에 모임에 참여한 사용자)
+        const activeUsersQuery = await sequelize.query(
+          'SELECT COUNT(DISTINCT user_id) as count FROM meetups WHERE created_at >= :startDate AND created_at < :endDate',
+          {
+            replacements: { startDate: startDate.toISOString(), endDate: endDate.toISOString() },
+            type: sequelize.QueryTypes.SELECT
+          }
         );
         
         const period = type === 'daily' ? 
@@ -303,11 +350,11 @@ router.get('/reports/:type', async (req, res) => {
         
         reportData.push({
           period,
-          newUsers: parseInt(newUsersQuery.rows[0].count) || 0,
-          newMeetups: parseInt(newMeetupsQuery.rows[0].count) || 0,
-          completedMeetups: parseInt(completedMeetupsQuery.rows[0].count) || 0,
-          revenue: (parseInt(completedMeetupsQuery.rows[0].count) || 0) * 5000, // 완료된 모임당 5000원 가정
-          activeUsers: parseInt(activeUsersQuery.rows[0].count) || Math.floor(Math.random() * 50) + 20 // user_sessions 테이블이 없을 경우 임시 데이터
+          newUsers: parseInt(newUsersQuery.rows ? newUsersQuery.rows[0].count : newUsersQuery[0].count) || 0,
+          newMeetups: parseInt(newMeetupsQuery.rows ? newMeetupsQuery.rows[0].count : newMeetupsQuery[0].count) || 0,
+          completedMeetups: parseInt(completedMeetupsQuery[0].count) || 0,
+          revenue: (parseInt(completedMeetupsQuery[0].count) || 0) * 5000, // 완료된 모임당 5000원 가정
+          activeUsers: parseInt(activeUsersQuery[0].count) || Math.floor(Math.random() * 50) + 20 // user_sessions 테이블이 없을 경우 임시 데이터
         });
       } catch (dbError) {
         console.warn('일부 테이블 접근 실패, 임시 데이터 사용:', dbError);
@@ -368,19 +415,28 @@ router.get('/reports/download/:type', async (req, res) => {
       }
       
       try {
-        const newUsersQuery = await pool.query(
-          'SELECT COUNT(*) as count FROM users WHERE created_at >= $1 AND created_at < $2',
-          [startDate.toISOString(), endDate.toISOString()]
+        const newUsersQuery = await sequelize.query(
+          'SELECT COUNT(*) as count FROM users WHERE created_at >= :startDate AND created_at < :endDate',
+          {
+            replacements: { startDate: startDate.toISOString(), endDate: endDate.toISOString() },
+            type: sequelize.QueryTypes.SELECT
+          }
         );
         
-        const newMeetupsQuery = await pool.query(
-          'SELECT COUNT(*) as count FROM meetups WHERE created_at >= $1 AND created_at < $2',
-          [startDate.toISOString(), endDate.toISOString()]
+        const newMeetupsQuery = await sequelize.query(
+          'SELECT COUNT(*) as count FROM meetups WHERE created_at >= :startDate AND created_at < :endDate',
+          {
+            replacements: { startDate: startDate.toISOString(), endDate: endDate.toISOString() },
+            type: sequelize.QueryTypes.SELECT
+          }
         );
         
-        const completedMeetupsQuery = await pool.query(
-          'SELECT COUNT(*) as count FROM meetups WHERE status = $1 AND updated_at >= $2 AND updated_at < $3',
-          ['completed', startDate.toISOString(), endDate.toISOString()]
+        const completedMeetupsQuery = await sequelize.query(
+          'SELECT COUNT(*) as count FROM meetups WHERE status = :status AND updated_at >= :startDate AND updated_at < :endDate',
+          {
+            replacements: { status: '종료', startDate: startDate.toISOString(), endDate: endDate.toISOString() },
+            type: sequelize.QueryTypes.SELECT
+          }
         );
         
         const period = type === 'daily' ? 
@@ -391,10 +447,10 @@ router.get('/reports/download/:type', async (req, res) => {
         
         reportData.push({
           period,
-          newUsers: parseInt(newUsersQuery.rows[0].count) || 0,
-          newMeetups: parseInt(newMeetupsQuery.rows[0].count) || 0,
-          completedMeetups: parseInt(completedMeetupsQuery.rows[0].count) || 0,
-          revenue: (parseInt(completedMeetupsQuery.rows[0].count) || 0) * 5000,
+          newUsers: parseInt(newUsersQuery.rows ? newUsersQuery.rows[0].count : newUsersQuery[0].count) || 0,
+          newMeetups: parseInt(newMeetupsQuery.rows ? newMeetupsQuery.rows[0].count : newMeetupsQuery[0].count) || 0,
+          completedMeetups: parseInt(completedMeetupsQuery[0].count) || 0,
+          revenue: (parseInt(completedMeetupsQuery[0].count) || 0) * 5000,
           activeUsers: Math.floor(Math.random() * 50) + 20
         });
       } catch (dbError) {
@@ -430,4 +486,4 @@ router.get('/reports/download/:type', async (req, res) => {
   }
 });
 
-export default router;
+module.exports = router;
