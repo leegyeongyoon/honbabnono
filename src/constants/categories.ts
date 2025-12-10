@@ -3,66 +3,66 @@ export const FOOD_CATEGORIES = [
   { 
     id: 'bbq', 
     name: '고기/구이', 
-    icon: '/icons/bbq.svg', 
+    icon: 'fire', 
     desc: '삼겹살/갈비/곱창', 
-    color: '#FF6B35', 
-    bgColor: '#FFF4F0' 
+    color: '#C9B59C', 
+    bgColor: '#F9F8F6' 
   },
   { 
     id: 'hotpot', 
     name: '전골/찌개', 
-    icon: '/icons/hotpot.svg', 
+    icon: 'utensils', 
     desc: '부대찌개/김치찌개', 
-    color: '#E74C3C', 
-    bgColor: '#FDF2F2' 
+    color: '#C9B59C', 
+    bgColor: '#F9F8F6' 
   },
   { 
     id: 'buffet', 
     name: '뷔페/무한리필', 
-    icon: '/icons/buffet.svg', 
+    icon: 'concierge-bell', 
     desc: '고기뷔페/샐러드바', 
-    color: '#F39C12', 
-    bgColor: '#FEF9E7' 
+    color: '#C9B59C', 
+    bgColor: '#F9F8F6' 
   },
   { 
     id: 'seafood', 
     name: '해산물/회', 
-    icon: '/icons/seafood.svg', 
+    icon: 'fish', 
     desc: '회/조개구이/랍스터', 
-    color: '#3498DB', 
-    bgColor: '#EBF5FB' 
+    color: '#C9B59C', 
+    bgColor: '#F9F8F6' 
   },
   { 
     id: 'pizza', 
     name: '피자/치킨', 
-    icon: '/icons/pizza.svg', 
+    icon: 'drumstick-bite', 
     desc: '피자/후라이드치킨', 
-    color: '#E67E22', 
-    bgColor: '#FDF5E6' 
+    color: '#C9B59C', 
+    bgColor: '#F9F8F6' 
   },
   { 
     id: 'bar', 
     name: '주점/술집', 
-    icon: '/icons/bar.svg', 
+    icon: 'wine-glass', 
     desc: '호프집/이자카야', 
-    color: '#9B59B6', 
-    bgColor: '#F4ECF7' 
+    color: '#C9B59C', 
+    bgColor: '#F9F8F6' 
   },
   { 
     id: 'course', 
     name: '코스요리', 
-    icon: '/icons/course.svg', 
+    icon: 'award', 
     desc: '오마카세/프렌치', 
-    color: '#2ECC71', 
-    bgColor: '#E8F8F5' 
+    color: '#C9B59C', 
+    bgColor: '#F9F8F6' 
   },
   { 
     id: 'party', 
     name: '파티룸', 
-    icon: '/icons/party.svg', 
+    icon: 'birthday-cake', 
     desc: '생일파티/회식', 
-    color: '#E91E63', 
-    bgColor: '#FCE4EC' 
+    color: '#C9B59C', 
+    bgColor: '#F9F8F6' 
   },
 ];
 

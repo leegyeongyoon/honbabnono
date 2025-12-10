@@ -48,7 +48,13 @@ export type IconName =
   | 'drumstick'
   | 'glass'
   | 'silverware'
-  | 'gift';
+  | 'gift'
+  | 'fire'
+  | 'concierge-bell'
+  | 'wine-glass'
+  | 'award'
+  | 'birthday-cake'
+  | 'drumstick-bite';
 
 interface IconProps {
   name: IconName;
@@ -104,7 +110,13 @@ const iconPaths = {
   'drumstick': 'M12.5 2C8.91 2 6 4.91 6 8.5c0 1.19.32 2.3.87 3.26l4.63 4.63c.96.55 2.07.87 3.26.87 3.59 0 6.5-2.91 6.5-6.5S16.09 2 12.5 2zM12.5 15.26c-.87 0-1.67-.25-2.37-.68L6.68 11.13c-.43-.7-.68-1.5-.68-2.37C6 5.46 8.46 3 11.76 3S17.5 5.46 17.5 8.76s-2.46 5.76-5.76 5.76z',
   'glass': 'M5 2v6l7 7 7-7V2H5zM17 7l-5 5-5-5V4h10v3z',
   'silverware': 'M3 2v7c0 1.1.9 2 2 2h2V2M7 2v9M21 15V2v0M21 15l-2-1v-2M21 15l-2 1',
-  'gift': 'M20 12v10H4V12M2 7h20v5H2zM12 7V2M8.5 7h7L12 2l-3.5 5z'
+  'gift': 'M20 12v10H4V12M2 7h20v5H2zM12 7V2M8.5 7h7L12 2l-3.5 5z',
+  'fire': 'M8.5 14.5A2.5 2.5 0 0011 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 11-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 002.5 2.5z',
+  'concierge-bell': 'M3 20h18v2H3v-2zM12 2C6.48 2 2 6.48 2 12v6h20v-6c0-5.52-4.48-10-10-10zM12 4c4.41 0 8 3.59 8 8v4H4v-4c0-4.41 3.59-8 8-8z',
+  'wine-glass': 'M5 8l1-6h12l1 6c0 3.31-2.69 6-6 6s-6-2.69-6-6zM12 14v8M8 22h8',
+  'award': 'M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z',
+  'birthday-cake': 'M12 6V2M8 6V2M16 6V2M4 10h16v8a2 2 0 01-2 2H6a2 2 0 01-2-2v-8zM7 14h2M15 14h2M11 14h2',
+  'drumstick-bite': 'M12.5 2C8.91 2 6 4.91 6 8.5c0 1.19.32 2.3.87 3.26l4.63 4.63c.96.55 2.07.87 3.26.87 3.59 0 6.5-2.91 6.5-6.5S16.09 2 12.5 2zM15.5 9a1.5 1.5 0 100-3 1.5 1.5 0 000 3z'
 };
 
 // Simple SVG component for web
@@ -187,7 +199,13 @@ const SVGIcon: React.FC<{ path: string; size: number; color: string; style?: Vie
     'drumstick': '🍗',
     'glass': '🍻',
     'silverware': '🍽️',
-    'gift': '🎁'
+    'gift': '🎁',
+    'fire': '🔥',
+    'concierge-bell': '🛎️',
+    'wine-glass': '🍷',
+    'award': '🏆',
+    'birthday-cake': '🎂',
+    'drumstick-bite': '🍗'
   };
   
   return (

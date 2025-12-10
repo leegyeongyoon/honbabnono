@@ -112,18 +112,8 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
   };
 
   const getCategoryIcon = (categoryName: string) => {
-    const iconMap: { [key: string]: string } = {
-      '고기/구이': 'fire',
-      '전골/찌개': 'utensils',
-      '뷔페/무한리필': 'utensils',
-      '해산물/회': 'fish',
-      '피자/치킨': 'utensils',
-      '주점/술집': 'glass',
-      '코스요리': 'utensils',
-      '파티룸': 'gift'
-    };
-    
-    return iconMap[categoryName] || 'utensils';
+    const category = FOOD_CATEGORIES.find(cat => cat.name === categoryName);
+    return category ? category.icon : 'utensils';
   };
 
   const getCategoryColor = (categoryName: string) => {
