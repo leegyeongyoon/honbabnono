@@ -17,16 +17,18 @@ import chatService from '../services/chatService';
 import chatApiService, { ChatRoom, ChatMessage } from '../services/chatApiService';
 import { getDetailedDateFormat, getChatDateHeader, isSameDay } from '../utils/timeUtils';
 import { useRouterNavigation } from '../components/RouterNavigation';
+import { useUserStore } from '../store/userStore';
 
 interface ChatScreenProps {
   navigation?: any;
   user?: any;
 }
 
-const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, user }) => {
+const ChatScreen: React.FC<ChatScreenProps> = ({ navigation }) => {
   const navigate = useNavigate();
   const routerNavigation = useRouterNavigation();
   const { id: chatIdFromUrl } = useParams<{ id?: string }>();
+  const { user } = useUserStore();
   
   const [selectedTab, setSelectedTab] = useState('모임채팅');
   const [chatRooms, setChatRooms] = useState<ChatRoom[]>([]);
@@ -41,7 +43,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, user }) => {
   const [showDMModal, setShowDMModal] = useState(false);
 
   const tabs = ['모임채팅', '1:1채팅'];
-  const userId = user?.id || 'user1';
+  const userId = user?.id || '';
 
   // 1대1 채팅 권한 체크
   const checkDirectChatPermission = async (targetUserId: string) => {
@@ -622,7 +624,7 @@ const styles = StyleSheet.create({
   chatAvatar: {
     width: 50,
     height: 50,
-    borderRadius: 25,
+    borderRadius: 12,
     backgroundColor: COLORS.neutral.grey200,
     justifyContent: 'center',
     alignItems: 'center',
@@ -653,7 +655,7 @@ const styles = StyleSheet.create({
   },
   unreadBadge: {
     backgroundColor: COLORS.primary.main,
-    borderRadius: 12,
+    borderRadius: 8,
     minWidth: 24,
     height: 24,
     justifyContent: 'center',
@@ -742,7 +744,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.neutral.white,
     paddingHorizontal: 12,
     paddingVertical: 8,
-    borderRadius: 16,
+    borderRadius: 12,
   },
   myMessageBubble: {
     backgroundColor: COLORS.primary.main,
@@ -773,7 +775,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-end',
     backgroundColor: COLORS.neutral.background,
-    borderRadius: 20,
+    borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 8,
     minHeight: 40,
@@ -789,7 +791,7 @@ const styles = StyleSheet.create({
     marginLeft: 12,
     width: 32,
     height: 32,
-    borderRadius: 16,
+    borderRadius: 8,
     backgroundColor: COLORS.neutral.grey200,
     justifyContent: 'center',
     alignItems: 'center',
@@ -808,7 +810,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.05)',
     paddingHorizontal: 16,
     paddingVertical: 6,
-    borderRadius: 16,
+    borderRadius: 8,
     textAlign: 'center',
   },
   messageWithProfile: {
@@ -819,7 +821,7 @@ const styles = StyleSheet.create({
   profileImageContainer: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: 10,
     overflow: 'hidden',
     backgroundColor: COLORS.neutral.grey200,
     justifyContent: 'center',
@@ -828,13 +830,13 @@ const styles = StyleSheet.create({
   profileImage: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: 10,
     resizeMode: 'cover',
   },
   defaultProfileImage: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: 10,
     backgroundColor: COLORS.primary.main,
     justifyContent: 'center',
     alignItems: 'center',
