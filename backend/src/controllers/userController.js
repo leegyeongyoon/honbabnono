@@ -5,7 +5,11 @@ const { User } = require('../models');
 // 사용자 프로필 조회
 const getProfile = async (req, res) => {
   try {
-    const user = await User.findByPk(req.user.userId, {
+    const userId = req.user.id || req.user.userId; // JWT 토큰에서 id 또는 userId 필드 사용
+    console.log('👤 [CONTROLLER] 사용자 프로필 조회 요청:', { userId });
+    console.log('👤 [CONTROLLER] req.user 전체:', req.user);
+
+    const user = await User.findByPk(userId, {
       attributes: { exclude: ['password'] }
     });
 
@@ -13,9 +17,19 @@ const getProfile = async (req, res) => {
       return res.status(404).json({ error: '사용자를 찾을 수 없습니다' });
     }
 
-    res.json({ user });
+    // 프로필 이미지 URL 처리 (상대 경로를 절대 URL로 변환)
+    let userResponse = user.toJSON();
+    if (userResponse.profileImage && !userResponse.profileImage.startsWith('http')) {
+      userResponse.profileImage = `${req.protocol}://${req.get('host')}${userResponse.profileImage}`;
+    }
+
+    console.log('✅ [CONTROLLER] 사용자 프로필 조회 성공');
+    console.log('🖼️ [CONTROLLER] profileImage 값:', userResponse.profileImage);
+    console.log('👤 [CONTROLLER] 응답할 사용자 데이터:', userResponse);
+
+    res.json({ user: userResponse });
   } catch (error) {
-    console.error('프로필 조회 오류:', error);
+    console.error('❌ [CONTROLLER] 프로필 조회 오류:', error);
     res.status(500).json({ error: '서버 오류가 발생했습니다' });
   }
 };

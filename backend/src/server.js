@@ -25,6 +25,7 @@ const {
 
 // 라우터 가져오기
 const userRoutes = require('./routes/users');
+console.log('📁 userRoutes loaded:', typeof userRoutes);
 const meetupRoutes = require('./routes/meetups');
 const testRoutes = require('./routes/test');
 const chatRoutes = require('./routes/chat');
@@ -235,7 +236,7 @@ app.get('/api/auth/kakao/callback', async (req, res) => {
 
     // 5. JWT 토큰 생성 (데이터베이스 UUID 사용)
     const token = jwt.sign(
-      { userId: user.id, email: user.email, name: user.name },
+      { id: user.id, userId: user.id, email: user.email, name: user.name },
       process.env.JWT_SECRET || 'honbabnono_secret',
       { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
     );
@@ -286,7 +287,7 @@ app.get('/api/user/hosted-meetups', authenticateToken, async (req, res) => {
   try {
     const { page = 1, limit = 10 } = req.query;
     const offset = (page - 1) * limit;
-    const userId = req.user.userId;
+    const userId = req.user.id || req.user.userId;
     
     console.log('🏠 [API] 호스팅 모임 조회 요청:', { userId, page, limit, offset });
     
@@ -352,7 +353,7 @@ app.get('/api/user/hosted-meetups', authenticateToken, async (req, res) => {
 // 내활동 통계 조회
 app.get('/api/user/activity-stats', authenticateToken, async (req, res) => {
   try {
-    const userId = req.user.userId;
+    const userId = req.user.id || req.user.userId;
     
     console.log('📊 활동 통계 조회 요청:', { userId });
     
@@ -409,14 +410,16 @@ app.post('/api/auth/verify-token', async (req, res) => {
 
     // JWT 토큰 검증
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'honbabnono_secret');
-    console.log('✅ 토큰 검증 성공:', { userId: decoded.userId, email: decoded.email });
+    console.log('🔍 JWT decoded:', decoded);
+    const userId = decoded.id || decoded.userId; // 토큰에서 id 또는 userId 필드 사용
+    console.log('🔍 Extracted userId:', userId);
 
     // 데이터베이스에서 사용자 정보 조회
     let user = null;
     try {
-      user = await User.findByPk(decoded.userId);
+      user = await User.findByPk(userId);
       if (!user) {
-        console.log('❌ 사용자를 찾을 수 없음:', decoded.userId);
+        console.log('❌ 사용자를 찾을 수 없음:', userId);
         return res.status(404).json({ 
           success: false, 
           error: '사용자를 찾을 수 없습니다.' 
@@ -426,7 +429,7 @@ app.post('/api/auth/verify-token', async (req, res) => {
       console.log('⚠️ 데이터베이스 오류, 토큰 정보만 사용:', dbError.message);
       // 데이터베이스 연결 실패 시 토큰의 정보만 사용
       user = {
-        id: decoded.userId,
+        id: userId,
         email: decoded.email,
         name: decoded.name,
         provider: 'token'
@@ -473,60 +476,40 @@ app.post('/api/auth/verify-token', async (req, res) => {
   }
 });
 
-// 사용자 프로필 조회
-app.get('/api/user/profile', authenticateToken, async (req, res) => {
+// 간단한 프로필 조회 API (userRoutes와 중복되지 않도록 다른 경로 사용)
+app.get('/api/user/profile-direct', authenticateToken, async (req, res) => {
   try {
-    const userId = req.user.userId;
-    console.log('👤 사용자 프로필 조회 요청:', { userId });
-    
-    // 데이터베이스 연결 확인
-    if (!User) {
-      return res.status(503).json({ 
-        success: false, 
-        error: '데이터베이스 연결이 필요합니다.' 
-      });
-    }
-    
-    // 실제 데이터베이스에서 사용자 프로필 조회 (Sequelize ORM 사용)
-    const userProfile = await User.findByPk(userId, {
-      attributes: [
-        'id', 'email', 'name', 'profileImage', 'provider', 'providerId', 'phone',
-        'isVerified', 'rating', 'meetupsJoined', 'meetupsHosted', 'babAlScore',
-        'preferences', 'lastLoginAt', 'createdAt', 'updatedAt'
-      ]
-    });
-    
-    if (!userProfile) {
-      return res.status(404).json({
-        success: false,
-        error: '사용자를 찾을 수 없습니다.'
-      });
-    }
-    
-    // 프로필 이미지 URL 처리 (상대 경로를 절대 URL로 변환)
-    if (userProfile.profile_image && !userProfile.profile_image.startsWith('http')) {
-      userProfile.profile_image = `${req.protocol}://${req.get('host')}${userProfile.profile_image}`;
-    }
-    
-    console.log('✅ 사용자 프로필 조회 성공');
-    res.json({ 
-      success: true, 
-      user: userProfile 
+    const userId = req.user.id || req.user.userId; // JWT 토큰에서 id 또는 userId 필드 사용
+    console.log('👤 [DIRECT] 사용자 프로필 조회 요청:', { userId });
+
+    const user = await User.findByPk(userId, {
+      attributes: { exclude: ['password'] }
     });
 
+    if (!user) {
+      return res.status(404).json({ error: '사용자를 찾을 수 없습니다' });
+    }
+
+    // 프로필 이미지 URL 처리 (상대 경로를 절대 URL로 변환)
+    let userResponse = user.toJSON();
+    if (userResponse.profileImage && !userResponse.profileImage.startsWith('http')) {
+      userResponse.profileImage = `${req.protocol}://${req.get('host')}${userResponse.profileImage}`;
+    }
+
+    console.log('✅ [DIRECT] 사용자 프로필 조회 성공');
+    console.log('🖼️ [DIRECT] profileImage 값:', userResponse.profileImage);
+
+    res.json({ user: userResponse });
   } catch (error) {
-    console.error('❌ 사용자 프로필 조회 실패:', error);
-    res.status(500).json({ 
-      success: false, 
-      error: '서버 오류가 발생했습니다.' 
-    });
+    console.error('❌ [DIRECT] 프로필 조회 오류:', error);
+    res.status(500).json({ error: '서버 오류가 발생했습니다' });
   }
 });
 
 // 프로필 이미지 업로드 API
 app.post('/api/user/profile/upload-image', authenticateToken, upload.single('profileImage'), async (req, res) => {
   try {
-    const userId = req.user.userId;
+    const userId = req.user.id || req.user.userId;
     console.log('📸 프로필 이미지 업로드 요청:', { userId, file: req.file ? req.file.filename : 'none' });
     
     if (!req.file) {
@@ -598,7 +581,7 @@ app.get('/api/user/joined-meetups', authenticateToken, async (req, res) => {
   try {
     const { page = 1, limit = 10 } = req.query;
     const offset = (page - 1) * limit;
-    const userId = req.user.userId;
+    const userId = req.user.id || req.user.userId;
     
     console.log('👥 [API] 참가 모임 조회 요청:', { userId, page, limit, offset });
     
@@ -674,7 +657,7 @@ app.get('/api/user/joined-meetups', authenticateToken, async (req, res) => {
 app.get('/api/user/reviews', authenticateToken, async (req, res) => {
   try {
     const { page = 1, limit = 10 } = req.query;
-    const userId = req.user.userId;
+    const userId = req.user.id || req.user.userId;
     
     console.log('📝 사용자 리뷰 조회 요청:', { userId, page, limit });
     
@@ -817,7 +800,7 @@ const getUserRank = (score, totalUsers = 1500) => {
 // 혼밥지수 조회 (데이터베이스 기반)
 app.get('/api/user/rice-index', authenticateToken, async (req, res) => {
   try {
-    const userId = req.user.userId;
+    const userId = req.user.id || req.user.userId; // JWT 토큰에서 id 또는 userId 필드 사용
     console.log('🍚 밥알지수 계산 요청:', { userId });
     
     // 1. 사용자 기본 정보 조회 (현재 밥알지수 포함)
@@ -833,6 +816,7 @@ app.get('/api/user/rice-index', authenticateToken, async (req, res) => {
     }
     
     const currentBabalScore = user.babal_score || 40;
+    console.log('🔍 사용자 DB 밥알지수:', currentBabalScore);
     
     // 2. 모임 참여 통계 조회 (Sequelize ORM 사용)
     const [participantStats] = await sequelize.query(`
@@ -937,7 +921,7 @@ app.get('/api/user/rice-index', authenticateToken, async (req, res) => {
     // 9. 응답 데이터 구성
     const responseData = {
       success: true,
-      riceIndex: currentBabalScore,
+      riceIndex: calculatedIndex,
       level: {
         level: levelInfo.level,
         emoji: levelInfo.riceEmoji,
@@ -947,6 +931,7 @@ app.get('/api/user/rice-index', authenticateToken, async (req, res) => {
       stats: stats
     };
     
+    console.log('📤 밥알지수 API 응답 전송:', responseData);
     res.json(responseData);
 
   } catch (error) {
@@ -963,7 +948,7 @@ app.post('/api/meetups/:meetupId/reviews', authenticateToken, async (req, res) =
   try {
     const { meetupId } = req.params;
     const { rating, comment, tags } = req.body;
-    const userId = req.user.userId;
+    const userId = req.user.id || req.user.userId;
     
     console.log('✍️ 리뷰 작성 요청:', { meetupId, userId, rating });
     
@@ -1129,7 +1114,7 @@ app.get('/health', (req, res) => {
 app.post('/api/meetups/:meetupId/preference-filter', authenticateToken, async (req, res) => {
   try {
     const { meetupId } = req.params;
-    const userId = req.user.userId;
+    const userId = req.user.id || req.user.userId;
     
     console.log('🎯 모임 필터 설정 요청:', { meetupId, userId });
     
@@ -1212,7 +1197,7 @@ app.get('/api/meetups/:meetupId/preference-filter', async (req, res) => {
 app.post('/api/meetups/:meetupId/my-preferences', authenticateToken, async (req, res) => {
   try {
     const { meetupId } = req.params;
-    const userId = req.user.userId;
+    const userId = req.user.id || req.user.userId;
     
     console.log('🙋 참가자 성향 답변 요청:', { meetupId, userId });
     
@@ -1279,7 +1264,7 @@ app.post('/api/meetups/:meetupId/my-preferences', authenticateToken, async (req,
 app.get('/api/meetups/:meetupId/my-preferences', authenticateToken, async (req, res) => {
   try {
     const { meetupId } = req.params;
-    const userId = req.user.userId;
+    const userId = req.user.id || req.user.userId;
     
     console.log('🔍 참가자 성향 답변 조회 요청:', { meetupId, userId });
     
@@ -1305,7 +1290,7 @@ app.get('/api/meetups/:meetupId/my-preferences', authenticateToken, async (req, 
 app.get('/api/meetups/:meetupId/participants-preferences', authenticateToken, async (req, res) => {
   try {
     const { meetupId } = req.params;
-    const userId = req.user.userId;
+    const userId = req.user.id || req.user.userId;
     
     console.log('📊 모임 참가자 성향 요약 조회 요청:', { meetupId, userId });
     
@@ -1383,7 +1368,7 @@ app.get('/api/meetups/:meetupId/participants-preferences', authenticateToken, as
 // 사용자 통계 조회 API (이전 버전과의 호환성을 위해 직접 정의)
 app.get('/api/user/stats', authenticateToken, async (req, res) => {
   try {
-    const userId = req.user.userId;
+    const userId = req.user.id || req.user.userId; // JWT 토큰에서 id 또는 userId 필드 사용
     
     // user_points 테이블에서 포인트 조회 (개발환경과 동일한 방식)
     const [pointsResult] = await sequelize.query(`
@@ -1434,7 +1419,9 @@ app.get('/api/user/stats', authenticateToken, async (req, res) => {
 });
 
 // API 라우터 설정
+console.log('🔗 등록 중: /api/users 라우터');
 app.use('/api/users', userRoutes);
+console.log('🔗 등록 중: /api/meetups 라우터');
 app.use('/api/meetups', meetupRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/notifications', notificationRoutes);

@@ -72,15 +72,29 @@ export interface PaginationInfo {
 }
 
 const userApiService = {
-  // 사용자 프로필 조회
+  // 사용자 프로필 조회 (토큰 검증 API를 사용)
   getProfile: async (): Promise<UserProfile> => {
     try {
-      console.log('👤 사용자 프로필 조회 요청');
-      const response = await apiClient.get('/user/profile');
-      console.log('✅ 사용자 프로필 조회 성공', response.data);
+      console.log('👤 사용자 프로필 조회 요청 (토큰 검증 API 사용)');
+      
+      // 저장된 토큰 가져오기
+      const token = typeof window !== 'undefined' && window.localStorage ? 
+        localStorage.getItem('token') : null;
+      
+      if (!token) {
+        throw new Error('토큰이 없습니다');
+      }
+
+      const response = await apiClient.post('/auth/verify-token', { token });
+      console.log('✅ 토큰 검증 성공 - 전체 응답:', response.data);
       console.log('🔍 response.data.user:', response.data.user);
-      console.log('🖼️ profileImage:', response.data.user?.profileImage);
-      return response.data.user; // .user 다시 추가
+      console.log('🖼️ response.data.user?.profileImage:', response.data.user?.profileImage);
+      
+      const userData = response.data.user;
+      console.log('🔄 최종 사용자 데이터:', userData);
+      console.log('🖼️ 최종 profileImage:', userData.profileImage);
+      
+      return userData;
     } catch (error) {
       console.error('❌ 사용자 프로필 조회 실패:', error);
       throw error;
@@ -191,7 +205,7 @@ const userApiService = {
     try {
       console.log('🔄 프로필 업데이트 요청', profileData);
 
-      const response = await apiClient.put('/user/profile', profileData);
+      const response = await apiClient.put('/users/profile', profileData);
 
       console.log('✅ 프로필 업데이트 성공');
       return response.data;
@@ -223,6 +237,19 @@ const userApiService = {
       return response.data.badges;
     } catch (error) {
       console.error('❌ 사용자 뱃지 조회 실패:', error);
+      throw error;
+    }
+  },
+
+  // 밥알지수 조회
+  getRiceIndex: async (): Promise<any> => {
+    try {
+      console.log('🍚 밥알지수 조회 요청');
+      const response = await apiClient.get('/user/rice-index');
+      console.log('✅ 밥알지수 조회 성공:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ 밥알지수 조회 실패:', error);
       throw error;
     }
   },

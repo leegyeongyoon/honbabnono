@@ -116,10 +116,24 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ navigation, user, onLogout 
   // 밥알 레벨 정보 로드 (점수는 store에서 가져옴)
   const loadRiceLevel = async () => {
     try {
+      console.log('🍚 밥알지수 API 요청 시작');
       const response = await apiClient.get('/user/rice-index');
+      console.log('🍚 밥알지수 API 응답:', response.data);
+      console.log('🍚 response.data.success:', response.data.success);
+      console.log('🍚 response.data.riceIndex:', response.data.riceIndex);
       if (response.data && response.data.success) {
+        console.log('🍚 밥알지수 데이터 설정:', response.data);
         setRiceLevel(response.data.level);
         setRiceIndexData(response.data);
+        
+        // 사용자 store의 babAlScore 업데이트
+        const { updateBabAlScore } = useUserStore.getState();
+        updateBabAlScore(response.data.riceIndex);
+        console.log('🍚 사용자 store babAlScore 업데이트:', response.data.riceIndex);
+        
+        console.log('🍚 riceIndexData 설정 완료:', response.data);
+      } else {
+        console.log('🍚 API 응답 조건 불만족 - success:', response.data?.success);
       }
     } catch (error) {
       console.error('밥알 레벨 로드 실패:', error);

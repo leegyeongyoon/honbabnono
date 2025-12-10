@@ -7,7 +7,10 @@ const authenticateToken = require('../middleware/auth');
 // 카카오 OAuth는 main server에서 처리됨
 
 // 프로필 조회 (인증 필요)
-router.get('/profile', authenticateToken, userController.getProfile);
+router.get('/profile', (req, res, next) => {
+  console.log('🔥 [USERS ROUTE] /profile 라우트 진입!');
+  next();
+}, authenticateToken, userController.getProfile);
 
 // 프로필 업데이트 (인증 필요)
 router.put('/profile', authenticateToken, userController.updateProfile);

@@ -73,7 +73,7 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ user: propsUser }) => {
   const user = propsUser || storeUser;
 
   const [userStats, setUserStats] = useState({
-    riceIndex: 84,
+    riceIndex: 0,
     availablePoints: 98500,
     totalMeetups: 12,
     hostedMeetups: 5,
@@ -91,7 +91,18 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ user: propsUser }) => {
         
         // 사용자 통계 가져오기
         const stats = await userApiService.getUserStats();
-        setUserStats(stats);
+        
+        // 밥알지수 가져오기
+        const riceIndexResponse = await userApiService.getRiceIndex();
+        console.log('🍚 웹 밥알지수 API 응답:', riceIndexResponse);
+        
+        // 통계에 밥알지수 추가
+        const updatedStats = {
+          ...stats,
+          riceIndex: riceIndexResponse?.riceIndex || 0
+        };
+        setUserStats(updatedStats);
+        console.log('🍚 웹 최종 userStats:', updatedStats);
         
         // 프로필 정보 가져오기
         const userData = await userApiService.getProfile();
