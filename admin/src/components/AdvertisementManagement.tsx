@@ -76,6 +76,12 @@ interface ApiResponse<T> {
 }
 
 const AdvertisementManagement: React.FC = () => {
+  // 공통 이미지 URL 처리 함수
+  const getImageUrl = (url: string | undefined) => {
+    if (!url) return '';
+    return url.startsWith('http') ? url : `${API_BASE_URL}${url}`;
+  };
+
   const [advertisements, setAdvertisements] = useState<Advertisement[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
@@ -311,7 +317,7 @@ const AdvertisementManagement: React.FC = () => {
       startDate: advertisement.startDate ? new Date(advertisement.startDate).toISOString().split('T')[0] : '',
       endDate: advertisement.endDate ? new Date(advertisement.endDate).toISOString().split('T')[0] : '',
     });
-    setImagePreview(advertisement.imageUrl.startsWith('http') ? advertisement.imageUrl : `${API_BASE_URL}${advertisement.imageUrl}`);
+    setImagePreview(getImageUrl(advertisement.imageUrl));
     setEditDialogOpen(true);
   };
 
@@ -415,9 +421,7 @@ const AdvertisementManagement: React.FC = () => {
                   </TableHead>
                   <TableBody>
                     {advertisements.map((advertisement) => {
-                      const imageUrl = advertisement.imageUrl.startsWith('http') 
-                        ? advertisement.imageUrl 
-                        : `${API_BASE_URL}${advertisement.imageUrl}`;
+                      const imageUrl = getImageUrl(advertisement.imageUrl);
                       
                       return (
                         <TableRow key={advertisement.id}>

@@ -134,6 +134,9 @@ const BlockedUserManagement: React.FC = () => {
           sortBy,
           sortOrder,
         },
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('adminToken')}`
+        },
       });
 
       if (response.data.success) {
@@ -155,6 +158,9 @@ const BlockedUserManagement: React.FC = () => {
         data: BlockingStats;
       }>(`${process.env.REACT_APP_API_URL}/admin/blocking-stats`, {
         params: { period: 30 },
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('adminToken')}`
+        },
       });
 
       if (response.data.success) {
@@ -169,7 +175,11 @@ const BlockedUserManagement: React.FC = () => {
     if (!selectedUser) return;
 
     try {
-      await axios.delete(`${process.env.REACT_APP_API_URL}/admin/users/${selectedUser.user.id}/unblock`);
+      await axios.delete(`${process.env.REACT_APP_API_URL}/admin/users/${selectedUser.user.id}/unblock`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('adminToken')}`
+        },
+      });
       setUnblockDialogOpen(false);
       setSelectedUser(null);
       fetchBlockedUsers();
@@ -185,6 +195,10 @@ const BlockedUserManagement: React.FC = () => {
     try {
       await axios.post(`${process.env.REACT_APP_API_URL}/admin/users/${blockUserData.userId}/block`, {
         reason: blockReason,
+      }, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('adminToken')}`
+        },
       });
       setBlockDialogOpen(false);
       setBlockUserData(null);
@@ -202,6 +216,10 @@ const BlockedUserManagement: React.FC = () => {
     try {
       await axios.post(`${process.env.REACT_APP_API_URL}/admin/users/bulk-unblock`, {
         userIds: selectedUsers,
+      }, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('adminToken')}`
+        },
       });
       setBulkUnblockDialogOpen(false);
       setSelectedUsers([]);
