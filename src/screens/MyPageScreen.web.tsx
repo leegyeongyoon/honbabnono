@@ -379,9 +379,6 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ user: propsUser }) => {
         <Text style={styles.headerTitle}>마이페이지</Text>
         <View style={styles.headerButtons}>
           <TouchableOpacity style={styles.headerButton}>
-            <Icon name="search" size={24} color={COLORS.text.primary} />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.headerButton}>
             <Icon name="bell" size={24} color={COLORS.text.primary} />
           </TouchableOpacity>
         </View>

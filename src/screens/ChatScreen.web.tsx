@@ -492,9 +492,6 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation }) => {
         <Text style={styles.headerTitle}>채팅</Text>
         <View style={styles.headerIcons}>
           <TouchableOpacity style={styles.headerIcon}>
-            <Icon name="search" size={20} color={COLORS.text.primary} />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.headerIcon}>
             <Icon name="bell" size={20} color={COLORS.text.primary} />
           </TouchableOpacity>
         </View>
