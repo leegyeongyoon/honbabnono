@@ -47,9 +47,7 @@ ChartJS.register(
   ArcElement
 );
 
-const API_BASE_URL = process.env.NODE_ENV === 'development' 
-  ? 'http://localhost:3001' 
-  : 'https://your-production-api.com';
+const API_BASE_URL = 'http://localhost:3001';
 
 interface DailyStats {
   date: string;
