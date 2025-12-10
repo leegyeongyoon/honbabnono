@@ -14,6 +14,7 @@ import { useMeetups } from '../hooks/useMeetups';
 import { formatKoreanDateTime } from '../utils/dateUtils';
 import { Icon } from '../components/Icon';
 import { FOOD_CATEGORIES } from '../constants/categories';
+import { NotificationBell } from '../components/NotificationBell';
 
 
 const MeetupListScreen = () => {
@@ -77,7 +78,13 @@ const MeetupListScreen = () => {
           <Icon name="chevron-left" size={24} color={COLORS.text.primary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>모든 모임</Text>
-        <View style={styles.headerRight} />
+        <NotificationBell
+          onPress={() => {
+            console.log('🔔 알림 버튼 클릭됨');
+          }}
+          color={COLORS.text.primary}
+          size={20}
+        />
       </View>
 
       {/* 필터 버튼들 */}
@@ -187,20 +194,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: COLORS.neutral.white,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    paddingTop: 52,
     ...SHADOWS.small,
   },
   backButton: {
     padding: 8,
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
+    fontSize: 17,
+    fontWeight: '700',
     color: COLORS.text.primary,
-  },
-  headerRight: {
-    width: 40,
   },
   filterContainer: {
     flexDirection: 'row',

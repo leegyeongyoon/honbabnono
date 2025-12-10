@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl } 
 import { useNavigate } from 'react-router-dom';
 import { COLORS, SHADOWS } from '../styles/colors';
 import { Icon } from '../components/Icon';
+import { NotificationBell } from '../components/NotificationBell';
 import MeetupCard from '../components/MeetupCard';
 import { useUserStore } from '../store/userStore';
 import userApiService, { JoinedMeetup, HostedMeetup } from '../services/userApiService';
@@ -336,6 +337,14 @@ const MyMeetupsScreen: React.FC<MyMeetupsScreenProps> = ({ user: propsUser }) =>
       {/* 헤더 */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>내 모임</Text>
+        <NotificationBell
+          userId={user?.id?.toString()}
+          onPress={() => {
+            console.log('🔔 알림 버튼 클릭됨');
+          }}
+          color={COLORS.text.primary}
+          size={20}
+        />
       </View>
 
       {/* 탭 버튼 */}
@@ -390,17 +399,19 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.neutral.background,
   },
   header: {
-    backgroundColor: 'white',
-    paddingHorizontal: 16,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
     paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.neutral.grey200,
+    paddingTop: 52,
+    backgroundColor: COLORS.neutral.white,
+    ...SHADOWS.small,
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
+    fontSize: 17,
+    fontWeight: '700',
     color: COLORS.text.primary,
-    textAlign: 'center',
   },
   tabContainer: {
     flexDirection: 'row',

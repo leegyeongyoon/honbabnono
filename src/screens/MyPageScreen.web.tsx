@@ -498,9 +498,10 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 16,
+    paddingVertical: 16,
+    paddingTop: 52,
     backgroundColor: COLORS.neutral.white,
+    ...SHADOWS.small,
     ...SHADOWS.small,
   },
   headerTitle: {

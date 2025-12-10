@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-nati
 import { useNavigate } from 'react-router-dom';
 import { COLORS, SHADOWS } from '../styles/colors';
 import { Icon } from '../components/Icon';
+import { NotificationBell } from '../components/NotificationBell';
 import apiClient from '../services/apiClient';
 
 interface JoinedMeetup {
@@ -162,7 +163,13 @@ const JoinedMeetupsScreen: React.FC = () => {
           <Icon name="arrow-left" size={24} color={COLORS.text.primary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>참여한 모임</Text>
-        <View style={styles.placeholder} />
+        <NotificationBell
+          onPress={() => {
+            console.log('🔔 알림 버튼 클릭됨');
+          }}
+          color={COLORS.text.primary}
+          size={20}
+        />
       </View>
 
       {/* 탭 선택 */}
@@ -233,8 +240,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 16,
+    paddingVertical: 16,
+    paddingTop: 52,
     backgroundColor: COLORS.neutral.white,
     ...SHADOWS.small,
   },
@@ -242,12 +249,9 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   headerTitle: {
-    fontSize: 20,
+    fontSize: 17,
     fontWeight: '700',
     color: COLORS.text.primary,
-  },
-  placeholder: {
-    width: 32,
   },
   tabContainer: {
     flexDirection: 'row',
