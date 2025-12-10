@@ -1690,12 +1690,12 @@ apiRouter.get('/meetups/:id', async (req, res) => {
     
     console.log('🔍 모임 상세 조회 요청:', { meetupId: id });
     
-    // 조회수 증가
-    await pool.query(`
-      UPDATE meetups 
-      SET view_count = COALESCE(view_count, 0) + 1
-      WHERE id = $1
-    `, [id]);
+    // 조회수 증가 (view_count 컬럼이 없으므로 주석 처리)
+    // await pool.query(`
+    //   UPDATE meetups 
+    //   SET view_count = COALESCE(view_count, 0) + 1
+    //   WHERE id = $1
+    // `, [id]);
     
     // 모임 정보 조회
     const meetupResult = await pool.query(`
@@ -1720,7 +1720,7 @@ apiRouter.get('/meetups/:id', async (req, res) => {
         m.tags,
         m.age_range as "ageRange",
         m.gender_preference as "genderPreference",
-        m.view_count as "viewCount",
+        0 as "viewCount", -- view_count 컬럼이 없으므로 기본값 0
         m.created_at as "createdAt",
         m.updated_at as "updatedAt",
         u.id as "host_id",
