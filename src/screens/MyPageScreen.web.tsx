@@ -74,10 +74,10 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ user: propsUser }) => {
 
   const [userStats, setUserStats] = useState({
     riceIndex: 0,
-    availablePoints: 98500,
-    totalMeetups: 12,
-    hostedMeetups: 5,
-    reviewCount: 8
+    availablePoints: 0,
+    totalMeetups: 0,
+    hostedMeetups: 0,
+    reviewCount: 0
   });
 
   const [loading, setLoading] = useState(true);
