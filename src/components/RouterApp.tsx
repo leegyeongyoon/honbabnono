@@ -31,6 +31,8 @@ import RecentViewsScreen from '../screens/RecentViewsScreen.web';
 import BlockedUsersScreen from '../screens/BlockedUsersScreen.web';
 import NotificationScreen from '../screens/NotificationScreen.web';
 import AdvertisementDetailScreen from '../screens/AdvertisementDetailScreen';
+import NoticesScreen from '../screens/NoticesScreen.web';
+import NoticeDetailScreen from '../screens/NoticeDetailScreen.web';
 
 // Components
 import BottomTabBar from './BottomTabBar';
@@ -398,6 +400,20 @@ const RouterApp: React.FC = () => {
               <ProtectedRoute>
                 <PrivacySettingsScreen />
               </ProtectedRoute>
+            } 
+          />
+
+          <Route 
+            path="/notices" 
+            element={
+              <NoticesScreen />
+            } 
+          />
+
+          <Route 
+            path="/notices/:id" 
+            element={
+              <NoticeDetailScreen />
             } 
           />
 

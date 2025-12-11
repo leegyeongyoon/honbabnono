@@ -9121,15 +9121,69 @@ apiRouter.post('/users/use-invite-code', authenticateToken, async (req, res) => 
 apiRouter.get('/notices', async (req, res) => {
   try {
     const result = await pool.query(`
-      SELECT id, title, content, created_at, is_important
+      SELECT 
+        id, 
+        title, 
+        content, 
+        COALESCE(type, 'general') as type,
+        created_at, 
+        updated_at,
+        COALESCE(is_pinned, false) as is_pinned,
+        COALESCE(views, 0) as views
       FROM notices
       WHERE is_active = true
-      ORDER BY is_important DESC, created_at DESC
+      ORDER BY is_pinned DESC, created_at DESC
     `);
 
-    res.json({ success: true, data: result.rows });
+    res.json({ 
+      success: true, 
+      notices: result.rows
+    });
   } catch (error) {
     console.error('공지사항 조회 오류:', error);
+    res.status(500).json({ success: false, message: '공지사항을 불러올 수 없습니다.' });
+  }
+});
+
+// 공지사항 상세 조회
+apiRouter.get('/notices/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // 조회수 증가
+    await pool.query(`
+      UPDATE notices 
+      SET views = COALESCE(views, 0) + 1 
+      WHERE id = $1 AND is_active = true
+    `, [id]);
+    
+    const result = await pool.query(`
+      SELECT 
+        id, 
+        title, 
+        content, 
+        COALESCE(type, 'general') as type,
+        created_at, 
+        updated_at,
+        COALESCE(is_pinned, false) as is_pinned,
+        COALESCE(views, 0) as views
+      FROM notices
+      WHERE id = $1 AND is_active = true
+    `, [id]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ 
+        success: false, 
+        message: '공지사항을 찾을 수 없습니다.' 
+      });
+    }
+
+    res.json({ 
+      success: true, 
+      notice: result.rows[0]
+    });
+  } catch (error) {
+    console.error('공지사항 상세 조회 오류:', error);
     res.status(500).json({ success: false, message: '공지사항을 불러올 수 없습니다.' });
   }
 });
@@ -13863,6 +13917,166 @@ const initializeStatistics = async () => {
     console.error('❌ 초기 통계 수집 실패:', error);
   }
 };
+
+// ============================================
+// 관리자 공지사항 API
+// ============================================
+
+// 관리자 공지사항 목록 조회 (페이지네이션 포함)
+apiRouter.get('/admin/notices', authenticateAdmin, async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const offset = (page - 1) * limit;
+
+    // 총 개수 조회
+    const countResult = await pool.query('SELECT COUNT(*) FROM notices');
+    const totalCount = parseInt(countResult.rows[0].count);
+    const totalPages = Math.ceil(totalCount / limit);
+
+    // 공지사항 목록 조회
+    const result = await pool.query(`
+      SELECT 
+        id, 
+        title, 
+        content, 
+        COALESCE(type, 'general') as type,
+        created_at, 
+        updated_at,
+        COALESCE(is_pinned, false) as is_pinned,
+        COALESCE(is_active, true) as is_active,
+        COALESCE(views, 0) as views
+      FROM notices
+      ORDER BY is_pinned DESC, created_at DESC
+      LIMIT $1 OFFSET $2
+    `, [limit, offset]);
+
+    res.json({ 
+      success: true, 
+      data: {
+        notices: result.rows,
+        totalPages,
+        currentPage: page,
+        totalCount
+      }
+    });
+  } catch (error) {
+    console.error('관리자 공지사항 조회 오류:', error);
+    res.status(500).json({ success: false, message: '공지사항 조회에 실패했습니다.' });
+  }
+});
+
+// 관리자 공지사항 생성
+apiRouter.post('/admin/notices', authenticateAdmin, async (req, res) => {
+  try {
+    const { title, content, type = 'general', is_pinned = false, is_active = true } = req.body;
+
+    if (!title || !content) {
+      return res.status(400).json({ 
+        success: false, 
+        error: '제목과 내용은 필수 항목입니다.' 
+      });
+    }
+
+    const result = await pool.query(`
+      INSERT INTO notices (title, content, type, is_pinned, is_active, created_at, updated_at)
+      VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
+      RETURNING id
+    `, [title, content, type, is_pinned, is_active]);
+
+    res.json({ 
+      success: true, 
+      message: '공지사항이 생성되었습니다.',
+      data: { id: result.rows[0].id }
+    });
+  } catch (error) {
+    console.error('공지사항 생성 오류:', error);
+    res.status(500).json({ success: false, error: '공지사항 생성에 실패했습니다.' });
+  }
+});
+
+// 관리자 공지사항 수정
+apiRouter.put('/admin/notices/:id', authenticateAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { title, content, type, is_pinned, is_active } = req.body;
+
+    if (!title || !content) {
+      return res.status(400).json({ 
+        success: false, 
+        error: '제목과 내용은 필수 항목입니다.' 
+      });
+    }
+
+    const result = await pool.query(`
+      UPDATE notices 
+      SET title = $1, content = $2, type = $3, is_pinned = $4, is_active = $5, updated_at = NOW()
+      WHERE id = $6
+      RETURNING id
+    `, [title, content, type, is_pinned, is_active, id]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ 
+        success: false, 
+        error: '공지사항을 찾을 수 없습니다.' 
+      });
+    }
+
+    res.json({ 
+      success: true, 
+      message: '공지사항이 수정되었습니다.'
+    });
+  } catch (error) {
+    console.error('공지사항 수정 오류:', error);
+    res.status(500).json({ success: false, error: '공지사항 수정에 실패했습니다.' });
+  }
+});
+
+// 관리자 공지사항 고정 상태 변경
+apiRouter.patch('/admin/notices/:id/pin', authenticateAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { is_pinned } = req.body;
+
+    await pool.query(`
+      UPDATE notices 
+      SET is_pinned = $1, updated_at = NOW()
+      WHERE id = $2
+    `, [is_pinned, id]);
+
+    res.json({ 
+      success: true, 
+      message: `공지사항이 ${is_pinned ? '고정' : '고정 해제'}되었습니다.`
+    });
+  } catch (error) {
+    console.error('공지사항 고정 상태 변경 오류:', error);
+    res.status(500).json({ success: false, error: '고정 상태 변경에 실패했습니다.' });
+  }
+});
+
+// 관리자 공지사항 삭제
+apiRouter.delete('/admin/notices/:id', authenticateAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const result = await pool.query('DELETE FROM notices WHERE id = $1 RETURNING id', [id]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ 
+        success: false, 
+        error: '공지사항을 찾을 수 없습니다.' 
+      });
+    }
+
+    res.json({ 
+      success: true, 
+      message: '공지사항이 삭제되었습니다.'
+    });
+  } catch (error) {
+    console.error('공지사항 삭제 오류:', error);
+    res.status(500).json({ success: false, error: '공지사항 삭제에 실패했습니다.' });
+  }
+});
 
 startServer();
 
