@@ -252,19 +252,12 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
       </ScrollView>
 
       {/* 플로팅 버튼 */}
-      <TouchableOpacity style={styles.fab} onPress={() => setShowCreateMeetup(true)}>
+      <TouchableOpacity style={styles.fab} onPress={() => navigate('/create-meetup')}>
         <Icon name="plus" size={28} color={COLORS.neutral.white} />
       </TouchableOpacity>
 
 
       {/* 모달들 */}
-      <Modal
-        visible={showCreateMeetup}
-        animationType="slide"
-        presentationStyle="pageSheet"
-      >
-        <CreateMeetupScreen onClose={() => setShowCreateMeetup(false)} />
-      </Modal>
 
       <NeighborhoodSelector
         visible={showNeighborhoodSelector}

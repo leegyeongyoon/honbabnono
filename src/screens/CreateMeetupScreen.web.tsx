@@ -15,6 +15,12 @@ import { useToast } from '../hooks/useToast';
 import { useRouterNavigation } from '../components/RouterNavigation';
 import { FOOD_CATEGORY_NAMES, PRICE_RANGES } from '../constants/categories';
 import { DepositSelector } from '../components/DepositSelector';
+import { Calendar, momentLocalizer } from 'react-big-calendar';
+import moment from 'moment';
+import 'react-big-calendar/lib/css/react-big-calendar.css';
+import '../styles/big-calendar.css';
+
+const localizer = momentLocalizer(moment);
 
 // Window 타입 확장
 declare global {
@@ -333,6 +339,43 @@ const CreateMeetupScreen: React.FC<CreateMeetupScreenProps> = ({ user }) => {
     imagePreview: '' as string,
     allowDirectChat: false,
   });
+
+  // 달력 및 시간 선택기용 상태
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [selectedPeriod, setSelectedPeriod] = useState('오후');
+  const [selectedHour, setSelectedHour] = useState(6);
+  const [selectedMinute, setSelectedMinute] = useState(0);
+
+  // 시간 업데이트 함수
+  const updateSelectedTime = () => {
+    let hour24 = selectedHour;
+    if (selectedPeriod === '오후' && selectedHour !== 12) {
+      hour24 = selectedHour + 12;
+    } else if (selectedPeriod === '오전' && selectedHour === 12) {
+      hour24 = 0;
+    }
+    
+    const timeString = `${hour24.toString().padStart(2, '0')}:${selectedMinute.toString().padStart(2, '0')}`;
+    setFormData(prev => ({ ...prev, time: timeString }));
+    
+    if (selectedDate) {
+      const dateString = selectedDate.toISOString().split('T')[0];
+      setFormData(prev => ({ ...prev, date: dateString }));
+    }
+  };
+
+  // 시간 업데이트 효과
+  useEffect(() => {
+    updateSelectedTime();
+  }, [selectedPeriod, selectedHour, selectedMinute, selectedDate]);
+
+  // 달력 날짜 선택 핸들러
+  const handleSelectSlot = (slotInfo: any) => {
+    if (slotInfo.start) {
+      const newDate = new Date(slotInfo.start);
+      setSelectedDate(newDate);
+    }
+  };
 
   const [preferenceFilter, setPreferenceFilter] = useState({
     genderFilter: 'anyone',
@@ -768,37 +811,130 @@ const CreateMeetupScreen: React.FC<CreateMeetupScreenProps> = ({ user }) => {
 
         {/* 일시 정보 */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>일시 정보</Text>
+          <Text style={styles.sectionTitle}>언제 만날까요?</Text>
+          <Text style={styles.sectionSubtitle}>달력에서 날짜를 선택하고, 시간을 입력해주세요</Text>
           
-          <View style={styles.row}>
-            <View style={[styles.inputGroup, { flex: 1, marginRight: 10 }]}>
-              <Text style={styles.label}>날짜 *</Text>
-              <input
-                type="date"
-                style={{
-                  ...styles.input as any,
-                  fontFamily: 'inherit',
-                  border: '1px solid #e2e8f0',
-                }}
-                value={formData.date}
-                onChange={(e) => handleInputChange('date', e.target.value)}
-                min={new Date().toISOString().split('T')[0]}
-              />
-            </View>
+          <View style={styles.calendarContainer}>
+            <Calendar
+              localizer={localizer}
+              events={selectedDate ? [{
+                id: 1,
+                title: '모임 일정',
+                start: selectedDate,
+                end: new Date(selectedDate.getTime() + 60 * 60 * 1000),
+                resource: null
+              }] : []}
+              startAccessor="start"
+              endAccessor="end"
+              style={{ height: 280 }}
+              onSelectSlot={handleSelectSlot}
+              onSelectEvent={() => {}}
+              selectable={true}
+              popup={true}
+              views={['month']}
+              defaultView='month'
+              step={60}
+              showMultiDayTimes
+              min={new Date(0, 0, 0, 9, 0, 0)}
+              max={new Date(0, 0, 0, 23, 0, 0)}
+              messages={{
+                next: "다음",
+                previous: "이전",
+                today: "오늘",
+                month: "월",
+                week: "주",
+                day: "일"
+              }}
+              className="custom-big-calendar"
+            />
+          </View>
+
+          <View style={styles.timePickerContainer}>
+            <Text style={styles.timePickerLabel}>시간 선택</Text>
             
-            <View style={[styles.inputGroup, { flex: 1, marginLeft: 10 }]}>
-              <Text style={styles.label}>시간 *</Text>
-              <input
-                type="time"
-                style={{
-                  ...styles.input as any,
-                  fontFamily: 'inherit',
-                  border: '1px solid #e2e8f0',
-                }}
-                value={formData.time}
-                onChange={(e) => handleInputChange('time', e.target.value)}
-              />
+            <View style={styles.compactTimePickerWrapper}>
+              {/* 오전/오후 */}
+              <View style={styles.compactTimeSection}>
+                <View style={styles.timeToggleContainer}>
+                  {['오전', '오후'].map((period) => (
+                    <TouchableOpacity
+                      key={period}
+                      style={[
+                        styles.timeToggleButton,
+                        selectedPeriod === period ? styles.selectedTimeToggleButton : null
+                      ]}
+                      onPress={() => setSelectedPeriod(period)}
+                    >
+                      <Text style={[
+                        styles.timeToggleText,
+                        selectedPeriod === period ? styles.selectedTimeToggleText : null
+                      ]}>
+                        {period}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              {/* 시간:분 */}
+              <View style={styles.compactTimeSection}>
+                <View style={styles.timeDisplayContainer}>
+                  <TouchableOpacity style={styles.timeSelector} onPress={() => {
+                    const newHour = selectedHour === 12 ? 1 : selectedHour + 1;
+                    setSelectedHour(newHour);
+                  }}>
+                    <Text style={styles.timeArrow}>▲</Text>
+                  </TouchableOpacity>
+                  
+                  <View style={styles.timeValueContainer}>
+                    <Text style={styles.timeValue}>{selectedHour.toString().padStart(2, '0')}</Text>
+                  </View>
+                  
+                  <TouchableOpacity style={styles.timeSelector} onPress={() => {
+                    const newHour = selectedHour === 1 ? 12 : selectedHour - 1;
+                    setSelectedHour(newHour);
+                  }}>
+                    <Text style={styles.timeArrow}>▼</Text>
+                  </TouchableOpacity>
+                </View>
+
+                <Text style={styles.timeSeparator}>:</Text>
+
+                <View style={styles.timeDisplayContainer}>
+                  <TouchableOpacity style={styles.timeSelector} onPress={() => {
+                    const newMinute = selectedMinute === 55 ? 0 : selectedMinute + 5;
+                    setSelectedMinute(newMinute);
+                  }}>
+                    <Text style={styles.timeArrow}>▲</Text>
+                  </TouchableOpacity>
+                  
+                  <View style={styles.timeValueContainer}>
+                    <Text style={styles.timeValue}>{selectedMinute.toString().padStart(2, '0')}</Text>
+                  </View>
+                  
+                  <TouchableOpacity style={styles.timeSelector} onPress={() => {
+                    const newMinute = selectedMinute === 0 ? 55 : selectedMinute - 5;
+                    setSelectedMinute(newMinute);
+                  }}>
+                    <Text style={styles.timeArrow}>▼</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
             </View>
+
+            {/* 선택된 일시 표시 */}
+            {selectedDate && (
+              <View style={styles.selectedDateTimeDisplay}>
+                <Text style={styles.selectedDateTimeText}>
+                  ✨ 선택된 일정: {selectedDate.toLocaleDateString('ko-KR', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    weekday: 'long'
+                  })} {selectedPeriod} {selectedHour.toString().padStart(2, '0')}:{selectedMinute.toString().padStart(2, '0')}
+                </Text>
+              </View>
+            )}
           </View>
         </View>
 
@@ -1500,6 +1636,108 @@ const styles = StyleSheet.create({
   },
   depositToggleInfo: {
     flex: 1,
+  },
+  // Calendar and Time Picker Styles
+  calendarContainer: {
+    marginBottom: 20,
+    backgroundColor: COLORS.neutral.white,
+    borderRadius: 16,
+    overflow: 'hidden',
+    shadowColor: COLORS.neutral.grey400,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  timePickerContainer: {
+    marginTop: 16,
+    padding: 16,
+    backgroundColor: COLORS.primary.light,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: COLORS.neutral.grey200,
+  },
+  timePickerLabel: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: COLORS.text.primary,
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  compactTimePickerWrapper: {
+    alignItems: 'center',
+  },
+  compactTimeSection: {
+    marginBottom: 16,
+  },
+  timeToggleContainer: {
+    flexDirection: 'row',
+    backgroundColor: COLORS.neutral.white,
+    borderRadius: 12,
+    padding: 4,
+    marginBottom: 16,
+  },
+  timeToggleButton: {
+    flex: 1,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  selectedTimeToggleButton: {
+    backgroundColor: COLORS.primary.main,
+  },
+  timeToggleText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.text.secondary,
+  },
+  selectedTimeToggleText: {
+    color: COLORS.text.white,
+  },
+  timeDisplayContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.neutral.white,
+    borderRadius: 12,
+    padding: 16,
+  },
+  timeSelector: {
+    alignItems: 'center',
+  },
+  timeArrow: {
+    padding: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  timeValueContainer: {
+    minWidth: 60,
+    height: 48,
+    backgroundColor: COLORS.primary.accent,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    margin: 4,
+  },
+  timeValue: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: COLORS.text.primary,
+  },
+  timeSeparator: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: COLORS.text.primary,
+    marginHorizontal: 8,
+  },
+  selectedDateTimeDisplay: {
+    marginTop: 16,
+    padding: 16,
+    backgroundColor: COLORS.primary.accent,
+    borderRadius: 12,
+    alignItems: 'center',
   },
   depositToggleTitle: {
     fontSize: 16,
