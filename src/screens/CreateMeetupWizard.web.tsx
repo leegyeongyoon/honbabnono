@@ -1,0 +1,2276 @@
+import React, { useState, useRef, useEffect } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TextInput,
+  TouchableOpacity,
+  Alert,
+} from 'react-native';
+import { COLORS, SHADOWS } from '../styles/colors';
+import { Icon } from '../components/Icon';
+import { useToast } from '../hooks/useToast';
+import { useRouterNavigation } from '../components/RouterNavigation';
+import { FOOD_CATEGORIES, PRICE_RANGES } from '../constants/categories';
+import '../styles/datetime.css';
+// import { Calendar, momentLocalizer } from 'react-big-calendar';
+// import moment from 'moment';
+// import 'react-big-calendar/lib/css/react-big-calendar.css';
+import '../styles/big-calendar.css';
+// import DatePicker from 'react-datepicker';
+// import 'react-datepicker/dist/react-datepicker.css';
+// import '../styles/datepicker.css';
+import { Wrapper } from '@googlemaps/react-wrapper';
+
+// Google Maps 타입 선언
+declare global {
+  interface Window {
+    google: typeof google;
+  }
+}
+
+interface CreateMeetupWizardProps {
+  navigation?: any;
+  user?: any;
+}
+
+interface MeetupData {
+  category: string;
+  date: string;
+  time: string;
+  datetime: Date | null;
+  maxParticipants: number;
+  genderPreference: string;
+  ageRange: string;
+  location: string;
+  address: string;
+  latitude: number;
+  longitude: number;
+  title: string;
+  description: string;
+  priceRange: string;
+  deposit: number;
+}
+
+// const localizer = momentLocalizer(moment);
+
+// Google Maps 컴포넌트
+interface MapComponentProps {
+  onMapLoad: (map: any) => void;
+  onLocationSelect: (location: { latLng: { lat: number; lng: number }; address: string }) => void;
+}
+
+const MapComponent: React.FC<MapComponentProps> = ({ onMapLoad, onLocationSelect }) => {
+  const ref = React.useRef<HTMLDivElement>(null);
+  const [map, setMap] = React.useState<any>(null);
+
+  React.useEffect(() => {
+    if (ref.current && !map && (window as any).google) {
+      const mapInstance = new (window as any).google.maps.Map(ref.current, {
+        center: { lat: 37.5665, lng: 126.9780 }, // 서울 시청 좌표
+        zoom: 12,
+        mapTypeControl: false,
+        streetViewControl: false,
+        fullscreenControl: false,
+      });
+      
+      mapInstance.addListener('click', (e: any) => {
+        if (e.latLng) {
+          const geocoder = new (window as any).google.maps.Geocoder();
+          geocoder.geocode({ location: e.latLng }, (results: any, status: any) => {
+            if (status === 'OK' && results && results[0]) {
+              onLocationSelect({
+                latLng: { lat: e.latLng!.lat(), lng: e.latLng!.lng() },
+                address: results[0].formatted_address
+              });
+            }
+          });
+        }
+      });
+      
+      setMap(mapInstance);
+      onMapLoad(mapInstance);
+    }
+  }, [ref, map, onMapLoad, onLocationSelect]);
+
+  return <div ref={ref} style={{ height: '200px', width: '100%', borderRadius: '12px' }} />;
+};
+
+const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
+  const navigation = useRouterNavigation();
+  const { showToast } = useToast();
+  
+  const [currentStep, setCurrentStep] = useState(1);
+  const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
+  const [selectedTime, setSelectedTime] = useState('18:00');
+  const [selectedPeriod, setSelectedPeriod] = useState('오후'); // 오전/오후
+  const [selectedHour, setSelectedHour] = useState(6); // 1-12
+  const [selectedMinute, setSelectedMinute] = useState(0); // 0, 5, 10, ... 55
+
+  // 모달 상태
+  const [showDateModal, setShowDateModal] = useState(false);
+  const [showTimeModal, setShowTimeModal] = useState(false);
+  const [showAlarmModal, setShowAlarmModal] = useState(false);
+  
+  // 알림 설정
+  const [selectedAlarm, setSelectedAlarm] = useState('30분 전');
+  
+  // 연령 범위 설정
+  const [showAgeModal, setShowAgeModal] = useState(false);
+  const [minAge, setMinAge] = useState(20);
+  const [maxAge, setMaxAge] = useState(30);
+  
+  // 위치 설정
+  const [showLocationModal, setShowLocationModal] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  
+  // Google Maps 관련 state
+  const [mapInstance, setMapInstance] = useState<any>(null);
+  const [selectedLatLng, setSelectedLatLng] = useState<{lat: number, lng: number} | null>(null);
+  
+  // 서울 주요 지역 데이터
+  const seoulLocations = [
+    { name: '강남역', district: '강남구', fullAddress: '서울특별시 강남구 강남역 일대' },
+    { name: '홍대입구역', district: '마포구', fullAddress: '서울특별시 마포구 홍대입구역 일대' },
+    { name: '명동역', district: '중구', fullAddress: '서울특별시 중구 명동역 일대' },
+    { name: '이태원역', district: '용산구', fullAddress: '서울특별시 용산구 이태원역 일대' },
+    { name: '신촌역', district: '서대문구', fullAddress: '서울특별시 서대문구 신촌역 일대' },
+    { name: '건대입구역', district: '광진구', fullAddress: '서울특별시 광진구 건대입구역 일대' },
+    { name: '잠실역', district: '송파구', fullAddress: '서울특별시 송파구 잠실역 일대' },
+    { name: '종로3가역', district: '종로구', fullAddress: '서울특별시 종로구 종로3가역 일대' },
+    { name: '신림역', district: '관악구', fullAddress: '서울특별시 관악구 신림역 일대' },
+    { name: '노원역', district: '노원구', fullAddress: '서울특별시 노원구 노원역 일대' },
+    { name: '수원역', district: '수원시', fullAddress: '경기도 수원시 팔달구 수원역 일대' },
+    { name: '인천역', district: '인천시', fullAddress: '인천광역시 중구 인천역 일대' },
+  ];
+  const [meetupData, setMeetupData] = useState<MeetupData>({
+    category: '',
+    date: '',
+    time: '',
+    datetime: null,
+    maxParticipants: 4,
+    genderPreference: '상관없음',
+    ageRange: '전체',
+    location: '',
+    address: '',
+    latitude: 0,
+    longitude: 0,
+    title: '',
+    description: '',
+    priceRange: '',
+    deposit: 0,
+  });
+
+  // meetupData.datetime이 변경될 때 selectedDate와 selectedTime 동기화
+  useEffect(() => {
+    if (meetupData.datetime) {
+      setSelectedDate(meetupData.datetime);
+      const hours = meetupData.datetime.getHours();
+      const minutes = meetupData.datetime.getMinutes();
+      setSelectedTime(`${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`);
+      
+      // 오전/오후, 시간, 분 설정
+      if (hours >= 12) {
+        setSelectedPeriod('오후');
+        setSelectedHour(hours === 12 ? 12 : hours - 12);
+      } else {
+        setSelectedPeriod('오전');
+        setSelectedHour(hours === 0 ? 12 : hours);
+      }
+      setSelectedMinute(Math.floor(minutes / 5) * 5); // 5분 단위로 맞춤
+    }
+  }, [meetupData.datetime]);
+
+
+  // 시간 업데이트 효과 (selectedDate 제외하여 무한 루프 방지)
+  useEffect(() => {
+    if (selectedDate) {
+      let hour24 = selectedHour;
+      if (selectedPeriod === '오후' && selectedHour !== 12) {
+        hour24 = selectedHour + 12;
+      } else if (selectedPeriod === '오전' && selectedHour === 12) {
+        hour24 = 0;
+      }
+      
+      const newTime = `${hour24.toString().padStart(2, '0')}:${selectedMinute.toString().padStart(2, '0')}`;
+      setSelectedTime(newTime);
+      
+      const newDateTime = new Date(selectedDate);
+      newDateTime.setHours(hour24, selectedMinute);
+      updateMeetupData('datetime', newDateTime);
+      updateMeetupData('time', newTime);
+    }
+  }, [selectedPeriod, selectedHour, selectedMinute]);
+
+  const updateMeetupData = (field: keyof MeetupData, value: any) => {
+    setMeetupData(prev => ({ ...prev, [field]: value }));
+  };
+
+
+  const nextStep = () => {
+    if (currentStep < 7) {
+      setCurrentStep(prev => prev + 1);
+    }
+  };
+
+  const prevStep = () => {
+    if (currentStep > 1) {
+      setCurrentStep(prev => prev - 1);
+    }
+  };
+
+  const canProceed = () => {
+    switch (currentStep) {
+      case 1: return meetupData.category !== '';
+      case 2: return meetupData.datetime !== null;
+      case 3: return meetupData.maxParticipants > 0;
+      case 4: return true; // 성별/연령은 기본값 있음
+      case 5: return meetupData.location !== '';
+      case 6: return meetupData.title.trim() !== '';
+      case 7: return meetupData.deposit > 0; // 약속금 입력 필수
+      default: return false;
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (!canProceed()) {
+      showToast('모든 필수 정보를 입력해주세요.', 'error');
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        showToast('로그인이 필요합니다.', 'error');
+        return;
+      }
+
+      // FormData 생성
+      const formData = new FormData();
+      formData.append('title', meetupData.title);
+      formData.append('description', meetupData.description);
+      formData.append('category', meetupData.category);
+      formData.append('location', meetupData.location);
+      formData.append('address', meetupData.address);
+      formData.append('latitude', meetupData.latitude.toString());
+      formData.append('longitude', meetupData.longitude.toString());
+      formData.append('date', meetupData.date);
+      formData.append('time', meetupData.time);
+      formData.append('maxParticipants', meetupData.maxParticipants.toString());
+      formData.append('priceRange', meetupData.priceRange);
+      formData.append('deposit', meetupData.deposit.toString());
+      formData.append('genderPreference', meetupData.genderPreference);
+      formData.append('ageRange', meetupData.ageRange);
+
+      console.log('📤 모임 생성 요청:', {
+        title: meetupData.title,
+        description: meetupData.description,
+        category: meetupData.category,
+        location: meetupData.location,
+        date: meetupData.date,
+        time: meetupData.time
+      });
+
+      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:3001/api'}/meetups`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        const meetupId = data.data.meetup.id;
+        
+        // 필터 설정 API 호출
+        try {
+          const filterData = {
+            genderFilter: meetupData.genderPreference === '남성만' ? 'male' : 
+                         meetupData.genderPreference === '여성만' ? 'female' : 'all',
+            ageFilter: meetupData.ageRange,
+            locationFilter: meetupData.address || meetupData.location,
+            foodCategory: meetupData.category === '한식' ? 'korean' : 
+                         meetupData.category === '일식' ? 'japanese' :
+                         meetupData.category === '양식' ? 'western' :
+                         meetupData.category === '카페/디저트' ? 'dessert' : 'no_preference',
+            interests: [],
+            isRequired: false
+          };
+          
+          const filterResponse = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:3001/api'}/meetups/${meetupId}/preference-filter`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`,
+            },
+            body: JSON.stringify(filterData),
+          });
+          
+          if (filterResponse.ok) {
+            console.log('✅ 모임 필터 설정 성공');
+          } else {
+            console.warn('⚠️ 모임 필터 설정 실패');
+          }
+        } catch (filterError) {
+          console.error('필터 설정 오류:', filterError);
+        }
+
+        showToast('모임이 성공적으로 생성되었습니다!', 'success');
+        navigation.navigate('/home');
+      } else {
+        showToast(data.message || '모임 생성에 실패했습니다.', 'error');
+      }
+    } catch (error) {
+      console.error('모임 생성 오류:', error);
+      showToast('서버 오류가 발생했습니다.', 'error');
+    }
+  };
+
+  const renderStepIndicator = () => {
+    return (
+      <View style={styles.stepIndicator}>
+        {[1, 2, 3, 4, 5, 6].map((step) => (
+          <View
+            key={step}
+            style={[
+              styles.stepDot,
+              step <= currentStep && styles.stepDotActive,
+              step === currentStep && styles.stepDotCurrent
+            ]}
+          />
+        ))}
+      </View>
+    );
+  };
+
+  const renderStep1 = () => (
+    <View style={styles.stepContainer}>
+      <Text style={styles.stepTitle}>어떤 메뉴를 드시고 싶으세요?</Text>
+      
+      {/* 홈 화면과 동일한 카테고리 디자인 */}
+      <View style={styles.homeCategorySection}>
+        <View style={styles.homeCategoryGrid}>
+          {FOOD_CATEGORIES.map((category) => (
+            <TouchableOpacity
+              key={category.id}
+              style={styles.homeCategoryItem}
+              onPress={() => updateMeetupData('category', category.name)}
+            >
+              <View style={[
+                styles.homeCategoryBox,
+                { backgroundColor: meetupData.category === category.name ? COLORS.neutral.grey700 : category.bgColor }
+              ]}>
+                <Icon 
+                  name={category.icon as any} 
+                  size={40} 
+                  color={meetupData.category === category.name ? COLORS.neutral.white : category.color} 
+                />
+              </View>
+              <Text style={[
+                styles.homeCategoryName,
+                meetupData.category === category.name && styles.homeCategoryNameSelected
+              ]}>
+                {category.name}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+    </View>
+  );
+
+  const renderStep2 = () => {
+
+
+    return (
+      <View style={styles.stepContainer}>
+        <Text style={styles.stepTitle}>언제 만날까요?</Text>
+        
+        <View style={styles.dateTimeContainer}>
+          {/* 당근마켓 스타일 날짜 선택 드롭다운 */}
+          <View style={styles.dateTimeRow}>
+            <Text style={styles.dateTimeRowLabel}>날짜</Text>
+            <TouchableOpacity style={styles.dropdownButton} onPress={() => setShowDateModal(true)}>
+              <Text style={styles.dropdownButtonText}>
+                {selectedDate ? 
+                  `${selectedDate.getMonth() + 1}월 ${selectedDate.getDate()}일 ${['일', '월', '화', '수', '목', '금', '토'][selectedDate.getDay()]}요일` 
+                  : '12월 12일 금요일'}
+              </Text>
+              <Text style={styles.dropdownArrow}>▼</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* 당근마켓 스타일 시간 선택 드롭다운 */}
+          <View style={styles.dateTimeRow}>
+            <Text style={styles.dateTimeRowLabel}>시간</Text>
+            <TouchableOpacity style={styles.dropdownButton} onPress={() => setShowTimeModal(true)}>
+              <Text style={styles.dropdownButtonText}>
+                {selectedPeriod} {selectedHour}:{selectedMinute.toString().padStart(2, '0')}
+              </Text>
+              <Text style={styles.dropdownArrow}>▼</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* 당근마켓 스타일 약속 전 알림 */}
+          <View style={styles.dateTimeRow}>
+            <Text style={styles.dateTimeRowLabel}>약속 전 나에게 알림</Text>
+            <TouchableOpacity style={styles.dropdownButton} onPress={() => setShowAlarmModal(true)}>
+              <Text style={styles.dropdownButtonText}>{selectedAlarm}</Text>
+              <Text style={styles.dropdownArrow}>▼</Text>
+            </TouchableOpacity>
+          </View>
+
+          {meetupData.datetime && (
+            <View style={styles.selectedDateTimeDisplay}>
+              <Text style={styles.selectedDateTimeText}>
+                ✨ 선택된 일정: {meetupData.datetime.toLocaleDateString('ko-KR', {
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric',
+                  weekday: 'long'
+                })} {meetupData.datetime.toLocaleTimeString('ko-KR', {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  hour12: true
+                })}
+              </Text>
+            </View>
+          )}
+
+          {/* 날짜 선택 모달 */}
+          {showDateModal && (
+            <View style={styles.modalOverlay}>
+              <View style={styles.modalContainer}>
+                <View style={styles.modalHeader}>
+                  <TouchableOpacity onPress={() => setShowDateModal(false)}>
+                    <Text style={styles.modalCloseButton}>✕</Text>
+                  </TouchableOpacity>
+                  <Text style={styles.modalTitle}>날짜 선택</Text>
+                  <TouchableOpacity onPress={() => {
+                    if (selectedDate) {
+                      const newDate = new Date(selectedDate);
+                      // 현재 선택된 시간 적용
+                      let hour24 = selectedHour;
+                      if (selectedPeriod === '오후' && selectedHour !== 12) {
+                        hour24 = selectedHour + 12;
+                      } else if (selectedPeriod === '오전' && selectedHour === 12) {
+                        hour24 = 0;
+                      }
+                      newDate.setHours(hour24, selectedMinute);
+                      
+                      updateMeetupData('datetime', newDate);
+                      
+                      const year = newDate.getFullYear();
+                      const month = (newDate.getMonth() + 1).toString().padStart(2, '0');
+                      const day = newDate.getDate().toString().padStart(2, '0');
+                      updateMeetupData('date', `${year}-${month}-${day}`);
+                      updateMeetupData('time', `${hour24.toString().padStart(2, '0')}:${selectedMinute.toString().padStart(2, '0')}`);
+                    }
+                    setShowDateModal(false);
+                  }}>
+                    <Text style={styles.modalConfirmButton}>확인</Text>
+                  </TouchableOpacity>
+                </View>
+                <View style={styles.modalCalendarContainer}>
+                  {/* 기존 react-big-calendar 대신 사용자 정의 달력 */}
+                  <View style={styles.customCalendar}>
+                    <View style={styles.calendarHeader}>
+                      <TouchableOpacity onPress={() => {
+                        const newDate = new Date(selectedDate || new Date());
+                        newDate.setMonth(newDate.getMonth() - 1);
+                        setSelectedDate(newDate);
+                      }}>
+                        <Text style={styles.calendarNavButton}>‹</Text>
+                      </TouchableOpacity>
+                      <Text style={styles.calendarTitle}>
+                        {(selectedDate || new Date()).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long' })}
+                      </Text>
+                      <TouchableOpacity onPress={() => {
+                        const newDate = new Date(selectedDate || new Date());
+                        newDate.setMonth(newDate.getMonth() + 1);
+                        setSelectedDate(newDate);
+                      }}>
+                        <Text style={styles.calendarNavButton}>›</Text>
+                      </TouchableOpacity>
+                    </View>
+                    
+                    {/* 요일 헤더 */}
+                    <View style={styles.weekHeader}>
+                      {['일', '월', '화', '수', '목', '금', '토'].map((day, index) => (
+                        <Text key={index} style={styles.weekDay}>{day}</Text>
+                      ))}
+                    </View>
+                    
+                    {/* 날짜 그리드 */}
+                    <View style={styles.datesGrid}>
+                      {(() => {
+                        const currentDate = selectedDate || new Date();
+                        const year = currentDate.getFullYear();
+                        const month = currentDate.getMonth();
+                        const firstDay = new Date(year, month, 1);
+                        // const lastDay = new Date(year, month + 1, 0);
+                        const startDate = new Date(firstDay);
+                        startDate.setDate(startDate.getDate() - firstDay.getDay());
+                        
+                        const dates = [];
+                        for (let i = 0; i < 42; i++) {
+                          const date = new Date(startDate);
+                          date.setDate(startDate.getDate() + i);
+                          dates.push(date);
+                        }
+                        
+                        return dates.map((date, index) => {
+                          const isCurrentMonth = date.getMonth() === month;
+                          const isSelected = selectedDate && 
+                            date.getDate() === selectedDate.getDate() && 
+                            date.getMonth() === selectedDate.getMonth() && 
+                            date.getFullYear() === selectedDate.getFullYear();
+                          
+                          return (
+                            <TouchableOpacity
+                              key={index}
+                              style={[
+                                styles.dateButton,
+                                isSelected && styles.selectedDateButton,
+                                !isCurrentMonth && styles.otherMonthDate
+                              ]}
+                              onPress={() => {
+                                console.log('날짜 클릭:', date);
+                                const newDate = new Date(date);
+                                
+                                // 현재 선택된 시간 적용
+                                let hour24 = selectedHour;
+                                if (selectedPeriod === '오후' && selectedHour !== 12) {
+                                  hour24 = selectedHour + 12;
+                                } else if (selectedPeriod === '오전' && selectedHour === 12) {
+                                  hour24 = 0;
+                                }
+                                newDate.setHours(hour24, selectedMinute);
+                                
+                                setSelectedDate(newDate);
+                                updateMeetupData('datetime', newDate);
+                                
+                                const year = newDate.getFullYear();
+                                const month = (newDate.getMonth() + 1).toString().padStart(2, '0');
+                                const day = newDate.getDate().toString().padStart(2, '0');
+                                updateMeetupData('date', `${year}-${month}-${day}`);
+                                
+                                console.log('날짜 업데이트 완료:', newDate.toLocaleDateString('ko-KR'));
+                              }}
+                            >
+                              <Text style={[
+                                styles.dateText,
+                                isSelected && styles.selectedDateText,
+                                !isCurrentMonth && styles.otherMonthDateText
+                              ]}>
+                                {date.getDate()}
+                              </Text>
+                            </TouchableOpacity>
+                          );
+                        })
+                      })()}
+                    </View>
+                  </View>
+                </View>
+              </View>
+            </View>
+          )}
+
+          {/* 시간 선택 모달 */}
+          {showTimeModal && (
+            <View style={styles.modalOverlay}>
+              <View style={styles.modalContainer}>
+                <View style={styles.modalHeader}>
+                  <TouchableOpacity onPress={() => setShowTimeModal(false)}>
+                    <Text style={styles.modalCloseButton}>✕</Text>
+                  </TouchableOpacity>
+                  <Text style={styles.modalTitle}>시간 선택</Text>
+                  <TouchableOpacity onPress={() => {
+                    // 현재 선택된 날짜나 기본 날짜 사용
+                    const currentDate = selectedDate || new Date();
+                    let hour24 = selectedHour;
+                    if (selectedPeriod === '오후' && selectedHour !== 12) {
+                      hour24 = selectedHour + 12;
+                    } else if (selectedPeriod === '오전' && selectedHour === 12) {
+                      hour24 = 0;
+                    }
+                    
+                    currentDate.setHours(hour24, selectedMinute);
+                    setSelectedDate(currentDate);
+                    
+                    updateMeetupData('datetime', currentDate);
+                    updateMeetupData('time', `${hour24.toString().padStart(2, '0')}:${selectedMinute.toString().padStart(2, '0')}`);
+                    
+                    setShowTimeModal(false);
+                  }}>
+                    <Text style={styles.modalConfirmButton}>확인</Text>
+                  </TouchableOpacity>
+                </View>
+                <View style={styles.timeWheelContainer}>
+                  <View style={styles.timeWheelSection}>
+                    <Text style={styles.wheelLabel}>오전/오후</Text>
+                    <ScrollView style={styles.timeScrollView} showsVerticalScrollIndicator={false}>
+                      {['오전', '오후'].map((period) => (
+                        <TouchableOpacity
+                          key={period}
+                          style={[styles.timeScrollItem, selectedPeriod === period && styles.timeScrollItemSelected]}
+                          onPress={() => setSelectedPeriod(period)}
+                        >
+                          <Text style={[styles.timeScrollText, selectedPeriod === period && styles.timeScrollTextSelected]}>
+                            {period}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+                  </View>
+                  
+                  <View style={styles.timeWheelSection}>
+                    <Text style={styles.wheelLabel}>시</Text>
+                    <ScrollView style={styles.timeScrollView} showsVerticalScrollIndicator={false}>
+                      {Array.from({length: 12}, (_, i) => i + 1).map((hour) => (
+                        <TouchableOpacity
+                          key={hour}
+                          style={[styles.timeScrollItem, selectedHour === hour && styles.timeScrollItemSelected]}
+                          onPress={() => setSelectedHour(hour)}
+                        >
+                          <Text style={[styles.timeScrollText, selectedHour === hour && styles.timeScrollTextSelected]}>
+                            {hour}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+                  </View>
+                  
+                  <View style={styles.timeWheelSection}>
+                    <Text style={styles.wheelLabel}>분</Text>
+                    <ScrollView style={styles.timeScrollView} showsVerticalScrollIndicator={false}>
+                      {Array.from({length: 12}, (_, i) => i * 5).map((minute) => (
+                        <TouchableOpacity
+                          key={minute}
+                          style={[styles.timeScrollItem, selectedMinute === minute && styles.timeScrollItemSelected]}
+                          onPress={() => setSelectedMinute(minute)}
+                        >
+                          <Text style={[styles.timeScrollText, selectedMinute === minute && styles.timeScrollTextSelected]}>
+                            {minute.toString().padStart(2, '0')}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+                  </View>
+                </View>
+              </View>
+            </View>
+          )}
+
+          {/* 알림 선택 모달 */}
+          {showAlarmModal && (
+            <View style={styles.modalOverlay}>
+              <View style={styles.modalContainer}>
+                <View style={styles.modalHeader}>
+                  <TouchableOpacity onPress={() => setShowAlarmModal(false)}>
+                    <Text style={styles.modalCloseButton}>✕</Text>
+                  </TouchableOpacity>
+                  <Text style={styles.modalTitle}>알림 설정</Text>
+                  <TouchableOpacity onPress={() => setShowAlarmModal(false)}>
+                    <Text style={styles.modalConfirmButton}>확인</Text>
+                  </TouchableOpacity>
+                </View>
+                <View style={styles.alarmOptionsContainer}>
+                  {['알림 없음', '정시', '10분 전', '30분 전', '1시간 전', '3시간 전', '1일 전'].map((option) => (
+                    <TouchableOpacity
+                      key={option}
+                      style={[
+                        styles.alarmOption,
+                        selectedAlarm === option && styles.alarmOptionSelected
+                      ]}
+                      onPress={() => setSelectedAlarm(option)}
+                    >
+                      <Text style={[
+                        styles.alarmOptionText,
+                        selectedAlarm === option && styles.alarmOptionTextSelected
+                      ]}>
+                        {option}
+                      </Text>
+                      {selectedAlarm === option && (
+                        <Text style={styles.checkMark}>✓</Text>
+                      )}
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+            </View>
+          )}
+        </View>
+      </View>
+    );
+  };
+
+  const renderStep3 = () => (
+    <View style={styles.stepContainer}>
+      <Text style={styles.stepTitle}>몇명의 모임으로 할까요?</Text>
+      
+      <View style={styles.participantSelector}>
+        {[
+          { value: 1, label: '1명' },
+          { value: 2, label: '2명' }, 
+          { value: 3, label: '3명' },
+          { value: 4, label: '4명' },
+          { value: 5, label: '5명+' }
+        ].map((option) => (
+          <TouchableOpacity
+            key={option.value}
+            style={[
+              styles.participantCard,
+              (meetupData.maxParticipants === option.value || 
+               (option.value === 5 && meetupData.maxParticipants >= 5)) && styles.participantCardSelected
+            ]}
+            onPress={() => updateMeetupData('maxParticipants', option.value)}
+          >
+            <Text style={[
+              styles.participantCardText,
+              (meetupData.maxParticipants === option.value || 
+               (option.value === 5 && meetupData.maxParticipants >= 5)) && styles.participantCardTextSelected
+            ]}>
+              {option.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+    </View>
+  );
+
+  const renderStep4 = () => (
+    <View style={styles.stepContainer}>
+      <Text style={styles.stepTitle}>선호하는 유형을 설정해주세요</Text>
+      
+      <View style={styles.preferenceSection}>
+        <Text style={styles.preferenceLabel}>성별</Text>
+        <View style={styles.preferenceOptions}>
+          {['남성만', '여성만', '상관없음'].map((gender) => (
+            <TouchableOpacity
+              key={gender}
+              style={[
+                styles.preferenceOption,
+                meetupData.genderPreference === gender && styles.preferenceSelected
+              ]}
+              onPress={() => updateMeetupData('genderPreference', gender)}
+            >
+              <Text style={[
+                styles.preferenceText,
+                meetupData.genderPreference === gender && styles.preferenceTextSelected
+              ]}>
+                {gender}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+      
+      <View style={styles.preferenceSection}>
+        <Text style={styles.preferenceLabel}>연령</Text>
+        <TouchableOpacity style={styles.dropdownButton} onPress={() => setShowAgeModal(true)}>
+          <Text style={styles.dropdownButtonText}>
+            {meetupData.ageRange === '전체' ? '전체 연령' : 
+             minAge === maxAge ? `${minAge}세` :
+             `${minAge}세 - ${maxAge}세`}
+          </Text>
+          <Text style={styles.dropdownArrow}>▼</Text>
+        </TouchableOpacity>
+      </View>
+      
+      {/* 연령 설정 모달 */}
+      {showAgeModal && (
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <TouchableOpacity onPress={() => setShowAgeModal(false)}>
+                <Text style={styles.modalCloseButton}>✕</Text>
+              </TouchableOpacity>
+              <Text style={styles.modalTitle}>연령 설정</Text>
+              <TouchableOpacity onPress={() => {
+                if (minAge === maxAge) {
+                  updateMeetupData('ageRange', `${minAge}세`);
+                } else {
+                  updateMeetupData('ageRange', `${minAge}-${maxAge}`);
+                }
+                setShowAgeModal(false);
+              }}>
+                <Text style={styles.modalConfirmButton}>확인</Text>
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.ageRangeContainer}>
+              {/* 전체 연령 옵션 */}
+              <TouchableOpacity 
+                style={[
+                  styles.ageRangeOption,
+                  meetupData.ageRange === '전체' && styles.ageRangeOptionSelected
+                ]}
+                onPress={() => {
+                  updateMeetupData('ageRange', '전체');
+                  setShowAgeModal(false);
+                }}
+              >
+                <Text style={[
+                  styles.ageRangeText,
+                  meetupData.ageRange === '전체' && styles.ageRangeTextSelected
+                ]}>전체 연령</Text>
+              </TouchableOpacity>
+              
+              <Text style={styles.ageRangeLabel}>최소 나이</Text>
+              <View style={styles.ageInputContainer}>
+                <TextInput
+                  style={styles.ageInput}
+                  value={minAge.toString()}
+                  onChangeText={(text) => {
+                    const age = parseInt(text) || 20;
+                    if (age >= 18 && age <= 70) {
+                      setMinAge(age);
+                      if (age > maxAge) {
+                        setMaxAge(age);
+                        updateMeetupData('ageRange', `${age}-${age}`);
+                      } else {
+                        updateMeetupData('ageRange', `${age}-${maxAge}`);
+                      }
+                    }
+                  }}
+                  keyboardType="numeric"
+                  placeholder="최소 나이"
+                />
+                <Text style={styles.ageUnit}>세</Text>
+              </View>
+              
+              <Text style={styles.ageRangeLabel}>최대 나이</Text>
+              <View style={styles.ageInputContainer}>
+                <TextInput
+                  style={styles.ageInput}
+                  value={maxAge.toString()}
+                  onChangeText={(text) => {
+                    const age = parseInt(text) || 30;
+                    if (age >= minAge && age <= 70) {
+                      setMaxAge(age);
+                      updateMeetupData('ageRange', `${minAge}-${age}`);
+                    }
+                  }}
+                  keyboardType="numeric"
+                  placeholder="최대 나이"
+                />
+                <Text style={styles.ageUnit}>세</Text>
+              </View>
+              
+              <View style={styles.ageQuickOptions}>
+                <Text style={styles.ageQuickLabel}>빠른 선택</Text>
+                <View style={styles.ageQuickButtons}>
+                  {[
+                    {label: '20대', min: 20, max: 29},
+                    {label: '30대', min: 30, max: 39},
+                    {label: '40대', min: 40, max: 49},
+                    {label: '전체', min: 18, max: 70}
+                  ].map((option) => (
+                    <TouchableOpacity
+                      key={option.label}
+                      style={[
+                        styles.ageQuickButton,
+                        minAge === option.min && maxAge === option.max && styles.ageQuickButtonSelected
+                      ]}
+                      onPress={() => {
+                        setMinAge(option.min);
+                        setMaxAge(option.max);
+                        if (option.label === '전체') {
+                          updateMeetupData('ageRange', '전체');
+                        } else {
+                          updateMeetupData('ageRange', `${option.min}-${option.max}`);
+                        }
+                      }}
+                    >
+                      <Text style={[
+                        styles.ageQuickButtonText,
+                        minAge === option.min && maxAge === option.max && styles.ageQuickButtonTextSelected
+                      ]}>{option.label}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+            </View>
+          </View>
+        </View>
+      )}
+    </View>
+  );
+
+  const renderStep5 = () => (
+    <View style={styles.stepContainer}>
+      <Text style={styles.stepTitle}>어디서 만날까요?</Text>
+      
+      <View style={styles.locationContainer}>
+        {/* 주소 선택 드롭다운 */}
+        <TouchableOpacity style={styles.dropdownButton} onPress={() => setShowLocationModal(true)}>
+          <Text style={styles.dropdownButtonText}>
+            {meetupData.location || '위치를 선택해주세요'}
+          </Text>
+          <Text style={styles.dropdownArrow}>▼</Text>
+        </TouchableOpacity>
+        
+        {meetupData.address && (
+          <View style={styles.addressContainer}>
+            <Text style={styles.addressLabel}>상세 주소</Text>
+            <Text style={styles.addressText}>{meetupData.address}</Text>
+          </View>
+        )}
+      </View>
+      
+      {/* 위치 검색 모달 */}
+      {showLocationModal && (
+        <View style={styles.modalOverlay}>
+          <View style={styles.locationModalContainer}>
+            <View style={styles.modalHeader}>
+              <TouchableOpacity onPress={() => setShowLocationModal(false)}>
+                <Text style={styles.modalCloseButton}>✕</Text>
+              </TouchableOpacity>
+              <Text style={styles.modalTitle}>위치 검색</Text>
+              <TouchableOpacity onPress={() => setShowLocationModal(false)}>
+                <Text style={styles.modalConfirmButton}>완료</Text>
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.locationSearchContainer}>
+              <TextInput
+                style={styles.locationSearchInput}
+                placeholder="주소나 장소명을 검색하세요"
+                value={searchQuery}
+                onChangeText={(text) => {
+                  setSearchQuery(text);
+                  // 실시간 검색
+                  if (text.length > 0) {
+                    const filtered = seoulLocations.filter(location => 
+                      location.name.toLowerCase().includes(text.toLowerCase()) ||
+                      location.district.includes(text) ||
+                      location.fullAddress.includes(text)
+                    );
+                    setSearchResults(filtered);
+                  } else {
+                    setSearchResults([]);
+                  }
+                }}
+                autoFocus
+              />
+              <TouchableOpacity 
+                style={styles.searchButton}
+                onPress={() => {
+                  if (searchQuery.length > 0) {
+                    const filtered = seoulLocations.filter(location => 
+                      location.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                      location.district.includes(searchQuery) ||
+                      location.fullAddress.includes(searchQuery)
+                    );
+                    setSearchResults(filtered);
+                  }
+                }}
+              >
+                <Icon name="search" size={20} color={COLORS.text.white} />
+              </TouchableOpacity>
+            </View>
+            
+            {/* 검색 결과 */}
+            {searchResults.length > 0 && (
+              <View style={styles.searchResultsContainer}>
+                <Text style={styles.searchResultsTitle}>검색 결과</Text>
+                {searchResults.map((location, index) => (
+                  <TouchableOpacity
+                    key={index}
+                    style={styles.searchResultItem}
+                    onPress={() => {
+                      updateMeetupData('location', location.name);
+                      updateMeetupData('address', location.fullAddress);
+                      setSearchQuery('');
+                      setSearchResults([]);
+                      setShowLocationModal(false);
+                    }}
+                  >
+                    <Text style={styles.searchResultName}>{location.name}</Text>
+                    <Text style={styles.searchResultAddress}>{location.fullAddress}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+            
+            {/* Google Maps 지도 */}
+            {searchResults.length === 0 && (
+              <View style={styles.mapContainer}>
+                <Wrapper apiKey={''}>
+                  <MapComponent
+                    onMapLoad={setMapInstance}
+                    onLocationSelect={(location) => {
+                      setSelectedLatLng(location.latLng);
+                      updateMeetupData('location', location.address);
+                      updateMeetupData('address', location.address);
+                      updateMeetupData('latitude', location.latLng.lat);
+                      updateMeetupData('longitude', location.latLng.lng);
+                    }}
+                  />
+                </Wrapper>
+                <Text style={styles.mapHelpText}>지도를 클릭해서 위치를 선택하거나 위에서 검색하세요</Text>
+              </View>
+            )}
+            
+            {/* 인기 위치 옵션 */}
+            {searchResults.length === 0 && (
+              <View style={styles.popularLocations}>
+                <Text style={styles.popularLocationsTitle}>인기 지역</Text>
+                <View style={styles.popularLocationsList}>
+                  {seoulLocations.slice(0, 8).map((location) => (
+                    <TouchableOpacity
+                      key={location.name}
+                      style={styles.popularLocationItem}
+                      onPress={() => {
+                        updateMeetupData('location', location.name);
+                        updateMeetupData('address', location.fullAddress);
+                        setShowLocationModal(false);
+                      }}
+                    >
+                      <Text style={styles.popularLocationText}>{location.name}</Text>
+                      <Text style={styles.popularLocationDistrict}>{location.district}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+            )}
+          </View>
+        </View>
+      )}
+    </View>
+  );
+
+  const renderStep6 = () => (
+    <View style={styles.stepContainer}>
+      <Text style={styles.stepTitle}>모임에 대해 설명해주세요</Text>
+      
+      <View style={styles.titleSection}>
+        <Text style={styles.inputLabel}>모임 제목</Text>
+        <TextInput
+          style={styles.titleInput}
+          placeholder="모임 제목을 입력하세요"
+          value={meetupData.title}
+          onChangeText={(text) => updateMeetupData('title', text)}
+        />
+      </View>
+      
+      <View style={styles.descriptionSection}>
+        <Text style={styles.inputLabel}>모임 소개</Text>
+        <TextInput
+          style={styles.descriptionInput}
+          placeholder="모임에 대해 자유롭게 소개해주세요"
+          value={meetupData.description}
+          onChangeText={(text) => updateMeetupData('description', text)}
+          multiline
+          numberOfLines={4}
+        />
+      </View>
+      
+      <View style={styles.priceSection}>
+        <Text style={styles.inputLabel}>예상 가격대</Text>
+        <View style={styles.priceOptions}>
+          {PRICE_RANGES.map((range) => (
+            <TouchableOpacity
+              key={range}
+              style={[
+                styles.priceOption,
+                meetupData.priceRange === range && styles.priceSelected
+              ]}
+              onPress={() => updateMeetupData('priceRange', range)}
+            >
+              <Text style={[
+                styles.priceText,
+                meetupData.priceRange === range && styles.priceTextSelected
+              ]}>
+                {range}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+    </View>
+  );
+
+  const renderStep7 = () => (
+    <View style={styles.stepContainer}>
+      <Text style={styles.stepTitle}>약속금을 설정해주세요</Text>
+      <Text style={styles.stepSubtitle}>약속금은 모임 참여의 신뢰성을 높여줍니다</Text>
+      
+      <View style={styles.depositSection}>
+        <Text style={styles.inputLabel}>약속금 금액</Text>
+        <View style={styles.depositAmountContainer}>
+          <TextInput
+            style={styles.depositInput}
+            placeholder="10,000"
+            value={meetupData.deposit.toString()}
+            onChangeText={(text) => {
+              const amount = parseInt(text.replace(/[^0-9]/g, '')) || 0;
+              updateMeetupData('deposit', amount);
+            }}
+            keyboardType="numeric"
+          />
+          <Text style={styles.currencyText}>원</Text>
+        </View>
+        
+        {/* 미리 설정된 금액 버튼들 */}
+        <View style={styles.quickAmountButtons}>
+          {[5000, 10000, 15000, 20000].map((amount) => (
+            <TouchableOpacity
+              key={amount}
+              style={[
+                styles.quickAmountButton,
+                meetupData.deposit === amount && styles.quickAmountButtonSelected
+              ]}
+              onPress={() => updateMeetupData('deposit', amount)}
+            >
+              <Text style={[
+                styles.quickAmountText,
+                meetupData.deposit === amount && styles.quickAmountTextSelected
+              ]}>
+                {amount.toLocaleString()}원
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+        
+        <View style={styles.depositInfo}>
+          <Text style={styles.depositInfoText}>
+            💡 약속금은 모임 참여 후 자동으로 환불됩니다
+          </Text>
+        </View>
+      </View>
+      
+      <View style={styles.paymentMethodSection}>
+        <Text style={styles.inputLabel}>결제 방법</Text>
+        <View style={styles.paymentMethods}>
+          <TouchableOpacity style={styles.paymentMethod}>
+            <Text style={styles.paymentMethodText}>토스페이</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.paymentMethod}>
+            <Text style={styles.paymentMethodText}>카카오페이</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </View>
+  );
+
+  const renderCurrentStep = () => {
+    switch (currentStep) {
+      case 1: return renderStep1();
+      case 2: return renderStep2();
+      case 3: return renderStep3();
+      case 4: return renderStep4();
+      case 5: return renderStep5();
+      case 6: return renderStep6();
+      case 7: return renderStep7();
+      default: return null;
+    }
+  };
+
+  return (
+    <View style={styles.container}>
+      <View style={styles.header}>
+        <TouchableOpacity 
+          style={styles.backButton}
+          onPress={() => currentStep === 1 ? navigation.goBack() : prevStep()}
+        >
+          <Icon name="arrow-left" size={24} color={COLORS.text.primary} />
+        </TouchableOpacity>
+        <View style={styles.placeholder} />
+      </View>
+
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        {renderCurrentStep()}
+      </ScrollView>
+
+      <View style={styles.bottomContainer}>
+        {renderStepIndicator()}
+        <TouchableOpacity
+          style={[
+            styles.nextButton,
+            !canProceed() && styles.nextButtonDisabled
+          ]}
+          onPress={currentStep === 7 ? handleSubmit : nextStep}
+          disabled={!canProceed()}
+        >
+          <Text style={[
+            styles.nextButtonText,
+            !canProceed() && styles.nextButtonTextDisabled
+          ]}>
+            {currentStep === 7 ? '결제하기' : '다음'}
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: COLORS.neutral.white,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    backgroundColor: COLORS.neutral.white,
+    ...SHADOWS.small,
+  },
+  backButton: {
+    padding: 4,
+  },
+  placeholder: {
+    width: 32,
+  },
+  stepIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    marginBottom: 20,
+  },
+  stepDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: COLORS.neutral.grey300,
+  },
+  stepDotActive: {
+    backgroundColor: COLORS.neutral.grey500,
+  },
+  stepDotCurrent: {
+    backgroundColor: COLORS.primary.main,
+    width: 24,
+    borderRadius: 12,
+  },
+  content: {
+    flex: 1,
+    padding: 20,
+  },
+  stepContainer: {
+    flex: 1,
+  },
+  stepTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: COLORS.text.primary,
+    marginBottom: 32,
+    textAlign: 'center',
+  },
+  
+  // Step 1 - 홈과 동일한 카테고리 디자인
+  homeCategorySection: {
+    backgroundColor: COLORS.neutral.white,
+    paddingVertical: 24,
+    paddingHorizontal: 20,
+    marginBottom: 12,
+    ...SHADOWS.small,
+    borderRadius: 16,
+    marginHorizontal: 16,
+  },
+  homeCategoryGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-around',
+    paddingHorizontal: 4,
+    gap: 8,
+  },
+  homeCategoryItem: {
+    width: '22.5%',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  homeCategoryBox: {
+    width: 70,
+    height: 70,
+    borderRadius: 16,
+    backgroundColor: COLORS.neutral.background,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: COLORS.neutral.grey200,
+  },
+  homeCategoryName: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+    textAlign: 'center',
+  },
+  homeCategoryNameSelected: {
+    fontWeight: '700',
+    color: COLORS.neutral.grey700,
+  },
+  
+  // Step 2 - 날짜/시간
+  dateTimeContainer: {
+    paddingHorizontal: 8,
+    flex: 1,
+  },
+  dateTimeContent: {
+    alignItems: 'center',
+  },
+  dateTimeLabel: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: COLORS.text.secondary,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  calendarContainer: {
+    width: '100%',
+    backgroundColor: COLORS.neutral.white,
+    borderRadius: 16,
+    marginBottom: 12,
+    overflow: 'hidden',
+    ...SHADOWS.medium,
+  },
+  timePickerContainer: {
+    marginTop: 8,
+    padding: 12,
+    backgroundColor: '#F5F3F0',
+    borderRadius: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#E5DDD5',
+  },
+  timePickerLabel: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#4C422C',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  compactTimePickerWrapper: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 16,
+  },
+  compactTimeSection: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  timeToggleContainer: {
+    flexDirection: 'row',
+    backgroundColor: COLORS.neutral.grey100,
+    borderRadius: 12,
+    padding: 2,
+  },
+  timeToggleButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 10,
+    backgroundColor: 'transparent',
+  },
+  selectedTimeToggleButton: {
+    backgroundColor: COLORS.primary.main,
+    ...SHADOWS.small,
+  },
+  timeToggleText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: COLORS.text.secondary,
+  },
+  selectedTimeToggleText: {
+    color: COLORS.text.white,
+    fontWeight: '700',
+  },
+  timeDisplayContainer: {
+    alignItems: 'center',
+    backgroundColor: COLORS.neutral.white,
+    borderRadius: 12,
+    padding: 8,
+    borderWidth: 2,
+    borderColor: COLORS.primary.accent,
+    minWidth: 60,
+  },
+  timeSelector: {
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    alignItems: 'center',
+  },
+  timeArrow: {
+    fontSize: 12,
+    color: COLORS.primary.main,
+    fontWeight: '700',
+  },
+  timeValueContainer: {
+    paddingVertical: 4,
+    alignItems: 'center',
+  },
+  timeValue: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: COLORS.text.primary,
+    textAlign: 'center',
+  },
+  timeSeparator: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: COLORS.text.primary,
+    marginHorizontal: 8,
+  },
+  datePickerWrapper: {
+    width: '100%',
+    backgroundColor: COLORS.neutral.white,
+    borderRadius: 16,
+    padding: 24,
+    marginBottom: 20,
+    ...SHADOWS.small,
+    alignItems: 'center',
+  },
+  selectedDateTimeDisplay: {
+    backgroundColor: COLORS.primary.light,
+    borderRadius: 16,
+    padding: 20,
+    width: '100%',
+    alignItems: 'center',
+  },
+  selectedDateTimeText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.primary.main,
+    textAlign: 'center',
+    lineHeight: 24,
+  },
+  
+  // Step 3 - 인원
+  participantSelector: {
+    gap: 20,
+    paddingHorizontal: 20,
+  },
+  participantCard: {
+    backgroundColor: COLORS.neutral.grey100,
+    borderRadius: 16,
+    paddingVertical: 24,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: COLORS.neutral.grey200,
+  },
+  participantCardSelected: {
+    backgroundColor: COLORS.primary.main,
+    borderColor: COLORS.primary.main,
+  },
+  participantCardText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+  },
+  participantCardTextSelected: {
+    color: COLORS.text.white,
+  },
+  
+  // Step 4 - 성별/연령
+  preferenceSection: {
+    marginBottom: 32,
+  },
+  preferenceLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+    marginBottom: 12,
+  },
+  preferenceOptions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  preferenceOption: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: COLORS.neutral.grey200,
+    backgroundColor: COLORS.neutral.white,
+  },
+  preferenceSelected: {
+    backgroundColor: COLORS.primary.main,
+    borderColor: COLORS.primary.main,
+  },
+  preferenceText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: COLORS.text.primary,
+    textAlign: 'center',
+  },
+  preferenceTextSelected: {
+    color: COLORS.text.white,
+  },
+  ageGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  ageOption: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: COLORS.neutral.grey200,
+    backgroundColor: COLORS.neutral.white,
+    minWidth: 70,
+  },
+  ageSelected: {
+    backgroundColor: COLORS.primary.main,
+    borderColor: COLORS.primary.main,
+  },
+  ageText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: COLORS.text.primary,
+    textAlign: 'center',
+  },
+  ageTextSelected: {
+    color: COLORS.text.white,
+  },
+  
+  // Step 5 - 위치
+  locationContainer: {
+    gap: 16,
+  },
+  locationInput: {
+    backgroundColor: COLORS.neutral.white,
+    borderRadius: 12,
+    padding: 16,
+    fontSize: 16,
+    borderWidth: 1,
+    borderColor: COLORS.neutral.grey200,
+    ...SHADOWS.small,
+  },
+  currentLocationButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.neutral.white,
+    borderRadius: 12,
+    padding: 16,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: COLORS.primary.main,
+    ...SHADOWS.small,
+  },
+  currentLocationText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: COLORS.primary.main,
+  },
+  
+  // Step 6 - 제목/설명
+  titleSection: {
+    marginBottom: 24,
+  },
+  descriptionSection: {
+    marginBottom: 24,
+  },
+  priceSection: {
+    marginBottom: 24,
+  },
+  inputLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+    marginBottom: 8,
+  },
+  titleInput: {
+    backgroundColor: COLORS.neutral.white,
+    borderRadius: 12,
+    padding: 16,
+    fontSize: 16,
+    borderWidth: 1,
+    borderColor: COLORS.neutral.grey200,
+    ...SHADOWS.small,
+  },
+  descriptionInput: {
+    backgroundColor: COLORS.neutral.white,
+    borderRadius: 12,
+    padding: 16,
+    fontSize: 16,
+    borderWidth: 1,
+    borderColor: COLORS.neutral.grey200,
+    minHeight: 120,
+    textAlignVertical: 'top',
+    ...SHADOWS.small,
+  },
+  priceOptions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  priceOption: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: COLORS.neutral.grey200,
+    backgroundColor: COLORS.neutral.white,
+  },
+  priceSelected: {
+    backgroundColor: COLORS.primary.main,
+    borderColor: COLORS.primary.main,
+  },
+  priceText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: COLORS.text.primary,
+  },
+  priceTextSelected: {
+    color: COLORS.text.white,
+  },
+  
+  // 하단 버튼
+  bottomContainer: {
+    padding: 20,
+    paddingBottom: 30,
+    backgroundColor: COLORS.neutral.white,
+  },
+  nextButton: {
+    backgroundColor: COLORS.neutral.grey800,
+    borderRadius: 16,
+    paddingVertical: 20,
+    alignItems: 'center',
+    marginHorizontal: 20,
+  },
+  nextButtonDisabled: {
+    backgroundColor: COLORS.neutral.grey300,
+  },
+  nextButtonText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: COLORS.text.white,
+  },
+  nextButtonTextDisabled: {
+    color: COLORS.text.secondary,
+  },
+  
+  // 당근마켓 스타일 - 드롭다운 선택기
+  dateTimeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+  },
+  dateTimeRowLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000000',
+    flex: 1,
+  },
+  dropdownButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: 'transparent',
+    minWidth: 140,
+  },
+  dropdownButtonText: {
+    fontSize: 16,
+    color: '#000000',
+    fontWeight: '400',
+    marginRight: 8,
+  },
+  dropdownArrow: {
+    fontSize: 12,
+    color: '#8E8E93',
+    fontWeight: '600',
+  },
+  
+  // 모달 스타일
+  modalOverlay: {
+    position: 'fixed' as any,
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    width: '100%' as any,
+    height: '100%' as any,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 9999,
+  },
+  modalContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    width: '90%',
+    maxWidth: 400,
+    maxHeight: '80%' as any,
+    overflow: 'hidden',
+    margin: 20,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#000000',
+  },
+  modalCloseButton: {
+    fontSize: 18,
+    color: '#8E8E93',
+    fontWeight: '600',
+  },
+  modalConfirmButton: {
+    fontSize: 16,
+    color: COLORS.primary.main,
+    fontWeight: '600',
+  },
+  
+  // 모달 달력 스타일
+  modalCalendarContainer: {
+    padding: 16,
+    backgroundColor: '#FFFFFF',
+  },
+  
+  // 시간 휠 스타일
+  timeWheelContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    paddingVertical: 20,
+    paddingHorizontal: 16,
+    minHeight: 200,
+  },
+  timeWheelSection: {
+    flex: 1,
+    alignItems: 'center',
+    marginHorizontal: 8,
+  },
+  wheelLabel: {
+    fontSize: 12,
+    color: '#8E8E93',
+    marginBottom: 12,
+    fontWeight: '500',
+    textAlign: 'center',
+  },
+  timeScrollView: {
+    height: 150,
+    width: 70,
+    backgroundColor: '#F8F9FA',
+    borderRadius: 12,
+  },
+  timeScrollItem: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 8,
+    marginVertical: 2,
+    marginHorizontal: 4,
+  },
+  timeScrollItemSelected: {
+    backgroundColor: COLORS.neutral.grey700,
+  },
+  timeScrollText: {
+    fontSize: 16,
+    color: '#000000',
+    fontWeight: '400',
+    textAlign: 'center',
+  },
+  timeScrollTextSelected: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
+  
+  // 알림 옵션 스타일
+  alarmOptionsContainer: {
+    paddingVertical: 16,
+  },
+  alarmOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+  },
+  alarmOptionSelected: {
+    backgroundColor: COLORS.neutral.grey200,
+  },
+  alarmOptionText: {
+    fontSize: 16,
+    color: '#000000',
+    fontWeight: '400',
+  },
+  alarmOptionTextSelected: {
+    color: COLORS.neutral.grey800,
+    fontWeight: '700',
+  },
+  checkMark: {
+    fontSize: 16,
+    color: COLORS.neutral.grey800,
+    fontWeight: '700',
+  },
+  
+  // 사용자 정의 달력 스타일
+  customCalendar: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    margin: 16,
+  },
+  calendarHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+    paddingHorizontal: 8,
+  },
+  calendarTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#000000',
+  },
+  calendarNavButton: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: COLORS.primary.main,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+  },
+  weekHeader: {
+    flexDirection: 'row',
+    marginBottom: 8,
+  },
+  weekDay: {
+    flex: 1,
+    textAlign: 'center',
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#8E8E93',
+    paddingVertical: 8,
+  },
+  datesGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  dateButton: {
+    width: '14.28%',
+    aspectRatio: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginVertical: 2,
+  },
+  selectedDateButton: {
+    backgroundColor: COLORS.neutral.grey700,
+    borderRadius: 20,
+  },
+  otherMonthDate: {
+    opacity: 0.3,
+  },
+  dateText: {
+    fontSize: 16,
+    fontWeight: '400',
+    color: '#000000',
+    textAlign: 'center',
+  },
+  selectedDateText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+  },
+  otherMonthDateText: {
+    color: '#C7C7CC',
+  },
+  
+  // Step 7 - 약속금 결제 스타일
+  stepSubtitle: {
+    fontSize: 16,
+    fontWeight: '400',
+    color: COLORS.text.secondary,
+    textAlign: 'center',
+    marginBottom: 24,
+    marginTop: -20,
+  },
+  depositSection: {
+    marginBottom: 32,
+  },
+  depositAmountContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.neutral.white,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.neutral.grey200,
+    paddingHorizontal: 16,
+    marginBottom: 16,
+    ...SHADOWS.small,
+  },
+  depositInput: {
+    flex: 1,
+    fontSize: 18,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+    paddingVertical: 16,
+    textAlign: 'right',
+  },
+  currencyText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: COLORS.text.secondary,
+    marginLeft: 8,
+  },
+  quickAmountButtons: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 20,
+  },
+  quickAmountButton: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: COLORS.neutral.grey200,
+    backgroundColor: COLORS.neutral.white,
+  },
+  quickAmountButtonSelected: {
+    backgroundColor: COLORS.neutral.grey700,
+    borderColor: COLORS.neutral.grey700,
+  },
+  quickAmountText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: COLORS.text.primary,
+    textAlign: 'center',
+  },
+  quickAmountTextSelected: {
+    color: COLORS.neutral.white,
+    fontWeight: '600',
+  },
+  depositInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.primary.light,
+    padding: 12,
+    borderRadius: 8,
+    gap: 8,
+  },
+  depositInfoText: {
+    flex: 1,
+    fontSize: 14,
+    color: COLORS.text.secondary,
+    lineHeight: 20,
+  },
+  paymentMethodSection: {
+    marginBottom: 32,
+  },
+  paymentMethods: {
+    gap: 12,
+  },
+  paymentMethod: {
+    backgroundColor: COLORS.neutral.white,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.neutral.grey200,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    ...SHADOWS.small,
+  },
+  paymentMethodText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: COLORS.text.primary,
+    textAlign: 'center',
+  },
+  
+  // 연령 모달 스타일
+  ageRangeContainer: {
+    padding: 20,
+  },
+  ageRangeOption: {
+    backgroundColor: COLORS.neutral.white,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.neutral.grey200,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    marginBottom: 16,
+    ...SHADOWS.small,
+  },
+  ageRangeOptionSelected: {
+    backgroundColor: COLORS.neutral.grey700,
+    borderColor: COLORS.neutral.grey700,
+  },
+  ageRangeText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: COLORS.text.primary,
+    textAlign: 'center',
+  },
+  ageRangeTextSelected: {
+    color: COLORS.text.white,
+    fontWeight: '600',
+  },
+  ageRangeLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+    marginBottom: 12,
+    marginTop: 16,
+  },
+  ageSliderContainer: {
+    marginBottom: 20,
+  },
+  ageScrollView: {
+    height: 60,
+  },
+  ageScrollContent: {
+    paddingHorizontal: 10,
+  },
+  ageItem: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: COLORS.neutral.white,
+    borderWidth: 1,
+    borderColor: COLORS.neutral.grey200,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginHorizontal: 5,
+  },
+  ageItemSelected: {
+    backgroundColor: COLORS.neutral.grey700,
+    borderColor: COLORS.neutral.grey700,
+  },
+  ageItemDisabled: {
+    opacity: 0.3,
+  },
+  ageItemText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: COLORS.text.primary,
+  },
+  ageItemTextSelected: {
+    color: COLORS.text.white,
+    fontWeight: '600',
+  },
+  ageItemTextDisabled: {
+    color: COLORS.text.secondary,
+  },
+  
+  // 위치 모달 스타일
+  locationModalContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    width: '95%',
+    maxWidth: 500,
+    maxHeight: '85%' as any,
+    overflow: 'hidden',
+    margin: 20,
+  },
+  locationSearchContainer: {
+    flexDirection: 'row',
+    padding: 16,
+    gap: 12,
+  },
+  locationSearchInput: {
+    flex: 1,
+    backgroundColor: COLORS.neutral.grey100,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 16,
+    color: COLORS.text.primary,
+  },
+  searchButton: {
+    backgroundColor: COLORS.neutral.grey700,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  mapPlaceholder: {
+    height: 200,
+    backgroundColor: COLORS.neutral.grey100,
+    margin: 16,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  mapPlaceholderText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: COLORS.text.secondary,
+    marginBottom: 8,
+  },
+  mapHelpText: {
+    fontSize: 14,
+    color: COLORS.text.secondary,
+  },
+  popularLocations: {
+    padding: 16,
+    paddingTop: 0,
+  },
+  popularLocationsTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+    marginBottom: 12,
+  },
+  popularLocationsList: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  popularLocationItem: {
+    backgroundColor: COLORS.neutral.white,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: COLORS.neutral.grey200,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+  },
+  popularLocationText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: COLORS.text.primary,
+  },
+  addressContainer: {
+    marginTop: 16,
+    padding: 16,
+    backgroundColor: COLORS.primary.light,
+    borderRadius: 12,
+  },
+  addressLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.text.secondary,
+    marginBottom: 4,
+  },
+  addressText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: COLORS.text.primary,
+  },
+  
+  // 검색 결과 스타일
+  searchResultsContainer: {
+    maxHeight: 200,
+    backgroundColor: COLORS.neutral.white,
+    borderRadius: 12,
+    marginVertical: 8,
+    borderWidth: 1,
+    borderColor: COLORS.neutral.grey200,
+  },
+  searchResultsTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.text.secondary,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.neutral.grey200,
+    backgroundColor: COLORS.primary.light,
+  },
+  searchResultItem: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.neutral.grey100,
+  },
+  searchResultName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+    marginBottom: 4,
+  },
+  searchResultAddress: {
+    fontSize: 14,
+    fontWeight: '400',
+    color: COLORS.text.secondary,
+  },
+  popularLocationDistrict: {
+    fontSize: 12,
+    fontWeight: '400',
+    color: COLORS.text.secondary,
+    marginTop: 2,
+  },
+  
+  // 연령 입력 스타일
+  ageInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 8,
+    padding: 4,
+    backgroundColor: COLORS.neutral.white,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.neutral.grey200,
+  },
+  ageInput: {
+    flex: 1,
+    padding: 16,
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+    textAlign: 'center',
+  },
+  ageUnit: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: COLORS.text.secondary,
+    paddingRight: 16,
+  },
+  ageQuickOptions: {
+    marginTop: 16,
+  },
+  ageQuickLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.text.secondary,
+    marginBottom: 8,
+  },
+  ageQuickButtons: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  ageQuickButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    backgroundColor: COLORS.neutral.white,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: COLORS.neutral.grey200,
+  },
+  ageQuickButtonSelected: {
+    backgroundColor: COLORS.primary.main,
+    borderColor: COLORS.primary.main,
+  },
+  ageQuickButtonText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: COLORS.text.primary,
+  },
+  ageQuickButtonTextSelected: {
+    color: COLORS.text.white,
+    fontWeight: '600',
+  },
+  
+  // Map 스타일
+  mapContainer: {
+    marginVertical: 16,
+  },
+
+});
+
+export default CreateMeetupWizard;

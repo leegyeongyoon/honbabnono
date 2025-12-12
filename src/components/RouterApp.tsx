@@ -12,7 +12,7 @@ import ChatScreen from '../screens/ChatScreen.web';
 import MyPageScreen from '../screens/MyPageScreen';
 import LoginScreen from '../screens/LoginScreen.web';
 import MeetupDetailScreen from '../screens/MeetupDetailScreen.web';
-import CreateMeetupScreen from '../screens/CreateMeetupScreen.web';
+import CreateMeetupWizard from '../screens/CreateMeetupWizard.web';
 import PaymentScreen from '../screens/PaymentScreen.web';
 import DepositPaymentScreen from '../screens/DepositPaymentScreen.web';
 import MeetupListScreen from '../screens/MeetupListScreen.web';
@@ -299,7 +299,7 @@ const RouterApp: React.FC = () => {
             path="/create-meetup" 
             element={
               <ProtectedRoute>
-                <CreateMeetupScreen user={user} />
+                <CreateMeetupWizard user={user} />
               </ProtectedRoute>
             } 
           />

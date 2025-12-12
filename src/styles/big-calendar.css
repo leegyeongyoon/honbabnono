@@ -1,0 +1,313 @@
+/* Native Mobile Calendar Styles - 당근마켓 스타일 */
+
+/* 메인 캘린더 컨테이너 - 네이티브 모바일 스타일 */
+.rbc-calendar {
+  height: auto !important;
+  background: #FFFFFF !important;
+  border-radius: 20px !important;
+  overflow: hidden !important;
+  border: none !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif !important;
+  margin: 0 !important;
+  max-width: 100% !important;
+  box-shadow: none !important;
+}
+
+/* 툴바 - 네이티브 헤더 스타일 */
+.rbc-toolbar {
+  background: transparent !important;
+  padding: 16px 20px !important;
+  margin: 0 !important;
+  border: none !important;
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+}
+
+.rbc-toolbar-label {
+  font-size: 20px !important;
+  font-weight: 600 !important;
+  color: #000000 !important;
+  margin: 0 !important;
+  letter-spacing: -0.3px !important;
+}
+
+/* 네비게이션 버튼 - 심플한 화살표 */
+.rbc-btn-group {
+  display: flex !important;
+  gap: 4px !important;
+}
+
+.rbc-btn-group button {
+  background: transparent !important;
+  color: #C9B59C !important;
+  border: none !important;
+  padding: 8px !important;
+  border-radius: 12px !important;
+  font-weight: 400 !important;
+  font-size: 18px !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease !important;
+  min-width: 40px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.rbc-btn-group button:hover {
+  background: rgba(201, 181, 156, 0.1) !important;
+}
+
+.rbc-btn-group button:active {
+  background: rgba(201, 181, 156, 0.2) !important;
+}
+
+/* 오늘 버튼 숨김 - 당근마켓 스타일 */
+.rbc-btn-group .rbc-active {
+  display: none !important;
+}
+
+/* 달력 헤더 (요일) - 당근마켓 스타일 */
+.rbc-header {
+  background: transparent !important;
+  color: #8E8E93 !important;
+  padding: 12px 0 8px 0 !important;
+  font-size: 13px !important;
+  font-weight: 400 !important;
+  text-align: center !important;
+  border: none !important;
+  letter-spacing: -0.1px !important;
+}
+
+/* 달력 몸체 - 네이티브 스타일 */
+.rbc-month-view {
+  border: none !important;
+  background: #FFFFFF !important;
+}
+
+.rbc-month-header {
+  background: transparent !important;
+  padding: 0 !important;
+  border: none !important;
+}
+
+/* 날짜 셀 - 당근마켓 스타일 */
+.rbc-date-cell {
+  text-align: center !important;
+  padding: 0 !important;
+  min-height: 48px !important;
+  border: none !important;
+  cursor: pointer !important;
+  position: relative !important;
+  background: transparent !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.rbc-date-cell:hover {
+  background: rgba(201, 181, 156, 0.05) !important;
+}
+
+/* 날짜 번호 - 네이티브 타이포그래피 */
+.rbc-date-cell > a {
+  color: #000000 !important;
+  font-size: 16px !important;
+  font-weight: 400 !important;
+  text-decoration: none !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 40px !important;
+  height: 40px !important;
+  border-radius: 50% !important;
+  margin: 0 !important;
+  transition: all 0.15s ease !important;
+  letter-spacing: -0.2px !important;
+}
+
+.rbc-date-cell > a:hover {
+  background: rgba(201, 181, 156, 0.1) !important;
+  color: #000000 !important;
+}
+
+/* 선택된 날짜 - 더 진한 색상으로 가시성 향상 */
+.rbc-date-cell.rbc-selected {
+  background: transparent !important;
+}
+
+.rbc-date-cell.rbc-selected > a {
+  background: #766653 !important;
+  color: #FFFFFF !important;
+  font-weight: 700 !important;
+  transform: none !important;
+}
+
+/* 오늘 날짜 - 더 진한 색상으로 가시성 향상 */
+.rbc-today {
+  background: transparent !important;
+  border: none !important;
+}
+
+.rbc-today > a {
+  background: #4C422C !important;
+  color: #FFFFFF !important;
+  font-weight: 700 !important;
+}
+
+/* 다른 달 날짜 - 비활성화 */
+.rbc-off-range {
+  background: transparent !important;
+}
+
+.rbc-off-range > a {
+  color: #C7C7CC !important;
+  cursor: not-allowed !important;
+}
+
+.rbc-off-range:hover {
+  background: transparent !important;
+}
+
+/* 이벤트 (선택된 날짜 표시) - 우아한 스타일 */
+.rbc-event {
+  background: linear-gradient(135deg, #766653 0%, #61543F 100%) !important;
+  color: #FFFFFF !important;
+  border: none !important;
+  border-radius: 8px !important;
+  padding: 4px 8px !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  margin: 1px 0 !important;
+  box-shadow: 0 1px 4px rgba(76, 66, 44, 0.2) !important;
+  letter-spacing: -0.01em !important;
+}
+
+/* 월별 뷰 행 */
+.rbc-month-row {
+  border: none !important;
+  min-height: 32px !important;
+}
+
+/* 그리드 선 - 부드러운 경계 */
+.rbc-date-cell + .rbc-date-cell {
+  border-left: 1px solid rgba(239, 233, 227, 0.6) !important;
+}
+
+.rbc-month-row + .rbc-month-row .rbc-date-cell {
+  border-top: 1px solid rgba(239, 233, 227, 0.6) !important;
+}
+
+/* 시간 선택 컨테이너 - 모던한 박스 */
+.time-picker-container {
+  margin-top: 12px !important;
+  padding: 16px !important;
+  background: linear-gradient(135deg, #F9F8F6 0%, #EFE9E3 100%) !important;
+  border-radius: 16px !important;
+  border: 1px solid rgba(201, 181, 156, 0.2) !important;
+  box-shadow: 
+    inset 0 1px 0 rgba(255, 255, 255, 0.8),
+    0 2px 8px rgba(161, 139, 122, 0.1) !important;
+}
+
+.time-picker-label {
+  font-size: 17px !important;
+  font-weight: 700 !important;
+  color: #4C422C !important;
+  margin-bottom: 16px !important;
+  text-align: center !important;
+  letter-spacing: -0.01em !important;
+}
+
+.time-picker-input {
+  width: 100% !important;
+  padding: 16px 20px !important;
+  font-size: 16px !important;
+  font-weight: 600 !important;
+  border: 2px solid #EFE9E3 !important;
+  border-radius: 16px !important;
+  background: #FFFFFF !important;
+  color: #4C422C !important;
+  text-align: center !important;
+  outline: none !important;
+  transition: all 0.3s ease !important;
+  box-shadow: 
+    0 1px 3px rgba(161, 139, 122, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8) !important;
+  letter-spacing: 0.02em !important;
+}
+
+.time-picker-input:focus {
+  border-color: #C9B59C !important;
+  background: #FFFFFF !important;
+  box-shadow: 
+    0 0 0 4px rgba(201, 181, 156, 0.1),
+    0 4px 12px rgba(161, 139, 122, 0.15) !important;
+  transform: translateY(-1px) !important;
+}
+
+/* 반응형 디자인 */
+@media (max-width: 768px) {
+  .rbc-calendar {
+    height: 450px !important;
+    margin: 0 12px !important;
+    border-radius: 20px !important;
+  }
+  
+  .rbc-toolbar {
+    padding: 16px 20px !important;
+    flex-direction: column !important;
+    gap: 12px !important;
+  }
+  
+  .rbc-toolbar-label {
+    font-size: 18px !important;
+    order: 1 !important;
+  }
+  
+  .rbc-btn-group {
+    order: 2 !important;
+  }
+  
+  .rbc-btn-group button {
+    padding: 8px 12px !important;
+    font-size: 12px !important;
+  }
+  
+  .rbc-date-cell {
+    min-height: 60px !important;
+    padding: 8px 4px !important;
+  }
+  
+  .rbc-date-cell > a {
+    font-size: 14px !important;
+    width: 30px !important;
+    height: 30px !important;
+  }
+  
+  .time-picker-container {
+    margin: 0 12px !important;
+    padding: 20px !important;
+  }
+  
+  .time-picker-input {
+    padding: 14px 18px !important;
+    font-size: 15px !important;
+  }
+}
+
+/* 접근성 향상 */
+@media (prefers-reduced-motion: reduce) {
+  .rbc-date-cell,
+  .rbc-date-cell > a,
+  .rbc-btn-group button,
+  .time-picker-input {
+    transition: none !important;
+    transform: none !important;
+  }
+}
+
+/* 다크 모드 대응 (향후 확장) */
+@media (prefers-color-scheme: dark) {
+  /* 필요시 다크 모드 스타일 추가 */
+}
