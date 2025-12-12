@@ -8,6 +8,7 @@ import apiClient from '../services/apiClient';
 import { DepositSelector } from '../components/DepositSelector';
 import { getChatTimeDifference } from '../utils/timeUtils';
 import { useRouterNavigation } from '../components/RouterNavigation';
+import { processImageUrl } from '../utils/imageUtils';
 import { Icon } from '../components/Icon';
 import { ProfileImage } from '../components/ProfileImage';
 import { FOOD_CATEGORIES } from '../constants/categories';

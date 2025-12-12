@@ -177,6 +177,29 @@ const upload = multer({
   }
 });
 
+// 카테고리별 기본 이미지 함수
+const getDefaultImageByCategory = (category) => {
+  const defaultImages = {
+    '한식': 'https://images.unsplash.com/photo-1498654896293-37aacf113fd9?w=400&h=300&fit=crop&crop=center',
+    '중식': 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=400&h=300&fit=crop&crop=center',
+    '일식': 'https://images.unsplash.com/photo-1579584425555-c3ce17fd4351?w=400&h=300&fit=crop&crop=center',
+    '양식': 'https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=400&h=300&fit=crop&crop=center',
+    '동남아': 'https://images.unsplash.com/photo-1596040033229-a9821ebd058d?w=400&h=300&fit=crop&crop=center',
+    '카페/디저트': 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=400&h=300&fit=crop&crop=center',
+    '술집': 'https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=400&h=300&fit=crop&crop=center',
+    '기타': 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=400&h=300&fit=crop&crop=center'
+  };
+  return defaultImages[category] || defaultImages['기타'];
+};
+
+// 모임 이미지 처리 함수
+const processImageUrl = (image, category) => {
+  if (image) {
+    return image;
+  }
+  return getDefaultImageByCategory(category);
+};
+
 // 미들웨어 설정
 app.use(cors({
   origin: ['http://localhost:3000', 'https://honbabnono.com', 'https://admin.honbabnono.com', 'http://localhost:3002', 'http://localhost:3003'],
@@ -828,8 +851,13 @@ apiRouter.get('/user/hosted-meetups', authenticateToken, async (req, res) => {
       LIMIT $2 OFFSET $3
     `, [userId, limit, offset]);
     
+    const meetupsWithImages = result.rows.map(meetup => ({
+      ...meetup,
+      image: processImageUrl(meetup.image, meetup.category)
+    }));
+
     res.json({ 
-      meetups: result.rows,
+      meetups: meetupsWithImages,
       pagination: {
         page: parseInt(page),
         limit: parseInt(limit),
@@ -1263,7 +1291,10 @@ apiRouter.get('/meetups', async (req, res) => {
 
     const meetupsResult = await pool.query(meetupsQuery, meetupsParams);
 
-    const meetups = meetupsResult.rows;
+    const meetups = meetupsResult.rows.map(meetup => ({
+      ...meetup,
+      image: processImageUrl(meetup.image, meetup.category)
+    }));
 
     res.json({
       meetups,
@@ -1450,7 +1481,7 @@ apiRouter.get('/meetups/home', async (req, res) => {
       priceRange: meetup.price_range,
       ageRange: meetup.age_range,
       genderPreference: meetup.gender_preference,
-      image: meetup.image,
+      image: processImageUrl(meetup.image, meetup.category),
       status: meetup.status,
       host: {
         name: meetup['host.name'],
@@ -1784,7 +1815,7 @@ apiRouter.get('/meetups/:id', async (req, res) => {
       currentParticipants: meetupData.currentParticipants,
       category: meetupData.category,
       priceRange: meetupData.priceRange,
-      image: meetupData.image,
+      image: processImageUrl(meetupData.image, meetupData.category),
       status: meetupData.status,
       hostId: meetupData.hostId,
       requirements: meetupData.requirements,
@@ -1893,6 +1924,7 @@ apiRouter.post('/meetups', authenticateToken, upload.single('image'), async (req
     if (req.file) {
       imageUrl = `http://localhost:3001/uploads/${req.file.filename}`;
     }
+    imageUrl = processImageUrl(imageUrl, category);
 
     // 태그 처리 (문자열이면 JSON으로 파싱)
     let parsedTags = [];
@@ -2625,6 +2657,42 @@ apiRouter.get('/chat/rooms', authenticateToken, async (req, res) => {
   }
 });
 
+// 읽지 않은 채팅 수 조회 API
+apiRouter.get('/chat/unread-count', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    
+    console.log('💬 읽지 않은 채팅 수 조회 요청:', { userId });
+
+    // 사용자가 참여 중인 채팅방에서 읽지 않은 메시지 수를 실시간으로 계산
+    const result = await pool.query(`
+      SELECT COUNT(*) as total_unread
+      FROM chat_messages cm
+      JOIN chat_participants cp ON cm."chatRoomId" = cp."chatRoomId"
+      WHERE cp."userId" = $1 
+        AND cp."isActive" = true
+        AND cm."senderId" <> $1
+        AND cm."createdAt" > COALESCE(cp."lastReadAt", cp."joinedAt", '1970-01-01'::timestamp)
+    `, [userId]);
+
+    const unreadCount = parseInt(result.rows[0].total_unread) || 0;
+
+    console.log('✅ 읽지 않은 채팅 수 조회 성공:', { userId, unreadCount, rawResult: result.rows[0] });
+
+    res.json({
+      success: true,
+      unreadCount
+    });
+
+  } catch (error) {
+    console.error('읽지 않은 채팅 수 조회 오류:', error);
+    res.status(500).json({ 
+      success: false,
+      error: '읽지 않은 채팅 수 조회에 실패했습니다.' 
+    });
+  }
+});
+
 // 모임 ID로 채팅방 조회 API
 apiRouter.get('/chat/rooms/by-meetup/:meetupId', authenticateToken, async (req, res) => {
   try {
@@ -2779,6 +2847,18 @@ apiRouter.get('/chat/rooms/:id/messages', authenticateToken, async (req, res) =>
     }));
     
     console.log('✅ 채팅 메시지 조회 성공:', { chatRoomId: id, messageCount: messages.length });
+
+    // 메시지를 읽었으므로 lastReadAt 업데이트
+    try {
+      await pool.query(`
+        UPDATE chat_participants 
+        SET "lastReadAt" = NOW()
+        WHERE "chatRoomId" = $1 AND "userId" = $2 AND "isActive" = true
+      `, [id, req.user.userId]);
+      console.log('✅ 읽기 시간 업데이트 완료:', { chatRoomId: id, userId: req.user.userId });
+    } catch (updateError) {
+      console.error('읽기 시간 업데이트 실패:', updateError);
+    }
     
     res.json({
       success: true,
@@ -2797,6 +2877,51 @@ apiRouter.get('/chat/rooms/:id/messages', authenticateToken, async (req, res) =>
   } catch (error) {
     console.error('채팅 메시지 조회 오류:', error);
     res.status(500).json({ error: '서버 오류가 발생했습니다' });
+  }
+});
+
+// 채팅방 읽음 처리 API (즉시 뱃지 제거용)
+apiRouter.post('/chat/rooms/:id/read', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.userId;
+    
+    console.log('👁️ 채팅방 읽음 처리 요청:', { chatRoomId: id, userId });
+    
+    // 해당 채팅방의 참가자인지 확인
+    const participantResult = await pool.query(`
+      SELECT id FROM chat_participants 
+      WHERE "chatRoomId" = $1 AND "userId" = $2 AND "isActive" = true
+    `, [id, userId]);
+    
+    if (participantResult.rows.length === 0) {
+      return res.status(403).json({ 
+        success: false,
+        error: '채팅방에 참가하지 않았습니다' 
+      });
+    }
+    
+    // lastReadAt을 현재 시간으로 업데이트
+    const now = new Date();
+    await pool.query(`
+      UPDATE chat_participants 
+      SET "lastReadAt" = $1, "updatedAt" = $1
+      WHERE "chatRoomId" = $2 AND "userId" = $3
+    `, [now, id, userId]);
+    
+    console.log('✅ 채팅방 읽음 처리 성공:', { chatRoomId: id, userId, lastReadAt: now });
+    
+    res.json({
+      success: true,
+      message: '채팅방을 읽음으로 처리했습니다'
+    });
+    
+  } catch (error) {
+    console.error('채팅방 읽음 처리 오류:', error);
+    res.status(500).json({ 
+      success: false,
+      error: '채팅방 읽음 처리에 실패했습니다' 
+    });
   }
 });
 
@@ -2865,6 +2990,34 @@ apiRouter.post('/chat/rooms/:id/messages', authenticateToken, async (req, res) =
     
     // 해당 채팅방의 모든 클라이언트에게 메시지 브로드캐스트
     io.to(`room-${id}`).emit('new-message', messageData);
+    
+    // 채팅방 참가자들에게 읽지 않은 채팅 수 업데이트 알림 (발신자 제외)
+    try {
+      const participantsResult = await pool.query(`
+        SELECT "userId" FROM chat_participants 
+        WHERE "chatRoomId" = $1 AND "userId" != $2 AND "isActive" = true
+      `, [id, userId]);
+      
+      for (const participant of participantsResult.rows) {
+        // 각 참가자의 읽지 않은 채팅 수 계산
+        const unreadResult = await pool.query(`
+          SELECT COUNT(*) as total_unread
+          FROM chat_messages cm
+          JOIN chat_participants cp ON cm."chatRoomId" = cp."chatRoomId"
+          WHERE cp."userId" = $1 
+            AND cp."isActive" = true
+            AND cm."senderId" <> $1
+            AND cm."createdAt" > COALESCE(cp."lastReadAt", cp."joinedAt", '1970-01-01'::timestamp)
+        `, [participant.userId]);
+        
+        const unreadCount = parseInt(unreadResult.rows[0].total_unread) || 0;
+        
+        // 해당 사용자에게 읽지 않은 채팅 수 업데이트 알림
+        io.to(`user-${participant.userId}`).emit('unread-count-updated', { unreadCount });
+      }
+    } catch (error) {
+      console.error('읽지 않은 채팅 수 업데이트 알림 실패:', error);
+    }
     
     console.log('✅ 채팅 메시지 전송 완료:', { messageId: savedMessage.id, chatRoomId: id });
     
@@ -3659,6 +3812,7 @@ apiRouter.get('/user/joined-meetups', authenticateToken, async (req, res) => {
         m.price_range as "priceRange",
         m.age_range as "ageRange", 
         m.gender_preference as "genderPreference",
+        m.image,
         m.status,
         m.created_at as "createdAt",
         mp.status as "participationStatus",
@@ -3684,9 +3838,14 @@ apiRouter.get('/user/joined-meetups', authenticateToken, async (req, res) => {
     
     console.log('✅ 참가 모임 조회 성공:', { count: meetupsResult.rows.length, total });
     
+    const meetupsWithImages = meetupsResult.rows.map(meetup => ({
+      ...meetup,
+      image: processImageUrl(meetup.image, meetup.category)
+    }));
+
     res.json({
       success: true,
-      data: meetupsResult.rows,
+      data: meetupsWithImages,
       pagination: {
         total,
         page: parseInt(page),
@@ -4552,7 +4711,7 @@ io.on('connection', (socket) => {
       if (token) {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         socket.userId = decoded.id;
-        socket.join(`user_${decoded.id}`);
+        socket.join(`user-${decoded.id}`);
         console.log(`🔐 사용자 인증됨: ${decoded.id}, socket: ${socket.id}`);
       }
     } catch (error) {

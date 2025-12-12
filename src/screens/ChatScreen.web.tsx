@@ -213,6 +213,25 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation }) => {
         room.id === roomId ? { ...room, unreadCount: 0 } : room
       ));
       
+      // 채팅방 읽음 처리 API 호출 (즉시 배지 제거)
+      try {
+        const response = await fetch(`${chatApiService.baseURL}/rooms/${roomId}/read`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (response.ok) {
+          console.log('✅ 채팅방 읽음 처리 완료:', roomId);
+        } else {
+          console.warn('⚠️ 채팅방 읽음 처리 실패:', response.status);
+        }
+      } catch (error) {
+        console.error('채팅방 읽음 처리 오류:', error);
+      }
+      
       console.log('🔍 상태 설정 완료, selectedChatId:', roomId, 'currentChatRoom:', chatRoom?.title);
     } catch (error) {
       console.error('채팅방 선택 실패:', error);

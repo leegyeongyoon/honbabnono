@@ -8,6 +8,7 @@ import {
 import { COLORS, SHADOWS } from '../styles/colors';
 import { Icon } from './Icon';
 import { getTimeDifference } from '../utils/timeUtils';
+import { processImageUrl } from '../utils/imageUtils';
 import { FOOD_CATEGORIES } from '../constants/categories';
 
 // 모임 시간 포맷팅 함수
@@ -78,24 +79,17 @@ const MeetupCard: React.FC<MeetupCardProps> = ({ meetup, onPress }) => {
       onPress={() => onPress(meetup.id)}
     >
       <View style={styles.foodImageContainer}>
-        {meetup.image ? (
-          <img 
-            src={meetup.image} 
-            alt={meetup.title}
-            style={styles.meetupImage}
-            onError={(e) => {
-              e.target.style.display = 'none';
-              e.target.nextSibling.style.display = 'flex';
-            }}
-          />
-        ) : null}
-        <View style={[styles.foodImageSample, meetup.image ? { display: 'none' } : {}]}>
-          <Icon 
-            name={getCategoryIcon(meetup.category) as any} 
-            size={32} 
-            color={getCategoryColor(meetup.category)} 
-          />
-        </View>
+        <img 
+          src={processImageUrl(meetup.image, meetup.category)} 
+          alt={meetup.title}
+          style={styles.meetupImage}
+          onError={(e: any) => {
+            // 에러 시 기본 이미지로 재시도
+            if (e.target.src !== processImageUrl(null, meetup.category)) {
+              e.target.src = processImageUrl(null, meetup.category);
+            }
+          }}
+        />
       </View>
       
       <View style={styles.meetupContent}>

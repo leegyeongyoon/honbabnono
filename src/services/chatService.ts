@@ -33,6 +33,13 @@ class ChatService {
     this.socket.on('connect', () => {
       console.log('✅ WebSocket 연결 성공:', this.socket?.id);
       this.isConnected = true;
+      
+      // 자동 인증
+      const token = localStorage.getItem('token');
+      if (token) {
+        this.socket?.emit('authenticate', token);
+        console.log('🔐 WebSocket 자동 인증 요청');
+      }
     });
 
     this.socket.on('disconnect', () => {
@@ -117,6 +124,23 @@ class ChatService {
   offUserTyping() {
     if (this.socket) {
       this.socket.off('user_typing');
+    }
+  }
+
+  // 읽지 않은 채팅 수 업데이트 이벤트 리스닝
+  onUnreadCountUpdated(callback: (data: { unreadCount: number }) => void) {
+    if (this.socket) {
+      this.socket.on('unread-count-updated', callback);
+    }
+  }
+
+  offUnreadCountUpdated(callback?: (data: { unreadCount: number }) => void) {
+    if (this.socket) {
+      if (callback) {
+        this.socket.off('unread-count-updated', callback);
+      } else {
+        this.socket.off('unread-count-updated');
+      }
     }
   }
 

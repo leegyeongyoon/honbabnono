@@ -22,6 +22,8 @@ export interface ChatMessage {
   timestamp: string;
   isMe: boolean;
   isRead: boolean;
+  profileImage?: string;
+  riceIndex?: number;
 }
 
 export interface SendMessageRequest {
