@@ -14020,14 +14020,6 @@ apiRouter.get('/admin/realtime-stats', async (req, res) => {
   }
 });
 
-// 404 에러 핸들러 (API 라우터용) - 모든 라우트 정의 후 마지막에 위치
-apiRouter.use('*', (req, res) => {
-  console.log('❌ 404 에러 발생:', { path: req.path, method: req.method });
-  res.status(404).json({
-    error: 'API 엔드포인트를 찾을 수 없습니다.',
-    path: req.path
-  });
-});
 
 // ========== 일일 통계 수집 스케줄러 ==========
 
@@ -14082,7 +14074,7 @@ const initializeStatistics = async () => {
 // ============================================
 
 // 관리자 공지사항 목록 조회 (페이지네이션 포함)
-apiRouter.get('/admin/notices', authenticateAdmin, async (req, res) => {
+apiRouter.get('/admin/notices', authenticateAdminNew, async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
@@ -14126,7 +14118,7 @@ apiRouter.get('/admin/notices', authenticateAdmin, async (req, res) => {
 });
 
 // 관리자 공지사항 생성
-apiRouter.post('/admin/notices', authenticateAdmin, async (req, res) => {
+apiRouter.post('/admin/notices', authenticateAdminNew, async (req, res) => {
   try {
     const { title, content, type = 'general', is_pinned = false, is_active = true } = req.body;
 
@@ -14155,7 +14147,7 @@ apiRouter.post('/admin/notices', authenticateAdmin, async (req, res) => {
 });
 
 // 관리자 공지사항 수정
-apiRouter.put('/admin/notices/:id', authenticateAdmin, async (req, res) => {
+apiRouter.put('/admin/notices/:id', authenticateAdminNew, async (req, res) => {
   try {
     const { id } = req.params;
     const { title, content, type, is_pinned, is_active } = req.body;
@@ -14192,7 +14184,7 @@ apiRouter.put('/admin/notices/:id', authenticateAdmin, async (req, res) => {
 });
 
 // 관리자 공지사항 고정 상태 변경
-apiRouter.patch('/admin/notices/:id/pin', authenticateAdmin, async (req, res) => {
+apiRouter.patch('/admin/notices/:id/pin', authenticateAdminNew, async (req, res) => {
   try {
     const { id } = req.params;
     const { is_pinned } = req.body;
@@ -14214,7 +14206,7 @@ apiRouter.patch('/admin/notices/:id/pin', authenticateAdmin, async (req, res) =>
 });
 
 // 관리자 공지사항 삭제
-apiRouter.delete('/admin/notices/:id', authenticateAdmin, async (req, res) => {
+apiRouter.delete('/admin/notices/:id', authenticateAdminNew, async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -14235,6 +14227,15 @@ apiRouter.delete('/admin/notices/:id', authenticateAdmin, async (req, res) => {
     console.error('공지사항 삭제 오류:', error);
     res.status(500).json({ success: false, error: '공지사항 삭제에 실패했습니다.' });
   }
+});
+
+// 404 에러 핸들러 (API 라우터용) - 모든 라우트 정의 후 마지막에 위치
+apiRouter.use('*', (req, res) => {
+  console.log('❌ 404 에러 발생:', { path: req.path, method: req.method });
+  res.status(404).json({
+    error: 'API 엔드포인트를 찾을 수 없습니다.',
+    path: req.path
+  });
 });
 
 startServer();
