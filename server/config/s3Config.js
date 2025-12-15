@@ -1,11 +1,12 @@
 const AWS = require('aws-sdk');
 const multer = require('multer');
 const path = require('path');
+const logger = require('./logger');
 
 // S3 설정을 위한 초기화 함수
 const initializeS3Upload = () => {
   // 환경변수 확인 및 디버그 로깅
-  console.log('🔧 S3 환경변수 확인:', {
+  logger.debug('🔧 S3 환경변수 확인:', {
     accessKeyId: process.env.AWS_ACCESS_KEY_ID ? `${process.env.AWS_ACCESS_KEY_ID.substring(0, 8)}...` : 'undefined',
     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY ? `${process.env.AWS_SECRET_ACCESS_KEY.substring(0, 8)}...` : 'undefined',
     region: process.env.AWS_REGION,
@@ -57,16 +58,16 @@ const initializeS3Upload = () => {
     };
 
     try {
-      console.log('🔄 S3 업로드 시작:', { fileName, contentType: file.mimetype, size: file.buffer.length });
+      logger.debug('🔄 S3 업로드 시작:', { fileName, contentType: file.mimetype, size: file.buffer.length });
       const result = await s3.upload(params).promise();
-      console.log('✅ S3 업로드 성공:', result.Location);
+      logger.info('✅ S3 업로드 성공:', result.Location);
       return {
         success: true,
         location: result.Location,
         key: result.Key
       };
     } catch (error) {
-      console.error('❌ S3 업로드 실패:', error);
+      logger.error('❌ S3 업로드 실패:', error);
       throw error;
     }
   };
@@ -82,7 +83,7 @@ const deleteFromS3 = async (fileUrl) => {
     const bucketIndex = urlParts.indexOf(process.env.AWS_S3_BUCKET + '.s3.ap-northeast-2.amazonaws.com');
     
     if (bucketIndex === -1) {
-      console.log('❌ S3 URL 형식이 잘못되었습니다:', fileUrl);
+      logger.warn('❌ S3 URL 형식이 잘못되었습니다:', fileUrl);
       return false;
     }
     
@@ -94,10 +95,10 @@ const deleteFromS3 = async (fileUrl) => {
     };
     
     await s3.deleteObject(params).promise();
-    console.log('✅ S3에서 파일 삭제 성공:', key);
+    logger.info('✅ S3에서 파일 삭제 성공:', key);
     return true;
   } catch (error) {
-    console.error('❌ S3 파일 삭제 실패:', error);
+    logger.error('❌ S3 파일 삭제 실패:', error);
     return false;
   }
 };

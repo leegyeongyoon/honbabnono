@@ -12,6 +12,7 @@ const { Pool } = require('pg');
 const multer = require('multer');
 const fs = require('fs');
 const { initializeS3Upload, deleteFromS3 } = require('./config/s3Config');
+const logger = require('./config/logger');
 
 // 환경변수 로드 - 다른 모든 것보다 먼저 실행
 const mode = process.env.NODE_ENV;
@@ -25,25 +26,25 @@ if (mode === 'production') {
   envFile = '.env.development';
 }
 
-console.log('🔧 Server mode:', mode);
-console.log('🔧 Loading env file:', envFile);
+logger.system('🔧 Server mode:', mode);
+logger.system('🔧 Loading env file:', envFile);
 
 dotenv.config({ path: envFile, override: true });
 
-console.log('🔧 Loaded DB config:', {
+logger.system('🔧 Loaded DB config:', {
   host: process.env.DB_HOST,
   port: process.env.DB_PORT,
   database: process.env.DB_NAME,
   user: process.env.DB_USER
 });
 
-console.log('🔧 Loaded Kakao config:', {
+logger.system('🔧 Loaded Kakao config:', {
   client_id: process.env.KAKAO_CLIENT_ID ? 'SET' : 'NOT SET',
   client_secret: process.env.KAKAO_CLIENT_SECRET ? 'SET' : 'NOT SET',
   redirect_uri: process.env.KAKAO_REDIRECT_URI
 });
 
-console.log('🔧 JWT_SECRET loaded:', process.env.JWT_SECRET);
+logger.system('🔧 JWT_SECRET loaded:', process.env.JWT_SECRET);
 
 // S3 업로드 초기화 (환경변수 로드 후)
 let uploadToMemory = null;
@@ -52,10 +53,10 @@ try {
   const s3Config = initializeS3Upload();
   uploadToMemory = s3Config.uploadToMemory;
   uploadToS3Direct = s3Config.uploadToS3Direct;
-  console.log('✅ S3 업로드 설정 초기화 완료');
+  logger.info('✅ S3 업로드 설정 초기화 완료');
 } catch (error) {
-  console.error('❌ S3 업로드 설정 초기화 실패:', error.message);
-  console.log('⚠️  로컬 파일 업로드로 fallback 됩니다.');
+  logger.error('❌ S3 업로드 설정 초기화 실패:', error.message);
+  logger.warn('⚠️  로컬 파일 업로드로 fallback 됩니다.');
 }
 
 // PostgreSQL 연결 설정
@@ -108,7 +109,7 @@ const getKakaoToken = async (code) => {
     );
     return response.data;
   } catch (error) {
-    console.error('Kakao token error:', error.response?.data || error.message);
+    logger.error('Kakao token error:', error.response?.data || error.message);
     throw new Error('Failed to get Kakao token');
   }
 };
@@ -122,7 +123,7 @@ const getKakaoUserInfo = async (accessToken) => {
     });
     return response.data;
   } catch (error) {
-    console.error('Kakao user info error:', error.response?.data || error.message);
+    logger.error('Kakao user info error:', error.response?.data || error.message);
     throw new Error('Failed to get Kakao user info');
   }
 };
@@ -213,7 +214,7 @@ app.use('/uploads', express.static(uploadDir));
 
 // 모든 요청 로깅 (디버깅용)
 app.use((req, res, next) => {
-  console.log(`📝 Request: ${req.method} ${req.url}`);
+  logger.debug(`📝 Request: ${req.method} ${req.url}`);
   next();
 });
 
@@ -222,17 +223,17 @@ app.use('/api', apiRouter);
 
 // 임시: /api 없는 요청을 /api로 리다이렉트 (하위 호환성을 위해)
 app.use('/meetups', (req, res) => {
-  console.log('⚠️  Legacy request without /api prefix, redirecting:', req.originalUrl);
+  logger.warn('⚠️  Legacy request without /api prefix, redirecting:', req.originalUrl);
   res.redirect(301, `/api${req.originalUrl}`);
 });
 
 app.use('/auth', (req, res) => {
-  console.log('⚠️  Legacy auth request without /api prefix, redirecting:', req.originalUrl);
+  logger.warn('⚠️  Legacy auth request without /api prefix, redirecting:', req.originalUrl);
   res.redirect(301, `/api${req.originalUrl}`);
 });
 
 app.use('/chat', (req, res) => {
-  console.log('⚠️  Legacy chat request without /api prefix, redirecting:', req.originalUrl);
+  logger.warn('⚠️  Legacy chat request without /api prefix, redirecting:', req.originalUrl);
   res.redirect(301, `/api${req.originalUrl}`);
 });
 
@@ -249,7 +250,7 @@ apiRouter.get('/health', (req, res) => {
 apiRouter.get('/auth/kakao', (req, res) => {
   const kakaoAuthUrl = `https://kauth.kakao.com/oauth/authorize?client_id=${process.env.KAKAO_CLIENT_ID}&redirect_uri=${encodeURIComponent(process.env.KAKAO_REDIRECT_URI)}&response_type=code`;
   
-  console.log('카카오 로그인 시작:', {
+  logger.debug('카카오 로그인 시작:', {
     clientId: process.env.KAKAO_CLIENT_ID,
     redirectUri: process.env.KAKAO_REDIRECT_URI,
     authUrl: kakaoAuthUrl
@@ -262,7 +263,7 @@ apiRouter.get('/auth/kakao', (req, res) => {
 apiRouter.get('/auth/kakao/login', (req, res) => {
   const kakaoAuthUrl = `https://kauth.kakao.com/oauth/authorize?client_id=${process.env.KAKAO_CLIENT_ID}&redirect_uri=${encodeURIComponent(process.env.KAKAO_REDIRECT_URI)}&response_type=code`;
   
-  console.log('카카오 로그인 시작:', {
+  logger.debug('카카오 로그인 시작:', {
     clientId: process.env.KAKAO_CLIENT_ID,
     redirectUri: process.env.KAKAO_REDIRECT_URI,
     authUrl: kakaoAuthUrl
@@ -276,25 +277,25 @@ apiRouter.get('/auth/kakao/callback', async (req, res) => {
   const { code, error } = req.query;
   
   if (error) {
-    console.error('카카오 로그인 에러:', error);
+    logger.error('카카오 로그인 에러:', error);
     return res.redirect('/#/login?error=kakao_auth_failed');
   }
   
   if (!code) {
-    console.error('카카오 로그인 코드 없음');
+    logger.error('카카오 로그인 코드 없음');
     return res.redirect('/#/login?error=no_auth_code');
   }
   
   try {
-    console.log('카카오 로그인 콜백 처리 시작:', code);
+    logger.debug('카카오 로그인 콜백 처리 시작:', code);
     
     // 1. 카카오에서 access_token 받기
     const tokenData = await getKakaoToken(code);
-    console.log('카카오 토큰 획득 성공');
+    logger.debug('카카오 토큰 획득 성공');
     
     // 2. access_token으로 사용자 정보 조회
     const kakaoUser = await getKakaoUserInfo(tokenData.access_token);
-    console.log('카카오 사용자 정보 획득:', kakaoUser.kakao_account?.email);
+    logger.debug('카카오 사용자 정보 획득:', kakaoUser.kakao_account?.email);
     
     // 3. 데이터베이스에서 사용자 찾기 또는 생성
     let userResult = await pool.query(`
@@ -327,9 +328,9 @@ apiRouter.get('/auth/kakao/callback', async (req, res) => {
     }
     
     if (created) {
-      console.log('새 사용자 생성:', user.email);
+      logger.info('새 사용자 생성:', user.email);
     } else {
-      console.log('기존 사용자 로그인:', user.email);
+      logger.info('기존 사용자 로그인:', user.email);
     }
     
     // 4. JWT 토큰 생성
@@ -345,7 +346,7 @@ apiRouter.get('/auth/kakao/callback', async (req, res) => {
     }))}`);
     
   } catch (error) {
-    console.error('카카오 로그인 처리 실패:', error);
+    logger.error('카카오 로그인 처리 실패:', error);
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
     res.redirect(`${frontendUrl}/login?error=kakao_login_failed`);
   }
@@ -452,7 +453,7 @@ apiRouter.post('/auth/kakao', async (req, res) => {
     
     // access_token으로 직접 사용자 정보 조회
     const kakaoUser = await getKakaoUserInfo(accessToken);
-    console.log('카카오 사용자 정보 획득:', kakaoUser.kakao_account?.email);
+    logger.debug('카카오 사용자 정보 획득:', kakaoUser.kakao_account?.email);
     
     // 3. 데이터베이스에서 사용자 찾기 또는 생성
     let userResult = await pool.query(`
@@ -485,9 +486,9 @@ apiRouter.post('/auth/kakao', async (req, res) => {
     }
     
     if (created) {
-      console.log('새 사용자 생성:', user.email);
+      logger.info('새 사용자 생성:', user.email);
     } else {
-      console.log('기존 사용자 로그인:', user.email);
+      logger.info('기존 사용자 로그인:', user.email);
     }
     
     // 4. JWT 토큰 생성
@@ -2963,6 +2964,42 @@ apiRouter.post('/chat/rooms/:id/read', authenticateToken, async (req, res) => {
     res.status(500).json({ 
       success: false,
       error: '채팅방 읽음 처리에 실패했습니다' 
+    });
+  }
+});
+
+// 모든 채팅 읽음 처리 API
+apiRouter.post('/chat/read-all', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    
+    console.log('👁️ 모든 채팅방 읽음 처리 요청:', { userId });
+    
+    // 사용자가 참가한 모든 활성 채팅방의 lastReadAt을 현재 시간으로 업데이트
+    const now = new Date();
+    const updateResult = await pool.query(`
+      UPDATE chat_participants 
+      SET "lastReadAt" = $1, "updatedAt" = $1
+      WHERE "userId" = $2 AND "isActive" = true
+    `, [now, userId]);
+    
+    console.log('✅ 모든 채팅방 읽음 처리 성공:', { 
+      userId, 
+      updatedCount: updateResult.rowCount,
+      lastReadAt: now 
+    });
+    
+    res.json({
+      success: true,
+      message: '모든 채팅방을 읽음으로 처리했습니다',
+      updatedCount: updateResult.rowCount
+    });
+    
+  } catch (error) {
+    console.error('모든 채팅방 읽음 처리 오류:', error);
+    res.status(500).json({ 
+      success: false,
+      error: '모든 채팅방 읽음 처리에 실패했습니다' 
     });
   }
 });
@@ -10363,19 +10400,19 @@ const startServer = async () => {
   try {
     // PostgreSQL 연결 테스트
     await pool.query('SELECT 1+1 AS result');
-    console.log('✅ PostgreSQL 데이터베이스 연결 성공');
+    logger.info('✅ PostgreSQL 데이터베이스 연결 성공');
     
     // Admin 테이블 생성 및 초기 계정 설정
     await initializeAdminTable();
     
     server.listen(PORT, '0.0.0.0', () => {
-      console.log(`🚀 혼밥시러 API 서버가 포트 ${PORT}에서 실행 중입니다.`);
-      console.log(`📍 Health check: http://localhost:${PORT}/api/health`);
-      console.log(`🔑 Kakao login: http://localhost:${PORT}/api/auth/kakao/login`);
-      console.log(`📡 WebSocket 서버가 Socket.IO로 실행 중입니다.`);
+      logger.system(`🚀 혼뱥시러 API 서버가 포트 ${PORT}에서 실행 중입니다.`);
+      logger.system(`📍 Health check: http://localhost:${PORT}/api/health`);
+      logger.system(`🔑 Kakao login: http://localhost:${PORT}/api/auth/kakao/login`);
+      logger.system(`📡 WebSocket 서버가 Socket.IO로 실행 중입니다.`);
     });
   } catch (error) {
-    console.error('서버 시작 실패:', error);
+    logger.error('서버 시작 실패:', error);
     process.exit(1);
   }
 };
@@ -14047,7 +14084,7 @@ const scheduleStatisticsCollection = () => {
 // 서버 시작 시 오늘 통계 수집 (개발용)
 const initializeStatistics = async () => {
   try {
-    console.log('📊 초기 통계 수집 실행...');
+    logger.debug('📊 초기 통계 수집 실행...');
     const today = new Date();
     await collectDailyStatistics(today);
     
