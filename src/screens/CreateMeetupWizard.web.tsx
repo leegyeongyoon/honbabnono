@@ -21,12 +21,10 @@ import '../styles/big-calendar.css';
 // import DatePicker from 'react-datepicker';
 // import 'react-datepicker/dist/react-datepicker.css';
 // import '../styles/datepicker.css';
-import { Wrapper } from '@googlemaps/react-wrapper';
-
-// Google Maps 타입 선언
+// Kakao Map 타입 선언
 declare global {
   interface Window {
-    google: typeof google;
+    kakao: any;
   }
 }
 
@@ -55,46 +53,82 @@ interface MeetupData {
 
 // const localizer = momentLocalizer(moment);
 
-// Google Maps 컴포넌트
-interface MapComponentProps {
+// Kakao Map 컴포넌트
+interface KakaoMapComponentProps {
   onMapLoad: (map: any) => void;
   onLocationSelect: (location: { latLng: { lat: number; lng: number }; address: string }) => void;
 }
 
-const MapComponent: React.FC<MapComponentProps> = ({ onMapLoad, onLocationSelect }) => {
-  const ref = React.useRef<HTMLDivElement>(null);
+const KakaoMapComponent: React.FC<KakaoMapComponentProps> = ({ onMapLoad, onLocationSelect }) => {
+  const mapRef = React.useRef<HTMLDivElement>(null);
   const [map, setMap] = React.useState<any>(null);
+  const [isScriptLoaded, setIsScriptLoaded] = React.useState(false);
 
   React.useEffect(() => {
-    if (ref.current && !map && (window as any).google) {
-      const mapInstance = new (window as any).google.maps.Map(ref.current, {
-        center: { lat: 37.5665, lng: 126.9780 }, // 서울 시청 좌표
-        zoom: 12,
-        mapTypeControl: false,
-        streetViewControl: false,
-        fullscreenControl: false,
-      });
-      
-      mapInstance.addListener('click', (e: any) => {
-        if (e.latLng) {
-          const geocoder = new (window as any).google.maps.Geocoder();
-          geocoder.geocode({ location: e.latLng }, (results: any, status: any) => {
-            if (status === 'OK' && results && results[0]) {
+    // Kakao Map API 스크립트가 이미 로드되었는지 확인
+    if (window.kakao && window.kakao.maps) {
+      setIsScriptLoaded(true);
+      return;
+    }
+
+    // Kakao Map API 스크립트 로드
+    const script = document.createElement('script');
+    script.async = true;
+    script.src = `//dapi.kakao.com/v2/maps/sdk.js?appkey=5a202bd90ab8dff01348f24cb1c37f3f&libraries=services,clusterer,drawing&autoload=false`;
+    
+    script.onload = () => {
+      setIsScriptLoaded(true);
+    };
+    
+    document.head.appendChild(script);
+    
+    return () => {
+      // 컴포넌트 언마운트 시 스크립트 제거하지 않음 (재사용 위해)
+    };
+  }, []);
+
+  React.useEffect(() => {
+    if (isScriptLoaded && mapRef.current && !map) {
+      window.kakao.maps.load(() => {
+        const options = {
+          center: new window.kakao.maps.LatLng(37.5665, 126.9780), // 서울 시청
+          level: 3
+        };
+        
+        const mapInstance = new window.kakao.maps.Map(mapRef.current, options);
+        setMap(mapInstance);
+        onMapLoad(mapInstance);
+
+        // 지도 클릭 이벤트 리스너
+        window.kakao.maps.event.addListener(mapInstance, 'click', (mouseEvent: any) => {
+          const latlng = mouseEvent.latLng;
+          const lat = latlng.getLat();
+          const lng = latlng.getLng();
+          
+          // 좌표로 주소 변환
+          const geocoder = new window.kakao.maps.services.Geocoder();
+          
+          geocoder.coord2Address(lng, lat, (result: any, status: any) => {
+            if (status === window.kakao.maps.services.Status.OK) {
+              const address = result[0]?.address?.address_name || `위도: ${lat.toFixed(6)}, 경도: ${lng.toFixed(6)}`;
               onLocationSelect({
-                latLng: { lat: e.latLng!.lat(), lng: e.latLng!.lng() },
-                address: results[0].formatted_address
+                latLng: { lat, lng },
+                address: address,
+              });
+            } else {
+              // Geocoding 실패 시 좌표 정보 제공
+              onLocationSelect({
+                latLng: { lat, lng },
+                address: `위도: ${lat.toFixed(6)}, 경도: ${lng.toFixed(6)}`,
               });
             }
           });
-        }
+        });
       });
-      
-      setMap(mapInstance);
-      onMapLoad(mapInstance);
     }
-  }, [ref, map, onMapLoad, onLocationSelect]);
+  }, [isScriptLoaded, map, onMapLoad, onLocationSelect]);
 
-  return <div ref={ref} style={{ height: '200px', width: '100%', borderRadius: '12px' }} />;
+  return <div ref={mapRef} style={{ height: '200px', width: '100%', borderRadius: '12px' }} />;
 };
 
 const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
@@ -207,6 +241,38 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
   const updateMeetupData = (field: keyof MeetupData, value: any) => {
     setMeetupData(prev => ({ ...prev, [field]: value }));
   };
+
+  // Kakao 장소 검색 함수
+  const performKakaoPlaceSearch = React.useCallback((query: string) => {
+    if (!(window as any).kakao || !(window as any).kakao.maps || !(window as any).kakao.maps.services) {
+      console.warn('Kakao Maps API not loaded');
+      return;
+    }
+
+    const places = new (window as any).kakao.maps.services.Places();
+    
+    places.keywordSearch(query, (data: any, status: any) => {
+      if (status === (window as any).kakao.maps.services.Status.OK) {
+        const results = data.slice(0, 10).map((place: any) => ({
+          name: place.place_name,
+          district: place.address_name.split(' ')[1] || '',
+          fullAddress: place.address_name,
+          roadAddress: place.road_address_name || place.address_name,
+          lat: parseFloat(place.y),
+          lng: parseFloat(place.x),
+          phone: place.phone || '',
+          categoryName: place.category_name || '',
+        }));
+        setSearchResults(results);
+      } else {
+        setSearchResults([]);
+      }
+    }, {
+      location: new (window as any).kakao.maps.LatLng(37.5665, 126.9780), // 서울 중심
+      radius: 20000, // 20km 반경
+      sort: (window as any).kakao.maps.services.SortBy.DISTANCE
+    });
+  }, []);
 
 
   const nextStep = () => {
@@ -350,8 +416,6 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
   const renderStep1 = () => (
     <View style={styles.stepContainer}>
       <Text style={styles.stepTitle}>어떤 메뉴를 드시고 싶으세요?</Text>
-      
-      {/* 홈 화면과 동일한 카테고리 디자인 */}
       <View style={styles.homeCategorySection}>
         <View style={styles.homeCategoryGrid}>
           {FOOD_CATEGORIES.map((category) => (
@@ -384,14 +448,10 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
   );
 
   const renderStep2 = () => {
-
-
     return (
       <View style={styles.stepContainer}>
         <Text style={styles.stepTitle}>언제 만날까요?</Text>
-        
         <View style={styles.dateTimeContainer}>
-          {/* 당근마켓 스타일 날짜 선택 드롭다운 */}
           <View style={styles.dateTimeRow}>
             <Text style={styles.dateTimeRowLabel}>날짜</Text>
             <TouchableOpacity style={styles.dropdownButton} onPress={() => setShowDateModal(true)}>
@@ -404,7 +464,6 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
             </TouchableOpacity>
           </View>
 
-          {/* 당근마켓 스타일 시간 선택 드롭다운 */}
           <View style={styles.dateTimeRow}>
             <Text style={styles.dateTimeRowLabel}>시간</Text>
             <TouchableOpacity style={styles.dropdownButton} onPress={() => setShowTimeModal(true)}>
@@ -415,7 +474,6 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
             </TouchableOpacity>
           </View>
 
-          {/* 당근마켓 스타일 약속 전 알림 */}
           <View style={styles.dateTimeRow}>
             <Text style={styles.dateTimeRowLabel}>약속 전 나에게 알림</Text>
             <TouchableOpacity style={styles.dropdownButton} onPress={() => setShowAlarmModal(true)}>
@@ -441,7 +499,6 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
             </View>
           )}
 
-          {/* 날짜 선택 모달 */}
           {showDateModal && (
             <View style={styles.modalOverlay}>
               <View style={styles.modalContainer}>
@@ -476,7 +533,6 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
                   </TouchableOpacity>
                 </View>
                 <View style={styles.modalCalendarContainer}>
-                  {/* 기존 react-big-calendar 대신 사용자 정의 달력 */}
                   <View style={styles.customCalendar}>
                     <View style={styles.calendarHeader}>
                       <TouchableOpacity onPress={() => {
@@ -498,14 +554,12 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
                       </TouchableOpacity>
                     </View>
                     
-                    {/* 요일 헤더 */}
                     <View style={styles.weekHeader}>
                       {['일', '월', '화', '수', '목', '금', '토'].map((day, index) => (
                         <Text key={index} style={styles.weekDay}>{day}</Text>
                       ))}
                     </View>
                     
-                    {/* 날짜 그리드 */}
                     <View style={styles.datesGrid}>
                       {(() => {
                         const currentDate = selectedDate || new Date();
@@ -580,7 +634,6 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
             </View>
           )}
 
-          {/* 시간 선택 모달 */}
           {showTimeModal && (
             <View style={styles.modalOverlay}>
               <View style={styles.modalContainer}>
@@ -666,7 +719,6 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
             </View>
           )}
 
-          {/* 알림 선택 모달 */}
           {showAlarmModal && (
             <View style={styles.modalOverlay}>
               <View style={styles.modalContainer}>
@@ -712,7 +764,6 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
   const renderStep3 = () => (
     <View style={styles.stepContainer}>
       <Text style={styles.stepTitle}>몇명의 모임으로 할까요?</Text>
-      
       <View style={styles.participantSelector}>
         {[
           { value: 1, label: '1명' },
@@ -746,7 +797,6 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
   const renderStep4 = () => (
     <View style={styles.stepContainer}>
       <Text style={styles.stepTitle}>선호하는 유형을 설정해주세요</Text>
-      
       <View style={styles.preferenceSection}>
         <Text style={styles.preferenceLabel}>성별</Text>
         <View style={styles.preferenceOptions}>
@@ -782,7 +832,6 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
         </TouchableOpacity>
       </View>
       
-      {/* 연령 설정 모달 */}
       {showAgeModal && (
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
@@ -804,7 +853,6 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
             </View>
             
             <View style={styles.ageRangeContainer}>
-              {/* 전체 연령 옵션 */}
               <TouchableOpacity 
                 style={[
                   styles.ageRangeOption,
@@ -905,9 +953,7 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
   const renderStep5 = () => (
     <View style={styles.stepContainer}>
       <Text style={styles.stepTitle}>어디서 만날까요?</Text>
-      
       <View style={styles.locationContainer}>
-        {/* 주소 선택 드롭다운 */}
         <TouchableOpacity style={styles.dropdownButton} onPress={() => setShowLocationModal(true)}>
           <Text style={styles.dropdownButtonText}>
             {meetupData.location || '위치를 선택해주세요'}
@@ -923,7 +969,6 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
         )}
       </View>
       
-      {/* 위치 검색 모달 */}
       {showLocationModal && (
         <View style={styles.modalOverlay}>
           <View style={styles.locationModalContainer}>
@@ -944,14 +989,9 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
                 value={searchQuery}
                 onChangeText={(text) => {
                   setSearchQuery(text);
-                  // 실시간 검색
-                  if (text.length > 0) {
-                    const filtered = seoulLocations.filter(location => 
-                      location.name.toLowerCase().includes(text.toLowerCase()) ||
-                      location.district.includes(text) ||
-                      location.fullAddress.includes(text)
-                    );
-                    setSearchResults(filtered);
+                  // 카카오 장소 검색 API 사용
+                  if (text.length > 1) {
+                    performKakaoPlaceSearch(text);
                   } else {
                     setSearchResults([]);
                   }
@@ -961,13 +1001,8 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
               <TouchableOpacity 
                 style={styles.searchButton}
                 onPress={() => {
-                  if (searchQuery.length > 0) {
-                    const filtered = seoulLocations.filter(location => 
-                      location.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                      location.district.includes(searchQuery) ||
-                      location.fullAddress.includes(searchQuery)
-                    );
-                    setSearchResults(filtered);
+                  if (searchQuery.length > 1) {
+                    performKakaoPlaceSearch(searchQuery);
                   }
                 }}
               >
@@ -975,7 +1010,6 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
               </TouchableOpacity>
             </View>
             
-            {/* 검색 결과 */}
             {searchResults.length > 0 && (
               <View style={styles.searchResultsContainer}>
                 <Text style={styles.searchResultsTitle}>검색 결과</Text>
@@ -986,6 +1020,11 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
                     onPress={() => {
                       updateMeetupData('location', location.name);
                       updateMeetupData('address', location.fullAddress);
+                      if (location.lat && location.lng) {
+                        updateMeetupData('latitude', location.lat);
+                        updateMeetupData('longitude', location.lng);
+                        setSelectedLatLng({ lat: location.lat, lng: location.lng });
+                      }
                       setSearchQuery('');
                       setSearchResults([]);
                       setShowLocationModal(false);
@@ -998,26 +1037,22 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
               </View>
             )}
             
-            {/* Google Maps 지도 */}
             {searchResults.length === 0 && (
               <View style={styles.mapContainer}>
-                <Wrapper apiKey={''}>
-                  <MapComponent
-                    onMapLoad={setMapInstance}
-                    onLocationSelect={(location) => {
-                      setSelectedLatLng(location.latLng);
-                      updateMeetupData('location', location.address);
-                      updateMeetupData('address', location.address);
-                      updateMeetupData('latitude', location.latLng.lat);
-                      updateMeetupData('longitude', location.latLng.lng);
-                    }}
-                  />
-                </Wrapper>
+                <KakaoMapComponent
+                  onMapLoad={setMapInstance}
+                  onLocationSelect={(location) => {
+                    setSelectedLatLng(location.latLng);
+                    updateMeetupData('location', location.address);
+                    updateMeetupData('address', location.address);
+                    updateMeetupData('latitude', location.latLng.lat);
+                    updateMeetupData('longitude', location.latLng.lng);
+                  }}
+                />
                 <Text style={styles.mapHelpText}>지도를 클릭해서 위치를 선택하거나 위에서 검색하세요</Text>
               </View>
             )}
             
-            {/* 인기 위치 옵션 */}
             {searchResults.length === 0 && (
               <View style={styles.popularLocations}>
                 <Text style={styles.popularLocationsTitle}>인기 지역</Text>
@@ -1048,7 +1083,6 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
   const renderStep6 = () => (
     <View style={styles.stepContainer}>
       <Text style={styles.stepTitle}>모임에 대해 설명해주세요</Text>
-      
       <View style={styles.titleSection}>
         <Text style={styles.inputLabel}>모임 제목</Text>
         <TextInput
@@ -1100,7 +1134,6 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
     <View style={styles.stepContainer}>
       <Text style={styles.stepTitle}>약속금을 설정해주세요</Text>
       <Text style={styles.stepSubtitle}>약속금은 모임 참여의 신뢰성을 높여줍니다</Text>
-      
       <View style={styles.depositSection}>
         <Text style={styles.inputLabel}>약속금 금액</Text>
         <View style={styles.depositAmountContainer}>
@@ -1117,7 +1150,6 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
           <Text style={styles.currencyText}>원</Text>
         </View>
         
-        {/* 미리 설정된 금액 버튼들 */}
         <View style={styles.quickAmountButtons}>
           {[5000, 10000, 15000, 20000].map((amount) => (
             <TouchableOpacity
