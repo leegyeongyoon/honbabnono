@@ -1,17 +1,42 @@
 import { useState, useEffect } from 'react';
 import { useMeetupStore, Meetup } from '../store/meetupStore';
 
+interface SearchParams {
+  search?: string;
+  category?: string;
+  location?: string;
+  page?: number;
+  limit?: number;
+}
+
 export const useMeetups = () => {
   const [meetups, setMeetups] = useState<Meetup[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const fetchMeetups = async () => {
+  const fetchMeetups = async (searchParams: SearchParams = {}) => {
     setLoading(true);
     try {
       const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
       console.log('🔍 Using API URL:', apiUrl);
       console.log('🔍 ENV REACT_APP_API_URL:', process.env.REACT_APP_API_URL);
-      const response = await fetch(`${apiUrl}/meetups`);
+      
+      // URL 구성
+      const queryParams = new URLSearchParams();
+      if (searchParams.search) queryParams.append('search', searchParams.search);
+      if (searchParams.category && searchParams.category !== '전체') {
+        queryParams.append('category', searchParams.category);
+      }
+      if (searchParams.location && searchParams.location !== '전체') {
+        queryParams.append('location', searchParams.location);
+      }
+      if (searchParams.page) queryParams.append('page', searchParams.page.toString());
+      if (searchParams.limit) queryParams.append('limit', searchParams.limit.toString());
+      
+      const queryString = queryParams.toString();
+      const fullUrl = `${apiUrl}/meetups${queryString ? '?' + queryString : ''}`;
+      console.log('🔍 Fetching meetups from:', fullUrl);
+      
+      const response = await fetch(fullUrl);
       const data = await response.json();
       
       // 백엔드 데이터를 프론트엔드 형식에 맞게 변환
@@ -164,11 +189,16 @@ export const useMeetups = () => {
     }
   };
 
+  const searchMeetups = async (searchParams: SearchParams) => {
+    return fetchMeetups(searchParams);
+  };
+
   return {
     meetups,
     loading,
     error: false, // 에러 상태 추가
     refreshMeetups: fetchMeetups, // refreshMeetups로 export
+    searchMeetups, // 검색 기능 추가
     createMeetup,
     joinMeetup,
     leaveMeetup,

@@ -35,13 +35,28 @@ const SearchScreen: React.FC<SearchScreenProps> = ({ navigation, user }) => {
   const [searchIntent, setSearchIntent] = useState<any>(null);
   const [showSuggestions, setShowSuggestions] = useState(false);
   
-  const { meetups } = useMeetups();
+  const { meetups, searchMeetups, loading } = useMeetups();
   
   const tabs = ['내주변모임', '맛집리스트', '필터링'];
 
   const categories = SEARCH_CATEGORIES;
   const locations = SEARCH_LOCATIONS;
   const sortOptions = SORT_OPTION_NAMES;
+
+  // 실제 검색 수행
+  const performSearch = async (searchText: string, category: string = selectedCategory, location: string = selectedLocation) => {
+    console.log('🔍 검색 수행:', { searchText, category, location });
+    try {
+      await searchMeetups({
+        search: searchText || undefined,
+        category: category !== '전체' ? category : undefined,
+        location: location !== '전체' ? location : undefined,
+        limit: 50
+      });
+    } catch (error) {
+      console.error('검색 오류:', error);
+    }
+  };
 
   // AI 검색 분석
   const handleSearchAnalysis = async (text: string) => {
@@ -67,13 +82,22 @@ const SearchScreen: React.FC<SearchScreenProps> = ({ navigation, user }) => {
             setSelectedLocation(locationMatch);
           }
         }
+        
+        // 검색 수행
+        performSearch(text, analysis.intent.category || selectedCategory, analysis.intent.location || selectedLocation);
       } catch (error) {
         console.error('AI 검색 분석 오류:', error);
+        // AI 오류 시에도 기본 검색 수행
+        performSearch(text);
       } finally {
         setIsAnalyzing(false);
       }
     } else {
       setShowSuggestions(false);
+      // 짧은 검색어이나 AI 비활성화 시 기본 검색
+      if (text.length > 0) {
+        performSearch(text);
+      }
     }
   };
 
@@ -81,11 +105,21 @@ const SearchScreen: React.FC<SearchScreenProps> = ({ navigation, user }) => {
     const timeoutId = setTimeout(() => {
       if (searchText) {
         handleSearchAnalysis(searchText);
+      } else {
+        // 검색어 비운 경우 전체 목록 로드
+        performSearch('');
       }
     }, 500); // 디바운싱
 
     return () => clearTimeout(timeoutId);
   }, [searchText]);
+  
+  // 필터 변경 시 검색 재실행
+  useEffect(() => {
+    if (selectedCategory !== '전체' || selectedLocation !== '전체') {
+      performSearch(searchText);
+    }
+  }, [selectedCategory, selectedLocation]);
 
   const filteredMeetups = meetups.filter(meetup => {
     const matchesSearch = searchText === '' || 
@@ -190,6 +224,15 @@ const SearchScreen: React.FC<SearchScreenProps> = ({ navigation, user }) => {
   const renderTabContent = () => {
     switch (selectedTab) {
       case '내주변모임':
+        if (loading) {
+          return (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={COLORS.primary.main} />
+              <Text style={styles.loadingText}>검색 중...</Text>
+            </View>
+          );
+        }
+        
         return (
           <FlatList
             data={filteredMeetups}
@@ -198,6 +241,12 @@ const SearchScreen: React.FC<SearchScreenProps> = ({ navigation, user }) => {
             style={styles.resultsList}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.resultsContainer}
+            ListEmptyComponent={
+              <View style={styles.emptyContainer}>
+                <Text style={styles.emptyText}>검색 결과가 없습니다</Text>
+                <Text style={styles.emptySubText}>다른 검색어나 필터를 시도해보세요</Text>
+              </View>
+            }
           />
         );
       
@@ -266,7 +315,7 @@ const SearchScreen: React.FC<SearchScreenProps> = ({ navigation, user }) => {
             placeholderTextColor="#5f6368"
             onFocus={() => setShowSuggestions(searchText.length > 0)}
           />
-          {isAnalyzing && (
+          {(isAnalyzing || loading) && (
             <ActivityIndicator size="small" color={COLORS.primary.main} style={{ marginLeft: 8 }} />
           )}
         </View>
@@ -358,6 +407,8 @@ const SearchScreen: React.FC<SearchScreenProps> = ({ navigation, user }) => {
                 setSelectedLocation('전체');
                 setShowSuggestions(false);
                 setSearchIntent(null);
+                // 초기화 후 전체 목록 로드
+                performSearch('');
               }}
             >
               <Text style={styles.clearButtonText}>초기화</Text>
@@ -760,6 +811,38 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#ef4444',
     fontWeight: '500',
+  },
+  // 로딩 및 빈 상태 스타일
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 40,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: COLORS.text.secondary,
+    marginTop: 16,
+    fontWeight: '500',
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 40,
+    minHeight: 200,
+  },
+  emptyText: {
+    fontSize: 18,
+    color: COLORS.text.primary,
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  emptySubText: {
+    fontSize: 14,
+    color: COLORS.text.secondary,
+    textAlign: 'center',
+    lineHeight: 20,
   },
 });
 
