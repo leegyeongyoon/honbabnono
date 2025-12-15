@@ -29,9 +29,17 @@ module.exports = {
         use: {
           loader: 'babel-loader',
           options: {
+            babelrc: false,
+            configFile: false,
             presets: [
-              '@babel/preset-env',
-              '@babel/preset-react',
+              ['@babel/preset-env', {
+                targets: {
+                  browsers: ['last 2 versions', 'not dead', '> 1%']
+                }
+              }],
+              ['@babel/preset-react', {
+                runtime: 'automatic'
+              }],
               '@babel/preset-typescript',
             ],
           },

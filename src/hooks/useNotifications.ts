@@ -1,7 +1,34 @@
 import { useState, useEffect } from 'react';
 import { io, Socket } from 'socket.io-client';
-import { Notification } from '../types/notification';
 import notificationApiService from '../services/notificationApiService';
+
+// Local type definition for compatibility
+type Notification = {
+  id: number;
+  userId: string;
+  type: string;
+  title: string;
+  message: string;
+  meetupId?: string;
+  relatedUserId?: string;
+  data?: any;
+  isRead: boolean;
+  isSent: boolean;
+  scheduledAt?: string;
+  sentAt?: string;
+  createdAt: string;
+  updatedAt: string;
+  meetup?: {
+    id: string;
+    title: string;
+    location: string;
+  };
+  relatedUser?: {
+    id: string;
+    name: string;
+    profileImage?: string;
+  };
+};
 
 const useNotifications = (userId?: string) => {
   const [socket, setSocket] = useState<Socket | null>(null);

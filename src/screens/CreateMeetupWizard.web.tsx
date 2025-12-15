@@ -404,8 +404,8 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
             key={step}
             style={[
               styles.stepDot,
-              step <= currentStep && styles.stepDotActive,
-              step === currentStep && styles.stepDotCurrent
+              step <= currentStep ? styles.stepDotActive : null,
+              step === currentStep ? styles.stepDotCurrent : null
             ]}
           />
         ))}
@@ -436,7 +436,7 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
               </View>
               <Text style={[
                 styles.homeCategoryName,
-                meetupData.category === category.name && styles.homeCategoryNameSelected
+                meetupData.category === category.name ? styles.homeCategoryNameSelected : null
               ]}>
                 {category.name}
               </Text>
@@ -457,7 +457,7 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
             <TouchableOpacity style={styles.dropdownButton} onPress={() => setShowDateModal(true)}>
               <Text style={styles.dropdownButtonText}>
                 {selectedDate ? 
-                  `${selectedDate.getMonth() + 1}월 ${selectedDate.getDate()}일 ${['일', '월', '화', '수', '목', '금', '토'][selectedDate.getDay()]}요일` 
+                  selectedDate.getMonth() + 1 + '월 ' + selectedDate.getDate() + '일 ' + ['일', '월', '화', '수', '목', '금', '토'][selectedDate.getDay()] + '요일'
                   : '12월 12일 금요일'}
               </Text>
               <Text style={styles.dropdownArrow}>▼</Text>
@@ -468,7 +468,7 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
             <Text style={styles.dateTimeRowLabel}>시간</Text>
             <TouchableOpacity style={styles.dropdownButton} onPress={() => setShowTimeModal(true)}>
               <Text style={styles.dropdownButtonText}>
-                {selectedPeriod} {selectedHour}:{selectedMinute.toString().padStart(2, '0')}
+                {selectedPeriod + ' ' + selectedHour + ':' + selectedMinute.toString().padStart(2, '0')}
               </Text>
               <Text style={styles.dropdownArrow}>▼</Text>
             </TouchableOpacity>
@@ -482,7 +482,7 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
             </TouchableOpacity>
           </View>
 
-          {meetupData.datetime && (
+          {meetupData.datetime ? (
             <View style={styles.selectedDateTimeDisplay}>
               <Text style={styles.selectedDateTimeText}>
                 ✨ 선택된 일정: {meetupData.datetime.toLocaleDateString('ko-KR', {
@@ -497,9 +497,9 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
                 })}
               </Text>
             </View>
-          )}
+          ) : null}
 
-          {showDateModal && (
+          {showDateModal ? (
             <View style={styles.modalOverlay}>
               <View style={styles.modalContainer}>
                 <View style={styles.modalHeader}>
@@ -589,8 +589,8 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
                               key={index}
                               style={[
                                 styles.dateButton,
-                                isSelected && styles.selectedDateButton,
-                                !isCurrentMonth && styles.otherMonthDate
+                                isSelected ? styles.selectedDateButton : null,
+                                !isCurrentMonth ? styles.otherMonthDate : null
                               ]}
                               onPress={() => {
                                 console.log('날짜 클릭:', date);
@@ -618,8 +618,8 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
                             >
                               <Text style={[
                                 styles.dateText,
-                                isSelected && styles.selectedDateText,
-                                !isCurrentMonth && styles.otherMonthDateText
+                                isSelected ? styles.selectedDateText : null,
+                                !isCurrentMonth ? styles.otherMonthDateText : null
                               ]}>
                                 {date.getDate()}
                               </Text>
@@ -632,9 +632,9 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
                 </View>
               </View>
             </View>
-          )}
+          ) : null}
 
-          {showTimeModal && (
+          {showTimeModal ? (
             <View style={styles.modalOverlay}>
               <View style={styles.modalContainer}>
                 <View style={styles.modalHeader}>
@@ -670,10 +670,10 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
                       {['오전', '오후'].map((period) => (
                         <TouchableOpacity
                           key={period}
-                          style={[styles.timeScrollItem, selectedPeriod === period && styles.timeScrollItemSelected]}
+                          style={[styles.timeScrollItem, selectedPeriod === period ? styles.timeScrollItemSelected : null]}
                           onPress={() => setSelectedPeriod(period)}
                         >
-                          <Text style={[styles.timeScrollText, selectedPeriod === period && styles.timeScrollTextSelected]}>
+                          <Text style={[styles.timeScrollText, selectedPeriod === period ? styles.timeScrollTextSelected : null]}>
                             {period}
                           </Text>
                         </TouchableOpacity>
@@ -687,10 +687,10 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
                       {Array.from({length: 12}, (_, i) => i + 1).map((hour) => (
                         <TouchableOpacity
                           key={hour}
-                          style={[styles.timeScrollItem, selectedHour === hour && styles.timeScrollItemSelected]}
+                          style={[styles.timeScrollItem, selectedHour === hour ? styles.timeScrollItemSelected : null]}
                           onPress={() => setSelectedHour(hour)}
                         >
-                          <Text style={[styles.timeScrollText, selectedHour === hour && styles.timeScrollTextSelected]}>
+                          <Text style={[styles.timeScrollText, selectedHour === hour ? styles.timeScrollTextSelected : null]}>
                             {hour}
                           </Text>
                         </TouchableOpacity>
@@ -704,10 +704,10 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
                       {Array.from({length: 12}, (_, i) => i * 5).map((minute) => (
                         <TouchableOpacity
                           key={minute}
-                          style={[styles.timeScrollItem, selectedMinute === minute && styles.timeScrollItemSelected]}
+                          style={[styles.timeScrollItem, selectedMinute === minute ? styles.timeScrollItemSelected : null]}
                           onPress={() => setSelectedMinute(minute)}
                         >
-                          <Text style={[styles.timeScrollText, selectedMinute === minute && styles.timeScrollTextSelected]}>
+                          <Text style={[styles.timeScrollText, selectedMinute === minute ? styles.timeScrollTextSelected : null]}>
                             {minute.toString().padStart(2, '0')}
                           </Text>
                         </TouchableOpacity>
@@ -717,9 +717,9 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
                 </View>
               </View>
             </View>
-          )}
+          ) : null}
 
-          {showAlarmModal && (
+          {showAlarmModal ? (
             <View style={styles.modalOverlay}>
               <View style={styles.modalContainer}>
                 <View style={styles.modalHeader}>
@@ -737,25 +737,25 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
                       key={option}
                       style={[
                         styles.alarmOption,
-                        selectedAlarm === option && styles.alarmOptionSelected
+                        selectedAlarm === option ? styles.alarmOptionSelected : null
                       ]}
                       onPress={() => setSelectedAlarm(option)}
                     >
                       <Text style={[
                         styles.alarmOptionText,
-                        selectedAlarm === option && styles.alarmOptionTextSelected
+                        selectedAlarm === option ? styles.alarmOptionTextSelected : null
                       ]}>
                         {option}
                       </Text>
-                      {selectedAlarm === option && (
+                      {selectedAlarm === option ? (
                         <Text style={styles.checkMark}>✓</Text>
-                      )}
+                      ) : null}
                     </TouchableOpacity>
                   ))}
                 </View>
               </View>
             </View>
-          )}
+          ) : null}
         </View>
       </View>
     );
@@ -777,14 +777,14 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
             style={[
               styles.participantCard,
               (meetupData.maxParticipants === option.value || 
-               (option.value === 5 && meetupData.maxParticipants >= 5)) && styles.participantCardSelected
+               (option.value === 5 && meetupData.maxParticipants >= 5)) ? styles.participantCardSelected : null
             ]}
             onPress={() => updateMeetupData('maxParticipants', option.value)}
           >
             <Text style={[
               styles.participantCardText,
               (meetupData.maxParticipants === option.value || 
-               (option.value === 5 && meetupData.maxParticipants >= 5)) && styles.participantCardTextSelected
+               (option.value === 5 && meetupData.maxParticipants >= 5)) ? styles.participantCardTextSelected : null
             ]}>
               {option.label}
             </Text>
@@ -805,13 +805,13 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
               key={gender}
               style={[
                 styles.preferenceOption,
-                meetupData.genderPreference === gender && styles.preferenceSelected
+                meetupData.genderPreference === gender ? styles.preferenceSelected : null
               ]}
               onPress={() => updateMeetupData('genderPreference', gender)}
             >
               <Text style={[
                 styles.preferenceText,
-                meetupData.genderPreference === gender && styles.preferenceTextSelected
+                meetupData.genderPreference === gender ? styles.preferenceTextSelected : null
               ]}>
                 {gender}
               </Text>
@@ -832,7 +832,7 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
         </TouchableOpacity>
       </View>
       
-      {showAgeModal && (
+      {showAgeModal ? (
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
             <View style={styles.modalHeader}>
@@ -856,7 +856,7 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
               <TouchableOpacity 
                 style={[
                   styles.ageRangeOption,
-                  meetupData.ageRange === '전체' && styles.ageRangeOptionSelected
+                  meetupData.ageRange === '전체' ? styles.ageRangeOptionSelected : null
                 ]}
                 onPress={() => {
                   updateMeetupData('ageRange', '전체');
@@ -865,7 +865,7 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
               >
                 <Text style={[
                   styles.ageRangeText,
-                  meetupData.ageRange === '전체' && styles.ageRangeTextSelected
+                  meetupData.ageRange === '전체' ? styles.ageRangeTextSelected : null
                 ]}>전체 연령</Text>
               </TouchableOpacity>
               
@@ -923,7 +923,7 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
                       key={option.label}
                       style={[
                         styles.ageQuickButton,
-                        minAge === option.min && maxAge === option.max && styles.ageQuickButtonSelected
+                        minAge === option.min && maxAge === option.max ? styles.ageQuickButtonSelected : null
                       ]}
                       onPress={() => {
                         setMinAge(option.min);
@@ -937,7 +937,7 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
                     >
                       <Text style={[
                         styles.ageQuickButtonText,
-                        minAge === option.min && maxAge === option.max && styles.ageQuickButtonTextSelected
+                        minAge === option.min && maxAge === option.max ? styles.ageQuickButtonTextSelected : null
                       ]}>{option.label}</Text>
                     </TouchableOpacity>
                   ))}
@@ -946,7 +946,7 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
             </View>
           </View>
         </View>
-      )}
+      ) : null}
     </View>
   );
 
@@ -961,15 +961,15 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
           <Text style={styles.dropdownArrow}>▼</Text>
         </TouchableOpacity>
         
-        {meetupData.address && (
+        {meetupData.address ? (
           <View style={styles.addressContainer}>
             <Text style={styles.addressLabel}>상세 주소</Text>
             <Text style={styles.addressText}>{meetupData.address}</Text>
           </View>
-        )}
+        ) : null}
       </View>
       
-      {showLocationModal && (
+      {showLocationModal ? (
         <View style={styles.modalOverlay}>
           <View style={styles.locationModalContainer}>
             <View style={styles.modalHeader}>
@@ -1010,7 +1010,7 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
               </TouchableOpacity>
             </View>
             
-            {searchResults.length > 0 && (
+            {searchResults.length > 0 ? (
               <View style={styles.searchResultsContainer}>
                 <Text style={styles.searchResultsTitle}>검색 결과</Text>
                 {searchResults.map((location, index) => (
@@ -1035,9 +1035,9 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
                   </TouchableOpacity>
                 ))}
               </View>
-            )}
+            ) : null}
             
-            {searchResults.length === 0 && (
+            {searchResults.length === 0 ? (
               <View style={styles.mapContainer}>
                 <KakaoMapComponent
                   onMapLoad={setMapInstance}
@@ -1051,9 +1051,9 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
                 />
                 <Text style={styles.mapHelpText}>지도를 클릭해서 위치를 선택하거나 위에서 검색하세요</Text>
               </View>
-            )}
+            ) : null}
             
-            {searchResults.length === 0 && (
+            {searchResults.length === 0 ? (
               <View style={styles.popularLocations}>
                 <Text style={styles.popularLocationsTitle}>인기 지역</Text>
                 <View style={styles.popularLocationsList}>
@@ -1073,10 +1073,10 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
                   ))}
                 </View>
               </View>
-            )}
+            ) : null}
           </View>
         </View>
-      )}
+      ) : null}
     </View>
   );
 
@@ -1113,13 +1113,13 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
               key={range}
               style={[
                 styles.priceOption,
-                meetupData.priceRange === range && styles.priceSelected
+                meetupData.priceRange === range ? styles.priceSelected : null
               ]}
               onPress={() => updateMeetupData('priceRange', range)}
             >
               <Text style={[
                 styles.priceText,
-                meetupData.priceRange === range && styles.priceTextSelected
+                meetupData.priceRange === range ? styles.priceTextSelected : null
               ]}>
                 {range}
               </Text>
@@ -1156,13 +1156,13 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
               key={amount}
               style={[
                 styles.quickAmountButton,
-                meetupData.deposit === amount && styles.quickAmountButtonSelected
+                meetupData.deposit === amount ? styles.quickAmountButtonSelected : null
               ]}
               onPress={() => updateMeetupData('deposit', amount)}
             >
               <Text style={[
                 styles.quickAmountText,
-                meetupData.deposit === amount && styles.quickAmountTextSelected
+                meetupData.deposit === amount ? styles.quickAmountTextSelected : null
               ]}>
                 {amount.toLocaleString()}원
               </Text>
@@ -1225,14 +1225,14 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
         <TouchableOpacity
           style={[
             styles.nextButton,
-            !canProceed() && styles.nextButtonDisabled
+            !canProceed() ? styles.nextButtonDisabled : null
           ]}
           onPress={currentStep === 7 ? handleSubmit : nextStep}
           disabled={!canProceed()}
         >
           <Text style={[
             styles.nextButtonText,
-            !canProceed() && styles.nextButtonTextDisabled
+            !canProceed() ? styles.nextButtonTextDisabled : null
           ]}>
             {currentStep === 7 ? '결제하기' : '다음'}
           </Text>

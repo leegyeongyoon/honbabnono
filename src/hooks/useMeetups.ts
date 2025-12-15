@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { meetupStore, Meetup } from '../store/meetupStore';
+import { useMeetupStore, Meetup } from '../store/meetupStore';
 
 export const useMeetups = () => {
   const [meetups, setMeetups] = useState<Meetup[]>([]);
@@ -49,8 +49,8 @@ export const useMeetups = () => {
       setMeetups(transformedMeetups);
     } catch (error) {
       console.error('모임 목록 조회 실패:', error);
-      // 에러 시 로컬 데이터 사용
-      setMeetups(meetupStore.getApprovedMeetups());
+      // 에러 시 빈 배열 설정
+      setMeetups([]);
     } finally {
       setLoading(false);
     }
@@ -113,11 +113,13 @@ export const useMeetups = () => {
     }
   };
 
-  const joinMeetup = (meetupId: number, userId: string = 'currentUser') => {
+  const joinMeetup = (meetupId: string, userId: string = 'currentUser') => {
+    const meetupStore = useMeetupStore();
     return meetupStore.joinMeetup(meetupId, userId);
   };
 
-  const leaveMeetup = (meetupId: number, userId: string = 'currentUser') => {
+  const leaveMeetup = (meetupId: string, userId: string = 'currentUser') => {
+    const meetupStore = useMeetupStore();
     return meetupStore.leaveMeetup(meetupId, userId);
   };
 
@@ -157,8 +159,8 @@ export const useMeetups = () => {
       return meetup;
     } catch (error) {
       console.error('모임 상세 조회 실패:', error);
-      // 에러 시 로컬 데이터 사용
-      return meetupStore.getMeetupById(parseInt(id));
+      // 에러 시 null 반환
+      return null;
     }
   };
 
