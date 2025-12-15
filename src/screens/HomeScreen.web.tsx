@@ -165,7 +165,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
             <Icon name="search" size={16} color={COLORS.text.secondary} />
             <input 
               style={styles.searchInput}
-              placeholder="모임 제목, 설명, 위치를 검색하세요..."
+              placeholder="모임 제목, 설명, 위치를 검색하세요... 🤖 AI 추천 기능"
               onFocus={() => navigate('/search')}
             />
           </View>

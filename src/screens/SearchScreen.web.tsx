@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   TextInput,
   FlatList,
+  ActivityIndicator,
 } from 'react-native';
 import { useNavigate } from 'react-router-dom';
 import { COLORS, SHADOWS, LAYOUT } from '../styles/colors';
@@ -15,6 +16,7 @@ import { Icon } from '../components/Icon';
 import { useMeetups } from '../hooks/useMeetups';
 import { SEARCH_CATEGORIES, SEARCH_LOCATIONS, SORT_OPTION_NAMES } from '../constants/categories';
 import { formatKoreanDateTime } from '../utils/dateUtils';
+import aiSearchService from '../services/aiSearchService';
 
 interface SearchScreenProps {
   navigation?: any;
@@ -28,6 +30,10 @@ const SearchScreen: React.FC<SearchScreenProps> = ({ navigation, user }) => {
   const [selectedCategory, setSelectedCategory] = useState('전체');
   const [selectedLocation, setSelectedLocation] = useState('전체');
   const [selectedSort, setSelectedSort] = useState('최신순');
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [searchIntent, setSearchIntent] = useState<any>(null);
+  const [showSuggestions, setShowSuggestions] = useState(false);
   
   const { meetups } = useMeetups();
   
@@ -37,11 +43,58 @@ const SearchScreen: React.FC<SearchScreenProps> = ({ navigation, user }) => {
   const locations = SEARCH_LOCATIONS;
   const sortOptions = SORT_OPTION_NAMES;
 
+  // AI 검색 분석
+  const handleSearchAnalysis = async (text: string) => {
+    if (text.length > 2 && aiSearchService.isAIEnabled()) {
+      setIsAnalyzing(true);
+      try {
+        const analysis = await aiSearchService.analyzeSearchIntent(text);
+        setSearchIntent(analysis.intent);
+        
+        const recommendations = await aiSearchService.generateRecommendations(text, meetups);
+        setSuggestions(recommendations);
+        setShowSuggestions(true);
+        
+        // AI 분석 결과로 필터 자동 설정
+        if (analysis.intent.category) {
+          setSelectedCategory(analysis.intent.category);
+        }
+        if (analysis.intent.location) {
+          const locationMatch = SEARCH_LOCATIONS.find(loc => 
+            loc.includes(analysis.intent.location)
+          );
+          if (locationMatch) {
+            setSelectedLocation(locationMatch);
+          }
+        }
+      } catch (error) {
+        console.error('AI 검색 분석 오류:', error);
+      } finally {
+        setIsAnalyzing(false);
+      }
+    } else {
+      setShowSuggestions(false);
+    }
+  };
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (searchText) {
+        handleSearchAnalysis(searchText);
+      }
+    }, 500); // 디바운싱
+
+    return () => clearTimeout(timeoutId);
+  }, [searchText]);
+
   const filteredMeetups = meetups.filter(meetup => {
-    const matchesSearch = meetup.title.toLowerCase().includes(searchText.toLowerCase()) ||
-                         meetup.location.toLowerCase().includes(searchText.toLowerCase());
+    const matchesSearch = searchText === '' || 
+                         meetup.title.toLowerCase().includes(searchText.toLowerCase()) ||
+                         meetup.location.toLowerCase().includes(searchText.toLowerCase()) ||
+                         meetup.description?.toLowerCase().includes(searchText.toLowerCase());
     const matchesCategory = selectedCategory === '전체' || meetup.category === selectedCategory;
-    return matchesSearch && matchesCategory;
+    const matchesLocation = selectedLocation === '전체' || meetup.location.includes(selectedLocation.replace('구', ''));
+    return matchesSearch && matchesCategory && matchesLocation;
   });
 
   const renderTabButton = (title: string, selectedValue: string, onPress: (value: string) => void, options: string[]) => (
@@ -200,12 +253,72 @@ const SearchScreen: React.FC<SearchScreenProps> = ({ navigation, user }) => {
           <Icon name="search" size={16} color="#5f6368" />
           <TextInput
             style={styles.searchInput}
-            placeholder="모임 제목이나 장소를 검색해보세요"
+            placeholder="모임 제목이나 장소를 검색해보세요 (AI 추천 기능)"
             value={searchText}
-            onChangeText={setSearchText}
+            onChangeText={(text) => {
+              setSearchText(text);
+              if (text.length === 0) {
+                setShowSuggestions(false);
+                setSearchIntent(null);
+                setSuggestions([]);
+              }
+            }}
             placeholderTextColor="#5f6368"
+            onFocus={() => setShowSuggestions(searchText.length > 0)}
           />
+          {isAnalyzing && (
+            <ActivityIndicator size="small" color={COLORS.primary.main} style={{ marginLeft: 8 }} />
+          )}
         </View>
+        
+        {/* AI 검색 제안 */}
+        {showSuggestions && suggestions.length > 0 && (
+          <View style={styles.suggestionsContainer}>
+            <View style={styles.suggestionsHeader}>
+              <Icon name="zap" size={14} color={COLORS.primary.main} />
+              <Text style={styles.suggestionsTitle}>AI 추천 검색어</Text>
+            </View>
+            {suggestions.map((suggestion, index) => (
+              <TouchableOpacity
+                key={index}
+                style={styles.suggestionItem}
+                onPress={() => {
+                  setSearchText(suggestion);
+                  setShowSuggestions(false);
+                }}
+              >
+                <Icon name="arrow-up-left" size={12} color={COLORS.text.secondary} />
+                <Text style={styles.suggestionText}>{suggestion}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+        
+        {/* AI 분석 결과 표시 */}
+        {searchIntent && (
+          <View style={styles.intentContainer}>
+            <Text style={styles.intentText}>
+              {aiSearchService.isAIEnabled() ? '🤖 AI가 분석한 검색 의도:' : '🔍 검색 필터가 자동 적용되었습니다:'}
+            </Text>
+            <View style={styles.intentTags}>
+              {searchIntent.category && (
+                <View style={styles.intentTag}>
+                  <Text style={styles.intentTagText}>카테고리: {searchIntent.category}</Text>
+                </View>
+              )}
+              {searchIntent.location && (
+                <View style={styles.intentTag}>
+                  <Text style={styles.intentTagText}>지역: {searchIntent.location}</Text>
+                </View>
+              )}
+              {searchIntent.priceRange && (
+                <View style={styles.intentTag}>
+                  <Text style={styles.intentTagText}>가격: {searchIntent.priceRange}</Text>
+                </View>
+              )}
+            </View>
+          </View>
+        )}
       </View>
 
       {/* 탭 네비게이션 */}
@@ -232,7 +345,24 @@ const SearchScreen: React.FC<SearchScreenProps> = ({ navigation, user }) => {
       {/* 검색 결과 */}
       {selectedTab === '내주변모임' && (
         <View style={styles.resultsHeader}>
-          <Text style={styles.resultsCount}>총 {filteredMeetups.length}개의 모임</Text>
+          <Text style={styles.resultsCount}>
+            총 {filteredMeetups.length}개의 모임
+            {searchText && aiSearchService.isAIEnabled() && ' (AI 필터링 적용)'}
+          </Text>
+          {searchText && (
+            <TouchableOpacity 
+              style={styles.clearButton}
+              onPress={() => {
+                setSearchText('');
+                setSelectedCategory('전체');
+                setSelectedLocation('전체');
+                setShowSuggestions(false);
+                setSearchIntent(null);
+              }}
+            >
+              <Text style={styles.clearButtonText}>초기화</Text>
+            </TouchableOpacity>
+          )}
         </View>
       )}
 
@@ -546,6 +676,90 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: COLORS.text.white,
+  },
+  // AI 검색 관련 스타일
+  suggestionsContainer: {
+    position: 'absolute',
+    top: '100%',
+    left: 0,
+    right: 0,
+    backgroundColor: COLORS.neutral.white,
+    borderRadius: 12,
+    marginTop: 4,
+    ...SHADOWS.medium,
+    shadowColor: 'rgba(0,0,0,0.1)',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 12,
+    maxHeight: 200,
+    overflow: 'hidden',
+  },
+  suggestionsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    backgroundColor: 'rgba(99, 102, 241, 0.05)',
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  suggestionsTitle: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: COLORS.primary.main,
+    marginLeft: 6,
+  },
+  suggestionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f9f9f9',
+  },
+  suggestionText: {
+    fontSize: 14,
+    color: COLORS.text.primary,
+    marginLeft: 8,
+    flex: 1,
+  },
+  intentContainer: {
+    backgroundColor: 'rgba(99, 102, 241, 0.05)',
+    padding: 12,
+    marginTop: 8,
+    borderRadius: 8,
+  },
+  intentText: {
+    fontSize: 12,
+    color: COLORS.primary.main,
+    fontWeight: '500',
+    marginBottom: 8,
+  },
+  intentTags: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  intentTag: {
+    backgroundColor: COLORS.primary.light,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  intentTagText: {
+    fontSize: 11,
+    color: COLORS.primary.main,
+    fontWeight: '500',
+  },
+  clearButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    borderRadius: 8,
+  },
+  clearButtonText: {
+    fontSize: 12,
+    color: '#ef4444',
+    fontWeight: '500',
   },
 });
 
