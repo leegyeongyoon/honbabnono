@@ -98,8 +98,6 @@ export const SORT_OPTION_NAMES = SORT_OPTIONS.map(opt => opt.name);
 export const PRICE_RANGES = [
   '1만원 이하',
   '1-2만원',
-  '2-3만원', 
-  '3-4만원',
-  '4-5만원',
-  '5만원 이상'
+  '2-3만원',
+  '3만원 이상'
 ];

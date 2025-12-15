@@ -43,12 +43,20 @@ interface MeetupData {
   ageRange: string;
   location: string;
   address: string;
+  detailAddress: string;
   latitude: number;
   longitude: number;
   title: string;
   description: string;
+  image: File | null;
   priceRange: string;
   deposit: number;
+  // 식사 성향 필드
+  eatingSpeed: string;
+  conversationLevel: string;
+  talkativeness: string;
+  mealPurpose: string;
+  specificRestaurant: string;
 }
 
 // const localizer = momentLocalizer(moment);
@@ -136,6 +144,12 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
   const { showToast } = useToast();
   
   const [currentStep, setCurrentStep] = useState(1);
+  const [createdMeetupId, setCreatedMeetupId] = useState<string | null>(null);
+  
+  // 결제 관련 상태
+  const [paymentMethod, setPaymentMethod] = useState<'points' | 'card' | 'kakao'>('points');
+  const [userPoints, setUserPoints] = useState<number>(0);
+  const [isPaymentLoading, setIsPaymentLoading] = useState<boolean>(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
   const [selectedTime, setSelectedTime] = useState('18:00');
   const [selectedPeriod, setSelectedPeriod] = useState('오후'); // 오전/오후
@@ -189,12 +203,20 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
     ageRange: '전체',
     location: '',
     address: '',
+    detailAddress: '',
     latitude: 0,
     longitude: 0,
     title: '',
     description: '',
+    image: null,
     priceRange: '',
     deposit: 0,
+    // 식사 성향 초기값
+    eatingSpeed: 'normal',
+    conversationLevel: 'moderate',
+    talkativeness: 'moderate',
+    mealPurpose: 'casual',
+    specificRestaurant: 'no_preference',
   });
 
   // meetupData.datetime이 변경될 때 selectedDate와 selectedTime 동기화
@@ -204,6 +226,13 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
       const hours = meetupData.datetime.getHours();
       const minutes = meetupData.datetime.getMinutes();
       setSelectedTime(`${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`);
+      
+      // 날짜와 시간 문자열 업데이트
+      const year = meetupData.datetime.getFullYear();
+      const month = (meetupData.datetime.getMonth() + 1).toString().padStart(2, '0');
+      const day = meetupData.datetime.getDate().toString().padStart(2, '0');
+      updateMeetupData('date', `${year}-${month}-${day}`);
+      updateMeetupData('time', `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`);
       
       // 오전/오후, 시간, 분 설정
       if (hours >= 12) {
@@ -296,6 +325,7 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
       case 5: return meetupData.location !== '';
       case 6: return meetupData.title.trim() !== '';
       case 7: return meetupData.deposit > 0; // 약속금 입력 필수
+      case 8: return paymentMethod === 'card' || (paymentMethod === 'points' && userPoints >= meetupData.deposit); // 결제 방법 선택 및 포인트 충분한지 확인
       default: return false;
     }
   };
@@ -313,11 +343,23 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
         return;
       }
 
+      // 카테고리 매핑 (UI 카테고리 -> DB enum 값)
+      const categoryMap: { [key: string]: string } = {
+        '한식': '한식',
+        '중식': '중식', 
+        '일식': '일식',
+        '양식': '양식',
+        '카페/디저트': '카페',
+        '고기/구이': '기타',
+        '술집': '술집',
+        '기타': '기타'
+      };
+
       // FormData 생성
       const formData = new FormData();
       formData.append('title', meetupData.title);
       formData.append('description', meetupData.description);
-      formData.append('category', meetupData.category);
+      formData.append('category', categoryMap[meetupData.category] || '기타');
       formData.append('location', meetupData.location);
       formData.append('address', meetupData.address);
       formData.append('latitude', meetupData.latitude.toString());
@@ -329,6 +371,29 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
       formData.append('deposit', meetupData.deposit.toString());
       formData.append('genderPreference', meetupData.genderPreference);
       formData.append('ageRange', meetupData.ageRange);
+      formData.append('detailAddress', meetupData.detailAddress);
+      
+      // 필터 정보 추가 (서버에서 필수로 요구함)
+      const genderFilter = meetupData.genderPreference === '남성만' ? 'male' : 
+                          meetupData.genderPreference === '여성만' ? 'female' : 'all';
+      const ageFilterMin = meetupData.ageRange === '20-30대' ? '20' : '20';
+      const ageFilterMax = meetupData.ageRange === '20-30대' ? '39' : '59';
+
+      formData.append('genderFilter', genderFilter);
+      formData.append('ageFilterMin', ageFilterMin);
+      formData.append('ageFilterMax', ageFilterMax);
+      formData.append('eatingSpeed', meetupData.eatingSpeed);
+      formData.append('conversationDuringMeal', meetupData.conversationLevel);
+      formData.append('talkativeness', meetupData.talkativeness);
+      formData.append('mealPurpose', meetupData.mealPurpose);
+      formData.append('specificRestaurant', meetupData.specificRestaurant);
+      formData.append('interests', '[]');
+      formData.append('isRequired', 'false');
+      
+      // 이미지가 있으면 추가
+      if (meetupData.image) {
+        formData.append('image', meetupData.image);
+      }
 
       console.log('📤 모임 생성 요청:', {
         title: meetupData.title,
@@ -350,43 +415,20 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
       const data = await response.json();
 
       if (response.ok && data.success) {
-        const meetupId = data.data.meetup.id;
+        const meetupId = data.meetup.id;
         
-        // 필터 설정 API 호출
-        try {
-          const filterData = {
-            genderFilter: meetupData.genderPreference === '남성만' ? 'male' : 
-                         meetupData.genderPreference === '여성만' ? 'female' : 'all',
-            ageFilter: meetupData.ageRange,
-            locationFilter: meetupData.address || meetupData.location,
-            foodCategory: meetupData.category === '한식' ? 'korean' : 
-                         meetupData.category === '일식' ? 'japanese' :
-                         meetupData.category === '양식' ? 'western' :
-                         meetupData.category === '카페/디저트' ? 'dessert' : 'no_preference',
-            interests: [],
-            isRequired: false
-          };
-          
-          const filterResponse = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:3001/api'}/meetups/${meetupId}/preference-filter`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`,
-            },
-            body: JSON.stringify(filterData),
-          });
-          
-          if (filterResponse.ok) {
-            console.log('✅ 모임 필터 설정 성공');
-          } else {
-            console.warn('⚠️ 모임 필터 설정 실패');
-          }
-        } catch (filterError) {
-          console.error('필터 설정 오류:', filterError);
-        }
+        // 필터 설정 API는 현재 미구현으로 스킵
+        console.log('📝 모임 생성 완료 - 필터 설정은 향후 구현 예정');
 
-        showToast('모임이 성공적으로 생성되었습니다!', 'success');
-        navigation.navigate('/home');
+        // 약속금이 있는 경우 결제 단계로 이동
+        if (meetupData.deposit > 0) {
+          setCreatedMeetupId(meetupId);
+          setCurrentStep(8); // 새로운 결제 단계
+          showToast('모임이 생성되었습니다. 약속금을 결제해 주세요.', 'success');
+        } else {
+          showToast('모임이 성공적으로 생성되었습니다!', 'success');
+          navigation.navigate('/home');
+        }
       } else {
         showToast(data.message || '모임 생성에 실패했습니다.', 'error');
       }
@@ -395,6 +437,109 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
       showToast('서버 오류가 발생했습니다.', 'error');
     }
   };
+
+  // 사용자 포인트 조회
+  const fetchUserPoints = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+
+      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:3001/api'}/user/points`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setUserPoints(data.data?.availablePoints || 0);
+      }
+    } catch (error) {
+      console.error('포인트 조회 오류:', error);
+    }
+  };
+
+  // 결제 처리
+  const handlePayment = async () => {
+    if (!createdMeetupId) {
+      showToast('모임 정보를 찾을 수 없습니다.', 'error');
+      return;
+    }
+
+    if (isPaymentLoading) {
+      return; // 이미 결제 중이면 무시
+    }
+
+    setIsPaymentLoading(true);
+    
+    // 최소 1초는 로딩 상태를 보여주기 위한 타이머
+    const startTime = Date.now();
+    
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        showToast('로그인이 필요합니다.', 'error');
+        setIsPaymentLoading(false);
+        return;
+      }
+
+      const paymentData = {
+        meetupId: createdMeetupId,
+        amount: meetupData.deposit,
+        paymentMethod: paymentMethod,
+      };
+
+      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:3001/api'}/deposits/payment`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(paymentData),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        showToast('약속금 결제가 완료되었습니다!', 'success');
+        
+        // 최소 1초는 로딩 상태를 보여준 후 페이지 이동
+        const elapsedTime = Date.now() - startTime;
+        const remainingTime = Math.max(1000 - elapsedTime, 0);
+        
+        setTimeout(() => {
+          // 결제 완료 후 모임 디테일 페이지로 이동
+          (window as any).location.href = `/meetup/${createdMeetupId}`;
+        }, remainingTime);
+      } else {
+        showToast(data.message || '결제에 실패했습니다.', 'error');
+        // 실패한 경우 즉시 로딩 해제
+        const elapsedTime = Date.now() - startTime;
+        const remainingTime = Math.max(1000 - elapsedTime, 0);
+        
+        setTimeout(() => {
+          setIsPaymentLoading(false);
+        }, remainingTime);
+      }
+    } catch (error) {
+      console.error('결제 오류:', error);
+      showToast('결제 처리 중 오류가 발생했습니다.', 'error');
+      // 에러한 경우 즉시 로딩 해제
+      const elapsedTime = Date.now() - startTime;
+      const remainingTime = Math.max(1000 - elapsedTime, 0);
+      
+      setTimeout(() => {
+        setIsPaymentLoading(false);
+      }, remainingTime);
+    }
+  };
+
+  // Step 7, 8에 진입할 때 포인트 조회
+  React.useEffect(() => {
+    if (currentStep === 7 || currentStep === 8) {
+      fetchUserPoints();
+    }
+  }, [currentStep]);
 
   const renderStepIndicator = () => {
     return (
@@ -963,8 +1108,20 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
         
         {meetupData.address ? (
           <View style={styles.addressContainer}>
-            <Text style={styles.addressLabel}>상세 주소</Text>
-            <Text style={styles.addressText}>{meetupData.address}</Text>
+            <View style={styles.baseAddressContainer}>
+              <Text style={styles.addressLabel}>도로명 주소</Text>
+              <Text style={styles.addressText}>{meetupData.address}</Text>
+            </View>
+            <View style={styles.detailAddressContainer}>
+              <Text style={styles.addressLabel}>상세 주소</Text>
+              <TextInput
+                style={styles.detailAddressInput}
+                placeholder="건물명, 층수, 호수 등을 입력하세요"
+                value={meetupData.detailAddress}
+                onChangeText={(text) => updateMeetupData('detailAddress', text)}
+                placeholderTextColor={COLORS.text.tertiary}
+              />
+            </View>
           </View>
         ) : null}
       </View>
@@ -1013,27 +1170,33 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
             {searchResults.length > 0 ? (
               <View style={styles.searchResultsContainer}>
                 <Text style={styles.searchResultsTitle}>검색 결과</Text>
-                {searchResults.map((location, index) => (
-                  <TouchableOpacity
-                    key={index}
-                    style={styles.searchResultItem}
-                    onPress={() => {
-                      updateMeetupData('location', location.name);
-                      updateMeetupData('address', location.fullAddress);
-                      if (location.lat && location.lng) {
-                        updateMeetupData('latitude', location.lat);
-                        updateMeetupData('longitude', location.lng);
-                        setSelectedLatLng({ lat: location.lat, lng: location.lng });
-                      }
-                      setSearchQuery('');
-                      setSearchResults([]);
-                      setShowLocationModal(false);
-                    }}
-                  >
-                    <Text style={styles.searchResultName}>{location.name}</Text>
-                    <Text style={styles.searchResultAddress}>{location.fullAddress}</Text>
-                  </TouchableOpacity>
-                ))}
+                <ScrollView 
+                  style={styles.searchResultsList}
+                  showsVerticalScrollIndicator={true}
+                  nestedScrollEnabled={true}
+                >
+                  {searchResults.map((location, index) => (
+                    <TouchableOpacity
+                      key={index}
+                      style={styles.searchResultItem}
+                      onPress={() => {
+                        updateMeetupData('location', location.name);
+                        updateMeetupData('address', location.fullAddress);
+                        if (location.lat && location.lng) {
+                          updateMeetupData('latitude', location.lat);
+                          updateMeetupData('longitude', location.lng);
+                          setSelectedLatLng({ lat: location.lat, lng: location.lng });
+                        }
+                        setSearchQuery('');
+                        setSearchResults([]);
+                        setShowLocationModal(false);
+                      }}
+                    >
+                      <Text style={styles.searchResultName}>{location.name}</Text>
+                      <Text style={styles.searchResultAddress}>{location.fullAddress}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
               </View>
             ) : null}
             
@@ -1103,6 +1266,43 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
           multiline
           numberOfLines={4}
         />
+      </View>
+      
+      <View style={styles.imageSection}>
+        <Text style={styles.inputLabel}>모임 사진 (선택사항)</Text>
+        <TouchableOpacity 
+          style={styles.imageUploadButton}
+          onPress={() => {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'image/*';
+            input.onchange = (e: any) => {
+              const file = e.target.files[0];
+              if (file) {
+                updateMeetupData('image', file);
+              }
+            };
+            input.click();
+          }}
+        >
+          {meetupData.image ? (
+            <View style={styles.imagePreviewContainer}>
+              <Text style={styles.imageUploadText}>📸 {meetupData.image.name}</Text>
+              <TouchableOpacity 
+                style={styles.removeImageButton}
+                onPress={() => updateMeetupData('image', null)}
+              >
+                <Text style={styles.removeImageText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={styles.imageUploadContainer}>
+              <Text style={styles.imageUploadIcon}>📷</Text>
+              <Text style={styles.imageUploadText}>사진 추가하기</Text>
+              <Text style={styles.imageUploadSubText}>모임을 더 잘 표현할 수 있는 사진을 업로드하세요</Text>
+            </View>
+          )}
+        </TouchableOpacity>
       </View>
       
       <View style={styles.priceSection}>
@@ -1180,13 +1380,129 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
       <View style={styles.paymentMethodSection}>
         <Text style={styles.inputLabel}>결제 방법</Text>
         <View style={styles.paymentMethods}>
-          <TouchableOpacity style={styles.paymentMethod}>
-            <Text style={styles.paymentMethodText}>토스페이</Text>
+          <TouchableOpacity 
+            style={[
+              styles.paymentMethod,
+              paymentMethod === 'points' ? styles.paymentMethodStep7Selected : null
+            ]}
+            onPress={() => setPaymentMethod('points')}
+          >
+            <Text style={[
+              styles.paymentMethodText,
+              paymentMethod === 'points' ? styles.paymentMethodTextSelected : null
+            ]}>
+              포인트 결제
+            </Text>
+            {userPoints > 0 && (
+              <Text style={styles.paymentMethodSubText}>
+                보유: {userPoints.toLocaleString()}P
+              </Text>
+            )}
           </TouchableOpacity>
-          <TouchableOpacity style={styles.paymentMethod}>
-            <Text style={styles.paymentMethodText}>카카오페이</Text>
+          <TouchableOpacity 
+            style={[
+              styles.paymentMethod,
+              paymentMethod === 'card' ? styles.paymentMethodStep7Selected : null
+            ]}
+            onPress={() => setPaymentMethod('card')}
+          >
+            <Text style={[
+              styles.paymentMethodText,
+              paymentMethod === 'card' ? styles.paymentMethodTextSelected : null
+            ]}>토스페이</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[
+              styles.paymentMethod,
+              paymentMethod === 'kakao' ? styles.paymentMethodStep7Selected : null
+            ]}
+            onPress={() => setPaymentMethod('kakao')}
+          >
+            <Text style={[
+              styles.paymentMethodText,
+              paymentMethod === 'kakao' ? styles.paymentMethodTextSelected : null
+            ]}>카카오페이</Text>
           </TouchableOpacity>
         </View>
+      </View>
+    </View>
+  );
+
+  // Step 8: 약속금 결제
+  const renderStep8 = () => (
+    <View style={styles.stepContainer}>
+      <Text style={styles.stepTitle}>약속금 결제</Text>
+      <Text style={styles.stepSubtitle}>
+        모임 참여를 위한 약속금을 결제해 주세요
+      </Text>
+
+      {/* 결제 정보 */}
+      <View style={styles.paymentInfoContainer}>
+        <View style={styles.paymentRow}>
+          <Text style={styles.paymentLabel}>결제 금액</Text>
+          <Text style={styles.paymentAmount}>{meetupData.deposit?.toLocaleString() || 0}원</Text>
+        </View>
+        <View style={styles.paymentRow}>
+          <Text style={styles.paymentLabel}>보유 포인트</Text>
+          <Text style={styles.pointAmount}>{userPoints.toLocaleString()}P</Text>
+        </View>
+      </View>
+
+      {/* 결제 방법 선택 */}
+      <View style={styles.paymentMethodContainer}>
+        <Text style={styles.sectionLabel}>결제 방법</Text>
+        
+        <TouchableOpacity
+          style={[
+            styles.paymentMethodOption,
+            paymentMethod === 'points' ? styles.paymentMethodSelected : null
+          ]}
+          onPress={() => setPaymentMethod('points')}
+          disabled={userPoints < meetupData.deposit}
+        >
+          <View style={styles.paymentMethodInfo}>
+            <Text style={[
+              styles.paymentMethodTitle,
+              userPoints < meetupData.deposit ? styles.paymentMethodDisabled : null
+            ]}>
+              포인트 결제
+            </Text>
+            <Text style={[
+              styles.paymentMethodSubtitle,
+              userPoints < meetupData.deposit ? styles.paymentMethodDisabled : null
+            ]}>
+              보유 포인트: {userPoints.toLocaleString()}P
+            </Text>
+          </View>
+          {userPoints < meetupData.deposit && (
+            <Text style={styles.paymentMethodError}>포인트 부족</Text>
+          )}
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[
+            styles.paymentMethodOption,
+            paymentMethod === 'card' ? styles.paymentMethodSelected : null
+          ]}
+          onPress={() => setPaymentMethod('card')}
+        >
+          <View style={styles.paymentMethodInfo}>
+            <Text style={styles.paymentMethodTitle}>카드 결제</Text>
+            <Text style={styles.paymentMethodSubtitle}>
+              신용카드 / 체크카드
+            </Text>
+          </View>
+        </TouchableOpacity>
+      </View>
+
+      {/* 결제 안내 */}
+      <View style={styles.paymentNoticeContainer}>
+        <Text style={styles.paymentNoticeTitle}>💡 약속금 안내</Text>
+        <Text style={styles.paymentNoticeText}>
+          • 약속금은 모임 참석 시 100% 환불됩니다{'\n'}
+          • 무단 불참 시 약속금은 차감됩니다{'\n'}
+          • 모임 취소 시 즉시 환불 처리됩니다
+        </Text>
       </View>
     </View>
   );
@@ -1200,6 +1516,7 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
       case 5: return renderStep5();
       case 6: return renderStep6();
       case 7: return renderStep7();
+      case 8: return renderStep8();
       default: return null;
     }
   };
@@ -1227,14 +1544,14 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
             styles.nextButton,
             !canProceed() ? styles.nextButtonDisabled : null
           ]}
-          onPress={currentStep === 7 ? handleSubmit : nextStep}
-          disabled={!canProceed()}
+          onPress={currentStep === 7 ? handleSubmit : currentStep === 8 ? handlePayment : nextStep}
+          disabled={!canProceed() || (currentStep === 8 && isPaymentLoading)}
         >
           <Text style={[
             styles.nextButtonText,
             !canProceed() ? styles.nextButtonTextDisabled : null
           ]}>
-            {currentStep === 7 ? '결제하기' : '다음'}
+            {currentStep === 8 && isPaymentLoading ? '결제 중...' : currentStep === 7 ? '모임 생성하기' : currentStep === 8 ? '결제하기' : '다음'}
           </Text>
         </TouchableOpacity>
       </View>
@@ -1601,6 +1918,52 @@ const styles = StyleSheet.create({
   },
   descriptionSection: {
     marginBottom: 24,
+  },
+  imageSection: {
+    marginBottom: 24,
+  },
+  imageUploadButton: {
+    borderWidth: 2,
+    borderColor: COLORS.neutral.grey300,
+    borderStyle: 'dashed',
+    borderRadius: 12,
+    padding: 20,
+    alignItems: 'center',
+    backgroundColor: COLORS.primary.light,
+  },
+  imageUploadContainer: {
+    alignItems: 'center',
+  },
+  imageUploadIcon: {
+    fontSize: 48,
+    marginBottom: 8,
+  },
+  imageUploadText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+    marginBottom: 4,
+  },
+  imageUploadSubText: {
+    fontSize: 14,
+    color: COLORS.text.tertiary,
+    textAlign: 'center',
+  },
+  imagePreviewContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+  },
+  removeImageButton: {
+    backgroundColor: COLORS.functional.error,
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  removeImageText: {
+    color: COLORS.text.white,
+    fontWeight: '600',
   },
   priceSection: {
     marginBottom: 24,
@@ -2022,6 +2385,20 @@ const styles = StyleSheet.create({
     color: COLORS.text.primary,
     textAlign: 'center',
   },
+  paymentMethodTextSelected: {
+    color: COLORS.neutral.white,
+    fontWeight: '600',
+  },
+  paymentMethodStep7Selected: {
+    backgroundColor: COLORS.primary.main,
+    borderColor: COLORS.primary.main,
+  },
+  paymentMethodSubText: {
+    fontSize: 12,
+    color: COLORS.text.secondary,
+    textAlign: 'center',
+    marginTop: 4,
+  },
   
   // 연령 모달 스타일
   ageRangeContainer: {
@@ -2193,6 +2570,22 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: COLORS.text.primary,
   },
+  baseAddressContainer: {
+    marginBottom: 12,
+  },
+  detailAddressContainer: {
+    marginTop: 8,
+  },
+  detailAddressInput: {
+    backgroundColor: COLORS.neutral.white,
+    borderWidth: 1,
+    borderColor: COLORS.neutral.grey200,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    fontSize: 16,
+    color: COLORS.text.primary,
+  },
   
   // 검색 결과 스타일
   searchResultsContainer: {
@@ -2212,6 +2605,10 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: COLORS.neutral.grey200,
     backgroundColor: COLORS.primary.light,
+  },
+  searchResultsList: {
+    maxHeight: 160,
+    flexGrow: 0,
   },
   searchResultItem: {
     paddingHorizontal: 16,
@@ -2301,6 +2698,99 @@ const styles = StyleSheet.create({
   // Map 스타일
   mapContainer: {
     marginVertical: 16,
+  },
+
+  // Step 8: 결제 관련 스타일
+  paymentInfoContainer: {
+    backgroundColor: COLORS.primary.light,
+    padding: 16,
+    borderRadius: 12,
+    marginVertical: 16,
+  },
+  paymentRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  paymentLabel: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: COLORS.text.secondary,
+  },
+  paymentAmount: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: COLORS.primary.main,
+  },
+  pointAmount: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.functional.success,
+  },
+  paymentMethodContainer: {
+    marginVertical: 16,
+  },
+  sectionLabel: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+    marginBottom: 12,
+  },
+  paymentMethodOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
+    backgroundColor: COLORS.neutral.white,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: COLORS.neutral.grey200,
+    marginBottom: 12,
+  },
+  paymentMethodSelected: {
+    borderColor: COLORS.primary.main,
+    backgroundColor: COLORS.primary.light,
+  },
+  paymentMethodInfo: {
+    flex: 1,
+  },
+  paymentMethodTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+    marginBottom: 4,
+  },
+  paymentMethodSubtitle: {
+    fontSize: 14,
+    fontWeight: '400',
+    color: COLORS.text.secondary,
+  },
+  paymentMethodDisabled: {
+    color: COLORS.neutral.grey400,
+  },
+  paymentMethodError: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: COLORS.functional.error,
+  },
+  paymentNoticeContainer: {
+    backgroundColor: COLORS.neutral.light,
+    padding: 16,
+    borderRadius: 12,
+    marginTop: 16,
+  },
+  paymentNoticeTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+    marginBottom: 8,
+  },
+  paymentNoticeText: {
+    fontSize: 14,
+    fontWeight: '400',
+    color: COLORS.text.secondary,
+    lineHeight: 20,
   },
 
 });

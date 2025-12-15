@@ -1848,7 +1848,7 @@ apiRouter.get('/meetups/:id', async (req, res) => {
 });
 
 // 모임 생성 API
-apiRouter.post('/meetups', authenticateToken, upload.single('image'), async (req, res) => {
+apiRouter.post('/meetups', authenticateToken, uploadToMemory.single('image'), async (req, res) => {
   try {
     const {
       title,
@@ -1864,6 +1864,9 @@ apiRouter.post('/meetups', authenticateToken, upload.single('image'), async (req
       priceRange,
       requirements,
       tags,
+      // User preferences from UI
+      genderPreference,
+      ageRange,
       // Preference filters
       genderFilter,
       ageFilterMin,
@@ -1904,6 +1907,14 @@ apiRouter.post('/meetups', authenticateToken, upload.single('image'), async (req
         isRequired
       }
     });
+    
+    console.log('🍽️ 성향 데이터:', {
+      eatingSpeed,
+      conversationLevel: conversationDuringMeal,
+      talkativeness,
+      mealPurpose,
+      specificRestaurant
+    });
 
     // 필수 필드 검증
     if (!title || !category || !location || !date || !time || !maxParticipants) {
@@ -1919,12 +1930,31 @@ apiRouter.post('/meetups', authenticateToken, upload.single('image'), async (req
       });
     }
 
-    // 이미지 URL 처리
+    // 이미지 S3 업로드 처리
     let imageUrl = null;
     if (req.file) {
-      imageUrl = `http://localhost:3001/uploads/${req.file.filename}`;
+      try {
+        console.log('📷 모임 이미지 S3 업로드 시작...');
+        
+        // S3Config에서 uploadToS3Direct 함수 사용
+        const uploadResult = await uploadToS3Direct(req.file, `meetup-${userId}`);
+        
+        if (uploadResult.success) {
+          imageUrl = uploadResult.location;
+          console.log('✅ 모임 이미지 S3 업로드 성공:', imageUrl);
+        } else {
+          console.error('❌ 모임 이미지 S3 업로드 실패');
+        }
+      } catch (error) {
+        console.error('❌ 모임 이미지 업로드 오류:', error);
+        // S3 업로드 실패시에도 모임 생성은 진행
+      }
     }
-    imageUrl = processImageUrl(imageUrl, category);
+    
+    // 기본 이미지 처리
+    if (!imageUrl) {
+      imageUrl = processImageUrl(null, category);
+    }
 
     // 태그 처리 (문자열이면 JSON으로 파싱)
     let parsedTags = [];
@@ -1936,15 +1966,24 @@ apiRouter.post('/meetups', authenticateToken, upload.single('image'), async (req
       }
     }
 
+    // 성향 데이터 구성
+    const diningPreferences = {
+      eatingSpeed: eatingSpeed || 'normal',
+      conversationLevel: conversationDuringMeal || 'moderate', 
+      talkativeness: talkativeness || 'moderate',
+      mealPurpose: mealPurpose || 'casual',
+      specificRestaurant: specificRestaurant || 'no_preference'
+    };
+
     // 모임 생성
     const meetupResult = await pool.query(`
       INSERT INTO meetups (
         id, title, description, category, location, address, 
         latitude, longitude, date, time, max_participants, current_participants, 
         price_range, image, status, host_id, requirements, 
-        created_at, updated_at
+        gender_preference, age_range, dining_preferences, created_at, updated_at
       ) VALUES (
-        gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 0, $11, $12, '모집중', $13, $14, NOW(), NOW()
+        gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 0, $11, $12, '모집중', $13, $14, $15, $16, $17, NOW(), NOW()
       ) RETURNING *
     `, [
       title,
@@ -1960,7 +1999,10 @@ apiRouter.post('/meetups', authenticateToken, upload.single('image'), async (req
       priceRange || '1-2만원',
       imageUrl,
       userId,
-      requirements || ''
+      requirements || '',
+      genderPreference || '상관없음',
+      ageRange || '전체',
+      JSON.stringify(diningPreferences)
     ]);
 
     const newMeetup = meetupResult.rows[0];
@@ -5581,37 +5623,7 @@ apiRouter.get('/user/deposits', authenticateToken, async (req, res) => {
 // ===========================================
 
 // 사용자 포인트 조회
-apiRouter.get('/user/points', authenticateToken, async (req, res) => {
-  try {
-    console.log('💰 포인트 조회 요청:', req.userId);
-    const userId = req.user.userId;
-
-    // Mock 포인트 데이터 - 실제 환경에서는 데이터베이스에서 조회
-    // 현재는 기본값 반환
-    const mockPointsData = {
-      userId: userId,
-      totalPoints: 3000,      // 총 적립 포인트
-      availablePoints: 3000,  // 사용 가능한 포인트 
-      usedPoints: 0,          // 사용한 포인트
-      expiredPoints: 0,       // 만료된 포인트
-      lastUpdatedAt: new Date().toISOString()
-    };
-
-    res.json({
-      success: true,
-      data: mockPointsData
-    });
-
-    console.log('💰 포인트 조회 성공:', mockPointsData);
-
-  } catch (error) {
-    console.error('❌ 포인트 조회 실패:', error);
-    res.status(500).json({
-      success: false,
-      error: '포인트 정보를 조회할 수 없습니다.'
-    });
-  }
-});
+// Duplicate /user/points endpoint removed - using the real one at line 5172
 
 // ======================
 // 참여한 모임 API
@@ -11348,24 +11360,7 @@ apiRouter.post('/users/refund-points', authenticateToken, async (req, res) => {
   }
 });
 
-// 보증금 결제
-apiRouter.post('/deposits/payment', authenticateToken, async (req, res) => {
-  try {
-    const { meetupId, amount, paymentMethod } = req.body;
-    if (!meetupId) {
-      return res.status(400).json({ error: '모임 ID가 필요합니다.' });
-    }
-    if (!amount || amount <= 0) {
-      return res.status(400).json({ error: '유효한 금액이 필요합니다.' });
-    }
-    if (!paymentMethod) {
-      return res.status(400).json({ error: '결제 방법이 필요합니다.' });
-    }
-    res.json({ success: true, message: '보증금 결제 완료' });
-  } catch (error) {
-    res.status(500).json({ error: '보증금 결제 실패' });
-  }
-});
+// Duplicate deposits/payment endpoint removed - using the complete implementation at line 5276
 
 // 보증금 환불
 apiRouter.post('/deposits/refund', authenticateToken, async (req, res) => {

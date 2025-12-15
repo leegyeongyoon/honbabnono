@@ -37,9 +37,16 @@ const initializeS3Upload = () => {
   });
 
   // S3에 직접 업로드하는 함수
-  const uploadToS3Direct = async (file, userId) => {
+  const uploadToS3Direct = async (file, prefix = 'uploads') => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    const fileName = `profiles/${userId}-${uniqueSuffix}${path.extname(file.originalname)}`;
+    let fileName;
+    
+    // prefix에 따라 폴더 구분
+    if (prefix.startsWith('meetup-')) {
+      fileName = `meetup-images/${prefix}-${uniqueSuffix}${path.extname(file.originalname)}`;
+    } else {
+      fileName = `profiles/${prefix}-${uniqueSuffix}${path.extname(file.originalname)}`;
+    }
     
     const params = {
       Bucket: process.env.AWS_S3_BUCKET || 'honbabnono-uploads',
