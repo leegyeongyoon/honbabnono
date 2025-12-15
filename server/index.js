@@ -13718,9 +13718,9 @@ const collectDailyStatistics = async (targetDate = new Date()) => {
     const activeUsersResult = await pool.query(`
       SELECT COUNT(DISTINCT u.id) as count FROM users u
       LEFT JOIN meetup_participants mp ON u.id = mp.user_id
-      LEFT JOIN chat_messages cm ON u.id = cm.user_id
+      LEFT JOIN chat_messages cm ON u.id = cm."senderId"
       WHERE (mp.created_at >= $1 AND mp.created_at <= $2)
-         OR (cm.created_at >= $1 AND cm.created_at <= $2)
+         OR (cm."createdAt" >= $1 AND cm."createdAt" <= $2)
     `, [startOfDay, endOfDay]);
 
     const totalUsersResult = await pool.query(`SELECT COUNT(*) as count FROM users`);
@@ -13743,23 +13743,23 @@ const collectDailyStatistics = async (targetDate = new Date()) => {
 
     const completedMeetupsResult = await pool.query(`
       SELECT COUNT(*) as count FROM meetups 
-      WHERE status = 'completed' AND updated_at >= $1 AND updated_at <= $2
+      WHERE status = '종료' AND updated_at >= $1 AND updated_at <= $2
     `, [startOfDay, endOfDay]);
 
     const cancelledMeetupsResult = await pool.query(`
       SELECT COUNT(*) as count FROM meetups 
-      WHERE status = 'cancelled' AND updated_at >= $1 AND updated_at <= $2
+      WHERE status = '취소' AND updated_at >= $1 AND updated_at <= $2
     `, [startOfDay, endOfDay]);
 
     // 3. 채팅 통계
     const chatMessagesResult = await pool.query(`
       SELECT COUNT(*) as count FROM chat_messages 
-      WHERE created_at >= $1 AND created_at <= $2
+      WHERE "createdAt" >= $1 AND "createdAt" <= $2
     `, [startOfDay, endOfDay]);
 
     const activeChatRoomsResult = await pool.query(`
-      SELECT COUNT(DISTINCT chat_room_id) as count FROM chat_messages 
-      WHERE created_at >= $1 AND created_at <= $2
+      SELECT COUNT(DISTINCT "chatRoomId") as count FROM chat_messages 
+      WHERE "createdAt" >= $1 AND "createdAt" <= $2
     `, [startOfDay, endOfDay]);
 
     // 4. 광고 통계 (incremental)
