@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Modal,
   Image,
+  TextInput,
 } from 'react-native';
 import { useNavigate } from 'react-router-dom';
 import {COLORS, SHADOWS} from '../styles/colors';
@@ -21,6 +22,8 @@ import { useMeetupStore } from '../store/meetupStore';
 import { getTimeDifference } from '../utils/timeUtils';
 import { FOOD_CATEGORIES } from '../constants/categories';
 import AdvertisementBanner from '../components/AdvertisementBanner';
+import { useMeetups } from '../hooks/useMeetups';
+import { aiSearchService } from '../services/aiSearchService';
 
 // 모임 시간 포맷팅 함수
 const formatMeetupDateTime = (date: string, time: string) => {
@@ -60,9 +63,11 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
   const navigate = useNavigate();
   const { updateNeighborhood } = useUserStore();
   const { meetups, fetchHomeMeetups } = useMeetupStore();
+  const { searchMeetups, meetups: searchResults, loading: searchLoading } = useMeetups();
   const [showCreateMeetup, setShowCreateMeetup] = useState(false);
   const [showNeighborhoodSelector, setShowNeighborhoodSelector] = useState(false);
   const [currentNeighborhood, setCurrentNeighborhood] = useState<{ district: string; neighborhood: string } | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
   
 
   const handleMeetupClick = (meetupId: string) => {
@@ -109,6 +114,31 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
     locationService.saveUserNeighborhood(district, neighborhood);
     updateNeighborhood(district, neighborhood);
     console.log('🏠 동네 설정 완료');
+  };
+
+
+  // 검색 버튼 클릭 시 AI 검색 페이지로 이동
+  const handleSearchSubmit = () => {
+    if (searchQuery.trim()) {
+      navigate(`/ai-search?q=${encodeURIComponent(searchQuery)}`);
+    }
+  };
+
+  // 검색 입력 처리
+  const handleSearchInput = (text: string) => {
+    setSearchQuery(text);
+  };
+
+  // 엔터 키 입력 처리
+  const handleKeyPress = (e: any) => {
+    if (e.key === 'Enter' || e.nativeEvent?.key === 'Enter') {
+      handleSearchSubmit();
+    }
+  };
+
+  // 검색창 초기화
+  const clearSearch = () => {
+    setSearchQuery('');
   };
 
   const getCategoryIcon = (categoryName: string) => {
@@ -163,12 +193,27 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
         <View style={styles.searchContainer}>
           <View style={styles.searchBox}>
             <Icon name="search" size={16} color={COLORS.text.secondary} />
-            <input 
+            <TextInput 
               style={styles.searchInput}
-              placeholder="모임 제목, 설명, 위치를 검색하세요... 🤖 AI 추천 기능"
-              onFocus={() => navigate('/search')}
+              placeholder="모임 제목, 설명, 위치를 검색하세요 🤖 AI 추천"
+              value={searchQuery}
+              onChangeText={handleSearchInput}
+              onKeyPress={handleKeyPress}
+              autoCapitalize="none"
+              autoCorrect={false}
             />
+            {searchQuery.length > 0 && (
+              <>
+                <TouchableOpacity onPress={clearSearch} style={styles.clearButton}>
+                  <Icon name="times" size={16} color={COLORS.text.secondary} />
+                </TouchableOpacity>
+                <TouchableOpacity onPress={handleSearchSubmit} style={styles.searchButton}>
+                  <Text style={styles.searchButtonText}>검색</Text>
+                </TouchableOpacity>
+              </>
+            )}
           </View>
+          
         </View>
 
         {/* 카테고리 그리드 */}
@@ -198,53 +243,54 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
         {/* 광고 섹션 */}
         <AdvertisementBanner position="home_banner" navigation={navigation} />
 
+
         {/* 바로 참여할 수 있는 번개 */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>바로 참여할 수 있는 번개</Text>
-          
-          {meetups.length > 0 && meetups.slice(0, 3).map((meetup, index) => {
-            console.log('🎯 Rendering meetup:', { index, id: meetup.id, title: meetup.title, type: typeof meetup.id });
-            if (!meetup.id) {
-              console.error('🚨 ERROR: Meetup has no ID!', meetup);
-              return null;
-            }
-            return (
-              <MeetupCard 
-                key={meetup.id}
-                meetup={meetup}
-                onPress={handleMeetupClick}
-              />
-            );
-          })}
+        
+        {meetups.length > 0 && meetups.slice(0, 3).map((meetup, index) => {
+          console.log('🎯 Rendering meetup:', { index, id: meetup.id, title: meetup.title, type: typeof meetup.id });
+          if (!meetup.id) {
+            console.error('🚨 ERROR: Meetup has no ID!', meetup);
+            return null;
+          }
+          return (
+            <MeetupCard 
+              key={meetup.id}
+              meetup={meetup}
+              onPress={handleMeetupClick}
+            />
+          );
+        })}
         </View>
 
         {/* 오늘은 컵스밥! */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>오늘은 컵스밥!</Text>
-          
-          {meetups.length > 3 && meetups.slice(3, 6).map((meetup, index) => {
-            console.log('🎯 Rendering meetup section 2:', { index, id: meetup.id, title: meetup.title, type: typeof meetup.id });
-            if (!meetup.id) {
-              console.error('🚨 ERROR: Meetup section 2 has no ID!', meetup);
-              return null;
-            }
-            return (
-              <MeetupCard 
-                key={meetup.id}
-                meetup={meetup}
-                onPress={handleMeetupClick}
-              />
-            );
-          })}
+        
+        {meetups.length > 3 && meetups.slice(3, 6).map((meetup, index) => {
+          console.log('🎯 Rendering meetup section 2:', { index, id: meetup.id, title: meetup.title, type: typeof meetup.id });
+          if (!meetup.id) {
+            console.error('🚨 ERROR: Meetup section 2 has no ID!', meetup);
+            return null;
+          }
+          return (
+            <MeetupCard 
+              key={meetup.id}
+              meetup={meetup}
+              onPress={handleMeetupClick}
+            />
+          );
+        })}
 
-          {/* 더보기 버튼 */}
-          <TouchableOpacity 
-            style={styles.moreButton}
-            onPress={() => navigate('/meetup-list')}
-          >
-            <Text style={styles.moreText}>모든 모임 보기</Text>
-            <Text style={styles.moreArrow}>→</Text>
-          </TouchableOpacity>
+        {/* 더보기 버튼 */}
+        <TouchableOpacity 
+          style={styles.moreButton}
+          onPress={() => navigate('/meetup-list')}
+        >
+          <Text style={styles.moreText}>모든 모임 보기</Text>
+          <Text style={styles.moreArrow}>→</Text>
+        </TouchableOpacity>
         </View>
 
         {/* 하단 여백 */}
@@ -327,7 +373,6 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 14,
     border: 'none',
-    outline: 'none',
     backgroundColor: 'transparent',
     color: COLORS.text.primary,
     marginLeft: 10,
@@ -728,6 +773,100 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#FF6B6B',
+  },
+  // 검색 관련 스타일
+  clearButton: {
+    padding: 4,
+  },
+  searchLoadingContainer: {
+    padding: 16,
+    alignItems: 'center',
+  },
+  searchLoadingText: {
+    fontSize: 14,
+    color: COLORS.text.secondary,
+    fontStyle: 'italic',
+  },
+  suggestionsContainer: {
+    marginTop: 8,
+    backgroundColor: COLORS.neutral.white,
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: COLORS.neutral.grey200,
+  },
+  suggestionsLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: COLORS.text.secondary,
+    marginBottom: 8,
+  },
+  suggestionsList: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  suggestionItem: {
+    backgroundColor: COLORS.primary.light,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: COLORS.primary.main,
+  },
+  suggestionText: {
+    fontSize: 12,
+    color: COLORS.primary.main,
+    fontWeight: '500',
+  },
+  searchResultHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  clearSearchButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: COLORS.neutral.grey100,
+    borderRadius: 16,
+  },
+  clearSearchText: {
+    fontSize: 12,
+    color: COLORS.text.secondary,
+    fontWeight: '500',
+  },
+  noResultsContainer: {
+    alignItems: 'center',
+    padding: 32,
+    backgroundColor: COLORS.neutral.grey50,
+    borderRadius: 12,
+    margin: 20,
+  },
+  noResultsText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.text.secondary,
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  noResultsSubtext: {
+    fontSize: 14,
+    color: COLORS.text.tertiary,
+    textAlign: 'center',
+  },
+  // 검색 버튼 스타일
+  searchButton: {
+    backgroundColor: COLORS.primary.main,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    marginLeft: 6,
+  },
+  searchButtonText: {
+    color: COLORS.neutral.white,
+    fontSize: 12,
+    fontWeight: '600',
   },
 });
 

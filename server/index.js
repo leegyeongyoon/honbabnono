@@ -1171,17 +1171,8 @@ apiRouter.get('/meetups', async (req, res) => {
   try {
     const { page = 1, limit = 10, category, location, search } = req.query;
     const offset = (page - 1) * limit;
-    const where = { status: '모집중' };
-
-    // 필터 조건 추가
-    if (category) where.category = category;
-    if (location) where.location = { [require('sequelize').Op.iLike]: `%${location}%` };
-    if (search) {
-      where[require('sequelize').Op.or] = [
-        { title: { [require('sequelize').Op.iLike]: `%${search}%` } },
-        { description: { [require('sequelize').Op.iLike]: `%${search}%` } }
-      ];
-    }
+    
+    console.log('🔍 모임 검색 요청:', { search, category, location, page, limit });
 
     // 인증된 사용자의 차단 필터링을 위한 사용자 ID 추출
     let currentUserId = null;
@@ -1197,30 +1188,81 @@ apiRouter.get('/meetups', async (req, res) => {
       }
     }
 
-    // 전체 개수 조회 (차단된 사용자 제외)
+    // 동적 필터 조건 구성
+    let whereConditions = [`m.status = '모집중'`];
+    let filterParams = [];
+    let paramIndex = 1;
+    
+    // 차단된 사용자 필터링
+    if (currentUserId) {
+      whereConditions.push(`m.host_id NOT IN (
+        SELECT blocked_user_id 
+        FROM user_blocked_users 
+        WHERE user_id = $${paramIndex}
+      )`);
+      filterParams.push(currentUserId);
+      paramIndex++;
+    }
+    
+    // 카테고리 필터링
+    if (category) {
+      whereConditions.push(`m.category = $${paramIndex}`);
+      filterParams.push(category);
+      paramIndex++;
+      console.log('🏷️ 카테고리 필터 적용:', category);
+    }
+    
+    // 지역 필터링 (부분 매치)
+    if (location) {
+      whereConditions.push(`(m.location ILIKE $${paramIndex} OR m.address ILIKE $${paramIndex})`);
+      filterParams.push(`%${location}%`);
+      paramIndex++;
+      console.log('📍 지역 필터 적용:', location);
+    }
+    
+    // 검색어 필터링 (제목, 설명, 위치, 성별선호도에서 검색)
+    if (search) {
+      // 확장된 검색어 처리 - 괄호와 OR 조건 지원
+      if (search.includes('(') && search.includes('|')) {
+        // 정규식 기반 검색 (PostgreSQL ~ 연산자 사용)
+        whereConditions.push(`(
+          m.title ~* $${paramIndex} OR 
+          m.description ~* $${paramIndex} OR 
+          m.location ~* $${paramIndex} OR 
+          m.address ~* $${paramIndex} OR
+          m.gender_preference ~* $${paramIndex} OR
+          m.requirements ~* $${paramIndex}
+        )`);
+        filterParams.push(search);
+        console.log('🔍 확장된 검색어 필터 적용 (정규식):', search);
+      } else {
+        // 기본 ILIKE 검색
+        whereConditions.push(`(
+          m.title ILIKE $${paramIndex} OR 
+          m.description ILIKE $${paramIndex} OR 
+          m.location ILIKE $${paramIndex} OR 
+          m.address ILIKE $${paramIndex} OR
+          m.gender_preference ILIKE $${paramIndex} OR
+          m.requirements ILIKE $${paramIndex}
+        )`);
+        filterParams.push(`%${search}%`);
+        console.log('🔍 기본 검색어 필터 적용:', search);
+      }
+      paramIndex++;
+    }
+
+    // 전체 개수 조회
     let countQuery = `
       SELECT COUNT(*) as total
       FROM meetups m
-      WHERE m.status = '모집중'
+      WHERE ${whereConditions.join(' AND ')}
     `;
     
-    let countParams = [];
-    
-    if (currentUserId) {
-      countQuery += `
-        AND m.host_id NOT IN (
-          SELECT blocked_user_id 
-          FROM user_blocked_users 
-          WHERE user_id = $1
-        )
-      `;
-      countParams = [currentUserId];
-    }
-
-    const countResult = await pool.query(countQuery, countParams);
+    const countResult = await pool.query(countQuery, filterParams);
     const total = parseInt(countResult.rows[0].total);
+    console.log('📊 검색 결과 개수:', total);
 
-    // 모임 목록 조회 (차단된 사용자 제외, 채팅방 마지막 메시지 시간 포함)
+    // 모임 목록 조회 (필터링 조건 적용)
     let meetupsQuery = `
       SELECT DISTINCT ON (m.id)
         m.id,
@@ -1262,35 +1304,21 @@ apiRouter.get('/meetups', async (req, res) => {
         WHERE "isActive" = true 
         ORDER BY "meetupId", "lastMessageTime" DESC
       ) cr ON m.id = cr."meetupId"
-      WHERE m.status = '모집중'
-    `;
-    
-    let meetupsParams = [parseInt(limit), parseInt(offset)];
-    
-    if (currentUserId) {
-      meetupsQuery += `
-        AND m.host_id NOT IN (
-          SELECT blocked_user_id 
-          FROM user_blocked_users 
-          WHERE user_id = $3
-        )
-      `;
-      meetupsParams = [parseInt(limit), parseInt(offset), currentUserId];
-    }
-    
-    meetupsQuery += `
+      WHERE ${whereConditions.join(' AND ')}
       ORDER BY m.id, m.created_at DESC
-      LIMIT $1 OFFSET $2
+      LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
     `;
+    
+    // 쿼리 파라미터에 limit과 offset 추가
+    const finalParams = [...filterParams, parseInt(limit), parseInt(offset)];
 
-    console.log('🔍 모임 목록 조회 - 차단 필터링:', {
-      currentUserId: currentUserId || 'anonymous',
-      isAuthenticated: !!currentUserId,
-      page: parseInt(page),
-      limit: parseInt(limit)
+    console.log('🔍 최종 검색 쿼리:', {
+      query: meetupsQuery.replace(/\n/g, ' ').replace(/\s+/g, ' '),
+      params: finalParams,
+      filters: { search, category, location }
     });
 
-    const meetupsResult = await pool.query(meetupsQuery, meetupsParams);
+    const meetupsResult = await pool.query(meetupsQuery, finalParams);
 
     const meetups = meetupsResult.rows.map(meetup => ({
       ...meetup,

@@ -33,6 +33,8 @@ import NotificationScreen from '../screens/NotificationScreen.web';
 import AdvertisementDetailScreen from '../screens/AdvertisementDetailScreen';
 import NoticesScreen from '../screens/NoticesScreen.web';
 import NoticeDetailScreen from '../screens/NoticeDetailScreen.web';
+import SearchScreen from '../screens/SearchScreen.web';
+import AISearchResultScreen from '../screens/AISearchResultScreen.web';
 
 // Components
 import BottomTabBar from './BottomTabBar';
@@ -247,6 +249,26 @@ const RouterApp: React.FC = () => {
                 <MainLayout>
                   <HomeScreen user={user} navigation={getReactRouterNavigation()} />
                 </MainLayout>
+              </ProtectedRoute>
+            } 
+          />
+
+          <Route 
+            path="/search" 
+            element={
+              <ProtectedRoute>
+                <MainLayout>
+                  <SearchScreen user={user} navigation={getReactRouterNavigation()} />
+                </MainLayout>
+              </ProtectedRoute>
+            } 
+          />
+
+          <Route 
+            path="/ai-search" 
+            element={
+              <ProtectedRoute>
+                <AISearchResultScreen user={user} navigation={getReactRouterNavigation()} />
               </ProtectedRoute>
             } 
           />
