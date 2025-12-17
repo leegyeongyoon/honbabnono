@@ -1452,16 +1452,30 @@ return (
           
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <div style={{
-              width: '32px',
-              height: '32px',
+              width: '40px',
+              height: '40px',
               backgroundColor: 'rgba(255,255,255,0.15)',
               borderRadius: '50%',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              fontSize: '16px'
+              overflow: 'hidden'
             }}>
-              🤖
+              <img 
+                src="/images/rice-character.png" 
+                alt="밥알이" 
+                style={{ 
+                  width: '36px', 
+                  height: '36px',
+                  objectFit: 'cover'
+                }}
+                onError={(e) => {
+                  // 이미지 로딩 실패시 폴백
+                  e.currentTarget.style.display = 'none';
+                  e.currentTarget.parentElement!.innerHTML = '🍚';
+                  e.currentTarget.parentElement!.style.fontSize = '16px';
+                }}
+              />
             </div>
             <div>
               <h1 style={{ 
@@ -1620,7 +1634,20 @@ return (
               animation: 'aiPulse 2s ease-in-out infinite',
               boxShadow: `0 4px 20px ${COLORS.primary.main}50`
             }}>
-              <span style={{ fontSize: '28px' }}>🤖</span>
+              <img 
+                src="/images/rice-character.png" 
+                alt="밥알이" 
+                style={{ 
+                  width: '48px', 
+                  height: '48px',
+                  objectFit: 'cover'
+                }}
+                onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = 'none';
+                  (e.target as HTMLImageElement).parentElement!.innerHTML = '🍚';
+                  (e.target as HTMLImageElement).parentElement!.style.fontSize = '28px';
+                }}
+              />
             </div>
             
             <div style={{ flex: 1 }}>
@@ -1698,7 +1725,7 @@ return (
             fontWeight: '600',
             boxShadow: `0 4px 12px ${COLORS.primary.main}50`
           }}>
-            🤖 AI 분석 결과
+            🍚 AI 분석 결과
           </div>
           
           <div style={{ display: 'flex', gap: '20px' }}>
@@ -1713,7 +1740,20 @@ return (
               flexShrink: 0,
               boxShadow: `0 4px 16px ${COLORS.primary.main}50`
             }}>
-              <span style={{ fontSize: '24px' }}>🤖</span>
+              <img 
+                src="/images/rice-character.png" 
+                alt="밥알이" 
+                style={{ 
+                  width: '40px', 
+                  height: '40px',
+                  objectFit: 'cover'
+                }}
+                onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = 'none';
+                  (e.target as HTMLImageElement).parentElement!.innerHTML = '🍚';
+                  (e.target as HTMLImageElement).parentElement!.style.fontSize = '24px';
+                }}
+              />
             </div>
             
             <div style={{ flex: 1, paddingTop: '4px' }}>

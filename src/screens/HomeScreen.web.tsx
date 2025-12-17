@@ -217,7 +217,14 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
           {/* AI 검색 라벨 */}
           <View style={styles.aiSearchLabel}>
             <View style={styles.aiIcon}>
-              <Text style={{ fontSize: 14 }}>🤖</Text>
+              <Image 
+                source={{ uri: '/images/rice-character.png' }}
+                style={{ width: 32, height: 32 }}
+                resizeMode="cover"
+                onError={() => {
+                  // 폴백으로 이모지 사용
+                }}
+              />
             </View>
             <Text style={styles.aiLabelText}>AI 스마트 검색</Text>
             <View style={styles.aiStatusDot} />
@@ -253,7 +260,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
           {/* 검색 제안 */}
           {showSearchSuggestions && (
             <View style={styles.suggestionsContainer}>
-              <Text style={styles.suggestionsLabel}>🤖 AI 검색 제안</Text>
+              <Text style={styles.suggestionsLabel}>🍚 AI 검색 제안</Text>
               <View style={styles.suggestionsList}>
                 {searchSuggestions
                   .filter(suggestion => 

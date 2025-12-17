@@ -347,7 +347,21 @@ const SearchScreen: React.FC<SearchScreenProps> = ({ navigation, user }) => {
         {searchIntent && (
           <View style={styles.intentContainer}>
             <Text style={styles.intentText}>
-              {aiSearchService.isAIEnabled() ? '🤖 AI가 분석한 검색 의도:' : '🔍 검색 필터가 자동 적용되었습니다:'}
+              {aiSearchService.isAIEnabled() ? (
+                <View style={{flexDirection: 'row', alignItems: 'center', gap: 6}}>
+                  <img 
+                    src="/images/rice-character.png" 
+                    alt="밥알이" 
+                    style={{ width: '28px', height: '28px', objectFit: 'cover' }}
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = 'none';
+                      const textNode = document.createTextNode('🍚');
+                      (e.target as HTMLImageElement).parentNode!.insertBefore(textNode, e.target as HTMLImageElement);
+                    }}
+                  />
+                  <Text>AI가 분석한 검색 의도:</Text>
+                </View>
+              ) : '🔍 검색 필터가 자동 적용되었습니다:'}
             </Text>
             <View style={styles.intentTags}>
               {searchIntent.category && (
