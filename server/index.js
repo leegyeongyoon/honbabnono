@@ -14310,21 +14310,20 @@ apiRouter.post('/search/ai', async (req, res) => {
 
     console.log('🔍 AI 스마트 검색 요청:', { query });
 
-    // 모든 활성 모임 가져오기 (스마트 검색을 위해)
+    // 활성 모임 가져오기 (AI 토큰 제한을 위해 최신 10개만)
     const meetupsResult = await pool.query(`
       SELECT 
-        id, title, description, category, location, address,
-        date, time, max_participants, current_participants,
-        price_range, age_range, gender_preference, image,
-        status, host_id
+        id, title, description, category, location,
+        date, time, max_participants, price_range
       FROM meetups
       WHERE status IN ('모집중', '모집완료')
         AND date >= CURRENT_DATE
       ORDER BY date ASC
+      LIMIT 10
     `);
 
     const allMeetups = meetupsResult.rows;
-    console.log(`📊 검색 대상 모임: ${allMeetups.length}개`);
+    console.log(`📊 검색 대상 모임: ${allMeetups.length}개 (AI 토큰 제한으로 최신 10개만)`);
 
     if (allMeetups.length === 0) {
       return res.json({
@@ -14379,7 +14378,7 @@ apiRouter.post('/search/ai', async (req, res) => {
       console.log('✅ AI 응답 파싱 성공:', { 
         isSearchable: parsedResponse.isSearchable, 
         hasMatch: parsedResponse.hasMatch,
-        resultsCount: parsedResponse.results?.length || 0
+        resultsCount: parsedResponse.recommendedMeetups?.length || 0
       });
     } catch (parseError) {
       console.error('❌ AI 응답 파싱 실패:', parseError);
@@ -14403,7 +14402,7 @@ apiRouter.post('/search/ai', async (req, res) => {
     }
 
     // 매칭 결과가 없는 경우
-    if (!parsedResponse.hasMatch || !parsedResponse.results || parsedResponse.results.length === 0) {
+    if (!parsedResponse.hasMatch || !parsedResponse.recommendedMeetups || parsedResponse.recommendedMeetups.length === 0) {
       return res.json({
         success: true,
         results: [{
@@ -14417,11 +14416,11 @@ apiRouter.post('/search/ai', async (req, res) => {
     }
 
     // 성공적인 매칭 결과 처리
-    const recommendedMeetupIds = parsedResponse.results.map(r => r.id);
+    const recommendedMeetupIds = parsedResponse.recommendedMeetups.map(r => r.id);
     const finalMeetups = allMeetups
       .filter(meetup => recommendedMeetupIds.includes(meetup.id))
       .map(meetup => {
-        const aiResult = parsedResponse.results.find(r => r.id === meetup.id);
+        const aiResult = parsedResponse.recommendedMeetups.find(r => r.id === meetup.id);
         return {
           ...meetup,
           aiScore: aiResult?.score || 0.5,
