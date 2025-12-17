@@ -17,6 +17,7 @@ import { useMeetups } from '../hooks/useMeetups';
 import { SEARCH_CATEGORIES, SEARCH_LOCATIONS, SORT_OPTION_NAMES } from '../constants/categories';
 import { formatKoreanDateTime } from '../utils/dateUtils';
 import aiSearchService from '../services/aiSearchService';
+import riceCharacterImage from '../assets/images/rice-character.png';
 
 interface SearchScreenProps {
   navigation?: any;
@@ -350,7 +351,7 @@ const SearchScreen: React.FC<SearchScreenProps> = ({ navigation, user }) => {
               {aiSearchService.isAIEnabled() ? (
                 <View style={{flexDirection: 'row', alignItems: 'center', gap: 6}}>
                   <img 
-                    src="/images/rice-character.png" 
+                    src={riceCharacterImage} 
                     alt="밥알이" 
                     style={{ width: '28px', height: '28px', objectFit: 'cover' }}
                     onError={(e) => {

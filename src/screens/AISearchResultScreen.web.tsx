@@ -5,6 +5,7 @@ import MeetupCard from '../components/MeetupCard';
 import { useMeetupStore } from '../store/meetupStore';
 import { Icon } from '../components/Icon';
 import aiSearchService from '../services/aiSearchService';
+import riceCharacterImage from '../assets/images/rice-character.png';
 
 interface SearchResult {
   isNoMatch?: boolean;
@@ -1462,7 +1463,7 @@ return (
               overflow: 'hidden'
             }}>
               <img 
-                src="/images/rice-character.png" 
+                src={riceCharacterImage} 
                 alt="밥알이" 
                 style={{ 
                   width: '36px', 
@@ -1635,7 +1636,7 @@ return (
               boxShadow: `0 4px 20px ${COLORS.primary.main}50`
             }}>
               <img 
-                src="/images/rice-character.png" 
+                src={riceCharacterImage} 
                 alt="밥알이" 
                 style={{ 
                   width: '48px', 
@@ -1741,7 +1742,7 @@ return (
               boxShadow: `0 4px 16px ${COLORS.primary.main}50`
             }}>
               <img 
-                src="/images/rice-character.png" 
+                src={riceCharacterImage} 
                 alt="밥알이" 
                 style={{ 
                   width: '40px', 

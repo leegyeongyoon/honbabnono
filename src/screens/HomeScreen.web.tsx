@@ -24,6 +24,7 @@ import { FOOD_CATEGORIES } from '../constants/categories';
 import AdvertisementBanner from '../components/AdvertisementBanner';
 import { useMeetups } from '../hooks/useMeetups';
 import { aiSearchService } from '../services/aiSearchService';
+import riceCharacterImage from '../assets/images/rice-character.png';
 
 // 모임 시간 포맷팅 함수
 const formatMeetupDateTime = (date: string, time: string) => {
@@ -218,7 +219,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
           <View style={styles.aiSearchLabel}>
             <View style={styles.aiIcon}>
               <Image 
-                source={{ uri: '/images/rice-character.png' }}
+                source={{ uri: riceCharacterImage }}
                 style={{ width: 32, height: 32 }}
                 resizeMode="cover"
                 onError={() => {
