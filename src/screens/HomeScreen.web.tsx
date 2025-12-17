@@ -68,6 +68,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
   const [showNeighborhoodSelector, setShowNeighborhoodSelector] = useState(false);
   const [currentNeighborhood, setCurrentNeighborhood] = useState<{ district: string; neighborhood: string } | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showSearchSuggestions, setShowSearchSuggestions] = useState(false);
   
 
   const handleMeetupClick = (meetupId: string) => {
@@ -117,21 +118,23 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
   };
 
 
-  // 검색 버튼 클릭 시 AI 검색 페이지로 이동
+  // 검색 버튼 클릭 시 AI 검색 페이지로 이동하면서 자동 검색 실행
   const handleSearchSubmit = () => {
     if (searchQuery.trim()) {
-      navigate(`/ai-search?q=${encodeURIComponent(searchQuery)}`);
+      navigate(`/ai-search?q=${encodeURIComponent(searchQuery)}&autoSearch=true`);
     }
   };
 
   // 검색 입력 처리
   const handleSearchInput = (text: string) => {
     setSearchQuery(text);
+    setShowSearchSuggestions(text.length > 0);
   };
 
-  // 엔터 키 입력 처리
+  // 엔터 키 입력 처리 - 바로 검색 실행
   const handleKeyPress = (e: any) => {
     if (e.key === 'Enter' || e.nativeEvent?.key === 'Enter') {
+      e.preventDefault(); // 기본 엔터 동작 방지
       handleSearchSubmit();
     }
   };
@@ -139,6 +142,26 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
   // 검색창 초기화
   const clearSearch = () => {
     setSearchQuery('');
+    setShowSearchSuggestions(false);
+  };
+
+  // 검색 제안 사항
+  const searchSuggestions = [
+    '우울할때 갈만한 모임 추천해줘',
+    '스트레스 받을 때 좋은 곳', 
+    '혼자 갈 수 있는 카페',
+    '맛있는 한식 모임',
+    '저렴한 술집 모임',
+    '새로운 사람들과 친해지기',
+  ];
+
+  // 제안 클릭 처리
+  const handleSuggestionPress = (suggestion: string) => {
+    setSearchQuery(suggestion);
+    setShowSearchSuggestions(false);
+    setTimeout(() => {
+      handleSearchSubmit();
+    }, 100);
   };
 
   const getCategoryIcon = (categoryName: string) => {
@@ -189,31 +212,67 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
       </View>
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        {/* 검색창 */}
+        {/* AI 검색창 */}
         <View style={styles.searchContainer}>
+          {/* AI 검색 라벨 */}
+          <View style={styles.aiSearchLabel}>
+            <View style={styles.aiIcon}>
+              <Text style={{ fontSize: 14 }}>🤖</Text>
+            </View>
+            <Text style={styles.aiLabelText}>AI 스마트 검색</Text>
+            <View style={styles.aiStatusDot} />
+          </View>
+          
           <View style={styles.searchBox}>
             <Icon name="search" size={16} color={COLORS.text.secondary} />
             <TextInput 
               style={styles.searchInput}
-              placeholder="모임 제목, 설명, 위치를 검색하세요 🤖 AI 추천"
+              placeholder="AI에게 원하는 모임을 자유롭게 말해보세요..."
               value={searchQuery}
               onChangeText={handleSearchInput}
               onKeyPress={handleKeyPress}
+              onFocus={() => setShowSearchSuggestions(searchQuery.length > 0)}
+              onBlur={() => setTimeout(() => setShowSearchSuggestions(false), 150)}
               autoCapitalize="none"
               autoCorrect={false}
+              returnKeyType="search"
             />
             {searchQuery.length > 0 && (
               <>
                 <TouchableOpacity onPress={clearSearch} style={styles.clearButton}>
                   <Icon name="times" size={16} color={COLORS.text.secondary} />
                 </TouchableOpacity>
-                <TouchableOpacity onPress={handleSearchSubmit} style={styles.searchButton}>
+                <TouchableOpacity onPress={handleSearchSubmit} style={styles.searchButtonEnhanced}>
+                  <Icon name="search" size={14} color={COLORS.neutral.white} />
                   <Text style={styles.searchButtonText}>검색</Text>
                 </TouchableOpacity>
               </>
             )}
           </View>
           
+          {/* 검색 제안 */}
+          {showSearchSuggestions && (
+            <View style={styles.suggestionsContainer}>
+              <Text style={styles.suggestionsLabel}>🤖 AI 검색 제안</Text>
+              <View style={styles.suggestionsList}>
+                {searchSuggestions
+                  .filter(suggestion => 
+                    searchQuery.length === 0 || 
+                    suggestion.toLowerCase().includes(searchQuery.toLowerCase())
+                  )
+                  .slice(0, 4)
+                  .map((suggestion, index) => (
+                    <TouchableOpacity
+                      key={index}
+                      style={styles.suggestionItem}
+                      onPress={() => handleSuggestionPress(suggestion)}
+                    >
+                      <Text style={styles.suggestionText}>{suggestion}</Text>
+                    </TouchableOpacity>
+                  ))}
+              </View>
+            </View>
+          )}
         </View>
 
         {/* 카테고리 그리드 */}
@@ -353,16 +412,47 @@ const styles = StyleSheet.create({
     paddingVertical: 20,
     backgroundColor: COLORS.neutral.white,
   },
+  aiSearchLabel: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    gap: 8,
+  },
+  aiIcon: {
+    width: 24,
+    height: 24,
+    backgroundColor: `${COLORS.primary.main}20`,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  aiLabelText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+  },
+  aiStatusDot: {
+    width: 6,
+    height: 6,
+    backgroundColor: '#4ade80',
+    borderRadius: 3,
+    marginLeft: 'auto',
+  },
   searchBox: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: COLORS.neutral.background,
     borderRadius: 24,
     paddingHorizontal: 20,
-    paddingVertical: 14,
+    paddingVertical: 16,
     gap: 10,
-    borderWidth: 1,
-    borderColor: COLORS.neutral.grey200,
+    borderWidth: 2,
+    borderColor: `${COLORS.primary.main}30`,
+    shadowColor: COLORS.primary.main,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
   },
   searchPlaceholder: {
     fontSize: 14,
@@ -788,36 +878,41 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
   },
   suggestionsContainer: {
-    marginTop: 8,
+    marginTop: 12,
     backgroundColor: COLORS.neutral.white,
-    borderRadius: 12,
-    padding: 12,
+    borderRadius: 16,
+    padding: 16,
+    ...SHADOWS.small,
     borderWidth: 1,
-    borderColor: COLORS.neutral.grey200,
+    borderColor: COLORS.neutral.grey100,
   },
   suggestionsLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: COLORS.text.secondary,
-    marginBottom: 8,
+    fontSize: 13,
+    fontWeight: '700',
+    color: COLORS.primary.main,
+    marginBottom: 12,
   },
   suggestionsList: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
+    flexDirection: 'column',
+    gap: 8,
   },
   suggestionItem: {
-    backgroundColor: COLORS.primary.light,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
+    backgroundColor: COLORS.neutral.background,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: COLORS.primary.main,
+    borderColor: `${COLORS.primary.main}20`,
+    flexDirection: 'row',
+    alignItems: 'center',
+    ...SHADOWS.small,
+    shadowColor: COLORS.primary.main,
   },
   suggestionText: {
-    fontSize: 12,
-    color: COLORS.primary.main,
+    fontSize: 13,
+    color: COLORS.text.primary,
     fontWeight: '500',
+    flex: 1,
   },
   searchResultHeader: {
     flexDirection: 'row',
@@ -862,6 +957,17 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 16,
     marginLeft: 6,
+  },
+  searchButtonEnhanced: {
+    backgroundColor: COLORS.primary.main,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginLeft: 8,
+    gap: 6,
+    ...SHADOWS.small,
   },
   searchButtonText: {
     color: COLORS.neutral.white,

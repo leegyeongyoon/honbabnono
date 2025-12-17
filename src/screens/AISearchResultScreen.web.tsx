@@ -6,11 +6,33 @@ import { useMeetupStore } from '../store/meetupStore';
 import { Icon } from '../components/Icon';
 import aiSearchService from '../services/aiSearchService';
 
+interface SearchResult {
+  isNoMatch?: boolean;
+  userContext?: string;
+  noMatchReason?: string;
+  wantedCategory?: string;
+  recommendedMeetups?: any[];
+  intentSummary?: string;
+  alternatives?: {
+    reason?: string;
+    suggestions?: string[];
+  };
+  searchType?: string;
+  userNeeds?: {
+    immediate?: boolean;
+    priceConscious?: boolean;
+    locationSpecific?: boolean;
+    moodRequirement?: string;
+    cuisinePreference?: string[];
+  };
+}
+
 const AISearchResultScreen: React.FC<{ user: any; navigation: any }> = ({ user, navigation }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const queryParams = new URLSearchParams(location.search);
   const initialQuery = queryParams.get('q') || '';
+  const shouldAutoSearch = queryParams.get('autoSearch') === 'true';
 
   const [searchQuery, setSearchQuery] = useState(initialQuery);
   const [aiResponse, setAiResponse] = useState('');
@@ -24,12 +46,14 @@ const AISearchResultScreen: React.FC<{ user: any; navigation: any }> = ({ user, 
   const { fetchMeetups, meetups } = useMeetupStore();
 
   useEffect(() => {
-    // 초기 쿼리가 있어도 자동 검색하지 않음
-    // 사용자가 검색 버튼을 눌러야만 검색 실행
     if (initialQuery) {
       setSearchQuery(initialQuery);
+      // autoSearch 파라미터가 있으면 자동으로 검색 실행
+      if (shouldAutoSearch) {
+        handleAISearch(initialQuery);
+      }
     }
-  }, [initialQuery]);
+  }, [initialQuery, shouldAutoSearch]);
 
   // 타이핑 효과
   useEffect(() => {
@@ -550,8 +574,8 @@ const AISearchResultScreen: React.FC<{ user: any; navigation: any }> = ({ user, 
         // AI의 추천 이유 - 더 지능적이고 개인화된 분석
         response += `\n🤖 AI 분석:\n`;
 
-        const reasons = [];
-        const insights = [];
+        const reasons: string[] = [];
+        const insights: string[] = [];
 
         // 키워드 매칭 이유를 더 자연스럽게
         if (meetup.matchReasons) {
@@ -1385,7 +1409,7 @@ const handleNewSearch = () => {
   }
 };
 
-const handleKeyPress = (e: any) => {
+const handleKeyPress = (e: React.KeyboardEvent) => {
   if (e.key === 'Enter') {
     handleNewSearch();
   }
@@ -1397,163 +1421,343 @@ return (
     backgroundColor: '#f7f8fa',
     minHeight: '100vh'
   }}>
-    {/* 상단 헤더 - 더 미니멀하게 */}
+    {/* AI 검색 헤더 - 앱 색상으로 AI 브랜딩 강화 */}
     <div style={{
-      display: 'flex',
-      alignItems: 'center',
+      background: `linear-gradient(135deg, ${COLORS.primary.main} 0%, ${COLORS.primary.dark} 100%)`,
       padding: '16px 20px',
       paddingTop: '52px',
-      backgroundColor: COLORS.neutral.white,
       borderBottom: '1px solid #e5e5ea',
-      gap: '12px'
+      color: 'white'
     }}>
-      <button
-        onClick={() => navigate('/home')}
-        style={{
-          padding: '8px',
-          border: 'none',
-          background: 'none',
-          cursor: 'pointer'
-        }}
-      >
-        <Icon name="arrow-left" size={20} color={COLORS.text.primary} />
-      </button>
-
+      {/* 헤더 상단 - AI 검색 타이틀 */}
       <div style={{
-        flex: 1,
         display: 'flex',
         alignItems: 'center',
-        backgroundColor: '#f7f8fa',
-        borderRadius: '24px',
-        padding: '12px 16px',
-        gap: '10px',
-        boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.05)'
+        justifyContent: 'space-between',
+        marginBottom: '16px'
       }}>
-        <Icon name="search" size={16} color={COLORS.text.secondary} />
-        <input
-          style={{
-            flex: 1,
-            fontSize: '15px',
-            border: 'none',
-            background: 'transparent',
-            color: COLORS.text.primary,
-            outline: 'none'
-          }}
-          placeholder="무엇을 찾고 계신가요?"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          onKeyPress={handleKeyPress}
-        />
-        {searchQuery && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <button
-            onClick={() => setSearchQuery('')}
+            onClick={() => navigate('/home')}
             style={{
-              padding: '4px',
+              padding: '8px',
               border: 'none',
-              background: 'none',
+              background: 'rgba(255,255,255,0.1)',
+              borderRadius: '8px',
               cursor: 'pointer'
             }}
           >
-            <Icon name="x" size={14} color={COLORS.text.secondary} />
+            <Icon name="arrow-left" size={20} color="white" />
           </button>
-        )}
-      </div>
-
-      <button
-        onClick={handleNewSearch}
-        style={{
-          backgroundColor: COLORS.primary.main,
-          padding: '10px 20px',
+          
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{
+              width: '32px',
+              height: '32px',
+              backgroundColor: 'rgba(255,255,255,0.15)',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '16px'
+            }}>
+              🤖
+            </div>
+            <div>
+              <h1 style={{ 
+                fontSize: '20px', 
+                fontWeight: '700', 
+                margin: 0,
+                background: 'linear-gradient(45deg, #fff, #f0f9ff)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent'
+              }}>
+                AI 스마트 검색
+              </h1>
+              <p style={{ 
+                fontSize: '12px', 
+                margin: 0, 
+                opacity: 0.8,
+                fontWeight: '400'
+              }}>
+                인공지능이 당신의 취향을 분석해 완벽한 모임을 찾아드려요
+              </p>
+            </div>
+          </div>
+        </div>
+        
+        {/* AI 상태 표시 */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '6px',
+          padding: '6px 12px',
+          backgroundColor: 'rgba(255,255,255,0.15)',
           borderRadius: '20px',
-          border: 'none',
-          color: COLORS.neutral.white,
-          fontSize: '14px',
-          fontWeight: '600',
-          cursor: 'pointer',
-          boxShadow: '0 2px 8px rgba(201, 181, 156, 0.3)'
-        }}
-      >
-        검색
-      </button>
+          fontSize: '11px',
+          fontWeight: '600'
+        }}>
+          <div style={{
+            width: '6px',
+            height: '6px',
+            backgroundColor: '#4ade80',
+            borderRadius: '50%',
+            animation: 'pulse 2s infinite'
+          }} />
+          AI 활성화
+        </div>
+      </div>
+      
+      {/* 검색바 */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '12px'
+      }}>
+        <div style={{
+          flex: 1,
+          display: 'flex',
+          alignItems: 'center',
+          backgroundColor: 'rgba(255,255,255,0.95)',
+          borderRadius: '24px',
+          padding: '12px 16px',
+          gap: '10px',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+          backdropFilter: 'blur(10px)',
+          border: '1px solid rgba(255,255,255,0.2)'
+        }}>
+          <Icon name="search" size={16} color={COLORS.text.secondary} />
+          <input
+            style={{
+              flex: 1,
+              fontSize: '15px',
+              border: 'none',
+              background: 'transparent',
+              color: COLORS.text.primary,
+              outline: 'none'
+            }}
+            placeholder="AI에게 원하는 모임을 자유롭게 말해보세요..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyDown={handleKeyPress}
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              style={{
+                padding: '4px',
+                border: 'none',
+                background: 'none',
+                cursor: 'pointer'
+              }}
+            >
+              <Icon name="x" size={14} color={COLORS.text.secondary} />
+            </button>
+          )}
+        </div>
+
+        <button
+          onClick={handleNewSearch}
+          style={{
+            background: `linear-gradient(45deg, ${COLORS.primary.main}, ${COLORS.neutral.grey500})`,
+            padding: '12px 24px',
+            borderRadius: '24px',
+            border: 'none',
+            color: 'white',
+            fontSize: '14px',
+            fontWeight: '600',
+            cursor: 'pointer',
+            boxShadow: `0 4px 15px ${COLORS.primary.main}40`,
+            transition: 'all 0.2s'
+          }}
+          onMouseEnter={(e) => {
+            (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(-1px)';
+            (e.currentTarget as HTMLButtonElement).style.boxShadow = `0 6px 20px ${COLORS.primary.main}60`;
+          }}
+          onMouseLeave={(e) => {
+            (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(0)';
+            (e.currentTarget as HTMLButtonElement).style.boxShadow = `0 4px 15px ${COLORS.primary.main}40`;
+          }}
+        >
+          🔍 AI 검색
+        </button>
+      </div>
     </div>
 
     <div style={{ padding: '20px', maxWidth: '800px', margin: '0 auto' }}>
-      {/* AI 분석 중 표시 - 더 세련되게 */}
+      {/* AI 분석 중 표시 - 미래지향적 디자인 */}
       {isAnalyzing && (
         <div style={{
-          backgroundColor: COLORS.neutral.white,
-          borderRadius: '16px',
-          padding: '24px',
-          marginBottom: '20px',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '16px'
+          background: `linear-gradient(135deg, ${COLORS.primary.light} 0%, ${COLORS.primary.accent} 100%)`,
+          borderRadius: '20px',
+          padding: '32px',
+          marginBottom: '24px',
+          boxShadow: `0 8px 32px ${COLORS.primary.main}20`,
+          border: `1px solid ${COLORS.primary.main}20`,
+          position: 'relative',
+          overflow: 'hidden'
         }}>
+          {/* 배경 애니메이션 */}
           <div style={{
-            width: '40px',
-            height: '40px',
-            backgroundColor: COLORS.primary.light,
-            borderRadius: '50%',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            animation: 'pulse 1.5s ease-in-out infinite'
-          }}>
-            <span style={{ fontSize: '20px' }}>🤖</span>
-          </div>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: '16px', fontWeight: '600', marginBottom: '4px' }}>
-              AI가 분석 중입니다...
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'linear-gradient(45deg, transparent 30%, rgba(102, 126, 234, 0.02) 50%, transparent 70%)',
+            animation: 'shimmer 2s infinite'
+          }} />
+          
+          <div style={{ display: 'flex', alignItems: 'center', gap: '20px', position: 'relative' }}>
+            <div style={{
+              width: '60px',
+              height: '60px',
+              background: `linear-gradient(45deg, ${COLORS.primary.main}, ${COLORS.neutral.grey500})`,
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              animation: 'aiPulse 2s ease-in-out infinite',
+              boxShadow: `0 4px 20px ${COLORS.primary.main}50`
+            }}>
+              <span style={{ fontSize: '28px' }}>🤖</span>
             </div>
-            <div style={{ fontSize: '14px', color: COLORS.text.secondary }}>
-              최적의 모임을 찾고 있어요
+            
+            <div style={{ flex: 1 }}>
+              <div style={{ 
+                fontSize: '20px', 
+                fontWeight: '700', 
+                marginBottom: '8px',
+                color: COLORS.text.primary
+              }}>
+                AI가 당신의 취향을 분석하고 있어요
+              </div>
+              
+              <div style={{ 
+                fontSize: '15px', 
+                color: COLORS.text.secondary,
+                marginBottom: '12px'
+              }}>
+                수백 개의 모임 데이터를 실시간으로 분석 중...
+              </div>
+              
+              {/* 진행률 바 */}
+              <div style={{
+                width: '100%',
+                height: '6px',
+                backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                borderRadius: '10px',
+                overflow: 'hidden'
+              }}>
+                <div style={{
+                  height: '100%',
+                  background: `linear-gradient(45deg, ${COLORS.primary.main}, ${COLORS.neutral.grey500})`,
+                  borderRadius: '10px',
+                  animation: 'progressBar 2s ease-in-out infinite'
+                }} />
+              </div>
+              
+              <div style={{
+                display: 'flex',
+                gap: '12px',
+                marginTop: '12px',
+                fontSize: '12px',
+                color: COLORS.text.secondary
+              }}>
+                <span>🧠 의도 파악</span>
+                <span>🔍 데이터 매칭</span>
+                <span>⭐ 점수 계산</span>
+                <span>📊 결과 생성</span>
+              </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* AI 응답 - ChatGPT 스타일 */}
+      {/* AI 응답 - 고급스러운 ChatGPT 스타일 */}
       {(displayedResponse || isTyping) && !isAnalyzing && (
         <div style={{
-          backgroundColor: COLORS.neutral.white,
-          borderRadius: '16px',
-          padding: '24px',
-          marginBottom: '20px',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.08)'
+          background: `linear-gradient(135deg, ${COLORS.primary.light} 0%, ${COLORS.neutral.white} 100%)`,
+          borderRadius: '20px',
+          padding: '28px',
+          marginBottom: '24px',
+          boxShadow: `0 8px 32px ${COLORS.primary.main}15`,
+          border: `1px solid ${COLORS.primary.main}15`,
+          position: 'relative'
         }}>
-          <div style={{ display: 'flex', gap: '16px' }}>
+          {/* AI 레이블 */}
+          <div style={{
+            position: 'absolute',
+            top: '-12px',
+            left: '24px',
+            background: `linear-gradient(45deg, ${COLORS.primary.main}, ${COLORS.neutral.grey500})`,
+            color: 'white',
+            padding: '4px 12px',
+            borderRadius: '12px',
+            fontSize: '11px',
+            fontWeight: '600',
+            boxShadow: `0 4px 12px ${COLORS.primary.main}50`
+          }}>
+            🤖 AI 분석 결과
+          </div>
+          
+          <div style={{ display: 'flex', gap: '20px' }}>
             <div style={{
-              width: '40px',
-              height: '40px',
-              backgroundColor: COLORS.primary.light,
+              width: '48px',
+              height: '48px',
+              background: `linear-gradient(45deg, ${COLORS.primary.main}, ${COLORS.neutral.grey500})`,
               borderRadius: '50%',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              flexShrink: 0
+              flexShrink: 0,
+              boxShadow: `0 4px 16px ${COLORS.primary.main}50`
             }}>
-              <span style={{ fontSize: '20px' }}>🤖</span>
+              <span style={{ fontSize: '24px' }}>🤖</span>
             </div>
-            <div style={{ flex: 1 }}>
+            
+            <div style={{ flex: 1, paddingTop: '4px' }}>
               <div style={{
-                fontSize: '14px',
-                lineHeight: '1.6',
+                fontSize: '15px',
+                lineHeight: '1.7',
                 color: COLORS.text.primary,
-                whiteSpace: 'pre-line'
+                whiteSpace: 'pre-line',
+                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
               }}>
                 {displayedResponse}
                 {isTyping && (
                   <span style={{
                     display: 'inline-block',
-                    width: '8px',
-                    height: '16px',
-                    backgroundColor: COLORS.primary.main,
-                    marginLeft: '2px',
-                    animation: 'blink 1s infinite'
+                    width: '3px',
+                    height: '18px',
+                    background: `linear-gradient(45deg, ${COLORS.primary.main}, ${COLORS.neutral.grey500})`,
+                    marginLeft: '3px',
+                    animation: 'aiTyping 1s infinite',
+                    borderRadius: '2px'
                   }} />
                 )}
               </div>
+              
+              {/* AI 신뢰도 표시 */}
+              {!isTyping && (
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  marginTop: '16px',
+                  padding: '8px 12px',
+                  backgroundColor: 'rgba(102, 126, 234, 0.05)',
+                  borderRadius: '12px',
+                  fontSize: '12px',
+                  color: COLORS.text.secondary
+                }}>
+                  <span>✨ AI 신뢰도</span>
+                  <div style={{ flex: 1, height: '3px', backgroundColor: 'rgba(102, 126, 234, 0.2)', borderRadius: '2px' }}>
+                    <div style={{ width: '92%', height: '100%', background: 'linear-gradient(45deg, #667eea, #764ba2)', borderRadius: '2px' }} />
+                  </div>
+                  <span style={{ fontWeight: '600', color: '#667eea' }}>92%</span>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -1774,6 +1978,43 @@ return (
           0% { opacity: 1; }
           50% { opacity: 0; }
           100% { opacity: 1; }
+        }
+
+        @keyframes aiPulse {
+          0% { transform: scale(1); box-shadow: 0 4px 20px ${COLORS.primary.main}50; }
+          50% { transform: scale(1.05); box-shadow: 0 8px 32px ${COLORS.primary.main}80; }
+          100% { transform: scale(1); box-shadow: 0 4px 20px ${COLORS.primary.main}50; }
+        }
+
+        @keyframes shimmer {
+          0% { transform: translateX(-100%); }
+          100% { transform: translateX(100%); }
+        }
+
+        @keyframes progressBar {
+          0% { transform: translateX(-100%); }
+          50% { transform: translateX(0%); }
+          100% { transform: translateX(100%); }
+        }
+
+        @keyframes aiTyping {
+          0%, 50% { opacity: 1; }
+          51%, 100% { opacity: 0; }
+        }
+
+        @keyframes gradientShift {
+          0% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+          100% { background-position: 0% 50%; }
+        }
+
+        .ai-gradient-text {
+          background: linear-gradient(-45deg, ${COLORS.primary.main}, ${COLORS.neutral.grey500}, ${COLORS.primary.main}, ${COLORS.neutral.grey500});
+          background-size: 400% 400%;
+          animation: gradientShift 3s ease infinite;
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
         }
       `}</style>
   </div>
