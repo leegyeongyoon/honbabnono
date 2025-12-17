@@ -725,7 +725,7 @@ const AISearchResultScreen: React.FC<{ user: any; navigation: any }> = ({ user, 
     return response;
   };
 
-  // AI 통합 검색 - 진짜 AI 사용
+  // AI 통합 검색 - 백엔드 API 사용
   const handleAISearch = async (query: string) => {
     if (!query.trim()) return;
 
@@ -736,56 +736,123 @@ const AISearchResultScreen: React.FC<{ user: any; navigation: any }> = ({ user, 
     setSearchResults([]);
 
     try {
-      console.log('🤖 AI 검색 시작:', query);
+      console.log('🤖 백엔드 AI 검색 시작:', query);
 
-      // 1. 먼저 모든 모임 데이터 가져오기
-      const apiUrl = `${process.env.REACT_APP_API_URL || 'http://localhost:3001/api'}/meetups`;
-      const response = await fetch(apiUrl, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
+      // 백엔드 AI 검색 API 호출
+      const results = await aiSearchService.searchWithAI(query);
+      console.log('🎯 AI 검색 결과:', results);
+
+      if (results.length > 0) {
+        const result = results[0];
+        
+        // 전체 AI 분석 결과를 저장
+        setAiAnalysis(result);
+        
+        if (result.isNoMatch) {
+          // 매칭되는 모임이 없는 경우
+          console.log('❌ 조건에 맞는 모임 없음:', result.noMatchReason);
+          setSearchResults([]);
+          
+          let conversationalResponse = `🤔 "${query}"에 대해 분석해봤는데요...\n\n`;
+          
+          if (result.intentSummary) {
+            conversationalResponse += `✅ 검색 의도: ${result.intentSummary}\n\n`;
+          }
+          
+          conversationalResponse += `❌ 아쉽게도 현재 ${result.noMatchReason}\n\n`;
+          
+          if (result.alternatives && result.alternatives.length > 0) {
+            conversationalResponse += `💡 대신 이런 모임들은 어떠세요?\n`;
+            result.alternatives.forEach((alt: string, index: number) => {
+              conversationalResponse += `${index + 1}. ${alt}\n`;
+            });
+          }
+          
+          setAiResponse(conversationalResponse);
+        } else if (result.recommendedMeetups && result.recommendedMeetups.length > 0) {
+          // 추천 모임이 있는 경우
+          console.log('✅ AI 추천 모임:', result.recommendedMeetups.length, '개');
+          setSearchResults(result.recommendedMeetups);
+          
+          let conversationalResponse = `🤖 "${query}"를 분석해봤습니다!\n\n`;
+          
+          if (result.intentSummary) {
+            conversationalResponse += `✅ 분석 결과: ${result.intentSummary}\n\n`;
+          }
+          
+          if (result.searchType) {
+            const searchTypeText = {
+              'food': '🍽️ 음식 기반 검색',
+              'mood': '🎭 분위기 기반 검색',
+              'time': '⏰ 시간 기반 검색',
+              'location': '📍 위치 기반 검색',
+              'price': '💰 가격 기반 검색',
+              'social': '👥 사교 기반 검색',
+              'mixed': '🎯 복합 조건 검색'
+            };
+            conversationalResponse += `🔍 검색 유형: ${searchTypeText[result.searchType] || result.searchType}\n\n`;
+          }
+          
+          if (result.userNeeds) {
+            conversationalResponse += `📋 파악된 요구사항:\n`;
+            if (result.userNeeds.immediate) conversationalResponse += `• ⚡ 즉시 참여 희망\n`;
+            if (result.userNeeds.priceConscious) conversationalResponse += `• 💝 가격 중요\n`;
+            if (result.userNeeds.locationSpecific) conversationalResponse += `• 📍 위치 제한\n`;
+            if (result.userNeeds.moodRequirement) conversationalResponse += `• 🎭 분위기: ${result.userNeeds.moodRequirement}\n`;
+            if (result.userNeeds.cuisinePreference && result.userNeeds.cuisinePreference.length > 0) {
+              conversationalResponse += `• 🍽️ 선호 음식: ${result.userNeeds.cuisinePreference.join(', ')}\n`;
+            }
+            conversationalResponse += `\n`;
+          }
+          
+          conversationalResponse += `🎯 총 ${result.recommendedMeetups.length}개의 모임을 추천드려요:\n\n`;
+          
+          // 각 추천 모임의 이유 설명
+          result.recommendedMeetups.forEach((meetup: any, index: number) => {
+            conversationalResponse += `${index + 1}. **${meetup.title}**\n`;
+            if (meetup.aiReasons && meetup.aiReasons.length > 0) {
+              conversationalResponse += `   💡 추천 이유: ${meetup.aiReasons.join(', ')}\n`;
+            }
+            if (meetup.matchType) {
+              const matchTypeText = {
+                'perfect': '✨ 완벽한 매치',
+                'good': '👍 좋은 매치',
+                'partial': '🤏 부분 매치',
+                'alternative': '💭 대안 추천'
+              };
+              conversationalResponse += `   📊 매치 정도: ${matchTypeText[meetup.matchType] || meetup.matchType}\n`;
+            }
+            if (meetup.aiScore) {
+              conversationalResponse += `   ⭐ 적합도 점수: ${Math.round(meetup.aiScore * 100)}%\n`;
+            }
+            conversationalResponse += `\n`;
+          });
+          
+          if (result.alternatives && result.alternatives.reason) {
+            conversationalResponse += `💡 ${result.alternatives.reason}\n`;
+            if (result.alternatives.suggestions && result.alternatives.suggestions.length > 0) {
+              result.alternatives.suggestions.forEach((suggestion: string) => {
+                conversationalResponse += `• ${suggestion}\n`;
+              });
+            }
+          }
+          
+          setAiResponse(conversationalResponse);
+        } else {
+          // 예상치 못한 경우
+          setSearchResults([]);
+          setAiResponse('🤖 검색 결과를 처리하는 중 문제가 발생했습니다. 다시 시도해주세요.');
         }
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      const allMeetups = data.meetups || [];
-      console.log('📋 전체 모임 수:', allMeetups.length);
-
-      // 2. AI에게 사용자 검색 의도 분석 요청
-      const aiAnalysis = await aiSearchService.analyzeSearchIntent(query);
-      console.log('🧠 AI 분석 결과:', aiAnalysis);
-      setAiAnalysis(aiAnalysis);
-
-      // 3. AI가 직접 모임을 분석하고 추천
-      const aiRecommendations = await analyzeWithRealAI(query, allMeetups, aiAnalysis);
-      console.log('🎯 AI 추천 결과:', aiRecommendations.length, '개');
-
-      // isNoMatch 체크 - 결과가 없으면 빈 배열로 설정
-      if (aiRecommendations.length > 0 && aiRecommendations[0].isNoMatch) {
-        console.log('❌ 조건에 맞는 모임 없음 - 빈 결과 설정');
-        setSearchResults([]);
-        const noMatchResponse = generateAIResponse(query, aiRecommendations, aiAnalysis);
-        setAiResponse(noMatchResponse);
       } else {
-        // 정상적인 추천이 있을 때만 결과 설정
-        setSearchResults(aiRecommendations);
-        const naturalResponse = generateAIResponse(query, aiRecommendations, aiAnalysis);
-        setAiResponse(naturalResponse);
-      }
-
-      // 추천 검색어 설정
-      if (aiAnalysis?.suggestions) {
-        setSuggestions(aiAnalysis.suggestions);
+        // 결과가 없는 경우
+        setSearchResults([]);
+        setAiResponse('검색 결과를 가져올 수 없습니다.');
       }
 
     } catch (error) {
       console.error('AI 검색 오류:', error);
-      // 폴백: 기존 키워드 기반 검색
-      await fallbackSearch(query);
+      setSearchResults([]);
+      setAiResponse('검색 중 오류가 발생했습니다. 다시 시도해주세요.');
     } finally {
       setIsAnalyzing(false);
     }
@@ -1547,26 +1614,95 @@ return (
           }}>
             모임 목록 ({searchResults.length}개)
           </h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             {searchResults.map((meetup) => (
-              <div
-                key={meetup.id}
-                onClick={() => navigate(`/meetup/${meetup.id}`)}
-                style={{
-                  cursor: 'pointer',
-                  transition: 'transform 0.2s',
-                  ':hover': {
-                    transform: 'translateY(-2px)'
-                  }
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = 'translateY(-2px)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = 'translateY(0)';
-                }}
-              >
-                <MeetupCard meetup={meetup} />
+              <div key={meetup.id} style={{ position: 'relative' }}>
+                {/* AI 추천 이유 */}
+                {meetup.aiReasons && meetup.aiReasons.length > 0 && (
+                  <div style={{
+                    marginBottom: '8px',
+                    padding: '8px 12px',
+                    backgroundColor: 'rgba(201, 181, 156, 0.1)',
+                    borderRadius: '8px',
+                    border: '1px solid rgba(201, 181, 156, 0.2)',
+                  }}>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      marginBottom: '4px'
+                    }}>
+                      <Icon name="star" size={14} color={COLORS.primary.main} />
+                      <span style={{
+                        fontSize: '12px',
+                        fontWeight: '600',
+                        color: COLORS.primary.main
+                      }}>
+                        AI 추천 이유
+                      </span>
+                      {meetup.aiScore && (
+                        <span style={{
+                          fontSize: '11px',
+                          fontWeight: '500',
+                          color: COLORS.text.secondary,
+                          marginLeft: 'auto'
+                        }}>
+                          매칭도: {Math.round(meetup.aiScore * 100)}%
+                        </span>
+                      )}
+                    </div>
+                    <div style={{
+                      display: 'flex',
+                      flexWrap: 'wrap',
+                      gap: '4px'
+                    }}>
+                      {meetup.aiReasons.slice(0, 3).map((reason: string, index: number) => (
+                        <span
+                          key={index}
+                          style={{
+                            fontSize: '11px',
+                            padding: '2px 6px',
+                            backgroundColor: COLORS.primary.light,
+                            color: COLORS.primary.main,
+                            borderRadius: '10px',
+                            fontWeight: '500'
+                          }}
+                        >
+                          {reason}
+                        </span>
+                      ))}
+                      {meetup.aiReasons.length > 3 && (
+                        <span style={{
+                          fontSize: '11px',
+                          color: COLORS.text.secondary,
+                          fontWeight: '500'
+                        }}>
+                          +{meetup.aiReasons.length - 3}개 더
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
+                
+                {/* 모임 카드 */}
+                <div
+                  onClick={() => navigate(`/meetup/${meetup.id}`)}
+                  style={{
+                    cursor: 'pointer',
+                    transition: 'transform 0.2s'
+                  }}
+                  onMouseEnter={(e) => {
+                    (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-2px)';
+                  }}
+                  onMouseLeave={(e) => {
+                    (e.currentTarget as HTMLDivElement).style.transform = 'translateY(0)';
+                  }}
+                >
+                  <MeetupCard 
+                    meetup={meetup} 
+                    onPress={() => navigate(`/meetup/${meetup.id}`)}
+                  />
+                </div>
               </div>
             ))}
           </div>

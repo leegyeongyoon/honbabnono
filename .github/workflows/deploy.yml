@@ -8,6 +8,7 @@ on:
 env:
   AWS_REGION: ap-northeast-2
   APP_NAME: honbabnono
+  OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
 
 jobs:
   deploy:
@@ -94,7 +95,9 @@ jobs:
       
     - name: Build Docker image
       run: |
-        docker build -t ${{ env.APP_NAME }} .
+        docker build -t ${{ env.APP_NAME }} \
+          --build-arg OPENAI_API_KEY="${{ secrets.OPENAI_API_KEY }}" \
+          .
         
     - name: Tag and push Docker image
       run: |

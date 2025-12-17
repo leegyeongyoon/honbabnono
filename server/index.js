@@ -13,6 +13,8 @@ const multer = require('multer');
 const fs = require('fs');
 const { initializeS3Upload, deleteFromS3 } = require('./config/s3Config');
 const logger = require('./config/logger');
+const { OpenAI } = require('openai');
+const aiSearchConfig = require('./config/aiSearchConfig');
 
 // 환경변수 로드 - 다른 모든 것보다 먼저 실행
 const mode = process.env.NODE_ENV;
@@ -77,6 +79,11 @@ if (process.env.DB_SSL !== 'false' && (process.env.NODE_ENV === 'production' || 
 }
 
 const pool = new Pool(dbConfig);
+
+// OpenAI 클라이언트 초기화
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
 
 const app = express();
 const server = http.createServer(app);
@@ -14286,6 +14293,168 @@ apiRouter.delete('/admin/notices/:id', authenticateAdminNew, async (req, res) =>
   } catch (error) {
     console.error('공지사항 삭제 오류:', error);
     res.status(500).json({ success: false, error: '공지사항 삭제에 실패했습니다.' });
+  }
+});
+
+// AI 검색 API 엔드포인트 (2단계 시스템)
+apiRouter.post('/search/ai', async (req, res) => {
+  try {
+    const { query } = req.body;
+
+    if (!query || query.trim().length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: '검색어를 입력해주세요.'
+      });
+    }
+
+    console.log('🔍 AI 스마트 검색 요청:', { query });
+
+    // 모든 활성 모임 가져오기 (스마트 검색을 위해)
+    const meetupsResult = await pool.query(`
+      SELECT 
+        id, title, description, category, location, address,
+        date, time, max_participants, current_participants,
+        price_range, age_range, gender_preference, image,
+        status, host_id
+      FROM meetups
+      WHERE status IN ('모집중', '모집완료')
+        AND date >= CURRENT_DATE
+      ORDER BY date ASC
+    `);
+
+    const allMeetups = meetupsResult.rows;
+    console.log(`📊 검색 대상 모임: ${allMeetups.length}개`);
+
+    if (allMeetups.length === 0) {
+      return res.json({
+        success: true,
+        results: [{
+          isNoMatch: true,
+          userContext: query,
+          noMatchReason: '현재 활성화된 모임이 없습니다.',
+          wantedCategory: ''
+        }]
+      });
+    }
+
+    // 스마트 AI 검색 실행
+    console.log('🤖 스마트 AI 검색 실행 중...');
+
+    // AI 검색을 위한 모임 데이터 포맷
+    const meetupsForAI = allMeetups.map(m => aiSearchConfig.formatMeetupForAI(m));
+
+    // 새로운 스마트 검색 프롬프트 생성
+    const userPrompt = aiSearchConfig.createUserPrompt(query, allMeetups);
+
+    console.log('🤖 AI에게 전송하는 데이터:', {
+      meetupsCount: meetupsForAI.length,
+      query: query,
+      systemPromptVersion: 'v9-smart'
+    });
+
+// 스마트 AI 검색 실행
+    const smartSearchResult = await openai.chat.completions.create({
+      model: "gpt-3.5-turbo",
+      messages: [
+        {
+          role: "system",
+          content: aiSearchConfig.SYSTEM_PROMPT
+        },
+        {
+          role: "user",
+          content: userPrompt
+        }
+      ],
+      temperature: 0.3
+    });
+
+    const aiResponse = smartSearchResult.choices[0].message.content;
+    console.log('🤖 스마트 AI 응답:', aiResponse);
+
+    // AI 응답 파싱 및 처리
+    let parsedResponse;
+    try {
+      parsedResponse = aiSearchConfig.parseAIResponse(aiResponse);
+      console.log('✅ AI 응답 파싱 성공:', { 
+        isSearchable: parsedResponse.isSearchable, 
+        hasMatch: parsedResponse.hasMatch,
+        resultsCount: parsedResponse.results?.length || 0
+      });
+    } catch (parseError) {
+      console.error('❌ AI 응답 파싱 실패:', parseError);
+      return res.status(500).json({
+        success: false,
+        error: 'AI 검색 처리 중 오류가 발생했습니다.'
+      });
+    }
+
+    // 검색 불가능한 경우
+    if (!parsedResponse.isSearchable) {
+      return res.json({
+        success: true,
+        results: [{
+          isNoMatch: true,
+          userContext: query,
+          noMatchReason: '검색 의도가 불명확합니다',
+          wantedCategory: ''
+        }]
+      });
+    }
+
+    // 매칭 결과가 없는 경우
+    if (!parsedResponse.hasMatch || !parsedResponse.results || parsedResponse.results.length === 0) {
+      return res.json({
+        success: true,
+        results: [{
+          isNoMatch: true,
+          userContext: query,
+          noMatchReason: parsedResponse.alternatives?.reason || '조건에 맞는 모임을 찾을 수 없습니다',
+          alternatives: parsedResponse.alternatives?.suggestions || [],
+          wantedCategory: parsedResponse.userNeeds?.cuisinePreference?.join(', ') || ''
+        }]
+      });
+    }
+
+    // 성공적인 매칭 결과 처리
+    const recommendedMeetupIds = parsedResponse.results.map(r => r.id);
+    const finalMeetups = allMeetups
+      .filter(meetup => recommendedMeetupIds.includes(meetup.id))
+      .map(meetup => {
+        const aiResult = parsedResponse.results.find(r => r.id === meetup.id);
+        return {
+          ...meetup,
+          aiScore: aiResult?.score || 0.5,
+          aiReasons: aiResult?.why || [],
+          matchType: aiResult?.matchType || 'good',
+          matchedDimensions: aiResult?.matchedDimensions || {}
+        };
+      })
+      .sort((a, b) => b.aiScore - a.aiScore); // 점수 순으로 정렬
+
+    console.log(`✅ 스마트 검색 완료: ${finalMeetups.length}개 모임 추천`);
+
+    // 성공 응답
+    res.json({
+      success: true,
+      results: [{
+        isNoMatch: false,
+        userContext: query,
+        searchType: parsedResponse.searchType,
+        intentSummary: parsedResponse.intentSummary,
+        userNeeds: parsedResponse.userNeeds,
+        recommendedMeetups: finalMeetups,
+        alternatives: parsedResponse.alternatives,
+        debugInfo: parsedResponse.debug
+      }]
+    });
+
+  } catch (error) {
+    console.error('AI 검색 오류:', error);
+    res.status(500).json({
+      success: false,
+      error: '검색 중 오류가 발생했습니다.'
+    });
   }
 });
 

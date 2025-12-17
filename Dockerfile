@@ -41,6 +41,10 @@ RUN npm run build:web
 # 프로덕션 스테이지 (Node.js + nginx)
 FROM node:20-alpine AS production
 
+# OpenAI API Key를 빌드 인자로 받기
+ARG OPENAI_API_KEY
+ENV OPENAI_API_KEY=${OPENAI_API_KEY}
+
 # nginx와 필요한 도구들 설치
 RUN apk add --no-cache nginx supervisor python3 make g++
 
@@ -57,7 +61,14 @@ COPY server/ ./server/
 COPY .env.production ./
 
 # 환경변수 파일이 없는 경우 기본값 생성
-RUN if [ ! -f .env.production ]; then echo "PORT=3001" > .env.production; fi
+RUN if [ ! -f .env.production ]; then \
+    echo "PORT=3001" > .env.production; \
+    fi
+
+# OpenAI API Key를 환경변수 파일에 추가 (빌드 시에만 사용)
+RUN if [ ! -z "$OPENAI_API_KEY" ]; then \
+    echo "OPENAI_API_KEY=${OPENAI_API_KEY}" >> .env.production; \
+    fi
 
 # 빌드된 웹 파일들 복사
 COPY --from=build /app/dist /usr/share/nginx/html
