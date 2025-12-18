@@ -16,19 +16,22 @@ import {
 } from 'react-native';
 import { WebView } from 'react-native-webview';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-// Firebase messaging removed for compatibility
+import messaging from '@react-native-firebase/messaging';
 import Geolocation from '@react-native-community/geolocation';
 
 const WEBVIEW_URL = __DEV__ 
   ? 'http://localhost:3000' 
   : 'https://honbabnono.com';
 
-function App() {
+function HybridApp() {
   const webviewRef = useRef<WebView>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [canGoBack, setCanGoBack] = useState(false);
   
   useEffect(() => {
+    // 푸시 알림 권한 요청
+    requestPushPermission();
+    
     // 백 버튼 핸들러 (Android)
     const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
       if (canGoBack && webviewRef.current) {
@@ -41,7 +44,27 @@ function App() {
     return () => backHandler.remove();
   }, [canGoBack]);
 
-  // Firebase messaging removed for React Native 0.71 compatibility
+  // 푸시 알림 권한 요청
+  const requestPushPermission = async () => {
+    try {
+      const authStatus = await messaging().requestPermission();
+      const enabled =
+        authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
+        authStatus === messaging.AuthorizationStatus.PROVISIONAL;
+
+      if (enabled) {
+        const token = await messaging().getToken();
+        console.log('FCM Token:', token);
+        // 토큰을 웹뷰로 전달
+        webviewRef.current?.postMessage(JSON.stringify({
+          type: 'FCM_TOKEN',
+          token: token,
+        }));
+      }
+    } catch (error) {
+      console.error('Push permission error:', error);
+    }
+  };
 
   // 웹뷰와 네이티브 간 통신 브리지
   const handleWebViewMessage = async (event: any) => {
@@ -99,54 +122,6 @@ function App() {
           // Haptics.impact(Haptics.ImpactFeedbackStyle.Light);
           break;
 
-        case 'SHOW_ALERT':
-          // 네이티브 알림 팝업
-          Alert.alert(
-            message.title || '알림',
-            message.message,
-            [
-              {
-                text: message.buttonText || '확인',
-                onPress: () => {
-                  webviewRef.current?.postMessage(JSON.stringify({
-                    type: 'ALERT_RESULT',
-                    result: 'ok',
-                  }));
-                }
-              }
-            ]
-          );
-          break;
-
-        case 'SHOW_CONFIRM':
-          // 네이티브 확인 팝업
-          Alert.alert(
-            message.title || '확인',
-            message.message,
-            [
-              {
-                text: message.cancelText || '취소',
-                style: 'cancel',
-                onPress: () => {
-                  webviewRef.current?.postMessage(JSON.stringify({
-                    type: 'CONFIRM_RESULT',
-                    result: 'cancel',
-                  }));
-                }
-              },
-              {
-                text: message.confirmText || '확인',
-                onPress: () => {
-                  webviewRef.current?.postMessage(JSON.stringify({
-                    type: 'CONFIRM_RESULT',
-                    result: 'confirm',
-                  }));
-                }
-              }
-            ]
-          );
-          break;
-
         default:
           console.log('Unknown message type:', message.type);
       }
@@ -158,47 +133,6 @@ function App() {
   // 웹뷰에 주입할 JavaScript 코드
   const injectedJavaScript = `
     (function() {
-      // viewport 메타태그 설정으로 확대/축소 방지
-      const viewport = document.querySelector('meta[name="viewport"]');
-      if (viewport) {
-        viewport.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover');
-      } else {
-        const meta = document.createElement('meta');
-        meta.name = 'viewport';
-        meta.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover';
-        document.head.appendChild(meta);
-      }
-
-      // 확대/축소 제스처 완전 차단
-      document.addEventListener('touchstart', function(event) {
-        if (event.touches.length > 1) {
-          event.preventDefault();
-        }
-      }, { passive: false });
-
-      let lastTouchEnd = 0;
-      document.addEventListener('touchend', function(event) {
-        const now = (new Date()).getTime();
-        if (now - lastTouchEnd <= 300) {
-          event.preventDefault();
-        }
-        lastTouchEnd = now;
-      }, { passive: false });
-
-      // 더블탭 확대 방지
-      document.addEventListener('dblclick', function(event) {
-        event.preventDefault();
-      }, { passive: false });
-
-      // input 포커스 시에도 확대 방지
-      document.addEventListener('focusin', function(event) {
-        if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA') {
-          setTimeout(() => {
-            window.scrollTo(0, 0);
-          }, 100);
-        }
-      });
-
       // 네이티브 브리지 객체 생성
       window.NativeBridge = {
         // 위치 정보 가져오기
@@ -231,25 +165,6 @@ function App() {
         haptic: function() {
           window.ReactNativeWebView.postMessage(JSON.stringify({
             type: 'HAPTIC'
-          }));
-        },
-        // 네이티브 팝업 표시
-        showAlert: function(title, message, buttonText = '확인') {
-          window.ReactNativeWebView.postMessage(JSON.stringify({
-            type: 'SHOW_ALERT',
-            title: title,
-            message: message,
-            buttonText: buttonText
-          }));
-        },
-        // 네이티브 확인 팝업
-        showConfirm: function(title, message, confirmText = '확인', cancelText = '취소') {
-          window.ReactNativeWebView.postMessage(JSON.stringify({
-            type: 'SHOW_CONFIRM',
-            title: title,
-            message: message,
-            confirmText: confirmText,
-            cancelText: cancelText
           }));
         }
       };
@@ -293,22 +208,14 @@ function App() {
         javaScriptEnabled={true}
         domStorageEnabled={true}
         startInLoadingState={true}
-        scalesPageToFit={false}
-        showsHorizontalScrollIndicator={false}
-        showsVerticalScrollIndicator={false}
-        scrollEnabled={true}
-        bounces={false}
+        scalesPageToFit={true}
         mixedContentMode="always"
         allowsInlineMediaPlayback={true}
         mediaPlaybackRequiresUserAction={false}
         // iOS 설정
         allowsBackForwardNavigationGestures={true}
-        automaticallyAdjustContentInsets={false}
-        dataDetectorTypes="none"
         // Android 설정
         androidHardwareAccelerationDisabled={false}
-        overScrollMode="never"
-        nestedScrollEnabled={true}
         // 디버깅 (개발 모드에서만)
         webviewDebuggingEnabled={__DEV__}
       />
@@ -342,4 +249,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default App;
+export default HybridApp;

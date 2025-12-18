@@ -13,11 +13,23 @@ import {COLORS, SHADOWS} from '../styles/colors';
 import CreateMeetupScreen from './CreateMeetupScreen';
 import { useMeetups } from '../hooks/useMeetups';
 import { formatKoreanDateTime } from '../utils/dateUtils';
+import Popup from '../components/Popup';
+import { usePopup } from '../hooks/usePopup';
 
 const HomeScreen = () => {
   const navigation = useTypedNavigation();
   const [showCreateMeetup, setShowCreateMeetup] = useState(false);
   const { meetups } = useMeetups();
+  const { 
+    popupState, 
+    hidePopup, 
+    showSuccess, 
+    showError, 
+    showWarning, 
+    showInfo, 
+    showConfirm, 
+    showAlert 
+  } = usePopup();
 
   return (
     <View style={styles.container}>
@@ -31,7 +43,7 @@ const HomeScreen = () => {
           </View>
           <TouchableOpacity 
             style={styles.notificationButton}
-            onPress={() => console.log('알림 화면으로 이동')}
+            onPress={() => showInfo('새로운 알림이 3개 있습니다!', '알림')}
           >
             <Text style={styles.notificationIcon}>🔔</Text>
             <View style={styles.notificationBadge}>
@@ -144,7 +156,7 @@ const HomeScreen = () => {
         
         <TouchableOpacity style={styles.recommendationCard}>
           <Text style={styles.recommendationTitle}>오늘 18:30 이시는 분</Text>
-          <Text style={styles.recommendationSubtitle">저녁 시간 함께해요</Text>
+          <Text style={styles.recommendationSubtitle}>저녁 시간 함께해요</Text>
         </TouchableOpacity>
       </View>
 
@@ -159,6 +171,52 @@ const HomeScreen = () => {
           <Text style={styles.createMeetupTitle}>나만의 모임 만들기</Text>
           <Text style={styles.createMeetupSubtitle}>새로운 사람들과 특별한 식사 경험을 만들어보세요</Text>
         </TouchableOpacity>
+      </View>
+
+      {/* 팝업 테스트 */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>🧪 팝업 테스트</Text>
+        <View style={styles.popupTestContainer}>
+          <TouchableOpacity 
+            style={[styles.popupTestButton, { backgroundColor: COLORS.functional.success }]}
+            onPress={() => showSuccess('성공적으로 처리되었습니다!', '성공')}
+          >
+            <Text style={styles.popupTestText}>성공 팝업</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={[styles.popupTestButton, { backgroundColor: COLORS.functional.error }]}
+            onPress={() => showError('오류가 발생했습니다.', '오류')}
+          >
+            <Text style={styles.popupTestText}>오류 팝업</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={[styles.popupTestButton, { backgroundColor: COLORS.functional.warning }]}
+            onPress={() => showWarning('주의가 필요합니다!', '주의')}
+          >
+            <Text style={styles.popupTestText}>경고 팝업</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={[styles.popupTestButton, { backgroundColor: COLORS.primary.main }]}
+            onPress={() => showAlert('이것은 알림 메시지입니다.', '알림')}
+          >
+            <Text style={styles.popupTestText}>알림 팝업</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={[styles.popupTestButton, { backgroundColor: COLORS.functional.warning }]}
+            onPress={() => showConfirm(
+              '정말로 삭제하시겠습니까?', 
+              () => showSuccess('삭제되었습니다!'),
+              () => showInfo('삭제가 취소되었습니다.'),
+              '삭제 확인'
+            )}
+          >
+            <Text style={styles.popupTestText}>확인 팝업</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* 로그인 */}
@@ -192,8 +250,22 @@ const HomeScreen = () => {
         <CreateMeetupScreen onClose={() => setShowCreateMeetup(false)} />
       </View>
     </Modal>
+
+    {/* 팝업 컴포넌트 */}
+    <Popup
+      visible={popupState.visible}
+      onClose={hidePopup}
+      title={popupState.title}
+      message={popupState.message}
+      type={popupState.type}
+      buttons={popupState.buttons}
+      showCloseButton={popupState.showCloseButton}
+      backdrop={popupState.backdrop}
+      animation={popupState.animation}
+    />
   </View>
 );
+};
 
 const styles = StyleSheet.create({
   container: {
@@ -450,6 +522,27 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: COLORS.text.primary,
     fontWeight: 'bold',
+  },
+  popupTestContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    justifyContent: 'space-between',
+  },
+  popupTestButton: {
+    flex: 1,
+    minWidth: '48%',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginBottom: 8,
+    ...SHADOWS.small,
+  },
+  popupTestText: {
+    color: COLORS.text.white,
+    fontSize: 14,
+    fontWeight: '600',
   },
 });
 

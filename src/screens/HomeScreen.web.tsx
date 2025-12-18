@@ -25,6 +25,8 @@ import AdvertisementBanner from '../components/AdvertisementBanner';
 import { useMeetups } from '../hooks/useMeetups';
 import { aiSearchService } from '../services/aiSearchService';
 import riceCharacterImage from '../assets/images/rice-character.png';
+import Popup from '../components/Popup';
+import { usePopup } from '../hooks/usePopup';
 
 // 모임 시간 포맷팅 함수
 const formatMeetupDateTime = (date: string, time: string) => {

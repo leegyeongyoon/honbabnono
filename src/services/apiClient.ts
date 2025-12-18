@@ -8,7 +8,8 @@ const getApiBaseUrl = (): string => {
     return process.env.REACT_APP_API_URL;
   }
   
-  if (typeof window !== 'undefined') {
+  // React Native 환경 감지
+  if (typeof window !== 'undefined' && window.location && window.location.hostname) {
     const hostname = window.location.hostname;
     console.log('🔧 Detecting API URL for hostname:', hostname);
     
@@ -25,9 +26,9 @@ const getApiBaseUrl = (): string => {
     return url;
   }
   
-  // SSR fallback
-  const url = '/api';
-  console.log('🔧 Using SSR fallback API URL:', url);
+  // React Native 환경이나 SSR fallback
+  const url = 'http://localhost:3001/api';
+  console.log('🔧 Using React Native/SSR fallback API URL:', url);
   return url;
 };
 

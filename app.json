@@ -1,4 +1,49 @@
 {
   "name": "HonbabnonoApp",
-  "displayName": "HonbabnonoApp"
+  "displayName": "혼밥시러",
+  "version": "1.0.0",
+  "description": "혼자 밥 먹기 싫은 사람들을 위한 모임 플랫폼",
+  "slug": "honbabnono",
+  "owner": "honbabnono",
+  "orientation": "portrait",
+  "icon": "./assets/icon.png",
+  "splash": {
+    "image": "./assets/splash.png",
+    "resizeMode": "contain",
+    "backgroundColor": "#F9F8F6"
+  },
+  "updates": {
+    "fallbackToCacheTimeout": 0
+  },
+  "assetBundlePatterns": [
+    "**/*"
+  ],
+  "ios": {
+    "supportsTablet": true,
+    "bundleIdentifier": "com.honbabnono.app",
+    "buildNumber": "1",
+    "infoPlist": {
+      "NSLocationWhenInUseUsageDescription": "위치 기반으로 주변 모임을 찾기 위해 사용됩니다.",
+      "NSCameraUsageDescription": "프로필 사진 촬영을 위해 카메라 접근이 필요합니다.",
+      "NSPhotoLibraryUsageDescription": "프로필 사진 선택을 위해 사진 라이브러리 접근이 필요합니다."
+    }
+  },
+  "android": {
+    "package": "com.honbabnono.app",
+    "versionCode": 1,
+    "adaptiveIcon": {
+      "foregroundImage": "./assets/adaptive-icon.png",
+      "backgroundColor": "#F9F8F6"
+    },
+    "permissions": [
+      "ACCESS_FINE_LOCATION",
+      "ACCESS_COARSE_LOCATION",
+      "CAMERA",
+      "READ_EXTERNAL_STORAGE",
+      "WRITE_EXTERNAL_STORAGE"
+    ]
+  },
+  "web": {
+    "favicon": "./assets/favicon.ico"
+  }
 }

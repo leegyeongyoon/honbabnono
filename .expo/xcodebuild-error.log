@@ -1,0 +1,10 @@
+--- xcodebuild: WARNING: Using the first of multiple matching destinations:
+{ platform:iOS Simulator, id:9377E4D6-970F-47FD-B346-0F5D3450D860, OS:18.3.1, name:iPhone 16 }
+{ platform:iOS Simulator, id:9377E4D6-970F-47FD-B346-0F5D3450D860, OS:18.3.1, name:iPhone 16 }
+** BUILD FAILED **
+
+
+The following build commands failed:
+	ScanDependencies /Users/keullaeseuting/Library/Developer/Xcode/DerivedData/HonbabnonoApp-bxflgzugowbnmcbfbdahjzqlwiqh/Build/Intermediates.noindex/Pods.build/Debug-iphonesimulator/React-RuntimeHermes.build/Objects-normal/arm64/React-RuntimeHermes-dummy.o /Users/keullaeseuting/Desktop/gylee/honbabnono/ios/Pods/Target\ Support\ Files/React-RuntimeHermes/React-RuntimeHermes-dummy.m normal arm64 objective-c com.apple.compilers.llvm.clang.1_0.compiler (in target 'React-RuntimeHermes' from project 'Pods')
+	Building workspace HonbabnonoApp with scheme HonbabnonoApp and configuration Debug
+(2 failures)
