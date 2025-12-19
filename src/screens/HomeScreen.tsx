@@ -89,7 +89,7 @@ const HomeScreen = () => {
             </TouchableOpacity>
             <TouchableOpacity 
               style={styles.notificationButton}
-              onPress={() => showInfo('새로운 알림이 3개 있습니다!', '알림')}
+              onPress={() => {/* 알림 목록 화면으로 이동 */}}
             >
               <Text style={styles.notificationIcon}>🔔</Text>
               <View style={styles.notificationBadge}>
@@ -222,42 +222,6 @@ const HomeScreen = () => {
       {/* 팝업 테스트 */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>🧪 알림 테스트</Text>
-        <View style={styles.popupTestContainer}>
-          <TouchableOpacity 
-            style={[styles.popupTestButton, { backgroundColor: COLORS.functional.success }]}
-            onPress={() => showBannerSuccess('성공!', '모임 참가 신청이 완료되었습니다')}
-          >
-            <Text style={styles.popupTestText}>성공 배너</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={[styles.popupTestButton, { backgroundColor: COLORS.functional.error }]}
-            onPress={() => showBannerError('오류!', '네트워크 연결을 확인해주세요')}
-          >
-            <Text style={styles.popupTestText}>오류 배너</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={[styles.popupTestButton, { backgroundColor: COLORS.functional.warning }]}
-            onPress={() => showBannerWarning('주의!', '모임 시간이 30분 남았습니다')}
-          >
-            <Text style={styles.popupTestText}>경고 배너</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={[styles.popupTestButton, { backgroundColor: COLORS.primary.main }]}
-            onPress={() => showBannerInfo('새 메시지', '김철수님이 메시지를 보냈습니다')}
-          >
-            <Text style={styles.popupTestText}>정보 배너</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={[styles.popupTestButton, { backgroundColor: COLORS.secondary.main }]}
-            onPress={() => showSuccess('성공적으로 처리되었습니다!', '성공')}
-          >
-            <Text style={styles.popupTestText}>기존 팝업</Text>
-          </TouchableOpacity>
-        </View>
       </View>
 
       {/* 로그인 */}
