@@ -3,6 +3,13 @@
  * 웹과 네이티브 앱 간의 통신을 담당
  */
 
+// 플랫폼 감지를 위한 간단한 헬퍼
+const Platform = {
+  OS: typeof window !== 'undefined' ? 'web' : 
+      typeof navigator !== 'undefined' && navigator.userAgent.includes('iPhone') ? 'ios' :
+      typeof navigator !== 'undefined' && navigator.userAgent.includes('Android') ? 'android' : 'web'
+};
+
 // 타입 정의
 interface NativeBridge {
   getLocation: () => void;
@@ -10,6 +17,8 @@ interface NativeBridge {
   getToken: () => void;
   share: (data: any) => void;
   haptic: () => void;
+  showNotification: (title: string, body: string, data?: any) => void;
+  scheduleNotification: (title: string, body: string, delay: number, data?: any) => void;
 }
 
 declare global {
@@ -25,8 +34,8 @@ class NativeBridgeHelper {
   private listeners: Map<string, Function[]> = new Map();
 
   constructor() {
-    // 네이티브 메시지 리스너 등록
-    if (typeof window !== 'undefined') {
+    // 네이티브 메시지 리스너 등록 (웹 환경에서만)
+    if (typeof window !== 'undefined' && window.addEventListener) {
       window.addEventListener('nativeMessage', (event: any) => {
         this.handleNativeMessage(event.detail);
       });
@@ -35,11 +44,16 @@ class NativeBridgeHelper {
 
   // 네이티브 앱인지 확인
   isNativeApp(): boolean {
+    if (Platform.OS === 'ios' || Platform.OS === 'android') {
+      return true;
+    }
     return typeof window !== 'undefined' && window.isNativeApp === true;
   }
 
   // 디바이스 타입 가져오기
   getDeviceType(): 'ios' | 'android' | 'web' {
+    if (Platform.OS === 'ios') return 'ios';
+    if (Platform.OS === 'android') return 'android';
     if (!this.isNativeApp()) return 'web';
     return window.deviceType || 'web';
   }
@@ -120,6 +134,55 @@ class NativeBridgeHelper {
   haptic(): void {
     if (this.isNativeApp()) {
       window.NativeBridge?.haptic();
+    }
+  }
+
+  // 즉시 알림 표시
+  showNotification(title: string, body: string, data?: any): void {
+    console.log('🔔 [nativeBridge] showNotification 호출:', { title, body, isNativeApp: this.isNativeApp() });
+    
+    if (this.isNativeApp()) {
+      // 네이티브 앱에서는 WebView 브리지 사용 (React Native 모듈 직접 접근 불가)
+      if (window.NativeBridge) {
+        console.log('📱 [nativeBridge] window.NativeBridge.showNotification 호출');
+        window.NativeBridge.showNotification(title, body, data);
+      } else {
+        console.error('❌ [nativeBridge] window.NativeBridge not available');
+      }
+    } else {
+      // 웹에서는 브라우저 알림 사용
+      if ('Notification' in window && Notification.permission === 'granted') {
+        new Notification(title, { body, data });
+      } else if ('Notification' in window && Notification.permission !== 'denied') {
+        Notification.requestPermission().then(permission => {
+          if (permission === 'granted') {
+            new Notification(title, { body, data });
+          }
+        });
+      } else {
+        alert(`${title}\n${body}`);
+      }
+    }
+  }
+
+  // 지연 알림 스케줄링
+  scheduleNotification(title: string, body: string, delay: number, data?: any): void {
+    console.log('⏰ [nativeBridge] scheduleNotification 호출:', { title, body, delay, isNativeApp: this.isNativeApp() });
+    
+    if (this.isNativeApp()) {
+      // 네이티브 앱에서는 WebView 브리지 사용 (React Native 모듈 직접 접근 불가)
+      if (window.NativeBridge) {
+        console.log('📱 [nativeBridge] window.NativeBridge.scheduleNotification 호출');
+        window.NativeBridge.scheduleNotification(title, body, delay, data);
+      } else {
+        console.error('❌ [nativeBridge] window.NativeBridge not available');
+      }
+    } else {
+      // 웹에서는 setTimeout + 브라우저 알림 사용
+      console.log('🌐 [nativeBridge] 웹 환경에서 setTimeout 사용');
+      setTimeout(() => {
+        this.showNotification(title, body, data);
+      }, delay * 1000);
     }
   }
 

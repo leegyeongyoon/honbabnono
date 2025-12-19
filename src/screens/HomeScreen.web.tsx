@@ -27,6 +27,7 @@ import { aiSearchService } from '../services/aiSearchService';
 import riceCharacterImage from '../assets/images/rice-character.png';
 import Popup from '../components/Popup';
 import { usePopup } from '../hooks/usePopup';
+import nativeBridge from '../utils/nativeBridge';
 
 // 모임 시간 포맷팅 함수
 const formatMeetupDateTime = (date: string, time: string) => {
@@ -73,6 +74,37 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearchSuggestions, setShowSearchSuggestions] = useState(false);
   
+  const handleNotificationTest = () => {
+    try {
+      console.log('🧪 [WEB DEBUG] handleNotificationTest 시작');
+      console.log('🧪 [WEB DEBUG] nativeBridge.isNativeApp():', nativeBridge.isNativeApp());
+      console.log('🧪 [WEB DEBUG] nativeBridge object:', nativeBridge);
+      
+      if (nativeBridge.isNativeApp()) {
+        // 네이티브 앱에서 실행 중
+        console.log('📱 [WEB DEBUG] 네이티브 앱에서 실행 중 - scheduleNotification 호출');
+        nativeBridge.scheduleNotification(
+          '혼밥노노 알림', 
+          '5초 후 네이티브 알림입니다! 🍚', 
+          5,
+          { type: 'scheduled', timestamp: new Date().toISOString() }
+        );
+        alert('5초 후 네이티브 알림이 표시됩니다...');
+      } else {
+        // 웹 브라우저에서 실행 중
+        console.log('🌐 [WEB DEBUG] 웹 브라우저에서 실행 중 - setTimeout 사용');
+        setTimeout(() => {
+          alert('5초 후 웹 알림입니다! 새로운 밥친구가 근처에 있어요 🍚');
+        }, 5000);
+        alert('5초 후 웹 알림이 표시됩니다...');
+      }
+      
+      console.log('✅ [WEB DEBUG] 알림 예약 완료');
+    } catch (error) {
+      console.error('❌ [WEB DEBUG] 알림 예약 실패:', error);
+      alert(`알림 예약 실패: ${error.message}`);
+    }
+  };
 
   const handleMeetupClick = (meetupId: string) => {
     console.log('🎯 Clicking meetup with ID:', meetupId);
@@ -195,12 +227,20 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
           <Icon name="chevron-down" size={14} color={COLORS.text.primary} />
         </TouchableOpacity>
         
-        <NotificationBell
-          userId={user?.id?.toString()}
-          onPress={() => {
-            console.log('🔔 알림 버튼 클릭됨');
-            console.log('📍 navigation 객체:', navigation);
-            console.log('📍 navigation 메서드들:', Object.keys(navigation || {}));
+        <View style={styles.headerButtons}>
+          <TouchableOpacity 
+            style={styles.testButton}
+            onPress={handleNotificationTest}
+          >
+            <Text style={styles.testButtonText}>알림테스트</Text>
+          </TouchableOpacity>
+          
+          <NotificationBell
+            userId={user?.id?.toString()}
+            onPress={() => {
+              console.log('🔔 알림 버튼 클릭됨');
+              console.log('📍 navigation 객체:', navigation);
+              console.log('📍 navigation 메서드들:', Object.keys(navigation || {}));
             if (navigation?.navigateToNotifications) {
               navigation.navigateToNotifications();
             } else if (navigation?.navigate) {
@@ -212,6 +252,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
           color={COLORS.text.primary}
           size={20}
         />
+        </View>
       </View>
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
@@ -983,6 +1024,23 @@ const styles = StyleSheet.create({
     color: COLORS.neutral.white,
     fontSize: 12,
     fontWeight: '600',
+  },
+  headerButtons: {
+    flexDirection: 'row',
+    gap: 8,
+    alignItems: 'center',
+  },
+  testButton: {
+    backgroundColor: COLORS.functional.warning,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    ...SHADOWS.small,
+  },
+  testButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: COLORS.text.white,
   },
 });
 

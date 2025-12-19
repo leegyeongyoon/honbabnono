@@ -13,11 +13,16 @@ import {
   BackHandler,
   StatusBar,
   ActivityIndicator,
+  NativeModules,
 } from 'react-native';
 import { WebView } from 'react-native-webview';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 // Firebase messaging removed for compatibility
 import Geolocation from '@react-native-community/geolocation';
+import PushNotificationIOS from '@react-native-community/push-notification-ios';
+import NotificationTestScreen from './src/screens/NotificationTestScreen';
+
+const { NativeBridgeModule, SimpleNotificationModule } = NativeModules;
 
 const WEBVIEW_URL = __DEV__ 
   ? 'http://localhost:3000' 
@@ -29,6 +34,17 @@ function App() {
   const [canGoBack, setCanGoBack] = useState(false);
   
   useEffect(() => {
+    // iOS 알림 권한 요청
+    if (Platform.OS === 'ios') {
+      PushNotificationIOS.requestPermissions({
+        alert: true,
+        badge: true,
+        sound: true,
+      }).then((permissions) => {
+        console.log('🔑 [APP] iOS 알림 권한:', permissions);
+      });
+    }
+
     // 백 버튼 핸들러 (Android)
     const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
       if (canGoBack && webviewRef.current) {
@@ -37,6 +53,37 @@ function App() {
       }
       return false;
     });
+
+    // iOS 시스템 알림 테스트 (앱 시작 3초 후)
+    setTimeout(() => {
+      console.log('🧪 [APP] iOS 시스템 알림 테스트 시작');
+      
+      // 3초 후 iOS 시스템 알림 표시
+      setTimeout(() => {
+        if (Platform.OS === 'ios') {
+          console.log('📱 [APP] iOS 로컬 알림 스케줄링');
+          PushNotificationIOS.presentLocalNotification({
+            alertBody: '앱에서 직접 호출된 iOS 시스템 알림입니다! 🚀',
+            alertTitle: '테스트 알림',
+            soundName: 'default'
+          });
+          console.log('✅ [APP] iOS 시스템 알림 표시 완료');
+        } else {
+          // 안드로이드나 다른 플랫폼에서는 Alert 사용
+          Alert.alert(
+            '테스트 알림',
+            '앱에서 직접 호출된 Alert 알림입니다! 🚀',
+            [
+              {
+                text: '확인',
+                onPress: () => console.log('🔔 [APP] 테스트 알림 확인됨')
+              }
+            ]
+          );
+          console.log('✅ [APP] Alert 알림 표시 완료');
+        }
+      }, 3000);
+    }, 3000);
 
     return () => backHandler.remove();
   }, [canGoBack]);
@@ -147,6 +194,59 @@ function App() {
           );
           break;
 
+        case 'SHOW_NOTIFICATION':
+          // 네이티브 모듈을 통한 알림 표시
+          Alert.alert(
+            '알림 테스트',
+            `제목: ${message.title}\n내용: ${message.body}`,
+            [{ text: '확인' }]
+          );
+          break;
+
+        case 'SCHEDULE_NOTIFICATION':
+          // 실제 네이티브 브릿지를 통한 알림 스케줄링
+          console.log('🔔 [WebView] SCHEDULE_NOTIFICATION 메시지 수신:', message);
+          console.log('🔍 [WebView] 모든 NativeModules:', Object.keys(NativeModules));
+          console.log('🔍 [WebView] NativeBridgeModule 확인:', !!NativeBridgeModule);
+          console.log('🔍 [WebView] SimpleNotificationModule 확인:', !!SimpleNotificationModule);
+          
+          // iOS 시스템 알림 기반 알림 기능 구현
+          console.log('✅ [WebView] iOS 시스템 알림 스케줄링');
+          
+          if (Platform.OS === 'ios') {
+            // iOS 시스템 알림만 사용 (Alert 제거)
+            console.log('📱 [WebView] iOS 시스템 알림 스케줄링');
+            
+            // 5초 후 iOS 시스템 알림  
+            setTimeout(() => {
+              console.log(`🔔 [WebView] ${message.delay}초 후 iOS 시스템 알림 실행`);
+              PushNotificationIOS.presentLocalNotification({
+                alertBody: message.body || '혼밥노노 iOS 시스템 알림입니다! 🍚',
+                alertTitle: message.title || '혼밥노노 알림',
+                soundName: 'default'
+              });
+              console.log(`🎯 [WebView] ${message.delay}초 후 iOS 시스템 알림 표시 완료`);
+            }, message.delay * 1000);
+          } else {
+            // 다른 플랫폼에서는 Alert 사용
+            setTimeout(() => {
+              console.log(`🔔 [WebView] ${message.delay}초 후 예약 알림 실행 시작`);
+              Alert.alert(
+                message.title || '혼밥노노 알림',
+                message.body || '알림 메시지',
+                [
+                  {
+                    text: '확인',
+                    onPress: () => console.log('🔔 예약 알림 확인됨')
+                  }
+                ],
+                { cancelable: false }
+              );
+              console.log(`🎯 [WebView] ${message.delay}초 후 알림 표시 완료`);
+            }, message.delay * 1000);
+          }
+          break;
+
         default:
           console.log('Unknown message type:', message.type);
       }
@@ -250,6 +350,25 @@ function App() {
             message: message,
             confirmText: confirmText,
             cancelText: cancelText
+          }));
+        },
+        // 알림 표시
+        showNotification: function(title, body, data) {
+          window.ReactNativeWebView.postMessage(JSON.stringify({
+            type: 'SHOW_NOTIFICATION',
+            title: title,
+            body: body,
+            data: data
+          }));
+        },
+        // 지연 알림
+        scheduleNotification: function(title, body, delay, data) {
+          window.ReactNativeWebView.postMessage(JSON.stringify({
+            type: 'SCHEDULE_NOTIFICATION',
+            title: title,
+            body: body,
+            delay: delay,
+            data: data
           }));
         }
       };

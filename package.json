@@ -31,6 +31,7 @@
     "@googlemaps/react-wrapper": "^1.2.0",
     "@react-native-async-storage/async-storage": "^1.17.0",
     "@react-native-community/geolocation": "^2.1.0",
+    "@react-native-community/push-notification-ios": "^1.12.0",
     "@types/bcryptjs": "^2.4.6",
     "@types/cookie-parser": "^1.4.9",
     "@types/jsonwebtoken": "^9.0.10",

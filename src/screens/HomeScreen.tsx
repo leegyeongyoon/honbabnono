@@ -15,6 +15,9 @@ import { useMeetups } from '../hooks/useMeetups';
 import { formatKoreanDateTime } from '../utils/dateUtils';
 import Popup from '../components/Popup';
 import { usePopup } from '../hooks/usePopup';
+import nativeBridge from '../utils/nativeBridge';
+import NotificationBanner from '../components/NotificationBanner';
+import { useNotificationBanner } from '../hooks/useNotificationBanner';
 
 const HomeScreen = () => {
   const navigation = useTypedNavigation();
@@ -30,6 +33,42 @@ const HomeScreen = () => {
     showConfirm, 
     showAlert 
   } = usePopup();
+  
+  const {
+    notification,
+    showInfo: showBannerInfo,
+    showSuccess: showBannerSuccess,
+    showWarning: showBannerWarning,
+    showError: showBannerError,
+    hideNotification,
+  } = useNotificationBanner();
+
+  const handleNotificationTest = () => {
+    try {
+      console.log('🧪 [RN DEBUG] handleNotificationTest 함수 호출됨');
+      console.log('🧪 [RN DEBUG] nativeBridge 객체:', nativeBridge);
+      console.log('🧪 [RN DEBUG] nativeBridge.scheduleNotification 함수:', nativeBridge.scheduleNotification);
+      
+      // 네이티브 알림 호출 시도
+      console.log('🔔 [RN DEBUG] 네이티브 scheduleNotification 호출 중...');
+      nativeBridge.scheduleNotification(
+        '혼밥노노 알림', 
+        '5초 후 알림입니다! 새로운 밥친구가 근처에 있어요 🍚', 
+        5, // 5초 후
+        {
+          type: 'scheduled',
+          timestamp: new Date().toISOString()
+        }
+      );
+      console.log('✅ [RN DEBUG] 네이티브 scheduleNotification 호출 완료');
+      
+      // 즉시 확인 메시지
+      showBannerInfo('알림 예약', '5초 후 네이티브 알림이 표시됩니다...');
+    } catch (error) {
+      console.error('❌ [RN DEBUG] 알림 예약 실패:', error);
+      showError('알림 예약에 실패했습니다.');
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -41,13 +80,20 @@ const HomeScreen = () => {
             <Text style={styles.greeting}>혼자 밥 먹기 싫어요! 🍽️</Text>
             <Text style={styles.subtitle}>따뜻한 사람들과 함께하는 맛있는 식사</Text>
           </View>
-          <TouchableOpacity 
-            style={styles.notificationButton}
-            onPress={() => showInfo('새로운 알림이 3개 있습니다!', '알림')}
-          >
-            <Text style={styles.notificationIcon}>🔔</Text>
-            <View style={styles.notificationBadge}>
-              <Text style={styles.notificationCount}>3</Text>
+          <View style={styles.headerButtons}>
+            <TouchableOpacity 
+              style={styles.testButton}
+              onPress={handleNotificationTest}
+            >
+              <Text style={styles.testButtonText}>알림테스트</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.notificationButton}
+              onPress={() => showInfo('새로운 알림이 3개 있습니다!', '알림')}
+            >
+              <Text style={styles.notificationIcon}>🔔</Text>
+              <View style={styles.notificationBadge}>
+                <Text style={styles.notificationCount}>3</Text>
             </View>
           </TouchableOpacity>
         </View>
@@ -175,46 +221,41 @@ const HomeScreen = () => {
 
       {/* 팝업 테스트 */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>🧪 팝업 테스트</Text>
+        <Text style={styles.sectionTitle}>🧪 알림 테스트</Text>
         <View style={styles.popupTestContainer}>
           <TouchableOpacity 
             style={[styles.popupTestButton, { backgroundColor: COLORS.functional.success }]}
-            onPress={() => showSuccess('성공적으로 처리되었습니다!', '성공')}
+            onPress={() => showBannerSuccess('성공!', '모임 참가 신청이 완료되었습니다')}
           >
-            <Text style={styles.popupTestText}>성공 팝업</Text>
+            <Text style={styles.popupTestText}>성공 배너</Text>
           </TouchableOpacity>
           
           <TouchableOpacity 
             style={[styles.popupTestButton, { backgroundColor: COLORS.functional.error }]}
-            onPress={() => showError('오류가 발생했습니다.', '오류')}
+            onPress={() => showBannerError('오류!', '네트워크 연결을 확인해주세요')}
           >
-            <Text style={styles.popupTestText}>오류 팝업</Text>
+            <Text style={styles.popupTestText}>오류 배너</Text>
           </TouchableOpacity>
           
           <TouchableOpacity 
             style={[styles.popupTestButton, { backgroundColor: COLORS.functional.warning }]}
-            onPress={() => showWarning('주의가 필요합니다!', '주의')}
+            onPress={() => showBannerWarning('주의!', '모임 시간이 30분 남았습니다')}
           >
-            <Text style={styles.popupTestText}>경고 팝업</Text>
+            <Text style={styles.popupTestText}>경고 배너</Text>
           </TouchableOpacity>
           
           <TouchableOpacity 
             style={[styles.popupTestButton, { backgroundColor: COLORS.primary.main }]}
-            onPress={() => showAlert('이것은 알림 메시지입니다.', '알림')}
+            onPress={() => showBannerInfo('새 메시지', '김철수님이 메시지를 보냈습니다')}
           >
-            <Text style={styles.popupTestText}>알림 팝업</Text>
+            <Text style={styles.popupTestText}>정보 배너</Text>
           </TouchableOpacity>
           
           <TouchableOpacity 
-            style={[styles.popupTestButton, { backgroundColor: COLORS.functional.warning }]}
-            onPress={() => showConfirm(
-              '정말로 삭제하시겠습니까?', 
-              () => showSuccess('삭제되었습니다!'),
-              () => showInfo('삭제가 취소되었습니다.'),
-              '삭제 확인'
-            )}
+            style={[styles.popupTestButton, { backgroundColor: COLORS.secondary.main }]}
+            onPress={() => showSuccess('성공적으로 처리되었습니다!', '성공')}
           >
-            <Text style={styles.popupTestText}>확인 팝업</Text>
+            <Text style={styles.popupTestText}>기존 팝업</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -263,6 +304,12 @@ const HomeScreen = () => {
       backdrop={popupState.backdrop}
       animation={popupState.animation}
     />
+
+    {/* 알림 배너 */}
+    <NotificationBanner
+      notification={notification}
+      onDismiss={hideNotification}
+    />
   </View>
 );
 };
@@ -299,6 +346,23 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 16,
     color: COLORS.text.secondary,
+  },
+  headerButtons: {
+    flexDirection: 'row',
+    gap: 8,
+    alignItems: 'center',
+  },
+  testButton: {
+    backgroundColor: COLORS.functional.warning,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    ...SHADOWS.small,
+  },
+  testButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: COLORS.text.white,
   },
   notificationButton: {
     position: 'relative',

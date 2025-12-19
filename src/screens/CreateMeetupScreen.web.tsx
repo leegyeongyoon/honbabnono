@@ -1076,28 +1076,48 @@ const CreateMeetupScreen: React.FC<CreateMeetupScreenProps> = ({ user }) => {
 
             <View style={styles.row}>
               <View style={[styles.inputGroup, { flex: 1, marginRight: 10 }]}>
-                <Text style={styles.label}>최소 나이</Text>
-                <select 
-                  style={styles.selectInput}
-                  value={preferenceFilter.ageFilterMin}
-                  onChange={(e) => handleFilterChange('ageFilterMin', parseInt(e.target.value))}
-                >
-                  {Array.from({ length: 43 }, (_, i) => i + 18).map((age) => (
-                    <option key={age} value={age}>{age}세</option>
+                <Text style={styles.label}>최소 출생연도</Text>
+                <View style={styles.birthYearContainer}>
+                  {Array.from({ length: 43 }, (_, i) => 2006 - i).map((year) => (
+                    <TouchableOpacity
+                      key={`min-${year}`}
+                      style={[
+                        styles.yearButton,
+                        preferenceFilter.ageFilterMin === year && styles.yearButtonActive
+                      ]}
+                      onPress={() => handleFilterChange('ageFilterMin', year)}
+                    >
+                      <Text style={[
+                        styles.yearButtonText,
+                        preferenceFilter.ageFilterMin === year && styles.yearButtonTextActive
+                      ]}>
+                        {year}년
+                      </Text>
+                    </TouchableOpacity>
                   ))}
-                </select>
+                </View>
               </View>
               <View style={[styles.inputGroup, { flex: 1, marginLeft: 10 }]}>
-                <Text style={styles.label}>최대 나이</Text>
-                <select 
-                  style={styles.selectInput}
-                  value={preferenceFilter.ageFilterMax}
-                  onChange={(e) => handleFilterChange('ageFilterMax', parseInt(e.target.value))}
-                >
-                  {Array.from({ length: 43 }, (_, i) => i + 18).map((age) => (
-                    <option key={age} value={age}>{age}세</option>
+                <Text style={styles.label}>최대 출생연도</Text>
+                <View style={styles.birthYearContainer}>
+                  {Array.from({ length: 43 }, (_, i) => 2006 - i).map((year) => (
+                    <TouchableOpacity
+                      key={`max-${year}`}
+                      style={[
+                        styles.yearButton,
+                        preferenceFilter.ageFilterMax === year && styles.yearButtonActive
+                      ]}
+                      onPress={() => handleFilterChange('ageFilterMax', year)}
+                    >
+                      <Text style={[
+                        styles.yearButtonText,
+                        preferenceFilter.ageFilterMax === year && styles.yearButtonTextActive
+                      ]}>
+                        {year}년
+                      </Text>
+                    </TouchableOpacity>
                   ))}
-                </select>
+                </View>
               </View>
             </View>
           </View>
@@ -1900,6 +1920,39 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: COLORS.text.primary,
     minHeight: 48,
+  },
+  // 출생연도 선택기 스타일
+  birthYearContainer: {
+    backgroundColor: COLORS.neutral.white,
+    borderWidth: 1,
+    borderColor: COLORS.neutral.grey200,
+    borderRadius: 8,
+    padding: 8,
+    maxHeight: 120,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 4,
+    overflow: 'scroll',
+  },
+  yearButton: {
+    backgroundColor: COLORS.neutral.grey100,
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+    borderRadius: 6,
+    marginBottom: 4,
+    minWidth: 50,
+    alignItems: 'center',
+  },
+  yearButtonActive: {
+    backgroundColor: COLORS.primary.main,
+  },
+  yearButtonText: {
+    fontSize: 14,
+    color: COLORS.text.primary,
+    fontWeight: '500',
+  },
+  yearButtonTextActive: {
+    color: COLORS.neutral.white,
   },
   // 위치 선택 지도 스타일
   mapSelectorContainer: {

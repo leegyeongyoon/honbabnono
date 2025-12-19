@@ -1014,14 +1014,16 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
                 ]}>전체 연령</Text>
               </TouchableOpacity>
               
-              <Text style={styles.ageRangeLabel}>최소 나이</Text>
-              <View style={styles.ageInputContainer}>
-                <TextInput
-                  style={styles.ageInput}
-                  value={minAge.toString()}
-                  onChangeText={(text) => {
-                    const age = parseInt(text) || 20;
-                    if (age >= 18 && age <= 70) {
+              <View style={styles.compactAgeContainer}>
+                <View style={styles.ageRow}>
+                  <Text style={styles.compactAgeLabel}>최소 {minAge}세</Text>
+                  <input
+                    type="range"
+                    min="18"
+                    max="100"
+                    value={minAge}
+                    onChange={(e) => {
+                      const age = parseInt(e.target.value);
                       setMinAge(age);
                       if (age > maxAge) {
                         setMaxAge(age);
@@ -1029,30 +1031,33 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
                       } else {
                         updateMeetupData('ageRange', `${age}-${maxAge}`);
                       }
-                    }
-                  }}
-                  keyboardType="numeric"
-                  placeholder="최소 나이"
-                />
-                <Text style={styles.ageUnit}>세</Text>
-              </View>
-              
-              <Text style={styles.ageRangeLabel}>최대 나이</Text>
-              <View style={styles.ageInputContainer}>
-                <TextInput
-                  style={styles.ageInput}
-                  value={maxAge.toString()}
-                  onChangeText={(text) => {
-                    const age = parseInt(text) || 30;
-                    if (age >= minAge && age <= 70) {
-                      setMaxAge(age);
-                      updateMeetupData('ageRange', `${minAge}-${age}`);
-                    }
-                  }}
-                  keyboardType="numeric"
-                  placeholder="최대 나이"
-                />
-                <Text style={styles.ageUnit}>세</Text>
+                    }}
+                    style={styles.compactSlider}
+                  />
+                </View>
+                
+                <View style={styles.ageRow}>
+                  <Text style={styles.compactAgeLabel}>최대 {maxAge}세</Text>
+                  <input
+                    type="range"
+                    min="18"
+                    max="100"
+                    value={maxAge}
+                    onChange={(e) => {
+                      const age = parseInt(e.target.value);
+                      if (age >= minAge) {
+                        setMaxAge(age);
+                        updateMeetupData('ageRange', `${minAge}-${age}`);
+                      }
+                    }}
+                    style={styles.compactSlider}
+                  />
+                </View>
+                
+                <View style={styles.compactLabels}>
+                  <Text style={styles.compactLabel}>18세</Text>
+                  <Text style={styles.compactLabel}>100세</Text>
+                </View>
               </View>
               
               <View style={styles.ageQuickOptions}>
@@ -2658,6 +2663,48 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: COLORS.text.secondary,
     paddingRight: 16,
+  },
+  
+  // 컴팩트 나이 슬라이더 스타일
+  compactAgeContainer: {
+    backgroundColor: COLORS.neutral.white,
+    borderWidth: 1,
+    borderColor: COLORS.neutral.grey200,
+    borderRadius: 12,
+    padding: 12,
+    marginVertical: 8,
+  },
+  ageRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 4,
+  },
+  compactAgeLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+    minWidth: 70,
+    marginRight: 12,
+  },
+  compactSlider: {
+    flex: 1,
+    height: 4,
+    borderRadius: 2,
+    background: `linear-gradient(to right, ${COLORS.neutral.grey200} 0%, ${COLORS.primary.main} 50%, ${COLORS.neutral.grey200} 100%)`,
+    outline: 'none',
+    appearance: 'none',
+    cursor: 'pointer',
+  },
+  compactLabels: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 6,
+    paddingHorizontal: 82,
+  },
+  compactLabel: {
+    fontSize: 10,
+    color: COLORS.text.secondary,
+    fontWeight: '500',
   },
   ageQuickOptions: {
     marginTop: 16,
