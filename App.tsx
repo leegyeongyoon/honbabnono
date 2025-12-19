@@ -54,36 +54,6 @@ function App() {
       return false;
     });
 
-    // iOS 시스템 알림 테스트 (앱 시작 3초 후)
-    setTimeout(() => {
-      console.log('🧪 [APP] iOS 시스템 알림 테스트 시작');
-      
-      // 3초 후 iOS 시스템 알림 표시
-      setTimeout(() => {
-        if (Platform.OS === 'ios') {
-          console.log('📱 [APP] iOS 로컬 알림 스케줄링');
-          PushNotificationIOS.presentLocalNotification({
-            alertBody: '앱에서 직접 호출된 iOS 시스템 알림입니다! 🚀',
-            alertTitle: '테스트 알림',
-            soundName: 'default'
-          });
-          console.log('✅ [APP] iOS 시스템 알림 표시 완료');
-        } else {
-          // 안드로이드나 다른 플랫폼에서는 Alert 사용
-          Alert.alert(
-            '테스트 알림',
-            '앱에서 직접 호출된 Alert 알림입니다! 🚀',
-            [
-              {
-                text: '확인',
-                onPress: () => console.log('🔔 [APP] 테스트 알림 확인됨')
-              }
-            ]
-          );
-          console.log('✅ [APP] Alert 알림 표시 완료');
-        }
-      }, 3000);
-    }, 3000);
 
     return () => backHandler.remove();
   }, [canGoBack]);
