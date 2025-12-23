@@ -86,6 +86,8 @@ router.post('/research-agent', authenticateAdmin, async (req, res) => {
       ],
       temperature: 0.7,
       response_format: { type: "json_object" }
+    }, {
+      timeout: 90000 // 90초 타임아웃 설정
     });
 
     let result;
