@@ -336,7 +336,7 @@ ${JSON.stringify(analysisData, null, 2)}
 }`;
 
     const completion = await openai.chat.completions.create({
-      model: "gpt-4-turbo-preview",
+      model: "gpt-4o", // 최신 고성능 모델로 업그레이드
       messages: [
         { role: "system", content: SYSTEM_PROMPTS.studio },
         { role: "user", content: prompt }
@@ -394,14 +394,14 @@ router.post('/run-full-pipeline', authenticateAdmin, async (req, res) => {
 }`;
 
     const collectorResponse = await openai.chat.completions.create({
-      model: "gpt-4-turbo-preview",
+      model: "gpt-4o", // 최신 고성능 모델 사용
       messages: [
         { role: "system", content: SYSTEM_PROMPTS.collector },
         { role: "user", content: collectorPrompt }
       ],
       temperature: 0.7,
       response_format: { type: "json_object" },
-      max_tokens: 2000
+      max_tokens: 3000 // 토큰도 증가
     });
 
     let collectorResult;
@@ -457,14 +457,14 @@ ${JSON.stringify(collectorResult, null, 2)}
 }`;
 
     const analystResponse = await openai.chat.completions.create({
-      model: "gpt-4-turbo-preview",
+      model: "gpt-4o", // 최신 고성능 모델 사용
       messages: [
         { role: "system", content: SYSTEM_PROMPTS.analyst },
         { role: "user", content: analystPrompt }
       ],
       temperature: 0.6,
       response_format: { type: "json_object" },
-      max_tokens: 3000
+      max_tokens: 4000 // 더 깊은 분석을 위해 토큰 증가
     });
 
     let analystResult;
