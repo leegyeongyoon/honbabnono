@@ -53,7 +53,7 @@ import AddIcon from '@mui/icons-material/Add';
 import RemoveIcon from '@mui/icons-material/Remove';
 import DeleteIcon from '@mui/icons-material/Delete';
 import TimelineIcon from '@mui/icons-material/Timeline';
-import axios from 'axios';
+import apiClient from '../utils/api';
 
 interface User {
   id: string;
@@ -146,9 +146,7 @@ const UserManagement: React.FC = () => {
 
   const fetchUsers = async () => {
     try {
-      const response = await axios.get<User[]>(`http://localhost:3001/api/admin/users`, {
-        headers: getAuthHeader(),
-      });
+      const response = await apiClient.get<User[]>(`/api/admin/users`);
       setUsers(Array.isArray(response.data) ? response.data : []);
     } catch (error) {
       console.error('사용자 목록 로드 실패:', error);
@@ -159,9 +157,7 @@ const UserManagement: React.FC = () => {
   const fetchUserDetails = async (userId: string) => {
     try {
       setLoading(true);
-      const response = await axios.get(`http://localhost:3001/api/admin/users/${userId}/details`, {
-        headers: getAuthHeader(),
-      });
+      const response = await apiClient.get(`/api/admin/users/${userId}/details`);
       
       if ((response.data as any).success) {
         setSelectedUserDetails((response.data as any).data);
@@ -185,9 +181,7 @@ const UserManagement: React.FC = () => {
         return;
       }
       
-      await axios.post(`http://localhost:3001/api/admin/users/${userId}/${action}`, {}, {
-        headers: getAuthHeader(),
-      });
+      await apiClient.post(`/api/admin/users/${userId}/${action}`, {});
       
       fetchUsers();
       // setDialogOpen(false); // 제거된 dialogOpen state
@@ -210,10 +204,8 @@ const UserManagement: React.FC = () => {
     if (!selectedUser || !blockReason) return;
 
     try {
-      await axios.post(`http://localhost:3001/api/admin/users/${selectedUser.id}/block`, {
+      await apiClient.post(`/api/admin/users/${selectedUser.id}/block`, {
         reason: blockReason,
-      }, {
-        headers: getAuthHeader(),
       });
       
       fetchUsers();
@@ -238,12 +230,10 @@ const UserManagement: React.FC = () => {
     if (!selectedUserDetails || !pointAmount || !pointDescription) return;
 
     try {
-      await axios.post(`http://localhost:3001/api/admin/users/${selectedUserDetails.user.id}/points`, {
+      await apiClient.post(`/api/admin/users/${selectedUserDetails.user.id}/points`, {
         amount: parseInt(pointAmount),
         description: pointDescription,
         type: pointType,
-      }, {
-        headers: getAuthHeader(),
       });
 
       // 포인트 조정 후 상세 정보 다시 로드

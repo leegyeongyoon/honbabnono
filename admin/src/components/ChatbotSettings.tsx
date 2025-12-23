@@ -21,21 +21,7 @@ import SaveIcon from '@mui/icons-material/Save';
 import CancelIcon from '@mui/icons-material/Cancel';
 import SmartToyIcon from '@mui/icons-material/SmartToy';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
-import axios from 'axios';
-
-// axios 인스턴스 설정
-const api = axios.create({
-  baseURL: process.env.REACT_APP_API_URL,
-});
-
-// 요청 인터셉터에서 토큰 자동 추가
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('adminToken');
-  if (token && config.headers) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
+import apiClient from '../utils/api';
 
 interface ChatbotSetting {
   id: number;
@@ -72,15 +58,19 @@ const ChatbotSettings: React.FC = () => {
 
   const fetchChatbotSettings = async () => {
     try {
-      const response = await api.get<{ success: boolean; data: ChatbotSetting[] }>(
-        '/admin/chatbot/settings'
+      const response = await apiClient.get<{ success: boolean; data: ChatbotSetting[] }>(
+        '/api/admin/chatbot/settings'
       );
       
       if ((response.data as any).success) {
-        setSettings((response.data as any).data);
+        const data = (response.data as any).data;
+        setSettings(Array.isArray(data) ? data : []);
+      } else {
+        setSettings([]);
       }
     } catch (error) {
       console.error('챗봇 설정 로드 실패:', error);
+      setSettings([]);
       setSnackbar({
         open: true,
         message: '챗봇 설정을 불러오는데 실패했습니다.',
@@ -105,8 +95,8 @@ const ChatbotSettings: React.FC = () => {
     if (!editDialog.setting) return;
 
     try {
-      const response = await api.put(
-        `/admin/chatbot/settings/${editDialog.setting.id}`,
+      const response = await apiClient.put(
+        `/api/admin/chatbot/settings/${editDialog.setting.id}`,
         editForm
       );
 
@@ -247,8 +237,8 @@ const ChatbotSettings: React.FC = () => {
                         checked={setting.is_active}
                         onChange={async (e) => {
                           try {
-                            await api.put(
-                              `/admin/chatbot/settings/${setting.id}`,
+                            await apiClient.put(
+                              `/api/admin/chatbot/settings/${setting.id}`,
                               { ...setting, is_active: e.target.checked }
                             );
                             await fetchChatbotSettings();

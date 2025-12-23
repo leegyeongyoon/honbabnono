@@ -36,7 +36,7 @@ import {
   Visibility as VisibilityIcon,
   PushPin as PinIcon,
 } from '@mui/icons-material';
-import axios from 'axios';
+import apiClient from '../utils/api';
 
 interface Notice {
   id: number;
@@ -90,25 +90,18 @@ const NoticeManagement: React.FC = () => {
     severity: 'success',
   });
 
-  const getAuthHeader = () => {
-    const token = localStorage.getItem('adminToken');
-    return token ? { Authorization: `Bearer ${token}` } : {};
-  };
 
   const loadNotices = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(
-        `http://localhost:3001/api/admin/notices?page=${page}&limit=10`,
-        {
-          headers: getAuthHeader(),
-        }
+      const response = await apiClient.get(
+        `/api/admin/notices?page=${page}&limit=10`
       );
       
       const data = response.data as ApiResponse<{ notices: Notice[]; totalPages: number }>;
       if (data.success && data.data) {
-        setNotices(data.data.notices);
-        setTotalPages(data.data.totalPages);
+        setNotices(Array.isArray(data.data.notices) ? data.data.notices : []);
+        setTotalPages(data.data.totalPages || 1);
       }
     } catch (error) {
       console.error('공지사항 로드 실패:', error);
@@ -161,18 +154,17 @@ const NoticeManagement: React.FC = () => {
   const handleSubmit = async () => {
     try {
       const url = dialogMode === 'create' 
-        ? 'http://localhost:3001/api/admin/notices'
-        : `http://localhost:3001/api/admin/notices/${selectedNotice?.id}`;
+        ? '/api/admin/notices'
+        : `/api/admin/notices/${selectedNotice?.id}`;
       
       const method = dialogMode === 'create' ? 'POST' : 'PUT';
       
-      const response = await axios({
+      const response = await apiClient({
         method,
-        url,
+        url: url.replace('http://localhost:3001', ''),
         data: formData,
         headers: {
           'Content-Type': 'application/json',
-          ...getAuthHeader(),
         },
       });
 
@@ -199,10 +191,9 @@ const NoticeManagement: React.FC = () => {
 
   const handleTogglePin = async (notice: Notice) => {
     try {
-      await axios.patch(
-        `http://localhost:3001/api/admin/notices/${notice.id}/pin`,
-        { is_pinned: !notice.is_pinned },
-        { headers: getAuthHeader() }
+      await apiClient.patch(
+        `/api/admin/notices/${notice.id}/pin`,
+        { is_pinned: !notice.is_pinned }
       );
       
       setSnackbar({
@@ -227,9 +218,7 @@ const NoticeManagement: React.FC = () => {
     }
 
     try {
-      await axios.delete(`http://localhost:3001/api/admin/notices/${id}`, {
-        headers: getAuthHeader(),
-      });
+      await apiClient.delete(`/api/admin/notices/${id}`);
       
       setSnackbar({
         open: true,
@@ -305,7 +294,7 @@ const NoticeManagement: React.FC = () => {
             </TableRow>
           </TableHead>
           <TableBody>
-            {notices.map((notice) => {
+            {Array.isArray(notices) && notices.map((notice) => {
               const typeInfo = getTypeLabel(notice.type);
               return (
                 <TableRow key={notice.id}>

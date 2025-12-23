@@ -49,7 +49,7 @@ import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import DeleteIcon from '@mui/icons-material/Delete';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
-import axios from 'axios';
+import apiClient from '../utils/api';
 
 interface Meetup {
   id: string;
@@ -130,16 +130,10 @@ const MeetupManagement: React.FC = () => {
     fetchMeetups();
   }, []);
 
-  const getAuthHeader = () => {
-    const token = localStorage.getItem('adminToken');
-    return token ? { Authorization: `Bearer ${token}` } : {};
-  };
 
   const fetchMeetups = async () => {
     try {
-      const response = await axios.get<Meetup[]>(`http://localhost:3001/api/admin/meetups`, {
-        headers: getAuthHeader(),
-      });
+      const response = await apiClient.get<Meetup[]>(`/api/admin/meetups`);
       setMeetups(Array.isArray(response.data) ? response.data : []);
     } catch (error) {
       console.error('모임 목록 로드 실패:', error);
@@ -150,9 +144,7 @@ const MeetupManagement: React.FC = () => {
   const fetchMeetupDetails = async (meetupId: string) => {
     try {
       setLoading(true);
-      const response = await axios.get(`http://localhost:3001/api/admin/meetups/${meetupId}/details`, {
-        headers: getAuthHeader(),
-      });
+      const response = await apiClient.get(`/api/admin/meetups/${meetupId}/details`);
       
       if ((response.data as any).success) {
         setSelectedMeetupDetails((response.data as any).data);
@@ -171,9 +163,7 @@ const MeetupManagement: React.FC = () => {
 
   const handleMeetupAction = async (meetupId: string, action: 'cancel' | 'approve') => {
     try {
-      await axios.post(`http://localhost:3001/api/admin/meetups/${meetupId}/${action}`, {}, {
-        headers: getAuthHeader(),
-      });
+      await apiClient.post(`/api/admin/meetups/${meetupId}/${action}`, {});
       
       fetchMeetups();
       // setDialogOpen(false); // 제거된 dialogOpen state
@@ -197,15 +187,7 @@ const MeetupManagement: React.FC = () => {
     if (!reason) return;
 
     try {
-      await axios.patch(`http://localhost:3001/api/admin/reviews/${reviewId}/delete`, 
-        { reason },
-        {
-          headers: {
-            ...getAuthHeader(),
-            'Content-Type': 'application/json',
-          },
-        }
-      );
+      await apiClient.patch(`/api/admin/reviews/${reviewId}/delete`, { reason });
 
       if (selectedMeetupDetails) {
         await fetchMeetupDetails(selectedMeetupDetails.meetup.id);

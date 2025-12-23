@@ -37,7 +37,7 @@ import {
   VpnKey as KeyIcon,
   Refresh as RefreshIcon,
 } from '@mui/icons-material';
-import axios from 'axios';
+import apiClient from '../utils/api';
 
 interface Admin {
   id: string;
@@ -101,16 +101,11 @@ const AdminManagement: React.FC = () => {
     severity: 'success',
   });
 
-  const getAuthHeader = () => {
-    const token = localStorage.getItem('adminToken');
-    return token ? { Authorization: `Bearer ${token}` } : {};
-  };
 
   const loadAdmins = async () => {
     try {
       setLoading(true);
-      const response = await axios.get('http://localhost:3001/api/admin/accounts', {
-        headers: getAuthHeader(),
+      const response = await apiClient.get('/api/admin/accounts', {
         params: {
           page: page + 1,
           limit: rowsPerPage,
@@ -159,12 +154,7 @@ const AdminManagement: React.FC = () => {
         return;
       }
 
-      const response = await axios.post('http://localhost:3001/api/admin/accounts', formData, {
-        headers: {
-          'Content-Type': 'application/json',
-          ...getAuthHeader(),
-        },
-      });
+      const response = await apiClient.post('/api/admin/accounts', formData);
 
       const data = response.data as ApiResponse<Admin>;
       if (data.success) {
@@ -198,19 +188,13 @@ const AdminManagement: React.FC = () => {
     if (!selectedAdmin) return;
 
     try {
-      const response = await axios.put(
-        `http://localhost:3001/api/admin/accounts/${selectedAdmin.id}`,
+      const response = await apiClient.put(
+        `/api/admin/accounts/${selectedAdmin.id}`,
         {
           username: formData.username,
           email: formData.email,
           role: formData.role,
           is_active: formData.is_active,
-        },
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            ...getAuthHeader(),
-          },
         }
       );
 
@@ -258,15 +242,9 @@ const AdminManagement: React.FC = () => {
     }
 
     try {
-      const response = await axios.put(
-        `http://localhost:3001/api/admin/accounts/${selectedAdmin.id}/password`,
-        { newPassword: passwordData.newPassword },
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            ...getAuthHeader(),
-          },
-        }
+      const response = await apiClient.put(
+        `/api/admin/accounts/${selectedAdmin.id}/password`,
+        { newPassword: passwordData.newPassword }
       );
 
       const data = response.data as ApiResponse<any>;
@@ -297,12 +275,7 @@ const AdminManagement: React.FC = () => {
     }
 
     try {
-      const response = await axios.delete(
-        `http://localhost:3001/api/admin/accounts/${admin.id}`,
-        {
-          headers: getAuthHeader(),
-        }
-      );
+      const response = await apiClient.delete(`/api/admin/accounts/${admin.id}`);
 
       const data = response.data as ApiResponse<any>;
       if (data.success) {

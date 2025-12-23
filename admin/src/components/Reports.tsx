@@ -21,7 +21,7 @@ import DownloadIcon from '@mui/icons-material/Download';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import PeopleIcon from '@mui/icons-material/People';
 import EventIcon from '@mui/icons-material/Event';
-import axios from 'axios';
+import apiClient from '../utils/api';
 
 interface ReportData {
   period: string;
@@ -39,7 +39,7 @@ const Reports: React.FC = () => {
   useEffect(() => {
     const fetchReportData = async () => {
       try {
-        const response = await axios.get<ReportData[]>(`${process.env.REACT_APP_API_URL}/admin/reports/${reportType}`);
+        const response = await apiClient.get<ReportData[]>(`/api/admin/reports/${reportType}`);
         setReportData(Array.isArray(response.data) ? response.data : []);
       } catch (error) {
         console.error('리포트 데이터 로드 실패:', error);
@@ -52,8 +52,8 @@ const Reports: React.FC = () => {
 
   const downloadReport = async () => {
     try {
-      const response = await axios.get<Blob>(
-        `${process.env.REACT_APP_API_URL}/admin/reports/download/${reportType}`,
+      const response = await apiClient.get<Blob>(
+        `/api/admin/reports/download/${reportType}`,
         { responseType: 'blob' }
       );
       

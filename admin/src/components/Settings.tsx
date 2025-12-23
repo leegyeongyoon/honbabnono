@@ -14,7 +14,7 @@ import {
   CircularProgress,
 } from '@mui/material';
 import SaveIcon from '@mui/icons-material/Save';
-import axios from 'axios';
+import apiClient from '../utils/api';
 
 interface SystemSettings {
   maintenanceMode: boolean;
@@ -61,17 +61,11 @@ const Settings: React.FC = () => {
     severity: 'success',
   });
 
-  const getAuthHeader = () => {
-    const token = localStorage.getItem('adminToken');
-    return token ? { Authorization: `Bearer ${token}` } : {};
-  };
 
   const loadSettings = async () => {
     try {
       setLoading(true);
-      const response = await axios.get('http://localhost:3001/api/admin/settings', {
-        headers: getAuthHeader(),
-      });
+      const response = await apiClient.get('/api/admin/settings');
       
       const data = response.data as ApiResponse<SystemSettings>;
       if (data.success) {
@@ -104,10 +98,9 @@ const Settings: React.FC = () => {
   const saveSettings = async () => {
     try {
       setSaving(true);
-      const response = await axios.put('http://localhost:3001/api/admin/settings', settings, {
+      const response = await apiClient.put('/api/admin/settings', settings, {
         headers: {
           'Content-Type': 'application/json',
-          ...getAuthHeader(),
         },
       });
 

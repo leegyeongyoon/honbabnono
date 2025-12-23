@@ -40,7 +40,7 @@ import {
   Launch as LaunchIcon,
   PhotoCamera,
 } from '@mui/icons-material';
-import axios from 'axios';
+import apiClient from '../utils/api';
 
 interface Advertisement {
   id: number;
@@ -132,13 +132,9 @@ const AdvertisementManagement: React.FC = () => {
   const fetchAdvertisements = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('adminToken');
       
-      const response = await axios.get<ApiResponse<Advertisement[]>>(
-        `${API_BASE_URL}/advertisements?page=${page + 1}&limit=${rowsPerPage}`,
-        {
-          headers: { Authorization: `Bearer ${token}` }
-        }
+      const response = await apiClient.get<ApiResponse<Advertisement[]>>(
+        `/api/advertisements?page=${page + 1}&limit=${rowsPerPage}`
       );
 
       if (response.data.success) {
@@ -173,7 +169,6 @@ const AdvertisementManagement: React.FC = () => {
         return;
       }
 
-      const token = localStorage.getItem('adminToken');
       const formDataToSend = new FormData();
       
       formDataToSend.append('title', formData.title);
@@ -194,9 +189,8 @@ const AdvertisementManagement: React.FC = () => {
         formDataToSend.append('endDate', formData.endDate);
       }
 
-      await axios.post(`${API_BASE_URL}/advertisements`, formDataToSend, {
+      await apiClient.post('/api/advertisements', formDataToSend, {
         headers: {
-          Authorization: `Bearer ${token}`,
           'Content-Type': 'multipart/form-data',
         },
       });
@@ -216,7 +210,6 @@ const AdvertisementManagement: React.FC = () => {
     try {
       if (!selectedAdvertisement) return;
 
-      const token = localStorage.getItem('adminToken');
       const formDataToSend = new FormData();
       
       formDataToSend.append('title', formData.title);
@@ -240,9 +233,8 @@ const AdvertisementManagement: React.FC = () => {
         formDataToSend.append('endDate', formData.endDate);
       }
 
-      await axios.put(`${API_BASE_URL}/advertisements/${selectedAdvertisement.id}`, formDataToSend, {
+      await apiClient.put(`/api/advertisements/${selectedAdvertisement.id}`, formDataToSend, {
         headers: {
-          Authorization: `Bearer ${token}`,
           'Content-Type': 'multipart/form-data',
         },
       });
@@ -262,10 +254,7 @@ const AdvertisementManagement: React.FC = () => {
     try {
       if (!selectedAdvertisement) return;
 
-      const token = localStorage.getItem('adminToken');
-      await axios.delete(`${API_BASE_URL}/advertisements/${selectedAdvertisement.id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await apiClient.delete(`/api/advertisements/${selectedAdvertisement.id}`);
 
       showSnackbar('광고가 성공적으로 삭제되었습니다.', 'success');
       setDeleteDialogOpen(false);
@@ -280,10 +269,7 @@ const AdvertisementManagement: React.FC = () => {
 
   const handleToggleAdvertisement = async (advertisement: Advertisement) => {
     try {
-      const token = localStorage.getItem('adminToken');
-      await axios.patch(`${API_BASE_URL}/advertisements/${advertisement.id}/toggle`, {}, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await apiClient.patch(`/api/advertisements/${advertisement.id}/toggle`, {});
 
       showSnackbar(
         `광고가 ${advertisement.isActive ? '비활성화' : '활성화'}되었습니다.`,

@@ -37,7 +37,7 @@ import BarChartIcon from '@mui/icons-material/BarChart';
 import PersonIcon from '@mui/icons-material/Person';
 import ShieldIcon from '@mui/icons-material/Shield';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
-import axios from 'axios';
+import apiClient from '../utils/api';
 
 interface BlockedUser {
   block_id: string;
@@ -115,7 +115,7 @@ const BlockedUserManagement: React.FC = () => {
   const fetchBlockedUsers = async () => {
     try {
       setLoading(true);
-      const response = await axios.get<{
+      const response = await apiClient.get<{
         success: boolean;
         data: BlockedUser[];
         pagination: {
@@ -126,7 +126,7 @@ const BlockedUserManagement: React.FC = () => {
           hasNext: boolean;
           hasPrev: boolean;
         };
-      }>(`${process.env.REACT_APP_API_URL}/admin/blocked-users`, {
+      }>('/api/admin/blocked-users', {
         params: {
           page,
           limit: 20,
@@ -134,14 +134,11 @@ const BlockedUserManagement: React.FC = () => {
           sortBy,
           sortOrder,
         },
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('adminToken')}`
-        },
       });
 
       if (response.data.success) {
-        setBlockedUsers(response.data.data);
-        setTotalPages(response.data.pagination.totalPages);
+        setBlockedUsers(Array.isArray(response.data.data) ? response.data.data : []);
+        setTotalPages(response.data.pagination?.totalPages || 1);
       }
     } catch (error) {
       console.error('차단 회원 목록 로드 실패:', error);
@@ -153,14 +150,11 @@ const BlockedUserManagement: React.FC = () => {
 
   const fetchStats = async () => {
     try {
-      const response = await axios.get<{
+      const response = await apiClient.get<{
         success: boolean;
         data: BlockingStats;
-      }>(`${process.env.REACT_APP_API_URL}/admin/blocking-stats`, {
+      }>('/api/admin/blocking-stats', {
         params: { period: 30 },
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('adminToken')}`
-        },
       });
 
       if (response.data.success) {
@@ -175,11 +169,7 @@ const BlockedUserManagement: React.FC = () => {
     if (!selectedUser) return;
 
     try {
-      await axios.delete(`${process.env.REACT_APP_API_URL}/admin/users/${selectedUser.user.id}/unblock`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('adminToken')}`
-        },
-      });
+      await apiClient.delete(`/api/admin/users/${selectedUser.user.id}/unblock`);
       setUnblockDialogOpen(false);
       setSelectedUser(null);
       fetchBlockedUsers();
@@ -193,12 +183,8 @@ const BlockedUserManagement: React.FC = () => {
     if (!blockUserData || !blockReason) return;
 
     try {
-      await axios.post(`${process.env.REACT_APP_API_URL}/admin/users/${blockUserData.userId}/block`, {
+      await apiClient.post(`/api/admin/users/${blockUserData.userId}/block`, {
         reason: blockReason,
-      }, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('adminToken')}`
-        },
       });
       setBlockDialogOpen(false);
       setBlockUserData(null);
@@ -214,12 +200,8 @@ const BlockedUserManagement: React.FC = () => {
     if (selectedUsers.length === 0) return;
 
     try {
-      await axios.post(`${process.env.REACT_APP_API_URL}/admin/users/bulk-unblock`, {
+      await apiClient.post('/api/admin/users/bulk-unblock', {
         userIds: selectedUsers,
-      }, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('adminToken')}`
-        },
       });
       setBulkUnblockDialogOpen(false);
       setSelectedUsers([]);

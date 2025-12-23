@@ -33,7 +33,7 @@ import {
 } from 'chart.js';
 import { Line, Bar, Doughnut } from 'react-chartjs-2';
 import { format } from 'date-fns';
-import axios from 'axios';
+import apiClient from '../utils/api';
 
 ChartJS.register(
   CategoryScale,
@@ -94,9 +94,10 @@ export default function Dashboard() {
   const fetchDashboardData = async (days: string) => {
     try {
       setLoading(true);
+      
       const [dashboardRes, realtimeRes] = await Promise.all([
-        axios.get(`${API_BASE_URL}/api/admin/dashboard-stats?days=${days}`),
-        axios.get(`${API_BASE_URL}/api/admin/realtime-stats`)
+        apiClient.get(`/api/admin/dashboard-stats?days=${days}`),
+        apiClient.get(`/api/admin/realtime-stats`)
       ]);
       
       setDashboardData((dashboardRes.data as any).stats || []);
@@ -274,10 +275,10 @@ export default function Dashboard() {
                 총 사용자
               </Typography>
               <Typography variant="h5">
-                {realtimeData.totalUsers.toLocaleString()}
+                {realtimeData.totalUsers?.toLocaleString() || '0'}
               </Typography>
               <Typography variant="body2" color="primary">
-                활성: {realtimeData.activeUsers.toLocaleString()}
+                활성: {realtimeData.activeUsers?.toLocaleString() || '0'}
               </Typography>
             </CardContent>
           </Card>
@@ -287,10 +288,10 @@ export default function Dashboard() {
                 총 모임
               </Typography>
               <Typography variant="h5">
-                {realtimeData.totalMeetups.toLocaleString()}
+                {realtimeData.totalMeetups?.toLocaleString() || '0'}
               </Typography>
               <Typography variant="body2" color="primary">
-                활성: {realtimeData.activeMeetups.toLocaleString()}
+                활성: {realtimeData.activeMeetups?.toLocaleString() || '0'}
               </Typography>
             </CardContent>
           </Card>
@@ -300,10 +301,10 @@ export default function Dashboard() {
                 채팅방
               </Typography>
               <Typography variant="h5">
-                {realtimeData.totalChatRooms.toLocaleString()}
+                {realtimeData.totalChatRooms?.toLocaleString() || '0'}
               </Typography>
               <Typography variant="body2" color="primary">
-                활성: {realtimeData.activeChatRooms.toLocaleString()}
+                활성: {realtimeData.activeChatRooms?.toLocaleString() || '0'}
               </Typography>
             </CardContent>
           </Card>
@@ -313,7 +314,7 @@ export default function Dashboard() {
                 총 수익
               </Typography>
               <Typography variant="h5">
-                ₩{realtimeData.totalRevenue.toLocaleString()}
+                ₩{realtimeData.totalRevenue?.toLocaleString() || '0'}
               </Typography>
             </CardContent>
           </Card>
@@ -323,10 +324,10 @@ export default function Dashboard() {
                 광고
               </Typography>
               <Typography variant="h5">
-                {realtimeData.totalAds.toLocaleString()}
+                {realtimeData.totalAds?.toLocaleString() || '0'}
               </Typography>
               <Typography variant="body2" color="primary">
-                활성: {realtimeData.activeAds.toLocaleString()}
+                활성: {realtimeData.activeAds?.toLocaleString() || '0'}
               </Typography>
             </CardContent>
           </Card>
@@ -341,7 +342,7 @@ export default function Dashboard() {
                 size="small"
               />
               <Typography variant="body2" color="textSecondary" sx={{ mt: 1 }}>
-                포인트: {realtimeData.totalPoints.toLocaleString()}
+                포인트: {realtimeData.totalPoints?.toLocaleString() || '0'}
               </Typography>
             </CardContent>
           </Card>
