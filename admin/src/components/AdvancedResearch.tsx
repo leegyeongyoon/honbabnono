@@ -26,7 +26,9 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
-  DialogActions
+  DialogActions,
+  FormControlLabel,
+  Switch
 } from '@mui/material';
 import {
   Psychology as PsychologyIcon,
@@ -58,6 +60,7 @@ function AdvancedResearch() {
   const [result, setResult] = useState<FullPipelineResult | null>(null);
   const [tone, setTone] = useState<'warm_story' | 'humor_meme'>('warm_story');
   const [customPrompt, setCustomPrompt] = useState('');
+  const [generateImages, setGenerateImages] = useState(false);
   const [activeTab, setActiveTab] = useState(0);
   const [savedReports, setSavedReports] = useState<any[]>([]);
   const [selectedContent, setSelectedContent] = useState<any>(null);
@@ -95,6 +98,7 @@ function AdvancedResearch() {
       const response = await apiClient.post('/api/admin/advanced/run-full-pipeline', {
         tone,
         customPrompt,
+        generateImages,
         keywords: [
           '혼밥', '혼자 밥', '혼자 고기', '혼술', '밥친구', '밥약',
           '점심 같이', '저녁 같이', '1인분', '2인분 주문',
@@ -381,6 +385,39 @@ function AdvancedResearch() {
                     {insta.caption}
                   </Typography>
                   
+                  {/* 텍스트 카드 이미지 표시 */}
+                  {insta.textCardImage && (
+                    <Box sx={{ mt: 2 }}>
+                      <Typography variant="caption" fontWeight="bold" display="block" sx={{ mb: 1 }}>
+                        📱 인스타그램 텍스트 카드:
+                      </Typography>
+                      <img 
+                        src={insta.textCardImage}
+                        alt="Instagram Text Card"
+                        style={{ 
+                          width: '100%', 
+                          maxWidth: '400px', 
+                          borderRadius: '8px',
+                          boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                        }}
+                      />
+                      <Box sx={{ mt: 1 }}>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          onClick={() => {
+                            const link = document.createElement('a');
+                            link.href = insta.textCardImage;
+                            link.download = `instagram-card-${idx}.png`;
+                            link.click();
+                          }}
+                        >
+                          다운로드
+                        </Button>
+                      </Box>
+                    </Box>
+                  )}
+                  
                   {insta.carouselSlides && (
                     <Box sx={{ mt: 2 }}>
                       <Typography variant="caption" fontWeight="bold">캐러셀 슬라이드:</Typography>
@@ -445,6 +482,46 @@ function AdvancedResearch() {
                         <Typography variant="caption" display="block">{image.aiPromptEN}</Typography>
                       </Box>
                     )}
+                    {image.generatedImageUrl && (
+                      <Box sx={{ mt: 2 }}>
+                        <Typography variant="caption" fontWeight="bold" display="block" sx={{ mb: 1 }}>
+                          🎨 생성된 이미지:
+                        </Typography>
+                        <img 
+                          src={image.generatedImageUrl} 
+                          alt={image.name}
+                          style={{ 
+                            width: '100%', 
+                            maxWidth: '400px', 
+                            borderRadius: '8px',
+                            boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                          }}
+                        />
+                        <Box sx={{ mt: 1 }}>
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            href={image.generatedImageUrl}
+                            target="_blank"
+                            sx={{ mr: 1 }}
+                          >
+                            새 탭에서 열기
+                          </Button>
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            onClick={() => {
+                              const link = document.createElement('a');
+                              link.href = image.generatedImageUrl;
+                              link.download = `${image.name}.png`;
+                              link.click();
+                            }}
+                          >
+                            다운로드
+                          </Button>
+                        </Box>
+                      </Box>
+                    )}
                   </Paper>
                 ))}
               </AccordionDetails>
@@ -504,8 +581,23 @@ function AdvancedResearch() {
           value={customPrompt}
           onChange={(e) => setCustomPrompt(e.target.value)}
           placeholder="예: 20대 직장인 타겟으로 점심 혼밥 문화 분석"
-          sx={{ mb: 3 }}
+          sx={{ mb: 2 }}
         />
+
+        <FormControlLabel
+          control={
+            <Switch
+              checked={generateImages}
+              onChange={(e) => setGenerateImages(e.target.checked)}
+              color="primary"
+            />
+          }
+          label="AI 이미지 생성 (DALL-E 3)"
+          sx={{ mb: 1 }}
+        />
+        <Typography variant="caption" color="text.secondary" sx={{ mb: 3, display: 'block' }}>
+          * 이미지 생성을 활성화하면 인스타그램 콘텐츠용 이미지가 자동으로 생성됩니다 (실행 시간이 더 소요됩니다)
+        </Typography>
 
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           <Button

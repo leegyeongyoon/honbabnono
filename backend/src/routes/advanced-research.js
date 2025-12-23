@@ -1,6 +1,7 @@
 const { Router } = require('express');
 const OpenAI = require('openai');
 const jwt = require('jsonwebtoken');
+const { createCanvas } = require('canvas');
 
 const router = Router();
 
@@ -283,10 +284,90 @@ ${JSON.stringify(sources, null, 2)}
   }
 });
 
+// 텍스트 카드 이미지 생성 함수
+function createTextCard(text, options = {}) {
+  const width = options.width || 1080;
+  const height = options.height || 1080;
+  const bgColor = options.bgColor || '#F9F8F6';
+  const textColor = options.textColor || '#4C422C';
+  const fontSize = options.fontSize || 48;
+  
+  const canvas = createCanvas(width, height);
+  const ctx = canvas.getContext('2d');
+  
+  // 배경 그리기
+  ctx.fillStyle = bgColor;
+  ctx.fillRect(0, 0, width, height);
+  
+  // 장식 요소 추가 (선택사항)
+  ctx.strokeStyle = '#C9B59C';
+  ctx.lineWidth = 3;
+  ctx.strokeRect(40, 40, width - 80, height - 80);
+  
+  // 텍스트 스타일 설정
+  ctx.fillStyle = textColor;
+  ctx.font = `bold ${fontSize}px "Noto Sans KR", "Apple SD Gothic Neo", sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  
+  // 텍스트 줄바꿈 처리
+  const maxWidth = width - 120;
+  const lineHeight = fontSize * 1.5;
+  const words = text.split(' ');
+  const lines = [];
+  let currentLine = '';
+  
+  for (const word of words) {
+    const testLine = currentLine + (currentLine ? ' ' : '') + word;
+    const metrics = ctx.measureText(testLine);
+    if (metrics.width > maxWidth && currentLine) {
+      lines.push(currentLine);
+      currentLine = word;
+    } else {
+      currentLine = testLine;
+    }
+  }
+  lines.push(currentLine);
+  
+  // 텍스트 그리기 (중앙 정렬)
+  const totalHeight = lines.length * lineHeight;
+  const startY = (height - totalHeight) / 2 + lineHeight / 2;
+  
+  lines.forEach((line, index) => {
+    ctx.fillText(line, width / 2, startY + index * lineHeight);
+  });
+  
+  // 하단 브랜드 텍스트 (선택사항)
+  ctx.font = '24px "Noto Sans KR", sans-serif';
+  ctx.fillStyle = '#C9B59C';
+  ctx.fillText('혼밥시러', width / 2, height - 60);
+  
+  // Base64로 변환
+  return canvas.toDataURL('image/png');
+}
+
+// DALL-E 이미지 생성 함수 (기존)
+async function generateImage(prompt, style = 'vivid') {
+  try {
+    const response = await openai.images.generate({
+      model: "dall-e-3",
+      prompt: prompt,
+      n: 1,
+      size: "1024x1024",
+      quality: "standard",
+      style: style // vivid 또는 natural
+    });
+    return response.data[0].url;
+  } catch (error) {
+    console.error('이미지 생성 오류:', error);
+    return null;
+  }
+}
+
 // Agent 3: Studio (콘텐츠 생성)
 router.post('/studio-agent', authenticateAdmin, async (req, res) => {
   try {
-    const { analysisData, tone = 'warm_story' } = req.body;
+    const { analysisData, tone = 'warm_story', generateImages = false } = req.body;
 
     console.log('🎨 Studio Agent 실행 시작');
 
@@ -348,6 +429,24 @@ ${JSON.stringify(analysisData, null, 2)}
 
     const result = JSON.parse(completion.choices[0].message.content);
 
+    // 이미지 생성 옵션이 활성화된 경우
+    if (generateImages && result.imagePlans && result.imagePlans.length > 0) {
+      console.log('🎨 이미지 생성 시작...');
+      
+      // 각 이미지 플랜에 대해 실제 이미지 생성
+      for (let plan of result.imagePlans) {
+        // 영어 프롬프트가 있으면 사용, 없으면 한글 프롬프트 사용
+        const imagePrompt = plan.aiPromptEN || plan.aiPromptKR;
+        if (imagePrompt) {
+          const imageUrl = await generateImage(imagePrompt, plan.style === 'photo' ? 'natural' : 'vivid');
+          if (imageUrl) {
+            plan.generatedImageUrl = imageUrl;
+            console.log(`✅ 이미지 생성 완료: ${plan.name}`);
+          }
+        }
+      }
+    }
+
     console.log('✅ Studio Agent 완료');
 
     res.json({
@@ -368,7 +467,7 @@ ${JSON.stringify(analysisData, null, 2)}
 // 통합 파이프라인 실행
 router.post('/run-full-pipeline', authenticateAdmin, async (req, res) => {
   try {
-    const { keywords = [], tone = 'warm_story', customPrompt } = req.body;
+    const { keywords = [], tone = 'warm_story', customPrompt, generateImages = false } = req.body;
 
     console.log('🚀 전체 파이프라인 실행 시작');
 
@@ -521,7 +620,7 @@ ${JSON.stringify(analystResult, null, 2)}
 }`;
 
     const studioResponse = await openai.chat.completions.create({
-      model: "gpt-4-turbo-preview",
+      model: "gpt-4o", // 이미 업그레이드됨
       messages: [
         { role: "system", content: SYSTEM_PROMPTS.studio },
         { role: "user", content: studioPrompt }
@@ -538,6 +637,43 @@ ${JSON.stringify(analystResult, null, 2)}
       console.error('Studio JSON 파싱 오류:', e);
       studioResult = { threadsDrafts: [], instagramDrafts: [], imagePlans: [] };
     }
+    
+    // 인스타그램 캡션을 텍스트 카드 이미지로 생성
+    if (studioResult.instagramDrafts && studioResult.instagramDrafts.length > 0) {
+      console.log('📝 인스타그램 텍스트 카드 생성 시작...');
+      
+      for (let insta of studioResult.instagramDrafts) {
+        if (insta.caption) {
+          // 캡션을 예쁜 텍스트 카드로 변환
+          const cardImage = createTextCard(insta.caption, {
+            width: 1080,
+            height: 1080,
+            bgColor: '#F9F8F6',
+            textColor: '#4C422C',
+            fontSize: 42
+          });
+          insta.textCardImage = cardImage;
+          console.log(`✅ 텍스트 카드 생성 완료: ${insta.format}`);
+        }
+      }
+    }
+    
+    // DALL-E 이미지 생성 옵션이 활성화된 경우
+    if (generateImages && studioResult.imagePlans && studioResult.imagePlans.length > 0) {
+      console.log('🎨 DALL-E 이미지 생성 시작...');
+      
+      for (let plan of studioResult.imagePlans) {
+        const imagePrompt = plan.aiPromptEN || plan.aiPromptKR;
+        if (imagePrompt) {
+          const imageUrl = await generateImage(imagePrompt, plan.style === 'photo' ? 'natural' : 'vivid');
+          if (imageUrl) {
+            plan.generatedImageUrl = imageUrl;
+            console.log(`✅ DALL-E 이미지 생성 완료: ${plan.name}`);
+          }
+        }
+      }
+    }
+    
     console.log('✅ Step 3: Studio 완료');
     console.log('Studio 결과 요약:', {
       threads: studioResult.threadsDrafts?.length || 0,
