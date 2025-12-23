@@ -233,7 +233,7 @@ function AdvancedResearch() {
                     "{cluster.oneLiner}"
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
-                    혼밥시러에 대한 의미: {cluster.whatItMeansForBapdongmu}
+                    인사이트: {cluster.whatItMeansForBapdongmu || cluster.insight}
                   </Typography>
                 </Paper>
               ))}
