@@ -38,6 +38,8 @@ const KakaoMapModal: React.FC<KakaoMapModalProps> = ({
     neighborhood: string;
     address: string;
   } | null>(null);
+  const [mapLoadError, setMapLoadError] = useState(false);
+  const [isWebView, setIsWebView] = useState(false);
   
   const mapRef = useRef<any>(null);
   const markerRef = useRef<any>(null);
@@ -47,6 +49,11 @@ const KakaoMapModal: React.FC<KakaoMapModalProps> = ({
   // 카카오 지도 스크립트 로딩
   useEffect(() => {
     if (!visible) return;
+
+    // WebView 환경 체크
+    const isInWebView = window.ReactNativeWebView || window.navigator.userAgent.includes('wv');
+    setIsWebView(isInWebView);
+    console.log(`🗺️ [KakaoMapModal] WebView check: ${isInWebView}`);
 
     const loadKakaoMap = () => {
       // 이미 로드된 경우
@@ -69,19 +76,27 @@ const KakaoMapModal: React.FC<KakaoMapModalProps> = ({
       // 카카오 지도 API 스크립트 추가
       const script = document.createElement('script');
       script.id = 'kakao-map-script';
-      // 카카오 개발자에서 발급받은 JavaScript 키 사용
-      const KAKAO_MAP_KEY = process.env.REACT_APP_KAKAO_CLIENT_ID || '5a202bd90ab8dff01348f24cb1c37f3f';
-      script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${KAKAO_MAP_KEY}&libraries=services&autoload=false`;
+      // WebView 환경을 위한 JavaScript 키 사용 (REST API 키 대신)
+      const KAKAO_MAP_KEY = process.env.REACT_APP_KAKAO_JS_KEY || '9d1ee4bec9bd24d0ac9f8c9d68fbf432';
+      script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${KAKAO_MAP_KEY}&libraries=services&autoload=true`;
       script.async = true;
       script.onload = () => {
-        if (window.kakao && window.kakao.maps) {
-          window.kakao.maps.load(initializeMap);
-        }
+        // autoload=true이므로 직접 확인 후 초기화
+        setTimeout(() => {
+          if (window.kakao && window.kakao.maps && window.kakao.maps.LatLng) {
+            console.log('🗺️ [KakaoMapModal] Kakao maps ready');
+            initializeMap();
+          } else {
+            console.error('🔴 [KakaoMapModal] Kakao maps not available - WebView 환경에서 지도 로드 실패');
+            setMapLoadError(true);
+            setIsMapLoading(false);
+          }
+        }, 500);
       };
       script.onerror = () => {
         console.error('카카오 지도 스크립트 로딩 실패');
+        setMapLoadError(true);
         setIsMapLoading(false);
-        Alert.alert('지도 로딩 실패', '인터넷 연결을 확인하거나 잠시 후 다시 시도해주세요.');
       };
       document.head.appendChild(script);
     };
@@ -370,21 +385,83 @@ const KakaoMapModal: React.FC<KakaoMapModalProps> = ({
 
         {/* 지도 컨테이너 */}
         <View style={styles.mapContainer}>
-          {isMapLoading && (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color={COLORS.primary.main} />
-              <Text style={styles.loadingText}>지도를 불러오는 중...</Text>
+          {mapLoadError || (isWebView && !mapRef.current && !isMapLoading) ? (
+            // WebView에서 지도 로드 실패 시 대안 UI
+            <View style={styles.fallbackContainer}>
+              <Text style={styles.fallbackIcon}>📍</Text>
+              <Text style={styles.fallbackTitle}>
+                {isWebView ? 'WebView 환경에서는 지도를 표시할 수 없습니다' : '지도를 로드할 수 없습니다'}
+              </Text>
+              <Text style={styles.fallbackSubtitle}>
+                아래에서 미리 설정된 위치를 선택하세요
+              </Text>
+              <View style={styles.presetLocationContainer}>
+                <TouchableOpacity
+                  style={styles.presetLocationButton}
+                  onPress={() => {
+                    setSelectedLocation({
+                      lat: 37.5665,
+                      lng: 126.9780,
+                      district: '중구',
+                      neighborhood: '태평로1가',
+                      address: '서울특별시 중구 태평로 31 (서울시청 인근)'
+                    });
+                    setCurrentAddress('서울특별시 중구 태평로 31 (서울시청 인근)');
+                  }}
+                >
+                  <Text style={styles.presetLocationText}>서울시청 인근</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.presetLocationButton}
+                  onPress={() => {
+                    setSelectedLocation({
+                      lat: 37.4979,
+                      lng: 127.0276,
+                      district: '강남구',
+                      neighborhood: '역삼동',
+                      address: '서울특별시 강남구 테헤란로 (강남역 인근)'
+                    });
+                    setCurrentAddress('서울특별시 강남구 테헤란로 (강남역 인근)');
+                  }}
+                >
+                  <Text style={styles.presetLocationText}>강남역 인근</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.presetLocationButton}
+                  onPress={() => {
+                    setSelectedLocation({
+                      lat: 37.5563,
+                      lng: 126.9236,
+                      district: '마포구',
+                      neighborhood: '합정동',
+                      address: '서울특별시 마포구 (홍대입구역 인근)'
+                    });
+                    setCurrentAddress('서울특별시 마포구 (홍대입구역 인근)');
+                  }}
+                >
+                  <Text style={styles.presetLocationText}>홍대입구역 인근</Text>
+                </TouchableOpacity>
+              </View>
             </View>
+          ) : (
+            <>
+              {isMapLoading && (
+                <View style={styles.loadingContainer}>
+                  <ActivityIndicator size="large" color={COLORS.primary.main} />
+                  <Text style={styles.loadingText}>지도를 불러오는 중...</Text>
+                </View>
+              )}
+              
+              <div
+                ref={mapContainerRef}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  borderRadius: 0,
+                }}
+              />
+            </>
           )}
-          
-          <div
-            ref={mapContainerRef}
-            style={{
-              width: '100%',
-              height: '100%',
-              borderRadius: 0,
-            }}
-          />
 
           {/* 중앙 십자선 - 선택적으로 추가 */}
           {!isMapLoading && (
@@ -561,6 +638,48 @@ const styles = StyleSheet.create({
   },
   confirmButtonTextDisabled: {
     color: COLORS.text.secondary,
+  },
+  fallbackContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f5f5f5',
+    padding: 20,
+  },
+  fallbackIcon: {
+    fontSize: 48,
+    marginBottom: 16,
+  },
+  fallbackTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  fallbackSubtitle: {
+    fontSize: 16,
+    color: COLORS.text.secondary,
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  presetLocationContainer: {
+    width: '100%',
+    gap: 12,
+    maxWidth: 300,
+  },
+  presetLocationButton: {
+    backgroundColor: COLORS.primary.main,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    alignItems: 'center',
+    ...SHADOWS.small,
+  },
+  presetLocationText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.text.white,
   },
 });
 

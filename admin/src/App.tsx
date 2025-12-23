@@ -24,6 +24,7 @@ import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import SmartToyIcon from '@mui/icons-material/SmartToy';
 import CampaignIcon from '@mui/icons-material/Campaign';
 import AnnouncementIcon from '@mui/icons-material/Announcement';
+import PsychologyIcon from '@mui/icons-material/Psychology';
 
 import Dashboard from './components/Dashboard';
 import UserManagement from './components/UserManagement';
@@ -35,6 +36,7 @@ import AdminManagement from './components/AdminManagement';
 import AdvertisementManagement from './components/AdvertisementManagement';
 import ChatbotSettings from './components/ChatbotSettings';
 import NoticeManagement from './components/NoticeManagement';
+import ResearchAgent from './components/ResearchAgent';
 import Login from './components/Login';
 
 const theme = createTheme({
@@ -77,6 +79,7 @@ const menuItems = [
   { text: '모임 관리', icon: <EventIcon />, path: '/meetups' },
   { text: '공지사항', icon: <AnnouncementIcon />, path: '/notices' },
   { text: '광고 관리', icon: <CampaignIcon />, path: '/advertisements' },
+  { text: '리서치 에이전트', icon: <PsychologyIcon />, path: '/research-agent' },
   { text: '관리자 계정', icon: <AdminPanelSettingsIcon />, path: '/admin-accounts' },
   { text: '챗봇 설정', icon: <SmartToyIcon />, path: '/chatbot-settings' },
   { text: '리포트', icon: <ReportIcon />, path: '/reports' },
@@ -246,6 +249,7 @@ function App() {
               <Route path="/meetups" element={<MeetupManagement />} />
               <Route path="/notices" element={<NoticeManagement />} />
               <Route path="/advertisements" element={<AdvertisementManagement />} />
+              <Route path="/research-agent" element={<ResearchAgent />} />
               <Route path="/admin-accounts" element={<AdminManagement />} />
               <Route path="/chatbot-settings" element={<ChatbotSettings />} />
               <Route path="/reports" element={<Reports />} />

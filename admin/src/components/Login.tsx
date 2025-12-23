@@ -79,10 +79,10 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
         throw new Error(data.error || '로그인 실패');
       }
 
-      if (data.success && data.token) {
-        localStorage.setItem('adminToken', data.token);
-        localStorage.setItem('adminData', JSON.stringify(data.admin));
-        onLoginSuccess(data.token, data.admin);
+      if (data.success && data.data && data.data.token) {
+        localStorage.setItem('adminToken', data.data.token);
+        localStorage.setItem('adminData', JSON.stringify(data.data.admin));
+        onLoginSuccess(data.data.token, data.data.admin);
       } else {
         throw new Error('유효하지 않은 응답 형식');
       }

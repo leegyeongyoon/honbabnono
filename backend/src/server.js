@@ -32,6 +32,7 @@ const chatRoutes = require('./routes/chat');
 const notificationRoutes = require('./routes/notifications');
 const advertisementRoutes = require('./routes/advertisements');
 const adminRoutes = require('./routes/admin');
+const researchRoutes = require('./routes/research');
 
 const app = express();
 const server = http.createServer(app);
@@ -1427,6 +1428,7 @@ app.use('/api/chat', chatRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/advertisements', advertisementRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/admin', researchRoutes);
 app.use('/api/test', testRoutes);
 
 // 데이터베이스 초기화 및 서버 시작

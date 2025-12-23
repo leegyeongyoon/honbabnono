@@ -11,6 +11,7 @@ import {
 import {useTypedNavigation} from '../hooks/useNavigation';
 import {COLORS, SHADOWS} from '../styles/colors';
 import CreateMeetupScreen from './CreateMeetupScreen';
+import MapTestScreen from './MapTestScreen';
 import { useMeetups } from '../hooks/useMeetups';
 import { formatKoreanDateTime } from '../utils/dateUtils';
 import Popup from '../components/Popup';
@@ -22,6 +23,7 @@ import { useNotificationBanner } from '../hooks/useNotificationBanner';
 const HomeScreen = () => {
   const navigation = useTypedNavigation();
   const [showCreateMeetup, setShowCreateMeetup] = useState(false);
+  const [showMapTest, setShowMapTest] = useState(false);
   const { meetups } = useMeetups();
   const { 
     popupState, 
@@ -86,6 +88,12 @@ const HomeScreen = () => {
               onPress={handleNotificationTest}
             >
               <Text style={styles.testButtonText}>알림테스트</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.testButton, { backgroundColor: COLORS.primary.main }]}
+              onPress={() => setShowMapTest(true)}
+            >
+              <Text style={styles.testButtonText}>지도테스트</Text>
             </TouchableOpacity>
             <TouchableOpacity 
               style={styles.notificationButton}
@@ -253,6 +261,25 @@ const HomeScreen = () => {
           </TouchableOpacity>
         </View>
         <CreateMeetupScreen onClose={() => setShowCreateMeetup(false)} />
+      </View>
+    </Modal>
+
+    {/* 지도 테스트 모달 */}
+    <Modal
+      visible={showMapTest}
+      animationType="slide"
+      presentationStyle="pageSheet"
+    >
+      <View style={styles.modalContainer}>
+        <View style={styles.modalHeader}>
+          <TouchableOpacity 
+            style={styles.closeButton}
+            onPress={() => setShowMapTest(false)}
+          >
+            <Text style={styles.closeButtonText}>✕</Text>
+          </TouchableOpacity>
+        </View>
+        <MapTestScreen />
       </View>
     </Modal>
 

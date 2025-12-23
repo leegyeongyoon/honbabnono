@@ -173,6 +173,11 @@ function App() {
           );
           break;
 
+        case 'LOG':
+          // 웹뷰에서 온 로그 메시지
+          console.log('🌐 [WebView Log]', message.message);
+          break;
+
         case 'SCHEDULE_NOTIFICATION':
           // 실제 네이티브 브릿지를 통한 알림 스케줄링
           console.log('🔔 [WebView] SCHEDULE_NOTIFICATION 메시지 수신:', message);
@@ -358,7 +363,21 @@ function App() {
       window.isNativeApp = true;
       window.deviceType = '${Platform.OS}';
       
-      console.log('Native Bridge Initialized');
+      // 환경변수 설정 (카카오 지도 API용)
+      if (!window.process) {
+        window.process = { env: {} };
+      }
+      window.process.env.REACT_APP_KAKAO_JS_KEY = '9d1ee4bec9bd24d0ac9f8c9d68fbf432';
+      
+      console.log('🚀 [DEBUG] Native Bridge Initialized successfully!');
+      console.log('🔑 [DEBUG] Kakao API Key set:', window.process.env.REACT_APP_KAKAO_JS_KEY);
+      
+      // 간단한 카카오 체크
+      setTimeout(() => {
+        console.log('🗺️ [DEBUG] Checking for Kakao after 3s...');
+        console.log('🗺️ [DEBUG] window.kakao exists:', !!window.kakao);
+        console.log('🗺️ [DEBUG] Current URL:', window.location.href);
+      }, 3000);
     })();
     true;
   `;
@@ -371,13 +390,57 @@ function App() {
         ref={webviewRef}
         source={{ uri: WEBVIEW_URL }}
         style={styles.webview}
-        onMessage={handleWebViewMessage}
+        onMessage={(event) => {
+          try {
+            const message = JSON.parse(event.nativeEvent.data);
+            handleWebViewMessage(event);
+          } catch (error) {
+            // 웹뷰 콘솔 로그 캐치
+            const logData = event.nativeEvent.data;
+            if (typeof logData === 'string' && logData.includes('[KakaoMapPicker]')) {
+              console.log('🌐 [WebView Console]', logData);
+            } else {
+              handleWebViewMessage(event);
+            }
+          }
+        }}
         injectedJavaScript={injectedJavaScript}
         onNavigationStateChange={(navState) => {
           setCanGoBack(navState.canGoBack);
         }}
-        onLoadEnd={() => setIsLoading(false)}
-        onLoadStart={() => setIsLoading(true)}
+        onLoadEnd={(syntheticEvent) => {
+          const { nativeEvent } = syntheticEvent;
+          console.log('🌐 [WebView] Load completed:', nativeEvent.url);
+          setIsLoading(false);
+        }}
+        onLoadStart={(syntheticEvent) => {
+          const { nativeEvent } = syntheticEvent;
+          console.log('🌐 [WebView] Load started:', nativeEvent.url);
+          setIsLoading(true);
+        }}
+        onError={(syntheticEvent) => {
+          const { nativeEvent } = syntheticEvent;
+          console.error('❌ [WebView] Load error:', nativeEvent);
+        }}
+        onHttpError={(syntheticEvent) => {
+          const { nativeEvent } = syntheticEvent;
+          console.error('🔴 [WebView] HTTP error:', nativeEvent);
+        }}
+        onContentProcessDidTerminate={() => {
+          console.error('💥 [WebView] Content process terminated');
+        }}
+        onRenderProcessGone={(syntheticEvent) => {
+          const { nativeEvent } = syntheticEvent;
+          console.error('💀 [WebView] Render process gone:', nativeEvent);
+        }}
+        onShouldStartLoadWithRequest={(request) => {
+          console.log('🔍 [WebView] Loading request:', request.url);
+          // 카카오 API 호출을 로깅
+          if (request.url.includes('kakao')) {
+            console.log('🗺️ [WebView] Kakao API request:', request.url);
+          }
+          return true;
+        }}
         // 설정
         javaScriptEnabled={true}
         domStorageEnabled={true}
@@ -398,6 +461,10 @@ function App() {
         androidHardwareAccelerationDisabled={false}
         overScrollMode="never"
         nestedScrollEnabled={true}
+        // User-Agent 설정 (카카오 지도 호환성을 위해)
+        userAgent="Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.0 Mobile/15E148 Safari/604.1"
+        // 보안 설정
+        originWhitelist={['*']}
         // 디버깅 (개발 모드에서만)
         webviewDebuggingEnabled={__DEV__}
       />

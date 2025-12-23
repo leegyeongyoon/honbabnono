@@ -71,21 +71,110 @@ const KakaoMapComponent: React.FC<KakaoMapComponentProps> = ({ onMapLoad, onLoca
   const mapRef = React.useRef<HTMLDivElement>(null);
   const [map, setMap] = React.useState<any>(null);
   const [isScriptLoaded, setIsScriptLoaded] = React.useState(false);
+  const [mapLoadError, setMapLoadError] = React.useState(false);
+  const [isWebView, setIsWebView] = React.useState(false);
+
+  const sendLogToNative = (message: string) => {
+    console.log(`🗺️ [KakaoMapComponent] ${message}`);
+    
+    if (window.ReactNativeWebView) {
+      window.ReactNativeWebView.postMessage(JSON.stringify({
+        type: 'LOG',
+        message: `[KakaoMapComponent] ${message}`
+      }));
+    }
+  };
 
   React.useEffect(() => {
+    sendLogToNative('KakaoMapComponent 초기화 시작...');
+    
+    // WebView 환경 체크
+    const isInWebView = window.ReactNativeWebView || window.navigator.userAgent.includes('wv');
+    setIsWebView(isInWebView);
+    sendLogToNative(`환경 체크 - WebView: ${isInWebView}`);
+    
     // Kakao Map API 스크립트가 이미 로드되었는지 확인
     if (window.kakao && window.kakao.maps) {
+      sendLogToNative('Kakao maps 이미 로드됨');
       setIsScriptLoaded(true);
+      return;
+    }
+
+    sendLogToNative('Kakao maps 스크립트 로드 중...');
+    
+    // 기존 스크립트가 있는지 확인
+    const existingScript = document.querySelector('script[src*="dapi.kakao.com"]');
+    if (existingScript) {
+      sendLogToNative('기존 스크립트 발견, 로드 대기 중...');
+      const checkKakao = setInterval(() => {
+        if (window.kakao && window.kakao.maps) {
+          clearInterval(checkKakao);
+          sendLogToNative('기존 스크립트로부터 Kakao maps 로드됨');
+          setIsScriptLoaded(true);
+        }
+      }, 100);
       return;
     }
 
     // Kakao Map API 스크립트 로드
     const script = document.createElement('script');
     script.async = true;
-    script.src = `//dapi.kakao.com/v2/maps/sdk.js?appkey=5a202bd90ab8dff01348f24cb1c37f3f&libraries=services,clusterer,drawing&autoload=false`;
+    // WebView 환경을 위한 JavaScript 키 사용 (REST API 키 대신)
+    const apiKey = process.env.REACT_APP_KAKAO_JS_KEY || '9d1ee4bec9bd24d0ac9f8c9d68fbf432';
+    script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${apiKey}&libraries=services,clusterer,drawing&autoload=true`;
+    
+    sendLogToNative(`스크립트 생성: ${script.src}`);
     
     script.onload = () => {
-      setIsScriptLoaded(true);
+      sendLogToNative('Kakao 스크립트 로드 성공');
+      
+      // autoload=true이므로 지연 후 확인
+      setTimeout(() => {
+        if (window.kakao && window.kakao.maps && window.kakao.maps.LatLng) {
+          sendLogToNative('window.kakao.maps.LatLng 확인됨');
+          setIsScriptLoaded(true);
+        } else {
+          sendLogToNative(`ERROR: LatLng 미확인 - kakao: ${!!window.kakao}, maps: ${!!window.kakao?.maps}, LatLng: ${!!window.kakao?.maps?.LatLng}`);
+          
+          // window.kakao 전체 구조 확인
+          if (window.kakao) {
+            sendLogToNative(`kakao 객체 keys: ${Object.keys(window.kakao)}`);
+            if (window.kakao.maps) {
+              sendLogToNative(`maps 객체 keys: ${Object.keys(window.kakao.maps)}`);
+            }
+          }
+          
+          // kakao.maps.load() 강제 실행 시도
+          if (window.kakao && window.kakao.maps && window.kakao.maps.load) {
+            sendLogToNative('kakao.maps.load() 강제 실행 시도...');
+            window.kakao.maps.load(() => {
+              sendLogToNative('kakao.maps.load 콜백 실행됨');
+              if (window.kakao.maps.LatLng) {
+                sendLogToNative('load 후 LatLng 확인됨');
+                setIsScriptLoaded(true);
+              } else {
+                sendLogToNative('load 후에도 LatLng 없음');
+              }
+            });
+          }
+          
+          // 재시도
+          setTimeout(() => {
+            if (window.kakao && window.kakao.maps && window.kakao.maps.LatLng) {
+              sendLogToNative('재시도 성공 - LatLng 확인됨');
+              setIsScriptLoaded(true);
+            } else {
+              sendLogToNative('ERROR: 재시도 후에도 LatLng 없음 - WebView 환경에서 지도 로드 실패');
+              setMapLoadError(true);
+              setIsScriptLoaded(false);
+            }
+          }, 2000);
+        }
+      }, 500);
+    };
+    
+    script.onerror = (error) => {
+      sendLogToNative(`ERROR: 스크립트 로드 실패 - ${error}`);
     };
     
     document.head.appendChild(script);
@@ -97,44 +186,122 @@ const KakaoMapComponent: React.FC<KakaoMapComponentProps> = ({ onMapLoad, onLoca
 
   React.useEffect(() => {
     if (isScriptLoaded && mapRef.current && !map) {
-      window.kakao.maps.load(() => {
-        const options = {
-          center: new window.kakao.maps.LatLng(37.5665, 126.9780), // 서울 시청
-          level: 3
-        };
-        
-        const mapInstance = new window.kakao.maps.Map(mapRef.current, options);
-        setMap(mapInstance);
-        onMapLoad(mapInstance);
+      sendLogToNative('지도 초기화 시작...');
+      
+      const initializeMapDirectly = () => {
+        try {
+          sendLogToNative('직접 지도 생성 시도...');
+          
+          if (!window.kakao || !window.kakao.maps) {
+            sendLogToNative('ERROR: window.kakao.maps가 없음');
+            return;
+          }
+          
+          if (!window.kakao.maps.LatLng) {
+            sendLogToNative('ERROR: LatLng가 없음, 지도 생성 불가능');
+            return;
+          }
+          
+          const options = {
+            center: new window.kakao.maps.LatLng(37.5665, 126.9780), // 서울 시청
+            level: 3
+          };
+          
+          const mapInstance = new window.kakao.maps.Map(mapRef.current, options);
+          sendLogToNative('지도 인스턴스 생성 성공');
+          
+          setMap(mapInstance);
+          onMapLoad(mapInstance);
+          sendLogToNative('지도 로드 완료');
 
-        // 지도 클릭 이벤트 리스너
-        window.kakao.maps.event.addListener(mapInstance, 'click', (mouseEvent: any) => {
-          const latlng = mouseEvent.latLng;
-          const lat = latlng.getLat();
-          const lng = latlng.getLng();
-          
-          // 좌표로 주소 변환
-          const geocoder = new window.kakao.maps.services.Geocoder();
-          
-          geocoder.coord2Address(lng, lat, (result: any, status: any) => {
-            if (status === window.kakao.maps.services.Status.OK) {
-              const address = result[0]?.address?.address_name || `위도: ${lat.toFixed(6)}, 경도: ${lng.toFixed(6)}`;
-              onLocationSelect({
-                latLng: { lat, lng },
-                address: address,
-              });
-            } else {
-              // Geocoding 실패 시 좌표 정보 제공
-              onLocationSelect({
-                latLng: { lat, lng },
-                address: `위도: ${lat.toFixed(6)}, 경도: ${lng.toFixed(6)}`,
-              });
-            }
+          // 지도 클릭 이벤트 리스너
+          window.kakao.maps.event.addListener(mapInstance, 'click', (mouseEvent: any) => {
+            const latlng = mouseEvent.latLng;
+            const lat = latlng.getLat();
+            const lng = latlng.getLng();
+            
+            sendLogToNative(`지도 클릭: lat=${lat}, lng=${lng}`);
+            
+            // 좌표로 주소 변환
+            const geocoder = new window.kakao.maps.services.Geocoder();
+            
+            geocoder.coord2Address(lng, lat, (result: any, status: any) => {
+              if (status === window.kakao.maps.services.Status.OK) {
+                const address = result[0]?.address?.address_name || `위도: ${lat.toFixed(6)}, 경도: ${lng.toFixed(6)}`;
+                sendLogToNative(`주소 변환 성공: ${address}`);
+                onLocationSelect({
+                  latLng: { lat, lng },
+                  address: address,
+                });
+              } else {
+                sendLogToNative(`주소 변환 실패, 좌표 정보 사용`);
+                // Geocoding 실패 시 좌표 정보 제공
+                onLocationSelect({
+                  latLng: { lat, lng },
+                  address: `위도: ${lat.toFixed(6)}, 경도: ${lng.toFixed(6)}`,
+                });
+              }
+            });
           });
-        });
-      });
+        } catch (error) {
+          sendLogToNative(`ERROR: 직접 지도 초기화 실패 - ${error}`);
+          setMapLoadError(true);
+        }
+      };
+      
+      try {
+        // autoload=true이므로 kakao.maps.load 없이 직접 초기화
+        sendLogToNative('autoload=true이므로 직접 지도 초기화 시도...');
+        initializeMapDirectly();
+      } catch (error) {
+        sendLogToNative(`ERROR: 지도 초기화 실패 - ${error}`);
+        setMapLoadError(true);
+      }
     }
   }, [isScriptLoaded, map, onMapLoad, onLocationSelect]);
+
+  // WebView에서 지도 로드 실패 시 대안 UI 제공
+  if (mapLoadError || (isWebView && !map && isScriptLoaded)) {
+    return (
+      <div style={{ 
+        height: '200px', 
+        width: '100%', 
+        borderRadius: '12px', 
+        backgroundColor: '#f5f5f5',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        border: '2px dashed #ddd',
+        padding: '20px',
+        textAlign: 'center'
+      }}>
+        <div style={{ fontSize: '24px', marginBottom: '10px' }}>📍</div>
+        <div style={{ fontSize: '14px', color: '#666', marginBottom: '15px' }}>
+          {isWebView ? 'WebView 환경에서는 지도를 표시할 수 없습니다' : '지도를 로드할 수 없습니다'}
+        </div>
+        <TouchableOpacity
+          style={{
+            backgroundColor: COLORS.primary,
+            padding: 10,
+            borderRadius: 8,
+            minWidth: 120,
+            alignItems: 'center'
+          }}
+          onPress={() => {
+            const defaultLocation = {
+              latLng: { lat: 37.5665, lng: 126.9780 },
+              address: '서울특별시 중구 태평로1가 31 (서울시청 인근)'
+            };
+            sendLogToNative('기본 위치로 설정');
+            onLocationSelect(defaultLocation);
+          }}
+        >
+          <Text style={{ color: 'white', fontSize: 12 }}>서울시청 인근으로 설정</Text>
+        </TouchableOpacity>
+      </div>
+    );
+  }
 
   return <div ref={mapRef} style={{ height: '200px', width: '100%', borderRadius: '12px' }} />;
 };

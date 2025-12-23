@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>카카오 맵 API 테스트</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            padding: 20px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        .success { border-color: #28a745; background: #d4edda; }
+        .error { border-color: #dc3545; background: #f8d7da; }
+        .info { border-color: #17a2b8; background: #d1ecf1; }
+        #map { width: 100%; height: 300px; margin: 10px 0; }
+        .log { 
+            background: #f8f9fa; 
+            padding: 10px; 
+            border-radius: 4px; 
+            font-family: monospace; 
+            font-size: 12px;
+            white-space: pre-wrap;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>카카오 맵 API 진단 도구</h1>
+    
+    <div id="userAgent" class="test-section info">
+        <h3>사용자 환경</h3>
+        <div id="userAgentInfo"></div>
+    </div>
+    
+    <div id="apiKeyTest" class="test-section">
+        <h3>API 키 테스트</h3>
+        <div id="apiKeyResult"></div>
+    </div>
+    
+    <div id="scriptTest" class="test-section">
+        <h3>스크립트 로딩 테스트</h3>
+        <div id="scriptResult"></div>
+    </div>
+    
+    <div id="mapTest" class="test-section">
+        <h3>지도 생성 테스트</h3>
+        <div id="mapResult"></div>
+        <div id="map"></div>
+    </div>
+    
+    <div id="logSection" class="test-section info">
+        <h3>상세 로그</h3>
+        <div id="log" class="log"></div>
+    </div>
+
+    <script>
+        // 로그 함수
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logElement = document.getElementById('log');
+            logElement.textContent += `[${timestamp}] ${type.toUpperCase()}: ${message}\n`;
+            logElement.scrollTop = logElement.scrollHeight;
+            console.log(`[${type}] ${message}`);
+        }
+
+        // 사용자 환경 정보
+        function checkUserAgent() {
+            const ua = navigator.userAgent;
+            const isWebView = /wv|WebView/i.test(ua);
+            const isIOS = /iPad|iPhone|iPod/.test(ua);
+            const isAndroid = /Android/.test(ua);
+            
+            let info = `User Agent: ${ua}\n\n`;
+            info += `WebView 여부: ${isWebView ? '예' : '아니오'}\n`;
+            info += `iOS: ${isIOS ? '예' : '아니오'}\n`;
+            info += `Android: ${isAndroid ? '예' : '아니오'}\n`;
+            info += `현재 도메인: ${window.location.origin}\n`;
+            info += `현재 URL: ${window.location.href}`;
+            
+            document.getElementById('userAgentInfo').textContent = info;
+            log('사용자 환경 정보 수집 완료');
+        }
+
+        // API 키 테스트
+        function testApiKey() {
+            const testKeys = [
+                { name: 'JavaScript Key 1', key: '9d1ee4bec9bd24d0ac9f8c9d68fbf432' },
+                { name: 'REST API Key', key: '5a202bd90ab8dff01348f24cb1c37f3f' }
+            ];
+            
+            let result = '';
+            testKeys.forEach(({ name, key }) => {
+                result += `${name}: ${key}\n`;
+                log(`${name} 확인: ${key}`);
+            });
+            
+            document.getElementById('apiKeyResult').textContent = result;
+        }
+
+        // 스크립트 로딩 테스트
+        function testScriptLoading() {
+            const testKey = '9d1ee4bec9bd24d0ac9f8c9d68fbf432';
+            let result = '';
+            
+            // 기존 스크립트 확인
+            const existingScript = document.querySelector('script[src*="dapi.kakao.com"]');
+            if (existingScript) {
+                result += '기존 카카오 스크립트 발견\n';
+                log('기존 카카오 스크립트가 이미 로드됨');
+            }
+            
+            // window.kakao 객체 확인
+            if (window.kakao) {
+                result += 'window.kakao 객체 존재\n';
+                if (window.kakao.maps) {
+                    result += 'window.kakao.maps 객체 존재\n';
+                    if (window.kakao.maps.LatLng) {
+                        result += 'window.kakao.maps.LatLng 클래스 존재 ✅\n';
+                        log('카카오 맵 SDK 완전 로드됨', 'success');
+                        document.getElementById('scriptTest').className = 'test-section success';
+                    } else {
+                        result += 'window.kakao.maps.LatLng 클래스 없음 ❌\n';
+                        log('카카오 맵 SDK 부분 로드됨', 'error');
+                        document.getElementById('scriptTest').className = 'test-section error';
+                    }
+                } else {
+                    result += 'window.kakao.maps 객체 없음 ❌\n';
+                    log('카카오 맵 객체가 로드되지 않음', 'error');
+                    document.getElementById('scriptTest').className = 'test-section error';
+                }
+            } else {
+                result += 'window.kakao 객체 없음 ❌\n';
+                
+                // 새 스크립트 로드 시도
+                result += '\n새 스크립트 로드 시도 중...\n';
+                log('카카오 객체가 없어서 새 스크립트 로드 시도', 'info');
+                
+                const script = document.createElement('script');
+                script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${testKey}&libraries=services&autoload=true`;
+                script.onload = () => {
+                    result += '스크립트 로드 성공 ✅\n';
+                    log('카카오 스크립트 로드 성공', 'success');
+                    
+                    setTimeout(() => {
+                        if (window.kakao && window.kakao.maps && window.kakao.maps.LatLng) {
+                            result += 'SDK 완전 로드됨 ✅\n';
+                            log('카카오 SDK 완전 로드됨', 'success');
+                            document.getElementById('scriptTest').className = 'test-section success';
+                            document.getElementById('scriptResult').textContent = result;
+                            testMapCreation();
+                        } else {
+                            result += 'SDK 로드 실패 ❌\n';
+                            log('카카오 SDK 로드 실패 - API 키 또는 도메인 문제', 'error');
+                            document.getElementById('scriptTest').className = 'test-section error';
+                            document.getElementById('scriptResult').textContent = result;
+                        }
+                    }, 1000);
+                };
+                script.onerror = () => {
+                    result += '스크립트 로드 실패 ❌\n';
+                    log('카카오 스크립트 로드 실패 - 네트워크 또는 도메인 문제', 'error');
+                    document.getElementById('scriptTest').className = 'test-section error';
+                    document.getElementById('scriptResult').textContent = result;
+                };
+                document.head.appendChild(script);
+            }
+            
+            document.getElementById('scriptResult').textContent = result;
+        }
+
+        // 지도 생성 테스트
+        function testMapCreation() {
+            if (!window.kakao || !window.kakao.maps || !window.kakao.maps.LatLng) {
+                document.getElementById('mapResult').textContent = '카카오 SDK가 로드되지 않아 지도를 생성할 수 없습니다 ❌';
+                document.getElementById('mapTest').className = 'test-section error';
+                log('지도 생성 불가 - SDK 미로드', 'error');
+                return;
+            }
+            
+            try {
+                const container = document.getElementById('map');
+                const options = {
+                    center: new window.kakao.maps.LatLng(37.5665, 126.9780),
+                    level: 3
+                };
+                
+                const map = new window.kakao.maps.Map(container, options);
+                
+                // 마커 추가
+                const marker = new window.kakao.maps.Marker({
+                    position: options.center
+                });
+                marker.setMap(map);
+                
+                document.getElementById('mapResult').textContent = '지도 생성 성공 ✅\n서울시청 위치에 마커가 표시됩니다.';
+                document.getElementById('mapTest').className = 'test-section success';
+                log('지도 생성 성공', 'success');
+                
+            } catch (error) {
+                document.getElementById('mapResult').textContent = `지도 생성 실패 ❌\n오류: ${error.message}`;
+                document.getElementById('mapTest').className = 'test-section error';
+                log(`지도 생성 실패: ${error.message}`, 'error');
+            }
+        }
+
+        // 페이지 로드시 테스트 실행
+        document.addEventListener('DOMContentLoaded', function() {
+            log('카카오 맵 진단 시작');
+            
+            checkUserAgent();
+            testApiKey();
+            testScriptLoading();
+            
+            // SDK가 이미 로드된 경우 지도 테스트
+            if (window.kakao && window.kakao.maps && window.kakao.maps.LatLng) {
+                testMapCreation();
+            }
+        });
+    </script>
+</body>
+</html>
