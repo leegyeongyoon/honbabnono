@@ -342,8 +342,25 @@ router.post('/run-full-pipeline', authenticateAdmin, async (req, res) => {
     console.log('🚀 전체 파이프라인 실행 시작');
 
     // Step 1: Collector
-    const collectorPrompt = customPrompt || `오늘 날짜: ${new Date().toLocaleDateString('ko-KR')}
-혼밥과 관련된 최신 트렌드와 신호를 수집해주세요.`;
+    const collectorPrompt = `오늘 날짜: ${new Date().toLocaleDateString('ko-KR')}
+    
+키워드: 혼밥, 혼자 밥, 혼자 고기, 밥친구, 밥약, 점심 같이, 저녁 같이, 1인분, 2인분 주문, 외로움, 자취, 새 직장, 노쇼, 번개 모임
+
+위 키워드와 관련된 최신 트렌드와 신호를 수집하여 다음 형식의 JSON으로 반환해주세요:
+{
+  "sources": [
+    {
+      "title": "제목",
+      "summary": "핵심 내용 1-2문장 요약",
+      "url": "출처 URL (가상)",
+      "type": "news|community|blog|social",
+      "signals": ["신호1", "신호2"],
+      "relevanceScore": 0.8
+    }
+  ],
+  "totalSourcesFound": 10,
+  "keyTrends": ["트렌드1", "트렌드2", "트렌드3"]
+}`;
 
     const collectorResponse = await openai.chat.completions.create({
       model: "gpt-4-turbo-preview",
@@ -356,12 +373,57 @@ router.post('/run-full-pipeline', authenticateAdmin, async (req, res) => {
       max_tokens: 2000
     });
 
-    const collectorResult = JSON.parse(collectorResponse.choices[0].message.content);
+    let collectorResult;
+    try {
+      collectorResult = JSON.parse(collectorResponse.choices[0].message.content);
+    } catch (e) {
+      console.error('Collector JSON 파싱 오류:', e);
+      collectorResult = { sources: [], keyTrends: [], totalSourcesFound: 0 };
+    }
     console.log('✅ Step 1: Collector 완료');
+    console.log('Collector 결과:', JSON.stringify(collectorResult, null, 2).substring(0, 500));
 
     // Step 2: Analyst
     const analystPrompt = `수집된 데이터를 분석하여 인사이트를 도출해주세요:
-${JSON.stringify(collectorResult, null, 2)}`;
+${JSON.stringify(collectorResult, null, 2)}
+
+다음 형식의 JSON으로 반환:
+{
+  "signals": [
+    {
+      "cluster": "클러스터명",
+      "signal": "신호 내용",
+      "userPain": "사용자 문제점",
+      "evidenceUrls": ["URL1", "URL2"],
+      "confidence": 0.85
+    }
+  ],
+  "clusters": [
+    {
+      "name": "클러스터명",
+      "oneLiner": "핵심 요약 1줄",
+      "whatItMeansForBapdongmu": "혼밥시러에 대한 의미",
+      "evidenceUrls": ["URL1", "URL2"]
+    }
+  ],
+  "risksAndFixes": [
+    {
+      "risk": "리스크",
+      "whyNow": "왜 지금 중요한가",
+      "productFix": ["제품 개선안"],
+      "policyFix": ["정책 개선안"],
+      "copyAngle": ["카피 각도"]
+    }
+  ],
+  "hypothesesToValidate": [
+    {
+      "hypothesis": "가설",
+      "why": "이유",
+      "howToTest": ["테스트 방법"],
+      "questions": ["질문"]
+    }
+  ]
+}`;
 
     const analystResponse = await openai.chat.completions.create({
       model: "gpt-4-turbo-preview",
@@ -374,13 +436,58 @@ ${JSON.stringify(collectorResult, null, 2)}`;
       max_tokens: 3000
     });
 
-    const analystResult = JSON.parse(analystResponse.choices[0].message.content);
+    let analystResult;
+    try {
+      analystResult = JSON.parse(analystResponse.choices[0].message.content);
+    } catch (e) {
+      console.error('Analyst JSON 파싱 오류:', e);
+      analystResult = { signals: [], clusters: [], risksAndFixes: [], hypothesesToValidate: [] };
+    }
     console.log('✅ Step 2: Analyst 완료');
+    console.log('Analyst 결과 요약:', {
+      signals: analystResult.signals?.length || 0,
+      clusters: analystResult.clusters?.length || 0
+    });
 
     // Step 3: Studio
     const studioPrompt = `분석된 인사이트를 바탕으로 콘텐츠를 생성해주세요:
 ${JSON.stringify(analystResult, null, 2)}
-톤: ${tone === 'warm_story' ? '따뜻한 스토리텔링' : '유머와 밈'}`;
+톤: ${tone === 'warm_story' ? '따뜻한 스토리텔링' : '유머와 밈'}
+
+다음 형식의 JSON으로 반환:
+{
+  "threadsDrafts": [
+    {
+      "type": "short",
+      "hook": "후크 문장",
+      "body": "본문",
+      "cta": "CTA",
+      "hashtags": ["해시태그1", "해시태그2"]
+    }
+  ],
+  "instagramDrafts": [
+    {
+      "format": "caption",
+      "caption": "캡션",
+      "carouselSlides": [
+        { "slideNo": 1, "headline": "헤드라인", "sub": "서브텍스트", "visual": "비주얼 설명" }
+      ],
+      "hashtags": ["해시태그1", "해시태그2"]
+    }
+  ],
+  "imagePlans": [
+    {
+      "name": "이미지명",
+      "style": "photo",
+      "concept": "컨셉",
+      "shotOrLayout": ["샷/레이아웃"],
+      "overlayText": ["오버레이 텍스트"],
+      "aiPromptKR": "AI 프롬프트(한글)",
+      "aiPromptEN": "AI prompt (English)",
+      "negativePrompt": "네거티브 프롬프트"
+    }
+  ]
+}`;
 
     const studioResponse = await openai.chat.completions.create({
       model: "gpt-4-turbo-preview",
@@ -393,8 +500,19 @@ ${JSON.stringify(analystResult, null, 2)}
       max_tokens: 4000
     });
 
-    const studioResult = JSON.parse(studioResponse.choices[0].message.content);
+    let studioResult;
+    try {
+      studioResult = JSON.parse(studioResponse.choices[0].message.content);
+    } catch (e) {
+      console.error('Studio JSON 파싱 오류:', e);
+      studioResult = { threadsDrafts: [], instagramDrafts: [], imagePlans: [] };
+    }
     console.log('✅ Step 3: Studio 완료');
+    console.log('Studio 결과 요약:', {
+      threads: studioResult.threadsDrafts?.length || 0,
+      instagram: studioResult.instagramDrafts?.length || 0,
+      images: studioResult.imagePlans?.length || 0
+    });
 
     // 전체 결과 조합
     const fullResult = {
