@@ -1429,6 +1429,11 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/advertisements', advertisementRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/admin', researchRoutes);
+
+// 고급 리서치 파이프라인 라우트
+const advancedResearchRoutes = require('./routes/advanced-research');
+app.use('/api/admin/advanced', advancedResearchRoutes);
+
 app.use('/api/test', testRoutes);
 
 // 데이터베이스 초기화 및 서버 시작

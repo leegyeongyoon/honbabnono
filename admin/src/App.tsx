@@ -37,6 +37,7 @@ import AdvertisementManagement from './components/AdvertisementManagement';
 import ChatbotSettings from './components/ChatbotSettings';
 import NoticeManagement from './components/NoticeManagement';
 import ResearchAgent from './components/ResearchAgent';
+import AdvancedResearch from './components/AdvancedResearch';
 import Login from './components/Login';
 
 const theme = createTheme({
@@ -80,6 +81,7 @@ const menuItems = [
   { text: '공지사항', icon: <AnnouncementIcon />, path: '/notices' },
   { text: '광고 관리', icon: <CampaignIcon />, path: '/advertisements' },
   { text: '리서치 에이전트', icon: <PsychologyIcon />, path: '/research-agent' },
+  { text: '고급 리서치', icon: <PsychologyIcon />, path: '/advanced-research' },
   { text: '관리자 계정', icon: <AdminPanelSettingsIcon />, path: '/admin-accounts' },
   { text: '챗봇 설정', icon: <SmartToyIcon />, path: '/chatbot-settings' },
   { text: '리포트', icon: <ReportIcon />, path: '/reports' },
@@ -250,6 +252,7 @@ function App() {
               <Route path="/notices" element={<NoticeManagement />} />
               <Route path="/advertisements" element={<AdvertisementManagement />} />
               <Route path="/research-agent" element={<ResearchAgent />} />
+              <Route path="/advanced-research" element={<AdvancedResearch />} />
               <Route path="/admin-accounts" element={<AdminManagement />} />
               <Route path="/chatbot-settings" element={<ChatbotSettings />} />
               <Route path="/reports" element={<Reports />} />
