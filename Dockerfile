@@ -7,8 +7,8 @@ WORKDIR /app
 # 빌드에 필요한 도구들 설치
 RUN apk add --no-cache python3 make g++
 
-# package.json과 package-lock.json 복사
-COPY package*.json ./
+# package.json과 package-lock.json, .npmrc 복사
+COPY package*.json .npmrc ./
 
 # 의존성 설치 (production + server 의존성)
 RUN npm cache clean --force && \
@@ -22,8 +22,8 @@ WORKDIR /app
 # 빌드에 필요한 도구들 설치
 RUN apk add --no-cache python3 make g++
 
-# package.json과 package-lock.json 복사
-COPY package*.json ./
+# package.json과 package-lock.json, .npmrc 복사
+COPY package*.json .npmrc ./
 
 # npm 캐시 정리 및 의존성 설치
 RUN npm cache clean --force && \
@@ -52,7 +52,7 @@ RUN apk add --no-cache nginx supervisor python3 make g++
 WORKDIR /app
 
 # 빌드 스테이지에서 이미 설치된 node_modules 복사 (프로덕션 필터링)
-COPY package*.json ./
+COPY package*.json .npmrc ./
 COPY --from=build /app/node_modules ./node_modules
 
 # 프로덕션에서 불필요한 dev dependencies 제거
