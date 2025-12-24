@@ -51,10 +51,12 @@ RUN apk add --no-cache nginx supervisor python3 make g++
 # 작업 디렉토리 설정
 WORKDIR /app
 
-# 프로덕션 의존성만 설치
+# 빌드 스테이지에서 이미 설치된 node_modules 복사 (프로덕션 필터링)
 COPY package*.json ./
-RUN npm cache clean --force && \
-    npm install --production --verbose
+COPY --from=build /app/node_modules ./node_modules
+
+# 프로덕션에서 불필요한 dev dependencies 제거
+RUN npm prune --production
 
 # 백엔드 서버 코드 복사
 COPY server/ ./server/
