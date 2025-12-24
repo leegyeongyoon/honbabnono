@@ -36,7 +36,7 @@ output "application_url" {
 
 output "ssl_certificate_arn" {
   description = "SSL certificate ARN (if domain configured)"
-  value       = var.domain_name != "" ? data.aws_acm_certificate.existing[0].arn : "Not configured"
+  value       = "arn:aws:acm:ap-northeast-2:975050251584:certificate/63c3339b-6ef2-482c-8767-970483e80af9"
 }
 
 output "hosted_zone_id" {

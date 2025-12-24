@@ -28,12 +28,12 @@ locals {
   ]
 }
 
-# SSL 인증서 (기존 것 사용)
-data "aws_acm_certificate" "existing" {
-  count    = var.domain_name != "" ? 1 : 0
-  domain   = var.domain_name
-  statuses = ["ISSUED"]
-}
+# SSL 인증서 (기존 것 사용) - 하드코딩된 ARN 사용으로 주석 처리
+# data "aws_acm_certificate" "existing" {
+#   count    = var.domain_name != "" ? 1 : 0
+#   domain   = var.domain_name
+#   statuses = ["ISSUED"]
+# }
 
 # SSL 인증서 DNS 검증 레코드 (이미 존재하므로 주석 처리)
 # resource "aws_route53_record" "cert_validation" {
