@@ -1,7 +1,15 @@
 const { Router } = require('express');
 const OpenAI = require('openai');
 const jwt = require('jsonwebtoken');
-const { createCanvas } = require('canvas');
+// Canvas는 선택적으로 import (텍스트 카드 생성용)
+let createCanvas = null;
+try {
+  const canvas = require('canvas');
+  createCanvas = canvas.createCanvas;
+  console.log('✅ Canvas 모듈 로드 완료');
+} catch (error) {
+  console.log('⚠️ Canvas 모듈 없음 - 텍스트 카드 생성 비활성화');
+}
 
 const router = Router();
 
@@ -10,18 +18,25 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
 
-// Sequelize 연결
-let sequelize;
-try {
-  const models = require('../models');
-  sequelize = models.sequelize;
-} catch (error) {
-  const { Sequelize } = require('sequelize');
-  sequelize = new Sequelize(
-    process.env.DATABASE_URL || 
-    'postgresql://postgres:honbabnono@honbabnono.c3iokeig2kd8.ap-northeast-2.rds.amazonaws.com:5432/honbabnono'
-  );
+// PostgreSQL 연결 설정
+const { Pool } = require('pg');
+
+const dbConfig = {
+  host: process.env.DB_HOST,
+  port: process.env.DB_PORT,
+  database: process.env.DB_NAME,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+};
+
+// SSL 설정을 환경변수에 따라 조건부로 추가
+if (process.env.DB_SSL !== 'false' && (process.env.NODE_ENV === 'production' || process.env.DB_HOST?.includes('amazonaws.com'))) {
+  dbConfig.ssl = {
+    rejectUnauthorized: false
+  };
 }
+
+const pool = new Pool(dbConfig);
 
 // 인증 미들웨어
 const authenticateAdmin = async (req, res, next) => {
@@ -34,19 +49,16 @@ const authenticateAdmin = async (req, res, next) => {
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'honbabnono_jwt_secret_key_2024');
     
-    const result = await sequelize.query(
-      'SELECT id, username, role FROM admins WHERE id = :id AND is_active = true',
-      {
-        replacements: { id: decoded.id },
-        type: sequelize.QueryTypes.SELECT
-      }
+    const result = await pool.query(
+      'SELECT id, username, role FROM admins WHERE id = $1 AND is_active = true',
+      [decoded.adminId]
     );
 
-    if (result.length === 0) {
+    if (result.rows.length === 0) {
       return res.status(403).json({ error: '권한이 없습니다' });
     }
 
-    req.admin = result[0];
+    req.admin = result.rows[0];
     next();
   } catch (error) {
     console.error('인증 오류:', error);
@@ -292,6 +304,11 @@ ${JSON.stringify(sources, null, 2)}
 
 // 텍스트 카드 이미지 생성 함수
 function createTextCard(text, options = {}) {
+  if (!createCanvas) {
+    console.log('⚠️ Canvas 모듈이 없어 텍스트 카드 생성을 건너뜁니다');
+    return null;
+  }
+  
   const width = options.width || 1080;
   const height = options.height || 1080;
   const bgColor = options.bgColor || '#F9F8F6';
@@ -658,8 +675,12 @@ ${JSON.stringify(analystResult, null, 2)}
             textColor: '#4C422C',
             fontSize: 42
           });
-          insta.textCardImage = cardImage;
-          console.log(`✅ 텍스트 카드 생성 완료: ${insta.format}`);
+          if (cardImage) {
+            insta.textCardImage = cardImage;
+            console.log(`✅ 텍스트 카드 생성 완료: ${insta.format}`);
+          } else {
+            console.log(`⚠️ 텍스트 카드 생성 건너뜀: ${insta.format}`);
+          }
         }
       }
     }
@@ -710,23 +731,17 @@ ${JSON.stringify(analystResult, null, 2)}
 
     // DB에 저장
     try {
-      await sequelize.query(
+      await pool.query(
         `INSERT INTO advanced_research_reports (admin_id, report_data, created_at) 
-         VALUES (:adminId, :reportData, NOW())`,
-        {
-          replacements: {
-            adminId: req.admin.id,
-            reportData: JSON.stringify(fullResult)
-          },
-          type: sequelize.QueryTypes.INSERT
-        }
+         VALUES ($1, $2, NOW())`,
+        [req.admin.id, JSON.stringify(fullResult)]
       );
       console.log('💾 파이프라인 결과 DB 저장 완료');
     } catch (dbError) {
       console.log('⚠️ DB 저장 실패 (테이블이 없을 수 있음):', dbError.message);
       // 테이블 생성 시도
       try {
-        await sequelize.query(`
+        await pool.query(`
           CREATE TABLE IF NOT EXISTS advanced_research_reports (
             id SERIAL PRIMARY KEY,
             admin_id UUID NOT NULL,
@@ -847,19 +862,16 @@ ${platformGuide}
 router.get('/advanced-reports', authenticateAdmin, async (req, res) => {
   try {
     try {
-      const reports = await sequelize.query(
+      const reports = await pool.query(
         `SELECT id, report_data as report, created_at as date 
          FROM advanced_research_reports 
-         WHERE admin_id = :adminId 
+         WHERE admin_id = $1 
          ORDER BY created_at DESC 
          LIMIT 10`,
-        {
-          replacements: { adminId: req.admin.id },
-          type: sequelize.QueryTypes.SELECT
-        }
+        [req.admin.id]
       );
 
-      const parsedReports = reports.map(report => ({
+      const parsedReports = reports.rows.map(report => ({
         ...report,
         report: typeof report.report === 'string' 
           ? JSON.parse(report.report) 

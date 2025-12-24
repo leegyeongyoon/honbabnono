@@ -66,6 +66,13 @@ function AdvancedResearch() {
   const [selectedContent, setSelectedContent] = useState<any>(null);
   const [copyDialogOpen, setCopyDialogOpen] = useState(false);
   const [copyContent, setCopyContent] = useState('');
+  
+  // 해시태그 생성 관련 state
+  const [hashtagTopic, setHashtagTopic] = useState('');
+  const [hashtagPlatform, setHashtagPlatform] = useState<'instagram' | 'threads'>('instagram');
+  const [hashtagTone, setHashtagTone] = useState<'neutral' | 'provocative' | 'warm' | 'humorous'>('neutral');
+  const [hashtagLoading, setHashtagLoading] = useState(false);
+  const [hashtagResult, setHashtagResult] = useState<any>(null);
 
   useEffect(() => {
     loadSavedReports();
@@ -73,7 +80,7 @@ function AdvancedResearch() {
 
   const loadSavedReports = async () => {
     try {
-      const response = await apiClient.get('/api/admin/advanced/advanced-reports');
+      const response = await apiClient.get('/api/advanced-research/advanced-reports');
       const data = response.data as { success: boolean; reports: any[] };
       if (data.success) {
         setSavedReports(data.reports);
@@ -95,7 +102,7 @@ function AdvancedResearch() {
       // 전체 파이프라인 실행
       setCurrentStep('🔍 Step 1/3: 데이터 수집 중... (최대 3분 소요)');
       
-      const response = await apiClient.post('/api/admin/advanced/run-full-pipeline', {
+      const response = await apiClient.post('/api/advanced-research/run-full-pipeline', {
         tone,
         customPrompt,
         generateImages,
@@ -133,6 +140,32 @@ function AdvancedResearch() {
       setCurrentStep('❌ 오류: ' + (error.response?.data?.error || error.message));
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleGenerateHashtags = async () => {
+    if (!hashtagTopic.trim() || hashtagLoading) return;
+    
+    setHashtagLoading(true);
+    setHashtagResult(null);
+    
+    try {
+      const response = await apiClient.post('/api/advanced-research/generate-hashtags', {
+        topic: hashtagTopic,
+        platform: hashtagPlatform,
+        tone: hashtagTone
+      });
+      
+      const data = response.data as { success: boolean; result: any; metadata: any };
+      if (data.success) {
+        setHashtagResult(data);
+      } else {
+        console.error('해시태그 생성 실패:', data);
+      }
+    } catch (error: any) {
+      console.error('해시태그 생성 오류:', error);
+    } finally {
+      setHashtagLoading(false);
     }
   };
 
@@ -532,6 +565,104 @@ function AdvancedResearch() {
     );
   };
 
+  const renderHashtagResult = (data: any) => {
+    if (!data || !data.result) {
+      return (
+        <Card>
+          <CardContent>
+            <Typography>해시태그 결과가 없습니다.</Typography>
+          </CardContent>
+        </Card>
+      );
+    }
+
+    const { result, metadata } = data;
+
+    return (
+      <Card>
+        <CardContent>
+          <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold' }}>
+            🏷️ {metadata.platform === 'instagram' ? '인스타그램' : '스레드'} 해시태그 15개
+          </Typography>
+          
+          <Box sx={{ mb: 2 }}>
+            <Chip label={`주제: ${metadata.topic}`} color="primary" sx={{ mr: 1 }} />
+            <Chip label={`톤: ${metadata.tone}`} color="secondary" sx={{ mr: 1 }} />
+            <Chip label={metadata.platform} color="info" />
+          </Box>
+
+          <Paper sx={{ p: 2, mb: 2 }}>
+            <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 1 }}>
+              📋 전체 해시태그
+            </Typography>
+            <Box sx={{ mb: 2 }}>
+              {result.hashtags?.map((tag: string, index: number) => (
+                <Chip
+                  key={index}
+                  label={tag}
+                  size="small"
+                  sx={{ m: 0.3, fontSize: '0.75rem' }}
+                  onClick={() => navigator.clipboard.writeText(tag)}
+                />
+              ))}
+            </Box>
+            <Button
+              size="small"
+              variant="outlined"
+              onClick={() => handleCopyContent(
+                result.hashtags?.join(' '),
+                `${metadata.platform} 해시태그`
+              )}
+            >
+              📋 모든 해시태그 복사
+            </Button>
+          </Paper>
+
+          {result.categories && (
+            <Paper sx={{ p: 2, mb: 2 }}>
+              <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 2 }}>
+                📊 카테고리별 해시태그
+              </Typography>
+              {Object.entries(result.categories).map(([category, tags]: [string, any]) => (
+                <Box key={category} sx={{ mb: 2 }}>
+                  <Typography variant="body2" fontWeight="bold" color="text.secondary">
+                    {category === 'general' && '🌐 일반'}
+                    {category === 'niche' && '🎯 니치'}
+                    {category === 'trending' && '🔥 트렌딩'}
+                    {category === 'brand' && '🏢 브랜드/커뮤니티'}
+                  </Typography>
+                  <Box sx={{ mt: 0.5 }}>
+                    {tags?.map((tag: string, index: number) => (
+                      <Chip
+                        key={index}
+                        label={tag}
+                        size="small"
+                        variant="outlined"
+                        sx={{ m: 0.2, fontSize: '0.75rem' }}
+                        onClick={() => navigator.clipboard.writeText(tag)}
+                      />
+                    ))}
+                  </Box>
+                </Box>
+              ))}
+            </Paper>
+          )}
+
+          {result.strategy && (
+            <Paper sx={{ p: 2 }}>
+              <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 1 }}>
+                💡 해시태그 전략
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                {result.strategy}
+              </Typography>
+            </Paper>
+          )}
+        </CardContent>
+      </Card>
+    );
+  };
+
   return (
     <Box>
       <Typography variant="h4" sx={{ mb: 3, fontWeight: 700, color: '#4C422C' }}>
@@ -621,6 +752,88 @@ function AdvancedResearch() {
             </Typography>
           )}
         </Box>
+      </Paper>
+
+      {/* 해시태그 생성 섹션 */}
+      <Paper sx={{ p: 3, mb: 3 }}>
+        <Typography variant="h6" gutterBottom>
+          🏷️ 해시태그 생성
+        </Typography>
+        
+        <Alert severity="info" sx={{ mb: 2 }}>
+          <Typography variant="body2">
+            주제를 입력하면 인스타그램/스레드용 해시태그 15개를 생성합니다
+          </Typography>
+        </Alert>
+
+        <TextField
+          label="주제"
+          fullWidth
+          value={hashtagTopic}
+          onChange={(e) => setHashtagTopic(e.target.value)}
+          placeholder="예: 혼밥 vs 같이 먹기 논란"
+          sx={{ mb: 2 }}
+        />
+
+        <Box sx={{ mb: 2 }}>
+          <Typography variant="subtitle2" gutterBottom>플랫폼</Typography>
+          <ToggleButtonGroup
+            value={hashtagPlatform}
+            exclusive
+            onChange={(e, newPlatform) => newPlatform && setHashtagPlatform(newPlatform)}
+            sx={{ mb: 2 }}
+          >
+            <ToggleButton value="instagram">
+              📷 인스타그램
+            </ToggleButton>
+            <ToggleButton value="threads">
+              🧵 스레드
+            </ToggleButton>
+          </ToggleButtonGroup>
+        </Box>
+
+        <Box sx={{ mb: 2 }}>
+          <Typography variant="subtitle2" gutterBottom>톤</Typography>
+          <ToggleButtonGroup
+            value={hashtagTone}
+            exclusive
+            onChange={(e, newTone) => newTone && setHashtagTone(newTone)}
+            size="small"
+            sx={{ mb: 2 }}
+          >
+            <ToggleButton value="neutral">
+              😐 중성적
+            </ToggleButton>
+            <ToggleButton value="provocative">
+              🔥 도발적
+            </ToggleButton>
+            <ToggleButton value="warm">
+              🤗 따뜻한
+            </ToggleButton>
+            <ToggleButton value="humorous">
+              😄 유머러스
+            </ToggleButton>
+          </ToggleButtonGroup>
+        </Box>
+
+        <Button
+          variant="contained"
+          onClick={handleGenerateHashtags}
+          disabled={!hashtagTopic.trim() || hashtagLoading}
+          startIcon={hashtagLoading ? <CircularProgress size={20} /> : null}
+          sx={{ 
+            bgcolor: '#4C422C', 
+            '&:hover': { bgcolor: '#3A332A' } 
+          }}
+        >
+          {hashtagLoading ? '생성 중...' : '해시태그 생성'}
+        </Button>
+
+        {hashtagResult && (
+          <Box sx={{ mt: 3 }}>
+            {renderHashtagResult(hashtagResult)}
+          </Box>
+        )}
       </Paper>
 
       {/* 결과 표시 */}

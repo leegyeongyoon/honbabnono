@@ -7252,7 +7252,7 @@ apiRouter.get('/notifications', authenticateToken, async (req, res) => {
 
     const notificationsResult = await pool.query(`
       SELECT 
-        id, type, title, content, data, is_read, created_at
+        id, type, title, message as content, data, is_read, created_at
       FROM notifications 
       WHERE user_id = $1
       ORDER BY created_at DESC
@@ -12288,6 +12288,7 @@ apiRouter.delete('/upload/:fileId', authenticateToken, async (req, res) => {
 apiRouter.post('/admin/login', async (req, res) => {
   try {
     const { username, password } = req.body;
+    console.log('🔐 관리자 로그인 시도:', { username, hasPassword: !!password });
 
     if (!username || !password) {
       return res.status(400).json({
@@ -12338,17 +12339,22 @@ apiRouter.post('/admin/login', async (req, res) => {
       [admin.id]
     );
 
-    res.json({
+    const responseData = {
       success: true,
       message: '관리자 로그인 성공',
-      token,
-      admin: {
-        id: admin.id,
-        username: admin.username,
-        email: admin.email,
-        role: admin.role
+      data: {
+        token,
+        admin: {
+          id: admin.id,
+          username: admin.username,
+          email: admin.email,
+          role: admin.role
+        }
       }
-    });
+    };
+    
+    console.log('✅ 관리자 로그인 성공 응답:', JSON.stringify(responseData, null, 2));
+    res.json(responseData);
 
   } catch (error) {
     console.error('관리자 로그인 오류:', error);
@@ -14456,6 +14462,15 @@ apiRouter.post('/search/ai', async (req, res) => {
     });
   }
 });
+
+// Advanced Research 라우터 등록
+try {
+  const advancedResearchRouter = require('./routes/advanced-research');
+  apiRouter.use('/advanced-research', advancedResearchRouter);
+  console.log('✅ Advanced Research 라우터 등록 완료');
+} catch (error) {
+  console.error('❌ Advanced Research 라우터 등록 실패:', error.message);
+}
 
 // 404 에러 핸들러 (API 라우터용) - 모든 라우트 정의 후 마지막에 위치
 apiRouter.use('*', (req, res) => {
