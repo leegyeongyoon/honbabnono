@@ -62,7 +62,7 @@ resource "aws_lb_listener" "https" {
   port              = "443"
   protocol          = "HTTPS"
   ssl_policy        = "ELBSecurityPolicy-2016-08"
-  certificate_arn   = "arn:aws:acm:ap-northeast-2:975050251584:certificate/26e43f91-c274-4731-b357-b929ee2c0074"
+  certificate_arn   = "arn:aws:acm:ap-northeast-2:975050251584:certificate/63c3339b-6ef2-482c-8767-970483e80af9"
 
   # 기본 액션: 메인 앱으로 포워딩
   default_action {

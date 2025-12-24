@@ -222,7 +222,7 @@ aws route53 list-resource-record-sets \
 
 # SSL 인증서 상태 확인
 aws acm describe-certificate \
-  --certificate-arn arn:aws:acm:ap-northeast-2:975050251584:certificate/26e43f91-c274-4731-b357-b929ee2c0074
+  --certificate-arn arn:aws:acm:ap-northeast-2:975050251584:certificate/63c3339b-6ef2-482c-8767-970483e80af9
 ```
 
 #### 4. 높은 비용 발생
