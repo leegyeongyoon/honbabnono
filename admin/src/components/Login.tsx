@@ -14,7 +14,7 @@ import {
 } from '@mui/material';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
-import { API_BASE_URL } from '../utils/api';
+import apiClient from '../utils/api';
 
 const theme = createTheme({
   palette: {
@@ -63,33 +63,24 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
     setLoading(true);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/admin/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          username,
-          password,
-        }),
+      const response = await apiClient.post('/api/admin/login', {
+        username,
+        password,
       });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || '로그인 실패');
-      }
+      const data = response.data;
 
       if (data.success && data.data && data.data.token) {
         localStorage.setItem('adminToken', data.data.token);
         localStorage.setItem('adminData', JSON.stringify(data.data.admin));
         onLoginSuccess(data.data.token, data.data.admin);
       } else {
-        throw new Error('유효하지 않은 응답 형식');
+        throw new Error(data.error || '유효하지 않은 응답 형식');
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('로그인 오류:', err);
-      setError(err instanceof Error ? err.message : '로그인 중 오류가 발생했습니다.');
+      const errorMessage = err.response?.data?.error || err.message || '로그인 중 오류가 발생했습니다.';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
