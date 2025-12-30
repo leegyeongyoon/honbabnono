@@ -38,6 +38,9 @@ COPY .env.production .env
 # 웹 버전 빌드
 RUN npm run build:web
 
+# Admin 패널 빌드
+RUN cd admin && npm install --legacy-peer-deps && npm run build
+
 # 프로덕션 스테이지 (Node.js + nginx)
 FROM node:20-alpine AS production
 
@@ -74,6 +77,9 @@ RUN if [ ! -z "$OPENAI_API_KEY" ]; then \
 
 # 빌드된 웹 파일들 복사
 COPY --from=build /app/dist /usr/share/nginx/html
+
+# 빌드된 admin 파일들 복사
+COPY --from=build /app/admin/build /usr/share/nginx/html/admin
 
 # nginx 설정 (API 프록시 포함)
 COPY nginx.conf /etc/nginx/nginx.conf
