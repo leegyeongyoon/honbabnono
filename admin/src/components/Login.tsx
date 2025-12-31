@@ -68,7 +68,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
         password,
       });
 
-      const data = response.data;
+      const data = response.data as any;
 
       if (data.success && data.data && data.data.token) {
         localStorage.setItem('adminToken', data.data.token);
