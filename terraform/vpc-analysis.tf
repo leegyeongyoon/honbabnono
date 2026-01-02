@@ -17,11 +17,7 @@ data "aws_eips" "in_vpc" {
   }
 }
 
-# 3. 각 Elastic IP의 연결 상태 및 사용 목적 분석
-data "aws_eip" "detailed" {
-  count = length(data.aws_eips.in_vpc.addresses)
-  id    = data.aws_eips.in_vpc.addresses[count.index].id
-}
+# 3. 현재는 간단한 ID 목록만 제공 (상세 분석은 AWS CLI 권장)
 
 # 4. 현재 실행 중인 ECS 태스크들의 Public IP 사용 현황
 data "aws_ecs_service" "current_main" {
@@ -53,21 +49,10 @@ output "detailed_public_ip_usage" {
     # VPC 기본 정보
     vpc_id = local.vpc_id
     
-    # Elastic IP 상세 정보
-    elastic_ips = [
-      for i, eip in data.aws_eip.detailed : {
-        allocation_id = eip.id
-        public_ip = eip.public_ip
-        private_ip = eip.private_ip
-        associated_instance = eip.instance_id
-        associated_network_interface = eip.network_interface_id
-        association_id = eip.association_id
-        domain = eip.domain
-        tags = eip.tags
-        is_attached = eip.association_id != null ? true : false
-        usage_status = eip.association_id != null ? "사용 중" : "⚠️ 미사용 (비용 발생 중)"
-      }
-    ]
+    # Elastic IP 기본 정보 (상세 분석은 AWS CLI 사용)
+    elastic_ip_ids = data.aws_eips.in_vpc.ids
+    elastic_ip_count = length(data.aws_eips.in_vpc.ids)
+    note = "상세 IP 정보는 AWS CLI로 확인: aws ec2 describe-addresses --region ap-northeast-2"
     
     # ECS 서비스 Public IP 설정
     ecs_main_service = {

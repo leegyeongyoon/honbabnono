@@ -11,9 +11,9 @@ data "aws_eips" "all" {
 # Public IP 사용 분석 출력
 output "public_ip_analysis" {
   value = {
-    elastic_ip_count = length(data.aws_eips.all.addresses)
-    elastic_ips = data.aws_eips.all.addresses
-    estimated_elastic_ip_cost = "${length(data.aws_eips.all.addresses)} IPs × $3.6/month = $${length(data.aws_eips.all.addresses) * 3.6}/month"
+    elastic_ip_count = length(data.aws_eips.all.ids)
+    elastic_ip_ids = data.aws_eips.all.ids
+    estimated_elastic_ip_cost = "${length(data.aws_eips.all.ids)} IPs × $3.6/month = $${length(data.aws_eips.all.ids) * 3.6}/month"
     
     optimization_recommendations = [
       "ECS 서비스는 이미 assign_public_ip=true로 설정되어 동적 IP 사용",
@@ -48,15 +48,7 @@ output "public_ip_cost_optimization" {
   description = "Public IP 비용 최적화 분석 및 권장사항"
 }
 
-# 사용하지 않는 Elastic IP 식별 (연결되지 않은 IP)
-data "aws_eip" "unused" {
-  count = length(data.aws_eips.all.addresses)
-  
-  filter {
-    name   = "public-ip"
-    values = [data.aws_eips.all.addresses[count.index].public_ip]
-  }
-}
+# 사용하지 않는 Elastic IP 식별을 위한 데이터 소스들은 VPC 분석 파일에서 처리
 
 # 현재 ECS 서비스의 Public IP 설정 확인
 output "ecs_public_ip_config" {

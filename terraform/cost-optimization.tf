@@ -98,6 +98,10 @@ resource "aws_s3_bucket_lifecycle_configuration" "logs_lifecycle" {
   rule {
     id     = "delete_old_logs"
     status = "Enabled"
+    
+    filter {
+      prefix = ""
+    }
 
     expiration {
       days = 7  # 7일 후 자동 삭제
