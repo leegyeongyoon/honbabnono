@@ -79,8 +79,7 @@ resource "aws_ecr_repository_policy" "app_policy" {
   })
 }
 
-# AWS 계정 ID 가져오기
-data "aws_caller_identity" "current" {}
+# AWS 계정 ID는 resource-validation.tf에 이미 선언됨
 
 # S3 버킷 라이프사이클 정책 (로그 및 임시 파일 정리)
 resource "aws_s3_bucket" "logs" {

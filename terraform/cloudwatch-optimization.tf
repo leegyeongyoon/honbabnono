@@ -25,16 +25,7 @@ resource "aws_cloudwatch_log_group" "lambda_start_rds" {
   }
 }
 
-# Admin ECS 서비스 로그 그룹
-resource "aws_cloudwatch_log_group" "admin" {
-  name              = "/ecs/honbabnono-admin"
-  retention_in_days = 1  # 1일만 보관
-  
-  tags = {
-    Name        = "honbabnono-admin-logs"
-    Environment = var.environment
-  }
-}
+# Admin ECS 서비스 로그 그룹은 admin-services.tf에 이미 존재함
 
 # CloudWatch 메트릭 필터 제거 (불필요한 커스텀 메트릭 방지)
 # resource "aws_cloudwatch_log_metric_filter" "error_count" {
