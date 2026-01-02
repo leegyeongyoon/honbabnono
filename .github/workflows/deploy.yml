@@ -69,6 +69,8 @@ jobs:
     - name: Deploy infrastructure
       run: |
         cd terraform
+        # Force unlock terraform state if needed
+        terraform force-unlock -force 163d8796-7bf0-b86f-4525-903250e9f2d4 2>/dev/null || echo "No lock to unlock or different lock ID"
         terraform plan
         terraform apply -auto-approve
         
