@@ -86,7 +86,7 @@ resource "aws_ecs_task_definition" "admin" {
 resource "aws_cloudwatch_log_group" "admin" {
   name              = "/ecs/${local.resource_prefix}-admin"
   retention_in_days = 1
-  
+
   tags = {
     Name        = "${local.resource_prefix}-admin-logs"
     Environment = var.environment

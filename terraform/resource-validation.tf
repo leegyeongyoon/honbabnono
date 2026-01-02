@@ -43,7 +43,7 @@ terraform {
     bucket = "honbabnono-terraform-state"
     key    = "production/terraform.tfstate"
     region = "ap-northeast-2"
-    
+
     # 상태 잠금을 위한 DynamoDB 테이블
     dynamodb_table = "honbabnono-terraform-locks"
     encrypt        = true

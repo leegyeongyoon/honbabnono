@@ -12,11 +12,11 @@ resource "aws_cloudwatch_metric_alarm" "high_cpu" {
   evaluation_periods  = "2"
   metric_name         = "CPUUtilization"
   namespace           = "AWS/ECS"
-  period              = "300"  # 5분 간격으로 확장
+  period              = "300" # 5분 간격으로 확장
   statistic           = "Average"
   threshold           = "85"
   alarm_description   = "This metric monitors ecs cpu utilization"
-  alarm_actions       = []  # SNS 알림 제거로 비용 절감
+  alarm_actions       = [] # SNS 알림 제거로 비용 절감
 
   dimensions = {
     ServiceName = aws_ecs_service.main.name
@@ -31,8 +31,8 @@ resource "aws_cloudwatch_metric_alarm" "high_cpu" {
 
 # ECS 서비스 스케일링 정책 (필요시에만 확장)
 resource "aws_appautoscaling_target" "ecs_target" {
-  max_capacity       = 2  # 최대 2개 인스턴스로 제한
-  min_capacity       = 1  # 최소 1개 유지
+  max_capacity       = 2 # 최대 2개 인스턴스로 제한
+  min_capacity       = 1 # 최소 1개 유지
   resource_id        = "service/${aws_ecs_cluster.main.name}/${aws_ecs_service.main.name}"
   scalable_dimension = "ecs:service:DesiredCount"
   service_namespace  = "ecs"
@@ -49,9 +49,9 @@ resource "aws_appautoscaling_policy" "ecs_scale_up" {
     predefined_metric_specification {
       predefined_metric_type = "ECSServiceAverageCPUUtilization"
     }
-    target_value       = 70.0  # 70% CPU 사용률에서 스케일링
-    scale_in_cooldown  = 300   # 스케일 다운 쿨다운 5분
-    scale_out_cooldown = 300   # 스케일 업 쿨다운 5분
+    target_value       = 70.0 # 70% CPU 사용률에서 스케일링
+    scale_in_cooldown  = 300  # 스케일 다운 쿨다운 5분
+    scale_out_cooldown = 300  # 스케일 업 쿨다운 5분
   }
 }
 
@@ -64,8 +64,8 @@ resource "aws_ecr_repository_policy" "app_policy" {
     Version = "2008-10-17"
     Statement = [
       {
-        Sid       = "AllowPull"
-        Effect    = "Allow"
+        Sid    = "AllowPull"
+        Effect = "Allow"
         Principal = {
           AWS = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"
         }
@@ -98,17 +98,17 @@ resource "aws_s3_bucket_lifecycle_configuration" "logs_lifecycle" {
   rule {
     id     = "delete_old_logs"
     status = "Enabled"
-    
+
     filter {
       prefix = ""
     }
 
     expiration {
-      days = 7  # 7일 후 자동 삭제
+      days = 7 # 7일 후 자동 삭제
     }
 
     noncurrent_version_expiration {
-      noncurrent_days = 1  # 이전 버전 1일 후 삭제
+      noncurrent_days = 1 # 이전 버전 1일 후 삭제
     }
   }
 }

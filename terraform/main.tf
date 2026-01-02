@@ -72,7 +72,7 @@ resource "aws_ecr_repository" "app" {
   force_delete         = true
 
   image_scanning_configuration {
-    scan_on_push = false  # 스캔 비활성화로 비용 절감
+    scan_on_push = false # 스캔 비활성화로 비용 절감
   }
 
   lifecycle {
@@ -93,7 +93,7 @@ resource "aws_ecr_repository" "admin" {
   force_delete         = true
 
   image_scanning_configuration {
-    scan_on_push = false  # 스캔 비활성화로 비용 절감
+    scan_on_push = false # 스캔 비활성화로 비용 절감
   }
 
   lifecycle {
@@ -281,8 +281,8 @@ resource "aws_iam_role" "ecs_task_role" {
 # CloudWatch 로그 그룹 (비용 최적화)
 resource "aws_cloudwatch_log_group" "app" {
   name              = "/ecs/${local.resource_prefix}"
-  retention_in_days = 1  # 1일만 보관으로 비용 최소화
-  
+  retention_in_days = 1 # 1일만 보관으로 비용 최소화
+
   tags = {
     Name        = "${local.resource_prefix}-logs"
     Environment = var.environment

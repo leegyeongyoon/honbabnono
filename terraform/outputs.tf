@@ -51,5 +51,5 @@ output "nameservers" {
 
 output "domain_setup_instructions" {
   description = "Instructions for domain setup"
-  value = var.domain_name != "" ? "Domain is already configured and managed" : "No domain configured"
+  value       = var.domain_name != "" ? "Domain is already configured and managed" : "No domain configured"
 }

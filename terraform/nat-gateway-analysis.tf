@@ -37,25 +37,25 @@ output "nat_gateway_analysis" {
   description = "NAT Gateway 현황 및 제거 가능성 분석"
 }
 
-# Public 서브넷 확인 (IGW 라우팅 확인)
-data "aws_route_table" "public_check" {
-  count     = length(local.subnet_ids)
-  subnet_id = local.subnet_ids[count.index]
-}
+# Public 서브넷 확인은 AWS CLI로 권장 (일부 서브넷에 route table이 없을 수 있음)
+# data "aws_route_table" "public_check" {
+#   count     = length(local.subnet_ids)
+#   subnet_id = local.subnet_ids[count.index]
+# }
 
 # NAT Gateway 제거 권장사항
 locals {
   nat_gateway_removal_safe = length(data.aws_nat_gateways.existing.ids) > 0 && var.app_count <= 2
-  
+
   removal_analysis = {
     current_nat_gateways = length(data.aws_nat_gateways.existing.ids)
-    ecs_uses_public_ip   = true  # assign_public_ip = true
-    rds_public_access    = true  # publicly_accessible = true (예정)
+    ecs_uses_public_ip   = true # assign_public_ip = true
+    rds_public_access    = true # publicly_accessible = true (예정)
     estimated_savings    = "월 $32-45 (NAT Gateway $32 + Data Processing $13)"
     removal_safe         = local.nat_gateway_removal_safe
     requirements = [
       "ECS 서비스는 public subnet에서 assign_public_ip=true로 실행 중",
-      "RDS는 public 접근으로 설정하여 NAT Gateway 불필요", 
+      "RDS는 public 접근으로 설정하여 NAT Gateway 불필요",
       "ALB는 이미 public subnet에 위치",
       "외부 API 호출 시 컨테이너가 직접 인터넷 연결 사용"
     ]

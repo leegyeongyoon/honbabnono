@@ -7,8 +7,8 @@
 # Lambda 함수들의 로그 그룹 (자동 생성 방지 및 수동 관리)
 resource "aws_cloudwatch_log_group" "lambda_stop_rds" {
   name              = "/aws/lambda/honbabnono-stop-rds"
-  retention_in_days = 3  # Lambda 로그는 3일만 보관
-  
+  retention_in_days = 3 # Lambda 로그는 3일만 보관
+
   tags = {
     Name        = "honbabnono-lambda-stop-rds-logs"
     Environment = var.environment
@@ -16,9 +16,9 @@ resource "aws_cloudwatch_log_group" "lambda_stop_rds" {
 }
 
 resource "aws_cloudwatch_log_group" "lambda_start_rds" {
-  name              = "/aws/lambda/honbabnono-start-rds" 
-  retention_in_days = 3  # Lambda 로그는 3일만 보관
-  
+  name              = "/aws/lambda/honbabnono-start-rds"
+  retention_in_days = 3 # Lambda 로그는 3일만 보관
+
   tags = {
     Name        = "honbabnono-lambda-start-rds-logs"
     Environment = var.environment
@@ -49,14 +49,14 @@ resource "aws_cloudwatch_log_group" "lambda_start_rds" {
 resource "aws_cloudwatch_metric_alarm" "ecs_high_cpu" {
   alarm_name          = "honbabnono-ecs-high-cpu"
   comparison_operator = "GreaterThanThreshold"
-  evaluation_periods  = "3"  # 3번 연속 초과시 알람
+  evaluation_periods  = "3" # 3번 연속 초과시 알람
   metric_name         = "CPUUtilization"
   namespace           = "AWS/ECS"
-  period              = "300"  # 5분 간격
+  period              = "300" # 5분 간격
   statistic           = "Average"
-  threshold           = "80"   # CPU 80% 초과시
+  threshold           = "80" # CPU 80% 초과시
   alarm_description   = "ECS CPU utilization is too high"
-  
+
   # SNS 알림 제거 (비용 절감)
   alarm_actions = []
   ok_actions    = []
@@ -84,7 +84,7 @@ resource "aws_cloudwatch_metric_alarm" "rds_connection_failures" {
   threshold           = "0"
   alarm_description   = "RDS database connections failed"
   treat_missing_data  = "notBreaching"
-  
+
   alarm_actions = []
   ok_actions    = []
 

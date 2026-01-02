@@ -4,39 +4,39 @@
 # RDS 인스턴스 최적화 (기존 것이 있다면 수정 필요)
 resource "aws_db_instance" "main" {
   # 프리티어 설정
-  allocated_storage     = 20              # 프리티어 최대 20GB
-  max_allocated_storage = 20              # 자동 확장 방지
-  storage_type          = "gp2"           # 프리티어 지원 스토리지
+  allocated_storage     = 20    # 프리티어 최대 20GB
+  max_allocated_storage = 20    # 자동 확장 방지
+  storage_type          = "gp2" # 프리티어 지원 스토리지
   engine                = "postgres"
-  engine_version        = "13.13"         # 프리티어 지원 버전
-  instance_class        = "db.t3.micro"   # 프리티어 인스턴스
+  engine_version        = "13.13"       # 프리티어 지원 버전
+  instance_class        = "db.t3.micro" # 프리티어 인스턴스
 
   # 데이터베이스 설정
-  identifier   = "honbabnono-db"
-  db_name      = "honbabnono"
-  username     = "postgres"
-  password     = "honbabnono"  # 프로덕션에서는 AWS Secrets Manager 사용 권장
+  identifier = "honbabnono-db"
+  db_name    = "honbabnono"
+  username   = "postgres"
+  password   = "honbabnono" # 프로덕션에서는 AWS Secrets Manager 사용 권장
 
   # 비용 최적화 설정
-  backup_retention_period   = 1           # 백업 보존 기간 최소화 (1일)
-  backup_window            = "03:00-04:00" # 백업 시간 지정
-  maintenance_window       = "sun:04:00-sun:05:00" # 유지보수 시간 지정
-  auto_minor_version_upgrade = false      # 자동 업그레이드 비활성화
-  multi_az                 = false        # Multi-AZ 비활성화 (비용 절감)
-  
+  backup_retention_period    = 1                     # 백업 보존 기간 최소화 (1일)
+  backup_window              = "03:00-04:00"         # 백업 시간 지정
+  maintenance_window         = "sun:04:00-sun:05:00" # 유지보수 시간 지정
+  auto_minor_version_upgrade = false                 # 자동 업그레이드 비활성화
+  multi_az                   = false                 # Multi-AZ 비활성화 (비용 절감)
+
   # 스냅샷 설정
   final_snapshot_identifier = "honbabnono-final-snapshot"
-  skip_final_snapshot      = true         # 삭제 시 스냅샷 생성 안함 (개발환경)
-  delete_automated_backups = true         # 자동 백업 삭제
+  skip_final_snapshot       = true # 삭제 시 스냅샷 생성 안함 (개발환경)
+  delete_automated_backups  = true # 자동 백업 삭제
 
   # 네트워킹
-  publicly_accessible = true              # public 접근 허용 (NAT Gateway 비용 절감)
+  publicly_accessible    = true # public 접근 허용 (NAT Gateway 비용 절감)
   vpc_security_group_ids = [aws_security_group.rds.id]
 
   # 성능 모니터링 비활성화 (비용 절감)
   performance_insights_enabled = false
-  monitoring_interval         = 0
-  
+  monitoring_interval          = 0
+
   tags = {
     Name        = "honbabnono-db"
     Environment = "production"
@@ -53,7 +53,7 @@ resource "aws_security_group" "rds" {
     to_port         = 5432
     protocol        = "tcp"
     security_groups = [aws_security_group.ecs_tasks.id]
-    cidr_blocks     = ["0.0.0.0/0"]  # 개발 편의성 (프로덕션에서는 제한 권장)
+    cidr_blocks     = ["0.0.0.0/0"] # 개발 편의성 (프로덕션에서는 제한 권장)
   }
 
   egress {
@@ -72,13 +72,13 @@ resource "aws_security_group" "rds" {
 resource "aws_cloudwatch_event_rule" "stop_db_nightly" {
   name                = "stop-honbabnono-db-nightly"
   description         = "Stop RDS instance at 3 AM KST"
-  schedule_expression = "cron(0 18 * * ? *)"  # UTC 18:00 = KST 03:00
+  schedule_expression = "cron(0 18 * * ? *)" # UTC 18:00 = KST 03:00
 }
 
 resource "aws_cloudwatch_event_rule" "start_db_morning" {
   name                = "start-honbabnono-db-morning"
   description         = "Start RDS instance at 9:30 AM KST"
-  schedule_expression = "cron(30 0 * * ? *)"  # UTC 00:30 = KST 09:30
+  schedule_expression = "cron(30 0 * * ? *)" # UTC 00:30 = KST 09:30
 }
 
 # Lambda 함수를 위한 IAM 역할
@@ -132,11 +132,11 @@ resource "aws_iam_role_policy" "lambda_rds_policy" {
 resource "aws_lambda_function" "stop_rds" {
   filename         = "stop_rds.zip"
   function_name    = "honbabnono-stop-rds"
-  role            = aws_iam_role.lambda_rds_role.arn
-  handler         = "index.handler"
+  role             = aws_iam_role.lambda_rds_role.arn
+  handler          = "index.handler"
   source_code_hash = data.archive_file.stop_rds_zip.output_base64sha256
-  runtime         = "python3.9"
-  timeout         = 60
+  runtime          = "python3.9"
+  timeout          = 60
 
   environment {
     variables = {
@@ -149,11 +149,11 @@ resource "aws_lambda_function" "stop_rds" {
 resource "aws_lambda_function" "start_rds" {
   filename         = "start_rds.zip"
   function_name    = "honbabnono-start-rds"
-  role            = aws_iam_role.lambda_rds_role.arn
-  handler         = "index.handler"
+  role             = aws_iam_role.lambda_rds_role.arn
+  handler          = "index.handler"
   source_code_hash = data.archive_file.start_rds_zip.output_base64sha256
-  runtime         = "python3.9"
-  timeout         = 60
+  runtime          = "python3.9"
+  timeout          = 60
 
   environment {
     variables = {
@@ -167,7 +167,7 @@ data "archive_file" "stop_rds_zip" {
   type        = "zip"
   output_path = "stop_rds.zip"
   source {
-    content = <<EOF
+    content  = <<EOF
 import boto3
 import os
 
@@ -190,7 +190,7 @@ data "archive_file" "start_rds_zip" {
   type        = "zip"
   output_path = "start_rds.zip"
   source {
-    content = <<EOF
+    content  = <<EOF
 import boto3
 import os
 
