@@ -4,7 +4,7 @@
 # RDS 인스턴스 최적화 (기존 것이 있다면 수정 필요)
 # 기존 RDS 인스턴스 참조 (새로 생성하지 않고 기존 것 사용)
 data "aws_db_instance" "main" {
-  db_instance_identifier = "honbabnono-db"
+  db_instance_identifier = "honbabnono"
 }
 
 # RDS 보안 그룹
@@ -104,7 +104,7 @@ resource "aws_lambda_function" "stop_rds" {
 
   environment {
     variables = {
-      DB_INSTANCE_IDENTIFIER = data.aws_db_instance.main.identifier
+      DB_INSTANCE_IDENTIFIER = "honbabnono"
     }
   }
 }
@@ -121,7 +121,7 @@ resource "aws_lambda_function" "start_rds" {
 
   environment {
     variables = {
-      DB_INSTANCE_IDENTIFIER = data.aws_db_instance.main.identifier
+      DB_INSTANCE_IDENTIFIER = "honbabnono"
     }
   }
 }
