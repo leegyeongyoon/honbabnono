@@ -8,7 +8,7 @@ resource "aws_db_instance" "main" {
   max_allocated_storage = 20    # 자동 확장 방지
   storage_type          = "gp2" # 프리티어 지원 스토리지
   engine                = "postgres"
-  engine_version        = "14.9"        # 프리티어 지원 안정 버전
+  # engine_version 생략하여 AWS가 지원하는 최신 안정 버전 자동 선택
   instance_class        = "db.t3.micro" # 프리티어 인스턴스
 
   # 데이터베이스 설정
