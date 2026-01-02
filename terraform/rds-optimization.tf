@@ -2,45 +2,9 @@
 # 프리티어 유지 및 자동 중지 스케줄링
 
 # RDS 인스턴스 최적화 (기존 것이 있다면 수정 필요)
-resource "aws_db_instance" "main" {
-  # 프리티어 설정
-  allocated_storage     = 20    # 프리티어 최대 20GB
-  max_allocated_storage = 20    # 자동 확장 방지
-  storage_type          = "gp2" # 프리티어 지원 스토리지
-  engine                = "postgres"
-  # engine_version 생략하여 AWS가 지원하는 최신 안정 버전 자동 선택
-  instance_class        = "db.t3.micro" # 프리티어 인스턴스
-
-  # 데이터베이스 설정
-  identifier = "honbabnono-db"
-  db_name    = "honbabnono"
-  username   = "postgres"
-  password   = "honbabnono" # 프로덕션에서는 AWS Secrets Manager 사용 권장
-
-  # 비용 최적화 설정
-  backup_retention_period    = 1                     # 백업 보존 기간 최소화 (1일)
-  backup_window              = "03:00-04:00"         # 백업 시간 지정
-  maintenance_window         = "sun:04:00-sun:05:00" # 유지보수 시간 지정
-  auto_minor_version_upgrade = false                 # 자동 업그레이드 비활성화
-  multi_az                   = false                 # Multi-AZ 비활성화 (비용 절감)
-
-  # 스냅샷 설정
-  final_snapshot_identifier = "honbabnono-final-snapshot"
-  skip_final_snapshot       = true # 삭제 시 스냅샷 생성 안함 (개발환경)
-  delete_automated_backups  = true # 자동 백업 삭제
-
-  # 네트워킹
-  publicly_accessible    = true # public 접근 허용 (NAT Gateway 비용 절감)
-  vpc_security_group_ids = [aws_security_group.rds.id]
-
-  # 성능 모니터링 비활성화 (비용 절감)
-  performance_insights_enabled = false
-  monitoring_interval          = 0
-
-  tags = {
-    Name        = "honbabnono-db"
-    Environment = "production"
-  }
+# 기존 RDS 인스턴스 참조 (새로 생성하지 않고 기존 것 사용)
+data "aws_db_instance" "main" {
+  db_instance_identifier = "honbabnono-db"
 }
 
 # RDS 보안 그룹
@@ -140,7 +104,7 @@ resource "aws_lambda_function" "stop_rds" {
 
   environment {
     variables = {
-      DB_INSTANCE_IDENTIFIER = aws_db_instance.main.identifier
+      DB_INSTANCE_IDENTIFIER = data.aws_db_instance.main.identifier
     }
   }
 }
@@ -157,7 +121,7 @@ resource "aws_lambda_function" "start_rds" {
 
   environment {
     variables = {
-      DB_INSTANCE_IDENTIFIER = aws_db_instance.main.identifier
+      DB_INSTANCE_IDENTIFIER = data.aws_db_instance.main.identifier
     }
   }
 }

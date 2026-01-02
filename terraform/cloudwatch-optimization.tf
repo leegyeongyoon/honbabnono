@@ -89,7 +89,7 @@ resource "aws_cloudwatch_metric_alarm" "rds_connection_failures" {
   ok_actions    = []
 
   dimensions = {
-    DBInstanceIdentifier = aws_db_instance.main.identifier
+    DBInstanceIdentifier = data.aws_db_instance.main.identifier
   }
 
   tags = {
