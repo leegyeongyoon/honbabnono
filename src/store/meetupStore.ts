@@ -86,16 +86,35 @@ interface MeetupState {
   clearStore: () => void;
 }
 
-// API 호출 헬퍼 함수 (apiClient 사용)
-const apiCall = async (endpoint: string, options: RequestInit = {}) => {
+// API 호출 헬퍼 함수 (axios 직접 사용)
+const apiCall = async (endpoint: string, options: any = {}) => {
   try {
     console.log('🚀 API Call:', endpoint, options);
-    const response = await apiClient.request({
-      url: endpoint,
-      method: options.method as any || 'GET',
-      data: options.body ? JSON.parse(options.body as string) : undefined,
-      ...options
-    });
+    
+    // axios 메서드별로 호출
+    let response;
+    const method = (options.method || 'GET').toUpperCase();
+    const data = options.body ? (typeof options.body === 'string' ? JSON.parse(options.body) : options.body) : undefined;
+    
+    switch (method) {
+      case 'GET':
+        response = await apiClient.get(endpoint);
+        break;
+      case 'POST':
+        response = await apiClient.post(endpoint, data);
+        break;
+      case 'PUT':
+        response = await apiClient.put(endpoint, data);
+        break;
+      case 'DELETE':
+        response = await apiClient.delete(endpoint);
+        break;
+      case 'PATCH':
+        response = await apiClient.patch(endpoint, data);
+        break;
+      default:
+        response = await apiClient.get(endpoint);
+    }
     
     // 상세한 응답 로그
     console.log('📦 Full axios response:', {
@@ -107,11 +126,20 @@ const apiCall = async (endpoint: string, options: RequestInit = {}) => {
       isDataEmpty: Object.keys(response.data || {}).length === 0
     });
     
-    // 전체 응답 객체를 반환 (기존 동작과 동일하게)
+    // 전체 응답 객체를 반환
     return response.data;
   } catch (error: any) {
     console.error('💥 API Call Error:', error);
-    throw new Error(`API Error: ${error.response?.status || 'Unknown'} ${error.message}`);
+    if (error.response) {
+      console.error('💥 Error response:', error.response.data);
+      throw new Error(`API Error: ${error.response.status} ${error.response.data?.message || error.message}`);
+    } else if (error.request) {
+      console.error('💥 Error request:', error.request);
+      throw new Error(`Network Error: No response from server`);
+    } else {
+      console.error('💥 Error message:', error.message);
+      throw new Error(`Error: ${error.message}`);
+    }
   }
 };
 

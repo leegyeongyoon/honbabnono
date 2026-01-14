@@ -106,14 +106,11 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
     }
   };
 
-  const handleMeetupClick = (meetupId: string) => {
-    console.log('🎯 Clicking meetup with ID:', meetupId);
+  const handleMeetupClick = (meetup: any) => {
+    // Extract ID from meetup object
+    const meetupId = typeof meetup === 'string' ? meetup : meetup.id;
+    console.log('🎯 Clicking meetup:', { meetup, extractedId: meetupId });
     console.log('🎯 Meetup ID type:', typeof meetupId);
-    console.log('🎯 Stack trace:', new Error().stack);
-    if (meetupId === '1' || meetupId === 1) {
-      console.error('🚨 ALERT: ID is 1! This is the bug!');
-      alert(`🚨 BUG FOUND! ID is "${meetupId}" (${typeof meetupId})`);
-    }
     navigate(`/meetup/${meetupId}`);
   };
 
