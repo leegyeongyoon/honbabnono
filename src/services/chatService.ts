@@ -15,14 +15,15 @@ class ChatService {
         return process.env.REACT_APP_WS_URL;
       }
       
-      if (typeof window !== 'undefined') {
+      // Web 환경 체크
+      if (typeof window !== 'undefined' && window.location && window.location.hostname) {
         return window.location.hostname === 'localhost' 
           ? 'http://localhost:3001' 
           : window.location.origin;
       }
       
-      // SSR fallback
-      return '';
+      // React Native/SSR fallback - 실제 IP 사용
+      return 'http://192.168.0.101:3001';
     };
     
     this.socket = io(getSocketUrl(), {

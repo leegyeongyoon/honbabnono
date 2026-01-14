@@ -2,6 +2,7 @@
  * 네이티브 브리지 헬퍼
  * 웹과 네이티브 앱 간의 통신을 담당
  */
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // 플랫폼 감지를 위한 간단한 헬퍼
 const Platform = {
@@ -89,10 +90,18 @@ class NativeBridgeHelper {
   async saveToken(token: string): Promise<void> {
     if (!this.isNativeApp()) {
       // 웹에서는 localStorage 사용
-      localStorage.setItem('authToken', token);
+      if (typeof window !== 'undefined' && window.localStorage) {
+        localStorage.setItem('authToken', token);
+      }
     } else {
-      // 네이티브 앱에서는 AsyncStorage 사용
-      window.NativeBridge?.saveToken(token);
+      // 네이티브 앱에서는 AsyncStorage 직접 사용
+      try {
+        await AsyncStorage.setItem('authToken', token);
+      } catch (error) {
+        console.warn('Failed to save token to AsyncStorage:', error);
+        // Fallback to bridge if direct AsyncStorage fails
+        window.NativeBridge?.saveToken(token);
+      }
     }
   }
 
@@ -100,13 +109,22 @@ class NativeBridgeHelper {
   async getToken(): Promise<string | null> {
     if (!this.isNativeApp()) {
       // 웹에서는 localStorage 사용
-      return localStorage.getItem('authToken');
+      if (typeof window !== 'undefined' && window.localStorage) {
+        return localStorage.getItem('authToken');
+      }
+      return null;
     } else {
-      // 네이티브 앱에서는 AsyncStorage 사용
-      return new Promise((resolve) => {
-        this.once('TOKEN_RESULT', (data) => resolve(data.token));
-        window.NativeBridge?.getToken();
-      });
+      // 네이티브 앱에서는 AsyncStorage 직접 사용
+      try {
+        return await AsyncStorage.getItem('authToken');
+      } catch (error) {
+        console.warn('Failed to get token from AsyncStorage:', error);
+        // Fallback to bridge if direct AsyncStorage fails
+        return new Promise((resolve) => {
+          this.once('TOKEN_RESULT', (data) => resolve(data.token));
+          window.NativeBridge?.getToken();
+        });
+      }
     }
   }
 

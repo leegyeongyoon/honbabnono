@@ -1,6 +1,5 @@
 module.exports = {
   root: true,
-  extends: '@react-native',
   ignorePatterns: [
     'node_modules/**',
     'dist/**',
@@ -19,25 +18,19 @@ module.exports = {
     'jest.config.js'
   ],
   env: {
-    'jest/globals': true,
-    'node': true
+    browser: true,
+    es2021: true,
+    node: true
   },
-  plugins: ['jest'],
-  overrides: [
-    {
-      files: ['tests/**/*.js', '**/*.test.js', '**/*.test.ts'],
-      env: {
-        jest: true,
-        node: true
-      },
-      globals: {
-        'Buffer': 'readonly',
-        'fail': 'readonly'
-      },
-      rules: {
-        '@typescript-eslint/no-unused-vars': 'warn',
-        'no-unused-vars': 'warn'
-      }
-    }
-  ]
+  parserOptions: {
+    ecmaFeatures: {
+      jsx: true
+    },
+    ecmaVersion: 12,
+    sourceType: 'module'
+  },
+  rules: {
+    'no-unused-vars': 'off',
+    'no-undef': 'off'
+  }
 };

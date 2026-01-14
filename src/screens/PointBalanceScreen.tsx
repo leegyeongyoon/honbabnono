@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import { useNavigate } from 'react-router-dom';
+import { useNavigation } from '@react-navigation/native';
 import { COLORS, SHADOWS } from '../styles/colors';
-import { ArrowLeft, Plus, Minus, Gift, CreditCard } from 'lucide-react';
+import { Icon } from '../components/Icon';
 import apiClient from '../services/apiClient';
 import userApiService from '../services/userApiService';
 
@@ -16,7 +16,7 @@ interface PointTransaction {
 }
 
 const PointBalanceScreen: React.FC = () => {
-  const navigate = useNavigate();
+  const navigation = useNavigation();
   const [currentPoints, setCurrentPoints] = useState(0);
   const [transactions, setTransactions] = useState<PointTransaction[]>([]);
   const [loading, setLoading] = useState(true);
@@ -58,16 +58,16 @@ const PointBalanceScreen: React.FC = () => {
   const getTransactionIcon = (type: string) => {
     switch (type) {
       case 'earn':
-        return <Plus size={18} color="#FFFFFF" />;
+        return <Icon name="plus" size={18} color="#FFFFFF" />;
       case 'spend':
       case 'used':
-        return <Minus size={18} color="#FFFFFF" />;
+        return <Icon name="minus" size={18} color="#FFFFFF" />;
       case 'charge':
-        return <CreditCard size={18} color="#FFFFFF" />;
+        return <Icon name="credit-card" size={18} color="#FFFFFF" />;
       case 'refund':
-        return <Gift size={18} color="#FFFFFF" />;
+        return <Icon name="gift" size={18} color="#FFFFFF" />;
       default:
-        return <Plus size={18} color="#FFFFFF" />;
+        return <Icon name="plus" size={18} color="#FFFFFF" />;
     }
   };
 
@@ -173,9 +173,9 @@ const PointBalanceScreen: React.FC = () => {
       <View style={styles.header}>
         <TouchableOpacity 
           style={styles.backButton}
-          onPress={() => navigate(-1)}
+          onPress={() => navigation.goBack()}
         >
-          <ArrowLeft size={24} color={COLORS.text.primary} />
+          <Icon name="arrow-left" size={24} color={COLORS.text.primary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>포인트</Text>
         <View style={styles.placeholder} />
@@ -190,7 +190,7 @@ const PointBalanceScreen: React.FC = () => {
           <View style={styles.actionButtons}>
             <TouchableOpacity 
               style={styles.chargeButton}
-              onPress={() => navigate('/point-charge')}
+              onPress={() => navigation.navigate('PointCharge')}
             >
               <Text style={styles.chargeButtonText}>충전하기</Text>
             </TouchableOpacity>

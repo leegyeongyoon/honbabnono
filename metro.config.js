@@ -14,4 +14,6 @@ module.exports = {
       },
     }),
   },
+  maxWorkers: 2,
+  watchFolders: [],
 };

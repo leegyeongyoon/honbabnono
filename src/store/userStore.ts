@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import storage from '../utils/storage';
 
 export interface User {
   id: string;
@@ -29,7 +31,7 @@ interface UserState {
   setUser: (user: User) => void;
   setToken: (token: string) => void;
   login: (user: User, token: string) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
   updateBabAlScore: (score: number) => void;
   updateUserStats: (stats: Partial<Pick<User, 'meetupsHosted' | 'meetupsJoined' | 'rating'>>) => void;
   updateNeighborhood: (district: string, neighborhood: string) => void;
@@ -68,7 +70,16 @@ export const useUserStore = create<UserState>()(
       token: null,
       
       // Actions
-      setUser: (user: User) => set({ user, isLoggedIn: true }),
+      setUser: async (user: User) => {
+        set({ user, isLoggedIn: true });
+        
+        // storage에도 저장
+        try {
+          await storage.setObject('user', user);
+        } catch (error) {
+          console.warn('User storage save failed:', error);
+        }
+      },
       
       setToken: (token: string) => set({ token }),
       
@@ -102,24 +113,28 @@ export const useUserStore = create<UserState>()(
           isLoggedIn: true 
         });
         
-        // 토큰을 localStorage에도 저장 (브라우저 호환성)
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('token', token);
-          localStorage.setItem('user', JSON.stringify(updatedUser));
+        // 토큰을 storage에 저장 (브라우저/React Native 호환성)
+        try {
+          await storage.setItem('token', token);
+          await storage.setObject('user', updatedUser);
+        } catch (error) {
+          console.warn('Storage save failed:', error);
         }
       },
       
-      logout: () => {
+      logout: async () => {
         set({ 
           user: null, 
           token: null, 
           isLoggedIn: false 
         });
         
-        // localStorage에서도 제거
-        if (typeof window !== 'undefined') {
-          localStorage.removeItem('token');
-          localStorage.removeItem('user');
+        // storage에서 제거 (브라우저/React Native 호환성)
+        try {
+          await storage.removeItem('token');
+          await storage.removeItem('user');
+        } catch (error) {
+          console.warn('Storage cleanup failed:', error);
         }
       },
       
@@ -200,15 +215,11 @@ export const useUserStore = create<UserState>()(
       name: 'user-storage',
       storage: createJSONStorage(() => {
         // React Native의 AsyncStorage 또는 웹의 localStorage 사용
-        if (typeof window !== 'undefined') {
+        if (typeof window !== 'undefined' && window.localStorage) {
           return localStorage;
         }
-        // React Native용 AsyncStorage는 필요시 추가
-        return {
-          getItem: () => null,
-          setItem: () => {},
-          removeItem: () => {},
-        };
+        // React Native용 AsyncStorage 사용
+        return AsyncStorage;
       }),
     }
   )

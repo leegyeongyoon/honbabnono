@@ -12,6 +12,7 @@ import {
   PointTransaction,
   DepositStats
 } from '../types/deposit';
+import { localStorage } from '../utils/localStorageCompat';
 
 class DepositService {
   private readonly DEFAULT_DEPOSIT_AMOUNT = 3000;
@@ -59,7 +60,7 @@ class DepositService {
   async processPayment(request: PaymentRequest): Promise<PaymentResponse> {
     try {
       const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
-      const token = localStorage.getItem('token');
+      const token = await localStorage.getItem('token');
       
       console.log('🔗 API URL:', `${apiUrl}/deposits/payment`);
       console.log('🔑 Token:', token ? 'Present' : 'Missing');
@@ -411,7 +412,7 @@ class DepositService {
   async getUserPoints(userId: string): Promise<UserPoints> {
     try {
       const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
-      const token = localStorage.getItem('token');
+      const token = await localStorage.getItem('token');
       
       const response = await fetch(`${apiUrl}/user/points`, {
         headers: {

@@ -1,4 +1,5 @@
 import apiClient from './apiClient';
+import { localStorage } from '../utils/localStorageCompat';
 
 export interface UserProfile {
   id: string;
@@ -78,8 +79,7 @@ const userApiService = {
       console.log('👤 사용자 프로필 조회 요청 (토큰 검증 API 사용)');
       
       // 저장된 토큰 가져오기
-      const token = typeof window !== 'undefined' && window.localStorage ? 
-        localStorage.getItem('token') : null;
+      const token = await localStorage.getItem('token');
       
       if (!token) {
         throw new Error('토큰이 없습니다');

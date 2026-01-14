@@ -4,6 +4,7 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
+  Image,
 } from 'react-native';
 import { COLORS, SHADOWS } from '../styles/colors';
 import { Icon } from './Icon';
@@ -59,7 +60,7 @@ interface Meetup {
 
 interface MeetupCardProps {
   meetup: Meetup;
-  onPress: (meetupId: string) => void;
+  onPress: (meetup: Meetup) => void;
 }
 
 const MeetupCard: React.FC<MeetupCardProps> = ({ meetup, onPress }) => {
@@ -76,18 +77,15 @@ const MeetupCard: React.FC<MeetupCardProps> = ({ meetup, onPress }) => {
   return (
     <TouchableOpacity 
       style={styles.meetupItem} 
-      onPress={() => onPress(meetup.id)}
+      onPress={() => onPress(meetup)}
     >
       <View style={styles.foodImageContainer}>
-        <img 
-          src={processImageUrl(meetup.image, meetup.category)} 
-          alt={meetup.title}
+        <Image 
+          source={{ uri: processImageUrl(meetup.image, meetup.category) }}
           style={styles.meetupImage}
-          onError={(e: any) => {
-            // 에러 시 기본 이미지로 재시도
-            if (e.target.src !== processImageUrl(null, meetup.category)) {
-              e.target.src = processImageUrl(null, meetup.category);
-            }
+          onError={() => {
+            // React Native에서는 기본 이미지 fallback이 자동으로 처리됨
+            console.log('Image loading failed, falling back to default');
           }}
         />
       </View>
@@ -132,7 +130,7 @@ const MeetupCard: React.FC<MeetupCardProps> = ({ meetup, onPress }) => {
           {meetup.genderPreference && (
             <View style={styles.genderTag}>
               <Icon 
-                name={meetup.genderPreference === '남성만' ? 'user' : meetup.genderPreference === '여성만' ? 'user-x' : 'users'} 
+                name={meetup.genderPreference === '남성만' ? 'user' : meetup.genderPreference === '여성만' ? 'user' : 'users'} 
                 size={12} 
                 color={COLORS.primary.main} 
               />
@@ -193,7 +191,7 @@ const styles = StyleSheet.create({
   meetupImage: {
     width: '100%',
     height: '100%',
-    objectFit: 'cover',
+    resizeMode: 'cover',
   },
   foodImageSample: {
     width: '100%',

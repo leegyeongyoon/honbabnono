@@ -15,10 +15,13 @@ import { useToast } from '../hooks/useToast';
 import { useRouterNavigation } from '../components/RouterNavigation';
 import { FOOD_CATEGORY_NAMES, PRICE_RANGES } from '../constants/categories';
 import { DepositSelector } from '../components/DepositSelector';
+// Web-only imports - these are handled by webpack for web builds
+// React Native doesn't support CSS imports
 import { Calendar, momentLocalizer } from 'react-big-calendar';
 import moment from 'moment';
-import 'react-big-calendar/lib/css/react-big-calendar.css';
-import '../styles/big-calendar.css';
+// CSS imports commented out to prevent React Native build issues
+// import 'react-big-calendar/lib/css/react-big-calendar.css';
+// import '../styles/big-calendar.css';
 
 const localizer = momentLocalizer(moment);
 

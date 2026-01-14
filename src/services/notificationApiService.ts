@@ -4,12 +4,13 @@ import {
   NotificationListResponse, 
   NotificationUnreadCountResponse 
 } from '../types/notification';
+import { localStorage } from '../utils/localStorageCompat';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
 
 class NotificationApiService {
   private async request(endpoint: string, options?: RequestInit) {
-    const token = localStorage.getItem('token');
+    const token = await localStorage.getItem('token');
     
     const config: RequestInit = {
       headers: {

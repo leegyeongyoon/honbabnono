@@ -1,9 +1,9 @@
 import React from 'react';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
-import {Text} from 'react-native';
 import {RootTabParamList} from '../types/navigation';
 import {TAB_ROUTES} from './routes';
 import {COLORS, SHADOWS} from '../styles/colors';
+import {SimpleIcon} from '../components/SimpleIcon';
 import HomeScreen from '../screens/HomeScreen';
 import SearchScreen from '../screens/SearchScreen';
 import ChatScreen from '../screens/ChatScreen';
@@ -79,11 +79,28 @@ interface TabIconProps {
   color: string;
 }
 
-const TabIcon: React.FC<TabIconProps> = ({icon}) => {
+const TabIcon: React.FC<TabIconProps> = ({icon, color}) => {
+  const getIconName = (tabIcon: string): string => {
+    switch (tabIcon) {
+      case '🏠':
+        return 'home';
+      case '🔍':
+        return 'search';
+      case '💬':
+        return 'message-circle';
+      case '👤':
+        return 'user';
+      default:
+        return 'home';
+    }
+  };
+
   return (
-    <Text style={{fontSize: 24}}>
-      {icon}
-    </Text>
+    <SimpleIcon 
+      name={getIconName(icon)} 
+      size={24} 
+      color={color} 
+    />
   );
 };
 

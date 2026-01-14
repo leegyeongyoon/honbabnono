@@ -24,6 +24,8 @@ export type RootStackParamList = {
     chatId: string;
     title: string;
   };
+  KakaoLoginWebView: undefined;
+  Login: undefined;
 };
 
 declare global {

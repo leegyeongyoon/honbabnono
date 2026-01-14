@@ -13,11 +13,13 @@ import { Icon } from '../components/Icon';
 import { useToast } from '../hooks/useToast';
 import { useRouterNavigation } from '../components/RouterNavigation';
 import { FOOD_CATEGORIES, PRICE_RANGES } from '../constants/categories';
-import '../styles/datetime.css';
+// Web-only CSS imports - these will be handled by webpack in the web build
+// React Native doesn't support CSS imports, so these are web-only
+// import '../styles/datetime.css';
 // import { Calendar, momentLocalizer } from 'react-big-calendar';
 // import moment from 'moment';
 // import 'react-big-calendar/lib/css/react-big-calendar.css';
-import '../styles/big-calendar.css';
+// import '../styles/big-calendar.css';
 // import DatePicker from 'react-datepicker';
 // import 'react-datepicker/dist/react-datepicker.css';
 // import '../styles/datepicker.css';

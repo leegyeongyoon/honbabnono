@@ -7,6 +7,7 @@ import {
   Modal,
   Alert,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
 import { COLORS, SHADOWS } from '../styles/colors';
 import { Icon } from './Icon';
@@ -29,7 +30,7 @@ const KakaoMapModal: React.FC<KakaoMapModalProps> = ({
   onClose,
   onLocationSelect,
 }) => {
-  const [isMapLoading, setIsMapLoading] = useState(true);
+  const [isMapLoading, setIsMapLoading] = useState(false); // 초기값을 false로 변경
   const [currentAddress, setCurrentAddress] = useState<string>('위치를 선택해주세요');
   const [selectedLocation, setSelectedLocation] = useState<{
     lat: number;
@@ -39,25 +40,20 @@ const KakaoMapModal: React.FC<KakaoMapModalProps> = ({
     address: string;
   } | null>(null);
   const [mapLoadError, setMapLoadError] = useState(false);
-  const [isWebView, setIsWebView] = useState(false);
+  const [isWebView, setIsWebView] = useState(Platform.OS !== 'web');
   
   const mapRef = useRef<any>(null);
   const markerRef = useRef<any>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const geocoderRef = useRef<any>(null);
 
-  // 카카오 지도 스크립트 로딩
-  useEffect(() => {
-    if (!visible) return;
-
-    // WebView 환경 체크
-    const isInWebView = window.ReactNativeWebView || window.navigator.userAgent.includes('wv');
-    setIsWebView(isInWebView);
-    console.log(`🗺️ [KakaoMapModal] WebView check: ${isInWebView}`);
-
-    const loadKakaoMap = () => {
+  // 카카오 지도 로딩 함수
+  const loadKakaoMap = () => {
+      console.log('🗺️ [KakaoMapModal] loadKakaoMap 호출됨');
+      
       // 이미 로드된 경우
       if (window.kakao && window.kakao.maps) {
+        console.log('🗺️ [KakaoMapModal] Kakao maps 이미 로드됨, initializeMap 호출');
         initializeMap();
         return;
       }
@@ -65,8 +61,10 @@ const KakaoMapModal: React.FC<KakaoMapModalProps> = ({
       // 스크립트가 이미 추가되어 있는지 확인
       const existingScript = document.getElementById('kakao-map-script');
       if (existingScript) {
+        console.log('🗺️ [KakaoMapModal] 기존 스크립트 발견, 로드 대기');
         existingScript.addEventListener('load', () => {
           if (window.kakao && window.kakao.maps) {
+            console.log('🗺️ [KakaoMapModal] 기존 스크립트 로드 완료, kakao.maps.load 호출');
             window.kakao.maps.load(initializeMap);
           }
         });
@@ -74,43 +72,84 @@ const KakaoMapModal: React.FC<KakaoMapModalProps> = ({
       }
 
       // 카카오 지도 API 스크립트 추가
+      console.log('🗺️ [KakaoMapModal] 새 스크립트 생성 중');
       const script = document.createElement('script');
       script.id = 'kakao-map-script';
       // WebView 환경을 위한 JavaScript 키 사용 (REST API 키 대신)
       const KAKAO_MAP_KEY = process.env.REACT_APP_KAKAO_JS_KEY || '9d1ee4bec9bd24d0ac9f8c9d68fbf432';
       script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${KAKAO_MAP_KEY}&libraries=services&autoload=true`;
       script.async = true;
+      
+      console.log('🗺️ [KakaoMapModal] 스크립트 URL:', script.src);
+      
       script.onload = () => {
+        console.log('🗺️ [KakaoMapModal] 스크립트 로드 완료');
         // autoload=true이므로 직접 확인 후 초기화
         setTimeout(() => {
+          console.log('🗺️ [KakaoMapModal] window.kakao 체크:', !!window.kakao);
+          console.log('🗺️ [KakaoMapModal] window.kakao.maps 체크:', !!window.kakao?.maps);
+          console.log('🗺️ [KakaoMapModal] window.kakao.maps.LatLng 체크:', !!window.kakao?.maps?.LatLng);
+          
           if (window.kakao && window.kakao.maps && window.kakao.maps.LatLng) {
-            console.log('🗺️ [KakaoMapModal] Kakao maps ready');
+            console.log('✅ [KakaoMapModal] Kakao maps ready - initializeMap 호출');
             initializeMap();
           } else {
-            console.error('🔴 [KakaoMapModal] Kakao maps not available - WebView 환경에서 지도 로드 실패');
+            console.error('❌ [KakaoMapModal] Kakao maps not available - 지도 로드 실패');
             setMapLoadError(true);
             setIsMapLoading(false);
           }
         }, 500);
       };
-      script.onerror = () => {
-        console.error('카카오 지도 스크립트 로딩 실패');
+      script.onerror = (error) => {
+        console.error('❌ [KakaoMapModal] 카카오 지도 스크립트 로딩 실패:', error);
         setMapLoadError(true);
         setIsMapLoading(false);
       };
+      
+      console.log('🗺️ [KakaoMapModal] 스크립트를 DOM에 추가');
       document.head.appendChild(script);
     };
 
-    loadKakaoMap();
+  // 카카오 지도 스크립트 로딩
+  useEffect(() => {
+    console.log(`🗺️ [KakaoMapModal] useEffect 실행됨, visible: ${visible}, Platform.OS: ${Platform.OS}`);
+    
+    // React Native WebView 환경에서는 항상 폴백 UI 사용
+    // typeof window를 체크해서 브라우저 환경인지 확인
+    const isBrowser = typeof window !== 'undefined' && typeof window.document !== 'undefined';
+    const isRealWebEnvironment = Platform.OS === 'web' && isBrowser && !window.ReactNativeWebView;
+    
+    console.log(`🗺️ [KakaoMapModal] isBrowser: ${isBrowser}, isRealWebEnvironment: ${isRealWebEnvironment}`);
+    
+    if (!visible) return;
+
+    if (isRealWebEnvironment) {
+      // 실제 웹 브라우저 환경에서만 카카오 지도 로딩
+      console.log('🗺️ [KakaoMapModal] 실제 웹 환경 - 카카오 지도 로딩 시도');
+      setIsWebView(false);
+      setIsMapLoading(true);
+      loadKakaoMap();
+    } else {
+      // React Native 또는 WebView 환경에서는 즉시 폴백 UI 표시
+      console.log('🗺️ [KakaoMapModal] React Native/WebView 환경 - 폴백 UI 즉시 표시');
+      setIsWebView(true);
+      setIsMapLoading(false);
+    }
   }, [visible]);
 
   // 지도 초기화
   const initializeMap = async () => {
+    console.log('🗺️ [KakaoMapModal] initializeMap 호출됨');
     try {
+      console.log('🗺️ [KakaoMapModal] mapContainerRef.current:', mapContainerRef.current);
+      console.log('🗺️ [KakaoMapModal] window.kakao:', window.kakao);
+      
       if (!mapContainerRef.current || !window.kakao) {
+        console.error('🗺️ [KakaoMapModal] 지도 컨테이너 또는 카카오 객체 없음');
         throw new Error('지도 컨테이너 또는 카카오 객체를 찾을 수 없습니다.');
       }
 
+      console.log('🗺️ [KakaoMapModal] 지도 로딩 시작');
       setIsMapLoading(true);
 
       // 지오코더 생성
@@ -385,65 +424,72 @@ const KakaoMapModal: React.FC<KakaoMapModalProps> = ({
 
         {/* 지도 컨테이너 */}
         <View style={styles.mapContainer}>
-          {mapLoadError || (isWebView && !mapRef.current && !isMapLoading) ? (
-            // WebView에서 지도 로드 실패 시 대안 UI
-            <View style={styles.fallbackContainer}>
-              <Text style={styles.fallbackIcon}>📍</Text>
-              <Text style={styles.fallbackTitle}>
-                {isWebView ? 'WebView 환경에서는 지도를 표시할 수 없습니다' : '지도를 로드할 수 없습니다'}
-              </Text>
-              <Text style={styles.fallbackSubtitle}>
-                아래에서 미리 설정된 위치를 선택하세요
-              </Text>
-              <View style={styles.presetLocationContainer}>
+          {(() => {
+            console.log(`🗺️ [KakaoMapModal] 조건 체크: mapLoadError=${mapLoadError}, isWebView=${isWebView}, 대안 UI 표시 여부: ${mapLoadError || isWebView}`);
+            return mapLoadError || isWebView ? (
+              // WebView에서 지도 로드 실패 시 대안 UI - React Native 컴포넌트
+              <View style={styles.fallbackContainer}>
+                <Text style={styles.fallbackIcon}>📍</Text>
+                <Text style={styles.fallbackTitle}>
+                  내 동네 설정
+                </Text>
+                <Text style={styles.fallbackSubtitle}>
+                  아래에서 미리 설정된 위치를 선택하세요
+                </Text>
+              <View style={[styles.presetLocationContainer, { pointerEvents: 'auto' }]}>
                 <TouchableOpacity
-                  style={styles.presetLocationButton}
+                  style={[styles.presetLocationButton, { 
+                    minHeight: 50, 
+                    paddingVertical: 15,
+                    pointerEvents: 'auto',
+                    zIndex: 1000
+                  }]}
                   onPress={() => {
-                    setSelectedLocation({
-                      lat: 37.5665,
-                      lng: 126.9780,
-                      district: '중구',
-                      neighborhood: '태평로1가',
-                      address: '서울특별시 중구 태평로 31 (서울시청 인근)'
-                    });
-                    setCurrentAddress('서울특별시 중구 태평로 31 (서울시청 인근)');
+                    console.log('📍 서울시청 버튼 클릭됨');
+                    const district = '중구';
+                    const neighborhood = '태평로1가';
+                    const address = '서울특별시 중구 태평로 31 (서울시청 인근)';
+                    // 즉시 선택 완료 - 모달 자동 닫힘
+                    onLocationSelect(district, neighborhood, 37.5665, 126.9780, address);
                   }}
+                  activeOpacity={0.7}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  onPressIn={() => console.log('📍 서울시청 터치 시작')}
+                  onPressOut={() => console.log('📍 서울시청 터치 끝')}
                 >
                   <Text style={styles.presetLocationText}>서울시청 인근</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.presetLocationButton}
                   onPress={() => {
-                    setSelectedLocation({
-                      lat: 37.4979,
-                      lng: 127.0276,
-                      district: '강남구',
-                      neighborhood: '역삼동',
-                      address: '서울특별시 강남구 테헤란로 (강남역 인근)'
-                    });
-                    setCurrentAddress('서울특별시 강남구 테헤란로 (강남역 인근)');
+                    console.log('📍 강남역 버튼 클릭됨');
+                    const district = '강남구';
+                    const neighborhood = '역삼동';
+                    const address = '서울특별시 강남구 테헤란로 (강남역 인근)';
+                    // 즉시 선택 완료 - 모달 자동 닫힘
+                    onLocationSelect(district, neighborhood, 37.4979, 127.0276, address);
                   }}
+                  activeOpacity={0.7}
                 >
                   <Text style={styles.presetLocationText}>강남역 인근</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.presetLocationButton}
                   onPress={() => {
-                    setSelectedLocation({
-                      lat: 37.5563,
-                      lng: 126.9236,
-                      district: '마포구',
-                      neighborhood: '합정동',
-                      address: '서울특별시 마포구 (홍대입구역 인근)'
-                    });
-                    setCurrentAddress('서울특별시 마포구 (홍대입구역 인근)');
+                    console.log('📍 홍대입구역 버튼 클릭됨');
+                    const district = '마포구';
+                    const neighborhood = '합정동';
+                    const address = '서울특별시 마포구 (홍대입구역 인근)';
+                    // 즉시 선택 완료 - 모달 자동 닫힘
+                    onLocationSelect(district, neighborhood, 37.5563, 126.9236, address);
                   }}
+                  activeOpacity={0.7}
                 >
                   <Text style={styles.presetLocationText}>홍대입구역 인근</Text>
                 </TouchableOpacity>
               </View>
             </View>
-          ) : (
+            ) : (
             <>
               {isMapLoading && (
                 <View style={styles.loadingContainer}>
@@ -461,9 +507,9 @@ const KakaoMapModal: React.FC<KakaoMapModalProps> = ({
                 }}
               />
             </>
-          )}
+            );
+          })()}
 
-          {/* 중앙 십자선 - 선택적으로 추가 */}
           {!isMapLoading && (
             <View style={styles.centerCrosshair}>
               <View style={styles.crosshairLine} />

@@ -91,10 +91,24 @@ const useNotifications = (userId?: string) => {
 
   // 읽지 않은 알림 개수 조회
   const fetchUnreadCount = async () => {
+    // 인증되지 않은 사용자는 알림 개수 조회하지 않음
+    if (!userId) {
+      setUnreadCount(0);
+      return;
+    }
+    
     try {
       const response = await notificationApiService.getUnreadCount();
       setUnreadCount(response.unreadCount);
     } catch (error) {
+      // 401 에러인 경우 로그를 출력하지 않음 (토큰이 없는 정상적인 상황)
+      if (error && typeof error === 'object' && 'response' in error) {
+        const err = error as any;
+        if (err.response?.status === 401) {
+          setUnreadCount(0);
+          return;
+        }
+      }
       console.error('읽지 않은 알림 개수 조회 실패:', error);
     }
   };

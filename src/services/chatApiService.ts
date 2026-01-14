@@ -1,3 +1,5 @@
+import { localStorage } from '../utils/localStorageCompat';
+
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
 
 export interface ChatRoom {
@@ -47,7 +49,7 @@ class ChatApiService {
   // 채팅방 목록 조회
   async getChatRooms(userId: string = 'user1'): Promise<ChatRoom[]> {
     try {
-      const token = localStorage.getItem('token');
+      const token = await localStorage.getItem('token');
       const response = await fetch(`${API_BASE_URL}/chat/rooms?userId=${userId}`, {
         headers: {
           'Authorization': token ? `Bearer ${token}` : '',
@@ -72,7 +74,7 @@ class ChatApiService {
     messages: ChatMessage[];
   }> {
     try {
-      const token = localStorage.getItem('token');
+      const token = await localStorage.getItem('token');
       const response = await fetch(`${API_BASE_URL}/chat/rooms/${roomId}/messages?userId=${userId}`, {
         headers: {
           'Authorization': token ? `Bearer ${token}` : '',
@@ -94,7 +96,7 @@ class ChatApiService {
   // 메시지 전송
   async sendMessage(roomId: number, messageData: SendMessageRequest, userId: string = 'user1'): Promise<ChatMessage> {
     try {
-      const token = localStorage.getItem('token');
+      const token = await localStorage.getItem('token');
       const response = await fetch(`${API_BASE_URL}/chat/rooms/${roomId}/messages?userId=${userId}`, {
         method: 'POST',
         headers: {
@@ -120,7 +122,7 @@ class ChatApiService {
   // 모임 채팅방 생성
   async createMeetupChatRoom(roomData: CreateChatRoomRequest): Promise<ChatRoom> {
     try {
-      const token = localStorage.getItem('token');
+      const token = await localStorage.getItem('token');
       const response = await fetch(`${API_BASE_URL}/chat/rooms/meetup`, {
         method: 'POST',
         headers: {
@@ -146,7 +148,7 @@ class ChatApiService {
   // 1:1 채팅방 생성
   async createDirectChatRoom(roomData: CreateChatRoomRequest): Promise<ChatRoom> {
     try {
-      const token = localStorage.getItem('token');
+      const token = await localStorage.getItem('token');
       const response = await fetch(`${API_BASE_URL}/chat/rooms/direct`, {
         method: 'POST',
         headers: {
@@ -172,7 +174,7 @@ class ChatApiService {
   // 모임 채팅방에 사용자 추가
   async addUserToMeetupChatRoom(meetupId: number, userId: string): Promise<ChatRoom> {
     try {
-      const token = localStorage.getItem('token');
+      const token = await localStorage.getItem('token');
       const response = await fetch(`${API_BASE_URL}/chat/rooms/meetup/${meetupId}/add-user`, {
         method: 'POST',
         headers: {

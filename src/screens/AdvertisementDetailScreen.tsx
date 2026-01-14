@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Alert, SafeAreaView, Linking } from 'react-native';
-import { useParams } from 'react-router-dom';
+import { useRoute } from '@react-navigation/native';
 import { COLORS, SHADOWS } from '../styles/colors';
 import { Icon } from '../components/Icon';
 import advertisementApiService, { Advertisement } from '../services/advertisementApiService';
@@ -14,7 +14,8 @@ const AdvertisementDetailScreen: React.FC<AdvertisementDetailScreenProps> = ({
   navigation,
   user
 }) => {
-  const { id } = useParams<{ id: string }>();
+  const route = useRoute();
+  const { adId: id } = route.params as { adId: string };
   const advertisementId = parseInt(id || '0');
   const [advertisement, setAdvertisement] = useState<Advertisement | null>(null);
   const [loading, setLoading] = useState(true);

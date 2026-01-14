@@ -1,0 +1,1 @@
+{"statusCode": 500, "body": "Error: An error occurred (InvalidDBInstanceState) when calling the StartDBInstance operation: Instance honbabnono cannot be started as it is not in one of the following statuses: 'stopped, inaccessible-encryption-credentials-recoverable, incompatible-network (only valid for non-SqlServer instances)'."}

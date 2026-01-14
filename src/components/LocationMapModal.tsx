@@ -105,8 +105,10 @@ const LocationMapModal: React.FC<LocationMapModalProps> = ({
     try {
       // 개발 환경 감지
       const isDevelopment = process.env.NODE_ENV === 'development' || 
-                            window.location.hostname === 'localhost' || 
-                            window.location.hostname === '127.0.0.1';
+                            (typeof window !== 'undefined' && window.location && (
+                              window.location.hostname === 'localhost' || 
+                              window.location.hostname === '127.0.0.1'
+                            ));
 
       const position = await locationService.getCurrentLocation();
       const address = await locationService.reverseGeocode(position.latitude, position.longitude);
@@ -133,8 +135,10 @@ const LocationMapModal: React.FC<LocationMapModalProps> = ({
     } catch (error: any) {
       // 개발 환경에서는 조용한 로깅
       const isDevelopment = process.env.NODE_ENV === 'development' || 
-                            window.location.hostname === 'localhost' || 
-                            window.location.hostname === '127.0.0.1';
+                            (typeof window !== 'undefined' && window.location && (
+                              window.location.hostname === 'localhost' || 
+                              window.location.hostname === '127.0.0.1'
+                            ));
       
       if (isDevelopment) {
         console.warn('📍 개발환경: GPS 자동감지 실패 (정상)', error.message);

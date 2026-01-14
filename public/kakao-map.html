@@ -2,315 +2,296 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>카카오 지도</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>카카오맵</title>
     <style>
-        body {
-            margin: 0;
-            padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body, html { 
+            width: 100%; 
+            height: 100%; 
+            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
         }
-        
-        #map {
-            width: 100%;
-            height: 100vh;
+        #map { 
+            width: 100%; 
+            height: calc(100% - 120px); 
+            position: relative;
         }
-        
-        .controls {
+        .control-panel {
             position: absolute;
-            top: 10px;
-            right: 10px;
-            z-index: 1000;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-        
-        .btn {
-            background: #fff;
-            border: none;
-            border-radius: 8px;
-            padding: 10px 15px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            cursor: pointer;
-            font-size: 14px;
-            min-width: 80px;
-        }
-        
-        .btn:hover {
-            background: #f5f5f5;
-        }
-        
-        .address-info {
-            position: absolute;
-            bottom: 20px;
-            left: 20px;
-            right: 20px;
+            bottom: 0;
+            left: 0;
+            right: 0;
             background: white;
             padding: 15px;
-            border-radius: 12px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
             z-index: 1000;
         }
-        
-        .address-title {
+        .address-display {
+            margin-bottom: 10px;
+            padding: 10px;
+            background: #f8f8f8;
+            border-radius: 8px;
+            font-size: 14px;
+            color: #333;
+            min-height: 45px;
+            display: flex;
+            align-items: center;
+        }
+        .button-group {
+            display: flex;
+            gap: 10px;
+        }
+        .btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
             font-weight: 600;
-            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-primary {
+            background: #FE6847;
+            color: white;
+        }
+        .btn-secondary {
+            background: #f0f0f0;
             color: #333;
         }
-        
-        .address-text {
-            color: #666;
-            font-size: 14px;
-            line-height: 1.4;
+        .btn:active {
+            transform: scale(0.98);
         }
-        
         .loading {
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background: white;
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
             text-align: center;
+            z-index: 1001;
+        }
+        .loading-spinner {
+            font-size: 48px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .current-location-btn {
+            position: absolute;
+            right: 10px;
+            bottom: 140px;
+            width: 44px;
+            height: 44px;
+            background: white;
+            border-radius: 50%;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 999;
+        }
+        .current-location-btn:active {
+            background: #f0f0f0;
         }
     </style>
 </head>
 <body>
     <div id="loading" class="loading">
-        <div>🗺️</div>
-        <div>지도를 불러오는 중...</div>
+        <div class="loading-spinner">🗺️</div>
+        <p style="margin-top: 10px; color: #666;">지도를 불러오는 중...</p>
     </div>
     
     <div id="map"></div>
     
-    <div class="controls">
-        <button id="currentLocationBtn" class="btn">📍 현재위치</button>
-        <button id="confirmBtn" class="btn" style="background: #3182f6; color: white;">선택완료</button>
-    </div>
+    <button class="current-location-btn" onclick="getCurrentLocation()">
+        📍
+    </button>
     
-    <div id="addressInfo" class="address-info" style="display: none;">
-        <div class="address-title">선택된 위치</div>
-        <div id="addressText" class="address-text">위치를 선택해주세요</div>
+    <div class="control-panel">
+        <div class="address-display" id="address">
+            위치를 선택해주세요
+        </div>
+        <div class="button-group">
+            <button class="btn btn-secondary" onclick="closeMap()">취소</button>
+            <button class="btn btn-primary" onclick="selectLocation()">선택완료</button>
+        </div>
     </div>
 
-    <script type="text/javascript" src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=9d1ee4bec9bd24d0ac9f8c9d68fbf432&libraries=services"></script>
+    <script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=9d1ee4bec9bd24d0ac9f8c9d68fbf432&libraries=services&autoload=false"></script>
     <script>
-        console.log('🗺️ 카카오 맵 HTML 페이지 시작');
-        
-        let map;
-        let marker;
-        let geocoder;
-        let selectedLocation = null;
-        
-        // React Native WebView와 통신하는 함수
-        function sendMessageToApp(data) {
-            console.log('📱 앱으로 메시지 전송:', data);
-            
-            if (window.ReactNativeWebView) {
-                window.ReactNativeWebView.postMessage(JSON.stringify(data));
-            }
-            
-            // 웹 환경에서는 상위 window로 메시지 전송
-            if (window.parent && window.parent !== window) {
-                window.parent.postMessage(data, '*');
-            }
-        }
-        
-        // 주소 변환 함수
-        function searchAddrFromCoords(coords, callback) {
-            geocoder.coord2Address(coords.getLng(), coords.getLat(), function(result, status) {
-                if (status === kakao.maps.services.Status.OK) {
-                    const detailAddr = result[0];
-                    const fullAddress = detailAddr.road_address ? 
-                        detailAddr.road_address.address_name : 
-                        detailAddr.address.address_name;
-                    
-                    callback(fullAddress);
-                } else {
-                    callback('주소를 찾을 수 없습니다');
-                }
-            });
-        }
-        
-        // 위치 선택 처리
-        function selectLocation(lat, lng, address) {
-            selectedLocation = {
-                latitude: lat,
-                longitude: lng,
-                address: address
-            };
-            
-            // UI 업데이트
-            document.getElementById('addressInfo').style.display = 'block';
-            document.getElementById('addressText').textContent = address;
-            
-            console.log('✅ 위치 선택됨:', selectedLocation);
-        }
-        
-        // 지도 초기화
-        function initializeMap() {
+        let map = null;
+        let marker = null;
+        let geocoder = null;
+        let currentLocation = {
+            lat: 37.5665,
+            lng: 126.9780,
+            address: '서울특별시 중구 태평로1가'
+        };
+
+        // React Native 메시지 전송 함수
+        function sendMessage(type, data) {
             try {
-                console.log('🗺️ 지도 초기화 시작...');
-                
-                // 로딩 숨기기
-                document.getElementById('loading').style.display = 'none';
-                
-                // 지오코더 생성
-                geocoder = new kakao.maps.services.Geocoder();
+                if (window.ReactNativeWebView) {
+                    window.ReactNativeWebView.postMessage(JSON.stringify({ type, data }));
+                } else {
+                    console.log('WebView 메시지:', { type, data });
+                }
+            } catch (error) {
+                console.error('메시지 전송 실패:', error);
+            }
+        }
+
+        // React Native로부터 메시지 수신
+        window.addEventListener('message', function(event) {
+            try {
+                const message = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+                if (message.type === 'SET_INITIAL_LOCATION') {
+                    if (message.latitude && message.longitude) {
+                        currentLocation.lat = message.latitude;
+                        currentLocation.lng = message.longitude;
+                        if (map && marker) {
+                            const position = new kakao.maps.LatLng(currentLocation.lat, currentLocation.lng);
+                            map.setCenter(position);
+                            marker.setPosition(position);
+                            searchAddress(currentLocation.lat, currentLocation.lng);
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('메시지 처리 오류:', error);
+            }
+        });
+
+        // 스크립트 로드 완료 대기
+        window.onload = function() {
+            console.log('🔄 페이지 로드 완료, 카카오맵 초기화 시작...');
+            
+            // kakao 객체가 없으면 에러
+            if (typeof kakao === 'undefined' || !kakao.maps) {
+                console.error('❌ 카카오맵 SDK 로드 실패');
+                sendMessage('MAP_ERROR', { error: '카카오맵 SDK를 불러올 수 없습니다.' });
+                document.getElementById('loading').innerHTML = '<div style="color: red; padding: 20px;">⚠️ 지도를 불러올 수 없습니다.<br>네트워크 연결을 확인해주세요.</div>';
+                return;
+            }
+
+            // 카카오맵 초기화
+            kakao.maps.load(function() {
+            try {
+                // 지도 컨테이너
+                const container = document.getElementById('map');
                 
                 // 지도 옵션
-                const mapContainer = document.getElementById('map');
-                const mapOption = {
-                    center: new kakao.maps.LatLng(37.5665, 126.9780), // 서울시청
+                const options = {
+                    center: new kakao.maps.LatLng(currentLocation.lat, currentLocation.lng),
                     level: 3
                 };
-                
+
                 // 지도 생성
-                map = new kakao.maps.Map(mapContainer, mapOption);
-                
+                map = new kakao.maps.Map(container, options);
+
                 // 마커 생성
                 marker = new kakao.maps.Marker({
-                    position: mapOption.center,
+                    position: map.getCenter(),
                     draggable: true
                 });
                 marker.setMap(map);
-                
-                // 초기 위치 주소 검색
-                searchAddrFromCoords(mapOption.center, function(address) {
-                    selectLocation(37.5665, 126.9780, address);
-                });
-                
+
+                // 지오코더 생성
+                geocoder = new kakao.maps.services.Geocoder();
+
                 // 지도 클릭 이벤트
                 kakao.maps.event.addListener(map, 'click', function(mouseEvent) {
                     const latlng = mouseEvent.latLng;
-                    
-                    // 마커 이동
                     marker.setPosition(latlng);
-                    
-                    // 주소 검색
-                    searchAddrFromCoords(latlng, function(address) {
-                        selectLocation(latlng.getLat(), latlng.getLng(), address);
-                    });
+                    currentLocation.lat = latlng.getLat();
+                    currentLocation.lng = latlng.getLng();
+                    searchAddress(currentLocation.lat, currentLocation.lng);
                 });
-                
+
                 // 마커 드래그 이벤트
                 kakao.maps.event.addListener(marker, 'dragend', function() {
-                    const latlng = marker.getPosition();
-                    
-                    searchAddrFromCoords(latlng, function(address) {
-                        selectLocation(latlng.getLat(), latlng.getLng(), address);
-                    });
+                    const position = marker.getPosition();
+                    currentLocation.lat = position.getLat();
+                    currentLocation.lng = position.getLng();
+                    searchAddress(currentLocation.lat, currentLocation.lng);
                 });
-                
-                console.log('✅ 카카오 맵 초기화 완료');
-                
-                // 앱에 초기화 완료 알림
-                sendMessageToApp({
-                    type: 'MAP_READY',
-                    message: '지도 초기화 완료'
-                });
-                
+
+                // 초기 주소 검색
+                searchAddress(currentLocation.lat, currentLocation.lng);
+
+                // 로딩 완료
+                document.getElementById('loading').style.display = 'none';
+                sendMessage('MAP_READY', { status: 'ready' });
+
             } catch (error) {
-                console.error('❌ 지도 초기화 실패:', error);
-                
-                // 에러를 앱에 알림
-                sendMessageToApp({
-                    type: 'MAP_ERROR',
-                    error: error.message
-                });
+                console.error('지도 초기화 실패:', error);
+                sendMessage('MAP_ERROR', { error: error.message });
             }
+        });
+        };
+
+        // 주소 검색
+        function searchAddress(lat, lng) {
+            if (!geocoder) return;
+
+            geocoder.coord2Address(lng, lat, function(result, status) {
+                if (status === kakao.maps.services.Status.OK) {
+                    const address = result[0].address.address_name;
+                    const roadAddress = result[0].road_address ? result[0].road_address.address_name : address;
+                    
+                    currentLocation.address = address;
+                    currentLocation.roadAddress = roadAddress;
+                    
+                    document.getElementById('address').textContent = roadAddress || address;
+                } else {
+                    document.getElementById('address').textContent = `위치: ${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+                }
+            });
         }
-        
+
         // 현재 위치로 이동
-        function moveToCurrentLocation() {
+        function getCurrentLocation() {
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(function(position) {
                     const lat = position.coords.latitude;
                     const lng = position.coords.longitude;
-                    const moveLatLng = new kakao.maps.LatLng(lat, lng);
+                    const locPosition = new kakao.maps.LatLng(lat, lng);
                     
-                    map.setCenter(moveLatLng);
-                    marker.setPosition(moveLatLng);
+                    map.setCenter(locPosition);
+                    marker.setPosition(locPosition);
                     
-                    searchAddrFromCoords(moveLatLng, function(address) {
-                        selectLocation(lat, lng, address);
-                    });
-                    
+                    currentLocation.lat = lat;
+                    currentLocation.lng = lng;
+                    searchAddress(lat, lng);
                 }, function(error) {
-                    console.error('GPS 오류:', error);
-                    alert('현재 위치를 가져올 수 없습니다.');
+                    alert('위치 정보를 가져올 수 없습니다.');
+                    console.error('위치 오류:', error);
                 });
             } else {
-                alert('이 브라우저는 위치 서비스를 지원하지 않습니다.');
+                alert('이 브라우저는 위치 정보를 지원하지 않습니다.');
             }
         }
-        
-        // 위치 선택 확인
-        function confirmLocation() {
-            if (selectedLocation) {
-                console.log('✅ 위치 선택 확정:', selectedLocation);
-                
-                sendMessageToApp({
-                    type: 'LOCATION_SELECTED',
-                    data: selectedLocation
-                });
-            } else {
-                alert('위치를 선택해주세요.');
-            }
+
+        // 위치 선택
+        function selectLocation() {
+            sendMessage('LOCATION_SELECTED', {
+                latitude: currentLocation.lat,
+                longitude: currentLocation.lng,
+                address: currentLocation.address,
+                roadAddress: currentLocation.roadAddress,
+                placeName: currentLocation.address
+            });
         }
-        
-        // 이벤트 리스너 설정
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('🗺️ DOM 로드 완료, 카카오 맵 초기화 대기...');
-            
-            // 카카오 맵 SDK 로드 확인
-            if (window.kakao && window.kakao.maps) {
-                initializeMap();
-            } else {
-                // 스크립트 로드 대기
-                const checkKakao = setInterval(() => {
-                    if (window.kakao && window.kakao.maps) {
-                        clearInterval(checkKakao);
-                        initializeMap();
-                    }
-                }, 100);
-                
-                // 10초 후 타임아웃
-                setTimeout(() => {
-                    clearInterval(checkKakao);
-                    console.error('❌ 카카오 맵 SDK 로드 타임아웃');
-                    sendMessageToApp({
-                        type: 'MAP_ERROR',
-                        error: '카카오 맵을 불러올 수 없습니다'
-                    });
-                }, 10000);
-            }
-            
-            // 버튼 이벤트
-            document.getElementById('currentLocationBtn').addEventListener('click', moveToCurrentLocation);
-            document.getElementById('confirmBtn').addEventListener('click', confirmLocation);
-        });
-        
-        // 외부에서 호출 가능한 함수들
-        window.moveToLocation = function(lat, lng) {
-            if (map && marker) {
-                const latlng = new kakao.maps.LatLng(lat, lng);
-                map.setCenter(latlng);
-                marker.setPosition(latlng);
-                
-                searchAddrFromCoords(latlng, function(address) {
-                    selectLocation(lat, lng, address);
-                });
-            }
-        };
-        
-        window.getCurrentSelection = function() {
-            return selectedLocation;
-        };
-        
+
+        // 지도 닫기
+        function closeMap() {
+            sendMessage('CLOSE_MAP', {});
+        }
     </script>
 </body>
 </html>

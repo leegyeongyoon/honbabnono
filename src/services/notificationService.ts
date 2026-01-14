@@ -1,4 +1,5 @@
-// 브라우저 알림 서비스
+// React Native 호환 알림 서비스
+import { Platform, Alert } from 'react-native';
 
 export interface NotificationPayload {
   title: string;
@@ -10,14 +11,23 @@ export interface NotificationPayload {
   actions?: NotificationAction[];
 }
 
+interface NotificationAction {
+  action: string;
+  title: string;
+  icon?: string;
+}
+
+type NotificationPermission = 'default' | 'denied' | 'granted';
+
 class NotificationService {
   private permission: NotificationPermission = 'default';
   private isSupported: boolean = false;
 
   constructor() {
-    this.isSupported = 'Notification' in window;
-    if (this.isSupported) {
-      this.permission = Notification.permission;
+    // Check if we're on web and if notifications are supported
+    this.isSupported = Platform.OS === 'web' && typeof window !== 'undefined' && 'Notification' in window;
+    if (this.isSupported && typeof window !== 'undefined') {
+      this.permission = (window as any).Notification.permission;
     }
   }
 
@@ -25,70 +35,92 @@ class NotificationService {
    * 알림 권한 요청
    */
   async requestPermission(): Promise<NotificationPermission> {
-    if (!this.isSupported) {
-      console.warn('이 브라우저는 알림을 지원하지 않습니다.');
-      return 'denied';
-    }
-
-    if (this.permission === 'default') {
-      try {
-        this.permission = await Notification.requestPermission();
-      } catch (error) {
-        console.error('알림 권한 요청 실패:', error);
-        this.permission = 'denied';
+    if (Platform.OS === 'web') {
+      if (!this.isSupported) {
+        console.warn('이 브라우저는 알림을 지원하지 않습니다.');
+        return 'denied';
       }
-    }
 
-    return this.permission;
+      if (this.permission === 'default') {
+        try {
+          this.permission = await (window as any).Notification.requestPermission();
+        } catch (error) {
+          console.error('알림 권한 요청 실패:', error);
+          this.permission = 'denied';
+        }
+      }
+
+      return this.permission;
+    } else {
+      // React Native에서는 기본적으로 알림이 허용됨
+      this.permission = 'granted';
+      return this.permission;
+    }
   }
 
   /**
    * 알림 표시
    */
-  async showNotification(payload: NotificationPayload): Promise<Notification | null> {
-    if (!this.isSupported) {
-      console.warn('이 브라우저는 알림을 지원하지 않습니다.');
-      return null;
-    }
+  async showNotification(payload: NotificationPayload): Promise<any> {
+    if (Platform.OS === 'web') {
+      if (!this.isSupported || typeof window === 'undefined') {
+        console.warn('이 브라우저는 알림을 지원하지 않습니다.');
+        return null;
+      }
 
-    if (this.permission !== 'granted') {
-      console.warn('알림 권한이 없습니다.');
-      return null;
-    }
+      if (this.permission !== 'granted') {
+        console.warn('알림 권한이 없습니다.');
+        return null;
+      }
 
-    try {
-      const notification = new Notification(payload.title, {
-        body: payload.body,
-        icon: payload.icon || '/favicon.ico',
-        badge: payload.badge,
-        tag: payload.tag,
-        data: payload.data,
-        requireInteraction: true, // 사용자 상호작용 필요
-        silent: false,
-      });
+      try {
+        const notification = new (window as any).Notification(payload.title, {
+          body: payload.body,
+          icon: payload.icon || '/favicon.ico',
+          badge: payload.badge,
+          tag: payload.tag,
+          data: payload.data,
+          requireInteraction: true, // 사용자 상호작용 필요
+          silent: false,
+        });
 
-      // 알림 클릭 이벤트
-      notification.onclick = (event) => {
-        event.preventDefault();
-        window.focus();
-        
-        // 모임 상세 페이지로 이동
-        if (payload.data?.meetupId) {
-          window.location.href = `/meetup/${payload.data.meetupId}`;
+        // 알림 클릭 이벤트
+        notification.onclick = (event: any) => {
+          event.preventDefault();
+          window.focus();
+          
+          // 모임 상세 페이지로 이동
+          if (payload.data?.meetupId) {
+            window.location.href = `/meetup/${payload.data.meetupId}`;
+          }
+          
+          notification.close();
+        };
+
+        // 자동 닫기 (10초 후)
+        setTimeout(() => {
+          notification.close();
+        }, 10000);
+
+        return notification;
+      } catch (error) {
+        console.error('알림 표시 실패:', error);
+        return null;
+      }
+    } else {
+      // React Native에서는 Alert으로 대체
+      Alert.alert(payload.title, payload.body, [
+        {
+          text: '확인',
+          onPress: () => {
+            // 필요시 navigation 처리
+            if (payload.data?.meetupId) {
+              console.log('Navigate to meetup:', payload.data.meetupId);
+            }
+          }
         }
-        
-        notification.close();
-      };
-
-      // 자동 닫기 (10초 후)
-      setTimeout(() => {
-        notification.close();
-      }, 10000);
-
-      return notification;
-    } catch (error) {
-      console.error('알림 표시 실패:', error);
-      return null;
+      ]);
+      return true;
     }
   }
 
@@ -100,7 +132,7 @@ class NotificationService {
     title: string;
     location: string;
     time: string;
-  }): Promise<Notification | null> {
+  }): Promise<any> {
     return this.showNotification({
       title: '🍚 혼밥노노 모임 알림',
       body: `"${meetup.title}" 모임이 30분 후에 시작됩니다!\n📍 ${meetup.location}`,
@@ -120,7 +152,7 @@ class NotificationService {
     id: string;
     title: string;
     location: string;
-  }): Promise<Notification | null> {
+  }): Promise<any> {
     return this.showNotification({
       title: '🎉 모임이 시작되었습니다!',
       body: `"${meetup.title}" 모임이 지금 시작됩니다!\n📍 ${meetup.location}에서 확인해보세요.`,
@@ -141,7 +173,7 @@ class NotificationService {
     content: string;
     meetupTitle: string;
     meetupId: string;
-  }): Promise<Notification | null> {
+  }): Promise<any> {
     return this.showNotification({
       title: `💬 ${message.meetupTitle}`,
       body: `${message.senderName}: ${message.content}`,
@@ -162,7 +194,7 @@ class NotificationService {
     title: string;
     date: string;
     time: string;
-  }): Promise<Notification | null> {
+  }): Promise<any> {
     return this.showNotification({
       title: '✅ 모임 참가가 승인되었습니다!',
       body: `"${meetup.title}" 모임에 참가하실 수 있습니다.\n📅 ${meetup.date} ${meetup.time}`,

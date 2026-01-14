@@ -1,4 +1,5 @@
 import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
+import storage from '../utils/storage';
 
 // API 기본 URL을 런타임에 동적으로 설정
 const getApiBaseUrl = (): string => {
@@ -27,7 +28,8 @@ const getApiBaseUrl = (): string => {
   }
   
   // React Native 환경이나 SSR fallback
-  const url = 'http://localhost:3001/api';
+  // 실제 디바이스에서는 localhost 대신 실제 IP 사용
+  const url = 'http://192.168.0.101:3001/api';
   console.log('🔧 Using React Native/SSR fallback API URL:', url);
   return url;
 };
@@ -42,32 +44,18 @@ const apiClient: AxiosInstance = axios.create({
 });
 
 // Storage helper - Web과 React Native 호환
-const getStorageItem = (key: string): string | null => {
-  try {
-    if (typeof window !== 'undefined' && window.localStorage) {
-      return localStorage.getItem(key);
-    }
-    return null;
-  } catch (error) {
-    console.warn('Storage access failed:', error);
-    return null;
-  }
+const getStorageItem = async (key: string): Promise<string | null> => {
+  return await storage.getItem(key);
 };
 
-const removeStorageItem = (key: string): void => {
-  try {
-    if (typeof window !== 'undefined' && window.localStorage) {
-      localStorage.removeItem(key);
-    }
-  } catch (error) {
-    console.warn('Storage remove failed:', error);
-  }
+const removeStorageItem = async (key: string): Promise<void> => {
+  return await storage.removeItem(key);
 };
 
 // 요청 인터셉터: 토큰 자동 추가
 apiClient.interceptors.request.use(
-  (config: any) => {
-    const token = getStorageItem('token');
+  async (config: any) => {
+    const token = await getStorageItem('token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -95,7 +83,7 @@ apiClient.interceptors.response.use(
     });
     return response;
   },
-  (error) => {
+  async (error) => {
     console.error(`❌ API 응답 오류: ${error.config?.method?.toUpperCase()} ${error.config?.url}`, {
       status: error.response?.status,
       message: error.response?.data?.error || error.message,
@@ -105,8 +93,8 @@ apiClient.interceptors.response.use(
     // 401 Unauthorized: 토큰 만료 또는 무효
     if (error.response?.status === 401) {
       console.log('🔐 인증 토큰 무효, 로그아웃 처리');
-      removeStorageItem('token');
-      removeStorageItem('user');
+      await removeStorageItem('token');
+      await removeStorageItem('user');
       
       // Web 환경에서 로그인 페이지로 리다이렉트
       if (typeof window !== 'undefined' && window.location) {

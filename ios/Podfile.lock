@@ -324,6 +324,9 @@ PODS:
     - React-Core
   - RNCPushNotificationIOS (1.12.0):
     - React-Core
+  - RNScreens (3.10.2):
+    - React-Core
+    - React-RCTImage
   - Yoga (1.14.0)
 
 DEPENDENCIES:
@@ -365,6 +368,7 @@ DEPENDENCIES:
   - ReactCommon/turbomodule/core (from `../node_modules/react-native/ReactCommon`)
   - "RNCAsyncStorage (from `../node_modules/@react-native-async-storage/async-storage`)"
   - "RNCPushNotificationIOS (from `../node_modules/@react-native-community/push-notification-ios`)"
+  - RNScreens (from `../node_modules/react-native-screens`)
   - Yoga (from `../node_modules/react-native/ReactCommon/yoga`)
 
 SPEC REPOS:
@@ -446,6 +450,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/@react-native-async-storage/async-storage"
   RNCPushNotificationIOS:
     :path: "../node_modules/@react-native-community/push-notification-ios"
+  RNScreens:
+    :path: "../node_modules/react-native-screens"
   Yoga:
     :path: "../node_modules/react-native/ReactCommon/yoga"
 
@@ -488,8 +494,9 @@ SPEC CHECKSUMS:
   ReactCommon: ecf650eed76057e2f204dad0fccd3ca66692347c
   RNCAsyncStorage: b6410dead2732b5c72a7fdb1ecb5651bbcf4674b
   RNCPushNotificationIOS: 85957a0534fd1309b4c028ccbe5b1baf9ab5cf57
+  RNScreens: 9c5c6b2ef47d0814e6d036339e4588eefad9ac54
   Yoga: d4f5b037672e6b68ba484c7cf7fe6790122df792
 
-PODFILE CHECKSUM: 7b2f5d9ece0eb2a2369642b580e66684b5d5be65
+PODFILE CHECKSUM: 2c5df38a6552542a5d255be2a1700aaadce7c549
 
 COCOAPODS: 1.16.2

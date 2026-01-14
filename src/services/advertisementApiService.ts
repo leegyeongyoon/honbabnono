@@ -1,3 +1,5 @@
+import { localStorage } from '../utils/localStorageCompat';
+
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
 
 export interface Advertisement {
@@ -97,7 +99,7 @@ class AdvertisementApiService {
     filters?: { position?: string; isActive?: boolean }
   ): Promise<{ advertisements: Advertisement[]; pagination: any }> {
     try {
-      const token = localStorage.getItem('token');
+      const token = await localStorage.getItem('token');
       if (!token) {
         throw new Error('인증 토큰이 없습니다.');
       }
@@ -137,7 +139,7 @@ class AdvertisementApiService {
    */
   async createAdvertisement(formData: FormData): Promise<Advertisement> {
     try {
-      const token = localStorage.getItem('token');
+      const token = await localStorage.getItem('token');
       if (!token) {
         throw new Error('인증 토큰이 없습니다.');
       }
@@ -168,7 +170,7 @@ class AdvertisementApiService {
    */
   async updateAdvertisement(id: number, formData: FormData): Promise<Advertisement> {
     try {
-      const token = localStorage.getItem('token');
+      const token = await localStorage.getItem('token');
       if (!token) {
         throw new Error('인증 토큰이 없습니다.');
       }
@@ -199,7 +201,7 @@ class AdvertisementApiService {
    */
   async deleteAdvertisement(id: number): Promise<boolean> {
     try {
-      const token = localStorage.getItem('token');
+      const token = await localStorage.getItem('token');
       if (!token) {
         throw new Error('인증 토큰이 없습니다.');
       }
@@ -229,7 +231,7 @@ class AdvertisementApiService {
    */
   async toggleAdvertisement(id: number): Promise<{ isActive: boolean }> {
     try {
-      const token = localStorage.getItem('token');
+      const token = await localStorage.getItem('token');
       if (!token) {
         throw new Error('인증 토큰이 없습니다.');
       }

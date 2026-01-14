@@ -25,8 +25,10 @@ class LocationService {
   async getCurrentLocation(): Promise<LocationData> {
     // 개발 환경에서는 더 조용한 에러 처리
     const isDevelopment = process.env.NODE_ENV === 'development' || 
-                          window.location.hostname === 'localhost' || 
-                          window.location.hostname === '127.0.0.1';
+                          (typeof window !== 'undefined' && window.location && (
+                            window.location.hostname === 'localhost' || 
+                            window.location.hostname === '127.0.0.1'
+                          ));
 
     // 먼저 권한 상태 확인
     const permissionState = await this.checkLocationPermission();

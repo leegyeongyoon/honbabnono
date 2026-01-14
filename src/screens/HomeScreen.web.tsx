@@ -13,7 +13,7 @@ import { useNavigate } from 'react-router-dom';
 import {COLORS, SHADOWS} from '../styles/colors';
 import {Icon} from '../components/Icon';
 import { NotificationBell } from '../components/NotificationBell';
-import CreateMeetupScreen from './CreateMeetupScreen';
+import CreateMeetupWizard from './CreateMeetupWizard.web';
 import NeighborhoodSelector from '../components/NeighborhoodSelector';
 import MeetupCard from '../components/MeetupCard';
 import locationService from '../services/locationService';
@@ -63,9 +63,9 @@ interface HomeScreenProps {
   user?: any;
 }
 
-const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, user }) => {
+const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, user: propUser }) => {
   const navigate = useNavigate();
-  const { updateNeighborhood } = useUserStore();
+  const { updateNeighborhood, user } = useUserStore();
   const { meetups, fetchHomeMeetups } = useMeetupStore();
   const { searchMeetups, meetups: searchResults, loading: searchLoading } = useMeetups();
   const [showCreateMeetup, setShowCreateMeetup] = useState(false);
@@ -211,9 +211,10 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
 
 
   const openNeighborhoodSelector = () => {
-    console.log('🏠 동네 선택 버튼 클릭됨');
+    console.log('🏠 [HomeScreen] 동네 선택 버튼 클릭됨');
+    console.log('🏠 [HomeScreen] showNeighborhoodSelector 현재 상태:', showNeighborhoodSelector);
     setShowNeighborhoodSelector(true);
-    console.log('🏠 동네 선택 모달 열림');
+    console.log('🏠 [HomeScreen] showNeighborhoodSelector을 true로 설정함');
   };
 
   return (
@@ -408,12 +409,22 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
       </ScrollView>
 
       {/* 플로팅 버튼 */}
-      <TouchableOpacity style={styles.fab} onPress={() => navigate('/create-meetup')}>
+      <TouchableOpacity style={styles.fab} onPress={() => setShowCreateMeetup(true)}>
         <Icon name="plus" size={28} color={COLORS.neutral.white} />
       </TouchableOpacity>
 
 
       {/* 모달들 */}
+      <Modal
+        visible={showCreateMeetup}
+        animationType="slide"
+        presentationStyle="pageSheet"
+      >
+        <CreateMeetupWizard 
+          user={user}
+          onClose={() => setShowCreateMeetup(false)}
+        />
+      </Modal>
 
       <NeighborhoodSelector
         visible={showNeighborhoodSelector}
@@ -444,6 +455,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
+    padding: 8,
+    backgroundColor: COLORS.primary.light,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: COLORS.primary.main,
   },
   locationText: {
     fontSize: 17,

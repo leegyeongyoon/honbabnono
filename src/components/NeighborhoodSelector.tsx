@@ -5,10 +5,12 @@ import {
   StyleSheet,
   TouchableOpacity,
   Modal,
+  Platform,
 } from 'react-native';
 import { COLORS, SHADOWS } from '../styles/colors';
 import { Icon } from './Icon';
 import KakaoMapModal from './KakaoMapModal';
+import NativeMapModal from './NativeMapModal';
 
 interface NeighborhoodSelectorProps {
   visible: boolean;
@@ -28,7 +30,10 @@ const NeighborhoodSelector: React.FC<NeighborhoodSelectorProps> = ({
 
   // 카카오 지도 모달 열기
   const handleOpenKakaoMap = () => {
+    console.log('🗺️ [NeighborhoodSelector] 지도 모달 열기 버튼 클릭됨');
+    console.log('🗺️ [NeighborhoodSelector] Platform.OS:', Platform.OS);
     setShowMapModal(true);
+    console.log('🗺️ [NeighborhoodSelector] showMapModal 상태가 true로 설정됨');
   };
 
   // 카카오 지도에서 위치 선택 처리 (GPS 권한 체크 포함)
@@ -92,12 +97,20 @@ const NeighborhoodSelector: React.FC<NeighborhoodSelectorProps> = ({
         {renderCurrentLocationTab()}
       </View>
 
-      {/* 카카오 지도 모달 */}
-      <KakaoMapModal
-        visible={showMapModal}
-        onClose={() => setShowMapModal(false)}
-        onLocationSelect={handleKakaoMapLocationSelect}
-      />
+      {/* Platform에 따른 지도 모달 */}
+      {Platform.OS === 'web' ? (
+        <KakaoMapModal
+          visible={showMapModal}
+          onClose={() => setShowMapModal(false)}
+          onLocationSelect={handleKakaoMapLocationSelect}
+        />
+      ) : (
+        <NativeMapModal
+          visible={showMapModal}
+          onClose={() => setShowMapModal(false)}
+          onLocationSelect={handleKakaoMapLocationSelect}
+        />
+      )}
     </Modal>
   );
 };

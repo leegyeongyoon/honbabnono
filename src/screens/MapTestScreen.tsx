@@ -7,16 +7,23 @@ import {
   SafeAreaView,
 } from 'react-native';
 import { COLORS } from '../styles/colors';
-import UniversalKakaoMap from '../components/UniversalKakaoMap';
+import NativeMapModal from '../components/NativeMapModal';
 
 const MapTestScreen = () => {
+  console.log('🗺️ [MapTestScreen] 컴포넌트 렌더링됨');
   const [showMap, setShowMap] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState<any>(null);
 
-  const handleLocationSelect = (location: any) => {
-    setSelectedLocation(location);
+  const handleLocationSelect = (district: string, neighborhood: string, lat: number, lng: number, address: string) => {
+    setSelectedLocation({
+      district,
+      neighborhood,
+      latitude: lat,
+      longitude: lng,
+      address
+    });
     setShowMap(false);
-    console.log('🗺️ [MapTest] 선택된 위치:', location);
+    console.log('🗺️ [MapTest] 선택된 위치:', { district, neighborhood, lat, lng, address });
   };
 
   return (
@@ -26,7 +33,11 @@ const MapTestScreen = () => {
         
         <TouchableOpacity 
           style={styles.button}
-          onPress={() => setShowMap(true)}
+          onPress={() => {
+            console.log('🗺️ [MapTestScreen] 지도 열기 버튼 클릭됨');
+            setShowMap(true);
+            console.log('🗺️ [MapTestScreen] showMap 상태 변경됨:', true);
+          }}
         >
           <Text style={styles.buttonText}>지도 열기</Text>
         </TouchableOpacity>
@@ -34,6 +45,7 @@ const MapTestScreen = () => {
         {selectedLocation && (
           <View style={styles.locationInfo}>
             <Text style={styles.locationTitle}>선택된 위치:</Text>
+            <Text style={styles.locationText}>{selectedLocation.district} {selectedLocation.neighborhood}</Text>
             <Text style={styles.locationText}>{selectedLocation.address}</Text>
             <Text style={styles.locationText}>
               위도: {selectedLocation.latitude}, 경도: {selectedLocation.longitude}
@@ -41,11 +53,10 @@ const MapTestScreen = () => {
           </View>
         )}
 
-        <UniversalKakaoMap
+        <NativeMapModal
           visible={showMap}
           onClose={() => setShowMap(false)}
           onLocationSelect={handleLocationSelect}
-          initialLocation={{ latitude: 37.5665, longitude: 126.9780 }}
         />
       </View>
     </SafeAreaView>

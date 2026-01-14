@@ -1,42 +1,44 @@
 import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  Image,
+  StyleSheet,
+  ViewStyle,
+  ImageStyle,
+} from 'react-native';
 import { COLORS } from '../styles/colors';
 
 // 기본 프로필 이미지 컴포넌트
 const DefaultProfileImage: React.FC<{ size?: number }> = ({ size = 40 }) => (
-  <div 
-    style={{
-      width: size,
-      height: size,
-      borderRadius: '50%',
-      background: 'linear-gradient(135deg, #F5F5DC 0%, #E6E6DC 100%)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      position: 'relative',
-      border: '2px solid #EEEEEE',
-      boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-    }}
+  <View 
+    style={[
+      styles.defaultImage,
+      {
+        width: size,
+        height: size,
+        borderRadius: size / 2,
+      }
+    ]}
   >
-    <span style={{
+    <Text style={{
       fontSize: size * 0.4,
       color: '#8B4513'
-    }}>🍚</span>
-  </div>
+    }}>🍚</Text>
+  </View>
 );
 
 interface ProfileImageProps {
   profileImage?: string | null;
   name: string;
   size?: number;
-  className?: string;
-  style?: React.CSSProperties;
+  style?: ViewStyle | ImageStyle;
 }
 
 export const ProfileImage: React.FC<ProfileImageProps> = ({
   profileImage,
   name,
   size = 40,
-  className,
   style
 }) => {
   const [imageError, setImageError] = useState(false);
@@ -64,19 +66,18 @@ export const ProfileImage: React.FC<ProfileImageProps> = ({
   console.log('🎯 실제 이미지 URL:', imageUrl);
   
   return (
-    <img
-      src={imageUrl}
-      alt={`${name} 프로필`}
-      className={className}
-      style={{
-        width: size,
-        height: size,
-        borderRadius: size / 2,
-        backgroundColor: COLORS.neutral.light,
-        objectFit: 'cover',
-        display: 'block',
-        ...style
-      }}
+    <Image
+      source={{ uri: imageUrl }}
+      style={[
+        {
+          width: size,
+          height: size,
+          borderRadius: size / 2,
+          backgroundColor: COLORS.neutral.light,
+        },
+        style as ImageStyle
+      ]}
+      resizeMode="cover"
       onLoad={() => {
         console.log('✅ 프로필 이미지 로드 성공:', name, imageUrl);
       }}
@@ -87,5 +88,23 @@ export const ProfileImage: React.FC<ProfileImageProps> = ({
     />
   );
 };
+
+const styles = StyleSheet.create({
+  defaultImage: {
+    backgroundColor: '#F5F5DC',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#EEEEEE',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+});
 
 export default ProfileImage;

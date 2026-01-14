@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import { useNavigate } from 'react-router-dom';
+import { useNavigation } from '@react-navigation/native';
 import { COLORS, SHADOWS } from '../styles/colors';
 import { Icon } from '../components/Icon';
-import { ArrowLeft } from 'lucide-react';
 
 interface Badge {
   id: string;
@@ -16,7 +15,7 @@ interface Badge {
 }
 
 const MyBadgesScreen: React.FC = () => {
-  const navigate = useNavigate();
+  const navigation = useNavigation();
   const [badges, setBadges] = useState<Badge[]>([]);
 
   useEffect(() => {
@@ -134,9 +133,9 @@ const MyBadgesScreen: React.FC = () => {
       <View style={styles.header}>
         <TouchableOpacity 
           style={styles.backButton}
-          onPress={() => navigate(-1)}
+          onPress={() => navigation.goBack()}
         >
-          <ArrowLeft size={24} color={COLORS.text.primary} />
+          <Icon name="arrow-left" size={24} color={COLORS.text.primary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>내 뱃지</Text>
         <View style={styles.placeholder} />
