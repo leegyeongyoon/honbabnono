@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { COLORS, SHADOWS } from '../../styles/colors';
 import { Icon } from '../Icon';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import userApiService from '../../services/userApiService';
 
 // Platform-specific navigation adapter
 interface NavigationAdapter {
@@ -42,34 +42,14 @@ const UniversalMyActivitiesScreen: React.FC<UniversalMyActivitiesScreenProps> = 
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // API base URL
-  const getApiUrl = () => process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
-
   // Fetch user activities
   const fetchActivities = useCallback(async () => {
     try {
       setError(null);
-      const token = await AsyncStorage.getItem('authToken');
-      
-      if (!token) {
-        throw new Error('로그인이 필요합니다');
-      }
-
-      const response = await fetch(`${getApiUrl()}/user/activities`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      const data = await response.json();
-
-      if (response.ok && data.success) {
-        setActivities(data.activities || data.data || []);
-      } else {
-        throw new Error(data.message || '활동 내역을 불러오는데 실패했습니다');
-      }
+      console.log('📋 활동 내역 조회 시작');
+      const response = await userApiService.getActivities();
+      console.log('📋 활동 내역 응답:', response);
+      setActivities(response.data || response.activities || []);
     } catch (error) {
       console.error('활동 내역 조회 실패:', error);
       setError(error instanceof Error ? error.message : '활동 내역을 불러오는데 실패했습니다');

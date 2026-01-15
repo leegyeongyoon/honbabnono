@@ -344,106 +344,74 @@ const UniversalCreateMeetupWizard: React.FC<UniversalCreateMeetupWizardProps> = 
     ];
 
     return (
-      <View style={styles.categoryStepContainer}>
-        <Text style={styles.categoryTitle}>어떤 매뉴를 드시고 싶으세요?</Text>
-        
-        <View style={styles.newCategoryGrid}>
+      <View style={styles.stepContent}>
+        <View style={styles.categoryGrid}>
           {categories.map((category) => (
             <TouchableOpacity
               key={category.id}
               style={[
-                styles.newCategoryItem,
-                meetupData.category === category.name && styles.newCategoryItemSelected
+                styles.categoryItem,
+                meetupData.category === category.name && styles.categoryItemSelected
               ]}
               onPress={() => setMeetupData(prev => ({ ...prev, category: category.name }))}
             >
               <View style={[
-                styles.newCategoryIconContainer, 
-                { backgroundColor: '#F5F5F5' },
-                meetupData.category === category.name && { 
-                  borderColor: COLORS.primary.main,
-                  backgroundColor: `${COLORS.primary.main}15`
-                }
+                styles.categoryIconWrapper,
+                meetupData.category === category.name && styles.categoryIconWrapperSelected
               ]}>
-                <Text style={styles.newCategoryIcon}>{category.icon}</Text>
+                <Text style={styles.categoryEmoji}>{category.icon}</Text>
               </View>
               <Text style={[
-                styles.newCategoryName,
-                meetupData.category === category.name && styles.newCategoryNameSelected
+                styles.categoryName,
+                meetupData.category === category.name && styles.categoryNameSelected
               ]}>
                 {category.name}
               </Text>
             </TouchableOpacity>
           ))}
         </View>
-
-        {/* 페이지 인디케이터 */}
-        <View style={styles.pageIndicator}>
-          {Array.from({ length: 6 }, (_, i) => (
-            <View
-              key={i}
-              style={[
-                styles.indicatorDot,
-                i === 0 ? styles.indicatorDotActive : styles.indicatorDotInactive
-              ]}
-            />
-          ))}
-        </View>
       </View>
     );
   };
 
-  // 날짜/시간 선택 화면 (스크린샷과 동일한 디자인)
+  // 날짜/시간 선택 화면
   const renderDateTimeStep = () => (
-    <ScrollView style={styles.stepContainer} showsVerticalScrollIndicator={false}>
-      <Text style={styles.stepTitle}>언제 만날까요?</Text>
-      
+    <View style={styles.stepContent}>
       <View style={styles.dateTimeSection}>
-        <Text style={styles.dateTimeLabel}>날짜</Text>
-        <TouchableOpacity 
-          style={styles.dateTimeDropdown}
+        <Text style={styles.sectionLabel}>날짜</Text>
+        <TouchableOpacity
+          style={styles.selectButton}
           onPress={() => setShowDateModal(true)}
         >
-          <Text style={styles.dateTimeDropdownText}>
-            {selectedDate ? 
-              `${selectedDate.getMonth() + 1}월 ${selectedDate.getDate()}일 ${['일', '월', '화', '수', '목', '금', '토'][selectedDate.getDay()]}요일` : 
+          <Icon name="calendar" size={20} color={COLORS.primary.main} />
+          <Text style={styles.selectButtonText}>
+            {selectedDate ?
+              `${selectedDate.getMonth() + 1}월 ${selectedDate.getDate()}일 ${['일', '월', '화', '수', '목', '금', '토'][selectedDate.getDay()]}요일` :
               '날짜를 선택해주세요'}
           </Text>
-          <Text style={styles.dropdownArrow}>▼</Text>
+          <Icon name="chevron-right" size={20} color={COLORS.text.tertiary} />
         </TouchableOpacity>
       </View>
 
       <View style={styles.dateTimeSection}>
-        <Text style={styles.dateTimeLabel}>시간</Text>
-        <TouchableOpacity 
-          style={styles.dateTimeDropdown}
+        <Text style={styles.sectionLabel}>시간</Text>
+        <TouchableOpacity
+          style={styles.selectButton}
           onPress={() => setShowTimeModal(true)}
         >
-          <Text style={styles.dateTimeDropdownText}>
-            {selectedTime ? 
-              `${selectedPeriod} ${selectedHour}:${selectedMinute.toString().padStart(2, '0')}` : 
-              '시간을 선택해주세요'}
+          <Icon name="clock" size={20} color={COLORS.primary.main} />
+          <Text style={styles.selectButtonText}>
+            {`${selectedPeriod} ${selectedHour}:${selectedMinute.toString().padStart(2, '0')}`}
           </Text>
-          <Text style={styles.dropdownArrow}>▼</Text>
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.dateTimeSection}>
-        <Text style={styles.dateTimeLabel}>약속 전 나에게 알림</Text>
-        <TouchableOpacity 
-          style={styles.dateTimeDropdown}
-          onPress={() => setShowAlarmModal(true)}
-        >
-          <Text style={styles.dateTimeDropdownText}>30분 전</Text>
-          <Text style={styles.dropdownArrow}>▼</Text>
+          <Icon name="chevron-right" size={20} color={COLORS.text.tertiary} />
         </TouchableOpacity>
       </View>
 
       {meetupData.datetime && (
-        <View style={styles.selectedDateTimeDisplay}>
-          <Text style={styles.selectedDateTimeIcon}>✨</Text>
-          <Text style={styles.selectedDateTimeText}>
-            선택된 일정: {meetupData.datetime.toLocaleDateString('ko-KR', {
+        <View style={styles.selectedInfoBox}>
+          <Text style={styles.selectedInfoIcon}>✨</Text>
+          <Text style={styles.selectedInfoText}>
+            {meetupData.datetime.toLocaleDateString('ko-KR', {
               year: 'numeric',
               month: 'long',
               day: 'numeric'
@@ -451,69 +419,59 @@ const UniversalCreateMeetupWizard: React.FC<UniversalCreateMeetupWizardProps> = 
           </Text>
         </View>
       )}
-
-      {/* 날짜 선택 모달 */}
-      {showDateModal && renderDateModal()}
-      
-      {/* 시간 선택 모달 */}
-      {showTimeModal && renderTimeModal()}
-    </ScrollView>
+    </View>
   );
 
-  // 참가자 설정 화면 (웹과 동일한 디자인)
+  // 참가자 설정 화면
   const renderParticipantsStep = () => (
-    <View style={styles.stepContainer}>
-      <Text style={styles.stepTitle}>누구와 함께 드실까요?</Text>
-      
-      <View style={styles.participantCard}>
-        <View style={styles.participantHeader}>
-          <Text style={styles.participantIcon}>👥</Text>
-          <Text style={styles.participantTitle}>최대 참가자 수</Text>
+    <View style={styles.stepContent}>
+      <View style={styles.cardBox}>
+        <View style={styles.cardHeader}>
+          <Text style={styles.cardIcon}>👥</Text>
+          <Text style={styles.cardTitle}>최대 참가자 수</Text>
         </View>
-        <View style={styles.numberSelector}>
+        <View style={styles.numberGrid}>
           {[2, 3, 4, 5, 6, 7, 8].map(num => (
             <TouchableOpacity
               key={num}
               style={[
-                styles.numberButton,
-                meetupData.maxParticipants === num && styles.numberButtonSelected
+                styles.numberBtn,
+                meetupData.maxParticipants === num && styles.numberBtnSelected
               ]}
               onPress={() => setMeetupData(prev => ({ ...prev, maxParticipants: num }))}
             >
               <Text style={[
-                styles.numberButtonText,
-                meetupData.maxParticipants === num && styles.numberButtonTextSelected
+                styles.numberBtnText,
+                meetupData.maxParticipants === num && styles.numberBtnTextSelected
               ]}>
-                {num}
+                {num}명
               </Text>
             </TouchableOpacity>
           ))}
         </View>
-        <Text style={styles.participantHint}>본인 포함 {meetupData.maxParticipants}명이 함께합니다</Text>
+        <Text style={styles.hintText}>본인 포함 {meetupData.maxParticipants}명이 함께합니다</Text>
       </View>
     </View>
   );
 
-  // 성별/연령 제한 설정 화면 (웹과 동일한 디자인)
+  // 성별/연령 제한 설정 화면
   const renderFilterStep = () => (
-    <View style={styles.stepContainer}>
-      <Text style={styles.stepTitle}>선호하는 유형을 설정해주세요</Text>
-      
-      <View style={styles.preferenceSection}>
-        <Text style={styles.preferenceLabel}>성별</Text>
-        <View style={styles.preferenceOptions}>
+    <View style={styles.stepContent}>
+      <View style={styles.filterSection}>
+        <Text style={styles.sectionLabel}>성별</Text>
+        <View style={styles.chipGroup}>
           {['남성만', '여성만', '상관없음'].map((gender) => (
             <TouchableOpacity
               key={gender}
               style={[
-                styles.preferenceOption,
-                meetupData.genderPreference === gender ? styles.preferenceSelected : null
+                styles.chip,
+                meetupData.genderPreference === gender && styles.chipSelected
               ]}
               onPress={() => setMeetupData(prev => ({ ...prev, genderPreference: gender }))}
             >
               <Text style={[
-                styles.preferenceText,
-                meetupData.genderPreference === gender ? styles.preferenceTextSelected : null
+                styles.chipText,
+                meetupData.genderPreference === gender && styles.chipTextSelected
               ]}>
                 {gender}
               </Text>
@@ -521,20 +479,19 @@ const UniversalCreateMeetupWizard: React.FC<UniversalCreateMeetupWizardProps> = 
           ))}
         </View>
       </View>
-      
-      <View style={styles.preferenceSection}>
-        <Text style={styles.preferenceLabel}>연령</Text>
-        <TouchableOpacity style={styles.dropdownButton} onPress={() => setShowAgeModal(true)}>
-          <Text style={styles.dropdownButtonText}>
-            {meetupData.ageRange === '전체' ? '전체 연령' : 
+
+      <View style={styles.filterSection}>
+        <Text style={styles.sectionLabel}>연령</Text>
+        <TouchableOpacity style={styles.selectButton} onPress={() => setShowAgeModal(true)}>
+          <Icon name="users" size={20} color={COLORS.primary.main} />
+          <Text style={styles.selectButtonText}>
+            {meetupData.ageRange === '전체' ? '전체 연령' :
              minAge === maxAge ? `${minAge}세` :
              `${minAge}세 - ${maxAge}세`}
           </Text>
-          <Text style={styles.dropdownArrow}>▼</Text>
+          <Icon name="chevron-right" size={20} color={COLORS.text.tertiary} />
         </TouchableOpacity>
       </View>
-      
-      {showAgeModal && renderAgeModal()}
     </View>
   );
 
@@ -645,28 +602,12 @@ const UniversalCreateMeetupWizard: React.FC<UniversalCreateMeetupWizardProps> = 
     </View>
   );
 
-  // 위치 선택 화면 (웹과 동일한 디자인)
+  // 위치 선택 화면
   const renderLocationStep = () => (
-    <View style={styles.stepContainer}>
-      <Text style={styles.stepTitle}>만날 장소를 선택해주세요</Text>
-      
-      <TextInput
-        style={styles.locationInput}
-        placeholder="장소명을 입력하세요 (예: 신도림 맛집거리)"
-        value={meetupData.location}
-        onChangeText={(text) => setMeetupData(prev => ({ ...prev, location: text }))}
-      />
-      
-      <TextInput
-        style={styles.locationInput}
-        placeholder="상세 주소를 입력하세요"
-        value={meetupData.detailAddress}
-        onChangeText={(text) => setMeetupData(prev => ({ ...prev, detailAddress: text }))}
-      />
-
+    <View style={styles.stepContent}>
       {/* Platform-specific map component */}
-      <View style={styles.mapContainer}>
-        {Platform.OS === 'web' && WebMap && (
+      {Platform.OS === 'web' && WebMap && (
+        <View style={styles.webMapContainer}>
           <WebMap
             onLocationSelect={(location: any) => {
               setMeetupData(prev => ({
@@ -677,69 +618,90 @@ const UniversalCreateMeetupWizard: React.FC<UniversalCreateMeetupWizardProps> = 
               }));
             }}
           />
-        )}
-        
-        {Platform.OS !== 'web' && NativeMap && (
-          <NativeMap
-            selectedLocation={{
-              latitude: meetupData.latitude,
-              longitude: meetupData.longitude,
-              address: meetupData.address,
-              location: meetupData.location,
-            }}
-            onLocationSelect={(location: any) => {
-              setMeetupData(prev => ({
-                ...prev,
-                latitude: location.latitude,
-                longitude: location.longitude,
-                address: location.address,
-                location: location.location || location.address,
-              }));
-            }}
+        </View>
+      )}
+
+      {Platform.OS !== 'web' && NativeMap && (
+        <NativeMap
+          selectedLocation={{
+            latitude: meetupData.latitude,
+            longitude: meetupData.longitude,
+            address: meetupData.address,
+            location: meetupData.location,
+          }}
+          onLocationSelect={(location: any) => {
+            setMeetupData(prev => ({
+              ...prev,
+              latitude: location.latitude,
+              longitude: location.longitude,
+              address: location.address,
+              location: location.location || location.address,
+            }));
+          }}
+        />
+      )}
+
+      {/* 상세 주소 입력 */}
+      {meetupData.address && (
+        <View style={styles.detailAddressSection}>
+          <Text style={styles.sectionLabel}>상세 주소 (선택)</Text>
+          <TextInput
+            style={styles.textInput}
+            placeholder="상세 주소를 입력하세요 (예: 2층, 101호)"
+            value={meetupData.detailAddress}
+            onChangeText={(text) => setMeetupData(prev => ({ ...prev, detailAddress: text }))}
+            placeholderTextColor={COLORS.text.tertiary}
           />
-        )}
-      </View>
+        </View>
+      )}
     </View>
   );
 
   // 모임 정보 입력 화면
   const renderInfoStep = () => (
-    <View style={styles.stepContainer}>
-      <Text style={styles.stepTitle}>모임 정보를 입력해주세요</Text>
-      
-      <TextInput
-        style={styles.titleInput}
-        placeholder="모임 제목을 입력하세요"
-        value={meetupData.title}
-        onChangeText={(text) => setMeetupData(prev => ({ ...prev, title: text }))}
-        maxLength={50}
-      />
-      
-      <TextInput
-        style={styles.descriptionInput}
-        placeholder="모임에 대한 설명을 입력하세요"
-        value={meetupData.description}
-        onChangeText={(text) => setMeetupData(prev => ({ ...prev, description: text }))}
-        multiline
-        maxLength={500}
-        textAlignVertical="top"
-      />
+    <View style={styles.stepContent}>
+      <View style={styles.inputSection}>
+        <Text style={styles.sectionLabel}>모임 제목</Text>
+        <TextInput
+          style={styles.textInput}
+          placeholder="모임 제목을 입력하세요"
+          value={meetupData.title}
+          onChangeText={(text) => setMeetupData(prev => ({ ...prev, title: text }))}
+          maxLength={50}
+          placeholderTextColor={COLORS.text.tertiary}
+        />
+      </View>
 
-      <View style={styles.settingSection}>
-        <Text style={styles.settingLabel}>가격대</Text>
-        <View style={styles.optionSelector}>
+      <View style={styles.inputSection}>
+        <Text style={styles.sectionLabel}>모임 설명</Text>
+        <TextInput
+          style={[styles.textInput, styles.textArea]}
+          placeholder="모임에 대한 설명을 입력하세요"
+          value={meetupData.description}
+          onChangeText={(text) => setMeetupData(prev => ({ ...prev, description: text }))}
+          multiline
+          numberOfLines={4}
+          maxLength={500}
+          textAlignVertical="top"
+          placeholderTextColor={COLORS.text.tertiary}
+        />
+      </View>
+
+      <View style={styles.inputSection}>
+        <Text style={styles.sectionLabel}>가격대</Text>
+        <View style={styles.chipGroup}>
           {PRICE_RANGES.map(range => (
             <TouchableOpacity
               key={range.id}
               style={[
-                styles.optionButton,
-                meetupData.priceRange === range.label && styles.optionButtonSelected
+                styles.chip,
+                meetupData.priceRange === range.label && styles.chipSelected
               ]}
               onPress={() => setMeetupData(prev => ({ ...prev, priceRange: range.label }))}
             >
               <Text style={[
-                styles.optionText,
-                meetupData.priceRange === range.label && styles.optionTextSelected
+                styles.chipText,
+                meetupData.priceRange === range.label && styles.chipTextSelected
               ]}>
                 {range.label}
               </Text>
@@ -875,98 +837,189 @@ const UniversalCreateMeetupWizard: React.FC<UniversalCreateMeetupWizardProps> = 
     </View>
   );
 
-  // 시간 선택 모달 (간단한 선택 방식)
-  const renderTimeModal = () => (
-    <View style={styles.modalOverlay}>
-      <View style={styles.modalContainer}>
-        <View style={styles.modalHeader}>
-          <TouchableOpacity onPress={() => setShowTimeModal(false)}>
-            <Text style={styles.modalCloseButton}>✕</Text>
-          </TouchableOpacity>
-          <Text style={styles.modalTitle}>시간 선택</Text>
-          <TouchableOpacity onPress={() => {
-            const currentDate = selectedDate || new Date();
-            let hour24 = selectedHour;
-            if (selectedPeriod === '오후' && selectedHour !== 12) {
-              hour24 = selectedHour + 12;
-            } else if (selectedPeriod === '오전' && selectedHour === 12) {
-              hour24 = 0;
-            }
-            
-            currentDate.setHours(hour24, selectedMinute);
-            setSelectedDate(currentDate);
-            setSelectedTime(`${hour24.toString().padStart(2, '0')}:${selectedMinute.toString().padStart(2, '0')}`);
-            
-            setMeetupData(prev => ({ 
-              ...prev, 
-              datetime: currentDate,
-              time: `${hour24.toString().padStart(2, '0')}:${selectedMinute.toString().padStart(2, '0')}`
-            }));
-            
-            setShowTimeModal(false);
-          }}>
-            <Text style={styles.modalConfirmButton}>확인</Text>
-          </TouchableOpacity>
+  // 시간 선택 모달 (스크롤 휠 방식)
+  const renderTimeModal = () => {
+    const periodScrollRef = useRef<ScrollView>(null);
+    const hourScrollRef = useRef<ScrollView>(null);
+    const minuteScrollRef = useRef<ScrollView>(null);
+
+    const periods = ['오전', '오후'];
+    const hours = [...Array(12)].map((_, i) => i + 1);
+    const minutes = [0, 10, 20, 30, 40, 50];
+
+    const ITEM_HEIGHT = 50;
+
+    return (
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <TouchableOpacity onPress={() => setShowTimeModal(false)}>
+              <Text style={styles.modalCloseButton}>✕</Text>
+            </TouchableOpacity>
+            <Text style={styles.modalTitle}>시간 선택</Text>
+            <TouchableOpacity onPress={() => {
+              const currentDate = selectedDate || new Date();
+              let hour24 = selectedHour;
+              if (selectedPeriod === '오후' && selectedHour !== 12) {
+                hour24 = selectedHour + 12;
+              } else if (selectedPeriod === '오전' && selectedHour === 12) {
+                hour24 = 0;
+              }
+
+              currentDate.setHours(hour24, selectedMinute);
+              setSelectedDate(currentDate);
+              setSelectedTime(`${hour24.toString().padStart(2, '0')}:${selectedMinute.toString().padStart(2, '0')}`);
+
+              setMeetupData(prev => ({
+                ...prev,
+                datetime: currentDate,
+                time: `${hour24.toString().padStart(2, '0')}:${selectedMinute.toString().padStart(2, '0')}`
+              }));
+
+              setShowTimeModal(false);
+            }}>
+              <Text style={styles.modalConfirmButton}>확인</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* 선택된 시간 미리보기 */}
+          <View style={styles.timePreview}>
+            <Text style={styles.timePreviewText}>
+              {selectedPeriod} {selectedHour}:{selectedMinute.toString().padStart(2, '0')}
+            </Text>
+          </View>
+
+          <View style={styles.timeWheelPickerContainer}>
+            {/* 오전/오후 선택 */}
+            <View style={styles.wheelColumn}>
+              <Text style={styles.wheelColumnLabel}>오전/오후</Text>
+              <View style={styles.wheelWrapper}>
+                <View style={styles.wheelHighlight} />
+                <ScrollView
+                  ref={periodScrollRef}
+                  style={styles.wheelScrollView}
+                  contentContainerStyle={styles.wheelScrollContent}
+                  showsVerticalScrollIndicator={false}
+                  snapToInterval={ITEM_HEIGHT}
+                  decelerationRate="fast"
+                  onMomentumScrollEnd={(e) => {
+                    const index = Math.round(e.nativeEvent.contentOffset.y / ITEM_HEIGHT);
+                    if (index >= 0 && index < periods.length) {
+                      setSelectedPeriod(periods[index]);
+                    }
+                  }}
+                >
+                  <View style={{ height: ITEM_HEIGHT }} />
+                  {periods.map((period, index) => (
+                    <TouchableOpacity
+                      key={period}
+                      style={styles.wheelItem}
+                      onPress={() => {
+                        setSelectedPeriod(period);
+                        periodScrollRef.current?.scrollTo({ y: index * ITEM_HEIGHT, animated: true });
+                      }}
+                    >
+                      <Text style={[
+                        styles.wheelItemText,
+                        selectedPeriod === period && styles.wheelItemTextSelected
+                      ]}>
+                        {period}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                  <View style={{ height: ITEM_HEIGHT }} />
+                </ScrollView>
+              </View>
+            </View>
+
+            {/* 시간 선택 */}
+            <View style={styles.wheelColumn}>
+              <Text style={styles.wheelColumnLabel}>시</Text>
+              <View style={styles.wheelWrapper}>
+                <View style={styles.wheelHighlight} />
+                <ScrollView
+                  ref={hourScrollRef}
+                  style={styles.wheelScrollView}
+                  contentContainerStyle={styles.wheelScrollContent}
+                  showsVerticalScrollIndicator={false}
+                  snapToInterval={ITEM_HEIGHT}
+                  decelerationRate="fast"
+                  onMomentumScrollEnd={(e) => {
+                    const index = Math.round(e.nativeEvent.contentOffset.y / ITEM_HEIGHT);
+                    if (index >= 0 && index < hours.length) {
+                      setSelectedHour(hours[index]);
+                    }
+                  }}
+                >
+                  <View style={{ height: ITEM_HEIGHT }} />
+                  {hours.map((hour, index) => (
+                    <TouchableOpacity
+                      key={hour}
+                      style={styles.wheelItem}
+                      onPress={() => {
+                        setSelectedHour(hour);
+                        hourScrollRef.current?.scrollTo({ y: index * ITEM_HEIGHT, animated: true });
+                      }}
+                    >
+                      <Text style={[
+                        styles.wheelItemText,
+                        selectedHour === hour && styles.wheelItemTextSelected
+                      ]}>
+                        {hour}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                  <View style={{ height: ITEM_HEIGHT }} />
+                </ScrollView>
+              </View>
+            </View>
+
+            {/* 분 선택 */}
+            <View style={styles.wheelColumn}>
+              <Text style={styles.wheelColumnLabel}>분</Text>
+              <View style={styles.wheelWrapper}>
+                <View style={styles.wheelHighlight} />
+                <ScrollView
+                  ref={minuteScrollRef}
+                  style={styles.wheelScrollView}
+                  contentContainerStyle={styles.wheelScrollContent}
+                  showsVerticalScrollIndicator={false}
+                  snapToInterval={ITEM_HEIGHT}
+                  decelerationRate="fast"
+                  onMomentumScrollEnd={(e) => {
+                    const index = Math.round(e.nativeEvent.contentOffset.y / ITEM_HEIGHT);
+                    if (index >= 0 && index < minutes.length) {
+                      setSelectedMinute(minutes[index]);
+                    }
+                  }}
+                >
+                  <View style={{ height: ITEM_HEIGHT }} />
+                  {minutes.map((minute, index) => (
+                    <TouchableOpacity
+                      key={minute}
+                      style={styles.wheelItem}
+                      onPress={() => {
+                        setSelectedMinute(minute);
+                        minuteScrollRef.current?.scrollTo({ y: index * ITEM_HEIGHT, animated: true });
+                      }}
+                    >
+                      <Text style={[
+                        styles.wheelItemText,
+                        selectedMinute === minute && styles.wheelItemTextSelected
+                      ]}>
+                        {minute.toString().padStart(2, '0')}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                  <View style={{ height: ITEM_HEIGHT }} />
+                </ScrollView>
+              </View>
+            </View>
+          </View>
         </View>
-        
-        <ScrollView style={styles.timePickerContainer} showsVerticalScrollIndicator={false}>
-          <View style={styles.timePeriodSection}>
-            <Text style={styles.timeSectionTitle}>오전/오후</Text>
-            <View style={styles.timeButtonsRow}>
-              {['오전', '오후'].map((period) => (
-                <TouchableOpacity
-                  key={period}
-                  style={[styles.timePeriodButton, selectedPeriod === period ? styles.timePeriodButtonSelected : null]}
-                  onPress={() => setSelectedPeriod(period)}
-                >
-                  <Text style={[styles.timePeriodText, selectedPeriod === period ? styles.timePeriodTextSelected : null]}>
-                    {period}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-          
-          <View style={styles.timeHourSection}>
-            <Text style={styles.timeSectionTitle}>시간</Text>
-            <View style={styles.timeButtonsGrid}>
-              {[...Array(12)].map((_, i) => {
-                const hour = i + 1;
-                return (
-                  <TouchableOpacity
-                    key={hour}
-                    style={[styles.timeHourButton, selectedHour === hour ? styles.timeHourButtonSelected : null]}
-                    onPress={() => setSelectedHour(hour)}
-                  >
-                    <Text style={[styles.timeHourText, selectedHour === hour ? styles.timeHourTextSelected : null]}>
-                      {hour}시
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          </View>
-          
-          <View style={styles.timeMinuteSection}>
-            <Text style={styles.timeSectionTitle}>분</Text>
-            <View style={styles.timeButtonsGrid}>
-              {[0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55].map((minute) => (
-                <TouchableOpacity
-                  key={minute}
-                  style={[styles.timeMinuteButton, selectedMinute === minute ? styles.timeMinuteButtonSelected : null]}
-                  onPress={() => setSelectedMinute(minute)}
-                >
-                  <Text style={[styles.timeMinuteText, selectedMinute === minute ? styles.timeMinuteTextSelected : null]}>
-                    {minute}분
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-        </ScrollView>
       </View>
-    </View>
-  );
+    );
+  };
 
   // 식사 성향 화면 (제거 - 필수 스텝에서 제외)
   const renderEatingStyleStep = () => (
@@ -1067,135 +1120,124 @@ const UniversalCreateMeetupWizard: React.FC<UniversalCreateMeetupWizardProps> = 
     </View>
   );
 
-  // 약속금 설정 화면 (웹과 동일한 디자인)
+  // 약속금 설정 화면
   const renderDepositStep = () => (
-    <View style={styles.stepContainer}>
-      <Text style={styles.stepTitle}>보증금을 설정해주세요</Text>
-      <Text style={styles.stepDescription}>
-        노쇼 방지를 위한 보증금입니다. 모임 참여 후 100% 환불됩니다.
-      </Text>
-      
-      <View style={styles.depositSection}>
-        <View style={styles.depositSlider}>
-          <Text style={styles.depositAmount}>{meetupData.deposit.toLocaleString()}원</Text>
-          <View style={styles.depositOptions}>
-            {[1000, 3000, 5000, 10000].map(amount => (
-              <TouchableOpacity
-                key={amount}
-                style={[
-                  styles.depositButton,
-                  meetupData.deposit === amount && styles.depositButtonSelected
-                ]}
-                onPress={() => setMeetupData(prev => ({ ...prev, deposit: amount }))}
-              >
-                <Text style={[
-                  styles.depositText,
-                  meetupData.deposit === amount && styles.depositTextSelected
-                ]}>
-                  {amount.toLocaleString()}원
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
+    <View style={styles.stepContent}>
+      <View style={styles.depositDisplay}>
+        <Text style={styles.depositAmountText}>{meetupData.deposit.toLocaleString()}원</Text>
+        <Text style={styles.depositHint}>노쇼 방지를 위한 보증금입니다</Text>
+        <Text style={styles.depositSubHint}>모임 참여 후 100% 환불됩니다</Text>
       </View>
 
-      <View style={styles.costBreakdown}>
-        <Text style={styles.costTitle}>예상 비용</Text>
-        <View style={styles.costRow}>
-          <Text style={styles.costLabel}>모임 생성비</Text>
-          <Text style={styles.costValue}>1,000원</Text>
-        </View>
-        <View style={styles.costRow}>
-          <Text style={styles.costLabel}>보증금 (환불 가능)</Text>
-          <Text style={styles.costValue}>{meetupData.deposit.toLocaleString()}원</Text>
-        </View>
-        <View style={[styles.costRow, styles.costTotal]}>
-          <Text style={styles.costTotalLabel}>총 결제금액</Text>
-          <Text style={styles.costTotalValue}>{(1000 + meetupData.deposit).toLocaleString()}원</Text>
-        </View>
+      <View style={styles.chipGroup}>
+        {[3000, 5000, 10000, 20000].map(amount => (
+          <TouchableOpacity
+            key={amount}
+            style={[
+              styles.depositChip,
+              meetupData.deposit === amount && styles.depositChipSelected
+            ]}
+            onPress={() => setMeetupData(prev => ({ ...prev, deposit: amount }))}
+          >
+            <Text style={[
+              styles.depositChipText,
+              meetupData.deposit === amount && styles.depositChipTextSelected
+            ]}>
+              {amount.toLocaleString()}원
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      <View style={styles.infoBox}>
+        <Icon name="info" size={16} color={COLORS.text.secondary} />
+        <Text style={styles.infoBoxText}>
+          보증금은 모임 완료 후 자동으로 환불됩니다.{'\n'}
+          노쇼 시 보증금이 차감될 수 있습니다.
+        </Text>
       </View>
     </View>
   );
 
   // 결제 화면
   const renderPaymentStep = () => (
-    <View style={styles.stepContainer}>
-      <Text style={styles.stepTitle}>결제 수단을 선택해주세요</Text>
-      
-      <View style={styles.paymentMethods}>
+    <View style={styles.stepContent}>
+      <View style={styles.paymentOptions}>
         <TouchableOpacity
           style={[
-            styles.paymentMethod,
-            paymentMethod === 'points' && styles.paymentMethodSelected
+            styles.paymentOption,
+            paymentMethod === 'points' && styles.paymentOptionSelected
           ]}
           onPress={() => setPaymentMethod('points')}
         >
-          <Icon name="coins" size={24} color={COLORS.primary.main} />
-          <View style={styles.paymentInfo}>
-            <Text style={styles.paymentTitle}>포인트 결제</Text>
-            <Text style={styles.paymentSubtitle}>
+          <View style={styles.paymentOptionIcon}>
+            <Icon name="dollar-sign" size={24} color={COLORS.primary.main} />
+          </View>
+          <View style={styles.paymentOptionInfo}>
+            <Text style={styles.paymentOptionTitle}>포인트 결제</Text>
+            <Text style={styles.paymentOptionSubtitle}>
               보유 포인트: {userPoints.toLocaleString()}P
             </Text>
           </View>
-          <Icon 
-            name={paymentMethod === 'points' ? "check-circle" : "circle"} 
-            size={24} 
-            color={paymentMethod === 'points' ? COLORS.primary.main : COLORS.text.tertiary} 
+          <Icon
+            name={paymentMethod === 'points' ? "check-circle" : "circle"}
+            size={24}
+            color={paymentMethod === 'points' ? COLORS.primary.main : COLORS.text.tertiary}
           />
         </TouchableOpacity>
 
         <TouchableOpacity
           style={[
-            styles.paymentMethod,
-            paymentMethod === 'card' && styles.paymentMethodSelected
+            styles.paymentOption,
+            paymentMethod === 'card' && styles.paymentOptionSelected
           ]}
           onPress={() => setPaymentMethod('card')}
         >
-          <Icon name="credit-card" size={24} color={COLORS.primary.main} />
-          <View style={styles.paymentInfo}>
-            <Text style={styles.paymentTitle}>신용카드</Text>
-            <Text style={styles.paymentSubtitle}>모든 카드사 이용 가능</Text>
+          <View style={styles.paymentOptionIcon}>
+            <Icon name="credit-card" size={24} color={COLORS.primary.main} />
           </View>
-          <Icon 
-            name={paymentMethod === 'card' ? "check-circle" : "circle"} 
-            size={24} 
-            color={paymentMethod === 'card' ? COLORS.primary.main : COLORS.text.tertiary} 
+          <View style={styles.paymentOptionInfo}>
+            <Text style={styles.paymentOptionTitle}>신용카드</Text>
+            <Text style={styles.paymentOptionSubtitle}>모든 카드사 이용 가능</Text>
+          </View>
+          <Icon
+            name={paymentMethod === 'card' ? "check-circle" : "circle"}
+            size={24}
+            color={paymentMethod === 'card' ? COLORS.primary.main : COLORS.text.tertiary}
           />
         </TouchableOpacity>
 
         <TouchableOpacity
           style={[
-            styles.paymentMethod,
-            paymentMethod === 'kakao' && styles.paymentMethodSelected
+            styles.paymentOption,
+            paymentMethod === 'kakao' && styles.paymentOptionSelected
           ]}
           onPress={() => setPaymentMethod('kakao')}
         >
-          <Icon name="message-circle" size={24} color={COLORS.primary.main} />
-          <View style={styles.paymentInfo}>
-            <Text style={styles.paymentTitle}>카카오페이</Text>
-            <Text style={styles.paymentSubtitle}>간편하고 안전한 결제</Text>
+          <View style={styles.paymentOptionIcon}>
+            <Icon name="message-circle" size={24} color="#FEE500" />
           </View>
-          <Icon 
-            name={paymentMethod === 'kakao' ? "check-circle" : "circle"} 
-            size={24} 
-            color={paymentMethod === 'kakao' ? COLORS.primary.main : COLORS.text.tertiary} 
+          <View style={styles.paymentOptionInfo}>
+            <Text style={styles.paymentOptionTitle}>카카오페이</Text>
+            <Text style={styles.paymentOptionSubtitle}>간편하고 안전한 결제</Text>
+          </View>
+          <Icon
+            name={paymentMethod === 'kakao' ? "check-circle" : "circle"}
+            size={24}
+            color={paymentMethod === 'kakao' ? COLORS.primary.main : COLORS.text.tertiary}
           />
         </TouchableOpacity>
       </View>
 
-      <View style={styles.finalCostBreakdown}>
-        <View style={styles.costRow}>
-          <Text style={styles.costLabel}>모임 생성비</Text>
-          <Text style={styles.costValue}>1,000원</Text>
+      <View style={styles.costCard}>
+        <View style={styles.costItem}>
+          <Text style={styles.costItemLabel}>보증금 (환불 가능)</Text>
+          <Text style={styles.costItemValue}>{meetupData.deposit.toLocaleString()}원</Text>
         </View>
-        <View style={styles.costRow}>
-          <Text style={styles.costLabel}>보증금</Text>
-          <Text style={styles.costValue}>{meetupData.deposit.toLocaleString()}원</Text>
-        </View>
-        <View style={[styles.costRow, styles.costTotal]}>
-          <Text style={styles.costTotalLabel}>총 결제금액</Text>
-          <Text style={styles.costTotalValue}>{(1000 + meetupData.deposit).toLocaleString()}원</Text>
+        <View style={styles.costDivider} />
+        <View style={styles.costItem}>
+          <Text style={styles.costTotalLabel}>결제금액</Text>
+          <Text style={styles.costTotalValue}>{meetupData.deposit.toLocaleString()}원</Text>
         </View>
       </View>
     </View>
@@ -1266,17 +1308,17 @@ const UniversalCreateMeetupWizard: React.FC<UniversalCreateMeetupWizardProps> = 
     <View style={styles.container}>
       {/* 헤더 */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => onCancel ? onCancel() : navigation.goBack()}>
+        <TouchableOpacity style={styles.headerButton} onPress={() => onCancel ? onCancel() : navigation.goBack()}>
           <Icon name="arrow-left" size={24} color={COLORS.text.primary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>모임 만들기</Text>
-        <View style={styles.headerRight} />
+        <View style={styles.headerButton} />
       </View>
 
       {/* 프로그레스 바 */}
-      <View style={styles.progressContainer}>
+      <View style={styles.progressSection}>
         <View style={styles.progressBar}>
-          <View 
+          <View
             style={[
               styles.progressFill,
               { width: `${(currentStep / WIZARD_STEPS.length) * 100}%` }
@@ -1289,44 +1331,62 @@ const UniversalCreateMeetupWizard: React.FC<UniversalCreateMeetupWizardProps> = 
       </View>
 
       {/* 단계 정보 */}
-      <View style={styles.stepInfo}>
+      <View style={styles.stepHeader}>
         <Text style={styles.stepNumber}>STEP {currentStep}</Text>
-        <Text style={styles.stepTitle}>{WIZARD_STEPS[currentStep - 1]?.title}</Text>
-        <Text style={styles.stepDescription}>{WIZARD_STEPS[currentStep - 1]?.description}</Text>
+        <Text style={styles.stepTitleText}>{WIZARD_STEPS[currentStep - 1]?.title}</Text>
+        <Text style={styles.stepSubtitle}>{WIZARD_STEPS[currentStep - 1]?.description}</Text>
       </View>
 
       {/* 메인 컨텐트 */}
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.scrollContent}
+        contentContainerStyle={styles.scrollContentContainer}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
         {renderCurrentStep()}
       </ScrollView>
 
       {/* 하단 버튼 */}
-      <View style={styles.bottomButtons}>
+      <View style={styles.footer}>
         {currentStep > 1 && (
-          <TouchableOpacity 
-            style={styles.prevButton}
+          <TouchableOpacity
+            style={styles.secondaryButton}
             onPress={prevStep}
           >
-            <Text style={styles.prevButtonText}>이전</Text>
+            <Text style={styles.secondaryButtonText}>이전</Text>
           </TouchableOpacity>
         )}
-        
+
         <TouchableOpacity
           style={[
-            styles.nextButton,
-            !isNextButtonEnabled() && styles.nextButtonDisabled,
-            currentStep === 1 && styles.nextButtonFullWidth
+            styles.primaryButton,
+            !isNextButtonEnabled() && styles.primaryButtonDisabled,
+            currentStep === 1 && styles.primaryButtonFull
           ]}
           onPress={handleNextStep}
           disabled={!isNextButtonEnabled() || isLoading || isPaymentLoading}
         >
-          <Text style={styles.nextButtonText}>
+          <Text style={styles.primaryButtonText}>
             {isLoading || isPaymentLoading ? '처리중...' :
              currentStep === 7 ? '모임 생성' :
              currentStep === 8 ? '결제하기' : '다음'}
           </Text>
         </TouchableOpacity>
       </View>
+
+      {/* 모달들 */}
+      <Modal visible={showDateModal} transparent animationType="fade">
+        {renderDateModal()}
+      </Modal>
+
+      <Modal visible={showTimeModal} transparent animationType="fade">
+        {renderTimeModal()}
+      </Modal>
+
+      <Modal visible={showAgeModal} transparent animationType="fade">
+        {renderAgeModal()}
+      </Modal>
     </View>
   );
 };
@@ -1334,31 +1394,39 @@ const UniversalCreateMeetupWizard: React.FC<UniversalCreateMeetupWizardProps> = 
 const { width } = Dimensions.get('window');
 
 const styles = StyleSheet.create({
+  // ===== 기본 레이아웃 =====
   container: {
     flex: 1,
     backgroundColor: COLORS.neutral.background,
   },
+
+  // ===== 헤더 =====
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     backgroundColor: COLORS.neutral.white,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.neutral.grey200,
+  },
+  headerButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: '600',
     color: COLORS.text.primary,
   },
-  headerRight: {
-    width: 24,
-  },
-  progressContainer: {
+
+  // ===== 프로그레스 =====
+  progressSection: {
     paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingVertical: 12,
     backgroundColor: COLORS.neutral.white,
   },
   progressBar: {
@@ -1378,11 +1446,13 @@ const styles = StyleSheet.create({
     color: COLORS.text.secondary,
     textAlign: 'center',
   },
-  stepInfo: {
+
+  // ===== 스텝 헤더 =====
+  stepHeader: {
     paddingHorizontal: 20,
-    paddingVertical: 24,
+    paddingVertical: 20,
     backgroundColor: COLORS.neutral.white,
-    marginBottom: 12,
+    marginBottom: 8,
   },
   stepNumber: {
     fontSize: 12,
@@ -1390,61 +1460,74 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginBottom: 4,
   },
-  stepTitle: {
-    fontSize: 24,
+  stepTitleText: {
+    fontSize: 22,
     fontWeight: '700',
     color: COLORS.text.primary,
-    marginBottom: 8,
+    marginBottom: 6,
   },
-  stepDescription: {
+  stepSubtitle: {
     fontSize: 14,
     color: COLORS.text.secondary,
     lineHeight: 20,
   },
-  content: {
+
+  // ===== 스크롤 컨텐트 =====
+  scrollContent: {
     flex: 1,
   },
-  stepContainer: {
-    backgroundColor: COLORS.neutral.white,
-    marginHorizontal: 20,
-    marginBottom: 20,
-    padding: 24,
-    borderRadius: 16,
-    ...SHADOWS.medium,
+  scrollContentContainer: {
+    paddingHorizontal: 16,
+    paddingBottom: 20,
   },
-  
-  // 카테고리 스타일
+
+  // ===== 스텝 컨텐트 (각 스텝의 메인 컨테이너) =====
+  stepContent: {
+    backgroundColor: COLORS.neutral.white,
+    borderRadius: 16,
+    padding: 20,
+    marginTop: 8,
+  },
+
+  // ===== 카테고리 스타일 =====
   categoryGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
-    marginTop: 20,
   },
   categoryItem: {
-    width: '30%',
+    width: '48%',
     alignItems: 'center',
-    marginBottom: 20,
-    padding: 12,
+    marginBottom: 16,
+    padding: 16,
     borderRadius: 12,
-    borderWidth: 1,
+    borderWidth: 2,
     borderColor: COLORS.neutral.grey200,
+    backgroundColor: COLORS.neutral.white,
   },
   categoryItemSelected: {
     borderColor: COLORS.primary.main,
     backgroundColor: `${COLORS.primary.main}10`,
   },
-  categoryIcon: {
-    width: 60,
-    height: 60,
-    borderRadius: 12,
+  categoryIconWrapper: {
+    width: 56,
+    height: 56,
+    borderRadius: 16,
+    backgroundColor: COLORS.neutral.grey100,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 10,
+  },
+  categoryIconWrapperSelected: {
+    backgroundColor: `${COLORS.primary.main}15`,
+  },
+  categoryEmoji: {
+    fontSize: 28,
   },
   categoryName: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '500',
-    color: COLORS.text.primary,
+    color: COLORS.text.secondary,
     textAlign: 'center',
   },
   categoryNameSelected: {
@@ -1452,34 +1535,383 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 
-  // 날짜/시간 스타일
-  dateTimeSelector: {
+  // ===== 공통 섹션/라벨 스타일 =====
+  sectionLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+    marginBottom: 12,
+  },
+  dateTimeSection: {
+    marginBottom: 20,
+  },
+  filterSection: {
+    marginBottom: 24,
+  },
+  inputSection: {
+    marginBottom: 20,
+  },
+  detailAddressSection: {
+    marginTop: 20,
+  },
+
+  // ===== 선택 버튼 (날짜, 시간, 연령 등) =====
+  selectButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 16,
+    paddingVertical: 14,
     paddingHorizontal: 16,
-    backgroundColor: COLORS.neutral.background,
+    backgroundColor: COLORS.neutral.grey50,
     borderRadius: 12,
-    marginBottom: 12,
     borderWidth: 1,
     borderColor: COLORS.neutral.grey200,
   },
-  dateTimeInfo: {
+  selectButtonText: {
     flex: 1,
+    fontSize: 15,
+    color: COLORS.text.primary,
     marginLeft: 12,
   },
-  dateTimeLabel: {
-    fontSize: 12,
-    color: COLORS.text.secondary,
-    marginBottom: 4,
+
+  // ===== 선택 정보 박스 =====
+  selectedInfoBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 16,
+    padding: 14,
+    backgroundColor: `${COLORS.primary.main}10`,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.primary.main,
   },
-  dateTimeValue: {
+  selectedInfoIcon: {
     fontSize: 16,
+    marginRight: 8,
+  },
+  selectedInfoText: {
+    fontSize: 14,
+    color: COLORS.primary.dark,
+    fontWeight: '500',
+  },
+
+  // ===== 칩 그룹 (성별, 가격대 등) =====
+  chipGroup: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  chip: {
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    borderRadius: 24,
+    backgroundColor: COLORS.neutral.grey100,
+  },
+  chipSelected: {
+    backgroundColor: COLORS.primary.main,
+  },
+  chipText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: COLORS.text.secondary,
+  },
+  chipTextSelected: {
+    color: COLORS.neutral.white,
+  },
+
+  // ===== 텍스트 입력 =====
+  textInput: {
+    borderWidth: 1,
+    borderColor: COLORS.neutral.grey200,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontSize: 15,
+    color: COLORS.text.primary,
+    backgroundColor: COLORS.neutral.white,
+  },
+  textArea: {
+    minHeight: 100,
+    textAlignVertical: 'top',
+  },
+
+  // ===== 카드 박스 (참가자 수 등) =====
+  cardBox: {
+    backgroundColor: COLORS.neutral.white,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  cardIcon: {
+    fontSize: 24,
+    marginRight: 10,
+  },
+  cardTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+  },
+  numberGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  numberBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: COLORS.neutral.grey100,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  numberBtnSelected: {
+    backgroundColor: COLORS.primary.main,
+  },
+  numberBtnText: {
+    fontSize: 14,
     fontWeight: '500',
     color: COLORS.text.primary,
   },
+  numberBtnTextSelected: {
+    color: COLORS.neutral.white,
+  },
+  hintText: {
+    fontSize: 13,
+    color: COLORS.text.tertiary,
+    textAlign: 'center',
+  },
 
-  // 설정 섹션 스타일
+  // ===== 웹 맵 컨테이너 =====
+  webMapContainer: {
+    height: 250,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+
+  // ===== 보증금 스타일 =====
+  depositDisplay: {
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  depositAmountText: {
+    fontSize: 36,
+    fontWeight: '700',
+    color: COLORS.primary.main,
+    marginBottom: 8,
+  },
+  depositHint: {
+    fontSize: 14,
+    color: COLORS.text.secondary,
+  },
+  depositSubHint: {
+    fontSize: 13,
+    color: COLORS.text.tertiary,
+    marginTop: 4,
+  },
+  infoBox: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: COLORS.neutral.grey50,
+    padding: 14,
+    borderRadius: 10,
+    marginTop: 20,
+    gap: 10,
+  },
+  infoBoxText: {
+    flex: 1,
+    fontSize: 13,
+    color: COLORS.text.secondary,
+    lineHeight: 18,
+  },
+  depositChip: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    backgroundColor: COLORS.neutral.grey100,
+    alignItems: 'center',
+  },
+  depositChipSelected: {
+    backgroundColor: COLORS.primary.main,
+  },
+  depositChipText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+  },
+  depositChipTextSelected: {
+    color: COLORS.neutral.white,
+  },
+
+  // ===== 비용 카드 =====
+  costCard: {
+    marginTop: 24,
+    padding: 16,
+    backgroundColor: COLORS.neutral.grey50,
+    borderRadius: 12,
+  },
+  costCardTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+    marginBottom: 16,
+  },
+  costItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+  },
+  costItemLabel: {
+    fontSize: 14,
+    color: COLORS.text.secondary,
+  },
+  costItemValue: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: COLORS.text.primary,
+  },
+  costDivider: {
+    height: 1,
+    backgroundColor: COLORS.neutral.grey200,
+    marginVertical: 12,
+  },
+  costTotalLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+  },
+  costTotalValue: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: COLORS.primary.main,
+  },
+
+  // ===== 결제 옵션 =====
+  paymentOptions: {
+    gap: 12,
+  },
+  paymentOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    backgroundColor: COLORS.neutral.grey50,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  paymentOptionSelected: {
+    borderColor: COLORS.primary.main,
+    backgroundColor: `${COLORS.primary.main}08`,
+  },
+  paymentOptionIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: COLORS.neutral.white,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  paymentOptionInfo: {
+    flex: 1,
+    marginLeft: 14,
+  },
+  paymentOptionTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+    marginBottom: 2,
+  },
+  paymentOptionSubtitle: {
+    fontSize: 13,
+    color: COLORS.text.secondary,
+  },
+
+  // ===== 하단 버튼 =====
+  footer: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    paddingBottom: 24,
+    backgroundColor: COLORS.neutral.white,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.neutral.grey200,
+    gap: 12,
+  },
+  secondaryButton: {
+    flex: 1,
+    paddingVertical: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.neutral.grey300,
+    alignItems: 'center',
+    backgroundColor: COLORS.neutral.white,
+  },
+  secondaryButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.text.secondary,
+  },
+  primaryButton: {
+    flex: 2,
+    paddingVertical: 16,
+    borderRadius: 12,
+    backgroundColor: COLORS.primary.main,
+    alignItems: 'center',
+  },
+  primaryButtonFull: {
+    flex: 1,
+  },
+  primaryButtonDisabled: {
+    backgroundColor: COLORS.neutral.grey300,
+  },
+  primaryButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.neutral.white,
+  },
+
+  // ===== 모달 스타일 =====
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContainer: {
+    width: '100%',
+    maxWidth: 400,
+    backgroundColor: COLORS.neutral.white,
+    borderRadius: 20,
+    overflow: 'hidden',
+    maxHeight: '85%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.neutral.grey200,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+  },
+  modalCloseButton: {
+    fontSize: 20,
+    color: COLORS.text.secondary,
+    padding: 4,
+  },
+  modalConfirmButton: {
+    fontSize: 16,
+    color: COLORS.primary.main,
+    fontWeight: '600',
+  },
+
+  // ===== 옛 스타일 호환 (모달 내부용) =====
   settingSection: {
     marginBottom: 24,
   },
@@ -2394,6 +2826,71 @@ const styles = StyleSheet.create({
   timeMinuteTextSelected: {
     color: COLORS.neutral.white,
     fontWeight: '500',
+  },
+
+  // 스크롤 휠 피커 스타일
+  timePreview: {
+    paddingVertical: 16,
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.neutral.grey200,
+  },
+  timePreviewText: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: COLORS.primary.main,
+  },
+  timeWheelPickerContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    paddingVertical: 20,
+  },
+  wheelColumn: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  wheelColumnLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: COLORS.text.secondary,
+    marginBottom: 12,
+  },
+  wheelWrapper: {
+    height: 150,
+    position: 'relative',
+    width: '100%',
+    overflow: 'hidden',
+  },
+  wheelHighlight: {
+    position: 'absolute',
+    top: 50,
+    left: 8,
+    right: 8,
+    height: 50,
+    backgroundColor: COLORS.primary.main + '15',
+    borderRadius: 10,
+    zIndex: 0,
+  },
+  wheelScrollView: {
+    height: 150,
+  },
+  wheelScrollContent: {
+    alignItems: 'center',
+  },
+  wheelItem: {
+    height: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: '100%',
+  },
+  wheelItemText: {
+    fontSize: 18,
+    color: COLORS.text.tertiary,
+  },
+  wheelItemTextSelected: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: COLORS.primary.main,
   },
 });
 

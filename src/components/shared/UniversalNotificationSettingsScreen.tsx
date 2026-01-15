@@ -1,17 +1,17 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  ScrollView, 
-  TouchableOpacity, 
-  Switch, 
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  Switch,
   ActivityIndicator,
   Platform,
 } from 'react-native';
 import { COLORS, SHADOWS } from '../../styles/colors';
 import { Icon } from '../Icon';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import userApiService from '../../services/userApiService';
 
 // Platform-specific navigation adapter
 interface NavigationAdapter {
@@ -44,54 +44,35 @@ const UniversalNotificationSettingsScreen: React.FC<UniversalNotificationSetting
   const [settings, setSettings] = useState<NotificationSettings | null>(null);
   const [saving, setSaving] = useState(false);
 
-  // API base URL
-  const getApiUrl = () => process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
-
   // Fetch notification settings from backend
   const fetchNotificationSettings = useCallback(async () => {
     try {
       setLoading(true);
-      const token = await AsyncStorage.getItem('authToken');
-      
-      if (!token) {
-        throw new Error('인증 토큰이 없습니다');
-      }
+      console.log('🔔 알림 설정 조회 시작');
 
-      const response = await fetch(`${getApiUrl()}/user/notification-settings`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
+      const response = await userApiService.getNotificationSettings();
+      console.log('🔔 알림 설정 응답:', response);
 
-      const data = await response.json();
-      console.log('알림 설정 API 응답:', data);
+      const apiSettings = response.data || response;
+      // DB 컬럼명을 프론트엔드 형식으로 변환
+      const newSettings: NotificationSettings = {
+        pushNotifications: apiSettings.push_notifications || false,
+        emailNotifications: apiSettings.email_notifications || false,
+        meetupReminders: apiSettings.meetup_reminders || false,
+        chatMessages: apiSettings.chat_notifications || false,
+        marketingEmails: apiSettings.marketing_notifications || false,
+        weeklyDigest: true, // 백엔드에 없는 설정은 기본값 사용
+      };
 
-      if (response.ok && data.success && data.data) {
-        const apiSettings = data.data;
-        // DB 컬럼명을 프론트엔드 형식으로 변환
-        const newSettings: NotificationSettings = {
-          pushNotifications: apiSettings.push_notifications || false,
-          emailNotifications: apiSettings.email_notifications || false,
-          meetupReminders: apiSettings.meetup_reminders || false,
-          chatMessages: apiSettings.chat_notifications || false,
-          marketingEmails: apiSettings.marketing_notifications || false,
-          weeklyDigest: true, // 백엔드에 없는 설정은 기본값 사용
-        };
-        
-        setSettings(newSettings);
-        
-        if (onSettingsChange) {
-          onSettingsChange(newSettings);
-        }
-      } else {
-        throw new Error(data.message || '알림 설정을 가져오는데 실패했습니다');
+      setSettings(newSettings);
+
+      if (onSettingsChange) {
+        onSettingsChange(newSettings);
       }
     } catch (error) {
       console.error('알림 설정 조회 실패:', error);
       console.log('기본 알림 설정을 사용합니다.');
-      
+
       // 오류 발생시 기본값 설정
       const defaultSettings: NotificationSettings = {
         pushNotifications: true,
@@ -101,9 +82,9 @@ const UniversalNotificationSettingsScreen: React.FC<UniversalNotificationSetting
         marketingEmails: false,
         weeklyDigest: true,
       };
-      
+
       setSettings(defaultSettings);
-      
+
       if (onSettingsChange) {
         onSettingsChange(defaultSettings);
       }
@@ -125,11 +106,6 @@ const UniversalNotificationSettingsScreen: React.FC<UniversalNotificationSetting
 
     try {
       setSaving(true);
-      const token = await AsyncStorage.getItem('authToken');
-      
-      if (!token) {
-        throw new Error('인증 토큰이 없습니다');
-      }
 
       // 프론트엔드 필드명을 백엔드 snake_case로 변환
       const backendFieldMap: { [key in keyof NotificationSettings]: string } = {
@@ -142,35 +118,21 @@ const UniversalNotificationSettingsScreen: React.FC<UniversalNotificationSetting
       };
 
       const backendKey = backendFieldMap[key];
-      
+
       if (backendKey && backendKey !== 'weekly_digest') {
-        const response = await fetch(`${getApiUrl()}/user/notification-settings`, {
-          method: 'PUT',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            [backendKey]: value
-          }),
+        await userApiService.updateNotificationSettings({
+          [backendKey]: value
         });
-
-        const data = await response.json();
-        
-        if (!response.ok || !data.success) {
-          throw new Error(data.message || '알림 설정 업데이트에 실패했습니다');
-        }
-
-        console.log('알림 설정이 업데이트되었습니다:', key, '=', value);
+        console.log('🔔 알림 설정이 업데이트되었습니다:', key, '=', value);
       } else {
-        console.log('로컬 전용 설정 업데이트:', key, '=', value);
+        console.log('🔔 로컬 전용 설정 업데이트:', key, '=', value);
       }
     } catch (error) {
       console.error('알림 설정 업데이트 실패:', error);
-      
+
       // 실패시 원래 값으로 되돌리기
       setSettings(settings);
-      
+
       if (onSettingsChange) {
         onSettingsChange(settings);
       }

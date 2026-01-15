@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, ActivityIndicator } from 'react-native';
 import { COLORS, SHADOWS } from '../../styles/colors';
 import { Icon } from '../Icon';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import userApiService from '../../services/userApiService';
 
 interface NavigationAdapter {
   navigate: (screen: string, params?: any) => void;
@@ -26,30 +26,24 @@ const UniversalPrivacySettingsScreen: React.FC<{navigation: NavigationAdapter, u
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  const getApiUrl = () => process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
-
   const fetchPrivacySettings = useCallback(async () => {
     try {
       setLoading(true);
-      const token = await AsyncStorage.getItem('authToken');
-      
-      const response = await fetch(`${getApiUrl()}/user/privacy-settings`, {
-        headers: { 'Authorization': `Bearer ${token}` },
+      console.log('🔒 개인정보 설정 조회 시작');
+
+      const response = await userApiService.getPrivacySettings();
+      console.log('🔒 개인정보 설정 응답:', response);
+
+      const data = response.data || response.settings || response;
+      setSettings(data || {
+        profileVisibility: 'public',
+        showActivityStatus: true,
+        showLocation: true,
+        allowDirectMessages: true,
+        showInSearchResults: true,
+        dataCollection: true,
+        marketingEmails: false,
       });
-      
-      const data = await response.json();
-      
-      if (data.success) {
-        setSettings(data.settings || {
-          profileVisibility: 'public',
-          showActivityStatus: true,
-          showLocation: true,
-          allowDirectMessages: true,
-          showInSearchResults: true,
-          dataCollection: true,
-          marketingEmails: false,
-        });
-      }
     } catch (error) {
       console.error('개인정보 설정 조회 실패:', error);
       setSettings({
@@ -76,16 +70,8 @@ const UniversalPrivacySettingsScreen: React.FC<{navigation: NavigationAdapter, u
 
     try {
       setSaving(true);
-      const token = await AsyncStorage.getItem('authToken');
-      
-      await fetch(`${getApiUrl()}/user/privacy-settings`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ [key]: value }),
-      });
+      await userApiService.updatePrivacySettings({ [key]: value });
+      console.log('🔒 개인정보 설정 업데이트 성공:', key, '=', value);
     } catch (error) {
       console.error('설정 업데이트 실패:', error);
       setSettings(settings);

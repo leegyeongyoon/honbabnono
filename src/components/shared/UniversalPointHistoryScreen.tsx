@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, ActivityIndicator } from 'react-native';
 import { COLORS, SHADOWS } from '../../styles/colors';
 import { Icon } from '../Icon';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import userApiService from '../../services/userApiService';
 
 interface NavigationAdapter {
   navigate: (screen: string, params?: any) => void;
@@ -23,20 +23,25 @@ const UniversalPointHistoryScreen: React.FC<{navigation: NavigationAdapter, user
   const [currentPoints, setCurrentPoints] = useState(0);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-
-  const getApiUrl = () => process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
+  const [error, setError] = useState<string | null>(null);
 
   const fetchPointHistory = useCallback(async () => {
     try {
-      const token = await AsyncStorage.getItem('authToken');
-      const response = await fetch(`${getApiUrl()}/user/points/history`, {
-        headers: { 'Authorization': `Bearer ${token}` },
-      });
-      const data = await response.json();
-      setTransactions(data.transactions || []);
-      setCurrentPoints(data.currentPoints || 0);
+      setError(null);
+      console.log('💰 포인트 내역 조회 시작');
+
+      // 현재 포인트 조회
+      const pointsResponse = await userApiService.getPoints();
+      console.log('💰 현재 포인트 응답:', pointsResponse);
+      setCurrentPoints(pointsResponse.data?.points || pointsResponse.points || 0);
+
+      // 포인트 거래 내역 조회
+      const historyResponse = await userApiService.getPointHistory();
+      console.log('💰 포인트 내역 응답:', historyResponse);
+      setTransactions(historyResponse.data || historyResponse.transactions || []);
     } catch (error) {
       console.error('포인트 내역 조회 실패:', error);
+      setError('포인트 내역을 불러오는데 실패했습니다');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -107,12 +112,19 @@ const UniversalPointHistoryScreen: React.FC<{navigation: NavigationAdapter, user
         style={styles.content}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => {setRefreshing(true); fetchPointHistory();}} />}
       >
-        {transactions.length === 0 ? (
-          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 80 }}>
+        {error ? (
+          <View style={styles.errorContainer}>
+            <Icon name="alert-circle" size={48} color={COLORS.functional.error} />
+            <Text style={styles.errorText}>{error}</Text>
+            <TouchableOpacity style={styles.retryButton} onPress={fetchPointHistory}>
+              <Text style={styles.retryButtonText}>다시 시도</Text>
+            </TouchableOpacity>
+          </View>
+        ) : transactions.length === 0 ? (
+          <View style={styles.emptyContainer}>
             <Icon name="coins" size={48} color={COLORS.text.tertiary} />
-            <Text style={{ fontSize: 18, fontWeight: '600', color: COLORS.text.primary, marginTop: 16 }}>
-              포인트 내역이 없습니다
-            </Text>
+            <Text style={styles.emptyText}>포인트 내역이 없습니다</Text>
+            <Text style={styles.emptySubtext}>모임에 참여하면 포인트를 받을 수 있어요!</Text>
           </View>
         ) : (
           <View style={{ padding: 16 }}>
@@ -169,6 +181,28 @@ const styles = StyleSheet.create({
   transactionDescription: { fontSize: 14, fontWeight: '600', color: COLORS.text.primary },
   transactionDate: { fontSize: 12, color: COLORS.text.secondary, marginTop: 4 },
   transactionAmount: { fontSize: 16, fontWeight: '600' },
+  emptyContainer: {
+    flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 80,
+  },
+  emptyText: {
+    fontSize: 18, fontWeight: '600', color: COLORS.text.primary, marginTop: 16,
+  },
+  emptySubtext: {
+    fontSize: 14, color: COLORS.text.secondary, marginTop: 8, textAlign: 'center',
+  },
+  errorContainer: {
+    flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 80,
+  },
+  errorText: {
+    fontSize: 16, color: COLORS.text.secondary, marginTop: 16, textAlign: 'center',
+  },
+  retryButton: {
+    marginTop: 16, backgroundColor: COLORS.primary.main, paddingHorizontal: 20,
+    paddingVertical: 10, borderRadius: 8,
+  },
+  retryButtonText: {
+    fontSize: 14, fontWeight: '600', color: COLORS.neutral.white,
+  },
 });
 
 export default UniversalPointHistoryScreen;

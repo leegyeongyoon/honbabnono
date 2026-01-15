@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, A
 import { COLORS, SHADOWS } from '../../styles/colors';
 import { Icon } from '../Icon';
 import MeetupCard from '../MeetupCard';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import userApiService from '../../services/userApiService';
 
 interface NavigationAdapter {
   navigate: (screen: string, params?: any) => void;
@@ -14,19 +14,18 @@ const UniversalWishlistScreen: React.FC<{navigation: NavigationAdapter, user?: a
   const [wishlistMeetups, setWishlistMeetups] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-
-  const getApiUrl = () => process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
+  const [error, setError] = useState<string | null>(null);
 
   const fetchWishlist = useCallback(async () => {
     try {
-      const token = await AsyncStorage.getItem('authToken');
-      const response = await fetch(`${getApiUrl()}/user/wishlist`, {
-        headers: { 'Authorization': `Bearer ${token}` },
-      });
-      const data = await response.json();
-      setWishlistMeetups(data.meetups || []);
+      setError(null);
+      console.log('❤️ 찜 목록 조회 시작');
+      const response = await userApiService.getWishlist();
+      console.log('❤️ 찜 목록 응답:', response);
+      setWishlistMeetups(response.data || response.meetups || []);
     } catch (error) {
       console.error('찜한 모임 조회 실패:', error);
+      setError('찜한 모임을 불러오는데 실패했습니다');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -37,11 +36,7 @@ const UniversalWishlistScreen: React.FC<{navigation: NavigationAdapter, user?: a
 
   const removeFromWishlist = async (meetupId: string) => {
     try {
-      const token = await AsyncStorage.getItem('authToken');
-      await fetch(`${getApiUrl()}/user/wishlist/${meetupId}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` },
-      });
+      await userApiService.removeFromWishlist(meetupId);
       setWishlistMeetups(prev => prev.filter(m => m.id !== meetupId));
     } catch (error) {
       console.error('찜 해제 실패:', error);
@@ -78,12 +73,25 @@ const UniversalWishlistScreen: React.FC<{navigation: NavigationAdapter, user?: a
       <ScrollView
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => {setRefreshing(true); fetchWishlist();}} />}
       >
-        {wishlistMeetups.length === 0 ? (
-          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 80 }}>
+        {error ? (
+          <View style={styles.errorContainer}>
+            <Icon name="alert-circle" size={48} color={COLORS.functional.error} />
+            <Text style={styles.errorText}>{error}</Text>
+            <TouchableOpacity style={styles.retryButton} onPress={fetchWishlist}>
+              <Text style={styles.retryButtonText}>다시 시도</Text>
+            </TouchableOpacity>
+          </View>
+        ) : wishlistMeetups.length === 0 ? (
+          <View style={styles.emptyContainer}>
             <Icon name="heart" size={48} color={COLORS.text.tertiary} />
-            <Text style={{ fontSize: 18, fontWeight: '600', color: COLORS.text.primary, marginTop: 16 }}>
-              찜한 모임이 없습니다
-            </Text>
+            <Text style={styles.emptyText}>찜한 모임이 없습니다</Text>
+            <Text style={styles.emptySubtext}>마음에 드는 모임을 찜해보세요!</Text>
+            <TouchableOpacity
+              style={styles.findButton}
+              onPress={() => navigation.navigate('Home')}
+            >
+              <Text style={styles.findButtonText}>모임 찾기</Text>
+            </TouchableOpacity>
           </View>
         ) : (
           <View style={{ padding: 16 }}>
@@ -93,7 +101,7 @@ const UniversalWishlistScreen: React.FC<{navigation: NavigationAdapter, user?: a
                   meetup={meetup}
                   onPress={() => navigation.navigate('MeetupDetail', { meetupId: meetup.id })}
                 />
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.removeButton}
                   onPress={() => removeFromWishlist(meetup.id)}
                 >
@@ -120,6 +128,35 @@ const styles = StyleSheet.create({
   removeButton: {
     position: 'absolute', top: 8, right: 8, backgroundColor: COLORS.neutral.white,
     borderRadius: 12, padding: 4, ...SHADOWS.small,
+  },
+  emptyContainer: {
+    flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 80,
+  },
+  emptyText: {
+    fontSize: 18, fontWeight: '600', color: COLORS.text.primary, marginTop: 16,
+  },
+  emptySubtext: {
+    fontSize: 14, color: COLORS.text.secondary, marginTop: 8, textAlign: 'center',
+  },
+  findButton: {
+    marginTop: 20, backgroundColor: COLORS.primary.main, paddingHorizontal: 24,
+    paddingVertical: 12, borderRadius: 8,
+  },
+  findButtonText: {
+    fontSize: 14, fontWeight: '600', color: COLORS.neutral.white,
+  },
+  errorContainer: {
+    flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 80,
+  },
+  errorText: {
+    fontSize: 16, color: COLORS.text.secondary, marginTop: 16, textAlign: 'center',
+  },
+  retryButton: {
+    marginTop: 16, backgroundColor: COLORS.primary.main, paddingHorizontal: 20,
+    paddingVertical: 10, borderRadius: 8,
+  },
+  retryButtonText: {
+    fontSize: 14, fontWeight: '600', color: COLORS.neutral.white,
   },
 });
 

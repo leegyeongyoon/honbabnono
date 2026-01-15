@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, ActivityIndicator } from 'react-native';
 import { COLORS, SHADOWS } from '../../styles/colors';
 import { Icon } from '../Icon';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import userApiService from '../../services/userApiService';
 
 interface NavigationAdapter {
   navigate: (screen: string, params?: any) => void;
@@ -23,19 +23,18 @@ const UniversalMyReviewsScreen: React.FC<{navigation: NavigationAdapter, user?: 
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-
-  const getApiUrl = () => process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
+  const [error, setError] = useState<string | null>(null);
 
   const fetchReviews = useCallback(async () => {
     try {
-      const token = await AsyncStorage.getItem('authToken');
-      const response = await fetch(`${getApiUrl()}/user/reviews`, {
-        headers: { 'Authorization': `Bearer ${token}` },
-      });
-      const data = await response.json();
-      setReviews(data.reviews || []);
+      setError(null);
+      console.log('⭐ 내 리뷰 조회 시작');
+      const response = await userApiService.getMyReviews();
+      console.log('⭐ 내 리뷰 응답:', response);
+      setReviews(response.data || response.reviews || []);
     } catch (error) {
       console.error('리뷰 조회 실패:', error);
+      setError('리뷰를 불러오는데 실패했습니다');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -82,12 +81,19 @@ const UniversalMyReviewsScreen: React.FC<{navigation: NavigationAdapter, user?: 
       <ScrollView
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => {setRefreshing(true); fetchReviews();}} />}
       >
-        {reviews.length === 0 ? (
-          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 80 }}>
+        {error ? (
+          <View style={styles.errorContainer}>
+            <Icon name="alert-circle" size={48} color={COLORS.functional.error} />
+            <Text style={styles.errorText}>{error}</Text>
+            <TouchableOpacity style={styles.retryButton} onPress={fetchReviews}>
+              <Text style={styles.retryButtonText}>다시 시도</Text>
+            </TouchableOpacity>
+          </View>
+        ) : reviews.length === 0 ? (
+          <View style={styles.emptyContainer}>
             <Icon name="star" size={48} color={COLORS.text.tertiary} />
-            <Text style={{ fontSize: 18, fontWeight: '600', color: COLORS.text.primary, marginTop: 16 }}>
-              작성한 리뷰가 없습니다
-            </Text>
+            <Text style={styles.emptyText}>작성한 리뷰가 없습니다</Text>
+            <Text style={styles.emptySubtext}>모임에 참여 후 리뷰를 남겨보세요!</Text>
           </View>
         ) : (
           <View style={{ padding: 16 }}>
@@ -129,6 +135,28 @@ const styles = StyleSheet.create({
   meetupTitle: { fontSize: 16, fontWeight: '600', color: COLORS.text.primary, marginBottom: 4 },
   hostName: { fontSize: 12, color: COLORS.text.secondary, marginBottom: 8 },
   comment: { fontSize: 14, color: COLORS.text.primary, lineHeight: 20 },
+  emptyContainer: {
+    flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 80,
+  },
+  emptyText: {
+    fontSize: 18, fontWeight: '600', color: COLORS.text.primary, marginTop: 16,
+  },
+  emptySubtext: {
+    fontSize: 14, color: COLORS.text.secondary, marginTop: 8, textAlign: 'center',
+  },
+  errorContainer: {
+    flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 80,
+  },
+  errorText: {
+    fontSize: 16, color: COLORS.text.secondary, marginTop: 16, textAlign: 'center',
+  },
+  retryButton: {
+    marginTop: 16, backgroundColor: COLORS.primary.main, paddingHorizontal: 20,
+    paddingVertical: 10, borderRadius: 8,
+  },
+  retryButtonText: {
+    fontSize: 14, fontWeight: '600', color: COLORS.neutral.white,
+  },
 });
 
 export default UniversalMyReviewsScreen;

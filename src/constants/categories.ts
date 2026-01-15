@@ -96,8 +96,9 @@ export const SORT_OPTION_NAMES = SORT_OPTIONS.map(opt => opt.name);
 
 // 가격대 옵션
 export const PRICE_RANGES = [
-  '1만원 이하',
-  '1-2만원',
-  '2-3만원',
-  '3만원 이상'
+  { id: 'price1', label: '1만원대', min: 0, max: 19999 },
+  { id: 'price2', label: '2만원대', min: 20000, max: 29999 },
+  { id: 'price3', label: '3만원대', min: 30000, max: 39999 },
+  { id: 'price4', label: '4만원대', min: 40000, max: 49999 },
+  { id: 'price5', label: '5만원대+', min: 50000, max: null },
 ];

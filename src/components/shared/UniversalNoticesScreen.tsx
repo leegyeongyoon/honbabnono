@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { COLORS, SHADOWS } from '../../styles/colors';
 import { Icon } from '../Icon';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import userApiService from '../../services/userApiService';
 
 // Platform-specific navigation adapter
 interface NavigationAdapter {
@@ -47,34 +47,20 @@ const UniversalNoticesScreen: React.FC<UniversalNoticesScreenProps> = ({
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // API base URL
-  const getApiUrl = () => process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
-
   // Fetch notices from backend
   const fetchNotices = useCallback(async () => {
     try {
       setError(null);
-      const token = await AsyncStorage.getItem('authToken');
+      console.log('📢 공지사항 조회 시작');
 
-      const response = await fetch(`${getApiUrl()}/notices`, {
-        method: 'GET',
-        headers: {
-          'Authorization': token ? `Bearer ${token}` : '',
-          'Content-Type': 'application/json',
-        },
-      });
+      const response = await userApiService.getNotices();
+      console.log('📢 공지사항 응답:', response);
 
-      const data = await response.json();
+      const noticesData = response.data || response.notices || [];
+      setNotices(noticesData);
 
-      if (response.ok && data.success) {
-        const noticesData = data.notices || data.data || [];
-        setNotices(noticesData);
-        
-        if (onNoticesLoad) {
-          onNoticesLoad(noticesData);
-        }
-      } else {
-        throw new Error(data.message || '공지사항을 불러오는데 실패했습니다');
+      if (onNoticesLoad) {
+        onNoticesLoad(noticesData);
       }
     } catch (error) {
       console.error('공지사항 로드 실패:', error);

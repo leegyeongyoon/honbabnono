@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { COLORS, SHADOWS } from '../../styles/colors';
 import { Icon } from '../Icon';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import userApiService from '../../services/userApiService';
 
 // Platform-specific navigation adapter
 interface NavigationAdapter {
@@ -51,9 +51,6 @@ const UniversalNoticeDetailScreen: React.FC<UniversalNoticeDetailScreenProps> = 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // API base URL
-  const getApiUrl = () => process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
-
   // Fetch notice detail from backend
   const fetchNotice = useCallback(async () => {
     if (!noticeId) {
@@ -61,32 +58,21 @@ const UniversalNoticeDetailScreen: React.FC<UniversalNoticeDetailScreenProps> = 
       setLoading(false);
       return;
     }
-    
+
     try {
       setError(null);
       setLoading(true);
-      const token = await AsyncStorage.getItem('authToken');
+      console.log('📢 공지사항 상세 조회 시작:', noticeId);
 
-      const response = await fetch(`${getApiUrl()}/notices/${noticeId}`, {
-        method: 'GET',
-        headers: {
-          'Authorization': token ? `Bearer ${token}` : '',
-          'Content-Type': 'application/json',
-        },
-      });
+      const response = await userApiService.getNoticeDetail(String(noticeId));
+      console.log('📢 공지사항 상세 응답:', response);
 
-      const data = await response.json();
+      const noticeData = response.data || response.notice || response;
+      setNotice(noticeData);
 
-      if (response.ok && data.success) {
-        const noticeData = data.notice || data.data;
-        setNotice(noticeData);
-        
-        // Increment view count if callback provided
-        if (onViewIncrement && noticeData.id) {
-          onViewIncrement(noticeData.id);
-        }
-      } else {
-        throw new Error(data.message || '공지사항을 불러오는데 실패했습니다');
+      // Increment view count if callback provided
+      if (onViewIncrement && noticeData.id) {
+        onViewIncrement(noticeData.id);
       }
     } catch (error) {
       console.error('공지사항 상세 조회 실패:', error);
