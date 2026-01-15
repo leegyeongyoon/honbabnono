@@ -377,15 +377,6 @@ const UniversalMyMeetupsScreen: React.FC<UniversalMyMeetupsScreenProps> = ({
     <SafeAreaView style={styles.container}>
       {/* 헤더 */}
       <View style={styles.header}>
-        {Platform.OS !== 'web' && (
-          <TouchableOpacity 
-            style={styles.backButton}
-            onPress={handleGoBackPress}
-          >
-            <Icon name="chevron-left" size={24} color={COLORS.text.primary} />
-          </TouchableOpacity>
-        )}
-        
         <Text style={styles.headerTitle}>내 모임</Text>
         
         <View style={styles.headerRight}>

@@ -165,12 +165,7 @@ const UniversalNoticesScreen: React.FC<UniversalNoticesScreenProps> = ({
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-          >
-            <Icon name="arrow-left" size={24} color={COLORS.text.primary} />
-          </TouchableOpacity>
+          <View style={styles.placeholder} />
           <Text style={styles.headerTitle}>공지사항</Text>
           <View style={styles.placeholder} />
         </View>
@@ -194,12 +189,7 @@ const UniversalNoticesScreen: React.FC<UniversalNoticesScreenProps> = ({
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Icon name="arrow-left" size={24} color={COLORS.text.primary} />
-        </TouchableOpacity>
+        <View style={styles.placeholder} />
         <Text style={styles.headerTitle}>공지사항</Text>
         <View style={styles.placeholder} />
       </View>

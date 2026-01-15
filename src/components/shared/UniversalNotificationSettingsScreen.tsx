@@ -204,12 +204,7 @@ const UniversalNotificationSettingsScreen: React.FC<UniversalNotificationSetting
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Icon name="arrow-left" size={24} color={COLORS.text.primary} />
-        </TouchableOpacity>
+        <View style={styles.placeholder} />
         <Text style={styles.headerTitle}>알림 설정</Text>
         <View style={styles.placeholder}>
           {saving && (

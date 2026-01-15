@@ -104,9 +104,7 @@ const UniversalPrivacySettingsScreen: React.FC<{navigation: NavigationAdapter, u
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()}>
-            <Icon name="arrow-left" size={24} color={COLORS.text.primary} />
-          </TouchableOpacity>
+          <View style={{ width: 24 }} />
           <Text style={styles.headerTitle}>개인정보 설정</Text>
           <View style={{ width: 24 }} />
         </View>
@@ -120,9 +118,7 @@ const UniversalPrivacySettingsScreen: React.FC<{navigation: NavigationAdapter, u
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Icon name="arrow-left" size={24} color={COLORS.text.primary} />
-        </TouchableOpacity>
+        <View style={{ width: 24 }} />
         <Text style={styles.headerTitle}>개인정보 설정</Text>
         <View style={{ width: 24 }}>
           {saving && <ActivityIndicator size="small" color={COLORS.primary.main} />}

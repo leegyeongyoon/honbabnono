@@ -451,9 +451,7 @@ const UniversalMeetupDetailScreen: React.FC<UniversalMeetupDetailScreenProps> = 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Icon name="chevron-left" size={24} color={COLORS.text.primary} />
-        </TouchableOpacity>
+        <View style={styles.headerPlaceholder} />
         <View style={styles.headerIcons}>
           <TouchableOpacity 
             style={styles.iconButton}
@@ -848,8 +846,8 @@ const styles = StyleSheet.create({
     paddingTop: 50,
     backgroundColor: COLORS.neutral.white,
   },
-  backButton: {
-    padding: 8,
+  headerPlaceholder: {
+    width: 40,
   },
   headerIcons: {
     flexDirection: 'row',

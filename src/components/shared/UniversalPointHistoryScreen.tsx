@@ -72,9 +72,7 @@ const UniversalPointHistoryScreen: React.FC<{navigation: NavigationAdapter, user
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()}>
-            <Icon name="arrow-left" size={24} color={COLORS.text.primary} />
-          </TouchableOpacity>
+          <View style={{ width: 24 }} />
           <Text style={styles.headerTitle}>포인트 내역</Text>
           <View style={{ width: 24 }} />
         </View>
@@ -88,9 +86,7 @@ const UniversalPointHistoryScreen: React.FC<{navigation: NavigationAdapter, user
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Icon name="arrow-left" size={24} color={COLORS.text.primary} />
-        </TouchableOpacity>
+        <View style={{ width: 24 }} />
         <Text style={styles.headerTitle}>포인트 내역</Text>
         <TouchableOpacity onPress={() => navigation.navigate('PointCharge')}>
           <Icon name="plus" size={24} color={COLORS.primary.main} />

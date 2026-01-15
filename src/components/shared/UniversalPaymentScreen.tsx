@@ -134,9 +134,7 @@ const UniversalPaymentScreen: React.FC<{navigation: NavigationAdapter, user?: an
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()}>
-            <Icon name="arrow-left" size={24} color={COLORS.text.primary} />
-          </TouchableOpacity>
+          <View style={{ width: 24 }} />
           <Text style={styles.headerTitle}>결제</Text>
           <View style={{ width: 24 }} />
         </View>
@@ -150,9 +148,7 @@ const UniversalPaymentScreen: React.FC<{navigation: NavigationAdapter, user?: an
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Icon name="arrow-left" size={24} color={COLORS.text.primary} />
-        </TouchableOpacity>
+        <View style={{ width: 24 }} />
         <Text style={styles.headerTitle}>결제</Text>
         <View style={{ width: 24 }} />
       </View>

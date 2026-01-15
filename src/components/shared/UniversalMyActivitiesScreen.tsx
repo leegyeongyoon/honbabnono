@@ -152,13 +152,11 @@ const UniversalMyActivitiesScreen: React.FC<UniversalMyActivitiesScreenProps> = 
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()}>
-            <Icon name="arrow-left" size={24} color={COLORS.text.primary} />
-          </TouchableOpacity>
+          <View style={styles.placeholder} />
           <Text style={styles.headerTitle}>내 활동</Text>
           <View style={styles.placeholder} />
         </View>
-        
+
         <View style={[styles.centerContent, styles.loadingContainer]}>
           <ActivityIndicator size="large" color={COLORS.primary.main} />
           <Text style={styles.loadingText}>활동 내역을 불러오는 중...</Text>
@@ -171,9 +169,7 @@ const UniversalMyActivitiesScreen: React.FC<UniversalMyActivitiesScreenProps> = 
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Icon name="arrow-left" size={24} color={COLORS.text.primary} />
-        </TouchableOpacity>
+        <View style={styles.placeholder} />
         <Text style={styles.headerTitle}>내 활동</Text>
         <View style={styles.placeholder} />
       </View>

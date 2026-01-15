@@ -219,13 +219,11 @@ const UniversalJoinedMeetupsScreen: React.FC<UniversalJoinedMeetupsScreenProps> 
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()}>
-            <Icon name="arrow-left" size={24} color={COLORS.text.primary} />
-          </TouchableOpacity>
+          <View style={styles.placeholder} />
           <Text style={styles.headerTitle}>내가 참여한 모임</Text>
           <View style={styles.placeholder} />
         </View>
-        
+
         <View style={[styles.centerContent, styles.loadingContainer]}>
           <ActivityIndicator size="large" color={COLORS.primary.main} />
           <Text style={styles.loadingText}>참여한 모임을 불러오는 중...</Text>
@@ -238,9 +236,7 @@ const UniversalJoinedMeetupsScreen: React.FC<UniversalJoinedMeetupsScreenProps> 
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Icon name="arrow-left" size={24} color={COLORS.text.primary} />
-        </TouchableOpacity>
+        <View style={styles.placeholder} />
         <Text style={styles.headerTitle}>내가 참여한 모임</Text>
         <View style={styles.placeholder} />
       </View>

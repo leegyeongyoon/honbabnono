@@ -47,9 +47,7 @@ const UniversalWishlistScreen: React.FC<{navigation: NavigationAdapter, user?: a
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()}>
-            <Icon name="arrow-left" size={24} color={COLORS.text.primary} />
-          </TouchableOpacity>
+          <View style={{ width: 24 }} />
           <Text style={styles.headerTitle}>찜한 모임</Text>
           <View style={{ width: 24 }} />
         </View>
@@ -63,9 +61,7 @@ const UniversalWishlistScreen: React.FC<{navigation: NavigationAdapter, user?: a
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Icon name="arrow-left" size={24} color={COLORS.text.primary} />
-        </TouchableOpacity>
+        <View style={{ width: 24 }} />
         <Text style={styles.headerTitle}>찜한 모임</Text>
         <View style={{ width: 24 }} />
       </View>

@@ -66,12 +66,6 @@ const UniversalMeetupListScreen: React.FC<UniversalMeetupListScreenProps> = ({
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Icon name="chevron-left" size={24} color={COLORS.text.primary} />
-        </TouchableOpacity>
         <Text style={styles.headerTitle}>모든 모임</Text>
         <NotificationBell
           onPress={() => {

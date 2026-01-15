@@ -139,16 +139,11 @@ const UniversalNoticeDetailScreen: React.FC<UniversalNoticeDetailScreenProps> = 
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-          >
-            <Icon name="arrow-left" size={24} color={COLORS.text.primary} />
-          </TouchableOpacity>
+          <View style={styles.placeholder} />
           <Text style={styles.headerTitle}>공지사항</Text>
           <View style={styles.placeholder} />
         </View>
-        
+
         <View style={[styles.centerContent, styles.loadingContainer]}>
           <ActivityIndicator size="large" color={COLORS.primary.main} />
           <Text style={styles.loadingText}>공지사항을 불러오는 중...</Text>
@@ -162,12 +157,7 @@ const UniversalNoticeDetailScreen: React.FC<UniversalNoticeDetailScreenProps> = 
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-          >
-            <Icon name="arrow-left" size={24} color={COLORS.text.primary} />
-          </TouchableOpacity>
+          <View style={styles.placeholder} />
           <Text style={styles.headerTitle}>공지사항</Text>
           <View style={styles.placeholder} />
         </View>
@@ -195,12 +185,7 @@ const UniversalNoticeDetailScreen: React.FC<UniversalNoticeDetailScreenProps> = 
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Icon name="arrow-left" size={24} color={COLORS.text.primary} />
-        </TouchableOpacity>
+        <View style={styles.placeholder} />
         <Text style={styles.headerTitle}>공지사항</Text>
         <View style={styles.placeholder} />
       </View>
