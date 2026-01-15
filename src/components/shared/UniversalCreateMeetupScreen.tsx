@@ -16,6 +16,7 @@ import { useToast } from '../../hooks/useToast';
 import { FOOD_CATEGORY_NAMES, PRICE_RANGES } from '../../constants/categories';
 import { DepositSelector } from '../DepositSelector';
 import storage from '../../utils/storage';
+import NativeMapModal from '../NativeMapModal';
 import moment from 'moment';
 
 // Web-specific imports (conditional)
@@ -259,16 +260,55 @@ const LocationSelector: React.FC<{
     });
   };
 
+  // Native - 지도 모달 상태
+  const [showMapModal, setShowMapModal] = useState(false);
+
   if (Platform.OS !== 'web') {
-    // Native fallback - simple location input
+    // Native - 지도 선택 버튼 + 텍스트 표시
     return (
       <View style={styles.mapSelectorContainer}>
-        <Text style={styles.mapSelectorTitle}>모임 장소 입력</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="모임 장소를 입력하세요"
-          value={selectedLocation}
-          onChangeText={(text) => onLocationSelect(text, text, 37.5665, 126.9780)}
+        <Text style={styles.mapSelectorTitle}>모임 장소 선택</Text>
+
+        {/* 선택된 위치 표시 */}
+        {selectedLocation ? (
+          <View style={styles.selectedLocationBox}>
+            <View style={styles.selectedLocationInfo}>
+              <Text style={styles.selectedLocationIcon}>📍</Text>
+              <View style={styles.selectedLocationTexts}>
+                <Text style={styles.selectedLocationTitle}>{selectedLocation}</Text>
+                {selectedAddress && selectedAddress !== selectedLocation && (
+                  <Text style={styles.selectedLocationAddress}>{selectedAddress}</Text>
+                )}
+              </View>
+            </View>
+            <TouchableOpacity
+              style={styles.changeLocationButton}
+              onPress={() => setShowMapModal(true)}
+            >
+              <Text style={styles.changeLocationButtonText}>변경</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <TouchableOpacity
+            style={styles.openMapButton}
+            onPress={() => setShowMapModal(true)}
+          >
+            <Icon name="map-pin" size={24} color={COLORS.primary.main} />
+            <Text style={styles.openMapButtonText}>지도에서 위치 선택하기</Text>
+            <Icon name="chevron-right" size={20} color={COLORS.text.secondary} />
+          </TouchableOpacity>
+        )}
+
+        {/* 지도 모달 */}
+        <NativeMapModal
+          visible={showMapModal}
+          onClose={() => setShowMapModal(false)}
+          onLocationSelect={(district, neighborhood, lat, lng, address) => {
+            // 장소명: 동네 정보 사용, 주소: 전체 주소 사용
+            const locationName = neighborhood ? `${district} ${neighborhood}` : district || address;
+            onLocationSelect(locationName, address, lat, lng);
+            setShowMapModal(false);
+          }}
         />
       </View>
     );
@@ -2143,6 +2183,68 @@ const styles = StyleSheet.create({
     color: COLORS.text.secondary,
     marginTop: 4,
     lineHeight: 16,
+  },
+  // Native 지도 선택 스타일
+  selectedLocationBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: COLORS.neutral.background,
+    borderWidth: 1,
+    borderColor: COLORS.primary.main,
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 8,
+  },
+  selectedLocationInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  selectedLocationIcon: {
+    fontSize: 24,
+    marginRight: 12,
+  },
+  selectedLocationTexts: {
+    flex: 1,
+  },
+  selectedLocationTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+    marginBottom: 2,
+  },
+  selectedLocationAddress: {
+    fontSize: 13,
+    color: COLORS.text.secondary,
+  },
+  changeLocationButton: {
+    backgroundColor: COLORS.primary.main,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    marginLeft: 12,
+  },
+  changeLocationButtonText: {
+    color: COLORS.neutral.white,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  openMapButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.neutral.white,
+    borderWidth: 1,
+    borderColor: COLORS.neutral.grey200,
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 8,
+  },
+  openMapButtonText: {
+    flex: 1,
+    fontSize: 16,
+    color: COLORS.text.primary,
+    marginLeft: 12,
   },
 });
 

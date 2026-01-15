@@ -11,7 +11,8 @@ import NativeMapModal from '../components/NativeMapModal';
 
 const MapTestScreen = () => {
   console.log('🗺️ [MapTestScreen] 컴포넌트 렌더링됨');
-  const [showMap, setShowMap] = useState(false);
+  // 테스트를 위해 자동으로 지도 열기
+  const [showMap, setShowMap] = useState(true);
   const [selectedLocation, setSelectedLocation] = useState<any>(null);
 
   const handleLocationSelect = (district: string, neighborhood: string, lat: number, lng: number, address: string) => {

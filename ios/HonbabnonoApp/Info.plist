@@ -29,39 +29,11 @@
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsArbitraryLoads</key>
-		<false/>
+		<true/>
+		<key>NSAllowsArbitraryLoadsInWebContent</key>
+		<true/>
 		<key>NSAllowsLocalNetworking</key>
 		<true/>
-		<key>NSExceptionDomains</key>
-		<dict>
-			<key>localhost</key>
-			<dict>
-				<key>NSExceptionAllowsInsecureHTTPLoads</key>
-				<true/>
-			</dict>
-			<key>dapi.kakao.com</key>
-			<dict>
-				<key>NSExceptionRequiresForwardSecrecy</key>
-				<false/>
-				<key>NSExceptionAllowsInsecureHTTPLoads</key>
-				<false/>
-				<key>NSExceptionMinimumTLSVersion</key>
-				<string>TLSv1.0</string>
-				<key>NSIncludesSubdomains</key>
-				<true/>
-			</dict>
-			<key>*.kakao.com</key>
-			<dict>
-				<key>NSExceptionRequiresForwardSecrecy</key>
-				<false/>
-				<key>NSExceptionAllowsInsecureHTTPLoads</key>
-				<false/>
-				<key>NSExceptionMinimumTLSVersion</key>
-				<string>TLSv1.0</string>
-				<key>NSIncludesSubdomains</key>
-				<true/>
-			</dict>
-		</dict>
 	</dict>
 	<key>NSCameraUsageDescription</key>
 	<string>프로필 사진 촬영을 위해 카메라 접근이 필요합니다.</string>

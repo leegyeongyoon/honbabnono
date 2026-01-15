@@ -219,6 +219,61 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // 정적 파일 제공 (업로드된 이미지)
 app.use('/uploads', express.static(uploadDir));
 
+// Kakao REST API - 역지오코딩 (좌표 -> 주소)
+app.get('/api/geocode/reverse', async (req, res) => {
+  try {
+    const { lat, lng } = req.query;
+    if (!lat || !lng) {
+      return res.status(400).json({ error: 'lat and lng are required' });
+    }
+
+    const kakaoRestApiKey = process.env.KAKAO_CLIENT_ID || '5a202bd90ab8dff01348f24cb1c37f3f';
+    const response = await axios.get(
+      `https://dapi.kakao.com/v2/local/geo/coord2address.json?x=${lng}&y=${lat}`,
+      {
+        headers: {
+          'Authorization': `KakaoAK ${kakaoRestApiKey}`
+        }
+      }
+    );
+
+    if (response.data.documents && response.data.documents.length > 0) {
+      const doc = response.data.documents[0];
+      const addr = doc.address || {};
+      const road = doc.road_address;
+
+      res.json({
+        address: road ? road.address_name : addr.address_name,
+        district: addr.region_2depth_name || '',
+        neighborhood: addr.region_3depth_name || '',
+        roadAddress: road ? road.address_name : null,
+        details: {
+          region1: addr.region_1depth_name,
+          region2: addr.region_2depth_name,
+          region3: addr.region_3depth_name
+        }
+      });
+    } else {
+      res.json({
+        address: `${lat}, ${lng}`,
+        district: '',
+        neighborhood: ''
+      });
+    }
+  } catch (error) {
+    logger.error('Kakao 역지오코딩 에러:', error.message);
+    res.status(500).json({
+      error: 'Geocoding failed',
+      address: `${req.query.lat}, ${req.query.lng}`,
+      district: '',
+      neighborhood: ''
+    });
+  }
+});
+
+// public 폴더 정적 파일 제공 (카카오 지도 HTML 등)
+app.use(express.static(path.join(__dirname, '../public')));
+
 // 모든 요청 로깅 (디버깅용)
 app.use((req, res, next) => {
   logger.debug(`📝 Request: ${req.method} ${req.url}`);

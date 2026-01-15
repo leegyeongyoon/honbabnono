@@ -12,6 +12,11 @@ import { NavigationContainer } from '@react-navigation/native';
 import PushNotificationIOS from '@react-native-community/push-notification-ios';
 import { AuthProvider } from './src/contexts/AuthContext';
 import AuthNavigator from './src/navigation/AuthNavigator';
+// 지도 테스트용 임시 import
+import MapTestScreen from './src/screens/MapTestScreen';
+
+// 지도 테스트 모드 - true로 설정하면 바로 지도 테스트 화면 표시
+const MAP_TEST_MODE = false;
 
 function App() {
   useEffect(() => {
@@ -26,6 +31,16 @@ function App() {
       });
     }
   }, []);
+
+  // 지도 테스트 모드일 때 바로 MapTestScreen 표시
+  if (MAP_TEST_MODE) {
+    return (
+      <>
+        <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
+        <MapTestScreen />
+      </>
+    );
+  }
 
   return (
     <AuthProvider>

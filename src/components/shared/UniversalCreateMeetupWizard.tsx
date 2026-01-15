@@ -681,12 +681,19 @@ const UniversalCreateMeetupWizard: React.FC<UniversalCreateMeetupWizardProps> = 
         
         {Platform.OS !== 'web' && NativeMap && (
           <NativeMap
+            selectedLocation={{
+              latitude: meetupData.latitude,
+              longitude: meetupData.longitude,
+              address: meetupData.address,
+              location: meetupData.location,
+            }}
             onLocationSelect={(location: any) => {
               setMeetupData(prev => ({
                 ...prev,
                 latitude: location.latitude,
                 longitude: location.longitude,
                 address: location.address,
+                location: location.location || location.address,
               }));
             }}
           />

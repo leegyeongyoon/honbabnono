@@ -1,8 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import UniversalCreateMeetupWizard from '../components/shared/UniversalCreateMeetupWizard';
 // import { DateTimePickerModal } from "react-native-modal-datetime-picker";
 // import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import NativeMapModal from '../components/NativeMapModal';
+import { Icon } from '../components/Icon';
+import { COLORS } from '../styles/colors';
 
 interface CreateMeetupWizardProps {
   navigation: any;
@@ -36,29 +39,61 @@ const NativeDateTimePicker: React.FC<any> = ({ visible, mode, value, onConfirm, 
   );
 };
 
-// Native Map Component (Temporary placeholder until react-native-maps is properly configured)
-const NativeMap: React.FC<any> = ({ onLocationSelect }) => {
-  const handleLocationSelect = () => {
-    // Default Seoul location
+// Native Map Component - 카카오맵 연동
+const NativeMap: React.FC<any> = ({ onLocationSelect, selectedLocation }) => {
+  const [showMapModal, setShowMapModal] = useState(false);
+
+  const handleMapLocationSelect = (district: string, neighborhood: string, lat: number, lng: number, address: string) => {
+    const locationName = neighborhood ? `${district} ${neighborhood}` : district || address;
     onLocationSelect({
-      latitude: 37.5665,
-      longitude: 126.9780,
-      address: '서울특별시 중구 을지로 (기본 위치)',
+      latitude: lat,
+      longitude: lng,
+      address: address,
+      location: locationName,
     });
+    setShowMapModal(false);
   };
 
   return (
-    <View style={styles.mapPlaceholder}>
-      <Text style={styles.mapPlaceholderText}>지도 위치 선택</Text>
-      <Text style={styles.mapPlaceholderSubtext}>
-        react-native-maps 설정 중...
-      </Text>
-      <TouchableOpacity 
-        style={styles.selectLocationButton}
-        onPress={handleLocationSelect}
-      >
-        <Text style={styles.selectLocationButtonText}>기본 위치 선택</Text>
-      </TouchableOpacity>
+    <View style={styles.mapContainer}>
+      {/* 선택된 위치 표시 */}
+      {selectedLocation?.address ? (
+        <View style={styles.selectedLocationBox}>
+          <View style={styles.selectedLocationInfo}>
+            <Text style={styles.selectedLocationIcon}>📍</Text>
+            <View style={styles.selectedLocationTexts}>
+              <Text style={styles.selectedLocationTitle}>
+                {selectedLocation.location || selectedLocation.address}
+              </Text>
+              {selectedLocation.address && (
+                <Text style={styles.selectedLocationAddress}>{selectedLocation.address}</Text>
+              )}
+            </View>
+          </View>
+          <TouchableOpacity
+            style={styles.changeLocationButton}
+            onPress={() => setShowMapModal(true)}
+          >
+            <Text style={styles.changeLocationButtonText}>변경</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <TouchableOpacity
+          style={styles.openMapButton}
+          onPress={() => setShowMapModal(true)}
+        >
+          <Icon name="map-pin" size={24} color={COLORS.primary.main} />
+          <Text style={styles.openMapButtonText}>지도에서 위치 선택하기</Text>
+          <Icon name="chevron-right" size={20} color={COLORS.text.secondary} />
+        </TouchableOpacity>
+      )}
+
+      {/* 지도 모달 */}
+      <NativeMapModal
+        visible={showMapModal}
+        onClose={() => setShowMapModal(false)}
+        onLocationSelect={handleMapLocationSelect}
+      />
     </View>
   );
 };
@@ -147,6 +182,69 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  // 지도 컨테이너 스타일
+  mapContainer: {
+    flex: 1,
+  },
+  selectedLocationBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#f8f9fa',
+    borderWidth: 1,
+    borderColor: COLORS.primary.main,
+    borderRadius: 12,
+    padding: 16,
+  },
+  selectedLocationInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  selectedLocationIcon: {
+    fontSize: 24,
+    marginRight: 12,
+  },
+  selectedLocationTexts: {
+    flex: 1,
+  },
+  selectedLocationTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 2,
+  },
+  selectedLocationAddress: {
+    fontSize: 13,
+    color: '#666',
+  },
+  changeLocationButton: {
+    backgroundColor: COLORS.primary.main,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    marginLeft: 12,
+  },
+  changeLocationButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  openMapButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    borderRadius: 12,
+    padding: 16,
+  },
+  openMapButtonText: {
+    flex: 1,
+    fontSize: 16,
+    color: '#333',
+    marginLeft: 12,
   },
 });
 
