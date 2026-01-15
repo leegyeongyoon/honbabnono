@@ -25,12 +25,12 @@ const MapTestModal = ({ visible, onClose }) => {
 };
 
 // Platform-specific modal wrapper for NeighborhoodSelector
-const NeighborhoodModal = ({ visible, onClose, onLocationSelect, currentLocation }) => (
+const NeighborhoodModal = ({ visible, onClose, onSelect, currentNeighborhood }) => (
   <NeighborhoodSelector
     visible={visible}
     onClose={onClose}
-    onLocationSelect={onLocationSelect}
-    currentLocation={currentLocation}
+    onSelect={onSelect}
+    currentNeighborhood={currentNeighborhood}
   />
 );
 

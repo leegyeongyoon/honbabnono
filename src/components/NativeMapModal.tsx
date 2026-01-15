@@ -15,13 +15,15 @@ import { Icon } from './Icon';
 interface NativeMapModalProps {
   visible: boolean;
   onClose: () => void;
-  onLocationSelect: (district: string, neighborhood: string, lat: number, lng: number, address: string) => void;
+  onLocationSelect: (district: string, neighborhood: string, lat: number, lng: number, address: string, radius?: number) => void;
+  mode?: 'search' | 'settings'; // search: 장소 검색, settings: 지역 설정
 }
 
 const NativeMapModal: React.FC<NativeMapModalProps> = ({
   visible,
   onClose,
   onLocationSelect,
+  mode = 'settings', // 기본값을 settings로 변경
 }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -56,12 +58,14 @@ const NativeMapModal: React.FC<NativeMapModalProps> = ({
   const mapUrl = useMemo(() => {
     if (!visible) return '';
     const cacheBuster = Date.now();
+    // mode에 따라 다른 HTML 파일 로드
+    const htmlFile = mode === 'settings' ? 'location-settings.html' : 'kakao-map.html';
     if (__DEV__) {
       const host = Platform.OS === 'android' ? '10.0.2.2' : 'localhost';
-      return `http://${host}:3000/kakao-map.html?v=${cacheBuster}`;
+      return `http://${host}:3000/${htmlFile}?v=${cacheBuster}`;
     }
-    return 'https://honbabnono.com/kakao-map.html';
-  }, [visible]);
+    return `https://honbabnono.com/${htmlFile}`;
+  }, [visible, mode]);
 
   const handleMessage = (event: any) => {
     console.log('📱 WebView 원본 메시지:', event.nativeEvent.data);
@@ -70,10 +74,10 @@ const NativeMapModal: React.FC<NativeMapModalProps> = ({
       console.log('📱 WebView 파싱된 메시지:', data);
 
       if (data.type === 'LOCATION_SELECTED') {
-        const { address, latitude, longitude, district, neighborhood } = data.data;
-        console.log('📍 위치 선택됨:', { address, latitude, longitude, district, neighborhood });
-        onLocationSelect(district || '알 수 없음', neighborhood || '알 수 없음', latitude, longitude, address);
-        onClose();
+        const { address, latitude, longitude, district, neighborhood, radius } = data.data;
+        console.log('📍 위치 선택됨:', { address, latitude, longitude, district, neighborhood, radius });
+        // onLocationSelect 콜백에서 모달 닫기를 처리하므로 여기서는 onClose 호출하지 않음
+        onLocationSelect(district || '알 수 없음', neighborhood || '알 수 없음', latitude, longitude, address, radius);
       } else if (data.type === 'CLOSE_MAP') {
         onClose();
       } else if (data.type === 'MAP_READY') {
@@ -119,7 +123,7 @@ const NativeMapModal: React.FC<NativeMapModalProps> = ({
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
             <Icon name="x" size={24} color={COLORS.text.primary} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>위치 선택</Text>
+          <Text style={styles.headerTitle}>{mode === 'settings' ? '지역 설정' : '위치 선택'}</Text>
           <View style={styles.placeholder} />
         </View>
 

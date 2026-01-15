@@ -88,11 +88,12 @@ const NativeMap: React.FC<any> = ({ onLocationSelect, selectedLocation }) => {
         </TouchableOpacity>
       )}
 
-      {/* 지도 모달 */}
+      {/* 지도 모달 - 모임 생성용 (장소 검색) */}
       <NativeMapModal
         visible={showMapModal}
         onClose={() => setShowMapModal(false)}
         onLocationSelect={handleMapLocationSelect}
+        mode="search"
       />
     </View>
   );

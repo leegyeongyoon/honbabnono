@@ -37,11 +37,15 @@ const NeighborhoodSelector: React.FC<NeighborhoodSelectorProps> = ({
   };
 
   // 카카오 지도에서 위치 선택 처리 (GPS 권한 체크 포함)
-  const handleKakaoMapLocationSelect = (district: string, neighborhood: string, lat: number, lng: number, address: string) => {
-    console.log('🗺️ 카카오 지도에서 위치 선택됨:', { district, neighborhood, lat, lng, address });
-    onSelect(district, neighborhood);
+  const handleKakaoMapLocationSelect = (district: string, neighborhood: string, lat: number, lng: number, address: string, radius?: number) => {
+    console.log('🗺️ 카카오 지도에서 위치 선택됨:', { district, neighborhood, lat, lng, address, radius });
+    // 먼저 맵 모달 닫기
     setShowMapModal(false);
-    onClose();
+    // 약간의 지연 후 선택 처리 및 부모 모달 닫기
+    setTimeout(() => {
+      onSelect(district, neighborhood);
+      onClose();
+    }, 100);
   };
 
 
@@ -109,6 +113,7 @@ const NeighborhoodSelector: React.FC<NeighborhoodSelectorProps> = ({
           visible={showMapModal}
           onClose={() => setShowMapModal(false)}
           onLocationSelect={handleKakaoMapLocationSelect}
+          mode="settings"
         />
       )}
     </Modal>

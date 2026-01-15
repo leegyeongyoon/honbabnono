@@ -393,8 +393,8 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
       <NeighborhoodSelector
         visible={showNeighborhoodSelector}
         onClose={() => setShowNeighborhoodSelector(false)}
-        onLocationSelect={handleLocationSelect}
-        currentLocation={currentNeighborhood}
+        onSelect={handleLocationSelect}
+        currentNeighborhood={currentNeighborhood}
       />
 
       {CreateMeetupModal && (
