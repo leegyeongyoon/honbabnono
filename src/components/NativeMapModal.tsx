@@ -42,6 +42,36 @@ const NativeMapModal: React.FC<NativeMapModalProps> = ({
     };
   }, []);
 
+  // GPS 위치 가져오기 함수
+  const fetchGpsLocation = (retryCount = 0) => {
+    console.log('📍 [NativeMapModal] React Native GPS 위치 가져오기 시작... (시도:', retryCount + 1, ')');
+    Geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        console.log('📍 [NativeMapModal] React Native GPS 성공:', latitude, longitude);
+        gpsLocationRef.current = { lat: latitude, lng: longitude };
+
+        // 이미 지도가 준비되어 있으면 바로 좌표 전송
+        if (mapReadyRef.current && webViewRef.current) {
+          sendGpsToWebView(latitude, longitude);
+        }
+      },
+      (error) => {
+        console.log('📍 [NativeMapModal] React Native GPS 실패:', error.code, error.message);
+        // 재시도 (최대 2번)
+        if (retryCount < 2) {
+          console.log('📍 [NativeMapModal] GPS 재시도 중...');
+          setTimeout(() => fetchGpsLocation(retryCount + 1), 1000);
+        }
+      },
+      {
+        enableHighAccuracy: retryCount === 0, // 첫 시도만 고정밀도, 실패 시 낮은 정밀도로 재시도
+        timeout: 20000,
+        maximumAge: 60000
+      }
+    );
+  };
+
   // visible 변경 시 상태 초기화 및 GPS 위치 가져오기
   useEffect(() => {
     if (visible) {
@@ -50,25 +80,22 @@ const NativeMapModal: React.FC<NativeMapModalProps> = ({
       mapReadyRef.current = false;
       gpsLocationRef.current = null;
 
-      // React Native에서 GPS 위치 가져오기
-      console.log('📍 [NativeMapModal] React Native GPS 위치 가져오기 시작...');
-      Geolocation.getCurrentPosition(
-        (position) => {
-          const { latitude, longitude } = position.coords;
-          console.log('📍 [NativeMapModal] React Native GPS 성공:', latitude, longitude);
-          gpsLocationRef.current = { lat: latitude, lng: longitude };
-
-          // 이미 지도가 준비되어 있으면 바로 좌표 전송
-          if (mapReadyRef.current && webViewRef.current) {
-            sendGpsToWebView(latitude, longitude);
-          }
-        },
-        (error) => {
-          console.log('📍 [NativeMapModal] React Native GPS 실패:', error.code, error.message);
-          // GPS 실패해도 WebView 로딩은 계속 진행
-        },
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-      );
+      // iOS에서는 먼저 위치 권한 요청 (필수)
+      if (Platform.OS === 'ios') {
+        console.log('📍 [NativeMapModal] iOS 위치 권한 요청...');
+        // setRNConfiguration으로 권한 레벨 설정
+        Geolocation.setRNConfiguration({
+          skipPermissionRequests: false,
+          authorizationLevel: 'whenInUse',
+        });
+        // requestAuthorization은 동기식 - 콜백 없음
+        Geolocation.requestAuthorization();
+        // 잠시 대기 후 위치 가져오기
+        setTimeout(() => fetchGpsLocation(), 500);
+      } else {
+        // Android에서는 바로 위치 가져오기
+        fetchGpsLocation();
+      }
     } else {
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
