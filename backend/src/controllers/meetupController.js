@@ -1,6 +1,20 @@
 const { Meetup, User, MeetupParticipant, ChatRoom, ChatParticipant } = require('../models');
 const { Op } = require('sequelize');
 
+// 하버사인 공식으로 두 지점 간 거리 계산 (미터 단위)
+const calculateDistance = (lat1, lon1, lat2, lon2) => {
+  const R = 6371000; // 지구 반경 (미터)
+  const φ1 = lat1 * Math.PI / 180;
+  const φ2 = lat2 * Math.PI / 180;
+  const Δφ = (lat2 - lat1) * Math.PI / 180;
+  const Δλ = (lon2 - lon1) * Math.PI / 180;
+
+  const a = Math.sin(Δφ/2) ** 2 + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ/2) ** 2;
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+
+  return Math.round(R * c); // 미터 단위, 정수로 반환
+};
+
 // 채팅방 생성 헬퍼 함수 (DB 직접 사용)
 const createMeetupChatRoom = async (meetupId, title, hostId, hostName) => {
   try {
@@ -514,6 +528,245 @@ const getMyMeetups = async (req, res) => {
   }
 };
 
+// GPS 체크인 (출석 인증)
+const checkInMeetup = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { latitude, longitude } = req.body;
+    const userId = req.user.userId;
+
+    if (!latitude || !longitude) {
+      return res.status(400).json({ error: 'GPS 좌표가 필요합니다' });
+    }
+
+    const meetup = await Meetup.findByPk(id);
+    if (!meetup) {
+      return res.status(404).json({ error: '모임을 찾을 수 없습니다' });
+    }
+
+    // 모임 상태 확인 (진행중일 때만 체크인 가능)
+    if (meetup.status !== '진행중') {
+      return res.status(400).json({
+        error: '체크인은 모임이 진행중일 때만 가능합니다',
+        currentStatus: meetup.status
+      });
+    }
+
+    // 참가 승인된 사용자인지 확인
+    const participant = await MeetupParticipant.findOne({
+      where: {
+        meetupId: id,
+        userId,
+        status: '참가승인'
+      }
+    });
+
+    if (!participant) {
+      return res.status(403).json({ error: '참가 승인된 사용자만 체크인할 수 있습니다' });
+    }
+
+    // 이미 체크인했는지 확인
+    if (participant.attended) {
+      return res.status(400).json({
+        error: '이미 체크인을 완료했습니다',
+        attendedAt: participant.attendedAt
+      });
+    }
+
+    // 체크인 시간 범위 확인 (모임 시작 30분 전 ~ 1시간 후)
+    // meetup.date는 DATEONLY 타입으로 "YYYY-MM-DD" 문자열로 반환됨
+    // meetup.time은 TIME 타입으로 "HH:mm:ss" 문자열로 반환됨
+    const dateStr = typeof meetup.date === 'string' ? meetup.date : meetup.date.toISOString().split('T')[0];
+    const timeStr = typeof meetup.time === 'string' ? meetup.time.split('.')[0] : meetup.time; // 밀리초 제거
+    const meetupDateTimeStr = `${dateStr}T${timeStr}+09:00`; // 한국 시간대 적용
+    const meetupDateTime = new Date(meetupDateTimeStr);
+
+    console.log('🕐 체크인 시간 디버깅:', {
+      dateStr,
+      timeStr,
+      meetupDateTimeStr,
+      meetupDateTime: meetupDateTime.toISOString()
+    });
+
+    const checkInStart = new Date(meetupDateTime.getTime() - 20 * 60 * 1000); // 20분 전
+    const checkInEnd = new Date(meetupDateTime.getTime() + 10 * 60 * 1000); // 10분 후
+    const now = new Date();
+
+    console.log('🕐 체크인 시간 범위:', {
+      now: now.toISOString(),
+      checkInStart: checkInStart.toISOString(),
+      checkInEnd: checkInEnd.toISOString()
+    });
+
+    if (now < checkInStart) {
+      return res.status(400).json({
+        error: '아직 체크인 시간이 아닙니다',
+        checkInStart: checkInStart.toISOString()
+      });
+    }
+
+    if (now > checkInEnd) {
+      return res.status(400).json({
+        error: '체크인 시간이 지났습니다',
+        checkInEnd: checkInEnd.toISOString()
+      });
+    }
+
+    // 거리 계산
+    if (!meetup.latitude || !meetup.longitude) {
+      return res.status(400).json({ error: '모임 장소의 좌표 정보가 없습니다' });
+    }
+
+    const distance = calculateDistance(
+      parseFloat(latitude),
+      parseFloat(longitude),
+      parseFloat(meetup.latitude),
+      parseFloat(meetup.longitude)
+    );
+
+    const checkInRadius = meetup.checkInRadius || 300; // 기본 300m
+
+    if (distance > checkInRadius) {
+      return res.status(400).json({
+        error: `모임 장소에서 너무 멀리 있습니다 (${distance}m)`,
+        distance,
+        maxDistance: checkInRadius
+      });
+    }
+
+    // 체크인 성공 - 출석 기록 업데이트
+    await participant.update({
+      attended: true,
+      attendedAt: now,
+      attendanceLatitude: latitude,
+      attendanceLongitude: longitude,
+      attendanceDistance: distance
+    });
+
+    res.json({
+      message: '체크인이 완료되었습니다',
+      attended: true,
+      distance,
+      attendedAt: now
+    });
+  } catch (error) {
+    console.error('체크인 오류:', error);
+    res.status(500).json({ error: '서버 오류가 발생했습니다' });
+  }
+};
+
+// 출석 현황 조회
+const getAttendance = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.userId;
+
+    const meetup = await Meetup.findByPk(id);
+    if (!meetup) {
+      return res.status(404).json({ error: '모임을 찾을 수 없습니다' });
+    }
+
+    // 참가자 목록 조회 (승인된 참가자만)
+    const participants = await MeetupParticipant.findAll({
+      where: {
+        meetupId: id,
+        status: '참가승인'
+      },
+      include: [{
+        model: User,
+        as: 'user',
+        attributes: ['id', 'name', 'profileImage']
+      }],
+      order: [['joinedAt', 'ASC']]
+    });
+
+    // 본인의 체크인 상태
+    const myParticipant = participants.find(p => p.userId === userId);
+
+    const attendanceList = participants.map(p => ({
+      id: p.id,
+      userId: p.user.id,
+      name: p.user.name,
+      profileImage: p.user.profileImage,
+      attended: p.attended,
+      attendedAt: p.attendedAt,
+      distance: p.attendanceDistance,
+      isHost: p.userId === meetup.hostId,
+      isMe: p.userId === userId
+    }));
+
+    res.json({
+      meetupId: id,
+      status: meetup.status,
+      checkInRadius: meetup.checkInRadius || 300,
+      totalParticipants: participants.length,
+      attendedCount: participants.filter(p => p.attended).length,
+      participants: attendanceList,
+      myAttendance: myParticipant ? {
+        attended: myParticipant.attended,
+        attendedAt: myParticipant.attendedAt
+      } : null
+    });
+  } catch (error) {
+    console.error('출석 현황 조회 오류:', error);
+    res.status(500).json({ error: '서버 오류가 발생했습니다' });
+  }
+};
+
+// 모임 상태 변경 (호스트 전용)
+const updateMeetupStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+    const userId = req.user.userId;
+
+    if (!['진행중', '종료'].includes(status)) {
+      return res.status(400).json({ error: '잘못된 상태값입니다 (진행중 또는 종료만 가능)' });
+    }
+
+    const meetup = await Meetup.findByPk(id);
+    if (!meetup) {
+      return res.status(404).json({ error: '모임을 찾을 수 없습니다' });
+    }
+
+    // 호스트 권한 확인
+    if (meetup.hostId !== userId) {
+      return res.status(403).json({ error: '모임 호스트만 상태를 변경할 수 있습니다' });
+    }
+
+    // 상태 전환 규칙 확인
+    if (status === '진행중' && !['모집중', '모집완료'].includes(meetup.status)) {
+      return res.status(400).json({
+        error: '모집중 또는 모집완료 상태에서만 진행중으로 변경할 수 있습니다',
+        currentStatus: meetup.status
+      });
+    }
+
+    if (status === '종료' && meetup.status !== '진행중') {
+      return res.status(400).json({
+        error: '진행중 상태에서만 종료로 변경할 수 있습니다',
+        currentStatus: meetup.status
+      });
+    }
+
+    const updateData = { status };
+    if (status === '종료') {
+      updateData.endedAt = new Date();
+    }
+
+    await meetup.update(updateData);
+
+    res.json({
+      message: `모임 상태가 '${status}'(으)로 변경되었습니다`,
+      status,
+      endedAt: updateData.endedAt || null
+    });
+  } catch (error) {
+    console.error('모임 상태 변경 오류:', error);
+    res.status(500).json({ error: '서버 오류가 발생했습니다' });
+  }
+};
+
 module.exports = {
   createMeetup,
   getMeetups,
@@ -521,5 +774,8 @@ module.exports = {
   getMeetupById,
   joinMeetup,
   updateParticipantStatus,
-  getMyMeetups
+  getMyMeetups,
+  checkInMeetup,
+  getAttendance,
+  updateMeetupStatus
 };

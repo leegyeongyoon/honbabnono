@@ -11,6 +11,7 @@ const Notification = require('./Notification');
 const UserNotificationSetting = require('./UserNotificationSetting');
 const Advertisement = require('./Advertisement');
 const Admin = require('./Admin');
+const Review = require('./Review');
 
 // 모델 간 관계 설정
 // User와 Meetup 관계 (호스트)
@@ -166,6 +167,37 @@ UserNotificationSetting.belongsTo(User, {
   as: 'user'
 });
 
+// Review 관계 설정
+// Meetup과 Review 관계 (일대다)
+Meetup.hasMany(Review, {
+  foreignKey: 'meetupId',
+  as: 'reviews'
+});
+Review.belongsTo(Meetup, {
+  foreignKey: 'meetupId',
+  as: 'meetup'
+});
+
+// User와 Review 관계 (작성한 리뷰)
+User.hasMany(Review, {
+  foreignKey: 'reviewerId',
+  as: 'writtenReviews'
+});
+Review.belongsTo(User, {
+  foreignKey: 'reviewerId',
+  as: 'reviewer'
+});
+
+// User와 Review 관계 (받은 리뷰)
+User.hasMany(Review, {
+  foreignKey: 'revieweeId',
+  as: 'receivedReviews'
+});
+Review.belongsTo(User, {
+  foreignKey: 'revieweeId',
+  as: 'reviewee'
+});
+
 // 데이터베이스 초기화 함수
 const initDatabase = async () => {
   try {
@@ -200,5 +232,6 @@ module.exports = {
   Notification,
   UserNotificationSetting,
   Advertisement,
+  Review,
   initDatabase
 };

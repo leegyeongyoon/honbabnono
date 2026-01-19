@@ -112,6 +112,22 @@ const Meetup = sequelize.define('Meetup', {
     type: DataTypes.BOOLEAN,
     defaultValue: false,
     field: 'allow_direct_chat'
+  },
+  // GPS 체크인 설정
+  checkInRadius: {
+    type: DataTypes.INTEGER,
+    defaultValue: 300, // 체크인 허용 반경(m) - 300m
+    field: 'check_in_radius'
+  },
+  durationMinutes: {
+    type: DataTypes.INTEGER,
+    defaultValue: 180, // 모임 예상 시간(분) - 3시간
+    field: 'duration_minutes'
+  },
+  endedAt: {
+    type: DataTypes.DATE,
+    allowNull: true, // 실제 종료 시각
+    field: 'ended_at'
   }
 }, {
   tableName: 'meetups',

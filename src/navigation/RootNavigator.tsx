@@ -32,6 +32,7 @@ import ReviewManagementScreen from '../screens/ReviewManagementScreen';
 import UserVerificationScreen from '../screens/UserVerificationScreen';
 import AdvertisementDetailScreen from '../screens/AdvertisementDetailScreen';
 import AISearchResultScreen from '../screens/AISearchResultScreen';
+import WriteReviewScreen from '../screens/WriteReviewScreen';
 
 export type RootStackParamList = {
   Main: undefined;
@@ -64,6 +65,7 @@ export type RootStackParamList = {
   UserVerification: undefined;
   AdvertisementDetail: { adId?: string };
   AISearchResult: { query?: string };
+  WriteReview: { meetupId: string; meetupTitle?: string };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -233,6 +235,11 @@ const RootNavigator = () => {
         name="AISearchResult"
         component={AISearchResultScreen}
         options={{ title: 'AI 검색 결과' }}
+      />
+      <Stack.Screen
+        name="WriteReview"
+        component={WriteReviewScreen}
+        options={{ title: '리뷰 작성', headerShown: false }}
       />
     </Stack.Navigator>
   );

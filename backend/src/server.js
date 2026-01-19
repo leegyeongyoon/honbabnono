@@ -33,6 +33,7 @@ const notificationRoutes = require('./routes/notifications');
 const advertisementRoutes = require('./routes/advertisements');
 const adminRoutes = require('./routes/admin');
 const researchRoutes = require('./routes/research');
+const reviewRoutes = require('./routes/reviews');
 
 const app = express();
 const server = http.createServer(app);
@@ -944,99 +945,11 @@ app.get('/api/user/rice-index', authenticateToken, async (req, res) => {
   }
 });
 
-// 모임 리뷰 작성
-app.post('/api/meetups/:meetupId/reviews', authenticateToken, async (req, res) => {
-  try {
-    const { meetupId } = req.params;
-    const { rating, comment, tags } = req.body;
-    const userId = req.user.id || req.user.userId;
-    
-    console.log('✍️ 리뷰 작성 요청:', { meetupId, userId, rating });
-    
-    if (!rating || rating < 1 || rating > 5) {
-      return res.status(400).json({ 
-        success: false, 
-        error: '평점은 1~5 사이의 값이어야 합니다.' 
-      });
-    }
-    
-    // 임시 리뷰 데이터
-    const mockReview = {
-      id: Date.now().toString(),
-      meetup_id: meetupId,
-      reviewer_id: userId,
-      reviewer_name: req.user.name,
-      rating: rating,
-      comment: comment || '',
-      tags: tags || [],
-      created_at: new Date().toISOString(),
-      reviewer_profile_image: null
-    };
-    
-    console.log('✅ 리뷰 작성 성공');
-    res.json({ 
-      success: true, 
-      data: mockReview 
-    });
+// 모임 리뷰 작성 - reviewRoutes에서 처리하므로 주석 처리
+// (실제 구현은 /routes/reviews.js에서 reviewController.createReview 사용)
 
-  } catch (error) {
-    console.error('❌ 리뷰 작성 실패:', error);
-    res.status(500).json({ 
-      success: false, 
-      error: '서버 오류가 발생했습니다.' 
-    });
-  }
-});
-
-// 모임의 리뷰 목록 조회
-app.get('/api/meetups/:meetupId/reviews', async (req, res) => {
-  try {
-    const { meetupId } = req.params;
-    const { page = 1, limit = 10 } = req.query;
-    
-    console.log('📝 모임 리뷰 목록 조회 요청:', { meetupId, page, limit });
-    
-    // 임시 리뷰 데이터
-    const mockData = {
-      reviews: [
-        {
-          id: "1",
-          meetup_id: meetupId,
-          reviewer_id: "user1",
-          reviewer_name: "리뷰어1",
-          rating: 5,
-          comment: "정말 좋은 모임이었습니다!",
-          tags: ["맛있는", "친절한"],
-          created_at: "2025-10-25T15:00:00Z",
-          reviewer_profile_image: null
-        }
-      ],
-      stats: {
-        averageRating: 4.8,
-        totalReviews: 5
-      },
-      pagination: {
-        total: 1,
-        page: parseInt(page),
-        limit: parseInt(limit),
-        totalPages: 1
-      }
-    };
-    
-    console.log('✅ 모임 리뷰 목록 조회 성공');
-    res.json({ 
-      success: true, 
-      data: mockData 
-    });
-
-  } catch (error) {
-    console.error('❌ 모임 리뷰 목록 조회 실패:', error);
-    res.status(500).json({ 
-      success: false, 
-      error: '서버 오류가 발생했습니다.' 
-    });
-  }
-});
+// 모임의 리뷰 목록 조회 - reviewRoutes에서 처리하므로 주석 처리
+// (실제 구현은 /routes/reviews.js에서 reviewController.getMeetupReviews 사용)
 
 // 로그아웃 API
 app.post('/api/auth/logout', (req, res) => {
@@ -1429,6 +1342,7 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/advertisements', advertisementRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/admin', researchRoutes);
+app.use('/api', reviewRoutes); // 리뷰 라우트 (/api/meetups/:id/reviews 등)
 
 // 고급 리서치 파이프라인 라우트
 const advancedResearchRoutes = require('./routes/advanced-research');

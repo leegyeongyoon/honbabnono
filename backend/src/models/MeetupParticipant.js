@@ -37,6 +37,31 @@ const MeetupParticipant = sequelize.define('MeetupParticipant', {
   message: {
     type: DataTypes.TEXT,
     allowNull: true // 참가 신청 메시지
+  },
+  // GPS 출석 인증 관련 필드
+  attended: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false // GPS 인증 완료 여부
+  },
+  attendedAt: {
+    type: DataTypes.DATE,
+    allowNull: true, // 인증 시각
+    field: 'attended_at'
+  },
+  attendanceLatitude: {
+    type: DataTypes.DECIMAL(10, 8),
+    allowNull: true, // 인증 위치 위도
+    field: 'attendance_latitude'
+  },
+  attendanceLongitude: {
+    type: DataTypes.DECIMAL(11, 8),
+    allowNull: true, // 인증 위치 경도
+    field: 'attendance_longitude'
+  },
+  attendanceDistance: {
+    type: DataTypes.INTEGER,
+    allowNull: true, // 모임 장소와의 거리(m)
+    field: 'attendance_distance'
   }
 }, {
   tableName: 'meetup_participants',

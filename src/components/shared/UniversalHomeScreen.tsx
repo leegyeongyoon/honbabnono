@@ -11,6 +11,7 @@ import {COLORS, SHADOWS} from '../../styles/colors';
 import {Icon} from '../Icon';
 import { NotificationBell } from '../NotificationBell';
 import NeighborhoodSelector from '../NeighborhoodSelector';
+import NativeMapModal from '../NativeMapModal';
 import MeetupCard from '../MeetupCard';
 import locationService from '../../services/locationService';
 import { useUserStore } from '../../store/userStore';
@@ -84,6 +85,7 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
   const [showCreateMeetup, setShowCreateMeetup] = useState(false);
   const [showMapTest, setShowMapTest] = useState(false);
   const [showNeighborhoodSelector, setShowNeighborhoodSelector] = useState(false);
+  const [showNeighborhoodMapModal, setShowNeighborhoodMapModal] = useState(false);  // 지도 모달 상태 (부모에서 관리)
   const [currentNeighborhood, setCurrentNeighborhood] = useState<{ district: string; neighborhood: string } | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearchSuggestions, setShowSearchSuggestions] = useState(false);
@@ -161,8 +163,28 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
     console.log('위치 선택됨:', district, neighborhood);
     updateNeighborhood(district, neighborhood);
     setCurrentNeighborhood({ district, neighborhood });
+    setShowNeighborhoodMapModal(false);  // 지도 모달 먼저 닫기
     setShowNeighborhoodSelector(false);
     fetchHomeMeetups();
+  };
+
+  // NativeMapModal에서 위치 선택 처리 (lat, lng, address 포함)
+  const handleMapLocationSelect = (district: string, neighborhood: string, lat: number, lng: number, address: string, radius?: number) => {
+    console.log('🗺️ [UniversalHomeScreen] 지도에서 위치 선택됨:', { district, neighborhood, lat, lng, address, radius });
+    updateNeighborhood(district, neighborhood);
+    setCurrentNeighborhood({ district, neighborhood });
+    setShowNeighborhoodMapModal(false);
+    fetchHomeMeetups();
+  };
+
+  // NeighborhoodSelector에서 지도 모달 열기 요청 처리
+  const handleOpenMapModal = () => {
+    console.log('🗺️ [UniversalHomeScreen] 지도 모달 열기 요청');
+    setShowNeighborhoodSelector(false);  // 먼저 NeighborhoodSelector 닫기
+    // 약간의 딜레이 후 지도 모달 열기 (Modal 전환 애니메이션 대기)
+    setTimeout(() => {
+      setShowNeighborhoodMapModal(true);
+    }, 300);
   };
 
   const getCategoryIcon = (categoryName: string) => {
@@ -392,9 +414,20 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
       {/* 모달들 */}
       <NeighborhoodSelector
         visible={showNeighborhoodSelector}
-        onClose={() => setShowNeighborhoodSelector(false)}
+        onClose={() => {
+          setShowNeighborhoodSelector(false);
+        }}
         onSelect={handleLocationSelect}
         currentNeighborhood={currentNeighborhood}
+        onOpenMapModal={handleOpenMapModal}
+      />
+
+      {/* NativeMapModal - NeighborhoodSelector와 분리하여 렌더링 */}
+      <NativeMapModal
+        visible={showNeighborhoodMapModal}
+        onClose={() => setShowNeighborhoodMapModal(false)}
+        onLocationSelect={handleMapLocationSelect}
+        mode="settings"
       />
 
       {CreateMeetupModal && (

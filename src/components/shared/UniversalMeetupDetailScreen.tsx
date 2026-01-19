@@ -10,6 +10,7 @@ import { Icon } from '../Icon';
 import { ProfileImage } from '../ProfileImage';
 import { FOOD_CATEGORIES } from '../../constants/categories';
 import { Heart } from 'lucide-react';
+import CheckInButton from '../CheckInButton';
 
 interface NavigationAdapter {
   navigate: (screen: string, params?: any) => void;
@@ -168,6 +169,8 @@ const UniversalMeetupDetailScreen: React.FC<UniversalMeetupDetailScreenProps> = 
   const [showLeaveModal, setShowLeaveModal] = useState(false);
   const [showDepositSelector, setShowDepositSelector] = useState(false);
   const [showHostModal, setShowHostModal] = useState(false);
+  const [showStatusModal, setShowStatusModal] = useState(false);
+  const [statusChangeLoading, setStatusChangeLoading] = useState(false);
   const [userRiceIndex, setUserRiceIndex] = useState<number>(0);
   const [isWishlisted, setIsWishlisted] = useState<boolean>(false);
   const [wishlistLoading, setWishlistLoading] = useState<boolean>(false);
@@ -389,7 +392,7 @@ const UniversalMeetupDetailScreen: React.FC<UniversalMeetupDetailScreenProps> = 
       if (response.data.success) {
         await fetchMeetupById(meetupId);
         setShowHostModal(false);
-        
+
         const message = action === 'confirm' ? '모임이 확정되었습니다!' : '모임이 취소되었습니다.';
         Alert.alert('성공', message);
       } else {
@@ -398,6 +401,33 @@ const UniversalMeetupDetailScreen: React.FC<UniversalMeetupDetailScreenProps> = 
     } catch (error) {
       console.error('모임 확정/취소 실패:', error);
       Alert.alert('오류', '처리 중 오류가 발생했습니다.');
+    }
+  };
+
+  // 모임 상태 변경 (모집중/모집완료 → 진행중, 진행중 → 종료)
+  const handleStatusChange = async (newStatus: '진행중' | '종료') => {
+    if (!user || !meetupId || statusChangeLoading) return;
+
+    setStatusChangeLoading(true);
+    try {
+      const response = await apiClient.patch(`/meetups/${meetupId}/status`, {
+        status: newStatus
+      });
+
+      if (response.data) {
+        await fetchMeetupById(meetupId);
+        setShowStatusModal(false);
+
+        const message = newStatus === '진행중'
+          ? '모임이 시작되었습니다! 참가자들이 GPS 체크인할 수 있어요.'
+          : '모임이 종료되었습니다! 참가자들이 리뷰를 작성할 수 있어요.';
+        Alert.alert('성공', message);
+      }
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.error || '상태 변경 중 오류가 발생했습니다.';
+      Alert.alert('오류', errorMessage);
+    } finally {
+      setStatusChangeLoading(false);
     }
   };
 
@@ -585,11 +615,24 @@ const UniversalMeetupDetailScreen: React.FC<UniversalMeetupDetailScreenProps> = 
           </View>
         </View>
 
-        <FilterAccordion 
+        <FilterAccordion
           diningPreferences={meetup.diningPreferences}
           promiseDepositRequired={meetup.promiseDepositRequired}
           promiseDepositAmount={meetup.promiseDepositAmount}
         />
+
+        {/* GPS 체크인 섹션 */}
+        {(meetup.status === '진행중') && (participants.some(p => p.id === user?.id) || isHost) && (
+          <CheckInButton
+            meetupId={meetupId}
+            meetupStatus={meetup.status}
+            meetupLocation={meetup.location}
+            meetupLatitude={meetup.latitude}
+            meetupLongitude={meetup.longitude}
+            checkInRadius={meetup.checkInRadius || 300}
+            onCheckInSuccess={() => fetchMeetupById(meetupId)}
+          />
+        )}
 
         {KakaoMapComponent && (
           <KakaoMapComponent 
@@ -646,12 +689,22 @@ const UniversalMeetupDetailScreen: React.FC<UniversalMeetupDetailScreenProps> = 
       </ScrollView>
 
       <View style={styles.fixedBottom}>
-        {isPastMeetup ? (
+        {meetup.status === '종료' && (participants.some(p => p.id === user?.id) || isHost) ? (
+          <View style={styles.bottomButtonContainer}>
+            <TouchableOpacity
+              onPress={() => navigation.navigate('WriteReview', { meetupId, meetupTitle: meetup.title })}
+              style={styles.reviewButton}
+            >
+              <Icon name="star" size={20} color={COLORS.neutral.white} />
+              <Text style={styles.reviewButtonText}>리뷰 작성하기</Text>
+            </TouchableOpacity>
+          </View>
+        ) : isPastMeetup ? (
           <View style={styles.pastMeetupContainer}>
             <Text style={styles.pastMeetupText}>
-              {meetup.status === '완료' || meetup.status === '종료' ? 
+              {meetup.status === '완료' ?
                 '✅ 완료된 모임이에요' :
-                meetup.status === '취소' ? 
+                meetup.status === '취소' ?
                 '❌ 취소된 모임이에요' :
                 '💥 파토된 모임이에요'
               }
@@ -670,11 +723,25 @@ const UniversalMeetupDetailScreen: React.FC<UniversalMeetupDetailScreenProps> = 
                 
                 {isHost && (
                   <TouchableOpacity
-                    onPress={() => setShowHostModal(true)}
-                    style={styles.hostButton}
+                    onPress={() => {
+                      if (meetup.status === '모집중' || meetup.status === '모집완료') {
+                        handleStatusChange('진행중');
+                      } else if (meetup.status === '진행중') {
+                        handleStatusChange('종료');
+                      } else {
+                        setShowHostModal(true);
+                      }
+                    }}
+                    style={[
+                      styles.hostButton,
+                      meetup.status === '진행중' && styles.endButton
+                    ]}
+                    disabled={statusChangeLoading}
                   >
                     <Text style={styles.hostButtonText}>
-                      {meetup.status === 'confirmed' ? '모임취소' : '모임확정'}
+                      {statusChangeLoading ? '처리 중...' :
+                       meetup.status === '모집중' || meetup.status === '모집완료' ? '모임시작' :
+                       meetup.status === '진행중' ? '모임종료' : '모임확정'}
                     </Text>
                   </TouchableOpacity>
                 )}
@@ -1179,6 +1246,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  endButton: {
+    backgroundColor: '#FF6B6B',
+  },
   hostButtonText: {
     fontSize: 14,
     fontWeight: '600',
@@ -1196,6 +1266,21 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: COLORS.neutral.white,
+  },
+  reviewButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFD700',
+    paddingVertical: 15,
+    borderRadius: 12,
+    gap: 8,
+  },
+  reviewButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
   },
   joinButton: {
     backgroundColor: '#495057',

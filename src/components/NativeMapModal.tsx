@@ -32,6 +32,15 @@ const NativeMapModal: React.FC<NativeMapModalProps> = ({
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const mapReadyRef = useRef(false);
   const gpsLocationRef = useRef<{ lat: number; lng: number } | null>(null);
+  const prevVisibleRef = useRef(visible);
+
+  // 디버그: visible 변경 추적
+  useEffect(() => {
+    if (prevVisibleRef.current !== visible) {
+      console.log(`🔍 [NativeMapModal] visible 변경됨: ${prevVisibleRef.current} -> ${visible}`);
+      prevVisibleRef.current = visible;
+    }
+  }, [visible]);
 
   // 타임아웃 클리어
   useEffect(() => {
@@ -141,9 +150,11 @@ const NativeMapModal: React.FC<NativeMapModalProps> = ({
       if (data.type === 'LOCATION_SELECTED') {
         const { address, latitude, longitude, district, neighborhood, radius } = data.data;
         console.log('📍 위치 선택됨:', { address, latitude, longitude, district, neighborhood, radius });
+        console.log('🔍 [NativeMapModal] LOCATION_SELECTED 처리 - onLocationSelect 호출 예정');
         // onLocationSelect 콜백에서 모달 닫기를 처리하므로 여기서는 onClose 호출하지 않음
         onLocationSelect(district || '알 수 없음', neighborhood || '알 수 없음', latitude, longitude, address, radius);
       } else if (data.type === 'CLOSE_MAP') {
+        console.log('🔍 [NativeMapModal] CLOSE_MAP 처리 - onClose 호출 예정');
         onClose();
       } else if (data.type === 'MAP_READY') {
         console.log('✅ 카카오 지도 준비 완료');

@@ -572,6 +572,16 @@
         // React Native에서 GPS 좌표 수신 (iOS WebView GPS 문제 해결용)
         function setLocationFromNative(lat, lng) {
             console.log('📍 React Native에서 좌표 수신:', lat, lng);
+
+            // 한국 범위 체크 (위도: 33~43, 경도: 124~132)
+            // 범위를 벗어나면 서울 시청 좌표로 대체
+            const isInKorea = lat >= 33 && lat <= 43 && lng >= 124 && lng <= 132;
+            if (!isInKorea) {
+                console.log('📍 한국 범위를 벗어남, 서울 시청 좌표로 대체');
+                lat = 37.5665;  // 서울 시청 위도
+                lng = 126.9780; // 서울 시청 경도
+            }
+
             if (!map || !circle) {
                 console.log('📍 지도가 아직 준비되지 않음, 좌표 저장만');
                 currentLocation.lat = lat;

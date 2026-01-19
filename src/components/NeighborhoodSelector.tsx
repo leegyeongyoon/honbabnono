@@ -10,13 +10,13 @@ import {
 import { COLORS, SHADOWS } from '../styles/colors';
 import { Icon } from './Icon';
 import KakaoMapModal from './KakaoMapModal';
-import NativeMapModal from './NativeMapModal';
 
 interface NeighborhoodSelectorProps {
   visible: boolean;
   onClose: () => void;
   onSelect: (district: string, neighborhood: string) => void;
   currentNeighborhood?: { district: string; neighborhood: string } | null;
+  onOpenMapModal?: () => void;  // 부모 컴포넌트에서 지도 모달을 열기 위한 콜백
 }
 
 
@@ -25,23 +25,32 @@ const NeighborhoodSelector: React.FC<NeighborhoodSelectorProps> = ({
   onClose,
   onSelect,
   currentNeighborhood,
+  onOpenMapModal,
 }) => {
-  const [showMapModal, setShowMapModal] = useState(false);
+  // 웹용 로컬 지도 모달 상태 (웹에서만 사용)
+  const [showWebMapModal, setShowWebMapModal] = useState(false);
 
-  // 카카오 지도 모달 열기
-  const handleOpenKakaoMap = () => {
+  // 지도 모달 열기
+  const handleOpenMap = () => {
     console.log('🗺️ [NeighborhoodSelector] 지도 모달 열기 버튼 클릭됨');
     console.log('🗺️ [NeighborhoodSelector] Platform.OS:', Platform.OS);
-    setShowMapModal(true);
-    console.log('🗺️ [NeighborhoodSelector] showMapModal 상태가 true로 설정됨');
+
+    if (Platform.OS === 'web') {
+      // 웹에서는 내부 모달 사용
+      setShowWebMapModal(true);
+    } else {
+      // iOS/Android에서는 부모 컴포넌트에서 NativeMapModal 열도록 콜백 호출
+      if (onOpenMapModal) {
+        console.log('🗺️ [NeighborhoodSelector] 부모 컴포넌트에 지도 모달 열기 요청');
+        onOpenMapModal();
+      }
+    }
   };
 
-  // 카카오 지도에서 위치 선택 처리 (GPS 권한 체크 포함)
-  const handleKakaoMapLocationSelect = (district: string, neighborhood: string, lat: number, lng: number, address: string, radius?: number) => {
-    console.log('🗺️ 카카오 지도에서 위치 선택됨:', { district, neighborhood, lat, lng, address, radius });
-    // 먼저 맵 모달 닫기
-    setShowMapModal(false);
-    // 약간의 지연 후 선택 처리 및 부모 모달 닫기
+  // 웹용 카카오 지도에서 위치 선택 처리
+  const handleWebMapLocationSelect = (district: string, neighborhood: string, lat: number, lng: number, address: string, radius?: number) => {
+    console.log('🗺️ 웹 카카오 지도에서 위치 선택됨:', { district, neighborhood, lat, lng, address, radius });
+    setShowWebMapModal(false);
     setTimeout(() => {
       onSelect(district, neighborhood);
       onClose();
@@ -54,7 +63,7 @@ const NeighborhoodSelector: React.FC<NeighborhoodSelectorProps> = ({
       {/* 카카오 지도로 위치 선택 */}
       <TouchableOpacity
         style={styles.locationButton}
-        onPress={handleOpenKakaoMap}
+        onPress={handleOpenMap}
       >
         <Icon name="map" size={24} color={COLORS.primary.main} />
         <View style={styles.locationButtonText}>
@@ -81,6 +90,7 @@ const NeighborhoodSelector: React.FC<NeighborhoodSelectorProps> = ({
 
 
   return (
+    <>
     <Modal
       visible={visible}
       animationType="slide"
@@ -101,22 +111,16 @@ const NeighborhoodSelector: React.FC<NeighborhoodSelectorProps> = ({
         {renderCurrentLocationTab()}
       </View>
 
-      {/* Platform에 따른 지도 모달 */}
-      {Platform.OS === 'web' ? (
+      {/* Web용 카카오 지도 모달 */}
+      {Platform.OS === 'web' && (
         <KakaoMapModal
-          visible={showMapModal}
-          onClose={() => setShowMapModal(false)}
-          onLocationSelect={handleKakaoMapLocationSelect}
-        />
-      ) : (
-        <NativeMapModal
-          visible={showMapModal}
-          onClose={() => setShowMapModal(false)}
-          onLocationSelect={handleKakaoMapLocationSelect}
-          mode="settings"
+          visible={showWebMapModal}
+          onClose={() => setShowWebMapModal(false)}
+          onLocationSelect={handleWebMapLocationSelect}
         />
       )}
     </Modal>
+    </>
   );
 };
 
