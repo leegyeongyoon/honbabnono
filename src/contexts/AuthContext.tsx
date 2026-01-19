@@ -26,7 +26,8 @@ interface AuthProviderProps {
 const validateTokenWithServer = async (token: string): Promise<boolean> => {
   try {
     const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
-    const response = await fetch(`${apiUrl}/auth/profile`, {
+    // /api/user/me 엔드포인트로 토큰 유효성 검증
+    const response = await fetch(`${apiUrl}/user/me`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`,
