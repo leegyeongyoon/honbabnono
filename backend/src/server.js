@@ -922,7 +922,7 @@ app.get('/api/user/rice-index', authenticateToken, async (req, res) => {
     // 9. 응답 데이터 구성
     const responseData = {
       success: true,
-      riceIndex: calculatedIndex,
+      riceIndex: currentBabalScore,
       level: {
         level: levelInfo.level,
         emoji: levelInfo.riceEmoji,

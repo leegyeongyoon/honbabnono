@@ -308,12 +308,13 @@
     <script>
         let map, geocoder, circle, places;
         let currentRadius = 10; // km
+        let gpsAttempted = false;
         let currentLocation = {
-            lat: 37.5665,
-            lng: 126.9780,
-            district: '중구',
-            neighborhood: '',
-            address: '서울특별시 중구'
+            lat: 37.4979,  // 강남역 기본 위치
+            lng: 127.0276,
+            district: '강남구',
+            neighborhood: '역삼동',
+            address: '서울특별시 강남구 역삼동'
         };
 
         // React Native로 메시지 전송
@@ -376,11 +377,17 @@
                 }
             });
 
-            // 초기 위치 정보 가져오기
-            reverseGeocode(new kakao.maps.LatLng(currentLocation.lat, currentLocation.lng));
-
-            // 현재 위치로 이동
-            getCurrentLocation();
+            // React Native WebView인 경우 React Native에서 GPS 좌표를 전송해줄 것이므로
+            // WebView 자체 GPS는 호출하지 않음 (iOS WebView GPS 문제 해결)
+            if (window.ReactNativeWebView) {
+                console.log('📍 React Native WebView 감지 - GPS 좌표 수신 대기');
+                // 기본 위치로 역지오코딩 먼저 수행 (React Native 좌표가 오면 덮어씀)
+                const latlng = new kakao.maps.LatLng(currentLocation.lat, currentLocation.lng);
+                reverseGeocode(latlng);
+            } else {
+                // 웹 브라우저에서 직접 열린 경우 WebView GPS 사용
+                getCurrentLocation();
+            }
 
             document.getElementById('loading').style.display = 'none';
             sendMessage('MAP_READY', { status: 'ready' });
@@ -527,11 +534,14 @@
             });
         }
 
-        // 현재 위치 가져오기
+        // 현재 위치 가져오기 (WebView 자체 GPS - 대체용)
         function getCurrentLocation() {
+            console.log('📍 GPS 위치 가져오기 시도...');
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(
                     function(pos) {
+                        console.log('📍 GPS 성공:', pos.coords.latitude, pos.coords.longitude);
+                        gpsAttempted = true;
                         const latlng = new kakao.maps.LatLng(pos.coords.latitude, pos.coords.longitude);
                         map.setCenter(latlng);
                         currentLocation.lat = pos.coords.latitude;
@@ -541,11 +551,41 @@
                         sendMessage('GPS_LOCATION', { lat: pos.coords.latitude, lng: pos.coords.longitude });
                     },
                     function(error) {
-                        console.log('위치 가져오기 실패:', error);
+                        console.log('📍 GPS 실패:', error.code, error.message);
+                        gpsAttempted = true;
+                        // 실패해도 기본 위치(강남역)로 역지오코딩 수행
+                        const latlng = new kakao.maps.LatLng(currentLocation.lat, currentLocation.lng);
+                        reverseGeocode(latlng);
+                        sendMessage('GPS_ERROR', { code: error.code, message: error.message });
                     },
-                    { enableHighAccuracy: true, timeout: 10000 }
+                    { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
                 );
+            } else {
+                console.log('📍 Geolocation API 지원 안 함');
+                gpsAttempted = true;
+                // API 지원 안 하면 기본 위치로
+                const latlng = new kakao.maps.LatLng(currentLocation.lat, currentLocation.lng);
+                reverseGeocode(latlng);
             }
+        }
+
+        // React Native에서 GPS 좌표 수신 (iOS WebView GPS 문제 해결용)
+        function setLocationFromNative(lat, lng) {
+            console.log('📍 React Native에서 좌표 수신:', lat, lng);
+            if (!map || !circle) {
+                console.log('📍 지도가 아직 준비되지 않음, 좌표 저장만');
+                currentLocation.lat = lat;
+                currentLocation.lng = lng;
+                return;
+            }
+
+            const latlng = new kakao.maps.LatLng(lat, lng);
+            map.setCenter(latlng);
+            currentLocation.lat = lat;
+            currentLocation.lng = lng;
+            circle.setPosition(latlng);
+            reverseGeocode(latlng);
+            sendMessage('GPS_LOCATION', { lat: lat, lng: lng });
         }
 
         // 위치 선택 완료

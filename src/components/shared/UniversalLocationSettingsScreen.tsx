@@ -7,7 +7,9 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Platform,
+  Alert,
 } from 'react-native';
+import Geolocation from '@react-native-community/geolocation';
 import { COLORS, SHADOWS } from '../../styles/colors';
 import { Icon } from '../Icon';
 import { useUserStore } from '../../store/userStore';
@@ -44,46 +46,186 @@ const UniversalLocationSettingsScreen: React.FC<UniversalLocationSettingsScreenP
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showMapModal, setShowMapModal] = useState(false);
+  const [gpsLoading, setGpsLoading] = useState(false);
 
-  // 저장된 지역 설정 불러오기
+  // GPS로 현재 위치 가져오기
+  const getCurrentPosition = (): Promise<{ lat: number; lng: number }> => {
+    return new Promise((resolve, reject) => {
+      if (Platform.OS === 'web') {
+        // 웹에서는 navigator.geolocation 사용
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+            (position) => {
+              resolve({
+                lat: position.coords.latitude,
+                lng: position.coords.longitude,
+              });
+            },
+            (error) => {
+              console.error('웹 GPS 오류:', error);
+              reject(error);
+            },
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+          );
+        } else {
+          reject(new Error('Geolocation not supported'));
+        }
+      } else {
+        // React Native에서는 Geolocation 사용
+        Geolocation.getCurrentPosition(
+          (position) => {
+            resolve({
+              lat: position.coords.latitude,
+              lng: position.coords.longitude,
+            });
+          },
+          (error) => {
+            console.error('Native GPS 오류:', error);
+            reject(error);
+          },
+          { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        );
+      }
+    });
+  };
+
+  // 카카오 API로 역지오코딩 (좌표 -> 주소)
+  const reverseGeocode = async (lat: number, lng: number): Promise<LocationData | null> => {
+    try {
+      const kakaoApiKey = process.env.REACT_APP_KAKAO_MAP_API_KEY || '5a202bd90ab8dff01348f24cb1c37f3f';
+      const response = await fetch(
+        `https://dapi.kakao.com/v2/local/geo/coord2regioncode.json?x=${lng}&y=${lat}`,
+        {
+          headers: {
+            Authorization: `KakaoAK ${kakaoApiKey}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('역지오코딩 API 호출 실패');
+      }
+
+      const data = await response.json();
+      console.log('📍 역지오코딩 결과:', data);
+
+      if (data.documents && data.documents.length > 0) {
+        const doc = data.documents[0];
+        return {
+          district: doc.region_2depth_name || '강남구', // 구/군
+          neighborhood: doc.region_3depth_name || '역삼동', // 동
+          lat,
+          lng,
+          address: `${doc.region_1depth_name} ${doc.region_2depth_name} ${doc.region_3depth_name}`,
+        };
+      }
+
+      return null;
+    } catch (error) {
+      console.error('역지오코딩 실패:', error);
+      return null;
+    }
+  };
+
+  // 내 주변 위치 가져오기
+  const fetchMyLocation = async () => {
+    try {
+      setGpsLoading(true);
+      console.log('📍 GPS로 현재 위치 가져오기...');
+
+      const coords = await getCurrentPosition();
+      console.log('📍 현재 좌표:', coords);
+
+      const locationData = await reverseGeocode(coords.lat, coords.lng);
+      if (locationData) {
+        setCurrentLocation(locationData);
+        updateNeighborhood(locationData.district, locationData.neighborhood);
+        console.log('📍 현재 위치 설정 완료:', locationData);
+      }
+    } catch (error) {
+      console.error('현재 위치 가져오기 실패:', error);
+      // GPS 실패 시 알림 (선택사항)
+      if (Platform.OS !== 'web') {
+        Alert.alert(
+          '위치 정보',
+          '현재 위치를 가져올 수 없습니다. 위치 권한을 확인해주세요.',
+          [{ text: '확인' }]
+        );
+      }
+    } finally {
+      setGpsLoading(false);
+    }
+  };
+
+  // 저장된 지역 설정 불러오기 + 없으면 GPS로 가져오기
   const fetchLocationSettings = useCallback(async () => {
     try {
       setLoading(true);
       console.log('📍 지역 설정 조회 시작');
 
-      // store에서 현재 설정된 동네 정보 가져오기
-      if (neighborhood) {
-        setCurrentLocation({
-          district: neighborhood.district || '강남구',
-          neighborhood: neighborhood.neighborhood || '역삼동',
-        });
-      } else {
-        // 기본값 설정
-        setCurrentLocation({
-          district: '강남구',
-          neighborhood: '역삼동',
-        });
-      }
+      let hasStoredLocation = false;
 
       // API에서 사용자 위치 설정 가져오기 시도
       try {
         const response = await userApiService.getProfile();
-        if (response?.preferredDistrict || response?.preferredNeighborhood) {
+        if (response?.preferredDistrict && response?.preferredNeighborhood) {
           setCurrentLocation({
-            district: response.preferredDistrict || '강남구',
-            neighborhood: response.preferredNeighborhood || '역삼동',
+            district: response.preferredDistrict,
+            neighborhood: response.preferredNeighborhood,
           });
+          hasStoredLocation = true;
+          console.log('📍 API에서 저장된 위치 사용:', response.preferredDistrict, response.preferredNeighborhood);
         }
       } catch (apiError) {
-        console.log('API에서 위치 정보를 가져오지 못함, store 값 사용');
+        console.log('API에서 위치 정보를 가져오지 못함');
+      }
+
+      // store에서 현재 설정된 동네 정보 가져오기
+      if (!hasStoredLocation && neighborhood?.district && neighborhood?.neighborhood) {
+        setCurrentLocation({
+          district: neighborhood.district,
+          neighborhood: neighborhood.neighborhood,
+        });
+        hasStoredLocation = true;
+        console.log('📍 store에서 저장된 위치 사용:', neighborhood.district, neighborhood.neighborhood);
+      }
+
+      // 저장된 위치가 없으면 GPS로 현재 위치 가져오기
+      if (!hasStoredLocation) {
+        console.log('📍 저장된 위치 없음, GPS로 현재 위치 가져오기...');
+        try {
+          const coords = await getCurrentPosition();
+          const locationData = await reverseGeocode(coords.lat, coords.lng);
+          if (locationData) {
+            setCurrentLocation(locationData);
+            updateNeighborhood(locationData.district, locationData.neighborhood);
+            console.log('📍 GPS 위치로 초기화:', locationData);
+          } else {
+            // GPS도 실패하면 기본값
+            setCurrentLocation({
+              district: '강남구',
+              neighborhood: '역삼동',
+            });
+          }
+        } catch (gpsError) {
+          console.log('GPS 위치 가져오기 실패, 기본값 사용');
+          setCurrentLocation({
+            district: '강남구',
+            neighborhood: '역삼동',
+          });
+        }
       }
 
     } catch (error) {
       console.error('지역 설정 조회 실패:', error);
+      setCurrentLocation({
+        district: '강남구',
+        neighborhood: '역삼동',
+      });
     } finally {
       setLoading(false);
     }
-  }, [neighborhood]);
+  }, [neighborhood, updateNeighborhood]);
 
   useEffect(() => {
     fetchLocationSettings();
@@ -195,6 +337,30 @@ const UniversalLocationSettingsScreen: React.FC<UniversalLocationSettingsScreenP
         {/* 지역 변경 버튼 */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>지역 변경</Text>
+
+          {/* 내 주변 위치로 설정 버튼 */}
+          <TouchableOpacity
+            style={styles.myLocationButton}
+            onPress={fetchMyLocation}
+            disabled={gpsLoading}
+          >
+            <View style={styles.myLocationIconContainer}>
+              {gpsLoading ? (
+                <ActivityIndicator size="small" color={COLORS.primary.main} />
+              ) : (
+                <Icon name="navigation" size={24} color={COLORS.primary.main} />
+              )}
+            </View>
+            <View style={styles.buttonTextContainer}>
+              <Text style={styles.myLocationTitle}>내 주변 위치로 설정</Text>
+              <Text style={styles.myLocationSubtitle}>
+                GPS로 현재 위치를 자동으로 가져옵니다
+              </Text>
+            </View>
+            <Icon name="chevron-right" size={20} color={COLORS.primary.main} />
+          </TouchableOpacity>
+
+          {/* 지도에서 위치 선택 버튼 */}
           <TouchableOpacity style={styles.changeLocationButton} onPress={handleOpenMap}>
             <View style={styles.buttonIconContainer}>
               <Icon name="map" size={24} color={COLORS.neutral.white} />
@@ -202,7 +368,7 @@ const UniversalLocationSettingsScreen: React.FC<UniversalLocationSettingsScreenP
             <View style={styles.buttonTextContainer}>
               <Text style={styles.buttonTitle}>지도에서 위치 선택</Text>
               <Text style={styles.buttonSubtitle}>
-                GPS로 현재 위치를 자동 표시하고 지도에서 세밀하게 조정할 수 있어요
+                지도에서 직접 위치를 검색하고 선택할 수 있어요
               </Text>
             </View>
             <Icon name="chevron-right" size={20} color={COLORS.neutral.white} />
@@ -373,6 +539,38 @@ const styles = StyleSheet.create({
   locationPlaceholder: {
     fontSize: 16,
     color: COLORS.text.tertiary,
+  },
+  myLocationButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.neutral.white,
+    marginHorizontal: 16,
+    marginBottom: 12,
+    padding: 20,
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: COLORS.primary.main,
+    ...SHADOWS.small,
+  },
+  myLocationIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: COLORS.primary.light,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  myLocationTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: COLORS.primary.main,
+    marginBottom: 4,
+  },
+  myLocationSubtitle: {
+    fontSize: 13,
+    color: COLORS.text.secondary,
+    lineHeight: 18,
   },
   changeLocationButton: {
     flexDirection: 'row',

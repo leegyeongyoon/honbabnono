@@ -38,9 +38,9 @@ const KakaoLoginWebView: React.FC<KakaoLoginWebViewProps> = ({ navigation }) => 
   const handleNavigationStateChange = async (navState: any) => {
     const { url } = navState;
     console.log('WebView URL changed:', url);
-    
-    // 로그인 성공 후 리다이렉트 URL 체크
-    if (url.includes('success=true')) {
+
+    // 로그인 성공 후 리다이렉트 URL 체크 (token 파라미터가 있으면 성공)
+    if (url.includes('token=') && url.includes('user=')) {
       // URL에서 토큰과 사용자 정보 추출
       const params = parseUrlParams(url);
       const token = params.token;

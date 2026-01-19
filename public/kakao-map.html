@@ -205,7 +205,15 @@
             });
 
             reverseGeocode(new kakao.maps.LatLng(currentLocation.lat, currentLocation.lng));
-            getCurrentLocation();
+
+            // React Native WebView인 경우 React Native에서 GPS 좌표를 전송해줄 것이므로
+            // WebView 자체 GPS는 호출하지 않음 (iOS WebView GPS 문제 해결)
+            if (!window.ReactNativeWebView) {
+                getCurrentLocation();
+            } else {
+                console.log('📍 React Native WebView 감지 - GPS 좌표 수신 대기');
+            }
+
             document.getElementById('loading').style.display = 'none';
             sendMessage('MAP_READY', { status: 'ready', mapType: 'kakao' });
 
@@ -365,7 +373,7 @@
             document.getElementById('searchInput').value = '';
         }
 
-        // 현재 위치
+        // 현재 위치 (WebView 자체 GPS - 대체용)
         function getCurrentLocation() {
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(function(pos) {
@@ -378,6 +386,25 @@
                     reverseGeocode(latlng);
                 }, null, { enableHighAccuracy: true, timeout: 10000 });
             }
+        }
+
+        // React Native에서 GPS 좌표 수신 (iOS WebView GPS 문제 해결용)
+        function setLocationFromNative(lat, lng) {
+            console.log('📍 React Native에서 좌표 수신:', lat, lng);
+            if (!map || !marker) {
+                console.log('📍 지도가 아직 준비되지 않음, 좌표 저장만');
+                currentLocation.lat = lat;
+                currentLocation.lng = lng;
+                return;
+            }
+
+            const latlng = new kakao.maps.LatLng(lat, lng);
+            map.setCenter(latlng);
+            marker.setPosition(latlng);
+            currentLocation.lat = lat;
+            currentLocation.lng = lng;
+            currentLocation.placeName = '';
+            reverseGeocode(latlng);
         }
 
         // 위치 선택 완료

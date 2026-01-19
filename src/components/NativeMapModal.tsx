@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import WebView from 'react-native-webview';
+import Geolocation from '@react-native-community/geolocation';
 import { COLORS, SHADOWS } from '../styles/colors';
 import { Icon } from './Icon';
 
@@ -30,6 +31,7 @@ const NativeMapModal: React.FC<NativeMapModalProps> = ({
   const webViewRef = useRef<WebView>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const mapReadyRef = useRef(false);
+  const gpsLocationRef = useRef<{ lat: number; lng: number } | null>(null);
 
   // 타임아웃 클리어
   useEffect(() => {
@@ -40,12 +42,33 @@ const NativeMapModal: React.FC<NativeMapModalProps> = ({
     };
   }, []);
 
-  // visible 변경 시 상태 초기화
+  // visible 변경 시 상태 초기화 및 GPS 위치 가져오기
   useEffect(() => {
     if (visible) {
       setIsLoading(true);
       setError(null);
       mapReadyRef.current = false;
+      gpsLocationRef.current = null;
+
+      // React Native에서 GPS 위치 가져오기
+      console.log('📍 [NativeMapModal] React Native GPS 위치 가져오기 시작...');
+      Geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          console.log('📍 [NativeMapModal] React Native GPS 성공:', latitude, longitude);
+          gpsLocationRef.current = { lat: latitude, lng: longitude };
+
+          // 이미 지도가 준비되어 있으면 바로 좌표 전송
+          if (mapReadyRef.current && webViewRef.current) {
+            sendGpsToWebView(latitude, longitude);
+          }
+        },
+        (error) => {
+          console.log('📍 [NativeMapModal] React Native GPS 실패:', error.code, error.message);
+          // GPS 실패해도 WebView 로딩은 계속 진행
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      );
     } else {
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
@@ -53,6 +76,21 @@ const NativeMapModal: React.FC<NativeMapModalProps> = ({
       }
     }
   }, [visible]);
+
+  // GPS 좌표를 WebView에 전송
+  const sendGpsToWebView = (lat: number, lng: number) => {
+    if (webViewRef.current) {
+      const script = `
+        if (typeof setLocationFromNative === 'function') {
+          setLocationFromNative(${lat}, ${lng});
+          console.log('📍 React Native에서 좌표 수신:', ${lat}, ${lng});
+        }
+        true;
+      `;
+      webViewRef.current.injectJavaScript(script);
+      console.log('📍 [NativeMapModal] WebView에 GPS 좌표 전송:', lat, lng);
+    }
+  };
 
   // 서버 URL - visible이 true가 될 때만 새 URL 생성 (무한 루프 방지)
   const mapUrl = useMemo(() => {
@@ -89,6 +127,11 @@ const NativeMapModal: React.FC<NativeMapModalProps> = ({
         }
         setIsLoading(false);
         setError(null);
+
+        // GPS 좌표가 이미 있으면 WebView로 전송
+        if (gpsLocationRef.current) {
+          sendGpsToWebView(gpsLocationRef.current.lat, gpsLocationRef.current.lng);
+        }
       } else if (data.type === 'MAP_LOADING') {
         console.log('🔄 지도 로딩 중:', data.data);
       } else if (data.type === 'MAP_ERROR') {
