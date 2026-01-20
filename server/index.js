@@ -712,6 +712,96 @@ const authenticateAdminNew = async (req, res, next) => {
   }
 };
 
+// 현재 사용자 정보 조회 (토큰 검증용)
+apiRouter.get('/user/me', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId || req.user.id;
+
+    const userResult = await pool.query(`
+      SELECT id, email, name, profile_image, provider, is_verified, created_at, rating
+      FROM users
+      WHERE id = $1
+    `, [userId]);
+
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: '사용자를 찾을 수 없습니다.'
+      });
+    }
+
+    const user = userResult.rows[0];
+
+    res.json({
+      success: true,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        profileImage: user.profile_image,
+        provider: user.provider,
+        isVerified: user.is_verified,
+        rating: user.rating,
+        createdAt: user.created_at
+      }
+    });
+  } catch (error) {
+    console.error('사용자 정보 조회 오류:', error);
+    res.status(500).json({
+      success: false,
+      error: '사용자 정보를 불러올 수 없습니다.'
+    });
+  }
+});
+
+// 사용자 프로필 조회
+apiRouter.get('/auth/profile', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId || req.user.id;
+
+    const userResult = await pool.query(`
+      SELECT id, email, name, profile_image, provider, is_verified, created_at, rating,
+             phone, gender, babal_score, meetups_joined, meetups_hosted
+      FROM users
+      WHERE id = $1
+    `, [userId]);
+
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: '사용자를 찾을 수 없습니다.'
+      });
+    }
+
+    const user = userResult.rows[0];
+
+    res.json({
+      success: true,
+      data: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        profileImage: user.profile_image,
+        provider: user.provider,
+        isVerified: user.is_verified,
+        rating: user.rating,
+        phone: user.phone,
+        gender: user.gender,
+        babalScore: user.babal_score,
+        meetupsJoined: user.meetups_joined,
+        meetupsHosted: user.meetups_hosted,
+        createdAt: user.created_at
+      }
+    });
+  } catch (error) {
+    console.error('프로필 조회 오류:', error);
+    res.status(500).json({
+      success: false,
+      error: '프로필 정보를 불러올 수 없습니다.'
+    });
+  }
+});
+
 // 이미지 업로드 API
 apiRouter.post('/upload/image', authenticateToken, upload.single('image'), async (req, res) => {
   try {
@@ -1752,14 +1842,13 @@ apiRouter.get('/meetups/completed', authenticateToken, async (req, res) => {
         mp.status as participation_status,
         mp.joined_at,
         CASE WHEN r.id IS NOT NULL THEN true ELSE false END as has_reviewed,
-        CASE WHEN a.id IS NOT NULL THEN true ELSE false END as attended
+        COALESCE(mp.attended, false) as attended
       FROM meetups m
-      LEFT JOIN users h ON m.host_id = h.id  
+      LEFT JOIN users h ON m.host_id = h.id
       LEFT JOIN meetup_participants mp ON m.id = mp.meetup_id AND mp.user_id = $1
       LEFT JOIN reviews r ON m.id = r.meetup_id AND r.reviewer_id = $1
-      LEFT JOIN attendances a ON m.id = a.meetup_id AND a.user_id = $1
       WHERE (
-        m.status IN ('종료', '완료', '취소', '파토')
+        m.status IN ('종료', '취소')
         OR (m.date::date + m.time::time + INTERVAL '3 hours') < NOW()
       )
       AND (mp.user_id = $1 OR m.host_id = $1)
@@ -1772,7 +1861,7 @@ apiRouter.get('/meetups/completed', authenticateToken, async (req, res) => {
       FROM meetups m
       LEFT JOIN meetup_participants mp ON m.id = mp.meetup_id AND mp.user_id = $1
       WHERE (
-        m.status IN ('종료', '완료', '취소', '파토')
+        m.status IN ('종료', '취소')
         OR (m.date::date + m.time::time + INTERVAL '3 hours') < NOW()
       )
       AND (mp.user_id = $1 OR m.host_id = $1)
@@ -6917,6 +7006,95 @@ apiRouter.post('/meetups/:meetupId/reviews', authenticateToken, async (req, res)
     });
   } finally {
     client.release();
+  }
+});
+
+// 모임의 리뷰 작성 가능한 참가자 목록 조회
+apiRouter.get('/meetups/:meetupId/reviewable-participants', authenticateToken, async (req, res) => {
+  try {
+    const { meetupId } = req.params;
+    const userId = req.user.userId;
+
+    // 모임 존재 여부 및 종료 여부 확인
+    const meetupResult = await pool.query(`
+      SELECT id, title, status, host_id
+      FROM meetups
+      WHERE id = $1
+    `, [meetupId]);
+
+    if (meetupResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: '모임을 찾을 수 없습니다.'
+      });
+    }
+
+    const meetup = meetupResult.rows[0];
+
+    // GPS 체크인(attended=true)한 참가자 목록 조회 (본인 제외)
+    const participantsResult = await pool.query(`
+      SELECT
+        u.id, u.name, u.profile_image,
+        mp.attended, mp.attended_at,
+        CASE WHEN r.id IS NOT NULL THEN true ELSE false END as already_reviewed
+      FROM meetup_participants mp
+      JOIN users u ON mp.user_id = u.id
+      LEFT JOIN reviews r ON r.meetup_id = $1 AND r.reviewer_id = $2 AND r.reviewee_id = u.id
+      WHERE mp.meetup_id = $1
+      AND mp.status = '참가승인'
+      AND mp.attended = true
+      AND mp.user_id != $2
+    `, [meetupId, userId]);
+
+    // 호스트도 리뷰 대상에 포함 (본인이 호스트가 아닌 경우)
+    let host = null;
+    if (meetup.host_id !== userId) {
+      const hostResult = await pool.query(`
+        SELECT
+          u.id, u.name, u.profile_image,
+          CASE WHEN r.id IS NOT NULL THEN true ELSE false END as already_reviewed
+        FROM users u
+        LEFT JOIN reviews r ON r.meetup_id = $1 AND r.reviewer_id = $2 AND r.reviewee_id = u.id
+        WHERE u.id = $3
+      `, [meetupId, userId, meetup.host_id]);
+
+      if (hostResult.rows.length > 0) {
+        host = {
+          ...hostResult.rows[0],
+          isHost: true
+        };
+      }
+    }
+
+    const participants = participantsResult.rows.map(p => ({
+      id: p.id,
+      name: p.name,
+      profileImage: p.profile_image,
+      attended: p.attended,
+      attendedAt: p.attended_at,
+      alreadyReviewed: p.already_reviewed,
+      isHost: false
+    }));
+
+    // 호스트를 참가자 목록 앞에 추가
+    const allParticipants = host ? [host, ...participants] : participants;
+
+    res.json({
+      success: true,
+      meetup: {
+        id: meetup.id,
+        title: meetup.title,
+        status: meetup.status
+      },
+      participants: allParticipants
+    });
+
+  } catch (error) {
+    console.error('리뷰 가능 참가자 목록 조회 오류:', error);
+    res.status(500).json({
+      success: false,
+      message: '참가자 목록을 불러올 수 없습니다.'
+    });
   }
 });
 
@@ -13642,6 +13820,190 @@ apiRouter.post('/notifications/test', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('테스트 알림 생성 오류:', error);
     res.status(500).json({ error: '테스트 알림 생성에 실패했습니다.' });
+  }
+});
+
+// 알림 설정 조회
+apiRouter.get('/notifications/settings', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+
+    // 사용자의 알림 설정 조회 (preferences JSONB 컬럼에서)
+    const userResult = await pool.query(`
+      SELECT preferences
+      FROM users
+      WHERE id = $1
+    `, [userId]);
+
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: '사용자를 찾을 수 없습니다.'
+      });
+    }
+
+    const preferences = userResult.rows[0].preferences || {};
+    const notificationSettings = preferences.notifications || {
+      meetupReminder: true,
+      chatMessage: true,
+      participationUpdate: true,
+      systemAnnouncement: true,
+      marketing: false
+    };
+
+    res.json({
+      success: true,
+      settings: notificationSettings
+    });
+  } catch (error) {
+    console.error('알림 설정 조회 오류:', error);
+    res.status(500).json({
+      success: false,
+      error: '알림 설정을 불러올 수 없습니다.'
+    });
+  }
+});
+
+// 알림 설정 업데이트
+apiRouter.put('/notifications/settings', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const newSettings = req.body;
+
+    // 기존 preferences 조회
+    const userResult = await pool.query(`
+      SELECT preferences
+      FROM users
+      WHERE id = $1
+    `, [userId]);
+
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: '사용자를 찾을 수 없습니다.'
+      });
+    }
+
+    const currentPreferences = userResult.rows[0].preferences || {};
+    const updatedPreferences = {
+      ...currentPreferences,
+      notifications: {
+        ...currentPreferences.notifications,
+        ...newSettings
+      }
+    };
+
+    // preferences 업데이트
+    await pool.query(`
+      UPDATE users
+      SET preferences = $1, updated_at = NOW()
+      WHERE id = $2
+    `, [JSON.stringify(updatedPreferences), userId]);
+
+    res.json({
+      success: true,
+      message: '알림 설정이 업데이트되었습니다.',
+      settings: updatedPreferences.notifications
+    });
+  } catch (error) {
+    console.error('알림 설정 업데이트 오류:', error);
+    res.status(500).json({
+      success: false,
+      error: '알림 설정 업데이트에 실패했습니다.'
+    });
+  }
+});
+
+// 개인정보 설정 조회
+apiRouter.get('/user/privacy-settings', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+
+    const userResult = await pool.query(`
+      SELECT preferences, direct_chat_setting
+      FROM users
+      WHERE id = $1
+    `, [userId]);
+
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: '사용자를 찾을 수 없습니다.'
+      });
+    }
+
+    const user = userResult.rows[0];
+    const preferences = user.preferences || {};
+    const privacySettings = preferences.privacy || {
+      profileVisibility: 'public',
+      showActivityStatus: true,
+      showMeetupHistory: true
+    };
+
+    res.json({
+      success: true,
+      settings: {
+        ...privacySettings,
+        directChatSetting: user.direct_chat_setting
+      }
+    });
+  } catch (error) {
+    console.error('개인정보 설정 조회 오류:', error);
+    res.status(500).json({
+      success: false,
+      error: '개인정보 설정을 불러올 수 없습니다.'
+    });
+  }
+});
+
+// 개인정보 설정 업데이트
+apiRouter.put('/user/privacy-settings', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { directChatSetting, ...privacySettings } = req.body;
+
+    // 기존 preferences 조회
+    const userResult = await pool.query(`
+      SELECT preferences
+      FROM users
+      WHERE id = $1
+    `, [userId]);
+
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: '사용자를 찾을 수 없습니다.'
+      });
+    }
+
+    const currentPreferences = userResult.rows[0].preferences || {};
+    const updatedPreferences = {
+      ...currentPreferences,
+      privacy: {
+        ...currentPreferences.privacy,
+        ...privacySettings
+      }
+    };
+
+    // preferences와 direct_chat_setting 업데이트
+    await pool.query(`
+      UPDATE users
+      SET preferences = $1,
+          direct_chat_setting = COALESCE($2, direct_chat_setting),
+          updated_at = NOW()
+      WHERE id = $3
+    `, [JSON.stringify(updatedPreferences), directChatSetting, userId]);
+
+    res.json({
+      success: true,
+      message: '개인정보 설정이 업데이트되었습니다.'
+    });
+  } catch (error) {
+    console.error('개인정보 설정 업데이트 오류:', error);
+    res.status(500).json({
+      success: false,
+      error: '개인정보 설정 업데이트에 실패했습니다.'
+    });
   }
 });
 
