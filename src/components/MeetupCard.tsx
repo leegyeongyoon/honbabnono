@@ -64,9 +64,9 @@ interface MeetupCardProps {
 }
 
 const MeetupCard: React.FC<MeetupCardProps> = ({ meetup, onPress }) => {
-  const getCategoryIcon = (categoryName: string) => {
+  const getCategoryEmoji = (categoryName: string) => {
     const category = FOOD_CATEGORIES.find(cat => cat.name === categoryName);
-    return category ? category.icon : 'utensils';
+    return category ? category.emoji : '🍴';
   };
 
   const getCategoryColor = (categoryName: string) => {
@@ -100,11 +100,7 @@ const MeetupCard: React.FC<MeetupCardProps> = ({ meetup, onPress }) => {
         <View style={styles.meetupTags}>
           {/* 카테고리 뱃지 */}
           <View style={[styles.categoryTag, { backgroundColor: getCategoryColor(meetup.category) + '20' }]}>
-            <Icon 
-              name={getCategoryIcon(meetup.category) as any} 
-              size={12} 
-              color={getCategoryColor(meetup.category)} 
-            />
+            <Text style={styles.categoryEmoji}>{getCategoryEmoji(meetup.category)}</Text>
             <Text style={[styles.categoryTagText, { color: getCategoryColor(meetup.category) }]}>
               {meetup.category}
             </Text>
@@ -234,6 +230,9 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
     borderRadius: 10,
     gap: 3,
+  },
+  categoryEmoji: {
+    fontSize: 12,
   },
   categoryTagText: {
     fontSize: 11,

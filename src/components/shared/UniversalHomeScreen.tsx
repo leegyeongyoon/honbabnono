@@ -181,11 +181,6 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
     }, 300);
   };
 
-  const getCategoryIcon = (categoryName: string) => {
-    const category = FOOD_CATEGORIES.find(cat => cat.name === categoryName);
-    return category ? category.icon : 'utensils';
-  };
-
   const getCategoryColor = (categoryName: string) => {
     const category = FOOD_CATEGORIES.find(cat => cat.name === categoryName);
     return category ? category.color : COLORS.primary.main;
@@ -313,17 +308,13 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
         <View style={styles.categorySection}>
           <View style={styles.categoryGrid}>
             {FOOD_CATEGORIES.map((category, index) => (
-              <TouchableOpacity 
-                key={category.id} 
+              <TouchableOpacity
+                key={category.id}
                 style={styles.categoryItem}
                 onPress={() => navigation.navigate('MeetupList', { category: category.name })}
               >
                 <View style={[styles.categoryBox, { backgroundColor: category.bgColor }]}>
-                  <Icon 
-                    name={getCategoryIcon(category.name)} 
-                    size={40} 
-                    color={category.color} 
-                  />
+                  <Text style={styles.categoryEmoji}>{category.emoji}</Text>
                 </View>
                 <Text style={styles.categoryName}>
                   {category.name}
@@ -619,6 +610,9 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     borderWidth: 1,
     borderColor: COLORS.neutral.grey200,
+  },
+  categoryEmoji: {
+    fontSize: 36,
   },
   categoryName: {
     fontSize: 12,

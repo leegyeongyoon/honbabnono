@@ -25,9 +25,9 @@ interface UniversalMeetupDetailScreenProps {
   KakaoMapComponent?: React.ComponentType<any>;
 }
 
-const getCategoryIcon = (categoryName: string) => {
+const getCategoryEmoji = (categoryName: string) => {
   const category = FOOD_CATEGORIES.find(cat => cat.name === categoryName);
-  return category ? category.icon : 'utensils';
+  return category ? category.emoji : '🍴';
 };
 
 const getCategoryColor = (categoryName: string) => {
@@ -528,11 +528,7 @@ const UniversalMeetupDetailScreen: React.FC<UniversalMeetupDetailScreenProps> = 
             <View style={styles.filterBadges}>
               {meetup.category && (
                 <View style={[styles.filterBadge, { backgroundColor: getCategoryColor(meetup.category) + '20' }]}>
-                  <Icon 
-                    name={getCategoryIcon(meetup.category) as any} 
-                    size={14} 
-                    color={getCategoryColor(meetup.category)} 
-                  />
+                  <Text style={styles.categoryEmoji}>{getCategoryEmoji(meetup.category)}</Text>
                   <Text style={[styles.filterBadgeText, { color: getCategoryColor(meetup.category) }]}>
                     {meetup.category}
                   </Text>
@@ -1001,6 +997,9 @@ const styles = StyleSheet.create({
   filterBadgeText: {
     fontSize: 12,
     fontWeight: '600',
+  },
+  categoryEmoji: {
+    fontSize: 14,
   },
   priceBadge: {
     flexDirection: 'row',

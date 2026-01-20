@@ -196,9 +196,9 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
     }, 100);
   };
 
-  const getCategoryIcon = (categoryName: string) => {
+  const getCategoryEmoji = (categoryName: string) => {
     const category = FOOD_CATEGORIES.find(cat => cat.name === categoryName);
-    return category ? category.icon : 'utensils';
+    return category ? category.emoji : '🍴';
   };
 
   const getCategoryColor = (categoryName: string) => {
@@ -334,11 +334,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
                 onPress={() => navigate('/meetups', { state: { category: category.name } })}
               >
                 <View style={[styles.categoryBox, { backgroundColor: category.bgColor }]}>
-                  <Icon 
-                    name={getCategoryIcon(category.name)} 
-                    size={40} 
-                    color={category.color} 
-                  />
+                  <Text style={styles.categoryEmoji}>{category.emoji}</Text>
                 </View>
                 <Text style={styles.categoryName}>
                   {category.name}
@@ -560,6 +556,9 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     borderWidth: 1,
     borderColor: COLORS.neutral.grey200,
+  },
+  categoryEmoji: {
+    fontSize: 36,
   },
   categoryIcon: {
     width: 40,
