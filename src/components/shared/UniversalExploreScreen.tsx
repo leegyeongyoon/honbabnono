@@ -214,11 +214,16 @@ const UniversalExploreScreen: React.FC<UniversalExploreScreenProps> = ({ navigat
           <View style={styles.headerTop}>
             <Text style={styles.headerTitle}>모임 탐색</Text>
             <View style={styles.headerRight}>
-              <NotificationBell navigation={navigation} />
+              <NotificationBell
+                onPress={() => navigation.navigate('Notifications')}
+                color={COLORS.text.white}
+              />
             </View>
           </View>
+        </View>
 
-          {/* Search Bar */}
+        {/* Search Section */}
+        <View style={styles.searchSection}>
           <View style={styles.searchContainer}>
             <View style={styles.searchInputWrapper}>
               <Icon name="search" size={18} color={COLORS.text.tertiary} />
@@ -246,7 +251,7 @@ const UniversalExploreScreen: React.FC<UniversalExploreScreenProps> = ({ navigat
               style={styles.advancedSearchButton}
               onPress={handleSearchPress}
             >
-              <Icon name="sliders" size={18} color={COLORS.text.secondary} />
+              <Icon name="filter" size={18} color={COLORS.text.secondary} />
             </TouchableOpacity>
           </View>
 
@@ -382,35 +387,39 @@ const UniversalExploreScreen: React.FC<UniversalExploreScreenProps> = ({ navigat
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: 'white',
+    backgroundColor: COLORS.primary.main,
   },
   container: {
     flex: 1,
     backgroundColor: COLORS.neutral.background,
   },
   header: {
-    backgroundColor: 'white',
+    backgroundColor: COLORS.primary.main,
     paddingHorizontal: LAYOUT.HEADER_PADDING_HORIZONTAL,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    paddingVertical: LAYOUT.HEADER_PADDING_VERTICAL,
     ...SHADOWS.small,
   },
   headerTop: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: LAYOUT.HEADER_PADDING_VERTICAL,
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: COLORS.text.primary,
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: COLORS.text.white,
   },
   headerRight: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+  },
+  searchSection: {
+    backgroundColor: 'white',
+    paddingHorizontal: LAYOUT.HEADER_PADDING_HORIZONTAL,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
   },
   searchContainer: {
     flexDirection: 'row',
