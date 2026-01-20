@@ -118,12 +118,12 @@ const MeetupMapView: React.FC<MeetupMapViewProps> = ({
 <html>
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=10.0, user-scalable=yes">
   <title>모임 지도</title>
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body { width: 100%; height: 100%; overflow: hidden; }
-    #map { width: 100%; height: 100%; }
+    * { margin: 0; padding: 0; box-sizing: border-box; touch-action: manipulation; }
+    html, body { width: 100%; height: 100%; overflow: hidden; touch-action: manipulation; }
+    #map { width: 100%; height: 100%; touch-action: manipulation; }
     .search-here-btn {
       position: absolute;
       top: 16px;
@@ -142,11 +142,44 @@ const MeetupMapView: React.FC<MeetupMapViewProps> = ({
       display: none;
     }
     .search-here-btn.show { display: block; }
+    .zoom-controls {
+      position: absolute;
+      right: 16px;
+      bottom: 100px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      z-index: 100;
+    }
+    .zoom-btn {
+      width: 40px;
+      height: 40px;
+      background: white;
+      border: none;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+      font-size: 20px;
+      font-weight: bold;
+      color: #333;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .zoom-btn:active {
+      background: #f0f0f0;
+    }
   </style>
 </head>
 <body>
   <div id="map"></div>
   <button id="searchHereBtn" class="search-here-btn" onclick="handleSearchHere()">이 위치로 재검색</button>
+
+  <!-- 줌 컨트롤 버튼 -->
+  <div class="zoom-controls">
+    <button class="zoom-btn" onclick="zoomIn()">+</button>
+    <button class="zoom-btn" onclick="zoomOut()">−</button>
+  </div>
 
   <script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=5a202bd90ab8dff01348f24cb1c37f3f&autoload=false"></script>
   <script>
@@ -156,16 +189,41 @@ const MeetupMapView: React.FC<MeetupMapViewProps> = ({
     let selectedMarkerId = null;
     let mapMoved = false;
 
+    // Zoom functions
+    function zoomIn() {
+      if (map) {
+        const level = map.getLevel();
+        map.setLevel(level - 1);
+      }
+    }
+
+    function zoomOut() {
+      if (map) {
+        const level = map.getLevel();
+        map.setLevel(level + 1);
+      }
+    }
+
     // Initialize map
     kakao.maps.load(function() {
       try {
         const container = document.getElementById('map');
         const options = {
           center: new kakao.maps.LatLng(${center.latitude}, ${center.longitude}),
-          level: 5
+          level: 5,
+          scrollwheel: true,
+          disableDoubleClick: false,
+          disableDoubleClickZoom: false
         };
 
         map = new kakao.maps.Map(container, options);
+
+        // 줌 컨트롤 추가
+        const zoomControl = new kakao.maps.ZoomControl();
+        map.addControl(zoomControl, kakao.maps.ControlPosition.RIGHT);
+
+        // 지도 확대/축소 활성화
+        map.setZoomable(true);
 
         // Map drag event
         kakao.maps.event.addListener(map, 'dragend', function() {
@@ -389,7 +447,11 @@ const MeetupMapView: React.FC<MeetupMapViewProps> = ({
         allowsInlineMediaPlayback={true}
         geolocationEnabled={true}
         bounces={false}
-        scrollEnabled={false}
+        scrollEnabled={true}
+        scalesPageToFit={true}
+        showsHorizontalScrollIndicator={false}
+        showsVerticalScrollIndicator={false}
+        overScrollMode="never"
       />
     </View>
   );
