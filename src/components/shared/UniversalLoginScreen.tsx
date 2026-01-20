@@ -9,7 +9,7 @@ import {
   Platform,
 } from 'react-native';
 import { COLORS, SHADOWS } from '../../styles/colors';
-import apiClient from '../../services/apiClient';
+import apiClient, { API_HOSTS } from '../../services/apiClient';
 
 interface UniversalLoginScreenProps {
   navigation?: any; // For native
@@ -132,9 +132,9 @@ const UniversalLoginScreen: React.FC<UniversalLoginScreenProps> = ({
     setLoading(true);
     try {
       // React Native에서는 실제 IP 사용
-      const apiUrl = Platform.OS === 'web' 
+      const apiUrl = Platform.OS === 'web'
         ? (process.env.REACT_APP_API_URL || 'http://localhost:3001/api')
-        : 'http://172.16.1.74:3001/api';
+        : `http://${API_HOSTS[0]}:3001/api`;
       
       console.log('🚀 [UniversalLoginScreen] API URL:', apiUrl);
       const response = await fetch(`${apiUrl}/auth/test-login`, {

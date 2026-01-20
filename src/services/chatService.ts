@@ -1,8 +1,10 @@
 import io, { Socket } from 'socket.io-client';
+import { API_HOSTS } from './apiClient';
 
 class ChatService {
   private socket: Socket | null = null;
   private isConnected = false;
+  private currentHostIndex = 0;
 
   connect() {
     if (this.socket?.connected) {
@@ -14,18 +16,18 @@ class ChatService {
       if (process.env.REACT_APP_WS_URL) {
         return process.env.REACT_APP_WS_URL;
       }
-      
+
       // Web 환경 체크
       if (typeof window !== 'undefined' && window.location && window.location.hostname) {
-        return window.location.hostname === 'localhost' 
-          ? 'http://localhost:3001' 
+        return window.location.hostname === 'localhost'
+          ? 'http://localhost:3001'
           : window.location.origin;
       }
-      
-      // React Native/SSR fallback - 실제 IP 사용
-      return 'http://172.16.1.74:3001';
+
+      // React Native/SSR fallback - API_HOSTS의 첫 번째 호스트 사용
+      return `http://${API_HOSTS[this.currentHostIndex]}:3001`;
     };
-    
+
     this.socket = io(getSocketUrl(), {
       transports: ['websocket', 'polling'],
       timeout: 20000,

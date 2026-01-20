@@ -5,6 +5,7 @@ import { useUserStore } from '../store/userStore';
 import storage from '../utils/storage';
 import { COLORS } from '../styles/colors';
 import { Icon } from '../components/Icon';
+import { API_HOSTS } from '../services/apiClient';
 
 interface KakaoLoginWebViewProps {
   navigation: any;
@@ -13,9 +14,9 @@ interface KakaoLoginWebViewProps {
 const KakaoLoginWebView: React.FC<KakaoLoginWebViewProps> = ({ navigation }) => {
   const { setUser, setToken } = useUserStore();
   const webViewRef = useRef<WebView>(null);
-  
+
   // 카카오 OAuth URL - React Native에서는 실제 IP 주소 사용
-  const kakaoAuthUrl = `http://172.16.1.74:3001/api/auth/kakao`;
+  const kakaoAuthUrl = `http://${API_HOSTS[0]}:3001/api/auth/kakao`;
   
   // URL 파라미터 파싱 함수 (URLSearchParams 대체)
   const parseUrlParams = (url: string) => {
