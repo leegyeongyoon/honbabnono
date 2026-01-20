@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,8 @@ import {
   ActivityIndicator,
   Platform,
   RefreshControl,
+  TextInput,
+  SafeAreaView,
 } from 'react-native';
 import { COLORS, SHADOWS, LAYOUT } from '../../styles/colors';
 import { Icon } from '../Icon';
@@ -55,6 +57,8 @@ const UniversalExploreScreen: React.FC<UniversalExploreScreenProps> = ({ navigat
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [selectedMeetup, setSelectedMeetup] = useState<Meetup | null>(null);
   const [showSearchButton, setShowSearchButton] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
 
   // Default center (강남역)
   const [center, setCenter] = useState({
@@ -67,6 +71,19 @@ const UniversalExploreScreen: React.FC<UniversalExploreScreenProps> = ({ navigat
     latitude: 37.498095,
     longitude: 127.027610,
   });
+
+  // Filter meetups based on search query
+  const filteredMeetups = useMemo(() => {
+    if (!searchQuery.trim()) return meetups;
+    const query = searchQuery.toLowerCase();
+    return meetups.filter(
+      (m) =>
+        m.title.toLowerCase().includes(query) ||
+        m.location.toLowerCase().includes(query) ||
+        m.category.toLowerCase().includes(query) ||
+        (m.description && m.description.toLowerCase().includes(query))
+    );
+  }, [meetups, searchQuery]);
 
   // Fetch nearby meetups
   const fetchNearbyMeetups = useCallback(async (lat: number, lng: number) => {
@@ -138,10 +155,23 @@ const UniversalExploreScreen: React.FC<UniversalExploreScreenProps> = ({ navigat
     fetchNearbyMeetups(center.latitude, center.longitude);
   }, [center, fetchNearbyMeetups]);
 
-  // Handle search icon press
+  // Handle search icon press - navigate to full search screen
   const handleSearchPress = useCallback(() => {
     navigation.navigate('Search');
   }, [navigation]);
+
+  // Handle search submit
+  const handleSearchSubmit = useCallback(() => {
+    // If search query, switch to list view to show filtered results
+    if (searchQuery.trim()) {
+      setViewMode('list');
+    }
+  }, [searchQuery]);
+
+  // Clear search
+  const handleClearSearch = useCallback(() => {
+    setSearchQuery('');
+  }, []);
 
   // Format distance for list view
   const formatDistance = (distance?: number) => {
@@ -177,155 +207,200 @@ const UniversalExploreScreen: React.FC<UniversalExploreScreenProps> = ({ navigat
   );
 
   return (
-    <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>모임 탐색</Text>
-        <View style={styles.headerRight}>
-          <TouchableOpacity
-            style={styles.headerButton}
-            onPress={handleSearchPress}
-          >
-            <Icon name="search" size={22} color={COLORS.text.primary} />
-          </TouchableOpacity>
-          <NotificationBell navigation={navigation} />
+    <SafeAreaView style={styles.safeArea}>
+      <View style={styles.container}>
+        {/* Header */}
+        <View style={styles.header}>
+          <View style={styles.headerTop}>
+            <Text style={styles.headerTitle}>모임 탐색</Text>
+            <View style={styles.headerRight}>
+              <NotificationBell navigation={navigation} />
+            </View>
+          </View>
+
+          {/* Search Bar */}
+          <View style={styles.searchContainer}>
+            <View style={styles.searchInputWrapper}>
+              <Icon name="search" size={18} color={COLORS.text.tertiary} />
+              <TextInput
+                style={styles.searchInput}
+                placeholder="모임 이름, 장소, 카테고리 검색"
+                placeholderTextColor={COLORS.text.tertiary}
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                onFocus={() => setIsSearchFocused(true)}
+                onBlur={() => setIsSearchFocused(false)}
+                onSubmitEditing={handleSearchSubmit}
+                returnKeyType="search"
+              />
+              {searchQuery.length > 0 && (
+                <TouchableOpacity
+                  style={styles.clearButton}
+                  onPress={handleClearSearch}
+                >
+                  <Icon name="x" size={16} color={COLORS.text.tertiary} />
+                </TouchableOpacity>
+              )}
+            </View>
+            <TouchableOpacity
+              style={styles.advancedSearchButton}
+              onPress={handleSearchPress}
+            >
+              <Icon name="sliders" size={18} color={COLORS.text.secondary} />
+            </TouchableOpacity>
+          </View>
+
+          {/* Search Result Count */}
+          {searchQuery.trim() && (
+            <View style={styles.searchResultInfo}>
+              <Text style={styles.searchResultText}>
+                검색 결과: {filteredMeetups.length}개 모임
+              </Text>
+            </View>
+          )}
+        </View>
+
+        {/* Main Content */}
+        <View style={styles.content}>
+          {viewMode === 'map' ? (
+            <>
+              {/* Map View */}
+              <MeetupMapView
+                meetups={filteredMeetups.map((m) => ({
+                  id: m.id,
+                  title: m.title,
+                  latitude: m.latitude,
+                  longitude: m.longitude,
+                  date: m.date,
+                  time: m.time,
+                  location: m.location,
+                  category: m.category,
+                  currentParticipants: m.currentParticipants,
+                  maxParticipants: m.maxParticipants,
+                }))}
+                center={center}
+                onMarkerClick={handleMarkerClick}
+                onMapMoved={handleMapMoved}
+                onSearchHere={handleSearchHere}
+                selectedMeetupId={selectedMeetup?.id}
+                showSearchButton={showSearchButton}
+              />
+
+              {/* Loading Overlay */}
+              {isLoading && (
+                <View style={styles.loadingOverlay}>
+                  <ActivityIndicator size="large" color={COLORS.primary.main} />
+                </View>
+              )}
+
+              {/* Meetup Popup */}
+              {selectedMeetup && (
+                <MeetupMarkerPopup
+                  meetup={selectedMeetup}
+                  onDetailPress={handleMeetupDetail}
+                  onClose={() => setSelectedMeetup(null)}
+                />
+              )}
+            </>
+          ) : (
+            /* List View */
+            <FlatList
+              data={filteredMeetups}
+              keyExtractor={(item) => item.id}
+              renderItem={renderMeetupItem}
+              contentContainerStyle={[
+                styles.listContainer,
+                filteredMeetups.length === 0 && styles.emptyListContainer,
+              ]}
+              ListEmptyComponent={!isLoading ? renderEmptyList : null}
+              refreshControl={
+                <RefreshControl
+                  refreshing={isRefreshing}
+                  onRefresh={handleRefresh}
+                  colors={[COLORS.primary.main]}
+                  tintColor={COLORS.primary.main}
+                />
+              }
+              showsVerticalScrollIndicator={false}
+            />
+          )}
+        </View>
+
+        {/* View Mode Toggle */}
+        <View style={styles.viewToggleContainer}>
+          <View style={styles.viewToggle}>
+            <TouchableOpacity
+              style={[
+                styles.toggleButton,
+                viewMode === 'map' && styles.toggleButtonActive,
+              ]}
+              onPress={() => setViewMode('map')}
+            >
+              <Icon
+                name="map"
+                size={18}
+                color={viewMode === 'map' ? 'white' : COLORS.text.secondary}
+              />
+              <Text
+                style={[
+                  styles.toggleText,
+                  viewMode === 'map' && styles.toggleTextActive,
+                ]}
+              >
+                지도
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.toggleButton,
+                viewMode === 'list' && styles.toggleButtonActive,
+              ]}
+              onPress={() => setViewMode('list')}
+            >
+              <Icon
+                name="list"
+                size={18}
+                color={viewMode === 'list' ? 'white' : COLORS.text.secondary}
+              />
+              <Text
+                style={[
+                  styles.toggleText,
+                  viewMode === 'list' && styles.toggleTextActive,
+                ]}
+              >
+                리스트
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
-
-      {/* Main Content */}
-      <View style={styles.content}>
-        {viewMode === 'map' ? (
-          <>
-            {/* Map View */}
-            <MeetupMapView
-              meetups={meetups.map((m) => ({
-                id: m.id,
-                title: m.title,
-                latitude: m.latitude,
-                longitude: m.longitude,
-                date: m.date,
-                time: m.time,
-                location: m.location,
-                category: m.category,
-                currentParticipants: m.currentParticipants,
-                maxParticipants: m.maxParticipants,
-              }))}
-              center={center}
-              onMarkerClick={handleMarkerClick}
-              onMapMoved={handleMapMoved}
-              onSearchHere={handleSearchHere}
-              selectedMeetupId={selectedMeetup?.id}
-              showSearchButton={showSearchButton}
-            />
-
-            {/* Loading Overlay */}
-            {isLoading && (
-              <View style={styles.loadingOverlay}>
-                <ActivityIndicator size="large" color={COLORS.primary.main} />
-              </View>
-            )}
-
-            {/* Meetup Popup */}
-            {selectedMeetup && (
-              <MeetupMarkerPopup
-                meetup={selectedMeetup}
-                onDetailPress={handleMeetupDetail}
-                onClose={() => setSelectedMeetup(null)}
-              />
-            )}
-          </>
-        ) : (
-          /* List View */
-          <FlatList
-            data={meetups}
-            keyExtractor={(item) => item.id}
-            renderItem={renderMeetupItem}
-            contentContainerStyle={[
-              styles.listContainer,
-              meetups.length === 0 && styles.emptyListContainer,
-            ]}
-            ListEmptyComponent={!isLoading ? renderEmptyList : null}
-            refreshControl={
-              <RefreshControl
-                refreshing={isRefreshing}
-                onRefresh={handleRefresh}
-                colors={[COLORS.primary.main]}
-                tintColor={COLORS.primary.main}
-              />
-            }
-            showsVerticalScrollIndicator={false}
-          />
-        )}
-      </View>
-
-      {/* View Mode Toggle */}
-      <View style={styles.viewToggleContainer}>
-        <View style={styles.viewToggle}>
-          <TouchableOpacity
-            style={[
-              styles.toggleButton,
-              viewMode === 'map' && styles.toggleButtonActive,
-            ]}
-            onPress={() => setViewMode('map')}
-          >
-            <Icon
-              name="map"
-              size={18}
-              color={viewMode === 'map' ? 'white' : COLORS.text.secondary}
-            />
-            <Text
-              style={[
-                styles.toggleText,
-                viewMode === 'map' && styles.toggleTextActive,
-              ]}
-            >
-              지도
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[
-              styles.toggleButton,
-              viewMode === 'list' && styles.toggleButtonActive,
-            ]}
-            onPress={() => setViewMode('list')}
-          >
-            <Icon
-              name="list"
-              size={18}
-              color={viewMode === 'list' ? 'white' : COLORS.text.secondary}
-            />
-            <Text
-              style={[
-                styles.toggleText,
-                viewMode === 'list' && styles.toggleTextActive,
-              ]}
-            >
-              리스트
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: 'white',
+  },
   container: {
     flex: 1,
     backgroundColor: COLORS.neutral.background,
   },
   header: {
+    backgroundColor: 'white',
+    paddingHorizontal: LAYOUT.HEADER_PADDING_HORIZONTAL,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+    ...SHADOWS.small,
+  },
+  headerTop: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: LAYOUT.HEADER_PADDING_HORIZONTAL,
     paddingVertical: LAYOUT.HEADER_PADDING_VERTICAL,
-    paddingTop: Platform.OS === 'ios' ? 50 : LAYOUT.HEADER_PADDING_VERTICAL,
-    backgroundColor: 'white',
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.neutral.grey100,
-    ...SHADOWS.small,
   },
   headerTitle: {
     fontSize: 20,
@@ -337,8 +412,43 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
   },
-  headerButton: {
-    padding: 8,
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  searchInputWrapper: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f5f5f5',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    gap: 10,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 14,
+    color: COLORS.text.primary,
+    padding: 0,
+  },
+  clearButton: {
+    padding: 4,
+  },
+  advancedSearchButton: {
+    backgroundColor: '#f5f5f5',
+    padding: 12,
+    borderRadius: 12,
+  },
+  searchResultInfo: {
+    marginTop: 8,
+    paddingVertical: 4,
+  },
+  searchResultText: {
+    fontSize: 12,
+    color: COLORS.text.secondary,
+    fontWeight: '500',
   },
   content: {
     flex: 1,
