@@ -14,7 +14,7 @@ import { Icon } from '../Icon';
 import MeetupCard from '../MeetupCard';
 import MeetupMapView from '../MeetupMapView';
 import MeetupMarkerPopup from '../MeetupMarkerPopup';
-import NotificationBell from '../NotificationBell';
+import { NotificationBell } from '../NotificationBell';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
 
