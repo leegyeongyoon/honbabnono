@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
-import { COLORS, SHADOWS } from '../../styles/colors';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, SafeAreaView } from 'react-native';
+import { COLORS, SHADOWS, LAYOUT } from '../../styles/colors';
 import { useUserStore } from '../../store/userStore';
 import { useAuth } from '../../contexts/AuthContext';
 import { Icon } from '../Icon';
@@ -367,19 +367,20 @@ const UniversalMyPageScreen: React.FC<UniversalMyPageScreenProps> = ({
   }
 
   return (
-    <View style={styles.container}>
-      {/* 헤더 */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>마이페이지</Text>
-        <View style={styles.headerButtons}>
-          <TouchableOpacity
-            style={styles.headerButton}
-            onPress={() => navigation.navigate('Settings')}
-          >
-            <Icon name="settings" size={24} color={COLORS.text.primary} />
-          </TouchableOpacity>
+    <SafeAreaView style={styles.safeArea}>
+      <View style={styles.container}>
+        {/* 헤더 */}
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>마이페이지</Text>
+          <View style={styles.headerButtons}>
+            <TouchableOpacity
+              style={styles.headerButton}
+              onPress={() => navigation.navigate('Settings')}
+            >
+              <Icon name="settings" size={24} color={COLORS.text.white} />
+            </TouchableOpacity>
+          </View>
         </View>
-      </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* 사용자 프로필 섹션 */}
@@ -473,11 +474,16 @@ const UniversalMyPageScreen: React.FC<UniversalMyPageScreenProps> = ({
         {/* 하단 여백 */}
         <View style={styles.bottomSpacing} />
       </ScrollView>
-    </View>
+      </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: COLORS.primary.main,
+  },
   container: {
     flex: 1,
     backgroundColor: COLORS.neutral.background,
@@ -494,16 +500,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    paddingTop: 52,
-    backgroundColor: COLORS.neutral.white,
-    ...SHADOWS.small,
+    paddingHorizontal: LAYOUT.HEADER_PADDING_HORIZONTAL,
+    paddingVertical: LAYOUT.HEADER_PADDING_VERTICAL,
+    backgroundColor: COLORS.primary.main,
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: COLORS.text.primary,
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: COLORS.text.white,
   },
   headerButtons: {
     flexDirection: 'row',

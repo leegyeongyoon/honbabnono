@@ -6,8 +6,9 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
+  SafeAreaView,
 } from 'react-native';
-import {COLORS, SHADOWS} from '../../styles/colors';
+import {COLORS, SHADOWS, LAYOUT} from '../../styles/colors';
 import {Icon} from '../Icon';
 import { NotificationBell } from '../NotificationBell';
 import NeighborhoodSelector from '../NeighborhoodSelector';
@@ -231,34 +232,30 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
   };
 
   return (
-    <View style={styles.container}>
-      <ScrollView style={styles.scrollView}>
+    <SafeAreaView style={styles.safeArea}>
+      <View style={styles.container}>
         {/* 상단 헤더 */}
         <View style={styles.header}>
           <TouchableOpacity style={styles.locationButton} onPress={openNeighborhoodSelector}>
             <Text style={styles.locationText}>
               {currentNeighborhood ? `${currentNeighborhood.district} ${currentNeighborhood.neighborhood}` : '신도림역[2호선] 3번출구'}
             </Text>
-            <Icon name="chevron-down" size={14} color={COLORS.text.primary} />
+            <Icon name="chevron-down" size={14} color={COLORS.text.white} />
           </TouchableOpacity>
-          
+
           <View style={styles.headerButtons}>
-            <TouchableOpacity 
-              style={styles.testButton}
-              onPress={handleNotificationTest}
-            >
-              <Text style={styles.testButtonText}>알림테스트</Text>
-            </TouchableOpacity>
-            
             <NotificationBell
               userId={user?.id?.toString()}
               onPress={() => {
                 console.log('🔔 알림 버튼 클릭됨');
                 navigation.navigate('Notifications');
               }}
+              color={COLORS.text.white}
             />
           </View>
         </View>
+
+      <ScrollView style={styles.scrollView}>
 
         {/* 검색 섹션 */}
         <View style={styles.searchSection}>
@@ -469,11 +466,16 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
       {NotificationBanner && (
         <NotificationBanner />
       )}
-    </View>
+      </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: COLORS.primary.main,
+  },
   container: {
     flex: 1,
     backgroundColor: COLORS.neutral.background,
@@ -485,25 +487,22 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: COLORS.neutral.white,
-    ...SHADOWS.small,
+    paddingHorizontal: LAYOUT.HEADER_PADDING_HORIZONTAL,
+    paddingVertical: LAYOUT.HEADER_PADDING_VERTICAL,
+    backgroundColor: COLORS.primary.main,
   },
   locationButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.neutral.background,
+    backgroundColor: 'rgba(255,255,255,0.2)',
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 20,
-    borderWidth: 1,
-    borderColor: COLORS.neutral.grey200,
   },
   locationText: {
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: COLORS.text.white,
     marginRight: 4,
   },
   headerButtons: {
@@ -685,17 +684,6 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     zIndex: 1000,
   },
-  testButton: {
-    padding: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  testButtonText: {
-    color: COLORS.neutral.white,
-    fontSize: 16,
-    fontWeight: '600',
-  }
 });
 
 export default UniversalHomeScreen;

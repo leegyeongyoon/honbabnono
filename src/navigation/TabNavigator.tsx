@@ -68,8 +68,8 @@ const TabNavigator = () => {
               <TabIcon icon={route.icon} color={color} />
             ),
             headerTitle: route.headerTitle,
-            // 탐색 탭은 자체 헤더 사용
-            headerShown: route.name !== 'Search',
+            // Home, Search, MyPage는 자체 헤더 사용
+            headerShown: route.name === 'Chat',
           }}
         />
       ))}
