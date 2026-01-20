@@ -7026,18 +7026,20 @@ apiRouter.get('/user/reviewable-meetups', authenticateToken, async (req, res) =>
   try {
     const userId = req.user.userId;
 
+    // meetup_participants 테이블 사용 (GPS 체크인 완료한 참가자)
     const reviewableMeetupsResult = await pool.query(`
       SELECT DISTINCT
-        m.id, m.title, m.date, m.time, m.location,
-        a.confirmed_at as attendance_confirmed_at,
+        m.id, m.title, m.date, m.time, m.location, m.category,
+        mp.attended_at as attendance_confirmed_at,
+        mp.attended,
         CASE WHEN r.id IS NOT NULL THEN true ELSE false END as has_reviewed,
-        (m.date::date + m.time::time) < NOW() as is_past
+        CASE WHEN (m.date::date + m.time::time) < NOW() THEN true ELSE false END as is_past
       FROM meetups m
-      JOIN attendances a ON m.id = a.meetup_id 
+      JOIN meetup_participants mp ON m.id = mp.meetup_id
       LEFT JOIN reviews r ON m.id = r.meetup_id AND r.reviewer_id = $1
-      WHERE a.user_id = $1 
-      AND a.is_confirmed = true
-      AND (m.date::date + m.time::time) < NOW()
+      WHERE mp.user_id = $1
+      AND mp.status = '참가승인'
+      AND mp.attended = true
       ORDER BY m.date DESC, m.time DESC
     `, [userId]);
 
@@ -7047,8 +7049,10 @@ apiRouter.get('/user/reviewable-meetups', authenticateToken, async (req, res) =>
       date: meetup.date,
       time: meetup.time,
       location: meetup.location,
+      category: meetup.category,
       attendanceConfirmedAt: meetup.attendance_confirmed_at,
       hasReviewed: meetup.has_reviewed,
+      isPast: meetup.is_past,
       canReview: meetup.is_past && !meetup.has_reviewed
     }));
 
@@ -7064,9 +7068,9 @@ apiRouter.get('/user/reviewable-meetups', authenticateToken, async (req, res) =>
 
   } catch (error) {
     console.error('❌ 리뷰 가능 모임 조회 오류:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: '리뷰 가능 모임 조회에 실패했습니다.' 
+    res.status(500).json({
+      success: false,
+      message: '리뷰 가능 모임 조회에 실패했습니다.'
     });
   }
 });
@@ -9493,7 +9497,7 @@ apiRouter.get('/faq', async (req, res) => {
       SELECT id, question, answer, category, created_at
       FROM faq
       WHERE is_active = true
-      ORDER BY display_order ASC, created_at DESC
+      ORDER BY order_index ASC, created_at DESC
     `);
 
     res.json({ success: true, data: result.rows });
