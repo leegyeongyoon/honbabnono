@@ -18,6 +18,9 @@ export interface User {
   neighborhood?: {
     district: string;
     neighborhood: string;
+    latitude?: number;
+    longitude?: number;
+    radius?: number; // 검색 반경 (미터)
   };
 }
 
@@ -34,7 +37,7 @@ interface UserState {
   logout: () => Promise<void>;
   updateBabAlScore: (score: number) => void;
   updateUserStats: (stats: Partial<Pick<User, 'meetupsHosted' | 'meetupsJoined' | 'rating'>>) => void;
-  updateNeighborhood: (district: string, neighborhood: string) => void;
+  updateNeighborhood: (district: string, neighborhood: string, latitude?: number, longitude?: number, radius?: number) => void;
   updateProfile: (profileData: { name?: string; profileImage?: string; bio?: string }) => void;
   
   // API Actions
@@ -153,10 +156,10 @@ export const useUserStore = create<UserState>()(
         };
       }),
 
-      updateNeighborhood: (district, neighborhood) => set((state) => ({
-        user: state.user ? { 
-          ...state.user, 
-          neighborhood: { district, neighborhood } 
+      updateNeighborhood: (district, neighborhood, latitude?, longitude?, radius?) => set((state) => ({
+        user: state.user ? {
+          ...state.user,
+          neighborhood: { district, neighborhood, latitude, longitude, radius }
         } : null
       })),
 

@@ -17,8 +17,15 @@ import MeetupCard from '../MeetupCard';
 import MeetupMapView from '../MeetupMapView';
 import MeetupMarkerPopup from '../MeetupMarkerPopup';
 import { NotificationBell } from '../NotificationBell';
+import { useUserStore } from '../../store/userStore';
+import { API_HOSTS } from '../../services/apiClient';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+const API_URL = Platform.OS === 'web'
+  ? (process.env.REACT_APP_API_URL || 'http://localhost:3001')
+  : `http://${API_HOSTS[0]}:3001`;
+
+// 기본 검색 반경 (5km)
+const DEFAULT_RADIUS = 5000;
 
 interface Meetup {
   id: string;
@@ -50,6 +57,13 @@ interface UniversalExploreScreenProps {
 }
 
 const UniversalExploreScreen: React.FC<UniversalExploreScreenProps> = ({ navigation }) => {
+  // User store에서 neighborhood 설정 가져오기
+  const { user } = useUserStore();
+  const userNeighborhood = user?.neighborhood;
+
+  // 사용자 설정 반경 (없으면 기본값 5km)
+  const userRadius = userNeighborhood?.radius || DEFAULT_RADIUS;
+
   // State
   const [viewMode, setViewMode] = useState<'map' | 'list'>('map');
   const [meetups, setMeetups] = useState<Meetup[]>([]);
@@ -60,16 +74,16 @@ const UniversalExploreScreen: React.FC<UniversalExploreScreenProps> = ({ navigat
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchFocused, setIsSearchFocused] = useState(false);
 
-  // Default center (강남역)
+  // Default center (사용자 설정이 있으면 사용, 없으면 강남역)
   const [center, setCenter] = useState({
-    latitude: 37.498095,
-    longitude: 127.027610,
+    latitude: userNeighborhood?.latitude || 37.498095,
+    longitude: userNeighborhood?.longitude || 127.027610,
   });
 
   // Search center (for "search here" functionality)
   const [searchCenter, setSearchCenter] = useState({
-    latitude: 37.498095,
-    longitude: 127.027610,
+    latitude: userNeighborhood?.latitude || 37.498095,
+    longitude: userNeighborhood?.longitude || 127.027610,
   });
 
   // Filter meetups based on search query
@@ -86,16 +100,20 @@ const UniversalExploreScreen: React.FC<UniversalExploreScreenProps> = ({ navigat
   }, [meetups, searchQuery]);
 
   // Fetch nearby meetups
-  const fetchNearbyMeetups = useCallback(async (lat: number, lng: number) => {
+  const fetchNearbyMeetups = useCallback(async (lat: number, lng: number, radius?: number) => {
     try {
       setIsLoading(true);
+      const searchRadius = radius || userRadius;
+      console.log(`🔍 Fetching nearby meetups with radius: ${searchRadius}m (${searchRadius / 1000}km)`);
+
       const response = await fetch(
-        `${API_URL}/api/meetups/nearby?latitude=${lat}&longitude=${lng}&radius=5000&status=모집중`
+        `${API_URL}/api/meetups/nearby?latitude=${lat}&longitude=${lng}&radius=${searchRadius}&status=모집중`
       );
       const data = await response.json();
 
       if (data.success) {
         setMeetups(data.meetups || []);
+        console.log(`✅ Found ${data.meetups?.length || 0} meetups within ${searchRadius / 1000}km`);
       } else {
         console.error('Failed to fetch nearby meetups:', data.error);
         setMeetups([]);
@@ -107,12 +125,26 @@ const UniversalExploreScreen: React.FC<UniversalExploreScreenProps> = ({ navigat
       setIsLoading(false);
       setIsRefreshing(false);
     }
-  }, []);
+  }, [userRadius]);
 
-  // Initial load
+  // 사용자 neighborhood 설정이 변경되면 center 업데이트
   useEffect(() => {
-    fetchNearbyMeetups(center.latitude, center.longitude);
-  }, []);
+    if (userNeighborhood?.latitude && userNeighborhood?.longitude) {
+      setCenter({
+        latitude: userNeighborhood.latitude,
+        longitude: userNeighborhood.longitude,
+      });
+      setSearchCenter({
+        latitude: userNeighborhood.latitude,
+        longitude: userNeighborhood.longitude,
+      });
+    }
+  }, [userNeighborhood?.latitude, userNeighborhood?.longitude]);
+
+  // Initial load & userRadius 변경시 재검색
+  useEffect(() => {
+    fetchNearbyMeetups(center.latitude, center.longitude, userRadius);
+  }, [userRadius]);
 
   // Handle marker click
   const handleMarkerClick = useCallback((meetupId: string) => {
@@ -135,8 +167,8 @@ const UniversalExploreScreen: React.FC<UniversalExploreScreenProps> = ({ navigat
     setCenter(searchCenter);
     setShowSearchButton(false);
     setSelectedMeetup(null);
-    fetchNearbyMeetups(searchCenter.latitude, searchCenter.longitude);
-  }, [searchCenter, fetchNearbyMeetups]);
+    fetchNearbyMeetups(searchCenter.latitude, searchCenter.longitude, userRadius);
+  }, [searchCenter, fetchNearbyMeetups, userRadius]);
 
   // Handle meetup detail
   const handleMeetupDetail = useCallback((meetupId: string) => {
@@ -152,8 +184,8 @@ const UniversalExploreScreen: React.FC<UniversalExploreScreenProps> = ({ navigat
   // Handle refresh
   const handleRefresh = useCallback(() => {
     setIsRefreshing(true);
-    fetchNearbyMeetups(center.latitude, center.longitude);
-  }, [center, fetchNearbyMeetups]);
+    fetchNearbyMeetups(center.latitude, center.longitude, userRadius);
+  }, [center, fetchNearbyMeetups, userRadius]);
 
   // Handle search icon press - navigate to full search screen
   const handleSearchPress = useCallback(() => {

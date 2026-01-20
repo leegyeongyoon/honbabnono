@@ -169,10 +169,11 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
     fetchHomeMeetups();
   };
 
-  // NativeMapModal에서 위치 선택 처리 (lat, lng, address 포함)
+  // NativeMapModal에서 위치 선택 처리 (lat, lng, address, radius 포함)
   const handleMapLocationSelect = (district: string, neighborhood: string, lat: number, lng: number, address: string, radius?: number) => {
     console.log('🗺️ [UniversalHomeScreen] 지도에서 위치 선택됨:', { district, neighborhood, lat, lng, address, radius });
-    updateNeighborhood(district, neighborhood);
+    // radius를 포함하여 neighborhood 업데이트
+    updateNeighborhood(district, neighborhood, lat, lng, radius);
     setCurrentNeighborhood({ district, neighborhood });
     setShowNeighborhoodMapModal(false);
     fetchHomeMeetups();
