@@ -33,4 +33,9 @@ router.get('/:id/attendance', authenticateToken, meetupController.getAttendance)
 // 모임 상태 변경 (호스트 전용)
 router.patch('/:id/status', authenticateToken, meetupController.updateMeetupStatus);
 
+// 찜(Wishlist) 관련 라우트
+router.get('/:id/wishlist', authenticateToken, meetupController.getWishlistStatus);
+router.post('/:id/wishlist', authenticateToken, meetupController.addToWishlist);
+router.delete('/:id/wishlist', authenticateToken, meetupController.removeFromWishlist);
+
 module.exports = router;

@@ -1,4 +1,4 @@
-const { Meetup, User, MeetupParticipant, ChatRoom, ChatParticipant } = require('../models');
+const { Meetup, User, MeetupParticipant, ChatRoom, ChatParticipant, sequelize } = require('../models');
 const { Op } = require('sequelize');
 
 // 하버사인 공식으로 두 지점 간 거리 계산 (미터 단위)
@@ -291,7 +291,20 @@ const getHomeMeetups = async (req, res) => {
 // 모임 상세 조회
 const getMeetupById = async (req, res) => {
   try {
-    const { id } = req.params;
+    let { id } = req.params;
+
+    // id가 객체인 경우 처리 (잘못된 요청 방어)
+    if (typeof id === 'object') {
+      console.error('❌ getMeetupById: id가 객체로 전달됨:', id);
+      return res.status(400).json({ error: '잘못된 모임 ID 형식입니다' });
+    }
+
+    // UUID 형식 검증
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(id)) {
+      console.error('❌ getMeetupById: 유효하지 않은 UUID:', id);
+      return res.status(400).json({ error: '유효하지 않은 모임 ID입니다' });
+    }
 
     const meetup = await Meetup.findByPk(id, {
       include: [
@@ -767,6 +780,136 @@ const updateMeetupStatus = async (req, res) => {
   }
 };
 
+// ==================== 찜(Wishlist) 관련 함수 ====================
+
+// 찜 상태 확인
+const getWishlistStatus = async (req, res) => {
+  try {
+    const { id: meetupId } = req.params;
+    const userId = req.user.userId;
+
+    const [result] = await sequelize.query(
+      'SELECT id FROM meetup_wishlists WHERE user_id = :userId AND meetup_id = :meetupId',
+      {
+        replacements: { userId, meetupId },
+        type: sequelize.QueryTypes.SELECT
+      }
+    );
+
+    res.json({
+      success: true,
+      data: {
+        isWishlisted: !!result
+      }
+    });
+  } catch (error) {
+    console.error('찜 상태 확인 오류:', error);
+    res.status(500).json({
+      success: false,
+      message: '찜 상태 확인 중 오류가 발생했습니다.'
+    });
+  }
+};
+
+// 찜 추가
+const addToWishlist = async (req, res) => {
+  try {
+    const { id: meetupId } = req.params;
+    const userId = req.user.userId;
+
+    console.log('🤍 찜 추가 요청:', { meetupId, userId });
+
+    // 모임이 존재하는지 확인
+    const meetup = await Meetup.findByPk(meetupId);
+    if (!meetup) {
+      return res.status(404).json({
+        success: false,
+        message: '모임을 찾을 수 없습니다.'
+      });
+    }
+
+    // 이미 찜한 모임인지 확인
+    const [existingWishlist] = await sequelize.query(
+      'SELECT id FROM meetup_wishlists WHERE user_id = :userId AND meetup_id = :meetupId',
+      {
+        replacements: { userId, meetupId },
+        type: sequelize.QueryTypes.SELECT
+      }
+    );
+
+    if (existingWishlist) {
+      return res.status(400).json({
+        success: false,
+        message: '이미 찜한 모임입니다.'
+      });
+    }
+
+    // 찜 추가
+    const [insertResult] = await sequelize.query(
+      'INSERT INTO meetup_wishlists (user_id, meetup_id) VALUES (:userId, :meetupId) RETURNING id, created_at',
+      {
+        replacements: { userId, meetupId },
+        type: sequelize.QueryTypes.INSERT
+      }
+    );
+
+    console.log('✅ 찜 추가 성공');
+
+    res.json({
+      success: true,
+      data: {
+        id: insertResult?.[0]?.id,
+        createdAt: insertResult?.[0]?.created_at
+      },
+      message: '찜 목록에 추가되었습니다.'
+    });
+  } catch (error) {
+    console.error('찜 추가 오류:', error);
+    res.status(500).json({
+      success: false,
+      message: '찜 추가 중 오류가 발생했습니다.'
+    });
+  }
+};
+
+// 찜 제거
+const removeFromWishlist = async (req, res) => {
+  try {
+    const { id: meetupId } = req.params;
+    const userId = req.user.userId;
+
+    console.log('💔 찜 제거 요청:', { meetupId, userId });
+
+    // 찜 제거
+    const [, metadata] = await sequelize.query(
+      'DELETE FROM meetup_wishlists WHERE user_id = :userId AND meetup_id = :meetupId',
+      {
+        replacements: { userId, meetupId }
+      }
+    );
+
+    if (metadata?.rowCount === 0) {
+      return res.status(404).json({
+        success: false,
+        message: '찜한 모임을 찾을 수 없습니다.'
+      });
+    }
+
+    console.log('✅ 찜 제거 성공');
+
+    res.json({
+      success: true,
+      message: '찜 목록에서 제거되었습니다.'
+    });
+  } catch (error) {
+    console.error('찜 제거 오류:', error);
+    res.status(500).json({
+      success: false,
+      message: '찜 제거 중 오류가 발생했습니다.'
+    });
+  }
+};
+
 module.exports = {
   createMeetup,
   getMeetups,
@@ -777,5 +920,8 @@ module.exports = {
   getMyMeetups,
   checkInMeetup,
   getAttendance,
-  updateMeetupStatus
+  updateMeetupStatus,
+  getWishlistStatus,
+  addToWishlist,
+  removeFromWishlist
 };

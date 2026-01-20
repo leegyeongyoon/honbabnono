@@ -12,6 +12,7 @@ const UserNotificationSetting = require('./UserNotificationSetting');
 const Advertisement = require('./Advertisement');
 const Admin = require('./Admin');
 const Review = require('./Review');
+const Wishlist = require('./Wishlist');
 
 // 모델 간 관계 설정
 // User와 Meetup 관계 (호스트)
@@ -196,6 +197,27 @@ User.hasMany(Review, {
 Review.belongsTo(User, {
   foreignKey: 'revieweeId',
   as: 'reviewee'
+});
+
+// Wishlist 관계 설정
+// User와 Wishlist 관계 (일대다)
+User.hasMany(Wishlist, {
+  foreignKey: 'userId',
+  as: 'wishlists'
+});
+Wishlist.belongsTo(User, {
+  foreignKey: 'userId',
+  as: 'user'
+});
+
+// Meetup과 Wishlist 관계 (일대다)
+Meetup.hasMany(Wishlist, {
+  foreignKey: 'meetupId',
+  as: 'wishlists'
+});
+Wishlist.belongsTo(Meetup, {
+  foreignKey: 'meetupId',
+  as: 'meetup'
 });
 
 // 데이터베이스 초기화 함수
