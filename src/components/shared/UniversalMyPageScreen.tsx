@@ -330,80 +330,14 @@ const UniversalMyPageScreen: React.FC<UniversalMyPageScreenProps> = ({
       ]
     },
     {
-      title: '친구 초대',
-      iconName: 'plus',
+      title: '친구 & 초대',
+      iconName: 'users',
       items: [
         {
           id: 'invite-friends',
           title: '친구코드/초대코드',
           subtitle: '친구를 초대하고 포인트 받기',
           onPress: () => handleMenuPress('invite-friends')
-        }
-      ]
-    },
-    {
-      title: '고객 지원',
-      iconName: 'info',
-      items: [
-        {
-          id: 'notices',
-          title: '공지사항',
-          subtitle: '최신 소식과 공지',
-          onPress: () => handleMenuPress('notices')
-        },
-        {
-          id: 'faq',
-          title: '자주 묻는 질문',
-          subtitle: 'FAQ 및 도움말',
-          onPress: () => handleMenuPress('faq')
-        },
-        {
-          id: 'customer-support',
-          title: '고객 센터',
-          subtitle: '문의사항 등록 및 확인',
-          onPress: () => handleMenuPress('customer-support')
-        },
-        {
-          id: 'terms',
-          title: '약관 및 정책',
-          subtitle: '이용약관 및 개인정보처리방침',
-          onPress: () => handleMenuPress('terms')
-        },
-        {
-          id: 'app-info',
-          title: '버전 정보',
-          subtitle: 'v1.0.0',
-          onPress: () => handleMenuPress('app-info')
-        }
-      ]
-    },
-    {
-      title: '설정',
-      iconName: 'settings',
-      items: [
-        {
-          id: 'notification-settings',
-          title: '알림 설정',
-          subtitle: '푸시 알림 설정 관리',
-          onPress: () => handleMenuPress('notification-settings')
-        },
-        {
-          id: 'privacy-settings',
-          title: '개인정보 설정',
-          subtitle: '개인정보 보호 설정',
-          onPress: () => handleMenuPress('privacy-settings')
-        },
-        {
-          id: 'logout',
-          title: '로그아웃',
-          subtitle: '안전하게 로그아웃',
-          onPress: () => handleMenuPress('logout')
-        },
-        {
-          id: 'delete-account',
-          title: '회원 탈퇴',
-          subtitle: '계정을 영구적으로 삭제',
-          onPress: () => handleMenuPress('delete-account')
         }
       ]
     }
@@ -438,8 +372,11 @@ const UniversalMyPageScreen: React.FC<UniversalMyPageScreenProps> = ({
       <View style={styles.header}>
         <Text style={styles.headerTitle}>마이페이지</Text>
         <View style={styles.headerButtons}>
-          <TouchableOpacity style={styles.headerButton}>
-            <Icon name="bell" size={24} color={COLORS.text.primary} />
+          <TouchableOpacity
+            style={styles.headerButton}
+            onPress={() => navigation.navigate('Settings')}
+          >
+            <Icon name="settings" size={24} color={COLORS.text.primary} />
           </TouchableOpacity>
         </View>
       </View>
