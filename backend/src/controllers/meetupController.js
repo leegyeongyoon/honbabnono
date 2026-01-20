@@ -872,6 +872,117 @@ const addToWishlist = async (req, res) => {
   }
 };
 
+// 주변 모임 검색 (GPS 기반)
+const getNearbyMeetups = async (req, res) => {
+  try {
+    const {
+      latitude,
+      longitude,
+      radius = 3000,  // 기본 3km
+      category,
+      status = '모집중',
+      limit = 50
+    } = req.query;
+
+    // 필수 파라미터 확인
+    if (!latitude || !longitude) {
+      return res.status(400).json({
+        success: false,
+        error: '위도(latitude)와 경도(longitude)가 필요합니다'
+      });
+    }
+
+    const centerLat = parseFloat(latitude);
+    const centerLng = parseFloat(longitude);
+    const searchRadius = parseInt(radius);
+
+    // 필터 조건 설정
+    const where = {
+      status,
+      latitude: { [Op.ne]: null },
+      longitude: { [Op.ne]: null }
+    };
+    if (category) where.category = category;
+
+    // 모든 모임 조회 (좌표가 있는 것만)
+    const allMeetups = await Meetup.findAll({
+      where,
+      include: [
+        {
+          model: User,
+          as: 'host',
+          attributes: ['id', 'name', 'profileImage', 'rating']
+        }
+      ],
+      order: [['date', 'ASC'], ['time', 'ASC']]
+    });
+
+    // 거리 계산 및 필터링
+    const nearbyMeetups = allMeetups
+      .map(meetup => {
+        const meetupLat = parseFloat(meetup.latitude);
+        const meetupLng = parseFloat(meetup.longitude);
+
+        // 유효한 좌표인지 확인
+        if (isNaN(meetupLat) || isNaN(meetupLng)) {
+          return null;
+        }
+
+        const distance = calculateDistance(
+          centerLat,
+          centerLng,
+          meetupLat,
+          meetupLng
+        );
+
+        return {
+          id: meetup.id,
+          title: meetup.title,
+          description: meetup.description,
+          category: meetup.category,
+          location: meetup.location,
+          address: meetup.address,
+          latitude: meetupLat,
+          longitude: meetupLng,
+          date: meetup.date,
+          time: meetup.time,
+          maxParticipants: meetup.maxParticipants,
+          currentParticipants: meetup.currentParticipants,
+          priceRange: meetup.priceRange,
+          ageRange: meetup.ageRange,
+          genderPreference: meetup.genderPreference,
+          image: meetup.image,
+          status: meetup.status,
+          hostId: meetup.hostId,
+          hostName: meetup.host?.name,
+          hostProfileImage: meetup.host?.profileImage,
+          hostRating: meetup.host?.rating,
+          distance, // 미터 단위
+          createdAt: meetup.createdAt
+        };
+      })
+      .filter(m => m !== null && m.distance <= searchRadius)
+      .sort((a, b) => a.distance - b.distance)
+      .slice(0, parseInt(limit));
+
+    console.log(`📍 주변 모임 검색: 중심(${centerLat}, ${centerLng}), 반경 ${searchRadius}m, 결과 ${nearbyMeetups.length}개`);
+
+    res.json({
+      success: true,
+      meetups: nearbyMeetups,
+      center: { latitude: centerLat, longitude: centerLng },
+      radius: searchRadius,
+      total: nearbyMeetups.length
+    });
+  } catch (error) {
+    console.error('주변 모임 검색 오류:', error);
+    res.status(500).json({
+      success: false,
+      error: '서버 오류가 발생했습니다'
+    });
+  }
+};
+
 // 찜 제거
 const removeFromWishlist = async (req, res) => {
   try {
@@ -923,5 +1034,6 @@ module.exports = {
   updateMeetupStatus,
   getWishlistStatus,
   addToWishlist,
-  removeFromWishlist
+  removeFromWishlist,
+  getNearbyMeetups
 };

@@ -9,6 +9,9 @@ router.get('/', meetupController.getMeetups);
 // 특정 경로 라우트를 /:id 보다 먼저 정의 (URL 충돌 방지)
 router.get('/home', meetupController.getHomeMeetups);
 
+// 주변 모임 검색 (GPS 기반) - /:id 보다 먼저 정의
+router.get('/nearby', meetupController.getNearbyMeetups);
+
 // 내 모임 목록 조회 (인증 필요) - /:id 보다 먼저 정의
 router.get('/my/list', authenticateToken, meetupController.getMyMeetups);
 

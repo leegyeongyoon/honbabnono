@@ -6,6 +6,7 @@ import {COLORS, SHADOWS} from '../styles/colors';
 import {SimpleIcon} from '../components/SimpleIcon';
 import HomeScreen from '../screens/HomeScreen';
 import SearchScreen from '../screens/SearchScreen';
+import ExploreScreen from '../screens/ExploreScreen';
 import ChatScreen from '../screens/ChatScreen';
 import MyPageScreen from '../screens/MyPageScreen';
 
@@ -16,7 +17,7 @@ const getScreenComponent = (routeName: string) => {
     case 'Home':
       return HomeScreen;
     case 'Search':
-      return SearchScreen;
+      return ExploreScreen; // 탐색 탭에 지도/리스트 뷰 사용
     case 'Chat':
       return ChatScreen;
     case 'MyPage':
@@ -67,6 +68,8 @@ const TabNavigator = () => {
               <TabIcon icon={route.icon} color={color} />
             ),
             headerTitle: route.headerTitle,
+            // 탐색 탭은 자체 헤더 사용
+            headerShown: route.name !== 'Search',
           }}
         />
       ))}
@@ -85,7 +88,7 @@ const TabIcon: React.FC<TabIconProps> = ({icon, color}) => {
       case '🏠':
         return 'home';
       case '🔍':
-        return 'search';
+        return 'compass'; // 탐색 아이콘 (지도 뷰에 더 적합)
       case '💬':
         return 'message-circle';
       case '👤':

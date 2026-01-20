@@ -1894,6 +1894,139 @@ apiRouter.get('/meetups/completed', authenticateToken, async (req, res) => {
 
 // === 모임 일반 엔드포인트들 ===
 
+// 주변 모임 검색 API (GPS 기반) - :id 보다 먼저 정의해야 함
+apiRouter.get('/meetups/nearby', async (req, res) => {
+  try {
+    const {
+      latitude,
+      longitude,
+      radius = 3000,  // 기본 3km
+      category,
+      status = '모집중',
+      limit = 50
+    } = req.query;
+
+    // 필수 파라미터 확인
+    if (!latitude || !longitude) {
+      return res.status(400).json({
+        success: false,
+        error: '위도(latitude)와 경도(longitude)가 필요합니다'
+      });
+    }
+
+    const centerLat = parseFloat(latitude);
+    const centerLng = parseFloat(longitude);
+    const searchRadius = parseInt(radius);
+
+    console.log(`📍 주변 모임 검색 요청: 중심(${centerLat}, ${centerLng}), 반경 ${searchRadius}m`);
+
+    // 쿼리 조건 설정
+    let whereClause = `WHERE m.status = $1 AND m.latitude IS NOT NULL AND m.longitude IS NOT NULL`;
+    const params = [status];
+    let paramIndex = 2;
+
+    if (category) {
+      whereClause += ` AND m.category = $${paramIndex}`;
+      params.push(category);
+      paramIndex++;
+    }
+
+    // 모든 모임 조회 (좌표가 있는 것만)
+    const meetupsResult = await pool.query(`
+      SELECT
+        m.id, m.title, m.description, m.category,
+        m.location, m.address, m.latitude, m.longitude,
+        m.date, m.time,
+        m.max_participants as "maxParticipants",
+        m.current_participants as "currentParticipants",
+        m.price_range as "priceRange",
+        m.age_range as "ageRange",
+        m.gender_preference as "genderPreference",
+        m.image, m.status, m.host_id as "hostId",
+        m.created_at as "createdAt",
+        u.id as "host.id", u.name as "host.name",
+        u.profile_image as "host.profileImage", u.rating as "host.rating"
+      FROM meetups m
+      LEFT JOIN users u ON m.host_id = u.id
+      ${whereClause}
+      ORDER BY m.date ASC, m.time ASC
+    `, params);
+
+    // 하버사인 공식으로 거리 계산
+    const calculateDistance = (lat1, lon1, lat2, lon2) => {
+      const R = 6371000; // 지구 반경 (미터)
+      const φ1 = lat1 * Math.PI / 180;
+      const φ2 = lat2 * Math.PI / 180;
+      const Δφ = (lat2 - lat1) * Math.PI / 180;
+      const Δλ = (lon2 - lon1) * Math.PI / 180;
+
+      const a = Math.sin(Δφ/2) ** 2 + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ/2) ** 2;
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+
+      return Math.round(R * c);
+    };
+
+    // 거리 계산 및 필터링
+    const nearbyMeetups = meetupsResult.rows
+      .map(meetup => {
+        const meetupLat = parseFloat(meetup.latitude);
+        const meetupLng = parseFloat(meetup.longitude);
+
+        if (isNaN(meetupLat) || isNaN(meetupLng)) {
+          return null;
+        }
+
+        const distance = calculateDistance(centerLat, centerLng, meetupLat, meetupLng);
+
+        return {
+          id: meetup.id,
+          title: meetup.title,
+          description: meetup.description,
+          category: meetup.category,
+          location: meetup.location,
+          address: meetup.address,
+          latitude: meetupLat,
+          longitude: meetupLng,
+          date: meetup.date,
+          time: meetup.time,
+          maxParticipants: meetup.maxParticipants,
+          currentParticipants: meetup.currentParticipants,
+          priceRange: meetup.priceRange,
+          ageRange: meetup.ageRange,
+          genderPreference: meetup.genderPreference,
+          image: meetup.image,
+          status: meetup.status,
+          hostId: meetup.hostId,
+          hostName: meetup['host.name'],
+          hostProfileImage: meetup['host.profileImage'],
+          hostRating: meetup['host.rating'],
+          distance,
+          createdAt: meetup.createdAt
+        };
+      })
+      .filter(m => m !== null && m.distance <= searchRadius)
+      .sort((a, b) => a.distance - b.distance)
+      .slice(0, parseInt(limit));
+
+    console.log(`✅ 주변 모임 검색 결과: ${nearbyMeetups.length}개`);
+
+    res.json({
+      success: true,
+      meetups: nearbyMeetups,
+      center: { latitude: centerLat, longitude: centerLng },
+      radius: searchRadius,
+      total: nearbyMeetups.length
+    });
+
+  } catch (error) {
+    console.error('❌ 주변 모임 검색 오류:', error);
+    res.status(500).json({
+      success: false,
+      error: '서버 오류가 발생했습니다'
+    });
+  }
+});
+
 // 모임 상세 조회 API
 apiRouter.get('/meetups/:id', async (req, res) => {
   try {

@@ -27,7 +27,7 @@ export const TAB_ROUTES = [
     name: ROUTES.SEARCH,
     title: '탐색',
     icon: '🔍',
-    headerTitle: '모임 찾기',
+    headerTitle: '모임 탐색',
   },
   {
     name: ROUTES.CHAT,
