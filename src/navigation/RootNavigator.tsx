@@ -65,7 +65,7 @@ export type RootStackParamList = {
   ReviewManagement: undefined;
   UserVerification: undefined;
   AdvertisementDetail: { adId?: string };
-  AISearchResult: { query?: string };
+  AISearchResult: { query?: string; autoSearch?: boolean };
   WriteReview: { meetupId: string; meetupTitle?: string };
   Settings: undefined;
 };

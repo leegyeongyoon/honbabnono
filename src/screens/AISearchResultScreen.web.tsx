@@ -848,7 +848,7 @@ const AISearchResultScreen: React.FC<{ user: any; navigation: any }> = ({ user, 
               conversationalResponse += `   📊 매치 정도: ${matchTypeText[meetup.matchType] || meetup.matchType}\n`;
             }
             if (meetup.aiScore) {
-              conversationalResponse += `   ⭐ 적합도 점수: ${Math.round(meetup.aiScore * 100)}%\n`;
+              conversationalResponse += `   ⭐ 적합도 점수: ${Math.round(meetup.aiScore)}%\n`;
             }
             conversationalResponse += `\n`;
           });
@@ -1892,7 +1892,7 @@ return (
                           color: COLORS.text.secondary,
                           marginLeft: 'auto'
                         }}>
-                          매칭도: {Math.round(meetup.aiScore * 100)}%
+                          매칭도: {Math.round(meetup.aiScore)}%
                         </span>
                       )}
                     </div>

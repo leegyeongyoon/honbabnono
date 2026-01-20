@@ -130,33 +130,50 @@ const UniversalAISearchResultScreen: React.FC<UniversalAISearchResultScreenProps
 
     try {
       console.log('🤖 백엔드 AI 검색 시작:', query);
-      
-      // Call AI search service
-      const result = await aiSearchService.search(query);
-      
-      if (result.success && result.data) {
-        setAiAnalysis(result.data);
-        setAiResponse(result.data.intentSummary || '검색 결과를 분석했습니다.');
-        
-        // Set recommended meetups
-        if (result.data.recommendedMeetups && result.data.recommendedMeetups.length > 0) {
-          setSearchResults(result.data.recommendedMeetups);
+
+      // Call AI search service - returns array of SearchResult
+      const results = await aiSearchService.search(query);
+      console.log('🤖 AI 검색 결과 수신:', results);
+
+      // results는 배열 형태로 반환됨
+      if (results && results.length > 0) {
+        const firstResult = results[0];
+        setAiAnalysis(firstResult);
+
+        // AI 분석 요약 표시
+        if (firstResult.intentSummary) {
+          setAiResponse(firstResult.intentSummary);
+        }
+
+        // 검색 결과가 있는 경우
+        if (!firstResult.isNoMatch && firstResult.recommendedMeetups && firstResult.recommendedMeetups.length > 0) {
+          setSearchResults(firstResult.recommendedMeetups);
+          // intentSummary가 없으면 기본 메시지
+          if (!firstResult.intentSummary) {
+            setAiResponse(`🎉 "${query}"에 대한 ${firstResult.recommendedMeetups.length}개의 모임을 찾았습니다!`);
+          }
         } else {
-          // Fallback search if no recommendations
+          // 검색 결과가 없는 경우
+          if (firstResult.noMatchReason) {
+            setAiResponse(firstResult.noMatchReason);
+          } else if (!firstResult.intentSummary) {
+            setAiResponse('검색 조건에 맞는 모임이 없습니다.');
+          }
+          // Fallback search
           await fallbackSearch(query);
         }
 
         // Set suggestions if available
-        if (result.data.alternatives && result.data.alternatives.suggestions) {
-          setSuggestions(result.data.alternatives.suggestions);
+        if (firstResult.alternatives && firstResult.alternatives.suggestions) {
+          setSuggestions(firstResult.alternatives.suggestions);
         }
 
         // Call callback if provided
         if (onSearchResult) {
-          onSearchResult(result.data);
+          onSearchResult(firstResult);
         }
       } else {
-        throw new Error(result.error || 'AI 검색에 실패했습니다');
+        throw new Error('검색 결과가 없습니다');
       }
     } catch (error) {
       console.error('AI 검색 오류:', error);
@@ -297,6 +314,35 @@ const UniversalAISearchResultScreen: React.FC<UniversalAISearchResultScreenProps
     );
   };
 
+  // Render AI reasons for a meetup
+  const renderAIReasons = (meetup: any) => {
+    if (!meetup.aiReasons || meetup.aiReasons.length === 0) return null;
+
+    return (
+      <View style={styles.aiReasonsContainer}>
+        <View style={styles.aiReasonsHeader}>
+          <Icon name="cpu" size={14} color={COLORS.primary.main} />
+          <Text style={styles.aiReasonsTitle}>AI 추천 이유</Text>
+          {meetup.aiScore && (
+            <View style={styles.aiScoreBadge}>
+              <Text style={styles.aiScoreText}>
+                {meetup.aiScore >= 80 ? '⭐ ' : meetup.aiScore >= 60 ? '👍 ' : ''}
+                매칭 {meetup.aiScore}점
+              </Text>
+            </View>
+          )}
+        </View>
+        <View style={styles.aiReasonsList}>
+          {meetup.aiReasons.slice(0, 3).map((reason: string, idx: number) => (
+            <Text key={idx} style={styles.aiReasonItem}>
+              {reason}
+            </Text>
+          ))}
+        </View>
+      </View>
+    );
+  };
+
   // Render search results
   const renderResults = () => {
     if (searchResults.length === 0 && !isAnalyzing) {
@@ -314,15 +360,20 @@ const UniversalAISearchResultScreen: React.FC<UniversalAISearchResultScreenProps
     return (
       <View style={styles.resultsContainer}>
         <Text style={styles.resultsTitle}>
-          검색 결과 ({searchResults.length}개)
+          🎯 AI 추천 모임 ({searchResults.length}개)
         </Text>
-        
+
         {searchResults.map((meetup, index) => (
-          <MeetupCard
-            key={meetup.id || index}
-            meetup={meetup}
-            onPress={handleMeetupPress}
-          />
+          <View key={meetup.id || index} style={styles.meetupWithReasons}>
+            {/* AI 추천 이유 카드 */}
+            {renderAIReasons(meetup)}
+
+            {/* 모임 카드 */}
+            <MeetupCard
+              meetup={meetup}
+              onPress={handleMeetupPress}
+            />
+          </View>
         ))}
       </View>
     );
@@ -557,6 +608,53 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: COLORS.text.secondary,
     textAlign: 'center',
+  },
+
+  // Meetup with AI reasons wrapper
+  meetupWithReasons: {
+    marginBottom: 16,
+  },
+
+  // AI Reasons styles
+  aiReasonsContainer: {
+    backgroundColor: COLORS.primary.light + '20',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 8,
+    borderLeftWidth: 3,
+    borderLeftColor: COLORS.primary.main,
+  },
+  aiReasonsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  aiReasonsTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: COLORS.primary.main,
+    marginLeft: 6,
+    flex: 1,
+  },
+  aiScoreBadge: {
+    backgroundColor: COLORS.primary.main,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 12,
+  },
+  aiScoreText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: COLORS.neutral.white,
+  },
+  aiReasonsList: {
+    gap: 4,
+  },
+  aiReasonItem: {
+    fontSize: 13,
+    lineHeight: 18,
+    color: COLORS.text.secondary,
+    paddingLeft: 4,
   },
 });
 

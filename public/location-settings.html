@@ -598,6 +598,21 @@
             sendMessage('GPS_LOCATION', { lat: lat, lng: lng });
         }
 
+        // React Native에서 초기 반경 설정 (저장된 반경 복원용)
+        function setInitialRadiusFromNative(radiusKm) {
+            console.log('📍 React Native에서 초기 반경 수신:', radiusKm, 'km');
+
+            // 유효한 반경 값인지 확인 (3, 5, 10, 30 중 하나)
+            const validRadii = [3, 5, 10, 30];
+            if (!validRadii.includes(radiusKm)) {
+                console.log('📍 유효하지 않은 반경, 기본값 10km 사용');
+                radiusKm = 10;
+            }
+
+            // setRadius 함수를 호출하여 반경 설정 (UI 및 지도 업데이트 포함)
+            setRadius(radiusKm);
+        }
+
         // 위치 선택 완료
         function selectLocation() {
             // 데이터 유효성 검사

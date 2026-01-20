@@ -1,3 +1,5 @@
+import { getApiBaseUrl } from './apiClient';
+
 interface SearchResult {
   isNoMatch?: boolean;
   userContext?: string;
@@ -7,7 +9,9 @@ interface SearchResult {
 }
 
 class AISearchService {
-  private apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
+  private getApiUrl(): string {
+    return getApiBaseUrl();
+  }
 
   // 프론트엔드 카테고리를 데이터베이스 enum 값으로 매핑
   mapCategoryToDbEnum(category: string): string | null {
@@ -41,9 +45,10 @@ class AISearchService {
    */
   async searchWithAI(query: string): Promise<SearchResult[]> {
     try {
-      console.log('🤖 백엔드 AI 검색 요청:', query);
-      
-      const response = await fetch(`${this.apiUrl}/search/ai`, {
+      const apiUrl = this.getApiUrl();
+      console.log('🤖 백엔드 AI 검색 요청:', query, 'API URL:', apiUrl);
+
+      const response = await fetch(`${apiUrl}/search/ai`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -74,6 +79,13 @@ class AISearchService {
         wantedCategory: ''
       }];
     }
+  }
+
+  /**
+   * AI 검색 (search 메서드 별칭)
+   */
+  async search(query: string): Promise<SearchResult[]> {
+    return this.searchWithAI(query);
   }
 
   /**

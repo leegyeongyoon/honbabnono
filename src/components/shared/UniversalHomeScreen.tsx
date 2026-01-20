@@ -78,7 +78,7 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
   MapTestModal,
   NotificationBanner,
 }) => {
-  const { updateNeighborhood } = useUserStore();
+  const { updateNeighborhood, user: storeUser } = useUserStore();
   const { meetups, fetchHomeMeetups } = useMeetupStore();
   const { searchMeetups, meetups: searchResults, loading: searchLoading } = useMeetups();
   
@@ -137,27 +137,18 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
 
   const handleSearch = async () => {
     if (searchQuery.trim()) {
-      try {
-        await searchMeetups({ query: searchQuery, limit: 10 });
-        setShowSearchSuggestions(false);
-      } catch (error) {
-        console.error('검색 실패:', error);
-        showError('검색에 실패했습니다.');
-      }
+      console.log('🔍 검색 화면으로 이동:', searchQuery);
+      setShowSearchSuggestions(false);
+      // AISearchResultScreen으로 이동하여 검색 실행
+      navigation.navigate('AISearchResult', { query: searchQuery, autoSearch: true });
     }
   };
 
   const handleSuggestionPress = async (suggestion: string) => {
     setSearchQuery(suggestion);
     setShowSearchSuggestions(false);
-    
-    try {
-      const results = await aiSearchService.search(suggestion);
-      navigation.navigate('AISearchResult', { query: suggestion, results });
-    } catch (error) {
-      console.error('AI 검색 실패:', error);
-      showError('AI 검색에 실패했습니다.');
-    }
+    console.log('🔍 제안 검색 화면으로 이동:', suggestion);
+    navigation.navigate('AISearchResult', { query: suggestion, autoSearch: true });
   };
 
   const handleLocationSelect = (district: string, neighborhood: string) => {
@@ -172,8 +163,9 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
   // NativeMapModal에서 위치 선택 처리 (lat, lng, address, radius 포함)
   const handleMapLocationSelect = (district: string, neighborhood: string, lat: number, lng: number, address: string, radius?: number) => {
     console.log('🗺️ [UniversalHomeScreen] 지도에서 위치 선택됨:', { district, neighborhood, lat, lng, address, radius });
-    // radius를 포함하여 neighborhood 업데이트
-    updateNeighborhood(district, neighborhood, lat, lng, radius);
+    // radius는 km 단위로 전달되므로 미터 단위로 변환하여 저장 (API는 미터 단위를 사용)
+    const radiusInMeters = radius ? radius * 1000 : undefined;
+    updateNeighborhood(district, neighborhood, lat, lng, radiusInMeters);
     setCurrentNeighborhood({ district, neighborhood });
     setShowNeighborhoodMapModal(false);
     fetchHomeMeetups();
@@ -426,6 +418,7 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
         onClose={() => setShowNeighborhoodMapModal(false)}
         onLocationSelect={handleMapLocationSelect}
         mode="settings"
+        initialRadius={storeUser?.neighborhood?.radius ? Math.round(storeUser.neighborhood.radius / 1000) : undefined}
       />
 
       {CreateMeetupModal && (

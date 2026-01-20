@@ -1020,6 +1020,16 @@ app.get('/health', (req, res) => {
   });
 });
 
+// API 헬스체크 (React Native에서 API 호스트 자동 감지용)
+app.get('/api/health', (req, res) => {
+  res.json({
+    status: 'OK',
+    message: '혼밥시러 API 서버가 정상 동작 중입니다',
+    timestamp: new Date().toISOString(),
+    version: '1.0.0'
+  });
+});
+
 // =====================================
 // 💬 식사 성향 필터 API
 // =====================================
@@ -1328,6 +1338,468 @@ app.get('/api/user/stats', authenticateToken, async (req, res) => {
     res.status(500).json({ 
       success: false, 
       error: '서버 오류가 발생했습니다.' 
+    });
+  }
+});
+
+// =====================================
+// 🤖 AI 검색 API
+// =====================================
+
+// AI 기반 모임 검색
+app.post('/api/search/ai', async (req, res) => {
+  try {
+    const { query } = req.body;
+
+    if (!query || query.trim().length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: '검색어를 입력해주세요'
+      });
+    }
+
+    console.log('🤖 AI 검색 요청:', query);
+    const queryLower = query.toLowerCase();
+
+    // ========== 1. 의도 분석 ==========
+    // 카테고리 매핑 (더 상세하게)
+    const categoryKeywords = {
+      '한식': ['한식', '한국', '밥', '찌개', '국', '김치', '비빔밥', '불고기', '삼겹살', '고기', '구이', '국밥', '백반', '정식', '갈비', '냉면', '삼계탕'],
+      '일식': ['일식', '일본', '초밥', '라멘', '우동', '돈카츠', '사시미', '회', '오마카세', '스시', '이자카야', '규동', '덮밥'],
+      '중식': ['중식', '중국', '짜장', '짬뽕', '탕수육', '마라', '훠궈', '양꼬치', '딤섬', '만두'],
+      '양식': ['양식', '파스타', '피자', '스테이크', '햄버거', '브런치', '샐러드', '이탈리안', '프렌치', '버거'],
+      '카페': ['카페', '커피', '디저트', '케이크', '빵', '베이커리', '브런치', '차', '음료', '티', '마카롱'],
+      '술집': ['술', '맥주', '소주', '막걸리', '와인', '포차', '호프', '펍', '바', '이자카야', '칵테일', '위스키', '안주']
+    };
+
+    // 시간대 키워드
+    const timeKeywords = {
+      morning: ['아침', '브런치', '모닝', '오전'],
+      lunch: ['점심', '런치', '낮'],
+      dinner: ['저녁', '디너', '퇴근'],
+      late_night: ['야식', '밤', '심야', '새벽']
+    };
+
+    // 지역 키워드
+    const locationKeywords = ['강남', '홍대', '신촌', '이태원', '명동', '종로', '강북', '영등포', '신림', '건대', '성수', '압구정', '청담', '역삼', '삼성', '잠실', '송파', '마포', '용산', '서초', '주변', '근처', '동네'];
+
+    // 가격 키워드
+    const priceKeywords = {
+      cheap: ['저렴', '싼', '가성비', '1만원', '만원이하', '저가'],
+      moderate: ['적당', '보통', '2만원', '3만원'],
+      expensive: ['비싼', '고급', '럭셔리', '프리미엄', '오마카세', '파인다이닝']
+    };
+
+    // 분위기/목적 키워드
+    const moodKeywords = {
+      casual: ['편한', '캐주얼', '가볍게', '간단히'],
+      social: ['친목', '모임', '함께', '같이', '친구'],
+      date: ['데이트', '분위기', '로맨틱'],
+      solo: ['혼자', '혼밥', '솔로']
+    };
+
+    // ========== 2. 키워드 추출 ==========
+    let detectedCategory = null;
+    let detectedCategoryKeyword = null;
+    for (const [category, keywords] of Object.entries(categoryKeywords)) {
+      for (const keyword of keywords) {
+        if (queryLower.includes(keyword.toLowerCase())) {
+          detectedCategory = category;
+          detectedCategoryKeyword = keyword;
+          break;
+        }
+      }
+      if (detectedCategory) break;
+    }
+
+    let detectedTime = null;
+    let detectedTimeKeyword = null;
+    for (const [time, keywords] of Object.entries(timeKeywords)) {
+      for (const keyword of keywords) {
+        if (queryLower.includes(keyword)) {
+          detectedTime = time;
+          detectedTimeKeyword = keyword;
+          break;
+        }
+      }
+      if (detectedTime) break;
+    }
+
+    let detectedLocation = null;
+    for (const loc of locationKeywords) {
+      if (queryLower.includes(loc)) {
+        detectedLocation = loc;
+        break;
+      }
+    }
+
+    let detectedPrice = null;
+    for (const [price, keywords] of Object.entries(priceKeywords)) {
+      for (const keyword of keywords) {
+        if (queryLower.includes(keyword)) {
+          detectedPrice = price;
+          break;
+        }
+      }
+      if (detectedPrice) break;
+    }
+
+    let detectedMood = null;
+    for (const [mood, keywords] of Object.entries(moodKeywords)) {
+      for (const keyword of keywords) {
+        if (queryLower.includes(keyword)) {
+          detectedMood = mood;
+          break;
+        }
+      }
+      if (detectedMood) break;
+    }
+
+    // ========== 3. AI 분석 텍스트 생성 ==========
+    const analysisPoints = [];
+
+    if (detectedCategory) {
+      analysisPoints.push(`🍽️ "${detectedCategoryKeyword}" 키워드를 통해 **${detectedCategory}** 카테고리 모임을 찾고 계시네요.`);
+    }
+
+    if (detectedTime) {
+      const timeDescriptions = {
+        morning: '아침/브런치 시간대',
+        lunch: '점심 시간대',
+        dinner: '저녁 시간대',
+        late_night: '야식/심야 시간대'
+      };
+      analysisPoints.push(`⏰ ${timeDescriptions[detectedTime]}에 함께할 모임을 원하시는군요.`);
+    }
+
+    if (detectedLocation) {
+      analysisPoints.push(`📍 "${detectedLocation}" 지역 근처의 모임을 검색합니다.`);
+    }
+
+    if (detectedPrice) {
+      const priceDescriptions = {
+        cheap: '가성비 좋은',
+        moderate: '적당한 가격대의',
+        expensive: '고급스러운'
+      };
+      analysisPoints.push(`💰 ${priceDescriptions[detectedPrice]} 모임을 선호하시네요.`);
+    }
+
+    if (detectedMood) {
+      const moodDescriptions = {
+        casual: '편안하고 캐주얼한',
+        social: '친목을 다질 수 있는',
+        date: '분위기 좋은',
+        solo: '혼밥러를 위한'
+      };
+      analysisPoints.push(`✨ ${moodDescriptions[detectedMood]} 분위기의 모임을 찾아드릴게요.`);
+    }
+
+    // 분석 결과 요약
+    let intentSummary = '';
+    if (analysisPoints.length > 0) {
+      intentSummary = `🤖 **AI 분석 결과**\n\n${analysisPoints.join('\n\n')}\n\n아래에서 추천 모임을 확인해보세요!`;
+    } else {
+      intentSummary = `🤖 **"${query}"** 키워드로 모임을 검색합니다.\n\n다양한 모임 중에서 관심 있는 모임을 찾아보세요!`;
+    }
+
+    // ========== 4. DB 검색 ==========
+    let whereClause = "status = '모집중'";
+    const replacements = {};
+
+    if (detectedCategory) {
+      whereClause += " AND category = :category";
+      replacements.category = detectedCategory;
+    }
+
+    // 키워드 검색 (제목, 설명, 위치에서)
+    const searchKeywords = query.split(/\s+/).filter(k => k.length > 1);
+    if (searchKeywords.length > 0 && !detectedCategory) {
+      const keywordConditions = searchKeywords.map((kw, idx) => {
+        replacements[`kw${idx}`] = `%${kw}%`;
+        return `(title ILIKE :kw${idx} OR description ILIKE :kw${idx} OR location ILIKE :kw${idx})`;
+      });
+      whereClause += ` AND (${keywordConditions.join(' OR ')})`;
+    }
+
+    // 지역 검색
+    if (detectedLocation && detectedLocation !== '주변' && detectedLocation !== '근처' && detectedLocation !== '동네') {
+      whereClause += ` AND (location ILIKE :location OR address ILIKE :location)`;
+      replacements.location = `%${detectedLocation}%`;
+    }
+
+    console.log('🔍 검색 조건:', { whereClause, detectedCategory, detectedTime, detectedLocation });
+
+    // 모임 검색
+    const meetups = await sequelize.query(`
+      SELECT
+        m.id, m.title, m.description, m.location, m.address,
+        m.date, m.time, m.category, m.max_participants, m.current_participants,
+        m.price_range, m.image, m.status,
+        u.name as host_name, u.profile_image as host_profile_image
+      FROM meetups m
+      LEFT JOIN users u ON m.host_id = u.id
+      WHERE ${whereClause}
+      ORDER BY m.date ASC, m.time ASC
+      LIMIT 10
+    `, {
+      replacements,
+      type: sequelize.QueryTypes.SELECT
+    });
+
+    console.log('✅ AI 검색 결과:', meetups.length, '개');
+
+    // ========== 5. 대안 제안 생성 ==========
+    const alternatives = {
+      reason: meetups.length === 0 ? '검색 조건에 맞는 모임이 없습니다.' : null,
+      suggestions: []
+    };
+
+    if (meetups.length === 0) {
+      if (detectedCategory) {
+        alternatives.suggestions.push(`"${detectedCategory}" 카테고리 모임 전체 보기`);
+      }
+      alternatives.suggestions.push('새로운 모임 만들기');
+      alternatives.suggestions.push('다른 지역에서 검색해보기');
+      alternatives.suggestions.push('검색 키워드 변경해보기');
+    } else if (meetups.length < 3) {
+      alternatives.suggestions.push('더 많은 모임 보기');
+      if (detectedCategory) {
+        alternatives.suggestions.push(`다른 ${detectedCategory} 모임 둘러보기`);
+      }
+    }
+
+    // ========== 6. 각 모임별 추천 이유 및 점수 생성 ==========
+    const generateMeetupReasons = (meetup) => {
+      const reasons = [];
+
+      // 매칭 항목별 점수 (총 100점 만점 구성)
+      // - 카테고리: 30점 (핵심 조건)
+      // - 키워드: 20점
+      // - 지역: 20점
+      // - 시간대: 15점
+      // - 가격: 10점
+      // - 분위기: 5점
+      // + 보너스 최대 10점
+
+      let score = 0;
+      let matchedCriteria = 0;
+      let totalCriteria = 0;
+
+      const titleLower = (meetup.title || '').toLowerCase();
+      const descLower = (meetup.description || '').toLowerCase();
+      const locationLower = (meetup.location || '').toLowerCase();
+      const categoryLower = (meetup.category || '').toLowerCase();
+
+      // 카테고리 매칭 (30점)
+      if (detectedCategory) {
+        totalCriteria++;
+        if (categoryLower.includes(detectedCategory.toLowerCase())) {
+          reasons.push(`🍽️ "${detectedCategory}" 카테고리와 정확히 일치해요`);
+          score += 30;
+          matchedCriteria++;
+        }
+      }
+
+      // 키워드 매칭 (20점)
+      if (detectedCategoryKeyword) {
+        totalCriteria++;
+        if (titleLower.includes(detectedCategoryKeyword.toLowerCase())) {
+          reasons.push(`✨ 제목에 "${detectedCategoryKeyword}" 키워드가 포함되어 있어요`);
+          score += 20;
+          matchedCriteria++;
+        } else if (descLower.includes(detectedCategoryKeyword.toLowerCase())) {
+          reasons.push(`📝 설명에서 "${detectedCategoryKeyword}" 관련 내용을 발견했어요`);
+          score += 15;
+          matchedCriteria++;
+        }
+      }
+
+      // 지역 매칭 (20점)
+      if (detectedLocation) {
+        totalCriteria++;
+        if (locationLower.includes(detectedLocation.toLowerCase())) {
+          reasons.push(`📍 원하시는 "${detectedLocation}" 지역 모임이에요`);
+          score += 20;
+          matchedCriteria++;
+        }
+      }
+
+      // 시간대 매칭 (15점)
+      if (detectedTime && meetup.time) {
+        totalCriteria++;
+        const hour = parseInt(meetup.time.split(':')[0]);
+        let timeMatched = false;
+        if (detectedTime === 'morning' && hour >= 6 && hour < 11) {
+          reasons.push(`☀️ 아침 시간대에 딱 맞는 모임이에요`);
+          timeMatched = true;
+        } else if (detectedTime === 'lunch' && hour >= 11 && hour < 14) {
+          reasons.push(`🌤️ 점심 시간대에 완벽한 모임이에요`);
+          timeMatched = true;
+        } else if (detectedTime === 'dinner' && hour >= 17 && hour < 21) {
+          reasons.push(`🌙 저녁 시간대에 어울리는 모임이에요`);
+          timeMatched = true;
+        } else if (detectedTime === 'late_night' && (hour >= 21 || hour < 2)) {
+          reasons.push(`🌃 야식/심야 시간대 모임이에요`);
+          timeMatched = true;
+        }
+        if (timeMatched) {
+          score += 15;
+          matchedCriteria++;
+        }
+      }
+
+      // 가격 매칭 (10점)
+      if (detectedPrice && meetup.price_range) {
+        totalCriteria++;
+        const priceText = meetup.price_range.toLowerCase();
+        let priceMatched = false;
+        if (detectedPrice === 'cheap' && (priceText.includes('1만') || priceText.includes('무료') || priceText.includes('이하'))) {
+          reasons.push(`💰 가성비 좋은 가격대예요`);
+          priceMatched = true;
+        } else if (detectedPrice === 'moderate' && (priceText.includes('2만') || priceText.includes('3만'))) {
+          reasons.push(`💵 적당한 가격대의 모임이에요`);
+          priceMatched = true;
+        } else if (detectedPrice === 'expensive' && (priceText.includes('5만') || priceText.includes('10만'))) {
+          reasons.push(`💎 프리미엄 가격대의 고급 모임이에요`);
+          priceMatched = true;
+        }
+        if (priceMatched) {
+          score += 10;
+          matchedCriteria++;
+        }
+      }
+
+      // 분위기 매칭 (5점)
+      if (detectedMood) {
+        totalCriteria++;
+        const moodReasons = {
+          casual: '👋 편안하고 부담없는 분위기의 모임이에요',
+          social: '🤝 새로운 친구를 사귈 수 있는 친목 모임이에요',
+          date: '💕 분위기 있는 장소에서 진행되는 모임이에요',
+          solo: '🧘 혼밥러도 편하게 참여할 수 있어요'
+        };
+        if (moodReasons[detectedMood]) {
+          reasons.push(moodReasons[detectedMood]);
+          score += 5;
+          matchedCriteria++;
+        }
+      }
+
+      // 조건이 없는 경우 기본 점수 부여
+      if (totalCriteria === 0) {
+        score = 70; // 기본 검색 시 기본 점수
+        reasons.push(`🎯 검색 조건과 관련된 모임이에요`);
+      }
+
+      // 보너스 점수 (최대 10점 추가)
+      // 인원 관련 보너스
+      if (meetup.max_participants) {
+        if (meetup.max_participants <= 4) {
+          reasons.push(`👥 소규모 모임이라 더 친밀한 대화가 가능해요`);
+          score += 3;
+        } else if (meetup.max_participants >= 8) {
+          reasons.push(`🎉 다양한 사람들을 만날 수 있는 대규모 모임이에요`);
+          score += 2;
+        }
+      }
+
+      // 모집 현황 보너스
+      if (meetup.current_participants && meetup.max_participants) {
+        const remaining = meetup.max_participants - meetup.current_participants;
+        if (remaining === 1) {
+          reasons.push(`🔥 마지막 1자리! 서둘러 신청하세요`);
+          score += 5;
+        } else if (remaining <= 3) {
+          reasons.push(`⏰ ${remaining}자리 남았어요, 마감 임박!`);
+          score += 3;
+        }
+      }
+
+      // 완벽 매칭 보너스 (모든 조건 충족 시)
+      if (totalCriteria > 0 && matchedCriteria === totalCriteria) {
+        reasons.unshift(`🏆 검색 조건 ${matchedCriteria}개 모두 충족! 완벽한 매칭!`);
+        // 100점이 되도록 보정
+        if (score < 100) {
+          score = 100;
+        }
+      }
+
+      // 기본 이유가 없으면 추가
+      if (reasons.length === 0) {
+        reasons.push(`🎯 검색 조건과 관련된 모임이에요`);
+      }
+
+      // 점수 정규화 (0-100)
+      score = Math.min(100, Math.max(0, score));
+
+      return { reasons, score };
+    };
+
+    const noMatchReason = meetups.length === 0
+      ? `😢 아쉽게도 "${query}"에 맞는 모임을 찾지 못했어요.\n\n다른 키워드로 검색하시거나, 직접 모임을 만들어보시는 건 어떨까요?`
+      : null;
+
+    const results = [{
+      isNoMatch: meetups.length === 0,
+      userContext: query,
+      wantedCategory: detectedCategory || '',
+      noMatchReason,
+      intentSummary,
+      searchType: detectedCategory ? 'category' : 'keyword',
+      userNeeds: {
+        immediate: detectedTime === 'lunch' || detectedTime === 'dinner',
+        priceConscious: detectedPrice === 'cheap',
+        locationSpecific: !!detectedLocation,
+        moodRequirement: detectedMood,
+        cuisinePreference: detectedCategory ? [detectedCategory] : []
+      },
+      alternatives,
+      recommendedMeetups: meetups.map(m => {
+        const { reasons, score } = generateMeetupReasons(m);
+        return {
+          id: m.id,
+          title: m.title,
+          description: m.description,
+          location: m.location,
+          address: m.address,
+          date: m.date,
+          time: m.time,
+          category: m.category,
+          maxParticipants: m.max_participants,
+          currentParticipants: m.current_participants,
+          priceRange: m.price_range,
+          image: m.image,
+          status: m.status,
+          host: {
+            name: m.host_name,
+            profileImage: m.host_profile_image
+          },
+          // 추가된 AI 분석 필드
+          aiReasons: reasons,
+          aiScore: score,
+          matchType: detectedCategory ? 'category' : 'keyword'
+        };
+      }).sort((a, b) => b.aiScore - a.aiScore) // 점수 높은 순으로 정렬
+    }];
+
+    res.json({
+      success: true,
+      results
+    });
+
+  } catch (error) {
+    console.error('❌ AI 검색 실패:', error);
+    res.status(500).json({
+      success: false,
+      error: 'AI 검색 중 오류가 발생했습니다',
+      results: [{
+        isNoMatch: true,
+        userContext: req.body.query || '',
+        noMatchReason: '검색 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.',
+        wantedCategory: '',
+        intentSummary: '🤖 검색 처리 중 문제가 발생했습니다.'
+      }]
     });
   }
 });

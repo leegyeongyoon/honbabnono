@@ -14981,10 +14981,11 @@ apiRouter.post('/search/ai', async (req, res) => {
       .filter(meetup => recommendedMeetupIds.includes(meetup.id))
       .map(meetup => {
         const aiResult = parsedResponse.recommendedMeetups.find(r => r.id === meetup.id);
+        // aiScore는 이제 0-100 스케일 (parseAIResponse에서 변환됨)
         return {
           ...meetup,
-          aiScore: aiResult?.score || 0.5,
-          aiReasons: aiResult?.why || [],
+          aiScore: aiResult?.aiScore || aiResult?.score || 50,
+          aiReasons: aiResult?.aiReasons || aiResult?.why || [],
           matchType: aiResult?.matchType || 'good',
           matchedDimensions: aiResult?.matchedDimensions || {}
         };

@@ -3,7 +3,7 @@
  * 모임 추천 엔진을 위한 프롬프트와 카테고리 분류 체계
  */
 
-// 시스템 프롬프트 v11 - 추천 이유 포함
+// 시스템 프롬프트 v12 - 100점 만점 스케일
 const SYSTEM_PROMPT = `
 스마트 모임 추천 엔진: 사용자 검색어와 모임 리스트를 매칭하여 최적 추천
 
@@ -20,18 +20,27 @@ const SYSTEM_PROMPT = `
   "모임": [
     {
       "id": "모임ID",
-      "title": "모임제목", 
+      "title": "모임제목",
       "category": "카테고리",
       "location": "위치",
       "date": "날짜",
       "time": "시간",
       "why": ["추천이유1", "추천이유2"],
-      "score": 0.9
+      "score": 95
     }
   ]
 }
 
+점수 기준 (0-100점 만점):
+- 100점: 검색어와 완벽히 일치 (카테고리, 위치, 시간대, 분위기 모두 매칭)
+- 90-99점: 거의 완벽한 매칭 (주요 조건 대부분 충족)
+- 80-89점: 좋은 매칭 (핵심 조건 충족)
+- 70-79점: 괜찮은 매칭 (일부 조건 충족)
+- 60-69점: 관련 있음 (간접적 연관성)
+- 60점 미만: 추천하지 않음
+
 추천이유 예시:
+- "🏆 검색 조건과 완벽히 일치해요!"
 - "우울한 기분에 카페의 따뜻한 분위기가 도움될 거예요"
 - "혼자 와도 부담없는 선택적 소통 가능"
 - "달콤한 디저트로 기분전환 효과"
@@ -175,15 +184,35 @@ module.exports = {
       };
 
       // 다양한 필드명 처리
+      let meetups = [];
       if (parsed.모임) {
-        normalizedResponse.recommendedMeetups = parsed.모임;
+        meetups = parsed.모임;
       } else if (parsed.추천모임) {
-        normalizedResponse.recommendedMeetups = parsed.추천모임;
+        meetups = parsed.추천모임;
       } else if (parsed.meetups) {
-        normalizedResponse.recommendedMeetups = parsed.meetups;
+        meetups = parsed.meetups;
       } else if (parsed.recommendedMeetups) {
-        normalizedResponse.recommendedMeetups = parsed.recommendedMeetups;
+        meetups = parsed.recommendedMeetups;
       }
+
+      // 점수 정규화: 0-1 스케일 → 0-100 스케일로 변환
+      normalizedResponse.recommendedMeetups = meetups.map(m => {
+        let score = m.score || 0;
+        // 0-1 스케일(예: 0.9)이면 100배로 변환
+        if (score > 0 && score <= 1) {
+          score = Math.round(score * 100);
+        }
+        // 100점 초과 방지
+        score = Math.min(100, Math.max(0, score));
+
+        return {
+          ...m,
+          score: score,
+          // why 배열을 aiReasons로도 복사 (프론트엔드 호환)
+          aiReasons: m.why || [],
+          aiScore: score
+        };
+      });
 
       // 기존 필드들이 있으면 사용
       if (typeof parsed.isSearchable === 'boolean') {

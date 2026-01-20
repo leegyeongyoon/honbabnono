@@ -18,6 +18,7 @@ interface NativeMapModalProps {
   onClose: () => void;
   onLocationSelect: (district: string, neighborhood: string, lat: number, lng: number, address: string, radius?: number) => void;
   mode?: 'search' | 'settings'; // search: 장소 검색, settings: 지역 설정
+  initialRadius?: number; // 초기 반경 (km 단위)
 }
 
 const NativeMapModal: React.FC<NativeMapModalProps> = ({
@@ -25,6 +26,7 @@ const NativeMapModal: React.FC<NativeMapModalProps> = ({
   onClose,
   onLocationSelect,
   mode = 'settings', // 기본값을 settings로 변경
+  initialRadius, // 초기 반경 (km 단위)
 }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -128,6 +130,21 @@ const NativeMapModal: React.FC<NativeMapModalProps> = ({
     }
   };
 
+  // 초기 반경을 WebView에 전송
+  const sendInitialRadiusToWebView = (radiusKm: number) => {
+    if (webViewRef.current) {
+      const script = `
+        if (typeof setInitialRadiusFromNative === 'function') {
+          setInitialRadiusFromNative(${radiusKm});
+          console.log('📍 React Native에서 초기 반경 수신:', ${radiusKm}, 'km');
+        }
+        true;
+      `;
+      webViewRef.current.injectJavaScript(script);
+      console.log('📍 [NativeMapModal] WebView에 초기 반경 전송:', radiusKm, 'km');
+    }
+  };
+
   // 서버 URL - visible이 true가 될 때만 새 URL 생성 (무한 루프 방지)
   const mapUrl = useMemo(() => {
     if (!visible) return '';
@@ -169,6 +186,12 @@ const NativeMapModal: React.FC<NativeMapModalProps> = ({
         // GPS 좌표가 이미 있으면 WebView로 전송
         if (gpsLocationRef.current) {
           sendGpsToWebView(gpsLocationRef.current.lat, gpsLocationRef.current.lng);
+        }
+
+        // 초기 반경이 있으면 WebView로 전송
+        if (initialRadius) {
+          console.log('📍 [NativeMapModal] 초기 반경 전송:', initialRadius, 'km');
+          sendInitialRadiusToWebView(initialRadius);
         }
       } else if (data.type === 'MAP_LOADING') {
         console.log('🔄 지도 로딩 중:', data.data);
