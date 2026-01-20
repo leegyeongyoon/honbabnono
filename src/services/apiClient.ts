@@ -3,9 +3,9 @@ import storage from '../utils/storage';
 
 // 사용 가능한 API 서버 IP 목록 (우선순위 순)
 export const API_HOSTS = [
-  '172.16.1.74',    // 현재 네트워크
-  '192.168.0.101',  // 이전 네트워크
-  'localhost',      // 시뮬레이터용
+  'localhost',      // iOS 시뮬레이터용 (우선)
+  '192.168.0.101',  // 현재 네트워크
+  '10.0.2.2',       // Android 에뮬레이터용
 ];
 
 // 현재 활성화된 API 호스트 저장
