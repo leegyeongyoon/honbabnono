@@ -673,7 +673,7 @@ const UniversalCreateMeetupScreen: React.FC<UniversalCreateMeetupScreenProps> = 
       // React Native에서는 실제 IP 사용, 웹에서는 환경변수 사용
       const apiBaseUrl = Platform.OS === 'web' 
         ? (process.env.REACT_APP_API_URL || 'http://localhost:3001/api')
-        : 'http://192.168.0.101:3001/api';
+        : 'http://172.16.1.74:3001/api';
       
       const response = await fetch(`${apiBaseUrl}/meetups`, {
         method: 'POST',
@@ -731,7 +731,7 @@ const UniversalCreateMeetupScreen: React.FC<UniversalCreateMeetupScreenProps> = 
           // React Native에서는 실제 IP 사용, 웹에서는 환경변수 사용
           const filterApiBaseUrl = Platform.OS === 'web' 
             ? (process.env.REACT_APP_API_URL || 'http://localhost:3001/api')
-            : 'http://192.168.0.101:3001/api';
+            : 'http://172.16.1.74:3001/api';
           
           const filterResponse = await fetch(`${filterApiBaseUrl}/meetups/${meetupId}/preference-filter`, {
             method: 'POST',

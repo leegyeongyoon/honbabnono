@@ -29,7 +29,7 @@ const getApiBaseUrl = (): string => {
   
   // React Native 환경이나 SSR fallback
   // 실제 디바이스에서는 localhost 대신 실제 IP 사용
-  const url = 'http://192.168.0.101:3001/api';
+  const url = 'http://172.16.1.74:3001/api';
   console.log('🔧 Using React Native/SSR fallback API URL:', url);
   return url;
 };

@@ -15,7 +15,7 @@ const KakaoLoginWebView: React.FC<KakaoLoginWebViewProps> = ({ navigation }) => 
   const webViewRef = useRef<WebView>(null);
   
   // 카카오 OAuth URL - React Native에서는 실제 IP 주소 사용
-  const kakaoAuthUrl = `http://192.168.0.101:3001/api/auth/kakao`;
+  const kakaoAuthUrl = `http://172.16.1.74:3001/api/auth/kakao`;
   
   // URL 파라미터 파싱 함수 (URLSearchParams 대체)
   const parseUrlParams = (url: string) => {

@@ -23,7 +23,7 @@ class ChatService {
       }
       
       // React Native/SSR fallback - 실제 IP 사용
-      return 'http://192.168.0.101:3001';
+      return 'http://172.16.1.74:3001';
     };
     
     this.socket = io(getSocketUrl(), {
