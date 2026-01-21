@@ -10,7 +10,6 @@
     "web": "webpack serve --mode development",
     "build:web": "NODE_ENV=production webpack --mode production",
     "server": "node server/index.js",
-    "backend": "node backend/src/server.js",
     "dev": "concurrently \"npm run web\" \"npm run server\"",
     "dev:all": "concurrently \"npm run web\" \"npm run server\" \"npm run start\"",
     "ios:dev": "concurrently \"npm run web\" \"npm run server\" \"npm run start\" \"npm run ios\"",
