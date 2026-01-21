@@ -196,6 +196,17 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
     }, 100);
   };
 
+  const getCategoryEmoji = (categoryName: string) => {
+    const category = FOOD_CATEGORIES.find(cat => cat.name === categoryName);
+    return category ? category.emoji : '🍴';
+  };
+
+  const getCategoryColor = (categoryName: string) => {
+    const category = FOOD_CATEGORIES.find(cat => cat.name === categoryName);
+    return category ? category.color : COLORS.primary.main;
+  };
+
+
   const openNeighborhoodSelector = () => {
     console.log('🏠 [HomeScreen] 동네 선택 버튼 클릭됨');
     console.log('🏠 [HomeScreen] showNeighborhoodSelector 현재 상태:', showNeighborhoodSelector);

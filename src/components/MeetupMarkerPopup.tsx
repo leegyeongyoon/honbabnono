@@ -67,6 +67,20 @@ const MeetupMarkerPopup: React.FC<MeetupMarkerPopupProps> = ({
     return `${(distance / 1000).toFixed(1)}km`;
   };
 
+  // Category icon
+  const getCategoryIcon = (category: string) => {
+    const icons: Record<string, string> = {
+      '한식': 'utensils',
+      '중식': 'utensils',
+      '일식': 'utensils',
+      '양식': 'utensils',
+      '카페': 'coffee',
+      '술집': 'glass-wine',
+      '기타': 'utensils',
+    };
+    return icons[category] || 'utensils';
+  };
+
   return (
     <Animated.View style={styles.container}>
       <TouchableOpacity
