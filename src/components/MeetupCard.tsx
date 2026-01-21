@@ -10,34 +10,8 @@ import { COLORS, SHADOWS } from '../styles/colors';
 import { Icon } from './Icon';
 import { getTimeDifference } from '../utils/timeUtils';
 import { processImageUrl } from '../utils/imageUtils';
+import { formatMeetupDateTime } from '../utils/dateUtils';
 import { FOOD_CATEGORIES } from '../constants/categories';
-
-// 모임 시간 포맷팅 함수
-const formatMeetupDateTime = (date: string, time: string) => {
-  try {
-    if (!date || !time) return '시간 미정';
-    
-    const dateTimeStr = `${date}T${time}`;
-    const dateObj = new Date(dateTimeStr);
-    
-    if (isNaN(dateObj.getTime())) {
-      return `${date} ${time}`;
-    }
-
-    const month = dateObj.getMonth() + 1;
-    const day = dateObj.getDate();
-    const hours = dateObj.getHours();
-    const minutes = dateObj.getMinutes();
-    
-    const ampm = hours >= 12 ? '오후' : '오전';
-    const displayHours = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
-    
-    return `${month}월 ${day}일 ${ampm} ${displayHours}:${minutes.toString().padStart(2, '0')}`;
-  } catch (error) {
-    console.error('formatMeetupDateTime error:', error);
-    return `${date} ${time}`;
-  }
-};
 
 interface Meetup {
   id: string;
@@ -56,7 +30,21 @@ interface Meetup {
   image?: string;
   createdAt?: string;
   created_at?: string;
+  distance?: number | null; // 사용자 위치로부터의 거리 (미터)
 }
+
+// 거리 포맷팅 함수
+const formatDistance = (distanceInMeters: number | null | undefined): string | null => {
+  if (distanceInMeters === null || distanceInMeters === undefined) {
+    return null;
+  }
+
+  if (distanceInMeters < 1000) {
+    return `${Math.round(distanceInMeters)}m`;
+  } else {
+    return `${(distanceInMeters / 1000).toFixed(1)}km`;
+  }
+};
 
 interface MeetupCardProps {
   meetup: Meetup;
@@ -85,7 +73,6 @@ const MeetupCard: React.FC<MeetupCardProps> = ({ meetup, onPress }) => {
           style={styles.meetupImage}
           onError={() => {
             // React Native에서는 기본 이미지 fallback이 자동으로 처리됨
-            console.log('Image loading failed, falling back to default');
           }}
         />
       </View>
@@ -146,7 +133,9 @@ const MeetupCard: React.FC<MeetupCardProps> = ({ meetup, onPress }) => {
           <View style={styles.detailRow}>
             <Icon name="map-pin" size={14} color={COLORS.text.secondary} />
             <Text style={styles.detailText} numberOfLines={1}>
-              {meetup.address || meetup.location}
+              {formatDistance(meetup.distance)
+                ? `${formatDistance(meetup.distance)}`
+                : (meetup.address || meetup.location)}
             </Text>
           </View>
         </View>

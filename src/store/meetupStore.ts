@@ -48,6 +48,14 @@ export interface Meetup {
   participants: Participant[];
   lastChatTime?: string;
   lastChatMessage?: string;
+  distance?: number | null; // 사용자 위치로부터의 거리 (미터)
+}
+
+// 위치 기반 검색 파라미터
+interface LocationParams {
+  latitude?: number;
+  longitude?: number;
+  radius?: number; // 미터 단위
 }
 
 interface MeetupState {
@@ -56,16 +64,16 @@ interface MeetupState {
   currentMeetup: Meetup | null;
   loading: boolean;
   error: string | null;
-  
+
   // Actions
   setMeetups: (meetups: Meetup[]) => void;
   setCurrentMeetup: (meetup: Meetup | null) => void;
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
-  
+
   // CRUD Actions
   fetchMeetups: () => Promise<void>;
-  fetchHomeMeetups: () => Promise<void>;
+  fetchHomeMeetups: (locationParams?: LocationParams) => Promise<void>;
   fetchActiveMeetups: () => Promise<void>;
   fetchCompletedMeetups: () => Promise<void>;
   fetchMeetupById: (id: string) => Promise<Meetup | null>;
@@ -201,6 +209,7 @@ const transformMeetupData = (meetupData: any): Meetup => {
     })) || [],
     lastChatTime: actualData.lastChatTime,
     lastChatMessage: actualData.lastChatMessage,
+    distance: actualData.distance ?? null, // 거리 정보 (미터)
   };
 };
 
@@ -242,21 +251,23 @@ export const useMeetupStore = create<MeetupState>()(
       }
     },
 
-    fetchHomeMeetups: async () => {
+    fetchHomeMeetups: async (locationParams?: LocationParams) => {
       set({ loading: true, error: null });
       try {
-        console.log('🏠 Fetching home meetups list (active only)');
-        const response = await apiCall('/meetups/home');
-        
-        console.log('🎯 Response received in fetchHomeMeetups:', {
-          response,
-          responseType: typeof response,
-          responseKeys: Object.keys(response || {}),
-          meetupsArray: response?.meetups,
-          meetupsLength: response?.meetups?.length,
-          stringified: JSON.stringify(response)
-        });
-        
+        // 위치 파라미터가 있으면 쿼리스트링에 추가
+        let endpoint = '/meetups/home';
+        if (locationParams?.latitude && locationParams?.longitude) {
+          const params = new URLSearchParams();
+          params.append('latitude', locationParams.latitude.toString());
+          params.append('longitude', locationParams.longitude.toString());
+          if (locationParams.radius) {
+            params.append('radius', locationParams.radius.toString());
+          }
+          endpoint = `/meetups/home?${params.toString()}`;
+        }
+
+        const response = await apiCall(endpoint);
+
         const transformedMeetups = response.meetups?.map(transformMeetupData) || [];
         set({ meetups: transformedMeetups, loading: false });
       } catch (error) {

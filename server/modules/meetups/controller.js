@@ -2,10 +2,17 @@ const jwt = require('jsonwebtoken');
 const pool = require('../../config/database');
 const { processImageUrl, calculateDistance } = require('../../utils/helpers');
 
-// 홈화면용 활성 모임 목록
+// 홈화면용 활성 모임 목록 (위치 기반 필터링 지원)
 exports.getHomeMeetups = async (req, res) => {
   try {
-    console.log('🏠 홈화면 모임 목록 조회');
+    // 위치 기반 필터링 파라미터
+    const { latitude, longitude, radius } = req.query;
+    const hasLocationFilter = latitude && longitude;
+    const userLat = hasLocationFilter ? parseFloat(latitude) : null;
+    const userLng = hasLocationFilter ? parseFloat(longitude) : null;
+    const searchRadius = radius ? parseInt(radius) : 3000; // 기본 3km
+
+    // 위치 기반 필터링 로그 (프로덕션에서는 logger 사용 권장)
 
     // 인증된 사용자의 차단 필터링을 위한 사용자 ID 추출
     let currentUserId = null;
@@ -23,6 +30,7 @@ exports.getHomeMeetups = async (req, res) => {
     let homeQuery = `
       SELECT
         m.id, m.title, m.description, m.location, m.address,
+        m.latitude, m.longitude,
         m.date, m.time, m.max_participants, m.current_participants,
         m.category, m.price_range, m.image, m.status,
         m.age_range, m.gender_preference,
@@ -52,38 +60,67 @@ exports.getHomeMeetups = async (req, res) => {
       ORDER BY
         CASE WHEN m.status = '모집중' THEN 1 ELSE 2 END,
         m.date ASC, m.time ASC
-      LIMIT 20
+      LIMIT 50
     `;
 
     const activeMeetupsResult = await pool.query(homeQuery, homeParams);
 
-    const meetups = activeMeetupsResult.rows.map(meetup => ({
-      id: meetup.id,
-      title: meetup.title,
-      description: meetup.description,
-      location: meetup.location,
-      address: meetup.address,
-      date: meetup.date,
-      time: meetup.time,
-      maxParticipants: meetup.max_participants,
-      currentParticipants: meetup.current_participants,
-      category: meetup.category,
-      priceRange: meetup.price_range,
-      ageRange: meetup.age_range,
-      genderPreference: meetup.gender_preference,
-      image: processImageUrl(meetup.image, meetup.category),
-      status: meetup.status,
-      host: {
-        name: meetup['host.name'],
-        profileImage: meetup['host.profileImage'],
-        rating: meetup['host.rating']
-      },
-      hoursUntilStart: parseFloat(meetup.hours_until_start),
-      isAvailable: meetup.current_participants < meetup.max_participants,
-      isRecruiting: meetup.status === '모집중'
-    }));
+    // 모임 데이터 변환 및 거리 계산
+    let meetups = activeMeetupsResult.rows.map(meetup => {
+      const meetupData = {
+        id: meetup.id,
+        title: meetup.title,
+        description: meetup.description,
+        location: meetup.location,
+        address: meetup.address,
+        latitude: meetup.latitude,
+        longitude: meetup.longitude,
+        date: meetup.date,
+        time: meetup.time,
+        maxParticipants: meetup.max_participants,
+        currentParticipants: meetup.current_participants,
+        category: meetup.category,
+        priceRange: meetup.price_range,
+        ageRange: meetup.age_range,
+        genderPreference: meetup.gender_preference,
+        image: processImageUrl(meetup.image, meetup.category),
+        status: meetup.status,
+        host: {
+          name: meetup['host.name'],
+          profileImage: meetup['host.profileImage'],
+          rating: meetup['host.rating']
+        },
+        hoursUntilStart: parseFloat(meetup.hours_until_start),
+        isAvailable: meetup.current_participants < meetup.max_participants,
+        isRecruiting: meetup.status === '모집중',
+        distance: null // 기본값
+      };
 
-    console.log(`✅ 홈화면 활성 모임 조회 완료: ${meetups.length}개`);
+      // 위치 필터가 있고, 모임에 좌표가 있으면 거리 계산
+      if (hasLocationFilter && meetup.latitude && meetup.longitude) {
+        const meetupLat = parseFloat(meetup.latitude);
+        const meetupLng = parseFloat(meetup.longitude);
+        if (!isNaN(meetupLat) && !isNaN(meetupLng)) {
+          meetupData.distance = calculateDistance(userLat, userLng, meetupLat, meetupLng);
+        }
+      }
+
+      return meetupData;
+    });
+
+    // 위치 필터가 있으면 반경 내 모임만 필터링하고 거리순 정렬
+    if (hasLocationFilter) {
+      meetups = meetups
+        .filter(m => m.distance !== null && m.distance <= searchRadius)
+        .sort((a, b) => (a.distance || 0) - (b.distance || 0))
+        .slice(0, 20);
+
+      // 위치 기반 필터링 완료
+    } else {
+      meetups = meetups.slice(0, 20);
+    }
+
+    // 홈화면 활성 모임 조회 완료
 
     res.json({
       success: true,
@@ -91,7 +128,9 @@ exports.getHomeMeetups = async (req, res) => {
       meta: {
         totalActive: meetups.length,
         recruiting: meetups.filter(m => m.isRecruiting).length,
-        confirmed: meetups.filter(m => m.status === '모집완료').length
+        confirmed: meetups.filter(m => m.status === '모집완료').length,
+        hasLocationFilter,
+        searchRadius: hasLocationFilter ? searchRadius : null
       }
     });
 

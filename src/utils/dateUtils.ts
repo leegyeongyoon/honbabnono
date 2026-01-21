@@ -220,3 +220,34 @@ export const getDayColor = (date: Date): string => {
   };
   return colors[day as keyof typeof colors] || '#607D8B';
 };
+
+/**
+ * 모임 카드에 표시할 날짜/시간 포맷팅
+ * @param date - 날짜 문자열 (YYYY-MM-DD)
+ * @param time - 시간 문자열 (HH:mm)
+ * @returns 포맷팅된 문자열 (예: "1월 15일 오후 2:30")
+ */
+export const formatMeetupDateTime = (date: string, time: string): string => {
+  try {
+    if (!date || !time) return '시간 미정';
+
+    const dateTimeStr = `${date}T${time}`;
+    const dateObj = new Date(dateTimeStr);
+
+    if (isNaN(dateObj.getTime())) {
+      return `${date} ${time}`;
+    }
+
+    const month = dateObj.getMonth() + 1;
+    const day = dateObj.getDate();
+    const hours = dateObj.getHours();
+    const minutes = dateObj.getMinutes();
+
+    const ampm = hours >= 12 ? '오후' : '오전';
+    const displayHours = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
+
+    return `${month}월 ${day}일 ${ampm} ${displayHours}:${minutes.toString().padStart(2, '0')}`;
+  } catch {
+    return `${date} ${time}`;
+  }
+};

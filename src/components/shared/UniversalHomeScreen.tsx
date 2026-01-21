@@ -26,6 +26,7 @@ import { usePopup } from '../../hooks/usePopup';
 import { useNotificationBanner } from '../../hooks/useNotificationBanner';
 import NotificationBanner from '../NotificationBanner';
 import nativeBridge from '../../utils/nativeBridge';
+import { formatMeetupDateTime } from '../../utils/dateUtils';
 
 // 플랫폼별 네비게이션 인터페이스
 interface NavigationAdapter {
@@ -43,31 +44,13 @@ interface UniversalHomeScreenProps {
   NeighborhoodModal?: React.ComponentType<any>;
 }
 
-// 모임 시간 포맷팅 함수
-const formatMeetupDateTime = (date: string, time: string) => {
-  try {
-    if (!date || !time) return '시간 미정';
-    
-    const dateTimeStr = `${date}T${time}`;
-    const dateObj = new Date(dateTimeStr);
-    
-    if (isNaN(dateObj.getTime())) {
-      return `${date} ${time}`;
-    }
-
-    const month = dateObj.getMonth() + 1;
-    const day = dateObj.getDate();
-    const hours = dateObj.getHours();
-    const minutes = dateObj.getMinutes();
-    
-    const ampm = hours >= 12 ? '오후' : '오전';
-    const displayHours = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
-    
-    return `${month}월 ${day}일 ${ampm} ${displayHours}:${minutes.toString().padStart(2, '0')}`;
-  } catch (error) {
-    console.error('formatMeetupDateTime error:', error);
-    return `${date} ${time}`;
+// 반경 포맷팅 함수
+const formatRadius = (radiusInMeters: number | undefined): string => {
+  if (!radiusInMeters) return '3km';
+  if (radiusInMeters < 1000) {
+    return `${radiusInMeters}m`;
   }
+  return `${(radiusInMeters / 1000).toFixed(1)}km`;
 };
 
 const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
@@ -114,10 +97,25 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
     '분위기 좋은 술집',
   ];
 
-  // 데이터 로딩
+  // 데이터 로딩 - 사용자 위치 기반
   useEffect(() => {
-    fetchHomeMeetups();
-  }, []);
+    const loadMeetups = () => {
+      const neighborhood = storeUser?.neighborhood;
+      if (neighborhood?.latitude && neighborhood?.longitude) {
+        // 위치 정보가 있으면 위치 기반 검색
+        fetchHomeMeetups({
+          latitude: neighborhood.latitude,
+          longitude: neighborhood.longitude,
+          radius: neighborhood.radius || 3000, // 기본 3km
+        });
+      } else {
+        // 위치 정보 없으면 기본 검색
+        fetchHomeMeetups();
+      }
+    };
+
+    loadMeetups();
+  }, [storeUser?.neighborhood?.latitude, storeUser?.neighborhood?.longitude, storeUser?.neighborhood?.radius]);
 
   // 위치 설정 - React Native에서는 기본값을 사용
   useEffect(() => {
@@ -157,6 +155,7 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
     setCurrentNeighborhood({ district, neighborhood });
     setShowNeighborhoodMapModal(false);  // 지도 모달 먼저 닫기
     setShowNeighborhoodSelector(false);
+    // 위치 기반 검색 (좌표 없으면 기본 검색)
     fetchHomeMeetups();
   };
 
@@ -164,11 +163,16 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
   const handleMapLocationSelect = (district: string, neighborhood: string, lat: number, lng: number, address: string, radius?: number) => {
     console.log('🗺️ [UniversalHomeScreen] 지도에서 위치 선택됨:', { district, neighborhood, lat, lng, address, radius });
     // radius는 km 단위로 전달되므로 미터 단위로 변환하여 저장 (API는 미터 단위를 사용)
-    const radiusInMeters = radius ? radius * 1000 : undefined;
+    const radiusInMeters = radius ? radius * 1000 : 3000; // 기본 3km
     updateNeighborhood(district, neighborhood, lat, lng, radiusInMeters);
     setCurrentNeighborhood({ district, neighborhood });
     setShowNeighborhoodMapModal(false);
-    fetchHomeMeetups();
+    // 위치 기반 검색
+    fetchHomeMeetups({
+      latitude: lat,
+      longitude: lng,
+      radius: radiusInMeters,
+    });
   };
 
   // NeighborhoodSelector에서 지도 모달 열기 요청 처리
@@ -225,9 +229,15 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
         {/* 상단 헤더 */}
         <View style={styles.header}>
           <TouchableOpacity style={styles.locationButton} onPress={openNeighborhoodSelector}>
+            <Icon name="map-pin" size={14} color={COLORS.text.white} style={{ marginRight: 4 }} />
             <Text style={styles.locationText}>
-              {currentNeighborhood ? `${currentNeighborhood.district} ${currentNeighborhood.neighborhood}` : '신도림역[2호선] 3번출구'}
+              {currentNeighborhood ? `${currentNeighborhood.district} ${currentNeighborhood.neighborhood}` : '위치 설정'}
             </Text>
+            {storeUser?.neighborhood?.radius && (
+              <Text style={styles.radiusText}>
+                · {formatRadius(storeUser.neighborhood.radius)}
+              </Text>
+            )}
             <Icon name="chevron-down" size={14} color={COLORS.text.white} />
           </TouchableOpacity>
 
@@ -329,21 +339,40 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
 
         {/* 바로 참여할 수 있는 번개 */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>바로 참여할 수 있는 번개</Text>
-        
+          <Text style={styles.sectionTitle}>
+            {storeUser?.neighborhood?.latitude
+              ? `🔥 내 주변 ${formatRadius(storeUser.neighborhood.radius || 3000)} 이내 번개`
+              : '바로 참여할 수 있는 번개'}
+          </Text>
+
           {meetups.length > 0 && meetups.slice(0, 3).map((meetup, index) => {
             if (!meetup.id) {
               console.error('🚨 ERROR: Meetup has no ID!', meetup);
               return null;
             }
             return (
-              <MeetupCard 
+              <MeetupCard
                 key={meetup.id}
                 meetup={meetup}
                 onPress={handleMeetupClick}
               />
             );
           })}
+
+          {/* 모임이 없을 때 안내 메시지 */}
+          {meetups.length === 0 && storeUser?.neighborhood?.latitude && (
+            <View style={styles.emptyStateContainer}>
+              <Text style={styles.emptyStateText}>
+                근처에 모임이 없어요 😢
+              </Text>
+              <TouchableOpacity
+                style={styles.expandRadiusButton}
+                onPress={openNeighborhoodSelector}
+              >
+                <Text style={styles.expandRadiusText}>반경 넓혀보기</Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
 
         {/* 오늘은 컵스밥! */}
@@ -374,13 +403,15 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
           </TouchableOpacity>
         </View>
 
-        {/* 지도 테스트 버튼 (디버그용) */}
-        <TouchableOpacity 
-          style={[styles.testButton, { backgroundColor: COLORS.primary.main, margin: 20 }]}
-          onPress={() => setShowMapTest(true)}
-        >
-          <Text style={styles.testButtonText}>지도테스트</Text>
-        </TouchableOpacity>
+        {/* 지도 테스트 버튼 (디버그용 - 개발 환경에서만 표시) */}
+        {__DEV__ && (
+          <TouchableOpacity
+            style={[styles.testButton, { backgroundColor: COLORS.primary.main, margin: 20 }]}
+            onPress={() => setShowMapTest(true)}
+          >
+            <Text style={styles.testButtonText}>지도테스트</Text>
+          </TouchableOpacity>
+        )}
       </ScrollView>
 
       {/* FAB 버튼 - 모임 생성 */}
@@ -424,8 +455,8 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
         />
       )}
 
-      {MapTestModal && showMapTest && (
-        <MapTestModal 
+      {__DEV__ && MapTestModal && showMapTest && (
+        <MapTestModal
           visible={showMapTest}
           onClose={() => setShowMapTest(false)}
         />
@@ -488,6 +519,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: COLORS.text.white,
+    marginRight: 2,
+  },
+  radiusText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: 'rgba(255,255,255,0.8)',
     marginRight: 4,
   },
   headerButtons: {
@@ -671,6 +708,29 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 8,
     zIndex: 1000,
+  },
+  emptyStateContainer: {
+    alignItems: 'center',
+    paddingVertical: 32,
+    paddingHorizontal: 20,
+  },
+  emptyStateText: {
+    fontSize: 16,
+    color: COLORS.text.secondary,
+    marginBottom: 16,
+  },
+  expandRadiusButton: {
+    backgroundColor: COLORS.primary.main + '20',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: COLORS.primary.main,
+  },
+  expandRadiusText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.primary.main,
   },
 });
 
