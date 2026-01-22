@@ -4,10 +4,14 @@
  */
 
 // Mock 설정 (호이스팅)
-const mockPool = {
-  query: jest.fn(),
-  connect: jest.fn(),
-};
+const {
+  createMockPool,
+  mockQueryOnce,
+  mockQueryError,
+  resetMockQuery,
+} = require('../../mocks/database.mock');
+
+const mockPool = createMockPool();
 
 jest.mock('../../../server/config/database', () => mockPool);
 jest.mock('../../../server/config/logger', () => ({
@@ -36,6 +40,7 @@ describe('AuthController', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockRes = createMockResponse();
+    resetMockQuery(mockPool);
     testUser = createUserFixture({
       id: 'test-uuid-1234',
       email: 'test@example.com',

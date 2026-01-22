@@ -4,10 +4,14 @@
  */
 
 // Mock modules before imports
-const mockPool = {
-  query: jest.fn(),
-  connect: jest.fn(),
-};
+const {
+  createMockPool,
+  mockQueryOnce,
+  mockQueryError,
+  resetMockQuery,
+} = require('../../mocks/database.mock');
+
+const mockPool = createMockPool();
 
 jest.mock('../../../server/config/database', () => mockPool);
 jest.mock('../../../server/config/logger', () => ({
@@ -58,6 +62,7 @@ describe('AdminController', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockRes = createMockResponse();
+    resetMockQuery(mockPool);
     process.env.JWT_SECRET = 'test-jwt-secret';
   });
 

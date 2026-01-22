@@ -4,17 +4,15 @@
  */
 
 // Mock 설정 (호이스팅)
-const mockPool = {
-  query: jest.fn(),
-  connect: jest.fn(),
-};
+const {
+  createMockPool,
+  mockQueryOnce,
+  mockQueryError,
+  resetMockQuery,
+  setupTransactionMock,
+} = require('../../mocks/database.mock');
 
-const mockClient = {
-  query: jest.fn(),
-  release: jest.fn(),
-};
-
-mockPool.connect.mockResolvedValue(mockClient);
+const mockPool = createMockPool();
 
 jest.mock('../../../server/config/database', () => mockPool);
 jest.mock('../../../server/config/logger', () => ({
@@ -44,6 +42,7 @@ describe('MeetupsController', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockRes = createMockResponse();
+    resetMockQuery(mockPool);
     testUser = createUserFixture({
       id: 'user-uuid-1234',
       email: 'test@example.com',

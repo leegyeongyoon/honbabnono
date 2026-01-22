@@ -4,10 +4,15 @@
  */
 
 // Mock modules before imports
-const mockPool = {
-  query: jest.fn(),
-  connect: jest.fn(),
-};
+const {
+  createMockPool,
+  mockQueryOnce,
+  mockQueryError,
+  resetMockQuery,
+  setupTransactionMock,
+} = require('../../mocks/database.mock');
+
+const mockPool = createMockPool();
 
 jest.mock('../../../server/config/database', () => mockPool);
 jest.mock('../../../server/config/logger', () => ({
@@ -52,6 +57,7 @@ describe('UserController', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockRes = createMockResponse();
+    resetMockQuery(mockPool);
   });
 
   describe('getMe', () => {
@@ -1422,6 +1428,172 @@ describe('UserController', () => {
       await userController.useInviteCode(mockReq, mockRes);
 
       expect(mockRes.status).toHaveBeenCalledWith(400);
+    });
+  });
+
+  // ============================================
+  // chargePoints - 포인트 충전 (트랜잭션)
+  // ============================================
+  describe('chargePoints', () => {
+    it('should charge points successfully', async () => {
+      mockReq = createMockRequest({
+        user: { userId: testUser.id },
+        body: { amount: 1000, paymentMethod: 'card' },
+      });
+
+      setupTransactionMock(mockPool, [
+        { rows: [{ available_points: 5000 }], rowCount: 1 }, // SELECT current points
+        { rows: [], rowCount: 1 }, // UPDATE users
+        { rows: [{ id: 'tx-123' }], rowCount: 1 }, // INSERT transaction
+      ]);
+
+      await userController.chargePoints(mockReq, mockRes);
+
+      expect(mockRes.json).toHaveBeenCalled();
+      const response = mockRes.json.mock.calls[0][0];
+      expect(response.success).toBe(true);
+      expect(response.message).toBe('포인트가 성공적으로 충전되었습니다.');
+      expect(response.data.chargedAmount).toBe(1000);
+      expect(response.data.newBalance).toBe(6000);
+    });
+
+    it('should return 400 if amount is invalid (zero)', async () => {
+      mockReq = createMockRequest({
+        user: { userId: testUser.id },
+        body: { amount: 0, paymentMethod: 'card' },
+      });
+
+      await userController.chargePoints(mockReq, mockRes);
+
+      expect(mockRes.status).toHaveBeenCalledWith(400);
+      expect(mockRes.json).toHaveBeenCalledWith({
+        success: false,
+        message: '유효하지 않은 충전 금액입니다.',
+      });
+    });
+
+    it('should return 400 if amount is negative', async () => {
+      mockReq = createMockRequest({
+        user: { userId: testUser.id },
+        body: { amount: -100, paymentMethod: 'card' },
+      });
+
+      await userController.chargePoints(mockReq, mockRes);
+
+      expect(mockRes.status).toHaveBeenCalledWith(400);
+      expect(mockRes.json).toHaveBeenCalledWith({
+        success: false,
+        message: '유효하지 않은 충전 금액입니다.',
+      });
+    });
+
+    it('should return 500 on transaction error', async () => {
+      mockReq = createMockRequest({
+        user: { userId: testUser.id },
+        body: { amount: 1000, paymentMethod: 'card' },
+      });
+
+      const mockClient = mockPool._mockClient;
+      mockPool.connect.mockResolvedValue(mockClient);
+      mockClient.query.mockImplementation((query) => {
+        if (query === 'BEGIN' || query === 'ROLLBACK' || query === 'COMMIT') {
+          return Promise.resolve({ rows: [], rowCount: 0 });
+        }
+        return Promise.reject(new Error('Transaction error'));
+      });
+
+      await userController.chargePoints(mockReq, mockRes);
+
+      expect(mockRes.status).toHaveBeenCalledWith(500);
+      expect(mockRes.json).toHaveBeenCalledWith({
+        success: false,
+        message: '포인트 충전 중 오류가 발생했습니다.',
+      });
+    });
+  });
+
+  // ============================================
+  // spendPoints - 포인트 사용 (트랜잭션)
+  // ============================================
+  describe('spendPoints', () => {
+    it('should spend points successfully', async () => {
+      mockReq = createMockRequest({
+        user: { userId: testUser.id },
+        body: { amount: 500, description: '모임 참가비', relatedId: 'meetup-123' },
+      });
+
+      setupTransactionMock(mockPool, [
+        { rows: [{ available_points: 1000 }], rowCount: 1 }, // SELECT current points
+        { rows: [], rowCount: 1 }, // UPDATE users
+        { rows: [{ id: 'tx-456' }], rowCount: 1 }, // INSERT transaction
+      ]);
+
+      await userController.spendPoints(mockReq, mockRes);
+
+      expect(mockRes.json).toHaveBeenCalled();
+      const response = mockRes.json.mock.calls[0][0];
+      expect(response.success).toBe(true);
+      expect(response.message).toBe('포인트가 성공적으로 사용되었습니다.');
+      expect(response.data.spentAmount).toBe(500);
+      expect(response.data.newBalance).toBe(500);
+    });
+
+    it('should return 400 if amount is invalid (zero)', async () => {
+      mockReq = createMockRequest({
+        user: { userId: testUser.id },
+        body: { amount: 0, description: '테스트' },
+      });
+
+      await userController.spendPoints(mockReq, mockRes);
+
+      expect(mockRes.status).toHaveBeenCalledWith(400);
+      expect(mockRes.json).toHaveBeenCalledWith({
+        success: false,
+        message: '유효하지 않은 사용 금액입니다.',
+      });
+    });
+
+    it('should return 400 if insufficient points', async () => {
+      mockReq = createMockRequest({
+        user: { userId: testUser.id },
+        body: { amount: 2000, description: '모임 참가비' },
+      });
+
+      setupTransactionMock(mockPool, [
+        { rows: [{ available_points: 500 }], rowCount: 1 }, // 잔액 부족
+      ]);
+
+      await userController.spendPoints(mockReq, mockRes);
+
+      expect(mockRes.status).toHaveBeenCalledWith(400);
+      expect(mockRes.json).toHaveBeenCalledWith({
+        success: false,
+        message: '보유 포인트가 부족합니다.',
+      });
+    });
+
+    it('should return 500 on transaction error', async () => {
+      mockReq = createMockRequest({
+        user: { userId: testUser.id },
+        body: { amount: 500, description: '테스트' },
+      });
+
+      const mockClient = mockPool._mockClient;
+      mockPool.connect.mockResolvedValue(mockClient);
+      mockClient.query.mockImplementation((query) => {
+        if (query === 'BEGIN' || query === 'ROLLBACK' || query === 'COMMIT') {
+          return Promise.resolve({ rows: [], rowCount: 0 });
+        }
+        return Promise.reject(new Error('Transaction error'));
+      });
+
+      await userController.spendPoints(mockReq, mockRes);
+
+      expect(mockRes.status).toHaveBeenCalledWith(500);
+      expect(mockRes.json).toHaveBeenCalledWith({
+        success: false,
+        message: '포인트 사용 중 오류가 발생했습니다.',
+      });
     });
   });
 });
