@@ -81,10 +81,14 @@ describe('Meetups List Controller', () => {
     });
 
     it('should return 500 on error', async () => {
+      const originalError = console.error;
+      console.error = () => console.log('[에러 핸들링 테스트]');
+
       req = createMockRequest({ query: {} });
       mockQueryError(mockPool, new Error('DB Error'));
       await listController.getHomeMeetups(req, res);
       expect(res.status).toHaveBeenCalledWith(500);
+      console.error = originalError;
     });
   });
 
@@ -110,10 +114,14 @@ describe('Meetups List Controller', () => {
     });
 
     it('should return 500 on error', async () => {
+      const originalError = console.error;
+      console.error = () => console.log('[에러 핸들링 테스트]');
+
       req = createMockRequest({ query: {} });
       mockQueryError(mockPool, new Error('DB Error'));
       await listController.getActiveMeetups(req, res);
       expect(res.status).toHaveBeenCalledWith(500);
+      console.error = originalError;
     });
   });
 
@@ -127,10 +135,14 @@ describe('Meetups List Controller', () => {
     });
 
     it('should return 500 on error', async () => {
+      const originalError = console.error;
+      console.error = () => console.log('[에러 핸들링 테스트]');
+
       req = createMockRequest({ query: {} });
       mockQueryError(mockPool, new Error('DB Error'));
       await listController.getCompletedMeetups(req, res);
       expect(res.status).toHaveBeenCalledWith(500);
+      console.error = originalError;
     });
   });
 
@@ -155,10 +167,14 @@ describe('Meetups List Controller', () => {
     });
 
     it('should return 500 on error', async () => {
+      const originalError = console.error;
+      console.error = () => console.log('[에러 핸들링 테스트]');
+
       req = createMockRequest({ query: { latitude: '37.5', longitude: '127.0' } });
       mockQueryError(mockPool, new Error('DB Error'));
       await listController.getNearbyMeetups(req, res);
       expect(res.status).toHaveBeenCalledWith(500);
+      console.error = originalError;
     });
   });
 
@@ -186,10 +202,14 @@ describe('Meetups List Controller', () => {
     });
 
     it('should return 500 on error', async () => {
+      const originalError = console.error;
+      console.error = () => console.log('[에러 핸들링 테스트]');
+
       req = createAuthenticatedRequest(mockUser, { query: {} });
       mockQueryError(mockPool, new Error('DB Error'));
       await listController.getMyMeetups(req, res);
       expect(res.status).toHaveBeenCalledWith(500);
+      console.error = originalError;
     });
   });
 
@@ -210,10 +230,14 @@ describe('Meetups List Controller', () => {
     });
 
     it('should return 500 on error', async () => {
+      const originalError = console.error;
+      console.error = () => console.log('[에러 핸들링 테스트]');
+
       req = createMockRequest({ query: {} });
       mockQueryError(mockPool, new Error('DB Error'));
       await listController.getMeetups(req, res);
       expect(res.status).toHaveBeenCalledWith(500);
+      console.error = originalError;
     });
   });
 });

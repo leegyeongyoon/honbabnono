@@ -112,6 +112,9 @@ describe('Meetups Attendance Controller', () => {
     });
 
     it('should return 500 on error', async () => {
+      const originalError = console.error;
+      console.error = () => console.log('[에러 핸들링 테스트]');
+
       req = createAuthenticatedRequest(mockUser, {
         params: { id: '1' },
         body: { latitude: 37.5, longitude: 127.0 },
@@ -119,6 +122,7 @@ describe('Meetups Attendance Controller', () => {
       mockQueryError(mockPool, new Error('DB Error'));
       await attendanceController.gpsCheckin(req, res);
       expect(res.status).toHaveBeenCalledWith(500);
+      console.error = originalError;
     });
   });
 
@@ -142,10 +146,14 @@ describe('Meetups Attendance Controller', () => {
     });
 
     it('should return 500 on error', async () => {
+      const originalError = console.error;
+      console.error = () => console.log('[에러 핸들링 테스트]');
+
       req = createAuthenticatedRequest(mockUser, { params: { id: '1' } });
       validateHostPermission.mockRejectedValueOnce(new Error('Error'));
       await attendanceController.generateQRCode(req, res);
       expect(res.status).toHaveBeenCalledWith(500);
+      console.error = originalError;
     });
   });
 
@@ -162,10 +170,14 @@ describe('Meetups Attendance Controller', () => {
     });
 
     it('should return 500 on error', async () => {
+      const originalError = console.error;
+      console.error = () => console.log('[에러 핸들링 테스트]');
+
       req = createAuthenticatedRequest(mockUser, { params: { id: '1' } });
       validateHostPermission.mockRejectedValueOnce(new Error('Error'));
       await attendanceController.getQRCode(req, res);
       expect(res.status).toHaveBeenCalledWith(500);
+      console.error = originalError;
     });
   });
 
@@ -215,6 +227,9 @@ describe('Meetups Attendance Controller', () => {
     });
 
     it('should return 500 on error', async () => {
+      const originalError = console.error;
+      console.error = () => console.log('[에러 핸들링 테스트]');
+
       const qrData = { meetupId: '1', expiresAt: Date.now() + 600000 };
       const qrCodeData = Buffer.from(JSON.stringify(qrData)).toString('base64');
       req = createAuthenticatedRequest(mockUser, {
@@ -224,6 +239,7 @@ describe('Meetups Attendance Controller', () => {
       validateParticipant.mockRejectedValueOnce(new Error('Error'));
       await attendanceController.qrCheckin(req, res);
       expect(res.status).toHaveBeenCalledWith(500);
+      console.error = originalError;
     });
   });
 
@@ -250,12 +266,16 @@ describe('Meetups Attendance Controller', () => {
     });
 
     it('should return 500 on error', async () => {
+      const originalError = console.error;
+      console.error = () => console.log('[에러 핸들링 테스트]');
+
       req = createAuthenticatedRequest(mockUser, {
         params: { id: '1', participantId: '2' },
       });
       validateHostPermission.mockRejectedValueOnce(new Error('Error'));
       await attendanceController.hostConfirmAttendance(req, res);
       expect(res.status).toHaveBeenCalledWith(500);
+      console.error = originalError;
     });
   });
 
@@ -272,10 +292,14 @@ describe('Meetups Attendance Controller', () => {
     });
 
     it('should return 500 on error', async () => {
+      const originalError = console.error;
+      console.error = () => console.log('[에러 핸들링 테스트]');
+
       req = createMockRequest({ params: { id: '1' } });
       mockQueryError(mockPool, new Error('DB Error'));
       await attendanceController.getAttendanceParticipants(req, res);
       expect(res.status).toHaveBeenCalledWith(500);
+      console.error = originalError;
     });
   });
 
@@ -301,12 +325,16 @@ describe('Meetups Attendance Controller', () => {
     });
 
     it('should return 500 on error', async () => {
+      const originalError = console.error;
+      console.error = () => console.log('[에러 핸들링 테스트]');
+
       req = createAuthenticatedRequest(mockUser, {
         params: { id: '1', participantId: '2' },
       });
       validateParticipant.mockRejectedValueOnce(new Error('Error'));
       await attendanceController.mutualConfirmAttendance(req, res);
       expect(res.status).toHaveBeenCalledWith(500);
+      console.error = originalError;
     });
   });
 
@@ -346,6 +374,9 @@ describe('Meetups Attendance Controller', () => {
     });
 
     it('should return 500 on error', async () => {
+      const originalError = console.error;
+      console.error = () => console.log('[에러 핸들링 테스트]');
+
       req = createMockRequest({
         params: { id: '1' },
         body: { latitude: 37.5, longitude: 127.0 },
@@ -353,6 +384,7 @@ describe('Meetups Attendance Controller', () => {
       mockQueryError(mockPool, new Error('DB Error'));
       await attendanceController.verifyLocation(req, res);
       expect(res.status).toHaveBeenCalledWith(500);
+      console.error = originalError;
     });
   });
 });

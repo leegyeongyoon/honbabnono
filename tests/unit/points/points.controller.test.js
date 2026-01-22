@@ -88,6 +88,8 @@ describe('Points Controller', () => {
     });
 
     it('should return 500 on database error', async () => {
+      const originalError = console.error;
+      console.error = () => console.log('[에러 핸들링 테스트]');
       req = createAuthenticatedRequest(mockUser);
 
       mockQueryError(mockPool, new Error('Database error'));
@@ -98,6 +100,7 @@ describe('Points Controller', () => {
       expect(res.json).toHaveBeenCalledWith({
         error: '서버 오류가 발생했습니다',
       });
+      console.error = originalError;
     });
   });
 
@@ -175,6 +178,8 @@ describe('Points Controller', () => {
     });
 
     it('should return 500 on database error', async () => {
+      const originalError = console.error;
+      console.error = () => console.log('[에러 핸들링 테스트]');
       req = createAuthenticatedRequest(mockUser, {
         query: {},
       });
@@ -187,6 +192,7 @@ describe('Points Controller', () => {
       expect(res.json).toHaveBeenCalledWith({
         error: '서버 오류가 발생했습니다',
       });
+      console.error = originalError;
     });
   });
 
@@ -217,6 +223,8 @@ describe('Points Controller', () => {
     });
 
     it('should return 500 on transaction error', async () => {
+      const originalError = console.error;
+      console.error = () => console.log('[에러 핸들링 테스트]');
       req = createAuthenticatedRequest(mockUser, {
         body: {
           amount: 1000,
@@ -239,6 +247,7 @@ describe('Points Controller', () => {
       expect(res.json).toHaveBeenCalledWith({
         error: '서버 오류가 발생했습니다',
       });
+      console.error = originalError;
     });
   });
 
@@ -314,6 +323,8 @@ describe('Points Controller', () => {
     });
 
     it('should return 500 on transaction error', async () => {
+      const originalError = console.error;
+      console.error = () => console.log('[에러 핸들링 테스트]');
       req = createAuthenticatedRequest(mockUser, {
         body: {
           amount: 500,
@@ -336,6 +347,7 @@ describe('Points Controller', () => {
       expect(res.json).toHaveBeenCalledWith({
         error: '서버 오류가 발생했습니다',
       });
+      console.error = originalError;
     });
   });
 
@@ -408,6 +420,8 @@ describe('Points Controller', () => {
     });
 
     it('should return 500 on transaction error', async () => {
+      const originalError = console.error;
+      console.error = () => console.log('[에러 핸들링 테스트]');
       req = createAuthenticatedRequest(mockUser, {
         body: {
           meetupId: 'meetup-123',
@@ -429,6 +443,7 @@ describe('Points Controller', () => {
       expect(res.json).toHaveBeenCalledWith({
         error: '서버 오류가 발생했습니다',
       });
+      console.error = originalError;
     });
   });
 
@@ -478,6 +493,8 @@ describe('Points Controller', () => {
     });
 
     it('should return 500 on transaction error', async () => {
+      const originalError = console.error;
+      console.error = () => console.log('[에러 핸들링 테스트]');
       req = createAuthenticatedRequest(mockUser, {
         body: {
           meetupId: 'meetup-123',
@@ -498,6 +515,7 @@ describe('Points Controller', () => {
       expect(res.json).toHaveBeenCalledWith({
         error: '서버 오류가 발생했습니다',
       });
+      console.error = originalError;
     });
   });
 });

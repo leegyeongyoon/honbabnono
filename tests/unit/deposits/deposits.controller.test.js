@@ -257,6 +257,8 @@ describe('Deposits Controller', () => {
     });
 
     it('should return 500 on database error', async () => {
+      const originalError = console.error;
+      console.error = () => console.log('[에러 핸들링 테스트]');
       req = createAuthenticatedRequest(mockUser, {
         body: {
           amount: 5000,
@@ -274,6 +276,7 @@ describe('Deposits Controller', () => {
         success: false,
         error: '결제 처리 중 오류가 발생했습니다.',
       });
+      console.error = originalError;
     });
   });
 
@@ -331,6 +334,8 @@ describe('Deposits Controller', () => {
     });
 
     it('should return 500 on database error', async () => {
+      const originalError = console.error;
+      console.error = () => console.log('[에러 핸들링 테스트]');
       req = createAuthenticatedRequest(mockUser, {
         params: { id: '1' },
         body: { reason: '모임 취소' },
@@ -345,6 +350,7 @@ describe('Deposits Controller', () => {
         success: false,
         error: '환불 처리 중 오류가 발생했습니다.',
       });
+      console.error = originalError;
     });
   });
 
@@ -400,6 +406,8 @@ describe('Deposits Controller', () => {
     });
 
     it('should return 500 on database error', async () => {
+      const originalError = console.error;
+      console.error = () => console.log('[에러 핸들링 테스트]');
       req = createAuthenticatedRequest(mockUser, {
         params: { id: '1' },
       });
@@ -413,6 +421,7 @@ describe('Deposits Controller', () => {
         success: false,
         error: '포인트 전환 처리 중 오류가 발생했습니다.',
       });
+      console.error = originalError;
     });
   });
 
@@ -521,6 +530,8 @@ describe('Deposits Controller', () => {
     });
 
     it('should return 500 on database error', async () => {
+      const originalError = console.error;
+      console.error = () => console.log('[에러 핸들링 테스트]');
       req = createAuthenticatedRequest(mockUser, {
         body: {
           depositId: '1',
@@ -537,6 +548,7 @@ describe('Deposits Controller', () => {
         success: false,
         error: '환불 처리 중 오류가 발생했습니다.',
       });
+      console.error = originalError;
     });
   });
 });

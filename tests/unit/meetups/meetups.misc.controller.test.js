@@ -55,10 +55,14 @@ describe('Meetups Misc Controller', () => {
     });
 
     it('should return 500 on error', async () => {
+      const originalError = console.error;
+      console.error = () => console.log('[에러 핸들링 테스트]');
+
       req = createAuthenticatedRequest(mockUser, { params: { id: '1' } });
       validateMeetupExists.mockRejectedValueOnce(new Error('Error'));
       await miscController.addView(req, res);
       expect(res.status).toHaveBeenCalledWith(500);
+      console.error = originalError;
     });
   });
 
@@ -85,10 +89,14 @@ describe('Meetups Misc Controller', () => {
     });
 
     it('should return 500 on error', async () => {
+      const originalError = console.error;
+      console.error = () => console.log('[에러 핸들링 테스트]');
+
       req = createAuthenticatedRequest(mockUser, { params: { id: '1' } });
       mockQueryError(mockPool, new Error('DB Error'));
       await miscController.checkWishlist(req, res);
       expect(res.status).toHaveBeenCalledWith(500);
+      console.error = originalError;
     });
   });
 
@@ -119,10 +127,14 @@ describe('Meetups Misc Controller', () => {
     });
 
     it('should return 500 on error', async () => {
+      const originalError = console.error;
+      console.error = () => console.log('[에러 핸들링 테스트]');
+
       req = createAuthenticatedRequest(mockUser, { params: { id: '1' } });
       validateMeetupExists.mockRejectedValueOnce(new Error('Error'));
       await miscController.addWishlist(req, res);
       expect(res.status).toHaveBeenCalledWith(500);
+      console.error = originalError;
     });
   });
 
@@ -136,10 +148,14 @@ describe('Meetups Misc Controller', () => {
     });
 
     it('should return 500 on error', async () => {
+      const originalError = console.error;
+      console.error = () => console.log('[에러 핸들링 테스트]');
+
       req = createAuthenticatedRequest(mockUser, { params: { id: '1' } });
       mockQueryError(mockPool, new Error('DB Error'));
       await miscController.removeWishlist(req, res);
       expect(res.status).toHaveBeenCalledWith(500);
+      console.error = originalError;
     });
   });
 
@@ -172,10 +188,14 @@ describe('Meetups Misc Controller', () => {
     });
 
     it('should return 500 on error', async () => {
+      const originalError = console.error;
+      console.error = () => console.log('[에러 핸들링 테스트]');
+
       req = createAuthenticatedRequest(mockUser, { params: { id: '1' } });
       validateHostPermission.mockRejectedValueOnce(new Error('Error'));
       await miscController.confirmMeetup(req, res);
       expect(res.status).toHaveBeenCalledWith(500);
+      console.error = originalError;
     });
   });
 
@@ -215,10 +235,14 @@ describe('Meetups Misc Controller', () => {
     });
 
     it('should return 500 on error', async () => {
+      const originalError = console.error;
+      console.error = () => console.log('[에러 핸들링 테스트]');
+
       req = createAuthenticatedRequest(mockUser, { params: { id: '1' } });
       validateHostPermission.mockRejectedValueOnce(new Error('Error'));
       await miscController.applyNoShowPenalties(req, res);
       expect(res.status).toHaveBeenCalledWith(500);
+      console.error = originalError;
     });
   });
 
@@ -242,10 +266,14 @@ describe('Meetups Misc Controller', () => {
     });
 
     it('should return 500 on error', async () => {
+      const originalError = console.error;
+      console.error = () => console.log('[에러 핸들링 테스트]');
+
       req = createAuthenticatedRequest(mockUser, { params: { id: '1' } });
       mockQueryError(mockPool, new Error('DB Error'));
       await miscController.progressCheck(req, res);
       expect(res.status).toHaveBeenCalledWith(500);
+      console.error = originalError;
     });
   });
 
@@ -262,6 +290,9 @@ describe('Meetups Misc Controller', () => {
     });
 
     it('should return 500 on error', async () => {
+      const originalError = console.error;
+      console.error = () => console.log('[에러 핸들링 테스트]');
+
       req = createAuthenticatedRequest(mockUser, {
         params: { id: '1' },
         body: { response: '참석' },
@@ -269,6 +300,7 @@ describe('Meetups Misc Controller', () => {
       mockQueryError(mockPool, new Error('DB Error'));
       await miscController.progressResponse(req, res);
       expect(res.status).toHaveBeenCalledWith(500);
+      console.error = originalError;
     });
   });
 
@@ -293,10 +325,14 @@ describe('Meetups Misc Controller', () => {
     });
 
     it('should return 500 on error', async () => {
+      const originalError = console.error;
+      console.error = () => console.log('[에러 핸들링 테스트]');
+
       req = createAuthenticatedRequest(mockUser, { params: { id: '1' } });
       validateHostPermission.mockRejectedValueOnce(new Error('Error'));
       await miscController.getConfirmableParticipants(req, res);
       expect(res.status).toHaveBeenCalledWith(500);
+      console.error = originalError;
     });
   });
 });

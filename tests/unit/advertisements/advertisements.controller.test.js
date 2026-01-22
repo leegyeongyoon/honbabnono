@@ -55,10 +55,13 @@ describe('Advertisements Controller', () => {
     });
 
     it('should return 500 on error', async () => {
+      const originalError = console.error;
+      console.error = () => console.log('[에러 핸들링 테스트]');
       req = createMockRequest({ query: {} });
       mockQueryError(mockPool, new Error('DB Error'));
       await adsController.getAllAds(req, res);
       expect(res.status).toHaveBeenCalledWith(500);
+      console.error = originalError;
     });
   });
 
@@ -80,10 +83,13 @@ describe('Advertisements Controller', () => {
     });
 
     it('should return 500 on error', async () => {
+      const originalError = console.error;
+      console.error = () => console.log('[에러 핸들링 테스트]');
       req = createMockRequest({ query: {} });
       mockQueryError(mockPool, new Error('DB Error'));
       await adsController.getActiveAds(req, res);
       expect(res.status).toHaveBeenCalledWith(500);
+      console.error = originalError;
     });
   });
 
@@ -104,10 +110,13 @@ describe('Advertisements Controller', () => {
     });
 
     it('should return 500 on error', async () => {
+      const originalError = console.error;
+      console.error = () => console.log('[에러 핸들링 테스트]');
       req = createMockRequest({ params: { id: '1' } });
       mockQueryError(mockPool, new Error('DB Error'));
       await adsController.recordClick(req, res);
       expect(res.status).toHaveBeenCalledWith(500);
+      console.error = originalError;
     });
   });
 
@@ -129,10 +138,13 @@ describe('Advertisements Controller', () => {
     });
 
     it('should return 500 on error', async () => {
+      const originalError = console.error;
+      console.error = () => console.log('[에러 핸들링 테스트]');
       req = createMockRequest({ params: { id: '1' } });
       mockQueryError(mockPool, new Error('DB Error'));
       await adsController.getAdDetail(req, res);
       expect(res.status).toHaveBeenCalledWith(500);
+      console.error = originalError;
     });
   });
 });

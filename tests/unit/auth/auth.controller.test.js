@@ -105,6 +105,9 @@ describe('AuthController', () => {
     });
 
     it('should return 401 with expired token', async () => {
+      const originalError = console.error;
+      console.error = () => console.log('[에러 핸들링 테스트]');
+
       mockReq = createMockRequest({
         body: { token: 'expired-token' },
       });
@@ -120,9 +123,13 @@ describe('AuthController', () => {
       expect(mockRes.status).toHaveBeenCalledWith(401);
       const response = mockRes.json.mock.calls[0][0];
       expect(response.error).toContain('만료');
+      console.error = originalError;
     });
 
     it('should return 401 with invalid token', async () => {
+      const originalError = console.error;
+      console.error = () => console.log('[에러 핸들링 테스트]');
+
       mockReq = createMockRequest({
         body: { token: 'invalid-token' },
       });
@@ -136,6 +143,7 @@ describe('AuthController', () => {
       await authController.verifyToken(mockReq, mockRes);
 
       expect(mockRes.status).toHaveBeenCalledWith(401);
+      console.error = originalError;
     });
   });
 
@@ -174,6 +182,9 @@ describe('AuthController', () => {
     });
 
     it('should handle database error', async () => {
+      const originalError = console.error;
+      console.error = () => console.log('[에러 핸들링 테스트]');
+
       mockReq = createMockRequest({
         user: { userId: testUser.id, email: testUser.email },
       });
@@ -183,6 +194,7 @@ describe('AuthController', () => {
       await authController.getProfile(mockReq, mockRes);
 
       expect(mockRes.status).toHaveBeenCalledWith(500);
+      console.error = originalError;
     });
   });
 
@@ -363,6 +375,9 @@ describe('AuthController', () => {
     });
 
     it('should handle kakao API error', async () => {
+      const originalError = console.error;
+      console.error = () => console.log('[에러 핸들링 테스트]');
+
       mockReq = createMockRequest({
         query: { code: 'valid-auth-code' },
       });
@@ -375,6 +390,7 @@ describe('AuthController', () => {
       expect(mockRes.redirect).toHaveBeenCalled();
       const redirectUrl = mockRes.redirect.mock.calls[0][0];
       expect(redirectUrl).toContain('error=kakao_login_failed');
+      console.error = originalError;
     });
   });
 

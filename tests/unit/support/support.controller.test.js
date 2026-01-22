@@ -47,10 +47,13 @@ describe('Support Controller', () => {
     });
 
     it('should return 500 on error', async () => {
+      const originalError = console.error;
+      console.error = () => console.log('[에러 핸들링 테스트]');
       req = createMockRequest({ query: {} });
       mockQueryError(mockPool, new Error('DB Error'));
       await supportController.getFaq(req, res);
       expect(res.status).toHaveBeenCalledWith(500);
+      console.error = originalError;
     });
   });
 
@@ -72,12 +75,15 @@ describe('Support Controller', () => {
     });
 
     it('should return 500 on error', async () => {
+      const originalError = console.error;
+      console.error = () => console.log('[에러 핸들링 테스트]');
       req = createAuthenticatedRequest(mockUser, {
         body: { subject: 'Help', content: 'Need help' }
       });
       mockQueryError(mockPool, new Error('DB Error'));
       await supportController.createInquiry(req, res);
       expect(res.status).toHaveBeenCalledWith(500);
+      console.error = originalError;
     });
   });
 
@@ -92,10 +98,13 @@ describe('Support Controller', () => {
     });
 
     it('should return 500 on error', async () => {
+      const originalError = console.error;
+      console.error = () => console.log('[에러 핸들링 테스트]');
       req = createAuthenticatedRequest(mockUser, { query: {} });
       mockQueryError(mockPool, new Error('DB Error'));
       await supportController.getMyInquiries(req, res);
       expect(res.status).toHaveBeenCalledWith(500);
+      console.error = originalError;
     });
   });
 
@@ -116,10 +125,13 @@ describe('Support Controller', () => {
     });
 
     it('should return 500 on error', async () => {
+      const originalError = console.error;
+      console.error = () => console.log('[에러 핸들링 테스트]');
       req = createMockRequest();
       mockQueryError(mockPool, new Error('DB Error'));
       await supportController.getTerms(req, res);
       expect(res.status).toHaveBeenCalledWith(500);
+      console.error = originalError;
     });
   });
 
@@ -140,10 +152,13 @@ describe('Support Controller', () => {
     });
 
     it('should return 500 on error', async () => {
+      const originalError = console.error;
+      console.error = () => console.log('[에러 핸들링 테스트]');
       req = createMockRequest();
       mockQueryError(mockPool, new Error('DB Error'));
       await supportController.getPrivacyPolicy(req, res);
       expect(res.status).toHaveBeenCalledWith(500);
+      console.error = originalError;
     });
   });
 
@@ -169,10 +184,13 @@ describe('Support Controller', () => {
     });
 
     it('should return 500 on error', async () => {
+      const originalError = console.error;
+      console.error = () => console.log('[에러 핸들링 테스트]');
       req = createMockRequest();
       mockQueryError(mockPool, new Error('DB Error'));
       await supportController.getNotices(req, res);
       expect(res.status).toHaveBeenCalledWith(500);
+      console.error = originalError;
     });
   });
 
@@ -195,10 +213,13 @@ describe('Support Controller', () => {
     });
 
     it('should return 500 on error', async () => {
+      const originalError = console.error;
+      console.error = () => console.log('[에러 핸들링 테스트]');
       req = createMockRequest({ params: { id: '1' } });
       mockQueryError(mockPool, new Error('DB Error'));
       await supportController.getNoticeById(req, res);
       expect(res.status).toHaveBeenCalledWith(500);
+      console.error = originalError;
     });
   });
 });

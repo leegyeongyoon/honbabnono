@@ -99,6 +99,9 @@ describe('UserController', () => {
     });
 
     it('should handle database error', async () => {
+      const originalError = console.error;
+      console.error = () => console.log('[에러 핸들링 테스트]');
+
       mockReq = createMockRequest({
         user: { userId: testUser.id },
       });
@@ -108,6 +111,8 @@ describe('UserController', () => {
       await userController.getMe(mockReq, mockRes);
 
       expect(mockRes.status).toHaveBeenCalledWith(500);
+
+      console.error = originalError;
     });
   });
 
@@ -148,6 +153,9 @@ describe('UserController', () => {
     });
 
     it('should handle database error', async () => {
+      const originalError = console.error;
+      console.error = () => console.log('[에러 핸들링 테스트]');
+
       mockReq = createMockRequest({
         user: { userId: testUser.id },
       });
@@ -157,6 +165,8 @@ describe('UserController', () => {
       await userController.getStats(mockReq, mockRes);
 
       expect(mockRes.status).toHaveBeenCalledWith(500);
+
+      console.error = originalError;
     });
   });
 
@@ -186,6 +196,9 @@ describe('UserController', () => {
     });
 
     it('should handle database error', async () => {
+      const originalError = console.error;
+      console.error = () => console.log('[에러 핸들링 테스트]');
+
       mockReq = createMockRequest({
         user: { userId: testUser.id },
         query: {},
@@ -196,6 +209,8 @@ describe('UserController', () => {
       await userController.getMyReviews(mockReq, mockRes);
 
       expect(mockRes.status).toHaveBeenCalledWith(500);
+
+      console.error = originalError;
     });
   });
 
@@ -1488,6 +1503,9 @@ describe('UserController', () => {
     });
 
     it('should return 500 on transaction error', async () => {
+      const originalError = console.error;
+      console.error = () => console.log('[에러 핸들링 테스트]');
+
       mockReq = createMockRequest({
         user: { userId: testUser.id },
         body: { amount: 1000, paymentMethod: 'card' },
@@ -1509,6 +1527,8 @@ describe('UserController', () => {
         success: false,
         message: '포인트 충전 중 오류가 발생했습니다.',
       });
+
+      console.error = originalError;
     });
   });
 
@@ -1573,6 +1593,9 @@ describe('UserController', () => {
     });
 
     it('should return 500 on transaction error', async () => {
+      const originalError = console.error;
+      console.error = () => console.log('[에러 핸들링 테스트]');
+
       mockReq = createMockRequest({
         user: { userId: testUser.id },
         body: { amount: 500, description: '테스트' },
@@ -1594,6 +1617,8 @@ describe('UserController', () => {
         success: false,
         message: '포인트 사용 중 오류가 발생했습니다.',
       });
+
+      console.error = originalError;
     });
   });
 });

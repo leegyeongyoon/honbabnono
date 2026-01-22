@@ -46,10 +46,13 @@ describe('Notifications Controller', () => {
     });
 
     it('should return 500 on error', async () => {
+      const originalError = console.error;
+      console.error = () => console.log('[에러 핸들링 테스트]');
       req = createAuthenticatedRequest(mockUser, { query: {} });
       mockQueryError(mockPool, new Error('DB Error'));
       await notificationsController.getNotifications(req, res);
       expect(res.status).toHaveBeenCalledWith(500);
+      console.error = originalError;
     });
   });
 
@@ -63,10 +66,13 @@ describe('Notifications Controller', () => {
     });
 
     it('should return 500 on error', async () => {
+      const originalError = console.error;
+      console.error = () => console.log('[에러 핸들링 테스트]');
       req = createAuthenticatedRequest(mockUser);
       mockQueryError(mockPool, new Error('DB Error'));
       await notificationsController.getUnreadCount(req, res);
       expect(res.status).toHaveBeenCalledWith(500);
+      console.error = originalError;
     });
   });
 
@@ -80,10 +86,13 @@ describe('Notifications Controller', () => {
     });
 
     it('should return 500 on error', async () => {
+      const originalError = console.error;
+      console.error = () => console.log('[에러 핸들링 테스트]');
       req = createAuthenticatedRequest(mockUser, { params: { id: '1' } });
       mockQueryError(mockPool, new Error('DB Error'));
       await notificationsController.markAsRead(req, res);
       expect(res.status).toHaveBeenCalledWith(500);
+      console.error = originalError;
     });
   });
 
@@ -97,10 +106,13 @@ describe('Notifications Controller', () => {
     });
 
     it('should return 500 on error', async () => {
+      const originalError = console.error;
+      console.error = () => console.log('[에러 핸들링 테스트]');
       req = createAuthenticatedRequest(mockUser);
       mockQueryError(mockPool, new Error('DB Error'));
       await notificationsController.markAllAsRead(req, res);
       expect(res.status).toHaveBeenCalledWith(500);
+      console.error = originalError;
     });
   });
 
@@ -114,10 +126,13 @@ describe('Notifications Controller', () => {
     });
 
     it('should return 500 on error', async () => {
+      const originalError = console.error;
+      console.error = () => console.log('[에러 핸들링 테스트]');
       req = createAuthenticatedRequest(mockUser, { params: { id: '1' } });
       mockQueryError(mockPool, new Error('DB Error'));
       await notificationsController.deleteNotification(req, res);
       expect(res.status).toHaveBeenCalledWith(500);
+      console.error = originalError;
     });
   });
 
@@ -141,10 +156,13 @@ describe('Notifications Controller', () => {
     });
 
     it('should return 500 on error', async () => {
+      const originalError = console.error;
+      console.error = () => console.log('[에러 핸들링 테스트]');
       req = createAuthenticatedRequest(mockUser);
       mockQueryError(mockPool, new Error('DB Error'));
       await notificationsController.getSettings(req, res);
       expect(res.status).toHaveBeenCalledWith(500);
+      console.error = originalError;
     });
   });
 
@@ -160,10 +178,13 @@ describe('Notifications Controller', () => {
     });
 
     it('should return 500 on error', async () => {
+      const originalError = console.error;
+      console.error = () => console.log('[에러 핸들링 테스트]');
       req = createAuthenticatedRequest(mockUser, { body: {} });
       mockQueryError(mockPool, new Error('DB Error'));
       await notificationsController.updateSettings(req, res);
       expect(res.status).toHaveBeenCalledWith(500);
+      console.error = originalError;
     });
   });
 
@@ -177,10 +198,13 @@ describe('Notifications Controller', () => {
     });
 
     it('should return 500 on error', async () => {
+      const originalError = console.error;
+      console.error = () => console.log('[에러 핸들링 테스트]');
       req = createAuthenticatedRequest(mockUser);
       mockQueryError(mockPool, new Error('DB Error'));
       await notificationsController.createTestNotification(req, res);
       expect(res.status).toHaveBeenCalledWith(500);
+      console.error = originalError;
     });
   });
 
@@ -194,10 +218,13 @@ describe('Notifications Controller', () => {
     });
 
     it('should return 500 on error', async () => {
+      const originalError = console.error;
+      console.error = () => console.log('[에러 핸들링 테스트]');
       req = createAuthenticatedRequest(mockUser, { params: { notificationId: '1' } });
       mockQueryError(mockPool, new Error('DB Error'));
       await notificationsController.markAsReadPatch(req, res);
       expect(res.status).toHaveBeenCalledWith(500);
+      console.error = originalError;
     });
   });
 });

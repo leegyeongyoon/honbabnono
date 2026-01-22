@@ -93,6 +93,9 @@ describe('MeetupsController', () => {
     });
 
     it('should handle database error', async () => {
+      const originalError = console.error;
+      console.error = () => console.log('[에러 핸들링 테스트]');
+
       mockReq = createMockRequest({
         query: {},
       });
@@ -102,6 +105,7 @@ describe('MeetupsController', () => {
       await meetupsController.getMeetups(mockReq, mockRes);
 
       expect(mockRes.status).toHaveBeenCalledWith(500);
+      console.error = originalError;
     });
   });
 
@@ -164,6 +168,9 @@ describe('MeetupsController', () => {
     });
 
     it('should handle database error', async () => {
+      const originalError = console.error;
+      console.error = () => console.log('[에러 핸들링 테스트]');
+
       mockReq = createMockRequest({
         user: { userId: testUser.id },
         body: { title: '새 모임' },
@@ -174,6 +181,7 @@ describe('MeetupsController', () => {
       await meetupsController.createMeetup(mockReq, mockRes);
 
       expect(mockRes.status).toHaveBeenCalledWith(500);
+      console.error = originalError;
     });
   });
 

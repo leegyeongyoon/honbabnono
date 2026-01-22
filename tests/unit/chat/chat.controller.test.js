@@ -90,10 +90,14 @@ describe('Chat Controller', () => {
     });
 
     it('should return 500 on database error', async () => {
+      const originalError = console.error;
+      console.error = () => console.log('[에러 핸들링 테스트]');
+
       req = createMockRequest({ query: { currentUserId: '1', targetUserId: '2' } });
       mockQueryError(mockPool, new Error('Database error'));
       await chatController.checkDirectChatPermission(req, res);
       expect(res.status).toHaveBeenCalledWith(500);
+      console.error = originalError;
     });
   });
 
@@ -110,10 +114,14 @@ describe('Chat Controller', () => {
     });
 
     it('should return 500 on error', async () => {
+      const originalError = console.error;
+      console.error = () => console.log('[에러 핸들링 테스트]');
+
       req = createAuthenticatedRequest(mockUser);
       mockQueryError(mockPool, new Error('DB Error'));
       await chatController.getChatRooms(req, res);
       expect(res.status).toHaveBeenCalledWith(500);
+      console.error = originalError;
     });
   });
 
@@ -127,10 +135,14 @@ describe('Chat Controller', () => {
     });
 
     it('should return 500 on error', async () => {
+      const originalError = console.error;
+      console.error = () => console.log('[에러 핸들링 테스트]');
+
       req = createAuthenticatedRequest(mockUser);
       mockQueryError(mockPool, new Error('DB Error'));
       await chatController.getUnreadCount(req, res);
       expect(res.status).toHaveBeenCalledWith(500);
+      console.error = originalError;
     });
   });
 
@@ -151,10 +163,14 @@ describe('Chat Controller', () => {
     });
 
     it('should return 500 on error', async () => {
+      const originalError = console.error;
+      console.error = () => console.log('[에러 핸들링 테스트]');
+
       req = createAuthenticatedRequest(mockUser, { params: { meetupId: 'm1' } });
       mockQueryError(mockPool, new Error('DB Error'));
       await chatController.getChatRoomByMeetup(req, res);
       expect(res.status).toHaveBeenCalledWith(500);
+      console.error = originalError;
     });
   });
 
@@ -176,10 +192,14 @@ describe('Chat Controller', () => {
     });
 
     it('should return 500 on error', async () => {
+      const originalError = console.error;
+      console.error = () => console.log('[에러 핸들링 테스트]');
+
       req = createAuthenticatedRequest(mockUser, { params: { id: '1' }, query: {} });
       mockQueryError(mockPool, new Error('DB Error'));
       await chatController.getMessages(req, res);
       expect(res.status).toHaveBeenCalledWith(500);
+      console.error = originalError;
     });
   });
 
@@ -194,10 +214,14 @@ describe('Chat Controller', () => {
     });
 
     it('should return 500 on error', async () => {
+      const originalError = console.error;
+      console.error = () => console.log('[에러 핸들링 테스트]');
+
       req = createAuthenticatedRequest(mockUser, { params: { id: '1' }, body: { message: 'Hello' } });
       mockQueryError(mockPool, new Error('DB Error'));
       await chatController.sendMessage(req, res);
       expect(res.status).toHaveBeenCalledWith(500);
+      console.error = originalError;
     });
   });
 
@@ -211,10 +235,14 @@ describe('Chat Controller', () => {
     });
 
     it('should return 500 on error', async () => {
+      const originalError = console.error;
+      console.error = () => console.log('[에러 핸들링 테스트]');
+
       req = createAuthenticatedRequest(mockUser, { params: { id: '1' } });
       mockQueryError(mockPool, new Error('DB Error'));
       await chatController.markAsRead(req, res);
       expect(res.status).toHaveBeenCalledWith(500);
+      console.error = originalError;
     });
   });
 
@@ -228,10 +256,14 @@ describe('Chat Controller', () => {
     });
 
     it('should return 500 on error', async () => {
+      const originalError = console.error;
+      console.error = () => console.log('[에러 핸들링 테스트]');
+
       req = createAuthenticatedRequest(mockUser, { params: { id: '1' } });
       mockQueryError(mockPool, new Error('DB Error'));
       await chatController.leaveChatRoom(req, res);
       expect(res.status).toHaveBeenCalledWith(500);
+      console.error = originalError;
     });
   });
 
@@ -245,10 +277,14 @@ describe('Chat Controller', () => {
     });
 
     it('should return 500 on error', async () => {
+      const originalError = console.error;
+      console.error = () => console.log('[에러 핸들링 테스트]');
+
       req = createAuthenticatedRequest(mockUser);
       mockQueryError(mockPool, new Error('DB Error'));
       await chatController.markAllAsRead(req, res);
       expect(res.status).toHaveBeenCalledWith(500);
+      console.error = originalError;
     });
   });
 });

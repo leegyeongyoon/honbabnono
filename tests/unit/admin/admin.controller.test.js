@@ -121,6 +121,9 @@ describe('AdminController', () => {
     });
 
     it('should handle database error', async () => {
+      const originalError = console.error;
+      console.error = () => console.log('[에러 핸들링 테스트]');
+
       mockReq = createMockRequest({
         body: { username: 'admin', password: 'password123' },
       });
@@ -130,6 +133,7 @@ describe('AdminController', () => {
       await adminController.login(mockReq, mockRes);
 
       expect(mockRes.status).toHaveBeenCalledWith(500);
+      console.error = originalError;
     });
   });
 
@@ -153,6 +157,9 @@ describe('AdminController', () => {
     });
 
     it('should handle database error', async () => {
+      const originalError = console.error;
+      console.error = () => console.log('[에러 핸들링 테스트]');
+
       mockReq = createMockRequest({});
 
       mockPool.query.mockRejectedValueOnce(new Error('DB Error'));
@@ -160,6 +167,7 @@ describe('AdminController', () => {
       await adminController.getDashboardStats(mockReq, mockRes);
 
       expect(mockRes.status).toHaveBeenCalledWith(500);
+      console.error = originalError;
     });
   });
 
@@ -312,6 +320,9 @@ describe('AdminController', () => {
     });
 
     it('should handle database error', async () => {
+      const originalError = console.error;
+      console.error = () => console.log('[에러 핸들링 테스트]');
+
       mockReq = createMockRequest({
         params: { id: testUser.id },
         body: {},
@@ -322,6 +333,7 @@ describe('AdminController', () => {
       await adminController.blockUser(mockReq, mockRes);
 
       expect(mockRes.status).toHaveBeenCalledWith(500);
+      console.error = originalError;
     });
   });
 

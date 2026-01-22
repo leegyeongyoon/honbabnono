@@ -87,10 +87,14 @@ describe('Meetups Participation Controller', () => {
     });
 
     it('should return 500 on error', async () => {
+      const originalError = console.error;
+      console.error = () => console.log('[에러 핸들링 테스트]');
+
       req = createAuthenticatedRequest(mockUser, { params: { id: '1' } });
       validateMeetupExists.mockRejectedValueOnce(new Error('DB Error'));
       await participationController.joinMeetup(req, res);
       expect(res.status).toHaveBeenCalledWith(500);
+      console.error = originalError;
     });
   });
 
@@ -138,10 +142,14 @@ describe('Meetups Participation Controller', () => {
     });
 
     it('should return 500 on error', async () => {
+      const originalError = console.error;
+      console.error = () => console.log('[에러 핸들링 테스트]');
+
       req = createAuthenticatedRequest(mockUser, { params: { id: '1' } });
       validateMeetupExists.mockRejectedValueOnce(new Error('DB Error'));
       await participationController.leaveMeetup(req, res);
       expect(res.status).toHaveBeenCalledWith(500);
+      console.error = originalError;
     });
   });
 
@@ -161,10 +169,14 @@ describe('Meetups Participation Controller', () => {
     });
 
     it('should return 500 on error', async () => {
+      const originalError = console.error;
+      console.error = () => console.log('[에러 핸들링 테스트]');
+
       req = createMockRequest({ params: { id: '1' } });
       mockQueryError(mockPool, new Error('DB Error'));
       await participationController.getParticipants(req, res);
       expect(res.status).toHaveBeenCalledWith(500);
+      console.error = originalError;
     });
   });
 
@@ -214,6 +226,9 @@ describe('Meetups Participation Controller', () => {
     });
 
     it('should return 500 on error', async () => {
+      const originalError = console.error;
+      console.error = () => console.log('[에러 핸들링 테스트]');
+
       req = createAuthenticatedRequest(mockUser, {
         params: { id: '1', participantId: '2' },
         body: { status: '참가승인' },
@@ -221,6 +236,7 @@ describe('Meetups Participation Controller', () => {
       validateHostPermission.mockRejectedValueOnce(new Error('DB Error'));
       await participationController.updateParticipantStatus(req, res);
       expect(res.status).toHaveBeenCalledWith(500);
+      console.error = originalError;
     });
   });
 });
