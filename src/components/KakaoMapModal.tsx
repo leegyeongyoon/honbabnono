@@ -121,7 +121,7 @@ const KakaoMapModal: React.FC<KakaoMapModalProps> = ({
     
     console.log(`🗺️ [KakaoMapModal] isBrowser: ${isBrowser}, isRealWebEnvironment: ${isRealWebEnvironment}`);
     
-    if (!visible) return;
+    if (!visible) {return;}
 
     if (isRealWebEnvironment) {
       // 실제 웹 브라우저 환경에서만 카카오 지도 로딩

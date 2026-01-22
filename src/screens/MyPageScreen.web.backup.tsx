@@ -124,29 +124,29 @@ const Badge: React.FC<{
 
 // 밥알지수 색상 및 레벨 시스템
 const getRiceIndexColor = (riceIndex: number) => {
-  if (riceIndex >= 90) return COLORS.functional.error; // 빨간색 - 최고급
-  if (riceIndex >= 80) return '#FF9500'; // 주황색 - 고급
-  if (riceIndex >= 70) return '#F5B041'; // 황금색 - 중급
-  if (riceIndex >= 50) return '#28A745'; // 초록색 - 초급
-  if (riceIndex >= 30) return '#007BFF'; // 파란색 - 새싹
+  if (riceIndex >= 90) {return COLORS.functional.error;} // 빨간색 - 최고급
+  if (riceIndex >= 80) {return '#FF9500';} // 주황색 - 고급
+  if (riceIndex >= 70) {return '#F5B041';} // 황금색 - 중급
+  if (riceIndex >= 50) {return '#28A745';} // 초록색 - 초급
+  if (riceIndex >= 30) {return '#007BFF';} // 파란색 - 새싹
   return '#6C757D'; // 회색 - 시작
 };
 
 const getRiceIndexLevel = (riceIndex: number) => {
-  if (riceIndex >= 90) return { title: '밥신', emoji: '🍚👑' };
-  if (riceIndex >= 80) return { title: '밥마스터', emoji: '🍚⭐' };
-  if (riceIndex >= 70) return { title: '따끈한 밥그릇', emoji: '🍚🔥' };
-  if (riceIndex >= 50) return { title: '든든한 밥그릇', emoji: '🍚💪' };
-  if (riceIndex >= 30) return { title: '새내기 밥그릇', emoji: '🍚🌱' };
+  if (riceIndex >= 90) {return { title: '밥신', emoji: '🍚👑' };}
+  if (riceIndex >= 80) {return { title: '밥마스터', emoji: '🍚⭐' };}
+  if (riceIndex >= 70) {return { title: '따끈한 밥그릇', emoji: '🍚🔥' };}
+  if (riceIndex >= 50) {return { title: '든든한 밥그릇', emoji: '🍚💪' };}
+  if (riceIndex >= 30) {return { title: '새내기 밥그릇', emoji: '🍚🌱' };}
   return { title: '밥알 초보', emoji: '🍚👶' };
 };
 
 const getNextLevelRequirement = (riceIndex: number) => {
-  if (riceIndex >= 90) return 0; // 최고 레벨
-  if (riceIndex >= 80) return 90 - riceIndex;
-  if (riceIndex >= 70) return 80 - riceIndex;
-  if (riceIndex >= 50) return 70 - riceIndex;
-  if (riceIndex >= 30) return 50 - riceIndex;
+  if (riceIndex >= 90) {return 0;} // 최고 레벨
+  if (riceIndex >= 80) {return 90 - riceIndex;}
+  if (riceIndex >= 70) {return 80 - riceIndex;}
+  if (riceIndex >= 50) {return 70 - riceIndex;}
+  if (riceIndex >= 30) {return 50 - riceIndex;}
   return 30 - riceIndex;
 };
 
@@ -268,8 +268,8 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ user: propsUser }) => {
         
         // 획득한 뱃지를 맨 앞으로 정렬
         const sortedBadges = badgesWithIcons.sort((a, b) => {
-          if (a.earned && !b.earned) return -1;  // 획득한 뱃지가 앞으로
-          if (!a.earned && b.earned) return 1;   // 미획득 뱃지가 뒤로
+          if (a.earned && !b.earned) {return -1;}  // 획득한 뱃지가 앞으로
+          if (!a.earned && b.earned) {return 1;}   // 미획득 뱃지가 뒤로
           return 0;  // 같은 상태면 기존 순서 유지
         });
         

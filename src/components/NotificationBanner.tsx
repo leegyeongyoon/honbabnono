@@ -59,7 +59,7 @@ const NotificationBanner: React.FC<NotificationBannerProps> = ({
     });
   };
 
-  if (!notification) return null;
+  if (!notification) {return null;}
 
   const getBackgroundColor = () => {
     switch (notification.type) {

@@ -95,7 +95,7 @@ const UniversalNotificationSettingsScreen: React.FC<UniversalNotificationSetting
 
   // Update notification settings
   const handleSettingChange = async (key: keyof NotificationSettings, value: boolean) => {
-    if (!settings) return;
+    if (!settings) {return;}
 
     const newSettings = { ...settings, [key]: value };
     setSettings(newSettings);

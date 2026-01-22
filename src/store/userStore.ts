@@ -47,7 +47,7 @@ interface UserState {
 
 // 밥알지수 계산 로직
 const calculateBabAlFromStats = (user: User): number => {
-  if (!user) return 0;
+  if (!user) {return 0;}
   
   // 기본 점수 (20점)
   let score = 20;
@@ -146,7 +146,7 @@ export const useUserStore = create<UserState>()(
       })),
       
       updateUserStats: (stats) => set((state) => {
-        if (!state.user) return state;
+        if (!state.user) {return state;}
         
         const updatedUser = { ...state.user, ...stats };
         const newBabAlScore = calculateBabAlFromStats(updatedUser);
@@ -177,7 +177,7 @@ export const useUserStore = create<UserState>()(
       
       fetchUserProfile: async () => {
         const { token } = get();
-        if (!token) return;
+        if (!token) {return;}
         
         try {
           const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';

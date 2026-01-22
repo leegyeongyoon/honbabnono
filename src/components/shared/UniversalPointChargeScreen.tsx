@@ -106,7 +106,7 @@ const UniversalPointChargeScreen: React.FC<UniversalPointChargeScreenProps> = ({
   };
 
   const formatAmount = (value: string) => {
-    if (!value) return '';
+    if (!value) {return '';}
     const numericValue = parseInt(value);
     return isNaN(numericValue) ? '' : numericValue.toLocaleString();
   };

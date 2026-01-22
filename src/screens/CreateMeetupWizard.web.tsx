@@ -611,7 +611,7 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
   const fetchUserPoints = async () => {
     try {
       const token = localStorage.getItem('token');
-      if (!token) return;
+      if (!token) {return;}
 
       const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:3001/api'}/user/points`, {
         headers: {
@@ -939,7 +939,7 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
                               </Text>
                             </TouchableOpacity>
                           );
-                        })
+                        });
                       })()}
                     </View>
                   </View>

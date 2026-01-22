@@ -135,9 +135,9 @@ const expectBadRequest = (response) => {
  */
 const expectPagination = (response, options = {}) => {
   expect(response.body).toHaveProperty('meta');
-  if (options.page) expect(response.body.meta.page).toBe(options.page);
-  if (options.limit) expect(response.body.meta.limit).toBe(options.limit);
-  if (options.total !== undefined) expect(response.body.meta.total).toBe(options.total);
+  if (options.page) {expect(response.body.meta.page).toBe(options.page);}
+  if (options.limit) {expect(response.body.meta.limit).toBe(options.limit);}
+  if (options.total !== undefined) {expect(response.body.meta.total).toBe(options.total);}
   return response;
 };
 

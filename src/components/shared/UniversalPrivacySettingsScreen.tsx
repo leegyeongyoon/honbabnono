@@ -63,7 +63,7 @@ const UniversalPrivacySettingsScreen: React.FC<{navigation: NavigationAdapter, u
   useEffect(() => { fetchPrivacySettings(); }, [fetchPrivacySettings]);
 
   const updateSetting = async (key: keyof PrivacySettings, value: any) => {
-    if (!settings) return;
+    if (!settings) {return;}
 
     const newSettings = { ...settings, [key]: value };
     setSettings(newSettings);
@@ -81,7 +81,7 @@ const UniversalPrivacySettingsScreen: React.FC<{navigation: NavigationAdapter, u
   };
 
   const renderSwitch = (key: keyof PrivacySettings, title: string, description: string) => {
-    if (!settings || typeof settings[key] !== 'boolean') return null;
+    if (!settings || typeof settings[key] !== 'boolean') {return null;}
     
     return (
       <View style={styles.settingItem}>

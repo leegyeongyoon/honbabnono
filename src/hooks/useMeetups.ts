@@ -22,15 +22,15 @@ export const useMeetups = () => {
       
       // URL 구성
       const queryParams = new URLSearchParams();
-      if (searchParams.search) queryParams.append('search', searchParams.search);
+      if (searchParams.search) {queryParams.append('search', searchParams.search);}
       if (searchParams.category && searchParams.category !== '전체') {
         queryParams.append('category', searchParams.category);
       }
       if (searchParams.location && searchParams.location !== '전체') {
         queryParams.append('location', searchParams.location);
       }
-      if (searchParams.page) queryParams.append('page', searchParams.page.toString());
-      if (searchParams.limit) queryParams.append('limit', searchParams.limit.toString());
+      if (searchParams.page) {queryParams.append('page', searchParams.page.toString());}
+      if (searchParams.limit) {queryParams.append('limit', searchParams.limit.toString());}
       
       const queryString = queryParams.toString();
       const fullUrl = `${apiUrl}/meetups${queryString ? '?' + queryString : ''}`;

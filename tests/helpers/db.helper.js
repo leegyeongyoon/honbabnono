@@ -116,7 +116,7 @@ const seedParticipant = async (participantData) => {
  * @param {Array<string>} userIds - 삭제할 사용자 ID 배열
  */
 const cleanupUsers = async (userIds) => {
-  if (!userIds || userIds.length === 0) return;
+  if (!userIds || userIds.length === 0) {return;}
   const db = initializePool();
   await db.query(`DELETE FROM users WHERE id = ANY($1)`, [userIds]);
 };
@@ -126,7 +126,7 @@ const cleanupUsers = async (userIds) => {
  * @param {Array<string>} meetupIds - 삭제할 모임 ID 배열
  */
 const cleanupMeetups = async (meetupIds) => {
-  if (!meetupIds || meetupIds.length === 0) return;
+  if (!meetupIds || meetupIds.length === 0) {return;}
   const db = initializePool();
   await db.query(`DELETE FROM meetup_participants WHERE meetup_id = ANY($1)`, [meetupIds]);
   await db.query(`DELETE FROM meetups WHERE id = ANY($1)`, [meetupIds]);

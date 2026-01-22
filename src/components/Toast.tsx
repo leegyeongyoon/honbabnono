@@ -44,7 +44,7 @@ const Toast: React.FC<ToastProps> = ({
     }
   }, [visible, fadeAnim, duration, onHide]);
 
-  if (!visible) return null;
+  if (!visible) {return null;}
 
   const getToastStyle = () => {
     switch (type) {

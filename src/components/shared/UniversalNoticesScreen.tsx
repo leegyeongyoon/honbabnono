@@ -217,8 +217,8 @@ const UniversalNoticesScreen: React.FC<UniversalNoticesScreenProps> = ({
             {/* Sort notices: pinned first, then by creation date */}
             {notices
               .sort((a, b) => {
-                if (a.is_pinned && !b.is_pinned) return -1;
-                if (!a.is_pinned && b.is_pinned) return 1;
+                if (a.is_pinned && !b.is_pinned) {return -1;}
+                if (!a.is_pinned && b.is_pinned) {return 1;}
                 return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
               })
               .map(renderNoticeItem)}

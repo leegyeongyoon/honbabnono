@@ -46,7 +46,7 @@ interface UniversalHomeScreenProps {
 
 // 반경 포맷팅 함수
 const formatRadius = (radiusInMeters: number | undefined): string => {
-  if (!radiusInMeters) return '3km';
+  if (!radiusInMeters) {return '3km';}
   if (radiusInMeters < 1000) {
     return `${radiusInMeters}m`;
   }
@@ -468,11 +468,11 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
         title={popupState.title}
         message={popupState.message}
         onConfirm={() => {
-          if (popupState.onConfirm) popupState.onConfirm();
+          if (popupState.onConfirm) {popupState.onConfirm();}
           hidePopup();
         }}
         onCancel={() => {
-          if (popupState.onCancel) popupState.onCancel();
+          if (popupState.onCancel) {popupState.onCancel();}
           hidePopup();
         }}
         confirmText={popupState.confirmText}

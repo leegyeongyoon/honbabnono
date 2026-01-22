@@ -37,7 +37,7 @@ const useNotifications = (userId?: string) => {
   const [connected, setConnected] = useState(false);
 
   useEffect(() => {
-    if (!userId) return;
+    if (!userId) {return;}
 
     // WebSocket 연결
     const newSocket = io('http://localhost:3001', {

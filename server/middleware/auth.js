@@ -3,7 +3,7 @@ const pool = require('../config/database');
 
 // JWT 토큰 검증 미들웨어
 const authenticateToken = (req, res, next) => {
-  const authHeader = req.headers['authorization'];
+  const authHeader = req.headers.authorization;
   const token = authHeader && authHeader.split(' ')[1];
 
   console.log('🔐 토큰 검증 시작:', {
@@ -31,7 +31,7 @@ const authenticateToken = (req, res, next) => {
 
 // 관리자 인증 미들웨어 (기본)
 const authenticateAdmin = (req, res, next) => {
-  const authHeader = req.headers['authorization'];
+  const authHeader = req.headers.authorization;
   const token = authHeader && authHeader.split(' ')[1];
 
   console.log('🔐 관리자 토큰 검증 시작:', {

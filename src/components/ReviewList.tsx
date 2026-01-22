@@ -112,7 +112,7 @@ const ReviewList: React.FC<ReviewListProps> = ({
   );
 
   const renderFooter = () => {
-    if (!hasMore) return null;
+    if (!hasMore) {return null;}
     
     return (
       <TouchableOpacity

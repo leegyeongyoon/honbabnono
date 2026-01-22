@@ -2104,7 +2104,7 @@ exports.progressCheck = async (req, res) => {
 
     if (notifications.length > 0) {
       const placeholders = notifications.map((_, i) =>
-        `($${i*7+1}, $${i*7+2}, $${i*7+3}, $${i*7+4}, $${i*7+5}, $${i*7+6}, $${i*7+7})`
+        `($${i * 7 + 1}, $${i * 7 + 2}, $${i * 7 + 3}, $${i * 7 + 4}, $${i * 7 + 5}, $${i * 7 + 6}, $${i * 7 + 7})`
       ).join(', ');
 
       await pool.query(`

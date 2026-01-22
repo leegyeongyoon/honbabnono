@@ -78,7 +78,7 @@ const CheckInButton: React.FC<CheckInButtonProps> = ({
   };
 
   const handleCheckIn = async () => {
-    if (loading) return;
+    if (loading) {return;}
 
     setLoading(true);
     try {

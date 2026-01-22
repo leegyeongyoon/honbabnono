@@ -147,7 +147,7 @@ const NativeMapModal: React.FC<NativeMapModalProps> = ({
 
   // 서버 URL - visible이 true가 될 때만 새 URL 생성 (무한 루프 방지)
   const mapUrl = useMemo(() => {
-    if (!visible) return '';
+    if (!visible) {return '';}
     const cacheBuster = Date.now();
     // mode에 따라 다른 HTML 파일 로드
     const htmlFile = mode === 'settings' ? 'location-settings.html' : 'kakao-map.html';

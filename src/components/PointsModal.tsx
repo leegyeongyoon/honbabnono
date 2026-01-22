@@ -29,7 +29,7 @@ export const PointsModal: React.FC<PointsModalProps> = ({
   }, [visible, user]);
 
   const loadPointsData = async () => {
-    if (!user) return;
+    if (!user) {return;}
 
     setLoading(true);
     try {

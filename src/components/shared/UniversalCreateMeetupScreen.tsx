@@ -60,7 +60,7 @@ const LocationSelector: React.FC<{
 
   // Web only - Kakao Map functionality
   useEffect(() => {
-    if (Platform.OS !== 'web') return;
+    if (Platform.OS !== 'web') {return;}
 
     const loadKakaoMap = () => {
       try {
@@ -185,7 +185,7 @@ const LocationSelector: React.FC<{
 
   // 키워드 및 주소 검색 함수
   const searchAddress = () => {
-    if (Platform.OS !== 'web' || !searchQuery.trim() || typeof window === 'undefined' || !window.kakao) return;
+    if (Platform.OS !== 'web' || !searchQuery.trim() || typeof window === 'undefined' || !window.kakao) {return;}
 
     console.log('🔍 검색 시작:', searchQuery);
 
@@ -569,7 +569,7 @@ const UniversalCreateMeetupScreen: React.FC<UniversalCreateMeetupScreenProps> = 
   };
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (Platform.OS !== 'web') return;
+    if (Platform.OS !== 'web') {return;}
 
     const file = event.target.files?.[0];
     if (file) {
@@ -932,7 +932,7 @@ const UniversalCreateMeetupScreen: React.FC<UniversalCreateMeetupScreenProps> = 
                   selectable={true}
                   popup={true}
                   views={['month']}
-                  defaultView='month'
+                  defaultView="month"
                   step={60}
                   showMultiDayTimes
                   min={new Date(0, 0, 0, 9, 0, 0)}

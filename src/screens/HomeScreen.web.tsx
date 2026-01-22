@@ -32,7 +32,7 @@ import nativeBridge from '../utils/nativeBridge';
 // 모임 시간 포맷팅 함수
 const formatMeetupDateTime = (date: string, time: string) => {
   try {
-    if (!date || !time) return '시간 미정';
+    if (!date || !time) {return '시간 미정';}
     
     // ISO 문자열 형태로 변환
     const dateTimeStr = `${date}T${time}`;

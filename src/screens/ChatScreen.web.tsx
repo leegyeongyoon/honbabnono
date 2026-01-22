@@ -90,7 +90,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation }) => {
 
   // 사용자 프로필 클릭 핸들러
   const handleUserProfileClick = async (message: ChatMessage) => {
-    if (message.senderId === userId) return; // 자기 자신은 클릭 불가
+    if (message.senderId === userId) {return;} // 자기 자신은 클릭 불가
 
     const permission = await checkDirectChatPermission(message.senderId);
     if (permission.allowed) {
@@ -249,7 +249,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation }) => {
 
   // 메시지 전송
   const sendMessage = async () => {
-    if (!messageText.trim() || !selectedChatId || !currentChatRoom) return;
+    if (!messageText.trim() || !selectedChatId || !currentChatRoom) {return;}
 
     const messageData = {
       message: messageText.trim(),
