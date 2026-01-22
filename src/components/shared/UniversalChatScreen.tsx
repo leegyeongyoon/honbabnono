@@ -167,7 +167,7 @@ const UniversalChatScreen: React.FC<UniversalChatScreenProps> = ({
   const loadMessages = async (roomId: number) => {
     try {
       setLoading(true);
-      
+
       // 이전 채팅방에서 나가기
       if (selectedChatId) {
         chatService.leaveRoom(selectedChatId);
@@ -175,19 +175,22 @@ const UniversalChatScreen: React.FC<UniversalChatScreenProps> = ({
 
       // 새 채팅방 입장
       chatService.joinRoom(roomId);
-      
+
       // 메시지 로드
       const { chatRoom, messages: roomMessages } = await chatApiService.getChatMessages(roomId, userId);
-      
+
       setSelectedChatId(roomId);
       setCurrentChatRoom(chatRoom);
       setMessages(roomMessages);
-      
-      // 읽지 않은 메시지 수 초기화
-      setChatRooms(prev => prev.map(room => 
+
+      // 서버에 읽음 처리 요청 (DB에 lastReadAt 업데이트)
+      await chatApiService.markAsRead(roomId);
+
+      // 로컬 상태에서도 읽지 않은 메시지 수 초기화
+      setChatRooms(prev => prev.map(room =>
         room.id === roomId ? { ...room, unreadCount: 0 } : room
       ));
-      
+
     } catch (error) {
       console.error('메시지 로드 실패:', error);
       Alert.alert('오류', '메시지를 불러올 수 없습니다.');
