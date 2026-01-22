@@ -183,9 +183,9 @@ class ChatApiService {
         },
         body: JSON.stringify({ userId }),
       });
-      
+
       const data = await response.json();
-      
+
       if (data.success) {
         return data.data;
       } else {
@@ -194,6 +194,28 @@ class ChatApiService {
     } catch (error) {
       console.error('사용자 추가 오류:', error);
       throw error;
+    }
+  }
+
+  // 채팅방 읽음 처리
+  async markAsRead(roomId: number): Promise<void> {
+    try {
+      const token = await localStorage.getItem('token');
+      const response = await fetch(`${API_BASE_URL}/chat/rooms/${roomId}/read`, {
+        method: 'POST',
+        headers: {
+          'Authorization': token ? `Bearer ${token}` : '',
+        },
+      });
+
+      const data = await response.json();
+
+      if (!data.success) {
+        throw new Error(data.message || '읽음 처리 실패');
+      }
+    } catch (error) {
+      console.error('읽음 처리 오류:', error);
+      // 읽음 처리 실패는 조용히 무시 (UX에 영향 없음)
     }
   }
 }

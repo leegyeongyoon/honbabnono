@@ -108,15 +108,18 @@ exports.getChatRooms = async (req, res) => {
         cr."lastMessage",
         cr."lastMessageTime",
         cr."isActive",
-        cp."unreadCount",
-        cp."isPinned",
-        cp."isMuted",
-        array_agg(DISTINCT cp2."userName") as participants
+        cp."lastReadAt",
+        cp."joinedAt",
+        (
+          SELECT COUNT(*)::int
+          FROM chat_messages cm
+          WHERE cm."chatRoomId" = cr.id
+            AND cm."senderId" <> $1
+            AND cm."createdAt" > COALESCE(cp."lastReadAt", cp."joinedAt", '1970-01-01'::timestamp)
+        ) as "unreadCount"
       FROM chat_rooms cr
       JOIN chat_participants cp ON cr.id = cp."chatRoomId"
-      LEFT JOIN chat_participants cp2 ON cr.id = cp2."chatRoomId" AND cp2."isActive" = true
-      WHERE cp."userId" = $1 AND cp."isActive" = true
-      GROUP BY cr.id, cp."unreadCount", cp."isPinned", cp."isMuted"
+      WHERE cp."userId" = $1 AND cr."isActive" = true
       ORDER BY COALESCE(cr."lastMessageTime", cr."createdAt") DESC
     `, [userId]);
 
@@ -125,7 +128,7 @@ exports.getChatRooms = async (req, res) => {
       type: room.type,
       meetupId: room.meetupId,
       title: room.title,
-      participants: room.participants || [],
+      participants: [],
       lastMessage: room.lastMessage || '',
       lastTime: room.lastMessageTime ? new Date(room.lastMessageTime).toISOString() : new Date().toISOString(),
       unreadCount: room.unreadCount || 0,
@@ -351,7 +354,7 @@ exports.markAsRead = async (req, res) => {
 
     await pool.query(`
       UPDATE chat_participants
-      SET "lastReadAt" = NOW(), "unreadCount" = 0
+      SET "lastReadAt" = NOW()
       WHERE "chatRoomId" = $1 AND "userId" = $2
     `, [id, userId]);
 
@@ -373,8 +376,7 @@ exports.leaveChatRoom = async (req, res) => {
     const userId = req.user.userId;
 
     await pool.query(`
-      UPDATE chat_participants
-      SET "isActive" = false, "leftAt" = NOW()
+      DELETE FROM chat_participants
       WHERE "chatRoomId" = $1 AND "userId" = $2
     `, [id, userId]);
 
@@ -397,8 +399,8 @@ exports.markAllAsRead = async (req, res) => {
     const now = new Date();
     const updateResult = await pool.query(`
       UPDATE chat_participants
-      SET "lastReadAt" = $1, "updatedAt" = $1, "unreadCount" = 0
-      WHERE "userId" = $2 AND "isActive" = true
+      SET "lastReadAt" = $1
+      WHERE "userId" = $2
     `, [now, userId]);
 
     res.json({
