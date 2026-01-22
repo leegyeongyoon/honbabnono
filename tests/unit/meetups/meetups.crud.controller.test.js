@@ -61,10 +61,14 @@ describe('Meetups CRUD Controller', () => {
     });
 
     it('should return 500 on error', async () => {
+      const originalError = console.error;
+      console.error = () => console.log('[에러 핸들링 테스트]');
+
       req = createMockRequest({ params: { id: '1' } });
       mockQueryError(mockPool, new Error('DB Error'));
       await crudController.getMeetupById(req, res);
       expect(res.status).toHaveBeenCalledWith(500);
+      console.error = originalError;
     });
   });
 
@@ -91,12 +95,16 @@ describe('Meetups CRUD Controller', () => {
     });
 
     it('should return 500 on error', async () => {
+      const originalError = console.error;
+      console.error = () => console.log('[에러 핸들링 테스트]');
+
       req = createAuthenticatedRequest(mockUser, {
         body: { title: 'Test' },
       });
       mockQueryError(mockPool, new Error('DB Error'));
       await crudController.createMeetup(req, res);
       expect(res.status).toHaveBeenCalledWith(500);
+      console.error = originalError;
     });
   });
 
@@ -147,6 +155,9 @@ describe('Meetups CRUD Controller', () => {
     });
 
     it('should return 500 on error', async () => {
+      const originalError = console.error;
+      console.error = () => console.log('[에러 핸들링 테스트]');
+
       req = createAuthenticatedRequest(mockUser, {
         params: { id: '1' },
         body: { title: 'Test' },
@@ -154,6 +165,7 @@ describe('Meetups CRUD Controller', () => {
       validateHostPermission.mockRejectedValueOnce(new Error('DB Error'));
       await crudController.updateMeetup(req, res);
       expect(res.status).toHaveBeenCalledWith(500);
+      console.error = originalError;
     });
   });
 
@@ -175,10 +187,14 @@ describe('Meetups CRUD Controller', () => {
     });
 
     it('should return 500 on error', async () => {
+      const originalError = console.error;
+      console.error = () => console.log('[에러 핸들링 테스트]');
+
       req = createAuthenticatedRequest(mockUser, { params: { id: '1' } });
       validateHostPermission.mockRejectedValueOnce(new Error('DB Error'));
       await crudController.deleteMeetup(req, res);
       expect(res.status).toHaveBeenCalledWith(500);
+      console.error = originalError;
     });
   });
 
@@ -209,6 +225,9 @@ describe('Meetups CRUD Controller', () => {
     });
 
     it('should return 500 on error', async () => {
+      const originalError = console.error;
+      console.error = () => console.log('[에러 핸들링 테스트]');
+
       req = createAuthenticatedRequest(mockUser, {
         params: { id: '1' },
         body: { status: '완료' },
@@ -216,6 +235,7 @@ describe('Meetups CRUD Controller', () => {
       validateHostPermission.mockRejectedValueOnce(new Error('DB Error'));
       await crudController.updateMeetupStatus(req, res);
       expect(res.status).toHaveBeenCalledWith(500);
+      console.error = originalError;
     });
   });
 });

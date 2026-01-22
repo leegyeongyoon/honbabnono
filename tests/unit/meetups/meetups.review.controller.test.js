@@ -148,6 +148,9 @@ describe('Meetups Review Controller', () => {
     });
 
     it('should return 500 on error', async () => {
+      const originalError = console.error;
+      console.error = () => console.log('[에러 핸들링 테스트]');
+
       req = createAuthenticatedRequest(mockUser, {
         params: { id: '1' },
         body: { rating: 5 },
@@ -155,6 +158,7 @@ describe('Meetups Review Controller', () => {
       mockQueryError(mockPool, new Error('DB Error'));
       await reviewController.createReview(req, res);
       expect(res.status).toHaveBeenCalledWith(500);
+      console.error = originalError;
     });
   });
 
@@ -176,6 +180,9 @@ describe('Meetups Review Controller', () => {
     });
 
     it('should return 500 on error', async () => {
+      const originalError = console.error;
+      console.error = () => console.log('[에러 핸들링 테스트]');
+
       req = createMockRequest({
         params: { id: '1' },
         query: {},
@@ -183,6 +190,7 @@ describe('Meetups Review Controller', () => {
       mockQueryError(mockPool, new Error('DB Error'));
       await reviewController.getReviews(req, res);
       expect(res.status).toHaveBeenCalledWith(500);
+      console.error = originalError;
     });
   });
 
@@ -223,10 +231,14 @@ describe('Meetups Review Controller', () => {
     });
 
     it('should return 500 on error', async () => {
+      const originalError = console.error;
+      console.error = () => console.log('[에러 핸들링 테스트]');
+
       req = createAuthenticatedRequest(mockUser, { params: { id: '1' } });
       mockQueryError(mockPool, new Error('DB Error'));
       await reviewController.getReviewableParticipants(req, res);
       expect(res.status).toHaveBeenCalledWith(500);
+      console.error = originalError;
     });
   });
 });

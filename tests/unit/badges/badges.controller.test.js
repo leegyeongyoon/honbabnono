@@ -40,10 +40,13 @@ describe('Badges Controller', () => {
     });
 
     it('should return 500 on error', async () => {
+      const originalError = console.error;
+      console.error = () => console.log('[에러 핸들링 테스트]');
       req = createMockRequest();
       mockQueryError(mockPool, new Error('DB Error'));
       await badgesController.getAllBadges(req, res);
       expect(res.status).toHaveBeenCalledWith(500);
+      console.error = originalError;
     });
   });
 
@@ -57,10 +60,13 @@ describe('Badges Controller', () => {
     });
 
     it('should return 500 on error', async () => {
+      const originalError = console.error;
+      console.error = () => console.log('[에러 핸들링 테스트]');
       req = createMockRequest();
       mockQueryError(mockPool, new Error('DB Error'));
       await badgesController.getAvailableBadges(req, res);
       expect(res.status).toHaveBeenCalledWith(500);
+      console.error = originalError;
     });
   });
 
@@ -76,10 +82,13 @@ describe('Badges Controller', () => {
     });
 
     it('should return 500 on error', async () => {
+      const originalError = console.error;
+      console.error = () => console.log('[에러 핸들링 테스트]');
       req = createAuthenticatedRequest(mockUser);
       mockQueryError(mockPool, new Error('DB Error'));
       await badgesController.getBadgeProgress(req, res);
       expect(res.status).toHaveBeenCalledWith(500);
+      console.error = originalError;
     });
   });
 
@@ -93,10 +102,13 @@ describe('Badges Controller', () => {
     });
 
     it('should return 500 on error', async () => {
+      const originalError = console.error;
+      console.error = () => console.log('[에러 핸들링 테스트]');
       req = createAuthenticatedRequest(mockUser);
       mockQueryError(mockPool, new Error('DB Error'));
       await badgesController.getMyBadges(req, res);
       expect(res.status).toHaveBeenCalledWith(500);
+      console.error = originalError;
     });
   });
 
@@ -119,10 +131,13 @@ describe('Badges Controller', () => {
     });
 
     it('should return 500 on error', async () => {
+      const originalError = console.error;
+      console.error = () => console.log('[에러 핸들링 테스트]');
       req = createAuthenticatedRequest(mockUser, { params: { badgeId: '1' } });
       mockQueryError(mockPool, new Error('DB Error'));
       await badgesController.earnBadge(req, res);
       expect(res.status).toHaveBeenCalledWith(500);
+      console.error = originalError;
     });
   });
 
@@ -145,10 +160,13 @@ describe('Badges Controller', () => {
     });
 
     it('should return 500 on error', async () => {
+      const originalError = console.error;
+      console.error = () => console.log('[에러 핸들링 테스트]');
       req = createAuthenticatedRequest(mockUser, { params: { badgeId: '1' } });
       mockQueryError(mockPool, new Error('DB Error'));
       await badgesController.setFeaturedBadge(req, res);
       expect(res.status).toHaveBeenCalledWith(500);
+      console.error = originalError;
     });
   });
 });

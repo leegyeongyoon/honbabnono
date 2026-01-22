@@ -59,10 +59,13 @@ describe('AI Controller', () => {
     });
 
     it('should return 500 on error', async () => {
+      const originalError = console.error;
+      console.error = () => console.log('[에러 핸들링 테스트]');
       req = createAuthenticatedRequest(mockUser, { body: { query: 'test' } });
       mockQueryError(mockPool, new Error('DB Error'));
       await aiController.aiSearch(req, res);
       expect(res.status).toHaveBeenCalledWith(500);
+      console.error = originalError;
     });
   });
 
@@ -100,10 +103,13 @@ describe('AI Controller', () => {
     });
 
     it('should return 500 on error', async () => {
+      const originalError = console.error;
+      console.error = () => console.log('[에러 핸들링 테스트]');
       req = createAuthenticatedRequest(mockUser);
       mockQueryError(mockPool, new Error('DB Error'));
       await aiController.recommendMeetups(req, res);
       expect(res.status).toHaveBeenCalledWith(500);
+      console.error = originalError;
     });
   });
 });

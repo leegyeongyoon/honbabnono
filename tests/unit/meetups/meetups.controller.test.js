@@ -4,17 +4,15 @@
  */
 
 // Mock 설정 (호이스팅)
-const mockPool = {
-  query: jest.fn(),
-  connect: jest.fn(),
-};
+const {
+  createMockPool,
+  mockQueryOnce,
+  mockQueryError,
+  resetMockQuery,
+  setupTransactionMock,
+} = require('../../mocks/database.mock');
 
-const mockClient = {
-  query: jest.fn(),
-  release: jest.fn(),
-};
-
-mockPool.connect.mockResolvedValue(mockClient);
+const mockPool = createMockPool();
 
 jest.mock('../../../server/config/database', () => mockPool);
 jest.mock('../../../server/config/logger', () => ({
@@ -44,6 +42,7 @@ describe('MeetupsController', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockRes = createMockResponse();
+    resetMockQuery(mockPool);
     testUser = createUserFixture({
       id: 'user-uuid-1234',
       email: 'test@example.com',
@@ -94,6 +93,9 @@ describe('MeetupsController', () => {
     });
 
     it('should handle database error', async () => {
+      const originalError = console.error;
+      console.error = () => console.log('[에러 핸들링 테스트]');
+
       mockReq = createMockRequest({
         query: {},
       });
@@ -103,6 +105,7 @@ describe('MeetupsController', () => {
       await meetupsController.getMeetups(mockReq, mockRes);
 
       expect(mockRes.status).toHaveBeenCalledWith(500);
+      console.error = originalError;
     });
   });
 
@@ -165,6 +168,9 @@ describe('MeetupsController', () => {
     });
 
     it('should handle database error', async () => {
+      const originalError = console.error;
+      console.error = () => console.log('[에러 핸들링 테스트]');
+
       mockReq = createMockRequest({
         user: { userId: testUser.id },
         body: { title: '새 모임' },
@@ -175,6 +181,7 @@ describe('MeetupsController', () => {
       await meetupsController.createMeetup(mockReq, mockRes);
 
       expect(mockRes.status).toHaveBeenCalledWith(500);
+      console.error = originalError;
     });
   });
 

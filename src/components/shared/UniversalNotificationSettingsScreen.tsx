@@ -289,7 +289,7 @@ const UniversalNotificationSettingsScreen: React.FC<UniversalNotificationSetting
             <View style={styles.infoCard}>
               <Icon name="smartphone" size={20} color={COLORS.primary.main} />
               <Text style={styles.infoText}>
-                시스템 설정에서 알림 권한을 확인해주세요. 설정 > 알림 > 혼밥노노
+                시스템 설정에서 알림 권한을 확인해주세요. 설정 &gt; 알림 &gt; 혼밥노노
               </Text>
             </View>
           </View>
@@ -301,7 +301,7 @@ const UniversalNotificationSettingsScreen: React.FC<UniversalNotificationSetting
             <View style={styles.infoCard}>
               <Icon name="smartphone" size={20} color={COLORS.primary.main} />
               <Text style={styles.infoText}>
-                시스템 설정에서 알림 권한을 확인해주세요. 설정 > 앱 > 혼밥노노 > 알림
+                시스템 설정에서 알림 권한을 확인해주세요. 설정 &gt; 앱 &gt; 혼밥노노 &gt; 알림
               </Text>
             </View>
           </View>
