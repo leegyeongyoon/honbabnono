@@ -127,7 +127,7 @@ const resetMockQuery = (pool) => {
 };
 
 /**
- * 트랜잭션 Mock 설정
+ * 트랜잭션 Mock 설정 (기존 - 하위 호환성)
  * @param {Object} pool - Mock pool 객체
  * @param {Array} responses - 트랜잭션 내 쿼리 응답 배열
  */
@@ -145,6 +145,62 @@ const mockTransaction = (pool, responses) => {
   });
 };
 
+/**
+ * 트랜잭션 Mock 설정 (개선 버전)
+ * - pool.connect()가 mockClient를 반환하도록 보장
+ * - client.query()가 순차적으로 응답을 반환하도록 설정
+ * - BEGIN, COMMIT, ROLLBACK은 빈 응답
+ *
+ * @param {Object} pool - Mock pool 객체
+ * @param {Array} queryResponses - 트랜잭션 내 쿼리 응답 배열
+ */
+const setupTransactionMock = (pool, queryResponses) => {
+  const mockClient = pool._mockClient;
+  let queryIndex = 0;
+
+  // 1. connect가 mockClient 반환하도록 설정
+  pool.connect.mockResolvedValue(mockClient);
+
+  // 2. client.query mock 설정
+  mockClient.query.mockImplementation((query) => {
+    // BEGIN, COMMIT, ROLLBACK은 빈 응답
+    if (query === 'BEGIN' || query === 'COMMIT' || query === 'ROLLBACK') {
+      return Promise.resolve({ rows: [], rowCount: 0 });
+    }
+    // 순차적으로 응답 반환
+    const response = queryResponses[queryIndex];
+    queryIndex++;
+    if (!response) {
+      return Promise.resolve({ rows: [], rowCount: 0 });
+    }
+    return Promise.resolve(response);
+  });
+
+  // 3. release mock
+  mockClient.release.mockResolvedValue(undefined);
+};
+
+/**
+ * Client Query를 위한 Mock 설정
+ * pool.connect() 후 client.query()를 위한 mock 설정
+ * @param {Object} pool - Mock pool 객체
+ * @param {Array} responses - client.query 응답 배열
+ */
+const mockClientQuery = (pool, responses) => {
+  const mockClient = pool._mockClient;
+  let callIndex = 0;
+
+  pool.connect.mockResolvedValue(mockClient);
+
+  mockClient.query.mockImplementation(() => {
+    const response = responses[callIndex] || { rows: [], rowCount: 0 };
+    callIndex++;
+    return Promise.resolve(response);
+  });
+
+  mockClient.release.mockResolvedValue(undefined);
+};
+
 module.exports = {
   createMockPool,
   mockQuery,
@@ -157,4 +213,6 @@ module.exports = {
   mockDelete,
   resetMockQuery,
   mockTransaction,
+  setupTransactionMock,
+  mockClientQuery,
 };

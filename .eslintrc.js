@@ -1,5 +1,6 @@
 module.exports = {
   root: true,
+  extends: ['@react-native-community'],
   ignorePatterns: [
     'node_modules/**',
     'dist/**',
@@ -9,28 +10,41 @@ module.exports = {
     'ios/**',
     'android/**',
     'HonbabnonoExpo/**',
+    'backend/**',
     '**/*.chunk.js',
     '**/*.bundle.js',
     '**/*.min.js',
     'webpack.config.js',
     'metro.config.js',
     'babel.config.js',
-    'jest.config.js'
+    'jest.config.js',
   ],
   env: {
     browser: true,
     es2021: true,
-    node: true
-  },
-  parserOptions: {
-    ecmaFeatures: {
-      jsx: true
-    },
-    ecmaVersion: 12,
-    sourceType: 'module'
+    node: true,
+    jest: true,
   },
   rules: {
+    // 비활성화된 규칙들
     'no-unused-vars': 'off',
-    'no-undef': 'off'
-  }
+    'no-undef': 'off',
+    '@typescript-eslint/no-unused-vars': 'off',
+    '@typescript-eslint/func-call-spacing': 'off',
+    '@typescript-eslint/no-shadow': 'off',
+    'react-native/no-inline-styles': 'off',
+    'prettier/prettier': 'off',
+    'no-trailing-spaces': 'off',
+    'eol-last': 'off',
+    'quotes': 'off',
+    'comma-dangle': 'off',
+    'no-catch-shadow': 'off',
+    'no-shadow': 'off',
+    // React Hooks 규칙 (경고로 변경)
+    'react-hooks/exhaustive-deps': 'warn',
+    'react-hooks/rules-of-hooks': 'warn',
+    // 코드 품질 규칙 (경고로)
+    'no-dupe-keys': 'warn',
+    'radix': 'off',
+  },
 };

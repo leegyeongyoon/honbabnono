@@ -8,6 +8,7 @@ const {
   mockQueryOnce,
   mockQueryError,
   resetMockQuery,
+  setupTransactionMock,
 } = require('../../mocks/database.mock');
 
 const {
@@ -30,24 +31,6 @@ describe('Points Controller', () => {
     userId: 1,
     nickname: 'testuser',
     email: 'test@test.com',
-  };
-
-  /**
-   * 트랜잭션 mock 헬퍼
-   * @param {Array} responses - 비즈니스 로직 쿼리 응답 배열
-   */
-  const setupTransactionMock = (responses) => {
-    let callIndex = 0;
-    const mockClient = mockPool._mockClient;
-
-    mockClient.query.mockImplementation((query) => {
-      if (query === 'BEGIN' || query === 'COMMIT' || query === 'ROLLBACK') {
-        return Promise.resolve({ rows: [], rowCount: 0 });
-      }
-      const response = responses[callIndex] || { rows: [], rowCount: 0 };
-      callIndex++;
-      return Promise.resolve(response);
-    });
   };
 
   beforeEach(() => {
@@ -220,7 +203,7 @@ describe('Points Controller', () => {
         },
       });
 
-      setupTransactionMock([
+      setupTransactionMock(mockPool, [
         { rows: [], rowCount: 1 }, // INSERT/UPDATE user_points
         { rows: [], rowCount: 1 }, // INSERT point_transactions
       ]);
@@ -272,7 +255,7 @@ describe('Points Controller', () => {
         },
       });
 
-      setupTransactionMock([
+      setupTransactionMock(mockPool, [
         { rows: [{ available_points: 1000 }], rowCount: 1 }, // 잔액 확인
         { rows: [], rowCount: 1 }, // UPDATE user_points
         { rows: [], rowCount: 1 }, // INSERT point_transactions
@@ -295,7 +278,7 @@ describe('Points Controller', () => {
         },
       });
 
-      setupTransactionMock([
+      setupTransactionMock(mockPool, [
         { rows: [], rowCount: 0 }, // 잔액 없음
       ]);
 
@@ -317,7 +300,7 @@ describe('Points Controller', () => {
         },
       });
 
-      setupTransactionMock([
+      setupTransactionMock(mockPool, [
         { rows: [{ available_points: 1000 }], rowCount: 1 }, // 잔액 부족
       ]);
 
@@ -368,7 +351,7 @@ describe('Points Controller', () => {
         },
       });
 
-      setupTransactionMock([
+      setupTransactionMock(mockPool, [
         { rows: [{ available_points: 10000 }], rowCount: 1 }, // 잔액 확인
         { rows: [], rowCount: 1 }, // UPDATE user_points
         { rows: [], rowCount: 1 }, // INSERT meetup_deposits
@@ -390,7 +373,7 @@ describe('Points Controller', () => {
         },
       });
 
-      setupTransactionMock([
+      setupTransactionMock(mockPool, [
         { rows: [{ available_points: 10000 }], rowCount: 1 }, // 잔액 부족
       ]);
 
@@ -411,7 +394,7 @@ describe('Points Controller', () => {
         },
       });
 
-      setupTransactionMock([
+      setupTransactionMock(mockPool, [
         { rows: [], rowCount: 0 }, // 포인트 레코드 없음
       ]);
 
@@ -460,7 +443,7 @@ describe('Points Controller', () => {
         },
       });
 
-      setupTransactionMock([
+      setupTransactionMock(mockPool, [
         { rows: [{ amount: 5000 }], rowCount: 1 }, // 약속금 확인
         { rows: [], rowCount: 1 }, // UPDATE user_points
         { rows: [], rowCount: 1 }, // UPDATE meetup_deposits
@@ -481,7 +464,7 @@ describe('Points Controller', () => {
         },
       });
 
-      setupTransactionMock([
+      setupTransactionMock(mockPool, [
         { rows: [], rowCount: 0 }, // 약속금 없음
       ]);
 
