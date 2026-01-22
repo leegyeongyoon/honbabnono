@@ -20,7 +20,7 @@ const CreateMeetupModal = ({ visible, onClose, onSuccess, navigation, user }) =>
 
 // Platform-specific modal wrapper for MapTest
 const MapTestModal = ({ visible, onClose }) => {
-  if (!visible) return null;
+  if (!visible) {return null;}
   return <MapTestScreen />;
 };
 

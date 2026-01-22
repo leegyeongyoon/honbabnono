@@ -36,7 +36,7 @@ const StaticMapView: React.FC<StaticMapViewProps> = ({
 
   // 카카오맵 정적 지도 HTML
   const mapHtml = useMemo(() => {
-    if (!hasValidCoords) return '';
+    if (!hasValidCoords) {return '';}
 
     return `
 <!DOCTYPE html>
@@ -90,7 +90,7 @@ const StaticMapView: React.FC<StaticMapViewProps> = ({
 
   // 카카오맵 앱 또는 웹으로 열기
   const openInKakaoMap = () => {
-    if (!hasValidCoords) return;
+    if (!hasValidCoords) {return;}
 
     // 카카오맵 앱 URL Scheme
     const kakaoMapUrl = `kakaomap://look?p=${latitude},${longitude}`;

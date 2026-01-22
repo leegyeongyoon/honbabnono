@@ -285,7 +285,7 @@ const WebTabNavigator = () => {
     }
     
     const currentTab = tabs.find(tab => tab.key === activeTab);
-    if (!currentTab) return null;
+    if (!currentTab) {return null;}
     
     const ScreenComponent = currentTab.component;
     

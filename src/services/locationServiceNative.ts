@@ -26,7 +26,7 @@ class LocationServiceNative {
    * Android 위치 권한 요청
    */
   private async requestAndroidPermission(): Promise<boolean> {
-    if (Platform.OS !== 'android') return true;
+    if (Platform.OS !== 'android') {return true;}
 
     try {
       const granted = await PermissionsAndroid.request(

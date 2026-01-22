@@ -91,8 +91,8 @@ app.get('/meetups', (req, res) => {
   const { page = 1, limit = 10, category, status } = req.query;
   let meetups = [...mockDB.meetups];
   
-  if (category) meetups = meetups.filter(m => m.category === category);
-  if (status) meetups = meetups.filter(m => m.status === status);
+  if (category) {meetups = meetups.filter(m => m.category === category);}
+  if (status) {meetups = meetups.filter(m => m.status === status);}
   
   const start = (page - 1) * limit;
   const end = start + parseInt(limit);
@@ -225,8 +225,8 @@ app.put('/user/profile', mockAuthenticateToken, (req, res) => {
   }
   
   const { name, bio } = req.body;
-  if (name) mockDB.users[userIndex].name = name;
-  if (bio) mockDB.users[userIndex].bio = bio;
+  if (name) {mockDB.users[userIndex].name = name;}
+  if (bio) {mockDB.users[userIndex].bio = bio;}
   
   res.json({ success: true, data: mockDB.users[userIndex] });
 });

@@ -53,9 +53,9 @@ class NativeBridgeHelper {
 
   // 디바이스 타입 가져오기
   getDeviceType(): 'ios' | 'android' | 'web' {
-    if (Platform.OS === 'ios') return 'ios';
-    if (Platform.OS === 'android') return 'android';
-    if (!this.isNativeApp()) return 'web';
+    if (Platform.OS === 'ios') {return 'ios';}
+    if (Platform.OS === 'android') {return 'android';}
+    if (!this.isNativeApp()) {return 'web';}
     return window.deviceType || 'web';
   }
 

@@ -106,8 +106,8 @@ const AISearchResultScreen: React.FC<{ user: any; navigation: any }> = ({ user, 
     // 키워드 추출 (가격 관련 단어 제외)
     const excludeWords = ['모임', '찾기', '검색', '이상', '이하', '미만', '만원', '원'];
     let queryWords = queryLower.split(' ').filter(w => {
-      if (w.length <= 1) return false;
-      if (excludeWords.some(ex => w.includes(ex))) return false;
+      if (w.length <= 1) {return false;}
+      if (excludeWords.some(ex => w.includes(ex))) {return false;}
       return true;
     });
 
@@ -752,7 +752,7 @@ const AISearchResultScreen: React.FC<{ user: any; navigation: any }> = ({ user, 
 
   // AI 통합 검색 - 백엔드 API 사용
   const handleAISearch = async (query: string) => {
-    if (!query.trim()) return;
+    if (!query.trim()) {return;}
 
     setIsAnalyzing(true);
     setAiResponse('');
@@ -820,10 +820,10 @@ const AISearchResultScreen: React.FC<{ user: any; navigation: any }> = ({ user, 
           
           if (result.userNeeds) {
             conversationalResponse += `📋 파악된 요구사항:\n`;
-            if (result.userNeeds.immediate) conversationalResponse += `• ⚡ 즉시 참여 희망\n`;
-            if (result.userNeeds.priceConscious) conversationalResponse += `• 💝 가격 중요\n`;
-            if (result.userNeeds.locationSpecific) conversationalResponse += `• 📍 위치 제한\n`;
-            if (result.userNeeds.moodRequirement) conversationalResponse += `• 🎭 분위기: ${result.userNeeds.moodRequirement}\n`;
+            if (result.userNeeds.immediate) {conversationalResponse += `• ⚡ 즉시 참여 희망\n`;}
+            if (result.userNeeds.priceConscious) {conversationalResponse += `• 💝 가격 중요\n`;}
+            if (result.userNeeds.locationSpecific) {conversationalResponse += `• 📍 위치 제한\n`;}
+            if (result.userNeeds.moodRequirement) {conversationalResponse += `• 🎭 분위기: ${result.userNeeds.moodRequirement}\n`;}
             if (result.userNeeds.cuisinePreference && result.userNeeds.cuisinePreference.length > 0) {
               conversationalResponse += `• 🍽️ 선호 음식: ${result.userNeeds.cuisinePreference.join(', ')}\n`;
             }
@@ -1158,7 +1158,7 @@ if (wantedCategory && foodCategoryMap[wantedCategory]) {
 
     // 제외 키워드 체크
     const hasExcluded = categoryInfo.exclude.some(k => title.includes(k) || description.includes(k));
-    if (hasExcluded) return false;
+    if (hasExcluded) {return false;}
 
     // 포함 키워드 체크
     const hasIncluded = categoryInfo.keywords.some(k => title.includes(k) || description.includes(k));

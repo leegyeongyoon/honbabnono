@@ -57,7 +57,7 @@ const UniversalReviewManagementScreen: React.FC<{navigation: NavigationAdapter, 
         {
           text: '답변',
           onPress: async (text) => {
-            if (!text?.trim()) return;
+            if (!text?.trim()) {return;}
             
             try {
               const token = await AsyncStorage.getItem('authToken');

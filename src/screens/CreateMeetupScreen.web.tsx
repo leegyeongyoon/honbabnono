@@ -178,7 +178,7 @@ const LocationSelector: React.FC<{
 
   // 키워드 및 주소 검색 함수
   const searchAddress = () => {
-    if (!searchQuery.trim() || !window.kakao) return;
+    if (!searchQuery.trim() || !window.kakao) {return;}
 
     console.log('🔍 검색 시작:', searchQuery);
 
@@ -835,7 +835,7 @@ const CreateMeetupScreen: React.FC<CreateMeetupScreenProps> = ({ user }) => {
               selectable={true}
               popup={true}
               views={['month']}
-              defaultView='month'
+              defaultView="month"
               step={60}
               showMultiDayTimes
               min={new Date(0, 0, 0, 9, 0, 0)}

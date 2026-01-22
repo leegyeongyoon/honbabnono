@@ -88,7 +88,7 @@ const UniversalExploreScreen: React.FC<UniversalExploreScreenProps> = ({ navigat
 
   // Filter meetups based on search query
   const filteredMeetups = useMemo(() => {
-    if (!searchQuery.trim()) return meetups;
+    if (!searchQuery.trim()) {return meetups;}
     const query = searchQuery.toLowerCase();
     return meetups.filter(
       (m) =>
@@ -207,7 +207,7 @@ const UniversalExploreScreen: React.FC<UniversalExploreScreenProps> = ({ navigat
 
   // Format distance for list view
   const formatDistance = (distance?: number) => {
-    if (!distance) return '';
+    if (!distance) {return '';}
     if (distance < 1000) {
       return `${distance}m`;
     }

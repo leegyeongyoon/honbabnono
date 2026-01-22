@@ -584,7 +584,7 @@ apiRouter.post('/auth/kakao', async (req, res) => {
 
 // JWT 토큰 검증 미들웨어
 const authenticateToken = (req, res, next) => {
-  const authHeader = req.headers['authorization'];
+  const authHeader = req.headers.authorization;
   const token = authHeader && authHeader.split(' ')[1];
 
   console.log('🔐 토큰 검증 시작:', { 
@@ -612,7 +612,7 @@ const authenticateToken = (req, res, next) => {
 
 // 관리자 인증 미들웨어
 const authenticateAdmin = (req, res, next) => {
-  const authHeader = req.headers['authorization'];
+  const authHeader = req.headers.authorization;
   const token = authHeader && authHeader.split(' ')[1];
 
   console.log('🔐 관리자 토큰 검증 시작:', { 
@@ -1960,8 +1960,8 @@ apiRouter.get('/meetups/nearby', async (req, res) => {
       const Δφ = (lat2 - lat1) * Math.PI / 180;
       const Δλ = (lon2 - lon1) * Math.PI / 180;
 
-      const a = Math.sin(Δφ/2) ** 2 + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ/2) ** 2;
-      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      const a = Math.sin(Δφ / 2) ** 2 + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) ** 2;
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
       return Math.round(R * c);
     };
@@ -6361,15 +6361,15 @@ apiRouter.post('/meetups/:id/checkin/gps', authenticateToken, async (req, res) =
     // 거리 계산 (Haversine 공식)
     const calculateDistance = (lat1, lon1, lat2, lon2) => {
       const R = 6371000; // 지구 반지름 (미터)
-      const φ1 = lat1 * Math.PI/180;
-      const φ2 = lat2 * Math.PI/180;
-      const Δφ = (lat2-lat1) * Math.PI/180;
-      const Δλ = (lon2-lon1) * Math.PI/180;
+      const φ1 = lat1 * Math.PI / 180;
+      const φ2 = lat2 * Math.PI / 180;
+      const Δφ = (lat2 - lat1) * Math.PI / 180;
+      const Δλ = (lon2 - lon1) * Math.PI / 180;
 
-      const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+      const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
                 Math.cos(φ1) * Math.cos(φ2) *
-                Math.sin(Δλ/2) * Math.sin(Δλ/2);
-      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+                Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
       return R * c;
     };
@@ -7860,7 +7860,7 @@ const sendChatNotification = async (chatRoomId, senderId, message, messageType =
       WHERE cr.id = $1
     `, [chatRoomId]);
 
-    if (chatRoomResult.rows.length === 0) return;
+    if (chatRoomResult.rows.length === 0) {return;}
 
     const chatRoom = chatRoomResult.rows[0];
     const senderResult = await pool.query('SELECT name FROM users WHERE id = $1', [senderId]);
@@ -8089,7 +8089,7 @@ apiRouter.get('/api/user/badges', authenticateToken, async (req, res) => {
       let target = 1;
 
       // 각 뱃지별 진행률 계산
-      switch(key) {
+      switch (key) {
         case 'first_meetup':
           target = 1;
           progress = Math.min(stats.attendedCount, target);
@@ -10875,15 +10875,15 @@ apiRouter.post('/api/meetups/:meetupId/attendance/gps-checkin', authenticateToke
     // 3. 거리 계산 (Haversine 공식)
     const calculateDistance = (lat1, lon1, lat2, lon2) => {
       const R = 6371000; // 지구 반지름 (미터)
-      const φ1 = lat1 * Math.PI/180;
-      const φ2 = lat2 * Math.PI/180;
-      const Δφ = (lat2-lat1) * Math.PI/180;
-      const Δλ = (lon2-lon1) * Math.PI/180;
+      const φ1 = lat1 * Math.PI / 180;
+      const φ2 = lat2 * Math.PI / 180;
+      const Δφ = (lat2 - lat1) * Math.PI / 180;
+      const Δλ = (lon2 - lon1) * Math.PI / 180;
 
-      const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+      const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
                 Math.cos(φ1) * Math.cos(φ2) *
-                Math.sin(Δλ/2) * Math.sin(Δλ/2);
-      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+                Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
       return R * c;
     };
@@ -12085,8 +12085,8 @@ apiRouter.get('/faq', async (req, res) => {
       }
     ];
     
-    if (category) faqData = faqData.filter(faq => faq.category === category);
-    if (search) faqData = faqData.filter(faq => faq.question.includes(search) || faq.answer.includes(search));
+    if (category) {faqData = faqData.filter(faq => faq.category === category);}
+    if (search) {faqData = faqData.filter(faq => faq.question.includes(search) || faq.answer.includes(search));}
     
     res.json(faqData);
   } catch (error) {
@@ -13743,7 +13743,7 @@ apiRouter.post('/meetup/:meetupId/progress-check', authenticateToken, async (req
     if (notifications.length > 0) {
       await pool.query(`
         INSERT INTO notifications (user_id, type, title, message, meetup_id, related_user_id, data)
-        VALUES ${notifications.map((_, i) => `($${i*7+1}, $${i*7+2}, $${i*7+3}, $${i*7+4}, $${i*7+5}, $${i*7+6}, $${i*7+7})`).join(', ')}
+        VALUES ${notifications.map((_, i) => `($${i * 7 + 1}, $${i * 7 + 2}, $${i * 7 + 3}, $${i * 7 + 4}, $${i * 7 + 5}, $${i * 7 + 6}, $${i * 7 + 7})`).join(', ')}
       `, notifications.flat());
     }
 

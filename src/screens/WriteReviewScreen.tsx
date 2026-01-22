@@ -196,7 +196,7 @@ const WriteReviewScreen = () => {
   };
 
   const renderReviewForm = () => {
-    if (!selectedParticipant) return null;
+    if (!selectedParticipant) {return null;}
 
     return (
       <View style={styles.reviewForm}>

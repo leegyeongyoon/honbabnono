@@ -262,8 +262,7 @@ const PaymentScreen: React.FC = () => {
             disabled={true}
           >
             <View style={styles.paymentMethodRow}>
-              <View style={styles.radioButton}>
-              </View>
+              <View style={styles.radioButton} />
               <Text style={[styles.paymentMethodText, { color: '#ccc' }]}>계좌이체</Text>
             </View>
             <Text style={[styles.paymentMethodSubtext, { color: '#ccc' }]}>
@@ -279,8 +278,7 @@ const PaymentScreen: React.FC = () => {
             disabled={true}
           >
             <View style={styles.paymentMethodRow}>
-              <View style={styles.radioButton}>
-              </View>
+              <View style={styles.radioButton} />
               <Text style={[styles.paymentMethodText, { color: '#ccc' }]}>간편결제</Text>
             </View>
             <Text style={[styles.paymentMethodSubtext, { color: '#ccc' }]}>

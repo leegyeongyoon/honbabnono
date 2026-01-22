@@ -120,7 +120,7 @@ const UniversalAISearchResultScreen: React.FC<UniversalAISearchResultScreenProps
 
   // Main AI search function with backend integration
   const handleAISearch = async (query: string) => {
-    if (!query.trim()) return;
+    if (!query.trim()) {return;}
     
     setIsAnalyzing(true);
     setAiResponse('');
@@ -251,7 +251,7 @@ const UniversalAISearchResultScreen: React.FC<UniversalAISearchResultScreenProps
 
   // Render AI response section
   const renderAIResponse = () => {
-    if (!aiResponse && !isAnalyzing) return null;
+    if (!aiResponse && !isAnalyzing) {return null;}
 
     return (
       <View style={styles.aiResponseContainer}>
@@ -294,7 +294,7 @@ const UniversalAISearchResultScreen: React.FC<UniversalAISearchResultScreenProps
 
   // Render search suggestions
   const renderSuggestions = () => {
-    if (suggestions.length === 0) return null;
+    if (suggestions.length === 0) {return null;}
 
     return (
       <View style={styles.suggestionsContainer}>
@@ -316,7 +316,7 @@ const UniversalAISearchResultScreen: React.FC<UniversalAISearchResultScreenProps
 
   // Render AI reasons for a meetup
   const renderAIReasons = (meetup: any) => {
-    if (!meetup.aiReasons || meetup.aiReasons.length === 0) return null;
+    if (!meetup.aiReasons || meetup.aiReasons.length === 0) {return null;}
 
     return (
       <View style={styles.aiReasonsContainer}>

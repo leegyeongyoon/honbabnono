@@ -71,7 +71,7 @@ const NotificationSettingsScreen: React.FC = () => {
   }, []);
 
   const handleSettingChange = async (key: keyof NotificationSettings, value: boolean) => {
-    if (!settings) return; // settings가 null이면 아무것도 하지 않음
+    if (!settings) {return;} // settings가 null이면 아무것도 하지 않음
     
     const newSettings = { ...settings, [key]: value };
     setSettings(newSettings);

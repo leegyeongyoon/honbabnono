@@ -14,7 +14,7 @@ const LocationPermissionGuide: React.FC<LocationPermissionGuideProps> = ({
   onClose,
   onRetry,
 }) => {
-  if (!visible) return null;
+  if (!visible) {return null;}
 
   return (
     <View style={styles.overlay}>

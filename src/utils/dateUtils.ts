@@ -223,31 +223,60 @@ export const getDayColor = (date: Date): string => {
 
 /**
  * 모임 카드에 표시할 날짜/시간 포맷팅
- * @param date - 날짜 문자열 (YYYY-MM-DD)
- * @param time - 시간 문자열 (HH:mm)
- * @returns 포맷팅된 문자열 (예: "1월 15일 오후 2:30")
+ * @param date - 날짜 문자열 (YYYY-MM-DD 또는 ISO 형식)
+ * @param time - 시간 문자열 (HH:mm 또는 HH:mm:ss)
+ * @returns 포맷팅된 문자열 (예: "1월 15일 (토) 오후 6:30")
  */
 export const formatMeetupDateTime = (date: string, time: string): string => {
   try {
-    if (!date || !time) return '시간 미정';
+    if (!date) {return '시간 미정';}
 
-    const dateTimeStr = `${date}T${time}`;
-    const dateObj = new Date(dateTimeStr);
+    let dateObj: Date;
+    const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
+
+    // ISO 형식인지 확인 (예: "2026-01-25T00:00:00.000Z")
+    if (date.includes('T') || date.includes('Z')) {
+      // ISO 형식에서 날짜 부분만 추출
+      const isoDate = new Date(date);
+      const dateOnly = date.split('T')[0]; // "2026-01-25"
+
+      // 시간이 별도로 제공되면 사용, 아니면 ISO의 시간 사용
+      if (time) {
+        // 시간에서 초 제거 (HH:mm:ss → HH:mm)
+        const timeOnly = time.split(':').slice(0, 2).join(':');
+        dateObj = new Date(`${dateOnly}T${timeOnly}`);
+      } else {
+        dateObj = isoDate;
+      }
+    } else {
+      // 일반 날짜 형식 (YYYY-MM-DD)
+      if (!time) {return '시간 미정';}
+      // 시간에서 초 제거 (HH:mm:ss → HH:mm)
+      const timeOnly = time.split(':').slice(0, 2).join(':');
+      dateObj = new Date(`${date}T${timeOnly}`);
+    }
 
     if (isNaN(dateObj.getTime())) {
-      return `${date} ${time}`;
+      // 파싱 실패 시 간단하게 표시
+      const simplifiedDate = date.split('T')[0];
+      const simplifiedTime = time ? time.split(':').slice(0, 2).join(':') : '';
+      return simplifiedTime ? `${simplifiedDate} ${simplifiedTime}` : simplifiedDate;
     }
 
     const month = dateObj.getMonth() + 1;
     const day = dateObj.getDate();
+    const dayOfWeek = dayNames[dateObj.getDay()];
     const hours = dateObj.getHours();
     const minutes = dateObj.getMinutes();
 
     const ampm = hours >= 12 ? '오후' : '오전';
     const displayHours = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
 
-    return `${month}월 ${day}일 ${ampm} ${displayHours}:${minutes.toString().padStart(2, '0')}`;
+    return `${month}월 ${day}일 (${dayOfWeek}) ${ampm} ${displayHours}:${minutes.toString().padStart(2, '0')}`;
   } catch {
-    return `${date} ${time}`;
+    // 에러 시 안전하게 간단한 형식 반환
+    const simplifiedDate = date ? date.split('T')[0] : '';
+    const simplifiedTime = time ? time.split(':').slice(0, 2).join(':') : '';
+    return simplifiedTime ? `${simplifiedDate} ${simplifiedTime}` : (simplifiedDate || '시간 미정');
   }
 };

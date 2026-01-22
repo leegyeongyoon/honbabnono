@@ -231,7 +231,7 @@ const UniversalMeetupDetailScreen: React.FC<UniversalMeetupDetailScreenProps> = 
   }, [currentMeetup, user]);
 
   const toggleWishlist = async () => {
-    if (!currentMeetup || !user || wishlistLoading) return;
+    if (!currentMeetup || !user || wishlistLoading) {return;}
 
     setWishlistLoading(true);
     try {
@@ -275,7 +275,7 @@ const UniversalMeetupDetailScreen: React.FC<UniversalMeetupDetailScreenProps> = 
   const isTimeExpired = now > meetupDateTime;
 
   const handleJoinMeetup = async () => {
-    if (!user || !meetupId) return;
+    if (!user || !meetupId) {return;}
     
     try {
       if (participants.some(p => p.id === user.id)) {
@@ -293,7 +293,7 @@ const UniversalMeetupDetailScreen: React.FC<UniversalMeetupDetailScreenProps> = 
   };
 
   const handleConfirmLeave = async () => {
-    if (!user || !meetupId) return;
+    if (!user || !meetupId) {return;}
     
     try {
       const result = await leaveMeetup(meetupId, user.id);
@@ -344,7 +344,7 @@ const UniversalMeetupDetailScreen: React.FC<UniversalMeetupDetailScreenProps> = 
   };
 
   const handleGoToChat = async () => {
-    if (!user || !meetupId) return;
+    if (!user || !meetupId) {return;}
 
     try {
       console.log('🔍 모임 채팅방 조회 시작:', { meetupId });
@@ -381,7 +381,7 @@ const UniversalMeetupDetailScreen: React.FC<UniversalMeetupDetailScreenProps> = 
   };
 
   const handleMeetupAction = async () => {
-    if (!user || !meetupId) return;
+    if (!user || !meetupId) {return;}
 
     try {
       const action = meetup.status === 'confirmed' ? 'cancel' : 'confirm';
@@ -406,7 +406,7 @@ const UniversalMeetupDetailScreen: React.FC<UniversalMeetupDetailScreenProps> = 
 
   // 모임 상태 변경 (모집중/모집완료 → 진행중, 진행중 → 종료)
   const handleStatusChange = async (newStatus: '진행중' | '종료') => {
-    if (!user || !meetupId || statusChangeLoading) return;
+    if (!user || !meetupId || statusChangeLoading) {return;}
 
     setStatusChangeLoading(true);
     try {
@@ -432,7 +432,7 @@ const UniversalMeetupDetailScreen: React.FC<UniversalMeetupDetailScreenProps> = 
   };
 
   const handleConfirmJoin = async () => {
-    if (!user || !meetupId) return;
+    if (!user || !meetupId) {return;}
     
     try {
       const hasEnoughPoints = await checkUserPoints();

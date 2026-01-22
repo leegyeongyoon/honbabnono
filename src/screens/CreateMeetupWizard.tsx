@@ -15,7 +15,7 @@ interface CreateMeetupWizardProps {
 
 // Native Date Time Picker Component (Temporary placeholder)
 const NativeDateTimePicker: React.FC<any> = ({ visible, mode, value, onConfirm, onCancel }) => {
-  if (!visible) return null;
+  if (!visible) {return null;}
   
   const handleConfirm = () => {
     const defaultDate = new Date();

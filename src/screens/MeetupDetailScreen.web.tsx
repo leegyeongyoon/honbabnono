@@ -349,7 +349,7 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
 
   // 찜 토글 함수
   const toggleWishlist = async () => {
-    if (!currentMeetup || !user || wishlistLoading) return;
+    if (!currentMeetup || !user || wishlistLoading) {return;}
 
     setWishlistLoading(true);
     try {
@@ -398,7 +398,7 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
 
   // 모임 참여하기
   const handleJoinMeetup = async () => {
-    if (!user || !id) return;
+    if (!user || !id) {return;}
     
     try {
       if (participants.some(p => p.id === user.id)) {
@@ -415,7 +415,7 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
 
   // 모임 탈퇴 확인
   const handleConfirmLeave = async () => {
-    if (!user || !id) return;
+    if (!user || !id) {return;}
     
     try {
       const result = await leaveMeetup(id, user.id);
@@ -471,7 +471,7 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
 
   // 채팅방으로 이동
   const handleGoToChat = async () => {
-    if (!user || !id) return;
+    if (!user || !id) {return;}
 
     try {
       console.log('🔍 모임 채팅방 조회 시작:', { meetupId: id });
@@ -505,7 +505,7 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
 
   // 모임 확정/취소 처리
   const handleMeetupAction = async () => {
-    if (!user || !id) return;
+    if (!user || !id) {return;}
 
     try {
       const action = meetup.status === 'confirmed' ? 'cancel' : 'confirm';
@@ -531,7 +531,7 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
 
   // 보증금 결제 후 실제 참여 (기존 함수 유지)
   const handleConfirmJoin = async () => {
-    if (!user || !id) return;
+    if (!user || !id) {return;}
     
     try {
       // 포인트 확인

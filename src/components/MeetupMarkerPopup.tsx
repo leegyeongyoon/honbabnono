@@ -36,7 +36,7 @@ const MeetupMarkerPopup: React.FC<MeetupMarkerPopupProps> = ({
   onDetailPress,
   onClose,
 }) => {
-  if (!meetup) return null;
+  if (!meetup) {return null;}
 
   // Format date
   const formatDate = (dateStr: string, timeStr: string) => {
@@ -60,7 +60,7 @@ const MeetupMarkerPopup: React.FC<MeetupMarkerPopupProps> = ({
 
   // Format distance
   const formatDistance = (distance?: number) => {
-    if (!distance) return '';
+    if (!distance) {return '';}
     if (distance < 1000) {
       return `${distance}m`;
     }

@@ -29,7 +29,7 @@ const NotificationList: React.FC<NotificationListProps> = ({
   const [hasMore, setHasMore] = useState(true);
 
   const fetchNotifications = async (pageNum = 1, refresh = false) => {
-    if (loading && !refresh) return;
+    if (loading && !refresh) {return;}
     
     try {
       if (refresh) {
@@ -215,7 +215,7 @@ const NotificationList: React.FC<NotificationListProps> = ({
   );
 
   const renderFooter = () => {
-    if (!loading) return null;
+    if (!loading) {return null;}
     
     return (
       <View style={styles.footer}>

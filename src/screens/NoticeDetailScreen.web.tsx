@@ -23,7 +23,7 @@ const NoticeDetailScreen: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   const fetchNotice = async () => {
-    if (!id) return;
+    if (!id) {return;}
     
     try {
       setLoading(true);
