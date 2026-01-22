@@ -2,10 +2,9 @@ const { OpenAI } = require('openai');
 const pool = require('../../config/database');
 const aiSearchConfig = require('../../config/aiSearchConfig');
 
-// OpenAI 클라이언트 초기화
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// OpenAI 클라이언트 초기화 (테스트 환경에서는 더미 키 사용)
+const apiKey = process.env.OPENAI_API_KEY || (process.env.NODE_ENV === 'test' ? 'test-key' : undefined);
+const openai = apiKey ? new OpenAI({ apiKey }) : null;
 
 // AI 검색
 exports.aiSearch = async (req, res) => {

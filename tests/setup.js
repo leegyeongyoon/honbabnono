@@ -5,6 +5,24 @@ process.env.NODE_ENV = 'test';
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '..', '.env.test') });
 
+// Mock OpenAI API key for tests (prevents initialization error)
+if (!process.env.OPENAI_API_KEY) {
+  process.env.OPENAI_API_KEY = 'test-api-key-for-testing';
+}
+
+// Mock OpenAI module before any imports
+jest.mock('openai', () => ({
+  OpenAI: jest.fn().mockImplementation(() => ({
+    chat: {
+      completions: {
+        create: jest.fn().mockResolvedValue({
+          choices: [{ message: { content: '{"category": null, "location": null}' } }]
+        })
+      }
+    }
+  }))
+}));
+
 // Increase timeout for database operations
 jest.setTimeout(30000);
 
