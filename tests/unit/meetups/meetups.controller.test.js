@@ -3,145 +3,956 @@
  * 모임 컨트롤러 단위 테스트
  */
 
-// Mock pool 생성 함수
-const mockCreatePool = () => {
-  const mockClient = {
-    query: jest.fn(),
-    release: jest.fn(),
-  };
-  return {
-    query: jest.fn(),
-    connect: jest.fn().mockResolvedValue(mockClient),
-    end: jest.fn(),
-    _mockClient: mockClient,
-  };
+// Mock 설정 (호이스팅)
+const mockPool = {
+  query: jest.fn(),
+  connect: jest.fn(),
 };
 
-// Database mock
-jest.mock('../../../server/config/database', () => mockCreatePool());
-
-const pool = require('../../../server/config/database');
-const { createUserFixture, createMeetupFixture, createParticipantFixture } = require('../../fixtures');
-
-// Mock Response 헬퍼
-const createMockResponse = () => ({
-  status: jest.fn().mockReturnThis(),
-  json: jest.fn().mockReturnThis(),
-  send: jest.fn().mockReturnThis(),
-});
-
-// Mock Query 헬퍼
-const mockQuery = (mockPool, responses) => {
-  let callIndex = 0;
-  mockPool.query.mockImplementation(() => {
-    const response = responses[callIndex] || { rows: [], rowCount: 0 };
-    callIndex++;
-    return Promise.resolve(response);
-  });
+const mockClient = {
+  query: jest.fn(),
+  release: jest.fn(),
 };
 
-// Mock Transaction 헬퍼
-const mockTransaction = (mockPool, responses) => {
-  let callIndex = 0;
-  const mockClient = mockPool._mockClient;
+mockPool.connect.mockResolvedValue(mockClient);
 
-  mockClient.query.mockImplementation((query) => {
-    if (query === 'BEGIN' || query === 'COMMIT' || query === 'ROLLBACK') {
-      return Promise.resolve({ rows: [], rowCount: 0 });
-    }
-    const response = responses[callIndex] || { rows: [], rowCount: 0 };
-    callIndex++;
-    return Promise.resolve(response);
-  });
-};
+jest.mock('../../../server/config/database', () => mockPool);
+jest.mock('../../../server/config/logger', () => ({
+  debug: jest.fn(),
+  info: jest.fn(),
+  error: jest.fn(),
+  warn: jest.fn(),
+}));
+jest.mock('jsonwebtoken');
+jest.mock('../../../server/utils/helpers', () => ({
+  processImageUrl: jest.fn((url, category) => url || `default-${category}.jpg`),
+  calculateDistance: jest.fn(() => 500), // 기본 500m 반환
+}));
+
+const meetupsController = require('../../../server/modules/meetups/controller');
+const jwt = require('jsonwebtoken');
+const { calculateDistance } = require('../../../server/utils/helpers');
+const { createMockResponse, createMockRequest } = require('../../helpers/response.helper');
+const { createUserFixture, createMeetupFixture } = require('../../fixtures');
 
 describe('MeetupsController', () => {
+  let mockReq;
   let mockRes;
   let testUser;
   let testMeetup;
 
   beforeEach(() => {
-    mockRes = createMockResponse();
-    testUser = createUserFixture();
-    testMeetup = createMeetupFixture(testUser.id);
-    pool.query.mockReset();
-    if (pool._mockClient) {
-      pool._mockClient.query.mockReset();
-    }
     jest.clearAllMocks();
+    mockRes = createMockResponse();
+    testUser = createUserFixture({
+      id: 'user-uuid-1234',
+      email: 'test@example.com',
+      name: '테스트유저',
+    });
+    testMeetup = createMeetupFixture({
+      id: 'meetup-uuid-1234',
+      host_id: testUser.id,
+      title: '테스트 모임',
+      status: '모집중',
+    });
   });
 
-  describe('Infrastructure Tests', () => {
-    it('should create meetup fixture correctly', () => {
-      expect(testMeetup).toHaveProperty('id');
-      expect(testMeetup).toHaveProperty('host_id');
-      expect(testMeetup.host_id).toBe(testUser.id);
-      expect(testMeetup.status).toBe('모집중');
+  describe('getMeetups', () => {
+    it('should return meetup list', async () => {
+      mockReq = createMockRequest({
+        query: { page: 1, limit: 10 },
+      });
+
+      mockPool.query.mockResolvedValueOnce({
+        rows: [testMeetup],
+        rowCount: 1,
+      });
+
+      await meetupsController.getMeetups(mockReq, mockRes);
+
+      expect(mockRes.json).toHaveBeenCalled();
+      const response = mockRes.json.mock.calls[0][0];
+      expect(response.success).toBe(true);
+      expect(response.meetups).toHaveLength(1);
     });
 
-    it('should create participant fixture correctly', () => {
-      const participant = createParticipantFixture(testMeetup.id, testUser.id);
-      expect(participant).toHaveProperty('meetup_id');
-      expect(participant).toHaveProperty('user_id');
-      expect(participant.meetup_id).toBe(testMeetup.id);
-      expect(participant.user_id).toBe(testUser.id);
+    it('should filter by category', async () => {
+      mockReq = createMockRequest({
+        query: { category: '한식', page: 1, limit: 10 },
+      });
+
+      mockPool.query.mockResolvedValueOnce({
+        rows: [],
+        rowCount: 0,
+      });
+
+      await meetupsController.getMeetups(mockReq, mockRes);
+
+      expect(mockPool.query).toHaveBeenCalled();
+      const query = mockPool.query.mock.calls[0][0];
+      expect(query).toContain('category');
     });
 
-    it('should mock query responses correctly', async () => {
-      mockQuery(pool, [{ rows: [testMeetup], rowCount: 1 }]);
+    it('should handle database error', async () => {
+      mockReq = createMockRequest({
+        query: {},
+      });
 
-      const result = await pool.query('SELECT * FROM meetups WHERE id = $1', [testMeetup.id]);
-      expect(result.rows).toHaveLength(1);
-      expect(result.rows[0].id).toBe(testMeetup.id);
-    });
+      mockPool.query.mockRejectedValueOnce(new Error('DB Error'));
 
-    it('should mock transaction correctly', async () => {
-      const client = await pool.connect();
-      mockTransaction(pool, [
-        { rows: [testMeetup], rowCount: 1 },
-      ]);
+      await meetupsController.getMeetups(mockReq, mockRes);
 
-      await client.query('BEGIN');
-      const result = await client.query('SELECT * FROM meetups WHERE id = $1', [testMeetup.id]);
-      await client.query('COMMIT');
-      client.release();
-
-      expect(result.rows[0].id).toBe(testMeetup.id);
-    });
-
-    it('should create multiple meetups fixture', () => {
-      const meetup1 = createMeetupFixture(testUser.id, { title: '모임 1' });
-      const meetup2 = createMeetupFixture(testUser.id, { title: '모임 2' });
-
-      expect(meetup1.id).not.toBe(meetup2.id);
-      expect(meetup1.title).toBe('모임 1');
-      expect(meetup2.title).toBe('모임 2');
+      expect(mockRes.status).toHaveBeenCalledWith(500);
     });
   });
 
   describe('getMeetupById', () => {
-    it.skip('should return meetup details with host info', async () => {
-      // 실제 컨트롤러 구조에 맞게 조정 필요
+    it('should return meetup details', async () => {
+      mockReq = createMockRequest({
+        params: { id: testMeetup.id },
+      });
+
+      mockPool.query
+        .mockResolvedValueOnce({ rows: [testMeetup], rowCount: 1 })
+        .mockResolvedValueOnce({ rows: [], rowCount: 0 }); // participants
+
+      await meetupsController.getMeetupById(mockReq, mockRes);
+
+      expect(mockRes.json).toHaveBeenCalled();
+      const response = mockRes.json.mock.calls[0][0];
+      expect(response.success).toBe(true);
+      expect(response.meetup).toBeDefined();
     });
 
-    it.skip('should return 404 for non-existent meetup', async () => {
-      // 실제 컨트롤러 구조에 맞게 조정 필요
+    it('should return 404 if meetup not found', async () => {
+      mockReq = createMockRequest({
+        params: { id: 'non-existent-id' },
+      });
+
+      mockPool.query.mockResolvedValueOnce({ rows: [], rowCount: 0 });
+
+      await meetupsController.getMeetupById(mockReq, mockRes);
+
+      expect(mockRes.status).toHaveBeenCalledWith(404);
     });
   });
 
   describe('createMeetup', () => {
-    it.skip('should create meetup and add host as participant', async () => {
-      // 실제 컨트롤러 구조에 맞게 조정 필요
+    it('should create new meetup', async () => {
+      mockReq = createMockRequest({
+        user: { userId: testUser.id },
+        body: {
+          title: '새 모임',
+          description: '테스트 설명',
+          category: '한식',
+          location: '서울',
+          date: '2025-01-30',
+          time: '18:00',
+          maxParticipants: 4,
+        },
+      });
+
+      mockPool.query
+        .mockResolvedValueOnce({ rows: [testMeetup], rowCount: 1 }) // insert meetup
+        .mockResolvedValueOnce({ rows: [], rowCount: 1 }); // add host as participant
+
+      await meetupsController.createMeetup(mockReq, mockRes);
+
+      expect(mockRes.status).toHaveBeenCalledWith(201);
+      const response = mockRes.json.mock.calls[0][0];
+      expect(response.success).toBe(true);
+      expect(response.meetup).toBeDefined();
+    });
+
+    it('should handle database error', async () => {
+      mockReq = createMockRequest({
+        user: { userId: testUser.id },
+        body: { title: '새 모임' },
+      });
+
+      mockPool.query.mockRejectedValueOnce(new Error('DB Error'));
+
+      await meetupsController.createMeetup(mockReq, mockRes);
+
+      expect(mockRes.status).toHaveBeenCalledWith(500);
+    });
+  });
+
+  describe('updateMeetup', () => {
+    it('should update meetup as host', async () => {
+      mockReq = createMockRequest({
+        params: { id: testMeetup.id },
+        user: { userId: testUser.id },
+        body: { title: '수정된 모임' },
+      });
+
+      mockPool.query
+        .mockResolvedValueOnce({ rows: [{ host_id: testUser.id }], rowCount: 1 })
+        .mockResolvedValueOnce({ rows: [{ ...testMeetup, title: '수정된 모임' }], rowCount: 1 });
+
+      await meetupsController.updateMeetup(mockReq, mockRes);
+
+      expect(mockRes.json).toHaveBeenCalled();
+      const response = mockRes.json.mock.calls[0][0];
+      expect(response.success).toBe(true);
+    });
+
+    it('should return 404 if meetup not found', async () => {
+      mockReq = createMockRequest({
+        params: { id: 'non-existent-id' },
+        user: { userId: testUser.id },
+        body: { title: '수정된 모임' },
+      });
+
+      mockPool.query.mockResolvedValueOnce({ rows: [], rowCount: 0 });
+
+      await meetupsController.updateMeetup(mockReq, mockRes);
+
+      expect(mockRes.status).toHaveBeenCalledWith(404);
+    });
+
+    it('should return 403 if not host', async () => {
+      mockReq = createMockRequest({
+        params: { id: testMeetup.id },
+        user: { userId: 'other-user-id' },
+        body: { title: '수정된 모임' },
+      });
+
+      mockPool.query.mockResolvedValueOnce({ rows: [{ host_id: testUser.id }], rowCount: 1 });
+
+      await meetupsController.updateMeetup(mockReq, mockRes);
+
+      expect(mockRes.status).toHaveBeenCalledWith(403);
+    });
+
+    it('should return 400 if no updates provided', async () => {
+      mockReq = createMockRequest({
+        params: { id: testMeetup.id },
+        user: { userId: testUser.id },
+        body: {},
+      });
+
+      mockPool.query.mockResolvedValueOnce({ rows: [{ host_id: testUser.id }], rowCount: 1 });
+
+      await meetupsController.updateMeetup(mockReq, mockRes);
+
+      expect(mockRes.status).toHaveBeenCalledWith(400);
+    });
+  });
+
+  describe('deleteMeetup', () => {
+    it('should delete meetup as host', async () => {
+      mockReq = createMockRequest({
+        params: { id: testMeetup.id },
+        user: { userId: testUser.id },
+      });
+
+      mockPool.query
+        .mockResolvedValueOnce({ rows: [{ host_id: testUser.id }], rowCount: 1 })
+        .mockResolvedValueOnce({ rows: [], rowCount: 1 });
+
+      await meetupsController.deleteMeetup(mockReq, mockRes);
+
+      expect(mockRes.json).toHaveBeenCalled();
+      const response = mockRes.json.mock.calls[0][0];
+      expect(response.success).toBe(true);
+    });
+
+    it('should return 403 if not host', async () => {
+      mockReq = createMockRequest({
+        params: { id: testMeetup.id },
+        user: { userId: 'other-user-id' },
+      });
+
+      mockPool.query.mockResolvedValueOnce({ rows: [{ host_id: testUser.id }], rowCount: 1 });
+
+      await meetupsController.deleteMeetup(mockReq, mockRes);
+
+      expect(mockRes.status).toHaveBeenCalledWith(403);
     });
   });
 
   describe('joinMeetup', () => {
-    it.skip('should allow user to join meetup', async () => {
-      // 실제 컨트롤러 구조에 맞게 조정 필요
+    it('should join meetup successfully', async () => {
+      mockReq = createMockRequest({
+        params: { id: testMeetup.id },
+        user: { userId: 'participant-id' },
+      });
+
+      mockPool.query
+        .mockResolvedValueOnce({
+          rows: [{ ...testMeetup, current_participants: 1, max_participants: 4 }],
+          rowCount: 1,
+        })
+        .mockResolvedValueOnce({ rows: [], rowCount: 0 }) // not already joined
+        .mockResolvedValueOnce({ rows: [], rowCount: 1 }); // insert participant
+
+      await meetupsController.joinMeetup(mockReq, mockRes);
+
+      expect(mockRes.json).toHaveBeenCalled();
+      const response = mockRes.json.mock.calls[0][0];
+      expect(response.success).toBe(true);
     });
 
-    it.skip('should prevent joining full meetup', async () => {
-      // 실제 컨트롤러 구조에 맞게 조정 필요
+    it('should return 404 if meetup not found', async () => {
+      mockReq = createMockRequest({
+        params: { id: 'non-existent-id' },
+        user: { userId: 'participant-id' },
+      });
+
+      mockPool.query.mockResolvedValueOnce({ rows: [], rowCount: 0 });
+
+      await meetupsController.joinMeetup(mockReq, mockRes);
+
+      expect(mockRes.status).toHaveBeenCalledWith(404);
+    });
+
+    it('should return 400 if meetup is full', async () => {
+      mockReq = createMockRequest({
+        params: { id: testMeetup.id },
+        user: { userId: 'participant-id' },
+      });
+
+      mockPool.query.mockResolvedValueOnce({
+        rows: [{ ...testMeetup, current_participants: 4, max_participants: 4 }],
+        rowCount: 1,
+      });
+
+      await meetupsController.joinMeetup(mockReq, mockRes);
+
+      expect(mockRes.status).toHaveBeenCalledWith(400);
+    });
+
+    it('should return 400 if already joined', async () => {
+      mockReq = createMockRequest({
+        params: { id: testMeetup.id },
+        user: { userId: 'participant-id' },
+      });
+
+      mockPool.query
+        .mockResolvedValueOnce({
+          rows: [{ ...testMeetup, current_participants: 1, max_participants: 4 }],
+          rowCount: 1,
+        })
+        .mockResolvedValueOnce({ rows: [{ id: 'existing' }], rowCount: 1 }); // already joined
+
+      await meetupsController.joinMeetup(mockReq, mockRes);
+
+      expect(mockRes.status).toHaveBeenCalledWith(400);
+    });
+
+    it('should return 400 if meetup not recruiting', async () => {
+      mockReq = createMockRequest({
+        params: { id: testMeetup.id },
+        user: { userId: 'participant-id' },
+      });
+
+      mockPool.query.mockResolvedValueOnce({
+        rows: [{ ...testMeetup, status: '모집완료' }],
+        rowCount: 1,
+      });
+
+      await meetupsController.joinMeetup(mockReq, mockRes);
+
+      expect(mockRes.status).toHaveBeenCalledWith(400);
+    });
+  });
+
+  describe('leaveMeetup', () => {
+    it('should leave meetup successfully', async () => {
+      mockReq = createMockRequest({
+        params: { id: testMeetup.id },
+        user: { userId: 'participant-id' },
+      });
+
+      mockPool.query
+        .mockResolvedValueOnce({ rows: [{ id: 'participation-id' }], rowCount: 1 })
+        .mockResolvedValueOnce({ rows: [], rowCount: 1 });
+
+      await meetupsController.leaveMeetup(mockReq, mockRes);
+
+      expect(mockRes.json).toHaveBeenCalled();
+      const response = mockRes.json.mock.calls[0][0];
+      expect(response.success).toBe(true);
+    });
+
+    it('should return 404 if not participating', async () => {
+      mockReq = createMockRequest({
+        params: { id: testMeetup.id },
+        user: { userId: 'participant-id' },
+      });
+
+      mockPool.query.mockResolvedValueOnce({ rows: [], rowCount: 0 });
+
+      await meetupsController.leaveMeetup(mockReq, mockRes);
+
+      expect(mockRes.status).toHaveBeenCalledWith(404);
+    });
+  });
+
+  describe('getParticipants', () => {
+    it('should return participants list', async () => {
+      mockReq = createMockRequest({
+        params: { id: testMeetup.id },
+      });
+
+      const participants = [
+        { user_id: testUser.id, name: '참가자1', status: '참가승인' },
+        { user_id: 'user2', name: '참가자2', status: '참가대기' },
+      ];
+
+      mockPool.query.mockResolvedValueOnce({ rows: participants, rowCount: 2 });
+
+      await meetupsController.getParticipants(mockReq, mockRes);
+
+      expect(mockRes.json).toHaveBeenCalled();
+      const response = mockRes.json.mock.calls[0][0];
+      expect(response.success).toBe(true);
+      expect(response.participants).toHaveLength(2);
+    });
+  });
+
+  describe('updateParticipantStatus', () => {
+    it('should approve participant as host', async () => {
+      mockReq = createMockRequest({
+        params: { id: testMeetup.id, participantId: 'participant-id' },
+        user: { userId: testUser.id },
+        body: { status: '참가승인' },
+      });
+
+      mockPool.query
+        .mockResolvedValueOnce({ rows: [{ host_id: testUser.id }], rowCount: 1 })
+        .mockResolvedValueOnce({ rows: [{ status: '참가승인' }], rowCount: 1 })
+        .mockResolvedValueOnce({ rows: [], rowCount: 1 }); // update participants count
+
+      await meetupsController.updateParticipantStatus(mockReq, mockRes);
+
+      expect(mockRes.json).toHaveBeenCalled();
+      const response = mockRes.json.mock.calls[0][0];
+      expect(response.success).toBe(true);
+    });
+
+    it('should return 403 if not host', async () => {
+      mockReq = createMockRequest({
+        params: { id: testMeetup.id, participantId: 'participant-id' },
+        user: { userId: 'other-user-id' },
+        body: { status: '참가승인' },
+      });
+
+      mockPool.query.mockResolvedValueOnce({ rows: [{ host_id: testUser.id }], rowCount: 1 });
+
+      await meetupsController.updateParticipantStatus(mockReq, mockRes);
+
+      expect(mockRes.status).toHaveBeenCalledWith(403);
+    });
+  });
+
+  describe('getNearbyMeetups', () => {
+    it('should return nearby meetups', async () => {
+      mockReq = createMockRequest({
+        query: {
+          latitude: '37.5665',
+          longitude: '126.9780',
+          radius: '3000',
+        },
+      });
+
+      const nearbyMeetup = {
+        ...testMeetup,
+        latitude: '37.5665',
+        longitude: '126.9780',
+        'host.id': testUser.id,
+        'host.name': testUser.name,
+      };
+
+      mockPool.query.mockResolvedValueOnce({ rows: [nearbyMeetup], rowCount: 1 });
+      calculateDistance.mockReturnValue(500); // within radius
+
+      await meetupsController.getNearbyMeetups(mockReq, mockRes);
+
+      expect(mockRes.json).toHaveBeenCalled();
+      const response = mockRes.json.mock.calls[0][0];
+      expect(response.success).toBe(true);
+    });
+
+    it('should return 400 without coordinates', async () => {
+      mockReq = createMockRequest({
+        query: {},
+      });
+
+      await meetupsController.getNearbyMeetups(mockReq, mockRes);
+
+      expect(mockRes.status).toHaveBeenCalledWith(400);
+    });
+
+    it('should filter by category', async () => {
+      mockReq = createMockRequest({
+        query: {
+          latitude: '37.5665',
+          longitude: '126.9780',
+          category: '한식',
+        },
+      });
+
+      mockPool.query.mockResolvedValueOnce({ rows: [], rowCount: 0 });
+
+      await meetupsController.getNearbyMeetups(mockReq, mockRes);
+
+      expect(mockPool.query).toHaveBeenCalled();
+      const query = mockPool.query.mock.calls[0][0];
+      expect(query).toContain('category');
+    });
+  });
+
+  describe('getHomeMeetups', () => {
+    it('should return home meetups without location filter', async () => {
+      mockReq = createMockRequest({
+        query: {},
+        headers: {},
+      });
+
+      mockPool.query.mockResolvedValueOnce({ rows: [testMeetup], rowCount: 1 });
+
+      await meetupsController.getHomeMeetups(mockReq, mockRes);
+
+      expect(mockRes.json).toHaveBeenCalled();
+      const response = mockRes.json.mock.calls[0][0];
+      expect(response.success).toBe(true);
+      expect(response.meta.hasLocationFilter).toBeFalsy();
+    });
+
+    it('should return home meetups with location filter', async () => {
+      mockReq = createMockRequest({
+        query: {
+          latitude: '37.5665',
+          longitude: '126.9780',
+          radius: '3000',
+        },
+        headers: {},
+      });
+
+      const meetupWithCoords = {
+        ...testMeetup,
+        latitude: '37.5665',
+        longitude: '126.9780',
+        hours_until_start: 24,
+      };
+
+      mockPool.query.mockResolvedValueOnce({ rows: [meetupWithCoords], rowCount: 1 });
+      calculateDistance.mockReturnValue(500);
+
+      await meetupsController.getHomeMeetups(mockReq, mockRes);
+
+      expect(mockRes.json).toHaveBeenCalled();
+      const response = mockRes.json.mock.calls[0][0];
+      expect(response.success).toBe(true);
+      expect(response.meta.hasLocationFilter).toBeTruthy();
+    });
+
+    it('should filter blocked users when authenticated', async () => {
+      mockReq = createMockRequest({
+        query: {},
+        headers: { authorization: 'Bearer valid-token' },
+      });
+
+      jwt.verify.mockReturnValue({ userId: testUser.id });
+      mockPool.query.mockResolvedValueOnce({ rows: [], rowCount: 0 });
+
+      await meetupsController.getHomeMeetups(mockReq, mockRes);
+
+      expect(mockPool.query).toHaveBeenCalled();
+      const query = mockPool.query.mock.calls[0][0];
+      expect(query).toContain('user_blocked_users');
+    });
+  });
+
+  describe('getActiveMeetups', () => {
+    it('should return active meetups with pagination', async () => {
+      mockReq = createMockRequest({
+        query: { page: 1, limit: 10 },
+        headers: {},
+      });
+
+      mockPool.query
+        .mockResolvedValueOnce({ rows: [testMeetup], rowCount: 1 })
+        .mockResolvedValueOnce({ rows: [{ total: '1' }], rowCount: 1 });
+
+      await meetupsController.getActiveMeetups(mockReq, mockRes);
+
+      expect(mockRes.json).toHaveBeenCalled();
+      const response = mockRes.json.mock.calls[0][0];
+      expect(response.success).toBe(true);
+      expect(response.pagination).toBeDefined();
+    });
+  });
+
+  describe('getMyMeetups', () => {
+    it('should return hosted meetups', async () => {
+      mockReq = createMockRequest({
+        user: { userId: testUser.id },
+        query: { type: 'hosted', page: 1, limit: 10 },
+      });
+
+      mockPool.query.mockResolvedValueOnce({ rows: [testMeetup], rowCount: 1 });
+
+      await meetupsController.getMyMeetups(mockReq, mockRes);
+
+      expect(mockRes.json).toHaveBeenCalled();
+      const response = mockRes.json.mock.calls[0][0];
+      expect(response.success).toBe(true);
+    });
+
+    it('should return joined meetups', async () => {
+      mockReq = createMockRequest({
+        user: { userId: testUser.id },
+        query: { type: 'joined', page: 1, limit: 10 },
+      });
+
+      mockPool.query.mockResolvedValueOnce({ rows: [], rowCount: 0 });
+
+      await meetupsController.getMyMeetups(mockReq, mockRes);
+
+      expect(mockRes.json).toHaveBeenCalled();
+      const response = mockRes.json.mock.calls[0][0];
+      expect(response.success).toBe(true);
+    });
+  });
+
+  describe('updateMeetupStatus', () => {
+    it('should update status as host', async () => {
+      mockReq = createMockRequest({
+        params: { id: testMeetup.id },
+        user: { userId: testUser.id },
+        body: { status: '모집완료' },
+      });
+
+      mockPool.query
+        .mockResolvedValueOnce({ rows: [{ host_id: testUser.id }], rowCount: 1 })
+        .mockResolvedValueOnce({ rows: [{ ...testMeetup, status: '모집완료' }], rowCount: 1 });
+
+      await meetupsController.updateMeetupStatus(mockReq, mockRes);
+
+      expect(mockRes.json).toHaveBeenCalled();
+      const response = mockRes.json.mock.calls[0][0];
+      expect(response.success).toBe(true);
+    });
+  });
+
+  describe('checkWishlist', () => {
+    it('should return wishlisted true', async () => {
+      mockReq = createMockRequest({
+        params: { id: testMeetup.id },
+        user: { userId: testUser.id },
+      });
+
+      mockPool.query.mockResolvedValueOnce({ rows: [{ id: 'wishlist-id' }], rowCount: 1 });
+
+      await meetupsController.checkWishlist(mockReq, mockRes);
+
+      expect(mockRes.json).toHaveBeenCalled();
+      const response = mockRes.json.mock.calls[0][0];
+      expect(response.success).toBe(true);
+      expect(response.data.isWishlisted).toBe(true);
+    });
+
+    it('should return wishlisted false', async () => {
+      mockReq = createMockRequest({
+        params: { id: testMeetup.id },
+        user: { userId: testUser.id },
+      });
+
+      mockPool.query.mockResolvedValueOnce({ rows: [], rowCount: 0 });
+
+      await meetupsController.checkWishlist(mockReq, mockRes);
+
+      expect(mockRes.json).toHaveBeenCalled();
+      const response = mockRes.json.mock.calls[0][0];
+      expect(response.data.isWishlisted).toBe(false);
+    });
+  });
+
+  describe('addWishlist', () => {
+    it('should add to wishlist', async () => {
+      mockReq = createMockRequest({
+        params: { id: testMeetup.id },
+        user: { userId: testUser.id },
+      });
+
+      mockPool.query
+        .mockResolvedValueOnce({ rows: [], rowCount: 0 }) // not existing
+        .mockResolvedValueOnce({ rows: [], rowCount: 1 }); // insert
+
+      await meetupsController.addWishlist(mockReq, mockRes);
+
+      expect(mockRes.json).toHaveBeenCalled();
+      const response = mockRes.json.mock.calls[0][0];
+      expect(response.success).toBe(true);
+      expect(response.isWishlisted).toBe(true);
+    });
+
+    it('should return success if already wishlisted', async () => {
+      mockReq = createMockRequest({
+        params: { id: testMeetup.id },
+        user: { userId: testUser.id },
+      });
+
+      mockPool.query.mockResolvedValueOnce({ rows: [{ id: 'existing' }], rowCount: 1 });
+
+      await meetupsController.addWishlist(mockReq, mockRes);
+
+      expect(mockRes.json).toHaveBeenCalled();
+      const response = mockRes.json.mock.calls[0][0];
+      expect(response.success).toBe(true);
+    });
+  });
+
+  describe('removeWishlist', () => {
+    it('should remove from wishlist', async () => {
+      mockReq = createMockRequest({
+        params: { id: testMeetup.id },
+        user: { userId: testUser.id },
+      });
+
+      mockPool.query.mockResolvedValueOnce({ rows: [], rowCount: 1 });
+
+      await meetupsController.removeWishlist(mockReq, mockRes);
+
+      expect(mockRes.json).toHaveBeenCalled();
+      const response = mockRes.json.mock.calls[0][0];
+      expect(response.success).toBe(true);
+      expect(response.isWishlisted).toBe(false);
+    });
+  });
+
+  describe('addView', () => {
+    it('should add view record', async () => {
+      mockReq = createMockRequest({
+        params: { id: testMeetup.id },
+        user: { userId: testUser.id },
+      });
+
+      mockPool.query
+        .mockResolvedValueOnce({ rows: [{ id: testMeetup.id }], rowCount: 1 }) // meetup exists
+        .mockResolvedValueOnce({ rows: [], rowCount: 1 }); // insert view
+
+      await meetupsController.addView(mockReq, mockRes);
+
+      expect(mockRes.json).toHaveBeenCalled();
+      const response = mockRes.json.mock.calls[0][0];
+      expect(response.success).toBe(true);
+    });
+
+    it('should return 404 if meetup not found', async () => {
+      mockReq = createMockRequest({
+        params: { id: 'non-existent-id' },
+        user: { userId: testUser.id },
+      });
+
+      mockPool.query.mockResolvedValueOnce({ rows: [], rowCount: 0 });
+
+      await meetupsController.addView(mockReq, mockRes);
+
+      expect(mockRes.status).toHaveBeenCalledWith(404);
+    });
+  });
+
+  describe('confirmMeetup', () => {
+    it('should confirm meetup as host', async () => {
+      mockReq = createMockRequest({
+        params: { id: testMeetup.id },
+        user: { userId: testUser.id },
+        body: { action: 'confirm' },
+      });
+
+      mockPool.query
+        .mockResolvedValueOnce({ rows: [testMeetup], rowCount: 1 })
+        .mockResolvedValueOnce({ rows: [], rowCount: 1 });
+
+      await meetupsController.confirmMeetup(mockReq, mockRes);
+
+      expect(mockRes.json).toHaveBeenCalled();
+      const response = mockRes.json.mock.calls[0][0];
+      expect(response.success).toBe(true);
+    });
+
+    it('should cancel meetup with refund', async () => {
+      mockReq = createMockRequest({
+        params: { id: testMeetup.id },
+        user: { userId: testUser.id },
+        body: { action: 'cancel' },
+      });
+
+      mockPool.query
+        .mockResolvedValueOnce({ rows: [testMeetup], rowCount: 1 })
+        .mockResolvedValueOnce({ rows: [], rowCount: 1 })
+        .mockResolvedValueOnce({ rows: [], rowCount: 0 }); // no deposits
+
+      await meetupsController.confirmMeetup(mockReq, mockRes);
+
+      expect(mockRes.json).toHaveBeenCalled();
+      const response = mockRes.json.mock.calls[0][0];
+      expect(response.success).toBe(true);
+    });
+
+    it('should return 400 for invalid action', async () => {
+      mockReq = createMockRequest({
+        params: { id: testMeetup.id },
+        user: { userId: testUser.id },
+        body: { action: 'invalid' },
+      });
+
+      await meetupsController.confirmMeetup(mockReq, mockRes);
+
+      expect(mockRes.status).toHaveBeenCalledWith(400);
+    });
+  });
+
+  describe('gpsCheckin', () => {
+    it('should check in with valid location', async () => {
+      mockReq = createMockRequest({
+        params: { id: testMeetup.id },
+        user: { userId: testUser.id },
+        body: { latitude: 37.5665, longitude: 126.9780 },
+      });
+
+      const meetupWithCoords = {
+        ...testMeetup,
+        latitude: 37.5665,
+        longitude: 126.9780,
+      };
+
+      mockPool.query
+        .mockResolvedValueOnce({ rows: [meetupWithCoords], rowCount: 1 })
+        .mockResolvedValueOnce({ rows: [{ id: 'participant' }], rowCount: 1 })
+        .mockResolvedValueOnce({ rows: [], rowCount: 0 }) // no existing attendance
+        .mockResolvedValueOnce({ rows: [{ id: 'attendance-id' }], rowCount: 1 }) // insert
+        .mockResolvedValueOnce({ rows: [], rowCount: 1 }); // update participant
+
+      calculateDistance.mockReturnValue(50); // within 100m
+
+      await meetupsController.gpsCheckin(mockReq, mockRes);
+
+      expect(mockRes.json).toHaveBeenCalled();
+      const response = mockRes.json.mock.calls[0][0];
+      expect(response.success).toBe(true);
+    });
+
+    it('should return 400 if too far', async () => {
+      mockReq = createMockRequest({
+        params: { id: testMeetup.id },
+        user: { userId: testUser.id },
+        body: { latitude: 37.5665, longitude: 126.9780 },
+      });
+
+      const meetupWithCoords = {
+        ...testMeetup,
+        latitude: 37.5,
+        longitude: 126.9,
+      };
+
+      mockPool.query
+        .mockResolvedValueOnce({ rows: [meetupWithCoords], rowCount: 1 })
+        .mockResolvedValueOnce({ rows: [{ id: 'participant' }], rowCount: 1 });
+
+      calculateDistance.mockReturnValue(200); // too far (> 100m)
+
+      await meetupsController.gpsCheckin(mockReq, mockRes);
+
+      expect(mockRes.status).toHaveBeenCalledWith(400);
+    });
+
+    it('should return 400 without coordinates', async () => {
+      mockReq = createMockRequest({
+        params: { id: testMeetup.id },
+        user: { userId: testUser.id },
+        body: {},
+      });
+
+      await meetupsController.gpsCheckin(mockReq, mockRes);
+
+      expect(mockRes.status).toHaveBeenCalledWith(400);
+    });
+  });
+
+  describe('getCompletedMeetups', () => {
+    it('should return completed meetups', async () => {
+      mockReq = createMockRequest({
+        user: { userId: testUser.id },
+        query: { page: 1, limit: 10 },
+      });
+
+      mockPool.query
+        .mockResolvedValueOnce({ rows: [], rowCount: 0 })
+        .mockResolvedValueOnce({ rows: [{ total: '0' }], rowCount: 1 });
+
+      await meetupsController.getCompletedMeetups(mockReq, mockRes);
+
+      expect(mockRes.json).toHaveBeenCalled();
+      const response = mockRes.json.mock.calls[0][0];
+      expect(response.success).toBe(true);
+      expect(response.pagination).toBeDefined();
+    });
+  });
+
+  describe('getReviews', () => {
+    it('should return meetup reviews', async () => {
+      mockReq = createMockRequest({
+        params: { id: testMeetup.id },
+        query: { page: 1, limit: 10 },
+      });
+
+      const reviews = [
+        { id: 'review-1', rating: 5, comment: '좋아요', tags: '[]' },
+      ];
+
+      mockPool.query
+        .mockResolvedValueOnce({ rows: reviews, rowCount: 1 })
+        .mockResolvedValueOnce({ rows: [{ total: '1' }], rowCount: 1 })
+        .mockResolvedValueOnce({ rows: [{ avg_rating: '4.5', review_count: '1' }], rowCount: 1 });
+
+      await meetupsController.getReviews(mockReq, mockRes);
+
+      expect(mockRes.json).toHaveBeenCalled();
+      const response = mockRes.json.mock.calls[0][0];
+      expect(response.success).toBe(true);
+      expect(response.data).toHaveLength(1);
+    });
+  });
+
+  describe('generateQRCode', () => {
+    it('should generate QR code as host', async () => {
+      mockReq = createMockRequest({
+        params: { id: testMeetup.id },
+        user: { userId: testUser.id },
+      });
+
+      mockPool.query.mockResolvedValueOnce({
+        rows: [{ id: testMeetup.id, host_id: testUser.id, title: '테스트 모임' }],
+        rowCount: 1,
+      });
+
+      await meetupsController.generateQRCode(mockReq, mockRes);
+
+      expect(mockRes.json).toHaveBeenCalled();
+      const response = mockRes.json.mock.calls[0][0];
+      expect(response.success).toBe(true);
+      expect(response.data.qrCodeData).toBeDefined();
+    });
+
+    it('should return 403 if not host', async () => {
+      mockReq = createMockRequest({
+        params: { id: testMeetup.id },
+        user: { userId: 'other-user' },
+      });
+
+      mockPool.query.mockResolvedValueOnce({
+        rows: [{ id: testMeetup.id, host_id: testUser.id }],
+        rowCount: 1,
+      });
+
+      await meetupsController.generateQRCode(mockReq, mockRes);
+
+      expect(mockRes.status).toHaveBeenCalledWith(403);
     });
   });
 });

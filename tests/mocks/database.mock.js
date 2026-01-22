@@ -22,6 +22,82 @@ const createMockPool = () => {
 };
 
 /**
+ * 단일 응답 Mock 설정
+ * @param {Object} pool - Mock pool 객체
+ * @param {Object} response - 반환할 응답
+ */
+const mockQueryOnce = (pool, response) => {
+  pool.query.mockResolvedValueOnce(response);
+};
+
+/**
+ * 에러 Mock 설정
+ * @param {Object} pool - Mock pool 객체
+ * @param {Error|string} error - 발생할 에러
+ */
+const mockQueryError = (pool, error) => {
+  const err = typeof error === 'string' ? new Error(error) : error;
+  pool.query.mockRejectedValueOnce(err);
+};
+
+/**
+ * 사용자 조회 Mock 설정
+ * @param {Object} pool - Mock pool 객체
+ * @param {Object|null} user - 사용자 데이터 (null이면 없음)
+ */
+const mockFindUser = (pool, user) => {
+  if (user) {
+    mockQueryOnce(pool, { rows: [user], rowCount: 1 });
+  } else {
+    mockQueryOnce(pool, { rows: [], rowCount: 0 });
+  }
+};
+
+/**
+ * 목록 조회 Mock 설정
+ * @param {Object} pool - Mock pool 객체
+ * @param {Array} items - 아이템 배열
+ * @param {number} total - 전체 개수 (선택)
+ */
+const mockFindMany = (pool, items, total = null) => {
+  mockQueryOnce(pool, { rows: items, rowCount: items.length });
+  if (total !== null) {
+    mockQueryOnce(pool, { rows: [{ count: total.toString() }], rowCount: 1 });
+  }
+};
+
+/**
+ * INSERT Mock 설정
+ * @param {Object} pool - Mock pool 객체
+ * @param {Object} insertedRow - 삽입된 행 데이터
+ */
+const mockInsert = (pool, insertedRow) => {
+  mockQueryOnce(pool, { rows: [insertedRow], rowCount: 1 });
+};
+
+/**
+ * UPDATE Mock 설정
+ * @param {Object} pool - Mock pool 객체
+ * @param {Object|null} updatedRow - 업데이트된 행 (null이면 영향 없음)
+ */
+const mockUpdate = (pool, updatedRow) => {
+  if (updatedRow) {
+    mockQueryOnce(pool, { rows: [updatedRow], rowCount: 1 });
+  } else {
+    mockQueryOnce(pool, { rows: [], rowCount: 0 });
+  }
+};
+
+/**
+ * DELETE Mock 설정
+ * @param {Object} pool - Mock pool 객체
+ * @param {number} deletedCount - 삭제된 행 수
+ */
+const mockDelete = (pool, deletedCount = 1) => {
+  mockQueryOnce(pool, { rows: [], rowCount: deletedCount });
+};
+
+/**
  * Mock Query 응답 설정
  * @param {Object} pool - Mock pool 객체
  * @param {Array} responses - 순차적으로 반환할 응답 배열
@@ -42,6 +118,8 @@ const mockQuery = (pool, responses) => {
 const resetMockQuery = (pool) => {
   pool.query.mockReset();
   pool.connect.mockReset();
+  // connect mock 재설정 - mockReset 후에도 동작하도록
+  pool.connect.mockResolvedValue(pool._mockClient);
   if (pool._mockClient) {
     pool._mockClient.query.mockReset();
     pool._mockClient.release.mockReset();
@@ -70,6 +148,13 @@ const mockTransaction = (pool, responses) => {
 module.exports = {
   createMockPool,
   mockQuery,
+  mockQueryOnce,
+  mockQueryError,
+  mockFindUser,
+  mockFindMany,
+  mockInsert,
+  mockUpdate,
+  mockDelete,
   resetMockQuery,
   mockTransaction,
 };
