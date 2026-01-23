@@ -15,6 +15,24 @@ exports.createPayment = async (req, res) => {
       });
     }
 
+    // 이용 제한 여부 확인
+    const restrictionCheck = await pool.query(`
+      SELECT * FROM user_restrictions
+      WHERE user_id = $1
+        AND restriction_type IN ('participation', 'permanent')
+        AND restricted_until > NOW()
+    `, [userId]);
+
+    if (restrictionCheck.rows.length > 0) {
+      const restriction = restrictionCheck.rows[0];
+      return res.status(403).json({
+        success: false,
+        error: '현재 이용 제한 중입니다.',
+        restrictedUntil: restriction.restricted_until,
+        reason: restriction.reason
+      });
+    }
+
     // 실제 meetupId가 아닌 임시 ID인 경우 임시 meetup 생성
     const isTemporaryMeetupId = meetupId.startsWith('temp-');
     let actualMeetupId = meetupId;
@@ -89,7 +107,7 @@ exports.createPayment = async (req, res) => {
           ? '모임 약속금 결제 (임시 결제)'
           : `모임 약속금 결제 (모임 ID: ${meetupId})`;
         await pool.query(`
-          INSERT INTO point_transactions (user_id, type, amount, description, created_at)
+          INSERT INTO point_transactions (user_id, transaction_type, amount, description, created_at)
           VALUES ($1, 'used', $2, $3, NOW())
         `, [userId, amount, description]);
 
@@ -175,7 +193,7 @@ exports.refundDeposit = async (req, res) => {
 
     // 포인트 거래 내역 추가
     await pool.query(`
-      INSERT INTO point_transactions (user_id, type, amount, description, created_at)
+      INSERT INTO point_transactions (user_id, transaction_type, amount, description, created_at)
       VALUES ($1, 'earned', $2, $3, NOW())
     `, [userId, refundAmount, `약속금 환불 (보증금 ID: ${depositId})`]);
 
@@ -231,9 +249,9 @@ exports.convertToPoints = async (req, res) => {
 
     // 포인트 거래 내역 추가
     await pool.query(`
-      INSERT INTO point_transactions (user_id, type, amount, description, related_deposit_id, created_at)
+      INSERT INTO point_transactions (user_id, transaction_type, amount, description, related_meetup_id, created_at)
       VALUES ($1, 'earned', $2, $3, $4, NOW())
-    `, [userId, pointAmount, `약속금 포인트 전환 (모임 ID: ${deposit.meetup_id})`, depositId]);
+    `, [userId, pointAmount, `약속금 포인트 전환 (모임 ID: ${deposit.meetup_id})`, deposit.meetup_id]);
 
     // 약속금 상태 업데이트
     await pool.query(`
@@ -313,7 +331,7 @@ exports.refundPayment = async (req, res) => {
 
     // 포인트 거래 내역 추가
     await pool.query(`
-      INSERT INTO point_transactions (user_id, type, amount, description, created_at)
+      INSERT INTO point_transactions (user_id, transaction_type, amount, description, created_at)
       VALUES ($1, 'earned', $2, $3, NOW())
     `, [userId, refundAmount, `약속금 환불 (보증금 ID: ${depositId})`]);
 
@@ -329,6 +347,761 @@ exports.refundPayment = async (req, res) => {
     res.status(500).json({
       success: false,
       error: '환불 처리 중 오류가 발생했습니다.'
+    });
+  }
+};
+
+// ============================================
+// 취소 정책 기반 환불 계산
+// ============================================
+
+/**
+ * 시간 기반 환불율 계산
+ * @param {number} minutesBeforeMeetup - 모임 시작까지 남은 시간(분)
+ * @param {string} meetupStatus - 모임 상태
+ * @returns {Object} { refundRate, cancellationType }
+ */
+const calculateRefundRate = (minutesBeforeMeetup, meetupStatus) => {
+  // 모집중 상태면 언제든 100% 환불
+  if (meetupStatus === '모집중') {
+    return { refundRate: 100, cancellationType: 'voluntary' };
+  }
+
+  // 확정(모집완료) 상태에서의 환불율
+  if (minutesBeforeMeetup >= 60) {
+    return { refundRate: 100, cancellationType: 'voluntary' };
+  } else if (minutesBeforeMeetup >= 40) {
+    return { refundRate: 60, cancellationType: 'late_40min' };
+  } else if (minutesBeforeMeetup >= 20) {
+    return { refundRate: 30, cancellationType: 'late_20min' };
+  } else if (minutesBeforeMeetup >= 10) {
+    return { refundRate: 0, cancellationType: 'late_10min' };
+  } else {
+    // 10분 이내는 취소 불가 (노쇼 처리)
+    return { refundRate: 0, cancellationType: 'noshow' };
+  }
+};
+
+/**
+ * 환불 금액 계산
+ * @param {number} depositAmount - 원래 약속금
+ * @param {number} refundRate - 환불율 (%)
+ * @returns {Object} { refundAmount, forfeitedAmount }
+ */
+const calculateRefundAmount = (depositAmount, refundRate) => {
+  const refundAmount = Math.floor(depositAmount * refundRate / 100);
+  const forfeitedAmount = depositAmount - refundAmount;
+  return { refundAmount, forfeitedAmount };
+};
+
+// 환불 예상 금액 조회
+exports.getRefundPreview = async (req, res) => {
+  try {
+    const { meetupId } = req.params;
+    const userId = req.user.userId;
+
+    // 약속금 정보 조회
+    const depositResult = await pool.query(`
+      SELECT pd.*, m.date, m.time, m.status as meetup_status
+      FROM promise_deposits pd
+      JOIN meetups m ON pd.meetup_id = m.id
+      WHERE pd.meetup_id = $1 AND pd.user_id = $2 AND pd.status = 'paid'
+    `, [meetupId, userId]);
+
+    if (depositResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: '약속금 정보를 찾을 수 없습니다.'
+      });
+    }
+
+    const deposit = depositResult.rows[0];
+    const meetupDateTime = new Date(`${deposit.date}T${deposit.time}`);
+    const now = new Date();
+    const minutesBeforeMeetup = Math.floor((meetupDateTime - now) / (1000 * 60));
+
+    const { refundRate, cancellationType } = calculateRefundRate(minutesBeforeMeetup, deposit.meetup_status);
+    const { refundAmount, forfeitedAmount } = calculateRefundAmount(deposit.amount, refundRate);
+
+    res.json({
+      success: true,
+      preview: {
+        originalAmount: deposit.amount,
+        refundRate,
+        refundAmount,
+        forfeitedAmount,
+        cancellationType,
+        minutesBeforeMeetup,
+        canCancel: cancellationType !== 'noshow'
+      }
+    });
+  } catch (error) {
+    console.error('❌ 환불 예상 금액 조회 실패:', error);
+    res.status(500).json({
+      success: false,
+      error: '환불 예상 금액 조회 중 오류가 발생했습니다.'
+    });
+  }
+};
+
+// 참가 취소 및 환불 처리 (정책 기반)
+exports.cancelParticipationWithRefund = async (req, res) => {
+  const client = await pool.connect();
+
+  try {
+    await client.query('BEGIN');
+
+    const { meetupId } = req.params;
+    const { reason } = req.body;
+    const userId = req.user.userId;
+
+    console.log('🚫 참가 취소 요청:', { meetupId, userId, reason });
+
+    // 약속금 및 모임 정보 조회
+    const depositResult = await client.query(`
+      SELECT pd.*, m.date, m.time, m.status as meetup_status, m.host_id
+      FROM promise_deposits pd
+      JOIN meetups m ON pd.meetup_id = m.id
+      WHERE pd.meetup_id = $1 AND pd.user_id = $2 AND pd.status = 'paid'
+    `, [meetupId, userId]);
+
+    if (depositResult.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({
+        success: false,
+        error: '약속금 정보를 찾을 수 없습니다.'
+      });
+    }
+
+    const deposit = depositResult.rows[0];
+    const meetupDateTime = new Date(`${deposit.date}T${deposit.time}`);
+    const now = new Date();
+    const minutesBeforeMeetup = Math.floor((meetupDateTime - now) / (1000 * 60));
+
+    // 10분 이내는 취소 불가
+    if (minutesBeforeMeetup < 10) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({
+        success: false,
+        error: '모임 시작 10분 이내에는 취소할 수 없습니다. 노쇼 처리됩니다.'
+      });
+    }
+
+    const { refundRate, cancellationType } = calculateRefundRate(minutesBeforeMeetup, deposit.meetup_status);
+    const { refundAmount, forfeitedAmount } = calculateRefundAmount(deposit.amount, refundRate);
+
+    // 1. 약속금 상태 업데이트
+    await client.query(`
+      UPDATE promise_deposits
+      SET status = 'refunded',
+          refund_rate = $1,
+          refund_amount = $2,
+          forfeited_amount = $3,
+          cancellation_type = $4,
+          refund_reason = $5,
+          returned_at = NOW(),
+          updated_at = NOW()
+      WHERE id = $6
+    `, [refundRate, refundAmount, forfeitedAmount, cancellationType, reason, deposit.id]);
+
+    // 2. 환불금이 있으면 포인트로 환불
+    if (refundAmount > 0) {
+      await client.query(`
+        INSERT INTO user_points (user_id, total_points, available_points, used_points, expired_points)
+        VALUES ($1, $2, $2, 0, 0)
+        ON CONFLICT (user_id)
+        DO UPDATE SET
+          available_points = user_points.available_points + $2,
+          updated_at = NOW()
+      `, [userId, refundAmount]);
+
+      await client.query(`
+        INSERT INTO point_transactions (user_id, transaction_type, amount, description, created_at)
+        VALUES ($1, 'earned', $2, $3, NOW())
+      `, [userId, refundAmount, `참가 취소 환불 (${refundRate}%)`]);
+    }
+
+    // 3. 몰수금이 있으면 플랫폼 수익으로 기록
+    if (forfeitedAmount > 0) {
+      await client.query(`
+        INSERT INTO platform_revenues (
+          meetup_id, user_id, amount, revenue_type, description, created_at
+        ) VALUES ($1, $2, $3, 'cancellation_fee', $4, NOW())
+      `, [meetupId, userId, forfeitedAmount, `직전 취소 수수료 (${100 - refundRate}%)`]);
+    }
+
+    // 4. 취소 이력 기록
+    await client.query(`
+      INSERT INTO user_cancellation_history (
+        user_id, meetup_id, cancellation_type, minutes_before_meetup,
+        refund_rate, refund_amount, original_deposit, reason, created_at
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
+    `, [userId, meetupId, cancellationType, minutesBeforeMeetup, refundRate, refundAmount, deposit.amount, reason]);
+
+    // 5. 참가자 상태 업데이트
+    await client.query(`
+      UPDATE meetup_participants
+      SET status = '참가취소', updated_at = NOW()
+      WHERE meetup_id = $1 AND user_id = $2
+    `, [meetupId, userId]);
+
+    // 6. 참가자 수 감소
+    await client.query(`
+      UPDATE meetups
+      SET current_participants = current_participants - 1, updated_at = NOW()
+      WHERE id = $1
+    `, [meetupId]);
+
+    // 7. 잦은 취소 체크 및 제재
+    await checkAndApplyRestriction(client, userId);
+
+    await client.query('COMMIT');
+
+    console.log('✅ 참가 취소 완료:', {
+      meetupId, userId, refundRate, refundAmount, forfeitedAmount, cancellationType
+    });
+
+    res.json({
+      success: true,
+      message: '참가가 취소되었습니다.',
+      cancellation: {
+        originalAmount: deposit.amount,
+        refundRate,
+        refundAmount,
+        forfeitedAmount,
+        cancellationType
+      }
+    });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('❌ 참가 취소 실패:', error);
+    res.status(500).json({
+      success: false,
+      error: '참가 취소 처리 중 오류가 발생했습니다.'
+    });
+  } finally {
+    client.release();
+  }
+};
+
+// 잦은 취소 체크 및 제재 적용
+const checkAndApplyRestriction = async (client, userId) => {
+  // 최근 30일 내 직전 취소 횟수 조회
+  const cancelResult = await client.query(`
+    SELECT COUNT(*) as cancel_count
+    FROM user_cancellation_history
+    WHERE user_id = $1
+      AND cancellation_type IN ('late_40min', 'late_20min', 'late_10min')
+      AND created_at > NOW() - INTERVAL '30 days'
+  `, [userId]);
+
+  const cancelCount = parseInt(cancelResult.rows[0].cancel_count);
+
+  if (cancelCount >= 5) {
+    // 30일 내 5회 이상 직전 취소 → 7일 이용 제한
+    await client.query(`
+      INSERT INTO user_restrictions (
+        user_id, restriction_type, reason, restricted_until, created_at
+      ) VALUES ($1, 'participation', $2, NOW() + INTERVAL '7 days', NOW())
+      ON CONFLICT (user_id, restriction_type) DO UPDATE SET
+        restricted_until = NOW() + INTERVAL '7 days',
+        reason = $2,
+        updated_at = NOW()
+    `, [userId, `잦은 직전 취소 (30일 내 ${cancelCount}회)`]);
+
+    console.log('⚠️ 이용 제한 적용:', { userId, cancelCount, days: 7 });
+  } else if (cancelCount >= 3) {
+    // 경고만 기록 (알림 발송은 별도 처리)
+    console.log('⚠️ 직전 취소 경고:', { userId, cancelCount });
+  }
+};
+
+// ============================================
+// 노쇼 처리 시스템
+// ============================================
+
+// 노쇼 신고
+exports.reportNoShow = async (req, res) => {
+  try {
+    const { meetupId } = req.params;
+    const { reportedUserId, isHost } = req.body;
+    const reporterId = req.user.userId;
+
+    console.log('🚨 노쇼 신고:', { meetupId, reportedUserId, reporterId, isHost });
+
+    // 같은 모임 참가자인지 확인
+    const participantCheck = await pool.query(`
+      SELECT mp.user_id, mp.status, m.host_id
+      FROM meetup_participants mp
+      JOIN meetups m ON mp.meetup_id = m.id
+      WHERE mp.meetup_id = $1 AND mp.user_id IN ($2, $3)
+    `, [meetupId, reporterId, reportedUserId]);
+
+    if (participantCheck.rows.length < 2) {
+      return res.status(400).json({
+        success: false,
+        error: '같은 모임 참가자만 노쇼 신고할 수 있습니다.'
+      });
+    }
+
+    // user_reviews에 노쇼 신고 기록 (reported_noshow = true)
+    await pool.query(`
+      INSERT INTO user_reviews (
+        meetup_id, reviewer_id, reviewed_user_id, rating, reported_noshow, created_at, updated_at
+      ) VALUES ($1, $2, $3, 1, true, NOW(), NOW())
+      ON CONFLICT (meetup_id, reviewer_id, reviewed_user_id) DO UPDATE SET
+        reported_noshow = true,
+        updated_at = NOW()
+    `, [meetupId, reporterId, reportedUserId]);
+
+    console.log('✅ 노쇼 신고 완료');
+
+    res.json({
+      success: true,
+      message: '노쇼 신고가 접수되었습니다.'
+    });
+  } catch (error) {
+    console.error('❌ 노쇼 신고 실패:', error);
+    res.status(500).json({
+      success: false,
+      error: '노쇼 신고 처리 중 오류가 발생했습니다.'
+    });
+  }
+};
+
+// 노쇼 현황 조회
+exports.getNoShowStatus = async (req, res) => {
+  try {
+    const { meetupId } = req.params;
+    const userId = req.user.userId;
+
+    // 권한 확인: 호스트 또는 참가자만 조회 가능
+    const authCheck = await pool.query(`
+      SELECT 1 FROM meetups m
+      LEFT JOIN meetup_participants mp ON mp.meetup_id = m.id AND mp.user_id = $2
+      WHERE m.id = $1 AND (m.host_id = $2 OR mp.user_id IS NOT NULL)
+    `, [meetupId, userId]);
+
+    if (authCheck.rows.length === 0) {
+      return res.status(403).json({
+        success: false,
+        error: '노쇼 현황을 조회할 권한이 없습니다.'
+      });
+    }
+
+    // GPS 미인증 참가자 + 노쇼 신고 현황
+    const statusResult = await pool.query(`
+      SELECT
+        mp.user_id,
+        u.nickname,
+        mp.attended,
+        mp.no_show,
+        mp.no_show_confirmed,
+        COUNT(ur.id) FILTER (WHERE ur.reported_noshow = true) as noshow_reports,
+        EXISTS(
+          SELECT 1 FROM user_reviews ur2
+          JOIN meetup_participants mp2 ON ur2.reviewer_id = mp2.user_id
+          JOIN meetups m2 ON mp2.meetup_id = m2.id
+          WHERE ur2.meetup_id = $1
+            AND ur2.reviewed_user_id = mp.user_id
+            AND ur2.reported_noshow = true
+            AND mp2.user_id = m2.host_id
+        ) as host_reported
+      FROM meetup_participants mp
+      JOIN users u ON mp.user_id = u.id
+      LEFT JOIN user_reviews ur ON ur.meetup_id = mp.meetup_id AND ur.reviewed_user_id = mp.user_id
+      WHERE mp.meetup_id = $1 AND mp.status = '참가승인'
+      GROUP BY mp.user_id, u.nickname, mp.attended, mp.no_show, mp.no_show_confirmed
+    `, [meetupId]);
+
+    res.json({
+      success: true,
+      participants: statusResult.rows.map(p => ({
+        userId: p.user_id,
+        nickname: p.nickname,
+        attended: p.attended,
+        noShow: p.no_show,
+        noShowConfirmed: p.no_show_confirmed,
+        noShowReports: parseInt(p.noshow_reports),
+        hostReported: p.host_reported
+      }))
+    });
+  } catch (error) {
+    console.error('❌ 노쇼 현황 조회 실패:', error);
+    res.status(500).json({
+      success: false,
+      error: '노쇼 현황 조회 중 오류가 발생했습니다.'
+    });
+  }
+};
+
+// 노쇼 처리 실행 (관리자 또는 스케줄러)
+exports.processNoShow = async (req, res) => {
+  const client = await pool.connect();
+
+  try {
+    await client.query('BEGIN');
+
+    const { meetupId } = req.params;
+
+    console.log('🔍 노쇼 처리 시작:', { meetupId });
+
+    // 1. GPS 미인증 + 노쇼 신고 2명 이상 또는 호스트 신고인 참가자 조회
+    const noShowResult = await client.query(`
+      SELECT
+        mp.user_id,
+        mp.meetup_id,
+        pd.id as deposit_id,
+        pd.amount as deposit_amount,
+        COUNT(ur.id) FILTER (WHERE ur.reported_noshow = true) as noshow_reports,
+        EXISTS(
+          SELECT 1 FROM user_reviews ur2
+          JOIN meetup_participants mp2 ON ur2.reviewer_id = mp2.user_id
+          JOIN meetups m2 ON mp2.meetup_id = m2.id
+          WHERE ur2.meetup_id = mp.meetup_id
+            AND ur2.reviewed_user_id = mp.user_id
+            AND ur2.reported_noshow = true
+            AND mp2.user_id = m2.host_id
+        ) as host_reported
+      FROM meetup_participants mp
+      JOIN promise_deposits pd ON pd.meetup_id = mp.meetup_id AND pd.user_id = mp.user_id
+      LEFT JOIN user_reviews ur ON ur.meetup_id = mp.meetup_id AND ur.reviewed_user_id = mp.user_id
+      WHERE mp.meetup_id = $1
+        AND mp.status = '참가승인'
+        AND mp.attended = false
+        AND pd.status = 'paid'
+      GROUP BY mp.user_id, mp.meetup_id, pd.id, pd.amount
+      HAVING COUNT(ur.id) FILTER (WHERE ur.reported_noshow = true) >= 2
+         OR EXISTS(
+           SELECT 1 FROM user_reviews ur2
+           JOIN meetup_participants mp2 ON ur2.reviewer_id = mp2.user_id
+           JOIN meetups m2 ON mp2.meetup_id = m2.id
+           WHERE ur2.meetup_id = mp.meetup_id
+             AND ur2.reviewed_user_id = mp.user_id
+             AND ur2.reported_noshow = true
+             AND mp2.user_id = m2.host_id
+         )
+    `, [meetupId]);
+
+    if (noShowResult.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.json({
+        success: true,
+        message: '노쇼 확정 대상이 없습니다.',
+        processed: 0
+      });
+    }
+
+    // 2. 출석한 참가자 목록 (배상 대상)
+    const attendedResult = await client.query(`
+      SELECT user_id FROM meetup_participants
+      WHERE meetup_id = $1 AND status = '참가승인' AND attended = true
+    `, [meetupId]);
+
+    const attendedUsers = attendedResult.rows.map(r => r.user_id);
+    const processedNoShows = [];
+
+    // 3. 노쇼자별 처리
+    for (const noShow of noShowResult.rows) {
+      // 3-1. 노쇼 확정
+      await client.query(`
+        UPDATE meetup_participants
+        SET no_show = true, no_show_confirmed = true, updated_at = NOW()
+        WHERE meetup_id = $1 AND user_id = $2
+      `, [meetupId, noShow.user_id]);
+
+      // 3-2. 약속금 몰수
+      const forfeitedAmount = noShow.deposit_amount;
+      const victimCompensationTotal = Math.floor(forfeitedAmount * 0.7);
+      const platformFee = forfeitedAmount - victimCompensationTotal;
+
+      await client.query(`
+        UPDATE promise_deposits
+        SET status = 'forfeited',
+            forfeited_amount = $1,
+            cancellation_type = 'noshow',
+            updated_at = NOW()
+        WHERE id = $2
+      `, [forfeitedAmount, noShow.deposit_id]);
+
+      // 3-3. 피해자 배상 (출석자에게 분배)
+      if (attendedUsers.length > 0) {
+        const compensationPerPerson = Math.floor(victimCompensationTotal / attendedUsers.length);
+
+        for (const victimId of attendedUsers) {
+          // 배상 기록
+          await client.query(`
+            INSERT INTO noshow_compensations (
+              meetup_id, noshow_user_id, victim_user_id,
+              deposit_amount, compensation_amount, platform_fee,
+              status, paid_at, created_at
+            ) VALUES ($1, $2, $3, $4, $5, $6, 'paid', NOW(), NOW())
+          `, [meetupId, noShow.user_id, victimId, forfeitedAmount, compensationPerPerson, Math.floor(platformFee / attendedUsers.length)]);
+
+          // 포인트 지급
+          await client.query(`
+            INSERT INTO user_points (user_id, total_points, available_points, used_points, expired_points)
+            VALUES ($1, $2, $2, 0, 0)
+            ON CONFLICT (user_id)
+            DO UPDATE SET
+              total_points = user_points.total_points + $2,
+              available_points = user_points.available_points + $2,
+              updated_at = NOW()
+          `, [victimId, compensationPerPerson]);
+
+          await client.query(`
+            INSERT INTO point_transactions (user_id, transaction_type, amount, description, created_at)
+            VALUES ($1, 'earned', $2, $3, NOW())
+          `, [victimId, compensationPerPerson, `노쇼 배상금 (모임 ID: ${meetupId})`]);
+        }
+      }
+
+      // 3-4. 플랫폼 수익 기록
+      await client.query(`
+        INSERT INTO platform_revenues (
+          meetup_id, user_id, amount, revenue_type, description, created_at
+        ) VALUES ($1, $2, $3, 'noshow_fee', '노쇼 수수료 (30%)', NOW())
+      `, [meetupId, noShow.user_id, platformFee]);
+
+      // 3-5. 밥알 점수 감소 (-15점)
+      await client.query(`
+        UPDATE users
+        SET babal_score = GREATEST(0, babal_score - 15), updated_at = NOW()
+        WHERE id = $1
+      `, [noShow.user_id]);
+
+      // 3-6. 취소 이력에 노쇼 기록
+      await client.query(`
+        INSERT INTO user_cancellation_history (
+          user_id, meetup_id, cancellation_type, refund_rate,
+          refund_amount, original_deposit, reason, created_at
+        ) VALUES ($1, $2, 'noshow', 0, 0, $3, '노쇼 확정', NOW())
+      `, [noShow.user_id, meetupId, forfeitedAmount]);
+
+      // 3-7. 누적 노쇼 체크 및 제재
+      await checkNoShowRestriction(client, noShow.user_id);
+
+      processedNoShows.push({
+        userId: noShow.user_id,
+        forfeitedAmount,
+        compensationPerPerson: attendedUsers.length > 0 ? Math.floor(victimCompensationTotal / attendedUsers.length) : 0,
+        platformFee
+      });
+    }
+
+    await client.query('COMMIT');
+
+    console.log('✅ 노쇼 처리 완료:', { meetupId, processedCount: processedNoShows.length });
+
+    res.json({
+      success: true,
+      message: '노쇼 처리가 완료되었습니다.',
+      processed: processedNoShows.length,
+      details: processedNoShows
+    });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('❌ 노쇼 처리 실패:', error);
+    res.status(500).json({
+      success: false,
+      error: '노쇼 처리 중 오류가 발생했습니다.'
+    });
+  } finally {
+    client.release();
+  }
+};
+
+// 누적 노쇼 체크 및 제재 적용
+const checkNoShowRestriction = async (client, userId) => {
+  const noShowResult = await client.query(`
+    SELECT COUNT(*) as noshow_count
+    FROM user_cancellation_history
+    WHERE user_id = $1 AND cancellation_type = 'noshow'
+  `, [userId]);
+
+  const noShowCount = parseInt(noShowResult.rows[0].noshow_count);
+  let restrictionDays = 0;
+  let restrictionType = 'participation';
+
+  if (noShowCount >= 10) {
+    restrictionDays = 36500; // 영구 (100년)
+    restrictionType = 'permanent';
+  } else if (noShowCount >= 5) {
+    restrictionDays = 30;
+  } else if (noShowCount >= 3) {
+    restrictionDays = 7;
+  }
+
+  if (restrictionDays > 0) {
+    const reason = `누적 노쇼 ${noShowCount}회`;
+    // 안전한 파라미터화 쿼리 - restrictionDays를 make_interval 함수로 처리
+    await client.query(`
+      INSERT INTO user_restrictions (
+        user_id, restriction_type, reason, restricted_until, created_at
+      ) VALUES ($1, $2, $3, NOW() + make_interval(days => $4), NOW())
+      ON CONFLICT (user_id, restriction_type) DO UPDATE SET
+        restricted_until = NOW() + make_interval(days => $4),
+        reason = $3,
+        updated_at = NOW()
+    `, [userId, restrictionType, reason, restrictionDays]);
+
+    console.log('⚠️ 노쇼 제재 적용:', { userId, noShowCount, restrictionDays });
+  }
+};
+
+// ============================================
+// 배상금 관련
+// ============================================
+
+// 내 배상금 내역 조회
+exports.getMyCompensations = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+
+    const result = await pool.query(`
+      SELECT
+        nc.*,
+        m.title as meetup_title,
+        m.date as meetup_date,
+        u.nickname as noshow_user_nickname
+      FROM noshow_compensations nc
+      JOIN meetups m ON nc.meetup_id = m.id
+      JOIN users u ON nc.noshow_user_id = u.id
+      WHERE nc.victim_user_id = $1
+      ORDER BY nc.created_at DESC
+    `, [userId]);
+
+    res.json({
+      success: true,
+      compensations: result.rows.map(c => ({
+        id: c.id,
+        meetupId: c.meetup_id,
+        meetupTitle: c.meetup_title,
+        meetupDate: c.meetup_date,
+        noshowUserNickname: c.noshow_user_nickname,
+        depositAmount: c.deposit_amount,
+        compensationAmount: c.compensation_amount,
+        status: c.status,
+        paidAt: c.paid_at,
+        createdAt: c.created_at
+      }))
+    });
+  } catch (error) {
+    console.error('❌ 배상금 내역 조회 실패:', error);
+    res.status(500).json({
+      success: false,
+      error: '배상금 내역 조회 중 오류가 발생했습니다.'
+    });
+  }
+};
+
+// 노쇼 이의 신청
+exports.appealNoShow = async (req, res) => {
+  try {
+    const { meetupId, reason, evidence } = req.body;
+    const userId = req.user.userId;
+
+    // 노쇼 확정 여부 확인
+    const noShowCheck = await pool.query(`
+      SELECT * FROM meetup_participants
+      WHERE meetup_id = $1 AND user_id = $2 AND no_show_confirmed = true
+    `, [meetupId, userId]);
+
+    if (noShowCheck.rows.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: '노쇼 이의 신청 대상이 아닙니다.'
+      });
+    }
+
+    // 이의 신청 기록 (support_tickets 테이블 활용)
+    await pool.query(`
+      INSERT INTO support_tickets (
+        user_id, type, title, content, status, priority, created_at
+      ) VALUES ($1, 'noshow_appeal', $2, $3, 'pending', 'high', NOW())
+    `, [userId, `노쇼 이의 신청 - 모임 ${meetupId}`, JSON.stringify({ meetupId, reason, evidence })]);
+
+    res.json({
+      success: true,
+      message: '노쇼 이의 신청이 접수되었습니다. 검토 후 안내드리겠습니다.'
+    });
+  } catch (error) {
+    console.error('❌ 노쇼 이의 신청 실패:', error);
+    res.status(500).json({
+      success: false,
+      error: '이의 신청 처리 중 오류가 발생했습니다.'
+    });
+  }
+};
+
+// 내 취소 이력 조회
+exports.getMyCancellationHistory = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+
+    const result = await pool.query(`
+      SELECT
+        uch.*,
+        m.title as meetup_title,
+        m.date as meetup_date
+      FROM user_cancellation_history uch
+      JOIN meetups m ON uch.meetup_id = m.id
+      WHERE uch.user_id = $1
+      ORDER BY uch.created_at DESC
+    `, [userId]);
+
+    res.json({
+      success: true,
+      history: result.rows.map(h => ({
+        id: h.id,
+        meetupId: h.meetup_id,
+        meetupTitle: h.meetup_title,
+        meetupDate: h.meetup_date,
+        cancellationType: h.cancellation_type,
+        minutesBeforeMeetup: h.minutes_before_meetup,
+        refundRate: h.refund_rate,
+        refundAmount: h.refund_amount,
+        originalDeposit: h.original_deposit,
+        reason: h.reason,
+        createdAt: h.created_at
+      }))
+    });
+  } catch (error) {
+    console.error('❌ 취소 이력 조회 실패:', error);
+    res.status(500).json({
+      success: false,
+      error: '취소 이력 조회 중 오류가 발생했습니다.'
+    });
+  }
+};
+
+// 내 제재 현황 조회
+exports.getMyRestrictions = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+
+    const result = await pool.query(`
+      SELECT * FROM user_restrictions
+      WHERE user_id = $1 AND restricted_until > NOW()
+      ORDER BY restricted_until DESC
+    `, [userId]);
+
+    res.json({
+      success: true,
+      restrictions: result.rows.map(r => ({
+        id: r.id,
+        restrictionType: r.restriction_type,
+        reason: r.reason,
+        restrictedUntil: r.restricted_until,
+        createdAt: r.created_at
+      })),
+      isRestricted: result.rows.length > 0
+    });
+  } catch (error) {
+    console.error('❌ 제재 현황 조회 실패:', error);
+    res.status(500).json({
+      success: false,
+      error: '제재 현황 조회 중 오류가 발생했습니다.'
     });
   }
 };
