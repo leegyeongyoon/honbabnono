@@ -75,11 +75,14 @@ router.post('/:id/wishlist', authenticateToken, miscController.addWishlist);
 // 찜 삭제
 router.delete('/:id/wishlist', authenticateToken, miscController.removeWishlist);
 
-// 리뷰 작성
+// 모임 리뷰 작성
 router.post('/:id/reviews', authenticateToken, reviewController.createReview);
 
 // 리뷰 목록 조회
 router.get('/:id/reviews', reviewController.getReviews);
+
+// 참가자 개별 리뷰 작성
+router.post('/:id/user-reviews', authenticateToken, reviewController.createUserReview);
 
 // 모임 확정/취소
 router.put('/:id/confirm', authenticateToken, miscController.confirmMeetup);
