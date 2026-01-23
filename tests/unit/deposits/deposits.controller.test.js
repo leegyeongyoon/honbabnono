@@ -69,6 +69,8 @@ describe('Deposits Controller', () => {
         },
       });
 
+      // 이용 제한 체크 (제한 없음)
+      mockQueryOnce(mockPool, { rows: [], rowCount: 0 });
       // 임시 모임 생성
       mockQueryOnce(mockPool, {
         rows: [{ id: 'new-meetup-uuid' }],
@@ -98,6 +100,8 @@ describe('Deposits Controller', () => {
         },
       });
 
+      // 이용 제한 체크 (제한 없음)
+      mockQueryOnce(mockPool, { rows: [], rowCount: 0 });
       // 기존 약속금 있음
       mockQueryOnce(mockPool, {
         rows: [{ id: 1 }],
@@ -122,6 +126,8 @@ describe('Deposits Controller', () => {
         },
       });
 
+      // 이용 제한 체크 (제한 없음)
+      mockQueryOnce(mockPool, { rows: [], rowCount: 0 });
       // 기존 약속금 없음
       mockQueryOnce(mockPool, { rows: [], rowCount: 0 });
       // 약속금 저장
@@ -146,6 +152,8 @@ describe('Deposits Controller', () => {
         },
       });
 
+      // 이용 제한 체크 (제한 없음)
+      mockQueryOnce(mockPool, { rows: [], rowCount: 0 });
       // 기존 약속금 없음
       mockQueryOnce(mockPool, { rows: [], rowCount: 0 });
       // 약속금 저장
@@ -169,6 +177,8 @@ describe('Deposits Controller', () => {
         },
       });
 
+      // 이용 제한 체크 (제한 없음)
+      mockQueryOnce(mockPool, { rows: [], rowCount: 0 });
       // 기존 약속금 없음
       mockQueryOnce(mockPool, { rows: [], rowCount: 0 });
       // 포인트 잔액 확인
@@ -198,6 +208,8 @@ describe('Deposits Controller', () => {
         },
       });
 
+      // 이용 제한 체크 (제한 없음)
+      mockQueryOnce(mockPool, { rows: [], rowCount: 0 });
       // 기존 약속금 없음
       mockQueryOnce(mockPool, { rows: [], rowCount: 0 });
       // 포인트 잔액 부족
@@ -221,6 +233,8 @@ describe('Deposits Controller', () => {
         },
       });
 
+      // 이용 제한 체크 (제한 없음)
+      mockQueryOnce(mockPool, { rows: [], rowCount: 0 });
       // 기존 약속금 없음
       mockQueryOnce(mockPool, { rows: [], rowCount: 0 });
       // 포인트 레코드 없음
@@ -244,6 +258,8 @@ describe('Deposits Controller', () => {
         },
       });
 
+      // 이용 제한 체크 (제한 없음)
+      mockQueryOnce(mockPool, { rows: [], rowCount: 0 });
       // 기존 약속금 없음
       mockQueryOnce(mockPool, { rows: [], rowCount: 0 });
 
