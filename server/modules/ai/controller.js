@@ -41,6 +41,9 @@ exports.aiSearch = async (req, res) => {
     };
 
     try {
+      if (!openai) {
+        throw new Error('OpenAI 클라이언트가 초기화되지 않았습니다. OPENAI_API_KEY를 확인해주세요.');
+      }
       const intentResponse = await openai.chat.completions.create({
         model: 'gpt-3.5-turbo',
         messages: [{ role: 'user', content: intentPrompt }],
@@ -150,6 +153,13 @@ exports.chatbot = async (req, res) => {
       { role: 'user', content: message }
     ];
 
+    if (!openai) {
+      return res.status(503).json({
+        success: false,
+        error: 'AI 서비스가 현재 사용 불가능합니다. 잠시 후 다시 시도해주세요.'
+      });
+    }
+
     const response = await openai.chat.completions.create({
       model: 'gpt-3.5-turbo',
       messages,
@@ -179,12 +189,13 @@ exports.recommendMeetups = async (req, res) => {
   try {
     const userId = req.user.userId;
 
-    // 사용자의 참여 이력 조회
+    // 사용자의 참여 이력 조회 (가장 많이 참여한 카테고리 상위 3개)
     const historyResult = await pool.query(`
-      SELECT DISTINCT m.category
+      SELECT m.category, COUNT(*) as participation_count
       FROM meetup_participants mp
       JOIN meetups m ON mp.meetup_id = m.id
       WHERE mp.user_id = $1
+      GROUP BY m.category
       ORDER BY COUNT(*) DESC
       LIMIT 3
     `, [userId]);
