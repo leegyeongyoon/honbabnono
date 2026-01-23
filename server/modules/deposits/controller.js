@@ -693,7 +693,7 @@ exports.getNoShowStatus = async (req, res) => {
     const statusResult = await pool.query(`
       SELECT
         mp.user_id,
-        u.nickname,
+        u.name,
         mp.attended,
         mp.no_show,
         mp.no_show_confirmed,
@@ -711,7 +711,7 @@ exports.getNoShowStatus = async (req, res) => {
       JOIN users u ON mp.user_id = u.id
       LEFT JOIN user_reviews ur ON ur.meetup_id = mp.meetup_id AND ur.reviewed_user_id = mp.user_id
       WHERE mp.meetup_id = $1 AND mp.status = '참가승인'
-      GROUP BY mp.user_id, u.nickname, mp.attended, mp.no_show, mp.no_show_confirmed
+      GROUP BY mp.user_id, u.name, mp.attended, mp.no_show, mp.no_show_confirmed
     `, [meetupId]);
 
     res.json({
@@ -963,7 +963,7 @@ exports.getMyCompensations = async (req, res) => {
         nc.*,
         m.title as meetup_title,
         m.date as meetup_date,
-        u.nickname as noshow_user_nickname
+        u.name as noshow_user_nickname
       FROM noshow_compensations nc
       JOIN meetups m ON nc.meetup_id = m.id
       JOIN users u ON nc.noshow_user_id = u.id
