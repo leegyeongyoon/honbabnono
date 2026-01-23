@@ -3,25 +3,19 @@ name: Deploy Admin Dashboard
 on:
   push:
     branches: [ main ]
-    paths: [ 'admin/**' ]
-  pull_request:
-    branches: [ main ]
-    paths: [ 'admin/**' ]
-  workflow_dispatch:  # 수동 실행 가능
+  workflow_dispatch:
 
 env:
   AWS_REGION: ap-northeast-2
+  APP_NAME: honbabnono
   ECR_REPOSITORY: honbabnono-admin
   ECS_SERVICE: honbabnono-admin-service
   ECS_CLUSTER: honbabnono-cluster
-  ECS_TASK_DEFINITION: honbabnono-admin-task
-  CONTAINER_NAME: honbabnono-admin-container
 
 jobs:
   deploy:
     name: Deploy Admin Dashboard
     runs-on: ubuntu-latest
-    environment: production
 
     steps:
     - name: Checkout
@@ -38,40 +32,49 @@ jobs:
       id: login-ecr
       uses: aws-actions/amazon-ecr-login@v2
 
-    - name: Build, tag, and push admin image to Amazon ECR
-      id: build-image
-      env:
-        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-        IMAGE_TAG: ${{ github.sha }}
+    - name: Get ECR repository URL
+      id: ecr-url
       run: |
-        # Build Docker image for admin dashboard
-        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG ./admin
-        docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:latest
-        docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-        docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
-        echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+        ECR_URL=$(aws ecr describe-repositories --repository-names ${{ env.ECR_REPOSITORY }} --query 'repositories[0].repositoryUri' --output text)
+        echo "ecr_url=$ECR_URL" >> $GITHUB_OUTPUT
+        echo "✅ ECR URL: $ECR_URL"
 
-    - name: Download task definition
+    - name: Build Docker image
       run: |
-        aws ecs describe-task-definition --task-definition $ECS_TASK_DEFINITION --query taskDefinition > task-definition.json
+        docker build -t ${{ env.ECR_REPOSITORY }} ./admin
 
-    - name: Fill in the new image ID in the Amazon ECS task definition
-      id: task-def
-      uses: aws-actions/amazon-ecs-render-task-definition@v1
-      with:
-        task-definition: task-definition.json
-        container-name: ${{ env.CONTAINER_NAME }}
-        image: ${{ steps.build-image.outputs.image }}
-
-    - name: Deploy Amazon ECS task definition
-      uses: aws-actions/amazon-ecs-deploy-task-definition@v1
-      with:
-        task-definition: ${{ steps.task-def.outputs.task-definition }}
-        service: ${{ env.ECS_SERVICE }}
-        cluster: ${{ env.ECS_CLUSTER }}
-        wait-for-service-stability: true
-
-    - name: Verify deployment
+    - name: Tag and push Docker image
       run: |
-        echo "Admin dashboard deployment completed successfully!"
-        echo "Admin URL: https://admin.honbabnono.com"
+        docker tag ${{ env.ECR_REPOSITORY }}:latest ${{ steps.ecr-url.outputs.ecr_url }}:latest
+        docker tag ${{ env.ECR_REPOSITORY }}:latest ${{ steps.ecr-url.outputs.ecr_url }}:${{ github.sha }}
+        docker push ${{ steps.ecr-url.outputs.ecr_url }}:latest
+        docker push ${{ steps.ecr-url.outputs.ecr_url }}:${{ github.sha }}
+
+    - name: Update ECS service
+      run: |
+        aws ecs update-service \
+          --cluster ${{ env.ECS_CLUSTER }} \
+          --service ${{ env.ECS_SERVICE }} \
+          --force-new-deployment \
+          --region ${{ env.AWS_REGION }}
+
+    - name: Wait for deployment to complete (with timeout)
+      run: |
+        echo "⏳ Waiting for ECS service to stabilize (max 10 minutes)..."
+        timeout 600 aws ecs wait services-stable \
+          --cluster ${{ env.ECS_CLUSTER }} \
+          --services ${{ env.ECS_SERVICE }} \
+          --region ${{ env.AWS_REGION }} || {
+          echo "❌ Service failed to stabilize within 10 minutes"
+          aws ecs describe-services \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --services ${{ env.ECS_SERVICE }} \
+            --region ${{ env.AWS_REGION }}
+          exit 1
+        }
+
+    - name: Deployment success notification
+      run: |
+        echo "🎉 Admin dashboard deployment completed successfully!"
+        echo "🌐 Admin URL: https://admin.honbabnono.com"
+        echo "📦 Docker image: ${{ steps.ecr-url.outputs.ecr_url }}:${{ github.sha }}"
