@@ -97,28 +97,39 @@ exports.leaveMeetup = async (req, res) => {
       });
     }
 
-    const result = await pool.query(
-      'DELETE FROM meetup_participants WHERE meetup_id = $1 AND user_id = $2 RETURNING *',
+    // 먼저 참가자 상태 확인
+    const participantResult = await pool.query(
+      'SELECT status FROM meetup_participants WHERE meetup_id = $1 AND user_id = $2',
       [id, userId]
     );
 
-    if (result.rows.length === 0) {
+    if (participantResult.rows.length === 0) {
       return res.status(404).json({
         success: false,
         error: '참가 신청을 찾을 수 없습니다.',
       });
     }
 
-    // 참가자 수 감소
-    await pool.query(
-      `
-      UPDATE meetups
-      SET current_participants = current_participants - 1,
-          updated_at = NOW()
-      WHERE id = $1 AND current_participants > 0
-    `,
-      [id]
+    const wasApproved = participantResult.rows[0].status === '참가승인';
+
+    // 참가자 삭제
+    const result = await pool.query(
+      'DELETE FROM meetup_participants WHERE meetup_id = $1 AND user_id = $2 RETURNING *',
+      [id, userId]
     );
+
+    // 승인된 참가자였을 경우에만 참가자 수 감소
+    if (wasApproved) {
+      await pool.query(
+        `
+        UPDATE meetups
+        SET current_participants = current_participants - 1,
+            updated_at = NOW()
+        WHERE id = $1 AND current_participants > 0
+      `,
+        [id]
+      );
+    }
 
     res.json({
       success: true,
@@ -202,31 +213,55 @@ exports.updateParticipantStatus = async (req, res) => {
       });
     }
 
-    const result = await pool.query(
-      `
-      UPDATE meetup_participants
-      SET status = $1
-      WHERE meetup_id = $2 AND user_id = $3
-      RETURNING *
-    `,
-      [status, id, participantId]
+    // 이전 상태 확인
+    const prevResult = await pool.query(
+      'SELECT status FROM meetup_participants WHERE meetup_id = $1 AND user_id = $2',
+      [id, participantId]
     );
 
-    if (result.rows.length === 0) {
+    if (prevResult.rows.length === 0) {
       return res.status(404).json({
         success: false,
         error: '참가자를 찾을 수 없습니다.',
       });
     }
 
-    // 참가 승인 시 참가자 수 증가
-    if (status === '참가승인') {
+    const prevStatus = prevResult.rows[0].status;
+
+    // 상태 변경
+    const result = await pool.query(
+      `
+      UPDATE meetup_participants
+      SET status = $1, updated_at = NOW()
+      WHERE meetup_id = $2 AND user_id = $3
+      RETURNING *
+    `,
+      [status, id, participantId]
+    );
+
+    // 참가자 수 조정 (이전 상태와 새 상태 비교)
+    const wasApproved = prevStatus === '참가승인';
+    const isNowApproved = status === '참가승인';
+
+    if (!wasApproved && isNowApproved) {
+      // 승인되지 않았다가 승인됨 → 참가자 수 증가
       await pool.query(
         `
         UPDATE meetups
         SET current_participants = current_participants + 1,
             updated_at = NOW()
         WHERE id = $1
+      `,
+        [id]
+      );
+    } else if (wasApproved && !isNowApproved) {
+      // 승인이었다가 거절/대기로 변경 → 참가자 수 감소
+      await pool.query(
+        `
+        UPDATE meetups
+        SET current_participants = current_participants - 1,
+            updated_at = NOW()
+        WHERE id = $1 AND current_participants > 0
       `,
         [id]
       );

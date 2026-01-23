@@ -199,7 +199,7 @@ CREATE TABLE user_blocks (
     UNIQUE(blocker_id, blocked_id)
 );
 
--- 출석체크 테이블
+-- 출석체크 테이블 (attendance_checks - 레거시 호환용)
 CREATE TABLE attendance_checks (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     meetup_id UUID NOT NULL REFERENCES meetups(id) ON DELETE CASCADE,
@@ -210,6 +210,73 @@ CREATE TABLE attendance_checks (
     verification_method VARCHAR(50) DEFAULT 'location',
     is_verified BOOLEAN DEFAULT false,
     UNIQUE(meetup_id, user_id)
+);
+
+-- 출석 테이블 (attendances - 주로 사용)
+CREATE TABLE attendances (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    meetup_id UUID NOT NULL REFERENCES meetups(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    attendance_type VARCHAR(50) DEFAULT 'gps', -- gps, qr, host_confirm, manual
+    location_latitude DECIMAL(10,8),
+    location_longitude DECIMAL(11,8),
+    qr_code_data TEXT,
+    status VARCHAR(50) DEFAULT 'pending', -- pending, confirmed, rejected
+    confirmed_at TIMESTAMP WITH TIME ZONE,
+    confirmed_by UUID REFERENCES users(id),
+    notes TEXT,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    UNIQUE(meetup_id, user_id)
+);
+
+-- 사용자 차단 테이블 (user_blocked_users - 코드에서 사용)
+CREATE TABLE user_blocked_users (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    blocked_user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    reason VARCHAR(255),
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    UNIQUE(user_id, blocked_user_id)
+);
+
+-- 약속금 테이블
+CREATE TABLE promise_deposits (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    meetup_id UUID NOT NULL REFERENCES meetups(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    amount INTEGER NOT NULL DEFAULT 0,
+    status VARCHAR(50) DEFAULT 'pending', -- pending, paid, refunded, forfeited
+    paid_at TIMESTAMP WITH TIME ZONE,
+    refunded_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    UNIQUE(meetup_id, user_id)
+);
+
+-- 상호 확인 테이블 (모임 참석 상호 확인용)
+CREATE TABLE mutual_confirmations (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    meetup_id UUID NOT NULL REFERENCES meetups(id) ON DELETE CASCADE,
+    confirmer_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    confirmed_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    target_user_id UUID REFERENCES users(id) ON DELETE CASCADE, -- 레거시 호환
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    UNIQUE(meetup_id, confirmer_id, confirmed_id)
+);
+
+-- 사용자 간 리뷰 테이블 (참가자 개별 평가용)
+CREATE TABLE user_reviews (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    meetup_id UUID NOT NULL REFERENCES meetups(id) ON DELETE CASCADE,
+    reviewer_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    reviewed_user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    rating INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5),
+    comment TEXT,
+    tags TEXT[],
+    is_anonymous BOOLEAN DEFAULT false,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    UNIQUE(meetup_id, reviewer_id, reviewed_user_id)
 );
 
 -- =====================================
@@ -237,6 +304,29 @@ CREATE INDEX idx_point_transactions_user_id ON point_transactions(user_id);
 CREATE INDEX idx_user_blocks_blocker_id ON user_blocks(blocker_id);
 CREATE INDEX idx_user_blocks_blocked_id ON user_blocks(blocked_id);
 CREATE INDEX idx_attendance_checks_meetup_id ON attendance_checks(meetup_id);
+
+-- 출석(attendances) 인덱스
+CREATE INDEX idx_attendances_meetup_id ON attendances(meetup_id);
+CREATE INDEX idx_attendances_user_id ON attendances(user_id);
+CREATE INDEX idx_attendances_status ON attendances(status);
+
+-- 사용자 차단(user_blocked_users) 인덱스
+CREATE INDEX idx_user_blocked_users_user_id ON user_blocked_users(user_id);
+CREATE INDEX idx_user_blocked_users_blocked_user_id ON user_blocked_users(blocked_user_id);
+
+-- 약속금(promise_deposits) 인덱스
+CREATE INDEX idx_promise_deposits_meetup_id ON promise_deposits(meetup_id);
+CREATE INDEX idx_promise_deposits_user_id ON promise_deposits(user_id);
+CREATE INDEX idx_promise_deposits_status ON promise_deposits(status);
+
+-- 상호확인(mutual_confirmations) 인덱스
+CREATE INDEX idx_mutual_confirmations_meetup_id ON mutual_confirmations(meetup_id);
+CREATE INDEX idx_mutual_confirmations_confirmer_id ON mutual_confirmations(confirmer_id);
+
+-- 사용자 리뷰(user_reviews) 인덱스
+CREATE INDEX idx_user_reviews_meetup_id ON user_reviews(meetup_id);
+CREATE INDEX idx_user_reviews_reviewer_id ON user_reviews(reviewer_id);
+CREATE INDEX idx_user_reviews_reviewed_user_id ON user_reviews(reviewed_user_id);
 
 -- =====================================
 -- 4. 트리거 함수 생성
