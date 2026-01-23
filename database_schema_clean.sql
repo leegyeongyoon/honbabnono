@@ -72,6 +72,7 @@ CREATE TABLE meetups (
     max_participants INTEGER NOT NULL,
     current_participants INTEGER DEFAULT 0,
     price_range VARCHAR(50),
+    deposit_amount INTEGER DEFAULT 0, -- 약속금 (0, 3000, 5000, 10000)
     host_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     status meetup_status DEFAULT '모집중',
     image_url TEXT,
@@ -89,6 +90,10 @@ CREATE TABLE meetup_participants (
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     status participant_status DEFAULT '대기중',
     message TEXT,
+    attended BOOLEAN DEFAULT false, -- 출석 여부
+    attended_at TIMESTAMP WITH TIME ZONE, -- 출석 시간
+    no_show BOOLEAN DEFAULT false, -- 노쇼 여부
+    no_show_confirmed BOOLEAN DEFAULT false, -- 노쇼 확정 (후기에서 확인)
     joined_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     UNIQUE(meetup_id, user_id)
@@ -244,10 +249,18 @@ CREATE TABLE promise_deposits (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     meetup_id UUID NOT NULL REFERENCES meetups(id) ON DELETE CASCADE,
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    amount INTEGER NOT NULL DEFAULT 0,
-    status VARCHAR(50) DEFAULT 'pending', -- pending, paid, refunded, forfeited
+    amount INTEGER NOT NULL DEFAULT 0, -- 약속금 (3000, 5000, 10000)
+    status VARCHAR(50) DEFAULT 'pending', -- pending, paid, refunded, partial_refunded, forfeited
+    payment_method VARCHAR(50), -- 'points', 'card', 'kakaopay'
+    payment_id VARCHAR(255), -- 외부 결제 ID
+    refund_rate INTEGER DEFAULT 100, -- 환불율 (0-100%)
+    refund_amount INTEGER DEFAULT 0, -- 실제 환불 금액
+    forfeited_amount INTEGER DEFAULT 0, -- 몰수 금액
     paid_at TIMESTAMP WITH TIME ZONE,
     refunded_at TIMESTAMP WITH TIME ZONE,
+    forfeited_at TIMESTAMP WITH TIME ZONE,
+    cancelled_at TIMESTAMP WITH TIME ZONE, -- 취소 시점
+    cancellation_type VARCHAR(50), -- 'voluntary', 'late_40min', 'late_20min', 'late_10min', 'noshow', 'system'
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     UNIQUE(meetup_id, user_id)
@@ -274,9 +287,78 @@ CREATE TABLE user_reviews (
     comment TEXT,
     tags TEXT[],
     is_anonymous BOOLEAN DEFAULT false,
+    reported_noshow BOOLEAN DEFAULT false, -- 노쇼 여부 신고
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     UNIQUE(meetup_id, reviewer_id, reviewed_user_id)
+);
+
+-- =====================================
+-- 약속금 & 노쇼 시스템 테이블
+-- =====================================
+
+-- 사용자 포인트 잔액 테이블
+CREATE TABLE user_points (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE UNIQUE,
+    available_points INTEGER NOT NULL DEFAULT 0, -- 사용 가능 포인트
+    total_earned INTEGER NOT NULL DEFAULT 0, -- 총 적립 포인트
+    total_used INTEGER NOT NULL DEFAULT 0, -- 총 사용 포인트
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+);
+
+-- 사용자 취소 이력 테이블 (잦은 취소 추적용)
+CREATE TABLE user_cancellation_history (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    meetup_id UUID NOT NULL REFERENCES meetups(id) ON DELETE CASCADE,
+    cancellation_type VARCHAR(50) NOT NULL, -- 'voluntary', 'late', 'noshow'
+    minutes_before_meetup INTEGER, -- 모임 시작 몇 분 전 취소인지
+    refund_rate INTEGER NOT NULL DEFAULT 100, -- 환불율 (0-100%)
+    refund_amount INTEGER NOT NULL DEFAULT 0, -- 환불 금액
+    original_deposit INTEGER NOT NULL DEFAULT 0, -- 원래 약속금
+    reason TEXT,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+);
+
+-- 노쇼 배상 기록 테이블
+CREATE TABLE noshow_compensations (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    meetup_id UUID NOT NULL REFERENCES meetups(id) ON DELETE CASCADE,
+    noshow_user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE, -- 노쇼한 사람
+    victim_user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE, -- 피해자
+    deposit_amount INTEGER NOT NULL, -- 원래 약속금
+    compensation_amount INTEGER NOT NULL, -- 배상금 (70%)
+    platform_fee INTEGER NOT NULL, -- 플랫폼 수수료 (30%)
+    status VARCHAR(50) DEFAULT 'pending', -- pending, paid, cancelled
+    paid_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    UNIQUE(meetup_id, noshow_user_id, victim_user_id)
+);
+
+-- 사용자 제재 테이블
+CREATE TABLE user_restrictions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    restriction_type VARCHAR(50) NOT NULL, -- 'cancellation_limit', 'noshow_limit', 'temporary_ban'
+    reason TEXT NOT NULL,
+    restriction_count INTEGER DEFAULT 0, -- 위반 횟수
+    restricted_until TIMESTAMP WITH TIME ZONE, -- 제재 종료 시점 (NULL이면 영구)
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+);
+
+-- 플랫폼 수익 기록 테이블
+CREATE TABLE platform_revenues (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    meetup_id UUID REFERENCES meetups(id) ON DELETE SET NULL,
+    revenue_type VARCHAR(50) NOT NULL, -- 'noshow_fee', 'late_cancel_fee', 'service_fee'
+    amount INTEGER NOT NULL,
+    description TEXT,
+    related_user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
 
 -- =====================================
@@ -328,6 +410,28 @@ CREATE INDEX idx_user_reviews_meetup_id ON user_reviews(meetup_id);
 CREATE INDEX idx_user_reviews_reviewer_id ON user_reviews(reviewer_id);
 CREATE INDEX idx_user_reviews_reviewed_user_id ON user_reviews(reviewed_user_id);
 
+-- 사용자 포인트(user_points) 인덱스
+CREATE INDEX idx_user_points_user_id ON user_points(user_id);
+
+-- 취소 이력(user_cancellation_history) 인덱스
+CREATE INDEX idx_user_cancellation_history_user_id ON user_cancellation_history(user_id);
+CREATE INDEX idx_user_cancellation_history_meetup_id ON user_cancellation_history(meetup_id);
+CREATE INDEX idx_user_cancellation_history_type ON user_cancellation_history(cancellation_type);
+
+-- 노쇼 배상(noshow_compensations) 인덱스
+CREATE INDEX idx_noshow_compensations_meetup_id ON noshow_compensations(meetup_id);
+CREATE INDEX idx_noshow_compensations_noshow_user_id ON noshow_compensations(noshow_user_id);
+CREATE INDEX idx_noshow_compensations_victim_user_id ON noshow_compensations(victim_user_id);
+CREATE INDEX idx_noshow_compensations_status ON noshow_compensations(status);
+
+-- 사용자 제재(user_restrictions) 인덱스
+CREATE INDEX idx_user_restrictions_user_id ON user_restrictions(user_id);
+CREATE INDEX idx_user_restrictions_is_active ON user_restrictions(is_active);
+
+-- 플랫폼 수익(platform_revenues) 인덱스
+CREATE INDEX idx_platform_revenues_meetup_id ON platform_revenues(meetup_id);
+CREATE INDEX idx_platform_revenues_type ON platform_revenues(revenue_type);
+
 -- =====================================
 -- 4. 트리거 함수 생성
 -- =====================================
@@ -360,6 +464,26 @@ BEGIN
 END;
 $$ language 'plpgsql';
 
+-- 고객지원 티켓 테이블
+CREATE TABLE support_tickets (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    type VARCHAR(50) NOT NULL, -- 'noshow_appeal', 'report', 'inquiry', 'feedback'
+    title VARCHAR(200) NOT NULL,
+    content TEXT NOT NULL,
+    status VARCHAR(50) DEFAULT 'pending', -- 'pending', 'in_review', 'resolved', 'rejected'
+    priority VARCHAR(20) DEFAULT 'normal', -- 'low', 'normal', 'high', 'urgent'
+    admin_response TEXT,
+    resolved_by UUID REFERENCES users(id),
+    resolved_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_support_tickets_user_id ON support_tickets(user_id);
+CREATE INDEX idx_support_tickets_status ON support_tickets(status);
+CREATE INDEX idx_support_tickets_type ON support_tickets(type);
+
 -- =====================================
 -- 5. 트리거 생성
 -- =====================================
@@ -385,8 +509,24 @@ CREATE TRIGGER update_chat_rooms_updated_at
     BEFORE UPDATE ON chat_rooms 
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
-CREATE TRIGGER update_reviews_updated_at 
-    BEFORE UPDATE ON reviews 
+CREATE TRIGGER update_reviews_updated_at
+    BEFORE UPDATE ON reviews
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_user_points_updated_at
+    BEFORE UPDATE ON user_points
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_promise_deposits_updated_at
+    BEFORE UPDATE ON promise_deposits
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_user_restrictions_updated_at
+    BEFORE UPDATE ON user_restrictions
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_support_tickets_updated_at
+    BEFORE UPDATE ON support_tickets
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- 모임 참가자 수 자동 업데이트 트리거

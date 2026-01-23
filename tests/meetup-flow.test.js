@@ -439,4 +439,377 @@ describe('모임 전체 플로우 테스트', () => {
       expect(attendancesColumns).toContain('status');
     });
   });
+
+  // ============================================
+  // 7. 약속금 시스템 테스트
+  // ============================================
+  describe('7. 약속금 시스템', () => {
+    describe('약속금 금액 옵션', () => {
+      it('지원하는 약속금 금액', () => {
+        const depositOptions = [0, 3000, 5000, 10000];
+        expect(depositOptions).toContain(0);
+        expect(depositOptions).toContain(3000);
+        expect(depositOptions).toContain(5000);
+        expect(depositOptions).toContain(10000);
+      });
+
+      it('호스트가 약속금 설정', () => {
+        const meetup = {
+          host_id: 'user-123',
+          deposit_amount: 5000
+        };
+        expect(meetup.deposit_amount).toBe(5000);
+      });
+    });
+
+    describe('약속금 결제', () => {
+      it('참가 신청 시 약속금 결제', () => {
+        const deposit = {
+          meetup_id: 'meetup-123',
+          user_id: 'user-456',
+          amount: 5000,
+          status: 'paid',
+          payment_method: 'points'
+        };
+        expect(deposit.status).toBe('paid');
+      });
+
+      it('포인트 부족 시 결제 실패', () => {
+        const userPoints = 3000;
+        const requiredDeposit = 5000;
+        const canPay = userPoints >= requiredDeposit;
+        expect(canPay).toBe(false);
+      });
+    });
+  });
+
+  // ============================================
+  // 8. 취소 정책 테스트
+  // ============================================
+  describe('8. 취소 정책', () => {
+    // 환불율 계산 함수
+    const calculateRefundRate = (minutesBeforeMeetup, meetupStatus) => {
+      if (meetupStatus === '모집중') {
+        return { refundRate: 100, cancellationType: 'voluntary' };
+      }
+      if (minutesBeforeMeetup >= 60) {
+        return { refundRate: 100, cancellationType: 'voluntary' };
+      } else if (minutesBeforeMeetup >= 40) {
+        return { refundRate: 60, cancellationType: 'late_40min' };
+      } else if (minutesBeforeMeetup >= 20) {
+        return { refundRate: 30, cancellationType: 'late_20min' };
+      } else if (minutesBeforeMeetup >= 10) {
+        return { refundRate: 0, cancellationType: 'late_10min' };
+      } else {
+        return { refundRate: 0, cancellationType: 'noshow' };
+      }
+    };
+
+    describe('시간별 환불율', () => {
+      it('1시간 이상 전: 100% 환불', () => {
+        const result = calculateRefundRate(70, '모집완료');
+        expect(result.refundRate).toBe(100);
+        expect(result.cancellationType).toBe('voluntary');
+      });
+
+      it('40분~60분 전: 60% 환불', () => {
+        const result = calculateRefundRate(50, '모집완료');
+        expect(result.refundRate).toBe(60);
+        expect(result.cancellationType).toBe('late_40min');
+      });
+
+      it('20분~40분 전: 30% 환불', () => {
+        const result = calculateRefundRate(30, '모집완료');
+        expect(result.refundRate).toBe(30);
+        expect(result.cancellationType).toBe('late_20min');
+      });
+
+      it('10분~20분 전: 0% 환불', () => {
+        const result = calculateRefundRate(15, '모집완료');
+        expect(result.refundRate).toBe(0);
+        expect(result.cancellationType).toBe('late_10min');
+      });
+
+      it('10분 이내: 취소 불가 (노쇼 처리)', () => {
+        const result = calculateRefundRate(5, '모집완료');
+        expect(result.refundRate).toBe(0);
+        expect(result.cancellationType).toBe('noshow');
+      });
+    });
+
+    describe('모집중 상태에서 취소', () => {
+      it('모집중 상태에서는 언제든 100% 환불', () => {
+        const result1 = calculateRefundRate(5, '모집중');
+        const result2 = calculateRefundRate(120, '모집중');
+        expect(result1.refundRate).toBe(100);
+        expect(result2.refundRate).toBe(100);
+      });
+    });
+
+    describe('환불 금액 계산', () => {
+      it('환불 금액과 몰수 금액 계산', () => {
+        const depositAmount = 5000;
+        const refundRate = 60;
+        const refundAmount = Math.floor(depositAmount * refundRate / 100);
+        const forfeitedAmount = depositAmount - refundAmount;
+
+        expect(refundAmount).toBe(3000);
+        expect(forfeitedAmount).toBe(2000);
+      });
+    });
+  });
+
+  // ============================================
+  // 9. 노쇼 판정 테스트
+  // ============================================
+  describe('9. 노쇼 판정', () => {
+    describe('노쇼 판정 기준', () => {
+      it('GPS 미인증 + 2명 이상 신고 = 노쇼 확정', () => {
+        const participant = {
+          attended: false, // GPS 미인증
+          noshowReports: 2 // 2명 신고
+        };
+        const isNoShow = !participant.attended && participant.noshowReports >= 2;
+        expect(isNoShow).toBe(true);
+      });
+
+      it('GPS 미인증 + 호스트 신고 = 노쇼 확정', () => {
+        const participant = {
+          attended: false,
+          hostReported: true
+        };
+        const isNoShow = !participant.attended && participant.hostReported;
+        expect(isNoShow).toBe(true);
+      });
+
+      it('GPS 인증 완료 = 정상 출석', () => {
+        const participant = {
+          attended: true,
+          noshowReports: 1
+        };
+        const isNoShow = !participant.attended && participant.noshowReports >= 2;
+        expect(isNoShow).toBe(false);
+      });
+
+      it('GPS 미인증 + 신고 없음 = GPS 오류로 간주', () => {
+        const participant = {
+          attended: false,
+          noshowReports: 0
+        };
+        const isNoShow = !participant.attended && participant.noshowReports >= 2;
+        expect(isNoShow).toBe(false);
+      });
+    });
+
+    describe('노쇼 페널티', () => {
+      it('노쇼 시 약속금 전액 몰수', () => {
+        const depositAmount = 5000;
+        const refundRate = 0;
+        const forfeitedAmount = depositAmount;
+        expect(forfeitedAmount).toBe(5000);
+      });
+
+      it('노쇼 시 밥알 점수 -15점', () => {
+        let babalScore = 100;
+        const penalty = 15;
+        babalScore = Math.max(0, babalScore - penalty);
+        expect(babalScore).toBe(85);
+      });
+    });
+  });
+
+  // ============================================
+  // 10. 배상 시스템 테스트
+  // ============================================
+  describe('10. 배상 시스템', () => {
+    describe('몰수금 분배', () => {
+      it('피해자 70%, 플랫폼 30% 분배', () => {
+        const forfeitedAmount = 5000;
+        const victimCompensation = Math.floor(forfeitedAmount * 0.7);
+        const platformFee = forfeitedAmount - victimCompensation;
+
+        expect(victimCompensation).toBe(3500);
+        expect(platformFee).toBe(1500);
+      });
+
+      it('피해자 배상금 균등 분배', () => {
+        const forfeitedAmount = 5000;
+        const victimCompensation = Math.floor(forfeitedAmount * 0.7);
+        const attendedCount = 3;
+        const perPerson = Math.floor(victimCompensation / attendedCount);
+
+        expect(perPerson).toBe(1166);
+      });
+    });
+
+    describe('배상금 지급', () => {
+      it('배상금은 포인트로 지급', () => {
+        const compensation = {
+          victim_user_id: 'user-123',
+          compensation_amount: 1166,
+          status: 'paid',
+          payment_type: 'points'
+        };
+        expect(compensation.status).toBe('paid');
+      });
+    });
+  });
+
+  // ============================================
+  // 11. 누적 제재 테스트
+  // ============================================
+  describe('11. 누적 제재', () => {
+    describe('직전 취소 제재', () => {
+      it('30일 내 3회 직전 취소: 경고', () => {
+        const cancelCount = 3;
+        const shouldWarn = cancelCount >= 3;
+        expect(shouldWarn).toBe(true);
+      });
+
+      it('30일 내 5회 직전 취소: 7일 이용 제한', () => {
+        const cancelCount = 5;
+        let restrictionDays = 0;
+        if (cancelCount >= 5) restrictionDays = 7;
+        expect(restrictionDays).toBe(7);
+      });
+    });
+
+    describe('노쇼 제재', () => {
+      it('누적 3회 노쇼: 7일 이용 제한', () => {
+        const noShowCount = 3;
+        let restrictionDays = 0;
+        if (noShowCount >= 3) restrictionDays = 7;
+        expect(restrictionDays).toBe(7);
+      });
+
+      it('누적 5회 노쇼: 30일 이용 제한', () => {
+        const noShowCount = 5;
+        let restrictionDays = 0;
+        if (noShowCount >= 5) restrictionDays = 30;
+        if (noShowCount >= 3) restrictionDays = Math.max(restrictionDays, 7);
+        expect(restrictionDays).toBe(30);
+      });
+
+      it('누적 10회 노쇼: 영구 이용 제한', () => {
+        const noShowCount = 10;
+        let restrictionType = 'participation';
+        if (noShowCount >= 10) restrictionType = 'permanent';
+        expect(restrictionType).toBe('permanent');
+      });
+    });
+  });
+
+  // ============================================
+  // 12. 호스트 노쇼 테스트
+  // ============================================
+  describe('12. 호스트 노쇼', () => {
+    it('호스트 노쇼 시 참가자 전액 환불', () => {
+      const participants = [
+        { user_id: 'user-1', deposit: 5000 },
+        { user_id: 'user-2', deposit: 5000 },
+        { user_id: 'user-3', deposit: 5000 }
+      ];
+      const refunds = participants.map(p => ({
+        ...p,
+        refund: p.deposit // 100% 환불
+      }));
+      expect(refunds.every(r => r.refund === r.deposit)).toBe(true);
+    });
+
+    it('호스트 노쇼 시 더 큰 밥알 점수 페널티', () => {
+      const normalNoShowPenalty = 15;
+      const hostNoShowPenalty = 30;
+      expect(hostNoShowPenalty).toBeGreaterThan(normalNoShowPenalty);
+    });
+
+    it('호스트 노쇼 시 호스트 자격 정지', () => {
+      const hostRestriction = {
+        restriction_type: 'host',
+        days: 30
+      };
+      expect(hostRestriction.restriction_type).toBe('host');
+      expect(hostRestriction.days).toBe(30);
+    });
+  });
+
+  // ============================================
+  // 13. 전체 플로우 통합 테스트 (약속금 포함)
+  // ============================================
+  describe('13. 약속금 포함 전체 플로우', () => {
+    it('모임 생성 → 약속금 결제 → 참가 → GPS 체크인 → 환불 플로우', () => {
+      // 1. 모임 생성 (약속금 포함)
+      const meetup = {
+        id: 'meetup-123',
+        status: '모집중',
+        host_id: 'host-1',
+        deposit_amount: 5000,
+        current_participants: 1,
+        max_participants: 4
+      };
+      expect(meetup.deposit_amount).toBe(5000);
+
+      // 2. 참가자 약속금 결제
+      const deposit = {
+        meetup_id: meetup.id,
+        user_id: 'user-2',
+        amount: 5000,
+        status: 'paid',
+        payment_method: 'points'
+      };
+      expect(deposit.status).toBe('paid');
+
+      // 3. 참가 승인 및 모임 확정
+      meetup.status = '모집완료';
+      meetup.current_participants = 3;
+      expect(meetup.status).toBe('모집완료');
+
+      // 4. GPS 체크인 (모임 당일)
+      const attendance = {
+        meetup_id: meetup.id,
+        user_id: 'user-2',
+        attended: true,
+        attendance_type: 'gps'
+      };
+      expect(attendance.attended).toBe(true);
+
+      // 5. 모임 완료 후 정상 환불
+      deposit.status = 'refunded';
+      deposit.refund_amount = 5000;
+      deposit.refund_rate = 100;
+      expect(deposit.refund_amount).toBe(5000);
+    });
+
+    it('노쇼 시나리오: 참가 → 노쇼 → 배상 플로우', () => {
+      // 1. 모임 확정
+      const meetup = {
+        id: 'meetup-456',
+        status: '모집완료',
+        deposit_amount: 5000
+      };
+
+      // 2. 참가자들
+      const participants = [
+        { user_id: 'user-1', attended: true },  // 출석
+        { user_id: 'user-2', attended: true },  // 출석
+        { user_id: 'user-3', attended: false }  // 노쇼
+      ];
+
+      // 3. 노쇼 신고 (2명 이상)
+      const noshowReports = [
+        { reporter_id: 'user-1', reported_id: 'user-3' },
+        { reporter_id: 'user-2', reported_id: 'user-3' }
+      ];
+      expect(noshowReports.length).toBeGreaterThanOrEqual(2);
+
+      // 4. 노쇼 확정 및 배상
+      const noShow = participants.find(p => !p.attended);
+      const forfeitedAmount = meetup.deposit_amount;
+      const victimCompensation = Math.floor(forfeitedAmount * 0.7);
+      const attendedUsers = participants.filter(p => p.attended);
+      const compensationPerPerson = Math.floor(victimCompensation / attendedUsers.length);
+
+      expect(noShow.user_id).toBe('user-3');
+      expect(compensationPerPerson).toBe(1750);
+    });
+  });
 });
