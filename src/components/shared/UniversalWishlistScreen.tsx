@@ -19,9 +19,7 @@ const UniversalWishlistScreen: React.FC<{navigation: NavigationAdapter, user?: a
   const fetchWishlist = useCallback(async () => {
     try {
       setError(null);
-      console.log('❤️ 찜 목록 조회 시작');
       const response = await userApiService.getWishlist();
-      console.log('❤️ 찜 목록 응답:', response);
       setWishlistMeetups(response.data || response.meetups || []);
     } catch (error) {
       console.error('찜한 모임 조회 실패:', error);

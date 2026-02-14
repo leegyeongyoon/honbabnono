@@ -3,14 +3,15 @@ import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
   TouchableOpacity,
   Alert,
   SafeAreaView,
 } from 'react-native';
-import { COLORS, SHADOWS, LAYOUT } from '../styles/colors';
+import { COLORS } from '../styles/colors';
 import { TYPOGRAPHY } from '../styles/typography';
-import { Icon } from '../components/Icon';
+import { SPACING, BORDER_RADIUS } from '../styles/spacing';
+import Header from '../components/Header';
+import EmptyState from '../components/EmptyState';
 import { NotificationList } from '../components/NotificationList';
 import { Notification } from '../types/notification';
 import notificationApiService from '../services/notificationApiService';
@@ -20,22 +21,10 @@ interface NotificationScreenProps {
   user?: any;
 }
 
-interface NotificationItem {
-  id: number;
-  type: 'meetup' | 'system' | 'message';
-  title: string;
-  message: string;
-  time: string;
-  isRead: boolean;
-  imageUrl?: string;
-}
-
 const NotificationScreen: React.FC<NotificationScreenProps> = ({ navigation, user }) => {
   const [showUnreadOnly, setShowUnreadOnly] = useState(false);
 
   const handleNotificationPress = (notification: Notification) => {
-    console.log('알림 클릭:', notification);
-    
     // 알림 타입별로 적절한 화면으로 이동하는 로직 추가
     switch (notification.type) {
       case 'chat_message':
@@ -64,57 +53,59 @@ const NotificationScreen: React.FC<NotificationScreenProps> = ({ navigation, use
     }
   };
 
+  const handleBackPress = () => {
+    if (navigation?.goBack) {
+      navigation.goBack();
+    } else {
+      window.history.back();
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
-      {/* 헤더 */}
-      <View style={styles.header}>
-        <TouchableOpacity 
-          style={styles.backButton}
-          onPress={() => {
-            if (navigation?.goBack) {
-              navigation.goBack();
-            } else {
-              window.history.back();
-            }
-          }}
-        >
-          <Icon name="arrow-left" size={24} color="#333" />
-        </TouchableOpacity>
-        <Text style={styles.title}>알림</Text>
-        <View style={styles.headerActions}>
-          <TouchableOpacity
-            style={[
-              styles.filterButton,
-              showUnreadOnly && styles.filterButtonActive
-            ]}
-            onPress={() => setShowUnreadOnly(!showUnreadOnly)}
-          >
-            <Icon 
-              name="filter-list" 
-              size={20} 
-              color={showUnreadOnly ? '#FF6B6B' : '#666'} 
-            />
-            <Text style={[
-              styles.filterButtonText,
-              showUnreadOnly && styles.filterButtonTextActive
-            ]}>
-              읽지 않음
-            </Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity
-            style={styles.markAllButton}
-            onPress={handleMarkAllAsRead}
-          >
-            <Icon name="done-all" size={20} color="#666" />
-          </TouchableOpacity>
-        </View>
-      </View>
+      <Header
+        mode="sub"
+        title="알림"
+        onBackPress={handleBackPress}
+        showNotification={false}
+        rightContent={
+          <View style={styles.headerActions}>
+            <TouchableOpacity
+              style={[
+                styles.filterButton,
+                showUnreadOnly && styles.filterButtonActive,
+              ]}
+              onPress={() => setShowUnreadOnly(!showUnreadOnly)}
+            >
+              <Text style={[
+                styles.filterButtonText,
+                showUnreadOnly && styles.filterButtonTextActive,
+              ]}>
+                읽지 않음
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.markAllButton}
+              onPress={handleMarkAllAsRead}
+            >
+              <Text style={styles.markAllText}>모두 읽음</Text>
+            </TouchableOpacity>
+          </View>
+        }
+      />
 
       {/* 알림 목록 */}
       <NotificationList
         onNotificationPress={handleNotificationPress}
         showUnreadOnly={showUnreadOnly}
+        emptyComponent={
+          <EmptyState
+            icon="🔔"
+            title="알림이 없습니다"
+            description="새로운 소식이 있으면 알려드릴게요"
+          />
+        }
       />
     </SafeAreaView>
   );
@@ -123,57 +114,36 @@ const NotificationScreen: React.FC<NotificationScreenProps> = ({ navigation, use
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F5F5',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: 'white',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
-  },
-  backButton: {
-    padding: 8,
-    marginRight: 12,
-  },
-  title: {
-    flex: 1,
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
+    backgroundColor: COLORS.neutral.background,
   },
   headerActions: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: SPACING.sm,
   },
   filterButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: '#F5F5F5',
-    marginRight: 8,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.xs,
+    borderRadius: BORDER_RADIUS.full,
+    backgroundColor: COLORS.neutral.background,
   },
   filterButtonActive: {
-    backgroundColor: '#FFE5E5',
+    backgroundColor: COLORS.primary.main,
   },
   filterButtonText: {
-    marginLeft: 4,
-    fontSize: 14,
-    color: '#666',
+    ...TYPOGRAPHY.button.small,
+    color: COLORS.text.secondary,
   },
   filterButtonTextActive: {
-    color: '#FF6B6B',
-    fontWeight: '600',
+    color: COLORS.text.white,
   },
   markAllButton: {
-    padding: 8,
-    borderRadius: 20,
-    backgroundColor: '#F5F5F5',
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: SPACING.xs,
+  },
+  markAllText: {
+    ...TYPOGRAPHY.body.small,
+    color: COLORS.text.tertiary,
   },
 });
 

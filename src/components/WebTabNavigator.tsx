@@ -1,6 +1,8 @@
 import React, {useState, useEffect} from 'react';
 import {View, Text, TouchableOpacity, StyleSheet} from 'react-native';
-import {COLORS, SHADOWS} from '../styles/colors';
+import {COLORS} from '../styles/colors';
+import {SPACING} from '../styles/spacing';
+import {TYPOGRAPHY} from '../styles/typography';
 import {Icon, IconName} from './Icon';
 import HomeScreen from '../screens/HomeScreen.web';
 import SearchScreen from '../screens/SearchScreen.web';
@@ -50,7 +52,6 @@ const WebTabNavigator = () => {
     const interval = setInterval(() => {
       const currentPath = window.location.pathname;
       if (currentPath !== window.lastCheckedPath) {
-        console.log('🔄 URL 변경 감지:', { from: window.lastCheckedPath, to: currentPath });
         window.lastCheckedPath = currentPath;
         handleUrlChange();
       }
@@ -64,7 +65,7 @@ const WebTabNavigator = () => {
     const path = window.location.pathname;
     const urlParams = new URLSearchParams(window.location.search);
     
-    console.log('🔄 URL 변경 처리:', { path, isLoggedIn });
+    // console.log('🔄 URL 변경 처리:', { path, isLoggedIn });
     
     // 루트 경로 처리 - 로그인 상태에 따라 분기
     if (path === '/') {
@@ -85,11 +86,11 @@ const WebTabNavigator = () => {
     
     // 광고 디테일 페이지는 공개 (로그인 불필요)
     if (path.startsWith('/advertisement/')) {
-      console.log('🎯 광고 디테일 페이지 감지:', path);
+      // console.log('🎯 광고 디테일 페이지 감지:', path);
       const advertisementId = parseInt(path.split('/')[2]);
-      console.log('🎯 광고 ID:', advertisementId);
+      // console.log('🎯 광고 ID:', advertisementId);
       if (!isNaN(advertisementId)) {
-        console.log('✅ 광고 디테일 페이지로 설정');
+        // console.log('✅ 광고 디테일 페이지로 설정');
         setCurrentScreen('advertisementDetail');
         setScreenParams({ advertisementId });
         return;
@@ -133,7 +134,7 @@ const WebTabNavigator = () => {
       setCurrentScreen('tabs');
       setActiveTab('Search');
     } else if (path === '/notifications') {
-      console.log('✅ 알림 페이지로 이동');
+      // console.log('✅ 알림 페이지로 이동');
       setCurrentScreen('tabs');
       setActiveTab('Notifications');
     } else if (path === '/chat') {
@@ -291,8 +292,8 @@ const WebTabNavigator = () => {
     
     // HomeScreen에 네비게이션 함수들 전달
     if (activeTab === 'Home') {
-      console.log('🏠 HomeScreen 렌더링 - webNavigation:', webNavigation);
-      console.log('🏠 HomeScreen 렌더링 - webNavigation 메서드들:', Object.keys(webNavigation));
+      // console.log('🏠 HomeScreen 렌더링 - webNavigation:', webNavigation);
+      // console.log('🏠 HomeScreen 렌더링 - webNavigation 메서드들:', Object.keys(webNavigation));
       return <ScreenComponent navigateToLogin={navigateToLogin} navigation={webNavigation} user={user} />;
     }
     
@@ -324,33 +325,33 @@ const WebTabNavigator = () => {
       {/* Bottom Tab Bar - 로그인 화면에서는 숨김 */}
       {currentScreen === 'tabs' && isLoggedIn && (
         <View style={styles.tabBar}>
-          {tabs.map(tab => (
-            <TouchableOpacity
-              key={tab.key}
-              style={[
-                styles.tabItem,
-                activeTab === tab.key && styles.activeTabItem
-              ]}
-              onPress={() => navigateToTab(tab.key)}
-            >
-              <View style={[
-                styles.tabIcon,
-                activeTab === tab.key && styles.activeTabIcon
-              ]}>
-                <Icon 
-                  name={tab.icon} 
-                  size={20} 
-                  color={activeTab === tab.key ? COLORS.text.white : COLORS.text.secondary}
-                />
-              </View>
-              <Text style={[
-                styles.tabLabel,
-                activeTab === tab.key && styles.activeTabLabel
-              ]}>
-                {tab.title}
-              </Text>
-            </TouchableOpacity>
-          ))}
+          {tabs.map(tab => {
+            const isActive = activeTab === tab.key;
+            return (
+              <TouchableOpacity
+                key={tab.key}
+                style={styles.tabItem}
+                onPress={() => navigateToTab(tab.key)}
+                activeOpacity={0.7}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: isActive }}
+              >
+                <View style={styles.tabIconContainer}>
+                  <Icon
+                    name={tab.icon}
+                    size={24}
+                    color={isActive ? COLORS.primary.main : COLORS.neutral.grey400}
+                  />
+                </View>
+                <Text style={[
+                  styles.tabLabel,
+                  isActive && styles.activeTabLabel
+                ]}>
+                  {tab.title}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
         </View>
       )}
     </View>
@@ -366,38 +367,31 @@ const styles = StyleSheet.create({
   },
   tabBar: {
     flexDirection: 'row',
+    height: SPACING.bottomNav.height,
     backgroundColor: COLORS.neutral.white,
-    borderTopWidth: 0,
-    paddingVertical: 12,
-    paddingHorizontal: 8,
-    ...SHADOWS.large,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.primary.accent,
   },
   tabItem: {
     flex: 1,
     alignItems: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 4,
-    borderRadius: 12,
+    justifyContent: 'center',
+    paddingVertical: SPACING.tab.paddingVertical,
   },
-  activeTabItem: {
-    backgroundColor: COLORS.primary.light,
-    ...SHADOWS.small,
-  },
-  tabIcon: {
-    fontSize: 24,
-    marginBottom: 4,
-  },
-  activeTabIcon: {
-    transform: [{scale: 1.1}],
+  tabIconContainer: {
+    width: 24,
+    height: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 2,
   },
   tabLabel: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: COLORS.text.tertiary,
+    fontSize: TYPOGRAPHY.tab.fontSize,
+    fontWeight: TYPOGRAPHY.tab.fontWeight,
+    color: COLORS.neutral.grey400,
   },
   activeTabLabel: {
-    color: COLORS.primary.dark,
-    fontWeight: '600',
+    color: COLORS.primary.main,
   },
 });
 

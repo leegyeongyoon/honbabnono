@@ -107,7 +107,6 @@ const UniversalLocationSettingsScreen: React.FC<UniversalLocationSettingsScreenP
       }
 
       const data = await response.json();
-      console.log('📍 역지오코딩 결과:', data);
 
       if (data.documents && data.documents.length > 0) {
         const doc = data.documents[0];
@@ -131,16 +130,13 @@ const UniversalLocationSettingsScreen: React.FC<UniversalLocationSettingsScreenP
   const fetchMyLocation = async () => {
     try {
       setGpsLoading(true);
-      console.log('📍 GPS로 현재 위치 가져오기...');
 
       const coords = await getCurrentPosition();
-      console.log('📍 현재 좌표:', coords);
 
       const locationData = await reverseGeocode(coords.lat, coords.lng);
       if (locationData) {
         setCurrentLocation(locationData);
         updateNeighborhood(locationData.district, locationData.neighborhood);
-        console.log('📍 현재 위치 설정 완료:', locationData);
       }
     } catch (error) {
       console.error('현재 위치 가져오기 실패:', error);
@@ -161,7 +157,6 @@ const UniversalLocationSettingsScreen: React.FC<UniversalLocationSettingsScreenP
   const fetchLocationSettings = useCallback(async () => {
     try {
       setLoading(true);
-      console.log('📍 지역 설정 조회 시작');
 
       let hasStoredLocation = false;
 
@@ -174,10 +169,9 @@ const UniversalLocationSettingsScreen: React.FC<UniversalLocationSettingsScreenP
             neighborhood: response.preferredNeighborhood,
           });
           hasStoredLocation = true;
-          console.log('📍 API에서 저장된 위치 사용:', response.preferredDistrict, response.preferredNeighborhood);
         }
       } catch (apiError) {
-        console.log('API에서 위치 정보를 가져오지 못함');
+        // API에서 위치 정보를 가져오지 못한 경우 store에서 시도
       }
 
       // store에서 현재 설정된 동네 정보 가져오기
@@ -187,19 +181,16 @@ const UniversalLocationSettingsScreen: React.FC<UniversalLocationSettingsScreenP
           neighborhood: neighborhood.neighborhood,
         });
         hasStoredLocation = true;
-        console.log('📍 store에서 저장된 위치 사용:', neighborhood.district, neighborhood.neighborhood);
       }
 
       // 저장된 위치가 없으면 GPS로 현재 위치 가져오기
       if (!hasStoredLocation) {
-        console.log('📍 저장된 위치 없음, GPS로 현재 위치 가져오기...');
         try {
           const coords = await getCurrentPosition();
           const locationData = await reverseGeocode(coords.lat, coords.lng);
           if (locationData) {
             setCurrentLocation(locationData);
             updateNeighborhood(locationData.district, locationData.neighborhood);
-            console.log('📍 GPS 위치로 초기화:', locationData);
           } else {
             // GPS도 실패하면 기본값
             setCurrentLocation({
@@ -208,7 +199,6 @@ const UniversalLocationSettingsScreen: React.FC<UniversalLocationSettingsScreenP
             });
           }
         } catch (gpsError) {
-          console.log('GPS 위치 가져오기 실패, 기본값 사용');
           setCurrentLocation({
             district: '강남구',
             neighborhood: '역삼동',
@@ -239,8 +229,6 @@ const UniversalLocationSettingsScreen: React.FC<UniversalLocationSettingsScreenP
     lng: number,
     address: string
   ) => {
-    console.log('📍 지도에서 위치 선택됨:', { district, neighborhood, lat, lng, address });
-
     const newLocation: LocationData = {
       district,
       neighborhood,
@@ -262,7 +250,7 @@ const UniversalLocationSettingsScreen: React.FC<UniversalLocationSettingsScreenP
         preferredDistrict: district,
         preferredNeighborhood: neighborhood,
       });
-      console.log('📍 지역 설정이 저장되었습니다');
+      // 지역 설정 저장 완료
     } catch (error) {
       console.error('지역 설정 저장 실패:', error);
     } finally {
@@ -277,7 +265,6 @@ const UniversalLocationSettingsScreen: React.FC<UniversalLocationSettingsScreenP
 
   // 지도 모달 열기
   const handleOpenMap = () => {
-    console.log('📍 지도 모달 열기');
     setShowMapModal(true);
   };
 

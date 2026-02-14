@@ -106,20 +106,16 @@ const UniversalMyPageScreen: React.FC<UniversalMyPageScreenProps> = ({
         
         // 밥알지수 가져오기
         const riceIndexResponse = await userApiService.getRiceIndex();
-        console.log('🍚 밥알지수 API 응답:', riceIndexResponse);
-        
+
         // 통계에 밥알지수 추가
         const updatedStats = {
           ...stats,
           riceIndex: riceIndexResponse?.riceIndex || 0
         };
         setUserStats(updatedStats);
-        console.log('🍚 최종 userStats:', updatedStats);
-        
+
         // 프로필 정보 가져오기
         const userData = await userApiService.getProfile();
-        console.log('🔍 받아온 프로필 데이터:', userData);
-        console.log('🖼️ 프로필 이미지 URL:', userData.profileImage);
         setUserProfileImageUrl(userData.profileImage);
         
       } catch (error) {
@@ -134,8 +130,6 @@ const UniversalMyPageScreen: React.FC<UniversalMyPageScreenProps> = ({
 
   // 메뉴 핸들러들
   const handleMenuPress = (menuId: string) => {
-    console.log('메뉴 선택:', menuId);
-    
     switch (menuId) {
       // 기본 정보
       case 'badge-info':
@@ -210,7 +204,6 @@ const UniversalMyPageScreen: React.FC<UniversalMyPageScreenProps> = ({
         break;
         
       default:
-        console.log('구현되지 않은 메뉴:', menuId);
         break;
     }
   };
@@ -247,8 +240,7 @@ const UniversalMyPageScreen: React.FC<UniversalMyPageScreenProps> = ({
           text: '탈퇴', 
           style: 'destructive',
           onPress: () => {
-            // 계정 삭제 API 호출
-            console.log('계정 삭제 요청');
+            // TODO: 계정 삭제 API 호출
           }
         }
       ]

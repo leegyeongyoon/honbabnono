@@ -62,10 +62,7 @@ const UniversalNoticeDetailScreen: React.FC<UniversalNoticeDetailScreenProps> = 
     try {
       setError(null);
       setLoading(true);
-      console.log('📢 공지사항 상세 조회 시작:', noticeId);
-
       const response = await userApiService.getNoticeDetail(String(noticeId));
-      console.log('📢 공지사항 상세 응답:', response);
 
       const noticeData = response.data || response.notice || response;
       setNotice(noticeData);

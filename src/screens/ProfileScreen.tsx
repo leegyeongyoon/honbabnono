@@ -40,12 +40,12 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation, user, onLogou
   };
 
   const menuItems = [
-    { id: 1, title: '내 모임 관리', icon: '📅', subtitle: '참여/주최한 모임 확인', onPress: () => Alert.alert('준비중', '내 모임 관리 기능은 준비중입니다.') },
-    { id: 2, title: '찜한 모임', icon: '❤️', subtitle: '관심있게 본 모임들', onPress: () => Alert.alert('준비중', '찜한 모임 기능은 준비중입니다.') },
-    { id: 3, title: '후기 관리', icon: '⭐', subtitle: '내가 쓴 후기 및 받은 평가', onPress: () => Alert.alert('준비중', '후기 관리 기능은 준비중입니다.') },
-    { id: 4, title: '활동 내역', icon: '📊', subtitle: '포인트 및 활동 기록', onPress: () => Alert.alert('준비중', '활동 내역 기능은 준비중입니다.') },
-    { id: 5, title: '식사 성향', icon: '🍽️', subtitle: '나의 식사 취향 설정', onPress: () => Alert.alert('준비중', '식사 성향 설정은 준비중입니다.') },
-    { id: 6, title: '알림 설정', icon: '🔔', subtitle: '푸시 알림 및 이메일 설정', onPress: () => Alert.alert('준비중', '알림 설정 기능은 준비중입니다.') },
+    { id: 1, title: '내 모임 관리', icon: '📅', subtitle: '참여/주최한 모임 확인', onPress: () => navigation?.navigate('MyMeetups') },
+    { id: 2, title: '리뷰 보기', icon: '⭐', subtitle: '내가 쓴 후기 및 받은 평가', onPress: () => navigation?.navigate('MyReviews') },
+    { id: 3, title: '내 뱃지', icon: '🏅', subtitle: '획득한 뱃지 및 업적', onPress: () => navigation?.navigate('MyBadges') },
+    { id: 4, title: '포인트 내역', icon: '📊', subtitle: '포인트 충전 및 사용 기록', onPress: () => navigation?.navigate('PointHistory') },
+    { id: 5, title: '설정', icon: '⚙️', subtitle: '앱 설정 및 알림 관리', onPress: () => navigation?.navigate('Settings') },
+    { id: 6, title: '차단 관리', icon: '🚫', subtitle: '차단한 사용자 관리', onPress: () => navigation?.navigate('BlockedUsers') },
   ];
 
   const handleEditProfile = () => {
@@ -93,7 +93,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation, user, onLogou
       <View style={styles.fixedHeader}>
         <View style={styles.headerContent}>
           <Text style={styles.headerTitle}>마이페이지</Text>
-          <TouchableOpacity style={styles.settingsButton}>
+          <TouchableOpacity style={styles.settingsButton} onPress={() => navigation?.navigate('Settings')}>
             <Text style={styles.settingsIcon}>⚙️</Text>
           </TouchableOpacity>
         </View>
@@ -526,11 +526,11 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     zIndex: 1000,
-    backgroundColor: '#ede0c8',
+    backgroundColor: COLORS.primary.dark,
     height: LAYOUT.HEADER_HEIGHT,
     paddingHorizontal: LAYOUT.HEADER_PADDING_HORIZONTAL,
     borderBottomWidth: 1,
-    borderBottomColor: '#ebe7dc',
+    borderBottomColor: COLORS.primary.accent,
     ...SHADOWS.small,
   },
   headerContent: {

@@ -84,8 +84,7 @@ const UniversalSettingsScreen: React.FC<UniversalSettingsScreenProps> = ({
           text: '탈퇴',
           style: 'destructive',
           onPress: () => {
-            // 계정 삭제 API 호출
-            console.log('계정 삭제 요청');
+            // TODO: 계정 삭제 API 호출
           },
         },
       ]
@@ -170,11 +169,11 @@ const UniversalSettingsScreen: React.FC<UniversalSettingsScreenProps> = ({
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: 'white',
+    backgroundColor: COLORS.neutral.white,
   },
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: COLORS.neutral.background,
   },
   header: {
     flexDirection: 'row',
@@ -182,9 +181,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: LAYOUT.HEADER_PADDING_VERTICAL,
-    backgroundColor: 'white',
+    backgroundColor: COLORS.neutral.white,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: COLORS.neutral.grey200,
   },
   backButton: {
     padding: 4,
@@ -215,7 +214,7 @@ const styles = StyleSheet.create({
     color: COLORS.text.tertiary,
   },
   menuSection: {
-    backgroundColor: 'white',
+    backgroundColor: COLORS.neutral.white,
   },
   menuItem: {
     flexDirection: 'row',
@@ -223,9 +222,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingVertical: 16,
-    backgroundColor: 'white',
+    backgroundColor: COLORS.neutral.white,
     borderBottomWidth: 1,
-    borderBottomColor: '#f5f5f5',
+    borderBottomColor: COLORS.neutral.grey200,
   },
   menuItemText: {
     fontSize: 16,
@@ -233,13 +232,13 @@ const styles = StyleSheet.create({
   },
   accountSection: {
     marginTop: 32,
-    backgroundColor: 'white',
+    backgroundColor: COLORS.neutral.white,
   },
   accountButton: {
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#f5f5f5',
+    borderBottomColor: COLORS.neutral.grey200,
   },
   logoutText: {
     fontSize: 16,

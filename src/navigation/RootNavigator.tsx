@@ -77,14 +77,15 @@ const RootNavigator = () => {
     <Stack.Navigator
       screenOptions={{
         headerStyle: {
-          backgroundColor: COLORS.primary.main,
+          backgroundColor: COLORS.primary.light,
         },
         headerTitleStyle: {
           fontSize: 18,
-          fontWeight: 'bold',
-          color: COLORS.text.white,
+          fontWeight: '600',
+          color: COLORS.text.primary,
         },
-        headerTintColor: COLORS.text.white,
+        headerTintColor: COLORS.text.primary,
+        headerShadowVisible: true,
       }}>
       <Stack.Screen
         name="Main"

@@ -773,7 +773,7 @@ const styles = StyleSheet.create({
   messageInput: {
     backgroundColor: COLORS.neutral.white,
     borderTopWidth: 1,
-    borderTopColor: '#e0e0e0',
+    borderTopColor: COLORS.neutral.grey200,
     padding: 16,
   },
   inputContainer: {

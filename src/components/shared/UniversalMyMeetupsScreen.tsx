@@ -42,10 +42,7 @@ const UniversalMyMeetupsScreen: React.FC<UniversalMyMeetupsScreenProps> = ({
   const [createdMeetups, setCreatedMeetups] = useState<HostedMeetup[]>([]);
   const [pastMeetups, setPastMeetups] = useState<(JoinedMeetup | HostedMeetup)[]>([]);
 
-  console.log('🔍 [UniversalMyMeetups] User 상태:', { user, activeTab });
-
   useEffect(() => {
-    console.log('🔍 [UniversalMyMeetups] useEffect 실행됨, user:', user);
     if (user) {
       loadMeetupData();
     }
@@ -74,21 +71,17 @@ const UniversalMyMeetupsScreen: React.FC<UniversalMyMeetupsScreenProps> = ({
   };
 
   const loadMeetupData = async () => {
-    console.log('🔍 [UniversalMyMeetups] loadMeetupData 시작, user:', user);
     if (!user) {
-      console.log('❌ [UniversalMyMeetups] user가 없어서 종료');
       return;
     }
-    
+
     try {
       setLoading(true);
-      console.log('🔍 [UniversalMyMeetups] 데이터 로딩 시작');
       await Promise.all([
         loadAppliedMeetups(),
         loadCreatedMeetups(),
         loadPastMeetups()
       ]);
-      console.log('🔍 [UniversalMyMeetups] 모든 데이터 로딩 완료');
     } catch (error) {
       console.error('❌ [UniversalMyMeetups] 모임 데이터 로드 실패:', error);
     } finally {
@@ -98,9 +91,7 @@ const UniversalMyMeetupsScreen: React.FC<UniversalMyMeetupsScreenProps> = ({
 
   const loadAppliedMeetups = async () => {
     try {
-      console.log('🔍 [UniversalMyMeetups] 신청한 모임 로드 시작...');
       const response = await userApiService.getJoinedMeetups(1, 50);
-      console.log('🔍 [UniversalMyMeetups] API 전체 응답:', response);
       const { data } = response;
       
       if (!Array.isArray(data)) {
@@ -124,13 +115,10 @@ const UniversalMyMeetupsScreen: React.FC<UniversalMyMeetupsScreenProps> = ({
       }));
       
       // 진행 중인 모임만 필터링 (지난 모임 제외)
-      const activeMeetups = transformedData.filter(meetup => {
-        const isActive = !['완료', '종료', '취소', '파토'].includes(meetup.status);
-        console.log(`🔍 [UniversalMyMeetups] 참가모임 "${meetup.title}" 상태: "${meetup.status}" -> isActive: ${isActive}`);
-        return isActive;
-      });
-      
-      console.log('🔍 [UniversalMyMeetups] 필터링된 참가 모임:', activeMeetups.length, '개');
+      const activeMeetups = transformedData.filter(meetup =>
+        !['완료', '종료', '취소', '파토'].includes(meetup.status)
+      );
+
       setAppliedMeetups(activeMeetups);
     } catch (error) {
       console.error('신청한 모임 로드 실패:', error);
@@ -140,7 +128,6 @@ const UniversalMyMeetupsScreen: React.FC<UniversalMyMeetupsScreenProps> = ({
 
   const loadCreatedMeetups = async () => {
     try {
-      console.log('🔍 [UniversalMyMeetups] 만든 모임 로드 시작...');
       const response = await userApiService.getHostedMeetups(1, 50);
       const { data } = response;
       
@@ -165,13 +152,10 @@ const UniversalMyMeetupsScreen: React.FC<UniversalMyMeetupsScreenProps> = ({
       }));
       
       // 진행 중인 모임만 필터링
-      const activeMeetups = transformedData.filter(meetup => {
-        const isActive = !['완료', '종료', '취소', '파토'].includes(meetup.status);
-        console.log(`🔍 [UniversalMyMeetups] 호스팅모임 "${meetup.title}" 상태: "${meetup.status}" -> isActive: ${isActive}`);
-        return isActive;
-      });
-      
-      console.log('🔍 [UniversalMyMeetups] 필터링된 호스팅 모임:', activeMeetups.length, '개');
+      const activeMeetups = transformedData.filter(meetup =>
+        !['완료', '종료', '취소', '파토'].includes(meetup.status)
+      );
+
       setCreatedMeetups(activeMeetups);
     } catch (error) {
       console.error('만든 모임 로드 실패:', error);
@@ -181,8 +165,6 @@ const UniversalMyMeetupsScreen: React.FC<UniversalMyMeetupsScreenProps> = ({
 
   const loadPastMeetups = async () => {
     try {
-      console.log('🔍 [UniversalMyMeetups] 지난 모임 로드 시작...');
-      
       // 참가한 모임과 호스팅한 모임을 모두 가져옴
       const [joinedResponse, hostedResponse] = await Promise.all([
         userApiService.getJoinedMeetups(1, 50),
@@ -232,7 +214,6 @@ const UniversalMyMeetupsScreen: React.FC<UniversalMyMeetupsScreenProps> = ({
         new Date(b.date).getTime() - new Date(a.date).getTime()
       );
       
-      console.log('🔍 [UniversalMyMeetups] 전체 지난 모임:', allPast.length, '개');
       setPastMeetups(allPast);
     } catch (error) {
       console.error('지난 모임 로드 실패:', error);
@@ -247,12 +228,10 @@ const UniversalMyMeetupsScreen: React.FC<UniversalMyMeetupsScreenProps> = ({
   };
 
   const handleMeetupPress = (meetupId: string) => {
-    console.log('🔍 [UniversalMyMeetups] 모임 클릭:', meetupId);
     handleNavigate('MeetupDetail', { meetupId });
   };
 
   const handleNotificationPress = () => {
-    console.log('🔔 [UniversalMyMeetups] 알림 버튼 클릭됨');
     handleNavigate('Notification');
   };
 

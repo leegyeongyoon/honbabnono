@@ -136,8 +136,6 @@ const UniversalNotificationScreen: React.FC<UniversalNotificationScreenProps> = 
   };
 
   const handleNotificationPress = (notification: NotificationItem) => {
-    console.log('알림 클릭:', notification);
-    
     // Mark as read
     setNotifications(prev => 
       prev.map(n => 
@@ -175,10 +173,8 @@ const UniversalNotificationScreen: React.FC<UniversalNotificationScreenProps> = 
             [
               { text: '거절', style: 'cancel' },
               { 
-                text: '수락', 
+                text: '수락',
                 onPress: () => {
-                  // Handle invitation acceptance
-                  console.log('초대 수락');
                   handleNavigate('MeetupDetail', { 
                     meetupId: notification.data?.meetupId 
                   });
@@ -189,7 +185,6 @@ const UniversalNotificationScreen: React.FC<UniversalNotificationScreenProps> = 
         }
         break;
       default:
-        console.log('Navigate to:', notification.type);
         break;
     }
   };
@@ -392,7 +387,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.neutral.border || '#E0E0E0',
+    borderBottomColor: COLORS.neutral.grey200,
     ...SHADOWS.small,
   },
   backButton: {

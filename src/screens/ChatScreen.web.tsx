@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { useNavigate, useParams } from 'react-router-dom';
 import { COLORS, SHADOWS, LAYOUT } from '../styles/colors';
+import { BORDER_RADIUS } from '../styles/spacing';
 import { Icon } from '../components/Icon';
 import chatService from '../services/chatService';
 import chatApiService, { ChatRoom, ChatMessage } from '../services/chatApiService';
@@ -53,7 +54,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation }) => {
       const data = await response.json();
       return data.data || { allowed: false };
     } catch (error) {
-      console.error('1대1 채팅 권한 체크 실패:', error);
+      // console.error('1대1 채팅 권한 체크 실패:', error);
       return { allowed: false };
     }
   };
@@ -83,7 +84,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation }) => {
         Alert.alert('오류', response.message || '1대1 채팅방을 생성할 수 없습니다.');
       }
     } catch (error) {
-      console.error('1대1 채팅 시작 실패:', error);
+      // console.error('1대1 채팅 시작 실패:', error);
       Alert.alert('오류', '1대1 채팅을 시작할 수 없습니다.');
     }
   };
@@ -127,21 +128,21 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation }) => {
 
   // URL에서 채팅방 ID가 있으면 해당 채팅방 로드
   useEffect(() => {
-    console.log('🔍 useEffect 실행:', { chatIdFromUrl, loading, selectedChatId });
+    // console.log('🔍 useEffect 실행:', { chatIdFromUrl, loading, selectedChatId });
     
     if (chatIdFromUrl) {
       const roomId = parseInt(chatIdFromUrl);
       
       // 이미 선택된 채팅방이면 중복 호출 방지
       if (selectedChatId === roomId && currentChatRoom) {
-        console.log('🔍 이미 로드된 채팅방:', roomId);
+        // console.log('🔍 이미 로드된 채팅방:', roomId);
         return;
       }
       
-      console.log('🔍 URL에서 채팅방 ID 감지, 강제 로드:', roomId);
+      // console.log('🔍 URL에서 채팅방 ID 감지, 강제 로드:', roomId);
       selectChatRoomFromUrl(roomId);
     } else if (!chatIdFromUrl && selectedChatId) {
-      console.log('🔍 URL에 채팅방 ID 없음, 목록으로 돌아가기');
+      // console.log('🔍 URL에 채팅방 ID 없음, 목록으로 돌아가기');
       if (selectedChatId) {
         chatService.leaveRoom(selectedChatId);
       }
@@ -158,7 +159,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation }) => {
       const rooms = await chatApiService.getChatRooms(userId);
       setChatRooms(rooms);
     } catch (error) {
-      console.error('채팅방 목록 로드 실패:', error);
+      // console.error('채팅방 목록 로드 실패:', error);
       Alert.alert('오류', '채팅방 목록을 불러올 수 없습니다.');
     } finally {
       setLoading(false);
@@ -187,7 +188,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation }) => {
   // URL에서 채팅방 로드 (navigate 호출 없음)
   const selectChatRoomFromUrl = async (roomId: number) => {
     try {
-      console.log('🔍 selectChatRoomFromUrl 시작:', roomId);
+      // console.log('🔍 selectChatRoomFromUrl 시작:', roomId);
       setLoading(true);
       
       // 이전 채팅방에서 나가기
@@ -198,11 +199,11 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation }) => {
       // 새 채팅방 입장
       chatService.joinRoom(roomId);
       
-      console.log('🔍 API 호출 시작: getChatMessages');
+      // console.log('🔍 API 호출 시작: getChatMessages');
       // 메시지 로드
       const { chatRoom, messages: roomMessages } = await chatApiService.getChatMessages(roomId, userId);
       
-      console.log('🔍 API 호출 완료, 채팅방:', chatRoom?.title, '메시지 수:', roomMessages?.length);
+      // console.log('🔍 API 호출 완료, 채팅방:', chatRoom?.title, '메시지 수:', roomMessages?.length);
       
       setSelectedChatId(roomId);
       setCurrentChatRoom(chatRoom);
@@ -224,17 +225,17 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation }) => {
         });
         
         if (response.ok) {
-          console.log('✅ 채팅방 읽음 처리 완료:', roomId);
+          // console.log('✅ 채팅방 읽음 처리 완료:', roomId);
         } else {
-          console.warn('⚠️ 채팅방 읽음 처리 실패:', response.status);
+          // console.warn('⚠️ 채팅방 읽음 처리 실패:', response.status);
         }
       } catch (error) {
-        console.error('채팅방 읽음 처리 오류:', error);
+        // console.error('채팅방 읽음 처리 오류:', error);
       }
       
-      console.log('🔍 상태 설정 완료, selectedChatId:', roomId, 'currentChatRoom:', chatRoom?.title);
+      // console.log('🔍 상태 설정 완료, selectedChatId:', roomId, 'currentChatRoom:', chatRoom?.title);
     } catch (error) {
-      console.error('채팅방 선택 실패:', error);
+      // console.error('채팅방 선택 실패:', error);
       Alert.alert('오류', '채팅방을 열 수 없습니다.');
     } finally {
       setLoading(false);
@@ -281,7 +282,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation }) => {
 
       setMessageText('');
     } catch (error) {
-      console.error('메시지 전송 실패:', error);
+      // console.error('메시지 전송 실패:', error);
       Alert.alert('오류', '메시지를 전송할 수 없습니다.');
     }
   };
@@ -454,13 +455,16 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation }) => {
                         {message.message}
                       </Text>
                     </View>
-                    <Text style={[styles.messageTime, styles.myMessageTime]}>
-                      {new Date(message.timestamp).toLocaleTimeString('ko-KR', { 
-                        hour: '2-digit', 
-                        minute: '2-digit',
-                        hour12: true 
-                      })}
-                    </Text>
+                    <View style={styles.myMessageMeta}>
+                      <Text style={[styles.messageTime, styles.myMessageTime]}>
+                        {new Date(message.timestamp).toLocaleTimeString('ko-KR', {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          hour12: true
+                        })}
+                      </Text>
+                      <Text style={styles.readReceipt}>✓✓</Text>
+                    </View>
                   </View>
                 )}
               </View>
@@ -498,9 +502,9 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation }) => {
   );
 
   // 채팅방이 선택된 경우 채팅방 UI 표시
-  console.log('🔍 렌더링 조건 체크:', { selectedChatId, currentChatRoom: currentChatRoom?.title, loading });
+  // console.log('🔍 렌더링 조건 체크:', { selectedChatId, currentChatRoom: currentChatRoom?.title, loading });
   if (selectedChatId && currentChatRoom) {
-    console.log('🔍 채팅방 UI 렌더링');
+    // console.log('🔍 채팅방 UI 렌더링');
     return renderChatRoom();
   }
 
@@ -781,17 +785,31 @@ const styles = StyleSheet.create({
   myMessageTime: {
     textAlign: 'right',
   },
+  myMessageMeta: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    marginTop: 4,
+    gap: 4,
+  },
+  readReceipt: {
+    fontSize: 10,
+    color: COLORS.text.tertiary,
+  },
   messageInput: {
     backgroundColor: COLORS.neutral.white,
     borderTopWidth: 1,
-    borderTopColor: '#e0e0e0',
-    padding: 16,
+    borderTopColor: COLORS.neutral.grey200,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    height: 60,
+    justifyContent: 'center',
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'flex-end',
     backgroundColor: COLORS.neutral.background,
-    borderRadius: 12,
+    borderRadius: BORDER_RADIUS.xl,
     paddingHorizontal: 16,
     paddingVertical: 8,
     minHeight: 40,
@@ -807,7 +825,7 @@ const styles = StyleSheet.create({
     marginLeft: 12,
     width: 32,
     height: 32,
-    borderRadius: 8,
+    borderRadius: BORDER_RADIUS.sm,
     backgroundColor: COLORS.neutral.grey200,
     justifyContent: 'center',
     alignItems: 'center',

@@ -11,8 +11,10 @@ import {
 } from 'react-native';
 import { useNavigate } from 'react-router-dom';
 import { COLORS, SHADOWS, LAYOUT } from '../styles/colors';
-import { TYPOGRAPHY } from '../styles/typography';
+import { TYPOGRAPHY, FONT_WEIGHTS } from '../styles/typography';
+import { SPACING, BORDER_RADIUS } from '../styles/spacing';
 import { Icon } from '../components/Icon';
+import EmptyState from '../components/EmptyState';
 import { useMeetups } from '../hooks/useMeetups';
 import { SEARCH_CATEGORIES, SEARCH_LOCATIONS, SORT_OPTION_NAMES } from '../constants/categories';
 import { formatKoreanDateTime } from '../utils/dateUtils';
@@ -46,7 +48,7 @@ const SearchScreen: React.FC<SearchScreenProps> = ({ navigation, user }) => {
 
   // 실제 검색 수행
   const performSearch = async (searchText: string, category: string = selectedCategory, location: string = selectedLocation) => {
-    console.log('🔍 검색 수행:', { searchText, category, location });
+    // console.log('🔍 검색 수행:', { searchText, category, location });
     try {
       await searchMeetups({
         search: searchText || undefined,
@@ -55,7 +57,7 @@ const SearchScreen: React.FC<SearchScreenProps> = ({ navigation, user }) => {
         limit: 50
       });
     } catch (error) {
-      console.error('검색 오류:', error);
+      // console.error('검색 오류:', error);
     }
   };
 
@@ -87,7 +89,7 @@ const SearchScreen: React.FC<SearchScreenProps> = ({ navigation, user }) => {
         // 검색 수행
         performSearch(text, analysis.intent.category || selectedCategory, analysis.intent.location || selectedLocation);
       } catch (error) {
-        console.error('AI 검색 분석 오류:', error);
+        // console.error('AI 검색 분석 오류:', error);
         // AI 오류 시에도 기본 검색 수행
         performSearch(text);
       } finally {
@@ -243,10 +245,11 @@ const SearchScreen: React.FC<SearchScreenProps> = ({ navigation, user }) => {
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.resultsContainer}
             ListEmptyComponent={
-              <View style={styles.emptyContainer}>
-                <Text style={styles.emptyText}>검색 결과가 없습니다</Text>
-                <Text style={styles.emptySubText}>다른 검색어나 필터를 시도해보세요</Text>
-              </View>
+              <EmptyState
+                icon="🔍"
+                title="검색 결과가 없습니다"
+                description="다른 키워드로 검색해보세요"
+              />
             }
           />
         );
@@ -300,7 +303,7 @@ const SearchScreen: React.FC<SearchScreenProps> = ({ navigation, user }) => {
       {/* 검색바 */}
       <View style={styles.searchContainer}>
         <View style={styles.searchInputContainer}>
-          <Icon name="search" size={16} color="#5f6368" />
+          <Icon name="search" size={16} color={COLORS.text.tertiary} />
           <TextInput
             style={styles.searchInput}
             placeholder="모임 제목이나 장소를 검색해보세요 (AI 추천 기능)"
@@ -313,9 +316,22 @@ const SearchScreen: React.FC<SearchScreenProps> = ({ navigation, user }) => {
                 setSuggestions([]);
               }
             }}
-            placeholderTextColor="#5f6368"
+            placeholderTextColor={COLORS.text.tertiary}
             onFocus={() => setShowSuggestions(searchText.length > 0)}
           />
+          {searchText.length > 0 && (
+            <TouchableOpacity
+              onPress={() => {
+                setSearchText('');
+                setShowSuggestions(false);
+                setSearchIntent(null);
+                setSuggestions([]);
+              }}
+              style={styles.searchClearButton}
+            >
+              <Icon name="times" size={14} color={COLORS.text.tertiary} />
+            </TouchableOpacity>
+          )}
           {(isAnalyzing || loading) && (
             <ActivityIndicator size="small" color={COLORS.primary.main} style={{ marginLeft: 8 }} />
           )}
@@ -406,6 +422,38 @@ const SearchScreen: React.FC<SearchScreenProps> = ({ navigation, user }) => {
         ))}
       </View>
 
+      {/* 필터 칩 */}
+      {(selectedCategory !== '전체' || selectedLocation !== '전체') && (
+        <View style={styles.filterChipsContainer}>
+          {selectedCategory !== '전체' && (
+            <View style={styles.filterChip}>
+              <Text style={styles.filterChipText}>{selectedCategory}</Text>
+              <TouchableOpacity onPress={() => setSelectedCategory('전체')}>
+                <Icon name="times" size={10} color={COLORS.text.secondary} />
+              </TouchableOpacity>
+            </View>
+          )}
+          {selectedLocation !== '전체' && (
+            <View style={styles.filterChip}>
+              <Text style={styles.filterChipText}>{selectedLocation}</Text>
+              <TouchableOpacity onPress={() => setSelectedLocation('전체')}>
+                <Icon name="times" size={10} color={COLORS.text.secondary} />
+              </TouchableOpacity>
+            </View>
+          )}
+          <TouchableOpacity
+            style={styles.filterResetButton}
+            onPress={() => {
+              setSelectedCategory('전체');
+              setSelectedLocation('전체');
+              performSearch(searchText);
+            }}
+          >
+            <Text style={styles.filterResetText}>초기화</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
       {/* 검색 결과 */}
       {selectedTab === '내주변모임' && (
         <View style={styles.resultsHeader}>
@@ -414,7 +462,7 @@ const SearchScreen: React.FC<SearchScreenProps> = ({ navigation, user }) => {
             {searchText && aiSearchService.isAIEnabled() && ' (AI 필터링 적용)'}
           </Text>
           {searchText && (
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.clearButton}
               onPress={() => {
                 setSearchText('');
@@ -422,7 +470,6 @@ const SearchScreen: React.FC<SearchScreenProps> = ({ navigation, user }) => {
                 setSelectedLocation('전체');
                 setShowSuggestions(false);
                 setSearchIntent(null);
-                // 초기화 후 전체 목록 로드
                 performSearch('');
               }}
             >
@@ -482,7 +529,11 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     ...TYPOGRAPHY.input,
-    color: '#202124',
+    color: COLORS.text.primary,
+  },
+  searchClearButton: {
+    padding: SPACING.xs,
+    marginLeft: SPACING.sm,
   },
   filtersSection: {
     paddingVertical: 16,
@@ -505,11 +556,11 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.neutral.white,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#e9ecef',
+    borderColor: COLORS.neutral.grey200,
   },
   selectedTabButton: {
-    backgroundColor: '#ede0c8',
-    borderColor: '#ede0c8',
+    backgroundColor: COLORS.primary.accent,
+    borderColor: COLORS.primary.accent,
   },
   tabButtonText: {
     fontSize: 14,
@@ -542,9 +593,9 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingHorizontal: 16,
     borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
+    borderTopColor: COLORS.neutral.background,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: COLORS.neutral.background,
   },
   meetupHeader: {
     flexDirection: 'row',
@@ -558,7 +609,7 @@ const styles = StyleSheet.create({
   meetupTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#2d3748',
+    color: COLORS.text.primary,
     marginBottom: 6,
     lineHeight: 22,
   },
@@ -568,12 +619,12 @@ const styles = StyleSheet.create({
   },
   meetupLocation: {
     fontSize: 12,
-    color: '#718096',
+    color: COLORS.text.secondary,
     fontWeight: '500',
   },
   meetupTime: {
     fontSize: 12,
-    color: '#718096',
+    color: COLORS.text.secondary,
     fontWeight: '500',
   },
   meetupStatus: {
@@ -581,13 +632,13 @@ const styles = StyleSheet.create({
   },
   statusText: {
     fontSize: 12,
-    color: '#667eea',
+    color: COLORS.functional.info,
     fontWeight: '600',
     marginBottom: 4,
   },
   participantCount: {
     fontSize: 12,
-    color: '#718096',
+    color: COLORS.text.secondary,
     fontWeight: '500',
   },
   meetupFooter: {
@@ -628,7 +679,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#e9ecef',
+    borderColor: COLORS.neutral.grey200,
   },
   categoryBadgeText: {
     fontSize: 10,
@@ -637,46 +688,38 @@ const styles = StyleSheet.create({
   },
   tabNavigation: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    borderBottomWidth: 0,
+    backgroundColor: COLORS.neutral.white,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.neutral.grey100,
     paddingTop: LAYOUT.HEADER_HEIGHT + LAYOUT.CONTENT_TOP_MARGIN,
-    marginHorizontal: 16,
-    borderRadius: 16,
-    marginTop: 8,
-    ...SHADOWS.small,
-    shadowColor: 'rgba(0,0,0,0.04)',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 1,
-    shadowRadius: 8,
+    paddingHorizontal: SPACING.lg,
   },
   tabNavButton: {
     flex: 1,
-    paddingVertical: 16,
+    paddingVertical: SPACING.lg,
     alignItems: 'center',
-    borderRadius: 12,
-    marginHorizontal: 4,
-    marginVertical: 4,
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
   },
   selectedTabNavButton: {
-    backgroundColor: COLORS.primary.main,
-    ...SHADOWS.small,
+    borderBottomColor: COLORS.primary.main,
   },
   tabNavButtonText: {
     fontSize: 14,
-    fontWeight: '500',
-    color: COLORS.text.secondary,
+    fontWeight: FONT_WEIGHTS.medium as any,
+    color: COLORS.text.tertiary,
   },
   selectedTabNavButtonText: {
-    color: COLORS.text.white,
-    fontWeight: '600',
+    color: COLORS.text.primary,
+    fontWeight: FONT_WEIGHTS.semiBold as any,
   },
   restaurantCard: {
     backgroundColor: COLORS.neutral.white,
     padding: 16,
     borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
+    borderTopColor: COLORS.neutral.background,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: COLORS.neutral.background,
   },
   restaurantHeader: {
     flexDirection: 'row',
@@ -766,7 +809,7 @@ const styles = StyleSheet.create({
     padding: 12,
     backgroundColor: 'rgba(99, 102, 241, 0.05)',
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: COLORS.neutral.background,
   },
   suggestionsTitle: {
     fontSize: 12,
@@ -780,7 +823,7 @@ const styles = StyleSheet.create({
     padding: 12,
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#f9f9f9',
+    borderBottomColor: COLORS.neutral.background,
   },
   suggestionText: {
     fontSize: 14,
@@ -824,7 +867,7 @@ const styles = StyleSheet.create({
   },
   clearButtonText: {
     fontSize: 12,
-    color: '#ef4444',
+    color: COLORS.functional.error,
     fontWeight: '500',
   },
   // 로딩 및 빈 상태 스타일
@@ -858,6 +901,45 @@ const styles = StyleSheet.create({
     color: COLORS.text.secondary,
     textAlign: 'center',
     lineHeight: 20,
+  },
+  // ─── 필터 칩 ──────────────────────────────────────────
+  filterChipsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: SPACING.sm,
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.md,
+    backgroundColor: COLORS.neutral.white,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.neutral.grey100,
+  },
+  filterChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.xs,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.xs,
+    backgroundColor: COLORS.primary.accent,
+    borderRadius: BORDER_RADIUS.full,
+    borderWidth: 1,
+    borderColor: COLORS.neutral.grey200,
+  },
+  filterChipText: {
+    fontSize: 12,
+    color: COLORS.text.primary,
+    fontWeight: FONT_WEIGHTS.medium as any,
+  },
+  filterResetButton: {
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.xs,
+    marginLeft: 'auto',
+  },
+  filterResetText: {
+    fontSize: 12,
+    color: COLORS.text.tertiary,
+    fontWeight: FONT_WEIGHTS.medium as any,
+    textDecorationLine: 'underline',
   },
 });
 

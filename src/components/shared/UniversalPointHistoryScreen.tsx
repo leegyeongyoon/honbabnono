@@ -28,16 +28,13 @@ const UniversalPointHistoryScreen: React.FC<{navigation: NavigationAdapter, user
   const fetchPointHistory = useCallback(async () => {
     try {
       setError(null);
-      console.log('💰 포인트 내역 조회 시작');
 
       // 현재 포인트 조회
       const pointsResponse = await userApiService.getPoints();
-      console.log('💰 현재 포인트 응답:', pointsResponse);
       setCurrentPoints(pointsResponse.data?.points || pointsResponse.points || 0);
 
       // 포인트 거래 내역 조회
       const historyResponse = await userApiService.getPointHistory();
-      console.log('💰 포인트 내역 응답:', historyResponse);
       setTransactions(historyResponse.data || historyResponse.transactions || []);
     } catch (error) {
       console.error('포인트 내역 조회 실패:', error);

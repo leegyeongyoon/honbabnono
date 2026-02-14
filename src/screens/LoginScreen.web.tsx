@@ -334,7 +334,7 @@ const styles = StyleSheet.create({
   kakaoLogo: {
     width: 24,
     height: 24,
-    backgroundColor: '#000',
+    backgroundColor: COLORS.neutral.black,
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
@@ -346,7 +346,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   kakaoButtonText: {
-    color: '#000',
+    color: COLORS.neutral.black,
     fontSize: 19,
     fontWeight: '800',
     letterSpacing: -0.5,

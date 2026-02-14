@@ -269,17 +269,17 @@ const KakaoMapComponent: React.FC<KakaoMapComponentProps> = ({ onMapLoad, onLoca
         height: '200px', 
         width: '100%', 
         borderRadius: '12px', 
-        backgroundColor: '#f5f5f5',
+        backgroundColor: COLORS.neutral.background,
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        border: '2px dashed #ddd',
+        border: `2px dashed ${COLORS.neutral.grey200}`,
         padding: '20px',
         textAlign: 'center'
       }}>
         <div style={{ fontSize: '24px', marginBottom: '10px' }}>📍</div>
-        <div style={{ fontSize: '14px', color: '#666', marginBottom: '15px' }}>
+        <div style={{ fontSize: '14px', color: COLORS.text.secondary, marginBottom: '15px' }}>
           {isWebView ? 'WebView 환경에서는 지도를 표시할 수 없습니다' : '지도를 로드할 수 없습니다'}
         </div>
         <TouchableOpacity
@@ -1860,15 +1860,15 @@ const styles = StyleSheet.create({
   timePickerContainer: {
     marginTop: 8,
     padding: 12,
-    backgroundColor: '#F5F3F0',
+    backgroundColor: COLORS.neutral.background,
     borderRadius: 12,
     borderTopWidth: 1,
-    borderTopColor: '#E5DDD5',
+    borderTopColor: COLORS.neutral.grey200,
   },
   timePickerLabel: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#4C422C',
+    color: COLORS.text.primary,
     marginBottom: 8,
     textAlign: 'center',
   },
@@ -2226,12 +2226,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
+    borderBottomColor: COLORS.neutral.background,
   },
   dateTimeRowLabel: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#000000',
+    color: COLORS.neutral.black,
     flex: 1,
   },
   dropdownButton: {
@@ -2245,13 +2245,13 @@ const styles = StyleSheet.create({
   },
   dropdownButtonText: {
     fontSize: 16,
-    color: '#000000',
+    color: COLORS.neutral.black,
     fontWeight: '400',
     marginRight: 8,
   },
   dropdownArrow: {
     fontSize: 12,
-    color: '#8E8E93',
+    color: COLORS.text.tertiary,
     fontWeight: '600',
   },
   
@@ -2270,7 +2270,7 @@ const styles = StyleSheet.create({
     zIndex: 9999,
   },
   modalContainer: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.neutral.white,
     borderRadius: 20,
     width: '90%',
     maxWidth: 400,
@@ -2285,16 +2285,16 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     paddingHorizontal: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
+    borderBottomColor: COLORS.neutral.background,
   },
   modalTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#000000',
+    color: COLORS.neutral.black,
   },
   modalCloseButton: {
     fontSize: 18,
-    color: '#8E8E93',
+    color: COLORS.text.tertiary,
     fontWeight: '600',
   },
   modalConfirmButton: {
@@ -2306,7 +2306,7 @@ const styles = StyleSheet.create({
   // 모달 달력 스타일
   modalCalendarContainer: {
     padding: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.neutral.white,
   },
   
   // 시간 휠 스타일
@@ -2324,7 +2324,7 @@ const styles = StyleSheet.create({
   },
   wheelLabel: {
     fontSize: 12,
-    color: '#8E8E93',
+    color: COLORS.text.tertiary,
     marginBottom: 12,
     fontWeight: '500',
     textAlign: 'center',
@@ -2332,7 +2332,7 @@ const styles = StyleSheet.create({
   timeScrollView: {
     height: 150,
     width: 70,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: COLORS.neutral.background,
     borderRadius: 12,
   },
   timeScrollItem: {
@@ -2349,12 +2349,12 @@ const styles = StyleSheet.create({
   },
   timeScrollText: {
     fontSize: 16,
-    color: '#000000',
+    color: COLORS.neutral.black,
     fontWeight: '400',
     textAlign: 'center',
   },
   timeScrollTextSelected: {
-    color: '#FFFFFF',
+    color: COLORS.text.white,
     fontWeight: '600',
   },
   
@@ -2369,14 +2369,14 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     paddingHorizontal: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
+    borderBottomColor: COLORS.neutral.background,
   },
   alarmOptionSelected: {
     backgroundColor: COLORS.neutral.grey200,
   },
   alarmOptionText: {
     fontSize: 16,
-    color: '#000000',
+    color: COLORS.neutral.black,
     fontWeight: '400',
   },
   alarmOptionTextSelected: {
@@ -2391,7 +2391,7 @@ const styles = StyleSheet.create({
   
   // 사용자 정의 달력 스타일
   customCalendar: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.neutral.white,
     borderRadius: 16,
     padding: 16,
     margin: 16,
@@ -2406,7 +2406,7 @@ const styles = StyleSheet.create({
   calendarTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#000000',
+    color: COLORS.neutral.black,
   },
   calendarNavButton: {
     fontSize: 24,
@@ -2424,7 +2424,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 12,
     fontWeight: '600',
-    color: '#8E8E93',
+    color: COLORS.text.tertiary,
     paddingVertical: 8,
   },
   datesGrid: {
@@ -2448,15 +2448,15 @@ const styles = StyleSheet.create({
   dateText: {
     fontSize: 16,
     fontWeight: '400',
-    color: '#000000',
+    color: COLORS.neutral.black,
     textAlign: 'center',
   },
   selectedDateText: {
-    color: '#FFFFFF',
+    color: COLORS.text.white,
     fontWeight: '700',
   },
   otherMonthDateText: {
-    color: '#C7C7CC',
+    color: COLORS.neutral.grey300,
   },
   
   // Step 7 - 약속금 결제 스타일
@@ -2651,7 +2651,7 @@ const styles = StyleSheet.create({
   
   // 위치 모달 스타일
   locationModalContainer: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.neutral.white,
     borderRadius: 20,
     width: '95%',
     maxWidth: 500,

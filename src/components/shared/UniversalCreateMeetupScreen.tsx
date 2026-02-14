@@ -65,8 +65,6 @@ const LocationSelector: React.FC<{
     const loadKakaoMap = () => {
       try {
         if (typeof window !== 'undefined' && window.kakao && window.kakao.maps && mapRef.current) {
-          console.log('🗺️ 위치 선택 지도 로드됨');
-          
           // 서울 시청 좌표 (중립적인 기본 위치)
           const seoulCityHall = new window.kakao.maps.LatLng(37.5665, 126.9780);
           
@@ -110,7 +108,7 @@ const LocationSelector: React.FC<{
                 });
               },
               (error) => {
-                console.log('위치 정보를 가져올 수 없어 서울 시청으로 설정합니다.');
+                // 위치 정보를 가져올 수 없어 서울 시청으로 설정
                 onLocationSelect('서울 시청', '서울특별시 중구 세종대로 110', 37.5665, 126.9780);
               },
               { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
@@ -137,15 +135,6 @@ const LocationSelector: React.FC<{
                 const displayAddress = roadAddress ? roadAddress.address_name : basicAddress.address_name;
                 const addressType = roadAddress ? '도로명' : '지번';
                 
-                console.log('📍 지도에서 선택된 위치:', { 
-                  roadAddress: roadAddress?.address_name,
-                  basicAddress: basicAddress.address_name,
-                  selectedAddress: displayAddress,
-                  addressType,
-                  lat: latlng.getLat(), 
-                  lng: latlng.getLng()
-                });
-                
                 if (!roadAddress) {
                   console.warn('⚠️ 도로명 주소가 없는 위치입니다. 지번 주소를 사용합니다.');
                 }
@@ -165,7 +154,6 @@ const LocationSelector: React.FC<{
     };
 
     if (typeof window !== 'undefined' && !window.kakao) {
-      console.log('📥 카카오맵 스크립트 로딩 중...');
       const script = document.createElement('script');
       script.async = true;
       script.src = `//dapi.kakao.com/v2/maps/sdk.js?appkey=5a202bd90ab8dff01348f24cb1c37f3f&libraries=services&autoload=false`;
@@ -187,8 +175,6 @@ const LocationSelector: React.FC<{
   const searchAddress = () => {
     if (Platform.OS !== 'web' || !searchQuery.trim() || typeof window === 'undefined' || !window.kakao) {return;}
 
-    console.log('🔍 검색 시작:', searchQuery);
-
     // 1. 먼저 키워드 검색 (가게명, 장소명)
     const places = new window.kakao.maps.services.Places();
     
@@ -197,14 +183,6 @@ const LocationSelector: React.FC<{
         // 키워드 검색 성공
         const place = keywordResult[0];
         const coords = new window.kakao.maps.LatLng(place.y, place.x);
-        
-        console.log('🎯 키워드 검색 성공:', { 
-          placeName: place.place_name, 
-          categoryName: place.category_name,
-          address: place.address_name,
-          roadAddress: place.road_address_name,
-          coords 
-        });
         
         // 지도 중심 이동 및 마커 업데이트
         if (mapInstance && markerInstance) {
@@ -222,8 +200,6 @@ const LocationSelector: React.FC<{
         onLocationSelect(displayLocation, displayAddress, parseFloat(place.y), parseFloat(place.x));
       } else {
         // 키워드 검색 실패 시 주소 검색 시도
-        console.log('🔍 키워드 검색 실패, 주소 검색 시도');
-        
         const geocoder = new window.kakao.maps.services.Geocoder();
         geocoder.addressSearch(searchQuery, function(addressResult: any, addressStatus: any) {
           if (addressStatus === window.kakao.maps.services.Status.OK && addressResult.length > 0) {
@@ -232,14 +208,6 @@ const LocationSelector: React.FC<{
             
             const displayAddress = address.road_address_name || address.address_name;
             const addressType = address.road_address_name ? '도로명' : '지번';
-            
-            console.log('📍 주소 검색 성공:', { 
-              roadAddress: address.road_address_name,
-              basicAddress: address.address_name,
-              selectedAddress: displayAddress,
-              addressType,
-              coords 
-            });
             
             if (!address.road_address_name) {
               console.warn('⚠️ 도로명 주소가 없습니다. 지번 주소를 사용합니다.');
@@ -253,7 +221,6 @@ const LocationSelector: React.FC<{
             
             onLocationSelect(displayAddress, displayAddress, parseFloat(address.y), parseFloat(address.x));
           } else {
-            console.log('❌ 검색 실패');
             Alert.alert('검색 실패', '장소를 찾을 수 없습니다. 가게명, 지역명 또는 도로명 주소를 다시 확인해주세요.');
           }
         });
@@ -347,7 +314,7 @@ const LocationSelector: React.FC<{
           style={{
             width: '100%',
             height: '400px',
-            backgroundColor: '#f5f5f5',
+            backgroundColor: COLORS.neutral.background,
             borderRadius: '12px',
             position: 'relative'
           }}
@@ -483,7 +450,6 @@ const UniversalCreateMeetupScreen: React.FC<UniversalCreateMeetupScreenProps> = 
   };
 
   const handleInputChange = (field: string, value: string) => {
-    console.log(`📝 입력 변경: ${field} = "${value}"`);
     setFormData(prev => ({
       ...prev,
       [field]: value
@@ -491,7 +457,6 @@ const UniversalCreateMeetupScreen: React.FC<UniversalCreateMeetupScreenProps> = 
   };
 
   const handleLocationSelect = (location: string, address: string, lat: number, lng: number) => {
-    console.log(`📍 위치 선택됨: ${location} (${lat}, ${lng})`);
     setFormData(prev => ({
       ...prev,
       location,
@@ -518,53 +483,36 @@ const UniversalCreateMeetupScreen: React.FC<UniversalCreateMeetupScreenProps> = 
   };
 
   const validateForm = () => {
-    console.log('🔍 폼 검증 시작');
-    console.log('📋 폼 데이터:', formData);
-    console.log('⚙️ 필터 데이터:', preferenceFilter);
-    
     if (!formData.title.trim()) {
-      console.log('❌ 제목 검증 실패:', formData.title);
       Alert.alert('오류', '모임 제목을 입력해주세요.');
       return false;
     }
-    console.log('✅ 제목 검증 통과');
-    
+
     if (!formData.location.trim()) {
-      console.log('❌ 장소 검증 실패:', formData.location);
       Alert.alert('오류', '모임 장소를 입력해주세요.');
       return false;
     }
-    console.log('✅ 장소 검증 통과');
-    
+
     if (!formData.date || formData.date.trim() === '') {
-      console.log('❌ 날짜 검증 실패:', `"${formData.date}"`);
       Alert.alert('오류', '모임 날짜를 입력해주세요.');
       return false;
     }
-    console.log('✅ 날짜 검증 통과:', formData.date);
-    
+
     if (!formData.time || formData.time.trim() === '') {
-      console.log('❌ 시간 검증 실패:', `"${formData.time}"`);
       Alert.alert('오류', '모임 시간을 입력해주세요.');
       return false;
     }
-    console.log('✅ 시간 검증 통과:', formData.time);
-    
+
     if (!formData.maxParticipants.trim() || parseInt(formData.maxParticipants) < 2) {
-      console.log('❌ 참가자 수 검증 실패:', formData.maxParticipants);
       Alert.alert('오류', '최대 참가자 수를 2명 이상으로 입력해주세요.');
       return false;
     }
-    console.log('✅ 참가자 수 검증 통과');
-    
+
     if (preferenceFilter.ageFilterMax < preferenceFilter.ageFilterMin) {
-      console.log('❌ 나이 범위 검증 실패:', preferenceFilter.ageFilterMin, '-', preferenceFilter.ageFilterMax);
       Alert.alert('오류', '최대 나이는 최소 나이보다 크거나 같아야 합니다.');
       return false;
     }
-    console.log('✅ 나이 범위 검증 통과');
-    
-    console.log('✅ 모든 검증 통과');
+
     return true;
   };
 
@@ -608,16 +556,10 @@ const UniversalCreateMeetupScreen: React.FC<UniversalCreateMeetupScreenProps> = 
   };
 
   const handleCreateMeetup = async () => {
-    console.log('🔍 모임 만들기 버튼 클릭됨');
-    console.log('📋 현재 폼 데이터:', formData);
-    console.log('⚙️ 현재 필터 데이터:', preferenceFilter);
-    
     if (!validateForm()) {
-      console.log('❌ 폼 검증 실패');
       return;
     }
 
-    console.log('✅ 폼 검증 통과, 약속금 결제 팝업 표시');
     setTempMeetupData({ meetupId: '', formData, preferenceFilter });
     setShowDepositSelector(true);
   };
@@ -669,8 +611,6 @@ const UniversalCreateMeetupScreen: React.FC<UniversalCreateMeetupScreenProps> = 
         formDataToSend.append('image', meetupFormData.image);
       }
       
-      console.log('📤 약속금 결제 후 실제 모임 생성 요청:', depositId);
-      
       // React Native에서는 실제 IP 사용, 웹에서는 환경변수 사용
       const apiBaseUrl = Platform.OS === 'web'
         ? (process.env.REACT_APP_API_URL || 'http://localhost:3001/api')
@@ -688,7 +628,6 @@ const UniversalCreateMeetupScreen: React.FC<UniversalCreateMeetupScreenProps> = 
 
       if (response.ok) {
         const meetupId = data.meetup?.id;
-        console.log('✅ 모임 생성 성공, meetupId:', meetupId);
         return meetupId;
       } else {
         showError(data.error || '모임 생성에 실패했습니다.');
@@ -704,8 +643,6 @@ const UniversalCreateMeetupScreen: React.FC<UniversalCreateMeetupScreenProps> = 
   };
 
   const handleDepositPaid = async (depositId: string, amount: number) => {
-    console.log('💰 약속금 결제 완료:', depositId, amount);
-    
     const meetupId = await createActualMeetup(depositId);
     
     if (!meetupId) {
@@ -743,9 +680,7 @@ const UniversalCreateMeetupScreen: React.FC<UniversalCreateMeetupScreenProps> = 
             body: JSON.stringify(filterData),
           });
           
-          if (filterResponse.ok) {
-            console.log('✅ 모임 필터 설정 성공');
-          } else {
+          if (!filterResponse.ok) {
             console.error('⚠️ 모임 필터 설정 실패');
           }
         } catch (filterError) {
@@ -771,7 +706,6 @@ const UniversalCreateMeetupScreen: React.FC<UniversalCreateMeetupScreenProps> = 
   };
 
   const handleDepositCancelled = () => {
-    console.log('💸 약속금 결제 취소됨');
     setTempMeetupData(null);
     setShowDepositSelector(false);
   };
@@ -1590,7 +1524,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#2d3748',
+    color: COLORS.text.primary,
     marginBottom: 16,
   },
   sectionSubtitle: {
@@ -1605,7 +1539,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#4a5568',
+    color: COLORS.text.secondary,
     marginBottom: 8,
   },
   input: {
@@ -1613,9 +1547,9 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     fontSize: 16,
-    color: '#2d3748',
+    color: COLORS.text.primary,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: COLORS.neutral.grey200,
   },
   textArea: {
     height: 100,
@@ -1639,22 +1573,22 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.neutral.white,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: COLORS.neutral.grey200,
   },
   categoryButtonSelected: {
-    backgroundColor: '#667eea',
-    borderColor: '#667eea',
+    backgroundColor: COLORS.functional.info,
+    borderColor: COLORS.functional.info,
   },
   categoryText: {
     fontSize: 14,
-    color: '#718096',
+    color: COLORS.text.secondary,
     fontWeight: '500',
   },
   categoryTextSelected: {
     color: COLORS.neutral.white,
   },
   createButton: {
-    backgroundColor: '#667eea',
+    backgroundColor: COLORS.functional.info,
     borderRadius: 16,
     padding: 20,
     alignItems: 'center',
@@ -1666,7 +1600,7 @@ const styles = StyleSheet.create({
     shadowRadius: 16,
   },
   createButtonDisabled: {
-    backgroundColor: '#a0aec0',
+    backgroundColor: COLORS.neutral.grey400,
   },
   createButtonText: {
     color: COLORS.neutral.white,
@@ -1680,7 +1614,7 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#f0f0f0',
+    borderColor: COLORS.neutral.background,
   },
   filterGroupTitle: {
     fontSize: 16,
@@ -1710,7 +1644,7 @@ const styles = StyleSheet.create({
     height: 20,
     borderRadius: 4,
     borderWidth: 2,
-    borderColor: '#e0e0e0',
+    borderColor: COLORS.neutral.grey200,
     backgroundColor: COLORS.neutral.white,
     marginRight: 12,
     alignItems: 'center',
@@ -1868,7 +1802,7 @@ const styles = StyleSheet.create({
     padding: 32,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FAFAFA',
+    backgroundColor: COLORS.neutral.background,
     minHeight: 160,
   },
   imageUploadIcon: {
@@ -2047,7 +1981,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f5f5f5',
+    backgroundColor: COLORS.neutral.background,
     borderRadius: 12,
   },
   mapLoadingText: {
@@ -2062,12 +1996,12 @@ const styles = StyleSheet.create({
     bottom: 0,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f5f5f5',
+    backgroundColor: COLORS.neutral.background,
     borderRadius: 12,
   },
   mapErrorText: {
     fontSize: 14,
-    color: '#d32f2f',
+    color: COLORS.functional.error,
   },
   // 지도 위 툴팁
   mapTooltip: {
@@ -2082,7 +2016,7 @@ const styles = StyleSheet.create({
     zIndex: 1000,
   },
   tooltipText: {
-    color: '#fff',
+    color: COLORS.text.white,
     fontSize: 14,
     fontWeight: '500',
     textAlign: 'center',
@@ -2132,7 +2066,7 @@ const styles = StyleSheet.create({
   // 입력 힌트 스타일
   inputHint: {
     fontSize: 12,
-    color: '#888',
+    color: COLORS.text.tertiary,
     marginTop: 6,
     fontStyle: 'italic',
   },

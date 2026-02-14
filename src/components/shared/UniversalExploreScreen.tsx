@@ -104,7 +104,6 @@ const UniversalExploreScreen: React.FC<UniversalExploreScreenProps> = ({ navigat
     try {
       setIsLoading(true);
       const searchRadius = radius || userRadius;
-      console.log(`🔍 Fetching nearby meetups with radius: ${searchRadius}m (${searchRadius / 1000}km)`);
 
       const response = await fetch(
         `${API_URL}/api/meetups/nearby?latitude=${lat}&longitude=${lng}&radius=${searchRadius}&status=모집중`
@@ -113,7 +112,6 @@ const UniversalExploreScreen: React.FC<UniversalExploreScreenProps> = ({ navigat
 
       if (data.success) {
         setMeetups(data.meetups || []);
-        console.log(`✅ Found ${data.meetups?.length || 0} meetups within ${searchRadius / 1000}km`);
       } else {
         console.error('Failed to fetch nearby meetups:', data.error);
         setMeetups([]);
@@ -451,7 +449,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: LAYOUT.HEADER_PADDING_HORIZONTAL,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: COLORS.neutral.background,
   },
   searchContainer: {
     flexDirection: 'row',
@@ -462,7 +460,7 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f5f5f5',
+    backgroundColor: COLORS.neutral.background,
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 10,
@@ -478,7 +476,7 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   advancedSearchButton: {
-    backgroundColor: '#f5f5f5',
+    backgroundColor: COLORS.neutral.background,
     padding: 12,
     borderRadius: 12,
   },

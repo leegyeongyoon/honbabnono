@@ -19,9 +19,7 @@ const UniversalRecentViewsScreen: React.FC<{navigation: NavigationAdapter, user?
   const fetchRecentViews = useCallback(async () => {
     try {
       setError(null);
-      console.log('👁️ 최근 본 모임 조회 시작');
       const response = await userApiService.getRecentViews();
-      console.log('👁️ 최근 본 모임 응답:', response);
       setRecentMeetups(response.data || response.meetups || []);
     } catch (error) {
       console.error('최근 본 모임 조회 실패:', error);

@@ -27,9 +27,7 @@ const UniversalBlockedUsersScreen: React.FC<{navigation: NavigationAdapter, user
   const fetchBlockedUsers = useCallback(async () => {
     try {
       setError(null);
-      console.log('🚫 차단 목록 조회 시작');
       const response = await userApiService.getBlockedUsers();
-      console.log('🚫 차단 목록 응답:', response);
       setBlockedUsers(response.data || response.users || []);
     } catch (error) {
       console.error('차단 목록 조회 실패:', error);

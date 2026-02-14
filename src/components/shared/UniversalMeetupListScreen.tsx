@@ -69,7 +69,6 @@ const UniversalMeetupListScreen: React.FC<UniversalMeetupListScreenProps> = ({
         <Text style={styles.headerTitle}>모든 모임</Text>
         <NotificationBell
           onPress={() => {
-            console.log('🔔 알림 버튼 클릭됨');
             navigation.navigate('Notification');
           }}
           color={COLORS.text.primary}

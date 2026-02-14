@@ -46,9 +46,7 @@ const UniversalMyActivitiesScreen: React.FC<UniversalMyActivitiesScreenProps> = 
   const fetchActivities = useCallback(async () => {
     try {
       setError(null);
-      console.log('📋 활동 내역 조회 시작');
       const response = await userApiService.getActivities();
-      console.log('📋 활동 내역 응답:', response);
       setActivities(response.data || response.activities || []);
     } catch (error) {
       console.error('활동 내역 조회 실패:', error);

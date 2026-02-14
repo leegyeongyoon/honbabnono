@@ -129,13 +129,11 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
 
   // 이벤트 핸들러들
   const handleMeetupClick = (meetup: any) => {
-    console.log('모임 클릭됨:', meetup);
     navigation.navigate('MeetupDetail', { meetupId: meetup.id });
   };
 
   const handleSearch = async () => {
     if (searchQuery.trim()) {
-      console.log('🔍 검색 화면으로 이동:', searchQuery);
       setShowSearchSuggestions(false);
       // AISearchResultScreen으로 이동하여 검색 실행
       navigation.navigate('AISearchResult', { query: searchQuery, autoSearch: true });
@@ -145,12 +143,10 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
   const handleSuggestionPress = async (suggestion: string) => {
     setSearchQuery(suggestion);
     setShowSearchSuggestions(false);
-    console.log('🔍 제안 검색 화면으로 이동:', suggestion);
     navigation.navigate('AISearchResult', { query: suggestion, autoSearch: true });
   };
 
   const handleLocationSelect = (district: string, neighborhood: string) => {
-    console.log('위치 선택됨:', district, neighborhood);
     updateNeighborhood(district, neighborhood);
     setCurrentNeighborhood({ district, neighborhood });
     setShowNeighborhoodMapModal(false);  // 지도 모달 먼저 닫기
@@ -161,7 +157,6 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
 
   // NativeMapModal에서 위치 선택 처리 (lat, lng, address, radius 포함)
   const handleMapLocationSelect = (district: string, neighborhood: string, lat: number, lng: number, address: string, radius?: number) => {
-    console.log('🗺️ [UniversalHomeScreen] 지도에서 위치 선택됨:', { district, neighborhood, lat, lng, address, radius });
     // radius는 km 단위로 전달되므로 미터 단위로 변환하여 저장 (API는 미터 단위를 사용)
     const radiusInMeters = radius ? radius * 1000 : 3000; // 기본 3km
     updateNeighborhood(district, neighborhood, lat, lng, radiusInMeters);
@@ -177,7 +172,6 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
 
   // NeighborhoodSelector에서 지도 모달 열기 요청 처리
   const handleOpenMapModal = () => {
-    console.log('🗺️ [UniversalHomeScreen] 지도 모달 열기 요청');
     setShowNeighborhoodSelector(false);  // 먼저 NeighborhoodSelector 닫기
     // 약간의 딜레이 후 지도 모달 열기 (Modal 전환 애니메이션 대기)
     setTimeout(() => {
@@ -191,17 +185,12 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
   };
 
   const openNeighborhoodSelector = () => {
-    console.log('🏠 [HomeScreen] 동네 선택 버튼 클릭됨');
     setShowNeighborhoodSelector(true);
   };
 
   const handleNotificationTest = () => {
     try {
-      console.log('🧪 [DEBUG] handleNotificationTest 함수 호출됨');
-      
       if (nativeBridge.isNativeApp()) {
-        // 네이티브 앱에서 실행 중
-        console.log('📱 [DEBUG] 네이티브 앱에서 실행 중 - scheduleNotification 호출');
         nativeBridge.scheduleNotification(
           '혼밥노노 알림', 
           '5초 후 네이티브 알림입니다! 🍚', 
@@ -211,7 +200,6 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
         showInfo('5초 후 네이티브 알림이 표시됩니다...');
       } else {
         // 웹 브라우저에서 실행 중
-        console.log('🌐 [DEBUG] 웹 브라우저에서 실행 중 - setTimeout 사용');
         setTimeout(() => {
           alert('5초 후 웹 알림입니다! 새로운 밥친구가 근처에 있어요 🍚');
         }, 5000);
@@ -245,7 +233,6 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
             <NotificationBell
               userId={user?.id?.toString()}
               onPress={() => {
-                console.log('🔔 알림 버튼 클릭됨');
                 navigation.navigate('Notifications');
               }}
               color={COLORS.text.white}
@@ -703,7 +690,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     elevation: 8,
-    shadowColor: '#000',
+    shadowColor: COLORS.neutral.black,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,

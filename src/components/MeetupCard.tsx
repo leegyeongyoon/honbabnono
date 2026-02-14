@@ -1,14 +1,16 @@
-import React from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   Image,
+  Platform,
+  Animated,
 } from 'react-native';
-import { COLORS, SHADOWS } from '../styles/colors';
-import { Icon } from './Icon';
-import { getTimeDifference } from '../utils/timeUtils';
+import { COLORS, SHADOWS, CSS_SHADOWS } from '../styles/colors';
+import { TYPOGRAPHY } from '../styles/typography';
+import { SPACING, BORDER_RADIUS } from '../styles/spacing';
 import { processImageUrl } from '../utils/imageUtils';
 import { formatMeetupDateTime } from '../utils/dateUtils';
 import { FOOD_CATEGORIES } from '../constants/categories';
@@ -28,12 +30,15 @@ interface Meetup {
   ageRange?: string;
   genderPreference?: string;
   image?: string;
+  status?: 'recruiting' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled';
   createdAt?: string;
   created_at?: string;
   distance?: number | null;
+  hostName?: string;
+  hostImage?: string;
+  hostRating?: number;
 }
 
-// 거리 포맷팅 함수
 const formatDistance = (distanceInMeters: number | null | undefined): string | null => {
   if (distanceInMeters === null || distanceInMeters === undefined) {
     return null;
@@ -46,100 +51,184 @@ const formatDistance = (distanceInMeters: number | null | undefined): string | n
   }
 };
 
+const STATUS_CONFIG = {
+  recruiting: { label: '모집중', bg: COLORS.functional.success },
+  confirmed: { label: '모집완료', bg: COLORS.text.tertiary },
+  in_progress: { label: '진행중', bg: COLORS.primary.main },
+  completed: { label: '완료', bg: COLORS.text.secondary },
+  cancelled: { label: '취소됨', bg: COLORS.functional.error },
+} as const;
+
 interface MeetupCardProps {
   meetup: Meetup;
   onPress: (meetup: Meetup) => void;
 }
 
 const MeetupCard: React.FC<MeetupCardProps> = ({ meetup, onPress }) => {
+  const [isHovered, setIsHovered] = useState(false);
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+
   const getCategoryEmoji = (categoryName: string) => {
     const category = FOOD_CATEGORIES.find(cat => cat.name === categoryName);
     return category ? category.emoji : '🍴';
   };
 
-  const getCategoryColor = (categoryName: string) => {
-    const category = FOOD_CATEGORIES.find(cat => cat.name === categoryName);
-    return category ? category.color : COLORS.primary.main;
-  };
-
-  // 참가 현황 표시 (예: "1/4명")
   const participantText = `${meetup.currentParticipants}/${meetup.maxParticipants}명`;
 
-  // 참가율에 따른 색상
-  const getParticipantColor = () => {
-    const ratio = meetup.currentParticipants / meetup.maxParticipants;
-    if (ratio >= 1) {return COLORS.functional.error;} // 마감
-    if (ratio >= 0.75) {return '#FF9800';} // 거의 마감
-    return COLORS.functional.success; // 여유
-  };
-
-  // 위치 텍스트 (거리 또는 주소)
   const locationText = formatDistance(meetup.distance) || meetup.address || meetup.location;
 
-  return (
-    <TouchableOpacity
-      style={styles.card}
-      onPress={() => onPress(meetup)}
-      activeOpacity={0.7}
-    >
+  const statusConfig = meetup.status ? STATUS_CONFIG[meetup.status] : null;
+
+  const handlePressIn = () => {
+    if (Platform.OS !== 'web') {
+      Animated.spring(scaleAnim, {
+        toValue: 0.97,
+        useNativeDriver: true,
+        speed: 50,
+        bounciness: 4,
+      }).start();
+    }
+  };
+
+  const handlePressOut = () => {
+    if (Platform.OS !== 'web') {
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        useNativeDriver: true,
+        speed: 50,
+        bounciness: 4,
+      }).start();
+    }
+  };
+
+  const cardContent = (
+    <>
       {/* 썸네일 이미지 */}
       <View style={styles.imageContainer}>
         <Image
           source={{ uri: processImageUrl(meetup.image, meetup.category) }}
           style={styles.image}
         />
-        {/* 카테고리 뱃지 (이미지 위) */}
-        <View style={[styles.categoryBadge, { backgroundColor: getCategoryColor(meetup.category) }]}>
-          <Text style={styles.categoryEmoji}>{getCategoryEmoji(meetup.category)}</Text>
-        </View>
       </View>
 
       {/* 컨텐츠 영역 */}
       <View style={styles.content}>
-        {/* 상단: 제목 */}
+        {/* 제목 */}
         <Text style={styles.title} numberOfLines={1}>
           {meetup.title}
         </Text>
 
-        {/* 중단: 날짜/시간 */}
-        <View style={styles.infoRow}>
-          <Icon name="calendar" size={14} color={COLORS.primary.main} />
-          <Text style={styles.infoText}>
-            {formatMeetupDateTime(meetup.date, meetup.time)}
-          </Text>
-        </View>
+        {/* 호스트 정보 */}
+        {meetup.hostName && (
+          <View style={styles.hostRow}>
+            {meetup.hostImage ? (
+              <Image
+                source={{ uri: meetup.hostImage }}
+                style={styles.hostAvatar}
+              />
+            ) : (
+              <View style={styles.hostAvatarPlaceholder}>
+                <Text style={styles.hostAvatarEmoji}>👤</Text>
+              </View>
+            )}
+            <Text style={styles.hostName}>{meetup.hostName}</Text>
+            {meetup.hostRating != null && (
+              <Text style={styles.hostRating}>⭐ {meetup.hostRating.toFixed(1)}</Text>
+            )}
+          </View>
+        )}
 
-        {/* 중단: 위치 */}
-        <View style={styles.infoRow}>
-          <Icon name="map-pin" size={14} color={COLORS.text.tertiary} />
-          <Text style={styles.locationText} numberOfLines={1}>
-            {locationText}
-          </Text>
-        </View>
-
-        {/* 하단: 참가자 + 태그 + 시간 */}
-        <View style={styles.bottomRow}>
-          {/* 참가 현황 */}
-          <View style={styles.participantBadge}>
-            <Icon name="users" size={12} color={getParticipantColor()} />
-            <Text style={[styles.participantText, { color: getParticipantColor() }]}>
-              {participantText}
+        {/* 태그 뱃지들 */}
+        <View style={styles.tagRow}>
+          <View style={styles.categoryTag}>
+            <Text style={styles.categoryTagText}>
+              {getCategoryEmoji(meetup.category)} {meetup.category}
             </Text>
           </View>
-
-          {/* 태그들 (가격대만 표시) */}
           {meetup.priceRange && (
             <View style={styles.priceTag}>
-              <Text style={styles.priceText}>{meetup.priceRange}</Text>
+              <Text style={styles.priceTagText}>{meetup.priceRange}</Text>
             </View>
           )}
+          {meetup.ageRange && (
+            <View style={styles.ageTag}>
+              <Text style={styles.ageTagText}>{meetup.ageRange}</Text>
+            </View>
+          )}
+        </View>
 
-          {/* 등록 시간 */}
-          <Text style={styles.timeAgo}>
-            {getTimeDifference(meetup.createdAt || meetup.created_at)}
+        {/* 날짜/시간 */}
+        <View style={styles.metaRow}>
+          <Text style={styles.metaText}>
+            📅 {formatMeetupDateTime(meetup.date, meetup.time)}
           </Text>
         </View>
+
+        {/* 위치 */}
+        <View style={styles.metaRow}>
+          <Text style={styles.metaText} numberOfLines={1}>
+            📍 {locationText}
+          </Text>
+        </View>
+
+        {/* 참가자 + 상태 뱃지 */}
+        <View style={styles.bottomRow}>
+          <Text style={styles.metaText}>
+            👥 {participantText}
+          </Text>
+          {statusConfig && (
+            <View style={[styles.statusBadge, { backgroundColor: statusConfig.bg }]}>
+              <Text style={styles.statusText}>{statusConfig.label}</Text>
+            </View>
+          )}
+        </View>
       </View>
+    </>
+  );
+
+  if (Platform.OS === 'web') {
+    return (
+      <div
+        onClick={() => onPress(meetup)}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+        aria-label={`${meetup.title}, ${meetup.category}, ${participantText}`}
+        style={{
+          backgroundColor: COLORS.neutral.white,
+          borderRadius: BORDER_RADIUS.lg,
+          padding: SPACING.md,
+          marginBottom: SPACING.md,
+          display: 'flex',
+          flexDirection: 'row' as const,
+          alignItems: 'flex-start',
+          gap: SPACING.md,
+          boxShadow: isHovered ? CSS_SHADOWS.medium : CSS_SHADOWS.small,
+          transform: isHovered ? 'scale(1.02)' : 'scale(1)',
+          transition: 'transform 200ms ease, box-shadow 200ms ease',
+          cursor: 'pointer',
+        }}
+      >
+        {cardContent}
+      </div>
+    );
+  }
+
+  return (
+    <TouchableOpacity
+      activeOpacity={0.8}
+      onPress={() => onPress(meetup)}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
+      accessibilityLabel={`${meetup.title}, ${meetup.category}, ${participantText}`}
+    >
+      <Animated.View
+        style={[
+          styles.card,
+          { transform: [{ scale: scaleAnim }] },
+        ]}
+      >
+        {cardContent}
+      </Animated.View>
     </TouchableOpacity>
   );
 };
@@ -147,104 +236,128 @@ const MeetupCard: React.FC<MeetupCardProps> = ({ meetup, onPress }) => {
 const styles = StyleSheet.create({
   card: {
     backgroundColor: COLORS.neutral.white,
-    borderRadius: 16,
-    padding: 14,
-    marginBottom: 12,
+    borderRadius: BORDER_RADIUS.lg,
+    padding: SPACING.md,
+    marginBottom: SPACING.md,
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 14,
+    gap: SPACING.md,
     ...SHADOWS.small,
   },
   imageContainer: {
     width: 80,
     height: 80,
-    borderRadius: 12,
+    borderRadius: BORDER_RADIUS.lg,
     overflow: 'hidden',
-    position: 'relative',
   },
   image: {
     width: '100%',
     height: '100%',
     resizeMode: 'cover',
   },
-  categoryBadge: {
-    position: 'absolute',
-    bottom: 4,
-    right: 4,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  categoryEmoji: {
-    fontSize: 12,
-  },
   content: {
     flex: 1,
-    gap: 6,
+    gap: 4,
   },
   title: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: COLORS.text.primary,
-    letterSpacing: -0.3,
-    marginBottom: 2,
+    ...TYPOGRAPHY.card.title,
   },
-  infoRow: {
+  hostRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: SPACING.xs,
   },
-  infoText: {
+  hostAvatar: {
+    width: SPACING.xxl,
+    height: SPACING.xxl,
+    borderRadius: BORDER_RADIUS.full,
+  },
+  hostAvatarPlaceholder: {
+    width: SPACING.xxl,
+    height: SPACING.xxl,
+    borderRadius: BORDER_RADIUS.full,
+    backgroundColor: COLORS.primary.accent,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  hostAvatarEmoji: {
     fontSize: 14,
-    color: COLORS.text.primary,
-    fontWeight: '500',
   },
-  locationText: {
-    fontSize: 13,
+  hostName: {
+    fontSize: 12,
+    color: COLORS.text.tertiary,
+  },
+  hostRating: {
+    fontSize: 12,
+    color: COLORS.text.tertiary,
+  },
+  tagRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    flexWrap: 'wrap',
+  },
+  categoryTag: {
+    height: 20,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 10,
+    backgroundColor: COLORS.primary.light,
+    justifyContent: 'center',
+  },
+  categoryTagText: {
+    fontSize: 10,
+    fontWeight: '600',
     color: COLORS.text.secondary,
-    flex: 1,
+  },
+  priceTag: {
+    height: 20,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 10,
+    backgroundColor: COLORS.primary.accent,
+    justifyContent: 'center',
+  },
+  priceTagText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: COLORS.text.secondary,
+  },
+  ageTag: {
+    height: 20,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 10,
+    backgroundColor: COLORS.primary.light,
+    justifyContent: 'center',
+  },
+  ageTagText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: COLORS.text.tertiary,
+  },
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  metaText: {
+    fontSize: 12,
+    color: COLORS.text.tertiary,
   },
   bottomRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    marginTop: 4,
+    justifyContent: 'space-between',
   },
-  participantBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: COLORS.neutral.grey100,
+  statusBadge: {
     paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingVertical: 3,
+    borderRadius: 10,
   },
-  participantText: {
-    fontSize: 12,
+  statusText: {
+    fontSize: 10,
     fontWeight: '600',
-  },
-  priceTag: {
-    backgroundColor: COLORS.functional.success + '15',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  priceText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: COLORS.functional.success,
-  },
-  timeAgo: {
-    fontSize: 12,
-    color: COLORS.text.tertiary,
-    marginLeft: 'auto',
+    color: COLORS.text.white,
   },
 });
 

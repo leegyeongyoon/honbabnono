@@ -129,11 +129,8 @@ const UniversalAISearchResultScreen: React.FC<UniversalAISearchResultScreenProps
     setSearchResults([]);
 
     try {
-      console.log('🤖 백엔드 AI 검색 시작:', query);
-
       // Call AI search service - returns array of SearchResult
       const results = await aiSearchService.search(query);
-      console.log('🤖 AI 검색 결과 수신:', results);
 
       // results는 배열 형태로 반환됨
       if (results && results.length > 0) {

@@ -50,7 +50,6 @@ const UniversalSearchScreen: React.FC<UniversalSearchScreenProps> = ({ navigatio
 
   // 실제 검색 수행
   const performSearch = async (searchText: string, category: string = selectedCategory, location: string = selectedLocation) => {
-    console.log('🔍 검색 수행:', { searchText, category, location });
     try {
       await searchMeetups({
         search: searchText || undefined,
@@ -304,7 +303,7 @@ const UniversalSearchScreen: React.FC<UniversalSearchScreenProps> = ({ navigatio
       {/* 검색바 */}
       <View style={styles.searchContainer}>
         <View style={styles.searchInputContainer}>
-          <Icon name="search" size={16} color="#5f6368" />
+          <Icon name="search" size={16} color={COLORS.text.secondary} />
           <TextInput
             style={styles.searchInput}
             placeholder="모임 제목이나 장소를 검색해보세요 (AI 추천 기능)"
@@ -317,7 +316,7 @@ const UniversalSearchScreen: React.FC<UniversalSearchScreenProps> = ({ navigatio
                 setSuggestions([]);
               }
             }}
-            placeholderTextColor="#5f6368"
+            placeholderTextColor={COLORS.text.secondary}
             onFocus={() => setShowSuggestions(searchText.length > 0)}
           />
           {(isAnalyzing || loading) && (
@@ -475,7 +474,7 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     ...TYPOGRAPHY.input,
-    color: '#202124',
+    color: COLORS.text.primary,
   },
   filtersSection: {
     paddingVertical: 16,
@@ -498,11 +497,11 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.neutral.white,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#e9ecef',
+    borderColor: COLORS.neutral.grey200,
   },
   selectedTabButton: {
-    backgroundColor: '#ede0c8',
-    borderColor: '#ede0c8',
+    backgroundColor: COLORS.primary.accent,
+    borderColor: COLORS.primary.accent,
   },
   tabButtonText: {
     fontSize: 14,
@@ -538,9 +537,9 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingHorizontal: 16,
     borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
+    borderTopColor: COLORS.neutral.background,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: COLORS.neutral.background,
   },
   meetupHeader: {
     flexDirection: 'row',
@@ -554,7 +553,7 @@ const styles = StyleSheet.create({
   meetupTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#2d3748',
+    color: COLORS.text.primary,
     marginBottom: 6,
     lineHeight: 22,
   },
@@ -564,12 +563,12 @@ const styles = StyleSheet.create({
   },
   meetupLocation: {
     fontSize: 12,
-    color: '#718096',
+    color: COLORS.text.secondary,
     fontWeight: '500',
   },
   meetupTime: {
     fontSize: 12,
-    color: '#718096',
+    color: COLORS.text.secondary,
     fontWeight: '500',
   },
   meetupStatus: {
@@ -577,13 +576,13 @@ const styles = StyleSheet.create({
   },
   statusText: {
     fontSize: 12,
-    color: '#667eea',
+    color: COLORS.functional.info,
     fontWeight: '600',
     marginBottom: 4,
   },
   participantCount: {
     fontSize: 12,
-    color: '#718096',
+    color: COLORS.text.secondary,
     fontWeight: '500',
   },
   meetupFooter: {
@@ -624,7 +623,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#e9ecef',
+    borderColor: COLORS.neutral.grey200,
   },
   categoryBadgeText: {
     fontSize: 10,
@@ -670,9 +669,9 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.neutral.white,
     padding: 16,
     borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
+    borderTopColor: COLORS.neutral.background,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: COLORS.neutral.background,
   },
   restaurantHeader: {
     flexDirection: 'row',
@@ -761,7 +760,7 @@ const styles = StyleSheet.create({
     padding: 12,
     backgroundColor: 'rgba(99, 102, 241, 0.05)',
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: COLORS.neutral.background,
   },
   suggestionsTitle: {
     fontSize: 12,
@@ -775,7 +774,7 @@ const styles = StyleSheet.create({
     padding: 12,
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#f9f9f9',
+    borderBottomColor: COLORS.neutral.background,
   },
   suggestionText: {
     fontSize: 14,
@@ -819,7 +818,7 @@ const styles = StyleSheet.create({
   },
   clearButtonText: {
     fontSize: 12,
-    color: '#ef4444',
+    color: COLORS.functional.error,
     fontWeight: '500',
   },
   loadingContainer: {

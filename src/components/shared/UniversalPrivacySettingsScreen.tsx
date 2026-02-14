@@ -29,10 +29,8 @@ const UniversalPrivacySettingsScreen: React.FC<{navigation: NavigationAdapter, u
   const fetchPrivacySettings = useCallback(async () => {
     try {
       setLoading(true);
-      console.log('🔒 개인정보 설정 조회 시작');
 
       const response = await userApiService.getPrivacySettings();
-      console.log('🔒 개인정보 설정 응답:', response);
 
       const data = response.data || response.settings || response;
       setSettings(data || {
@@ -71,7 +69,6 @@ const UniversalPrivacySettingsScreen: React.FC<{navigation: NavigationAdapter, u
     try {
       setSaving(true);
       await userApiService.updatePrivacySettings({ [key]: value });
-      console.log('🔒 개인정보 설정 업데이트 성공:', key, '=', value);
     } catch (error) {
       console.error('설정 업데이트 실패:', error);
       setSettings(settings);

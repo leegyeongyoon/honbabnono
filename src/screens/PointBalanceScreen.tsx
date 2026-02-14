@@ -27,7 +27,7 @@ const PointBalanceScreen: React.FC = () => {
 
   const fetchPointData = async () => {
     try {
-      console.log('💰 포인트 데이터 조회 시작');
+      // console.log('💰 포인트 데이터 조회 시작');
 
       // 현재 포인트 잔액 가져오기
       const userStats = await userApiService.getUserStats();
@@ -40,14 +40,14 @@ const PointBalanceScreen: React.FC = () => {
 
       if (response.data.success && response.data.data) {
         setTransactions(response.data.data);
-        console.log('✅ 포인트 내역 조회 성공:', response.data.data.length, '건');
+        // console.log('✅ 포인트 내역 조회 성공:', response.data.data.length, '건');
       } else {
-        console.error('❌ 포인트 내역 조회 실패:', response.data.message || 'Unknown error');
+        // console.error('❌ 포인트 내역 조회 실패:', response.data.message || 'Unknown error');
         // 에러시 빈 배열로 설정
         setTransactions([]);
       }
     } catch (error) {
-      console.error('❌ 포인트 데이터 조회 실패:', error);
+      // console.error('❌ 포인트 데이터 조회 실패:', error);
       // 에러시 빈 배열로 설정
       setTransactions([]);
     } finally {
@@ -58,48 +58,48 @@ const PointBalanceScreen: React.FC = () => {
   const getTransactionIcon = (type: string) => {
     switch (type) {
       case 'earn':
-        return <Icon name="plus" size={18} color="#FFFFFF" />;
+        return <Icon name="plus" size={18} color={COLORS.neutral.white} />;
       case 'spend':
       case 'used':
-        return <Icon name="minus" size={18} color="#FFFFFF" />;
+        return <Icon name="minus" size={18} color={COLORS.neutral.white} />;
       case 'charge':
-        return <Icon name="credit-card" size={18} color="#FFFFFF" />;
+        return <Icon name="credit-card" size={18} color={COLORS.neutral.white} />;
       case 'refund':
-        return <Icon name="gift" size={18} color="#FFFFFF" />;
+        return <Icon name="gift" size={18} color={COLORS.neutral.white} />;
       default:
-        return <Icon name="plus" size={18} color="#FFFFFF" />;
+        return <Icon name="plus" size={18} color={COLORS.neutral.white} />;
     }
   };
 
   const getTransactionColor = (type: string) => {
     switch (type) {
       case 'earn':
-        return '#2ECC71';
+        return COLORS.functional.success;
       case 'spend':
       case 'used':
-        return '#E74C3C';
+        return COLORS.functional.error;
       case 'charge':
-        return '#3498DB';
+        return COLORS.functional.info;
       case 'refund':
-        return '#F39C12';
+        return COLORS.functional.warning;
       default:
-        return '#95A5A6';
+        return COLORS.text.tertiary;
     }
   };
 
   const getTransactionBackgroundColor = (type: string) => {
     switch (type) {
       case 'earn':
-        return '#2ECC71';
+        return COLORS.functional.success;
       case 'spend':
       case 'used':
-        return '#E74C3C';
+        return COLORS.functional.error;
       case 'charge':
-        return '#3498DB';
+        return COLORS.functional.info;
       case 'refund':
-        return '#F39C12';
+        return COLORS.functional.warning;
       default:
-        return '#95A5A6';
+        return COLORS.text.tertiary;
     }
   };
 

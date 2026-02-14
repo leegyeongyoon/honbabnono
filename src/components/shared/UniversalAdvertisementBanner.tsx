@@ -100,8 +100,7 @@ const UniversalAdvertisementBanner: React.FC<UniversalAdvertisementBannerProps> 
       if (Platform.OS === 'web') {
         window.open(ad.link_url, '_blank');
       } else {
-        // For native, you might want to use Linking.openURL or navigate to a WebView
-        console.log('Opening URL:', ad.link_url);
+        // TODO: For native, use Linking.openURL or navigate to a WebView
       }
     }
   };

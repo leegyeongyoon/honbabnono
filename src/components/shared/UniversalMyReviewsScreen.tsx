@@ -28,9 +28,7 @@ const UniversalMyReviewsScreen: React.FC<{navigation: NavigationAdapter, user?: 
   const fetchReviews = useCallback(async () => {
     try {
       setError(null);
-      console.log('⭐ 내 리뷰 조회 시작');
       const response = await userApiService.getMyReviews();
-      console.log('⭐ 내 리뷰 응답:', response);
       setReviews(response.data || response.reviews || []);
     } catch (error) {
       console.error('리뷰 조회 실패:', error);

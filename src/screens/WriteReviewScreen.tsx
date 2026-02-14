@@ -8,6 +8,7 @@ import {
   TextInput,
   Alert,
   SafeAreaView,
+  ActivityIndicator,
 } from 'react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { COLORS, SHADOWS } from '../styles/colors';
@@ -135,10 +136,12 @@ const WriteReviewScreen = () => {
     return (
       <View style={styles.starsContainer}>
         {[1, 2, 3, 4, 5].map((star) => (
-          <TouchableOpacity key={star} onPress={() => setRating(star)} style={styles.starButton}>
-            <Text style={[styles.star, star <= rating && styles.starFilled]}>
-              {star <= rating ? '★' : '☆'}
-            </Text>
+          <TouchableOpacity key={star} onPress={() => setRating(star)} style={styles.starButton} activeOpacity={0.6}>
+            <Icon
+              name="star"
+              size={32}
+              color={star <= rating ? '#D4A574' : COLORS.neutral.grey200}
+            />
           </TouchableOpacity>
         ))}
       </View>
@@ -264,7 +267,17 @@ const WriteReviewScreen = () => {
             multiline
             numberOfLines={4}
             textAlignVertical="top"
+            maxLength={500}
           />
+          <Text
+            style={[
+              styles.charCounter,
+              content.length >= 500 && styles.charCounterError,
+              content.length >= 400 && content.length < 500 && styles.charCounterWarning,
+            ]}
+          >
+            {content.length}/500
+          </Text>
         </View>
 
         <TouchableOpacity
@@ -282,9 +295,11 @@ const WriteReviewScreen = () => {
           onPress={handleSubmitReview}
           disabled={rating === 0 || submitting}
         >
-          <Text style={styles.submitButtonText}>
-            {submitting ? '작성 중...' : '리뷰 등록하기'}
-          </Text>
+          {submitting ? (
+            <ActivityIndicator size="small" color={COLORS.neutral.white} />
+          ) : (
+            <Text style={styles.submitButtonText}>리뷰 등록하기</Text>
+          )}
         </TouchableOpacity>
       </View>
     );
@@ -487,13 +502,6 @@ const styles = StyleSheet.create({
   starButton: {
     padding: 4,
   },
-  star: {
-    fontSize: 40,
-    color: COLORS.neutral.grey300,
-  },
-  starFilled: {
-    color: '#FFD700',
-  },
   ratingText: {
     fontSize: 16,
     color: COLORS.text.secondary,
@@ -539,6 +547,18 @@ const styles = StyleSheet.create({
     color: COLORS.text.primary,
     minHeight: 100,
     backgroundColor: COLORS.neutral.grey100,
+  },
+  charCounter: {
+    fontSize: 12,
+    color: COLORS.text.tertiary,
+    textAlign: 'right',
+    marginTop: 4,
+  },
+  charCounterWarning: {
+    color: COLORS.functional.warning,
+  },
+  charCounterError: {
+    color: COLORS.functional.error,
   },
   anonymousRow: {
     flexDirection: 'row',

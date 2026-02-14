@@ -48,10 +48,8 @@ const UniversalNotificationSettingsScreen: React.FC<UniversalNotificationSetting
   const fetchNotificationSettings = useCallback(async () => {
     try {
       setLoading(true);
-      console.log('🔔 알림 설정 조회 시작');
 
       const response = await userApiService.getNotificationSettings();
-      console.log('🔔 알림 설정 응답:', response);
 
       const apiSettings = response.data || response;
       // DB 컬럼명을 프론트엔드 형식으로 변환
@@ -71,7 +69,6 @@ const UniversalNotificationSettingsScreen: React.FC<UniversalNotificationSetting
       }
     } catch (error) {
       console.error('알림 설정 조회 실패:', error);
-      console.log('기본 알림 설정을 사용합니다.');
 
       // 오류 발생시 기본값 설정
       const defaultSettings: NotificationSettings = {
@@ -123,9 +120,6 @@ const UniversalNotificationSettingsScreen: React.FC<UniversalNotificationSetting
         await userApiService.updateNotificationSettings({
           [backendKey]: value
         });
-        console.log('🔔 알림 설정이 업데이트되었습니다:', key, '=', value);
-      } else {
-        console.log('🔔 로컬 전용 설정 업데이트:', key, '=', value);
       }
     } catch (error) {
       console.error('알림 설정 업데이트 실패:', error);

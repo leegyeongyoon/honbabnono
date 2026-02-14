@@ -2,10 +2,11 @@ import React from 'react';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import {RootTabParamList} from '../types/navigation';
 import {TAB_ROUTES} from './routes';
-import {COLORS, SHADOWS} from '../styles/colors';
+import {COLORS} from '../styles/colors';
+import {TYPOGRAPHY} from '../styles/typography';
+import {SPACING} from '../styles/spacing';
 import {SimpleIcon} from '../components/SimpleIcon';
 import HomeScreen from '../screens/HomeScreen';
-import SearchScreen from '../screens/SearchScreen';
 import ExploreScreen from '../screens/ExploreScreen';
 import ChatScreen from '../screens/ChatScreen';
 import MyPageScreen from '../screens/MyPageScreen';
@@ -31,31 +32,30 @@ const TabNavigator = () => {
   return (
     <Tab.Navigator
       screenOptions={{
-        tabBarActiveTintColor: COLORS.primary.dark,
-        tabBarInactiveTintColor: COLORS.text.tertiary,
+        tabBarActiveTintColor: COLORS.primary.main,
+        tabBarInactiveTintColor: COLORS.neutral.grey400,
         tabBarLabelStyle: {
-          fontSize: 12,
-          fontWeight: '500',
+          fontSize: TYPOGRAPHY.tab.fontSize,
+          fontWeight: TYPOGRAPHY.tab.fontWeight,
         },
         tabBarStyle: {
           backgroundColor: COLORS.neutral.white,
-          borderTopWidth: 0,
-          height: 65,
-          paddingBottom: 10,
-          paddingTop: 10,
-          ...SHADOWS.medium,
+          borderTopWidth: 1,
+          borderTopColor: COLORS.primary.accent,
+          height: SPACING.bottomNav.height,
+          paddingBottom: 6,
+          paddingTop: SPACING.tab.paddingVertical,
         },
         headerStyle: {
-          backgroundColor: COLORS.primary.main,
-          borderBottomWidth: 0,
-          ...SHADOWS.small,
+          backgroundColor: COLORS.primary.light,
+          ...SHADOWS.medium,
         },
         headerTitleStyle: {
           fontSize: 18,
-          fontWeight: 'bold',
-          color: COLORS.text.white,
+          fontWeight: '600',
+          color: COLORS.text.primary,
         },
-        headerTintColor: COLORS.text.white,
+        headerTintColor: COLORS.text.primary,
       }}>
       {TAB_ROUTES.map((route) => (
         <Tab.Screen

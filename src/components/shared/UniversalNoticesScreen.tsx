@@ -51,10 +51,8 @@ const UniversalNoticesScreen: React.FC<UniversalNoticesScreenProps> = ({
   const fetchNotices = useCallback(async () => {
     try {
       setError(null);
-      console.log('📢 공지사항 조회 시작');
 
       const response = await userApiService.getNotices();
-      console.log('📢 공지사항 응답:', response);
 
       const noticesData = response.data || response.notices || [];
       setNotices(noticesData);

@@ -247,7 +247,7 @@ const KakaoMap: React.FC<{
         style={{
           width: '100%',
           height: '200px',
-          backgroundColor: '#f5f5f5',
+          backgroundColor: COLORS.neutral.background,
           borderRadius: '8px',
           marginBottom: '12px',
           display: mapError ? 'flex' : 'block',
@@ -995,7 +995,7 @@ const styles = StyleSheet.create({
   },
   backButtonText: {
     fontSize: 24,
-    color: '#000000',
+    color: COLORS.neutral.black,
   },
   headerIcons: {
     flexDirection: 'row',
@@ -1022,7 +1022,7 @@ const styles = StyleSheet.create({
   hostName: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#000000',
+    color: COLORS.neutral.black,
     marginBottom: 2,
   },
   hostLocation: {
@@ -1037,7 +1037,7 @@ const styles = StyleSheet.create({
   },
   riceText: {
     fontSize: 14,
-    color: '#000000',
+    color: COLORS.neutral.black,
     fontWeight: '600',
   },
   mainCard: {
@@ -1052,7 +1052,7 @@ const styles = StyleSheet.create({
   meetupTitle: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#000000',
+    color: COLORS.neutral.black,
     marginBottom: 20,
   },
   infoGrid: {
@@ -1098,7 +1098,7 @@ const styles = StyleSheet.create({
   mapLabel: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#000000',
+    color: COLORS.neutral.black,
     marginBottom: 12,
   },
   locationCard: {
@@ -1129,7 +1129,7 @@ const styles = StyleSheet.create({
   },
   locationText: {
     fontSize: 16,
-    color: '#000000',
+    color: COLORS.neutral.black,
     fontWeight: '500',
     marginBottom: 8,
   },
@@ -1154,7 +1154,7 @@ const styles = StyleSheet.create({
   mapTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#000000',
+    color: COLORS.neutral.black,
     marginBottom: 16,
     textAlign: 'center',
   },
@@ -1163,7 +1163,7 @@ const styles = StyleSheet.create({
   },
   locationText: {
     fontSize: 14,
-    color: '#000000',
+    color: COLORS.neutral.black,
     fontWeight: '600',
     marginBottom: 8,
   },
@@ -1210,7 +1210,7 @@ const styles = StyleSheet.create({
   participantTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#000000',
+    color: COLORS.neutral.black,
     marginBottom: 16,
   },
   participantItem: {
@@ -1222,7 +1222,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#e9ecef',
+    backgroundColor: COLORS.neutral.grey200,
     marginRight: 12,
   },
   hostAvatar: {
@@ -1245,7 +1245,7 @@ const styles = StyleSheet.create({
   participantName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#000000',
+    color: COLORS.neutral.black,
     marginBottom: 4,
   },
   participantRole: {
@@ -1268,7 +1268,7 @@ const styles = StyleSheet.create({
     borderTopColor: COLORS.neutral.grey200,
   },
   joinButton: {
-    backgroundColor: '#495057',
+    backgroundColor: COLORS.neutral.grey600,
     borderRadius: 12,
     paddingVertical: 16,
     alignItems: 'center',
@@ -1311,7 +1311,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   modalAmountContainer: {
-    backgroundColor: '#f8f9fa',
+    backgroundColor: COLORS.neutral.background,
     borderRadius: 12,
     padding: 16,
     alignItems: 'center',
@@ -1328,7 +1328,7 @@ const styles = StyleSheet.create({
   },
   modalCancelButton: {
     flex: 1,
-    backgroundColor: '#e9ecef',
+    backgroundColor: COLORS.neutral.grey200,
     borderRadius: 12,
     padding: 12,
     alignItems: 'center',
@@ -1429,13 +1429,13 @@ const styles = StyleSheet.create({
     color: 'white',
   },
   pastMeetupContainer: {
-    backgroundColor: '#f8f9fa',
+    backgroundColor: COLORS.neutral.background,
     borderRadius: 12,
     paddingVertical: 16,
     paddingHorizontal: 20,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#e9ecef',
+    borderColor: COLORS.neutral.grey200,
   },
   pastMeetupText: {
     fontSize: 16,
@@ -1521,9 +1521,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: COLORS.neutral.background,
     borderWidth: 1,
-    borderColor: '#E9ECEF',
+    borderColor: COLORS.neutral.grey200,
     gap: 6,
   },
   optionalBadgeText: {

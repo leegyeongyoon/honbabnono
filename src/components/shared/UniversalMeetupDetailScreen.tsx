@@ -176,7 +176,6 @@ const UniversalMeetupDetailScreen: React.FC<UniversalMeetupDetailScreenProps> = 
   const [wishlistLoading, setWishlistLoading] = useState<boolean>(false);
 
   useEffect(() => {
-    console.log('🔍 MeetupDetailScreen meetupId:', meetupId);
     if (meetupId) {
       setCurrentMeetup(null);
       fetchMeetupById(meetupId);
@@ -184,7 +183,6 @@ const UniversalMeetupDetailScreen: React.FC<UniversalMeetupDetailScreenProps> = 
       const recordRecentView = async () => {
         try {
           await apiClient.post('/meetups/' + meetupId + '/view');
-          console.log('✅ 최근 본 글 기록 완료');
         } catch (error) {
           console.error('❌ 최근 본 글 기록 실패:', error);
         }
@@ -239,13 +237,11 @@ const UniversalMeetupDetailScreen: React.FC<UniversalMeetupDetailScreenProps> = 
         const response = await apiClient.delete('/meetups/' + currentMeetup.id + '/wishlist');
         if (response.data && response.data.success) {
           setIsWishlisted(false);
-          console.log('✅ 찜 제거 성공');
         }
       } else {
         const response = await apiClient.post('/meetups/' + currentMeetup.id + '/wishlist');
         if (response.data && response.data.success) {
           setIsWishlisted(true);
-          console.log('✅ 찜 추가 성공');
         }
       }
     } catch (error) {
@@ -326,14 +322,12 @@ const UniversalMeetupDetailScreen: React.FC<UniversalMeetupDetailScreenProps> = 
   };
 
   const handleDepositPaid = async (depositId: string, amount: number) => {
-    console.log('💰 handleDepositPaid 호출됨:', { depositId, amount, meetupId, userId: user?.id });
     if (!user || !meetupId) {
       console.error('❌ handleDepositPaid: user 또는 id가 없음:', { user: !!user, meetupId });
       return;
     }
     
     try {
-      console.log('약속금 결제 완료:', { depositId, amount, meetupId });
       await joinMeetup(meetupId, user.id);
       
       Alert.alert('성공', '약속금 ' + amount.toLocaleString() + '원이 결제되었습니다! 모임에 참여되었습니다.');
@@ -347,8 +341,6 @@ const UniversalMeetupDetailScreen: React.FC<UniversalMeetupDetailScreenProps> = 
     if (!user || !meetupId) {return;}
 
     try {
-      console.log('🔍 모임 채팅방 조회 시작:', { meetupId });
-      
       const apiUrl = Platform.OS === 'web' 
         ? process.env.REACT_APP_API_URL || 'http://localhost:3001/api'
         : 'http://localhost:3001/api';
@@ -364,12 +356,10 @@ const UniversalMeetupDetailScreen: React.FC<UniversalMeetupDetailScreenProps> = 
       });
 
       const data = await response.json();
-      console.log('📡 채팅방 조회 응답:', data);
 
       if (data.success && data.data.chatRoomId) {
         const chatRoomId = data.data.chatRoomId;
         navigation.navigate('Chat', { chatRoomId });
-        console.log('✅ 채팅방 이동 성공:', { meetupId, chatRoomId });
       } else {
         console.error('❌ 채팅방 조회 실패:', data.error);
         Alert.alert('오류', '채팅방을 찾을 수 없습니다. 모임에 참여해주세요.');
@@ -939,7 +929,7 @@ const styles = StyleSheet.create({
   hostName: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#000000',
+    color: COLORS.neutral.black,
     marginBottom: 2,
   },
   hostLocation: {
@@ -954,7 +944,7 @@ const styles = StyleSheet.create({
   },
   riceText: {
     fontSize: 14,
-    color: '#000000',
+    color: COLORS.neutral.black,
     fontWeight: '600',
   },
   mainCard: {
@@ -969,7 +959,7 @@ const styles = StyleSheet.create({
   meetupTitle: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#000000',
+    color: COLORS.neutral.black,
     marginBottom: 20,
   },
   filterBadgeContainer: {
@@ -1049,9 +1039,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: COLORS.neutral.background,
     borderWidth: 1,
-    borderColor: '#E9ECEF',
+    borderColor: COLORS.neutral.grey200,
     gap: 6,
   },
   optionalBadgeText: {
@@ -1163,7 +1153,7 @@ const styles = StyleSheet.create({
   participantTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#000000',
+    color: COLORS.neutral.black,
     marginBottom: 16,
   },
   participantItem: {
@@ -1191,7 +1181,7 @@ const styles = StyleSheet.create({
   participantName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#000000',
+    color: COLORS.neutral.black,
     marginBottom: 4,
   },
   participantRole: {
@@ -1279,10 +1269,10 @@ const styles = StyleSheet.create({
   reviewButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
+    color: COLORS.text.primary,
   },
   joinButton: {
-    backgroundColor: '#495057',
+    backgroundColor: COLORS.neutral.grey600,
     borderRadius: 12,
     paddingVertical: 16,
     alignItems: 'center',
@@ -1293,13 +1283,13 @@ const styles = StyleSheet.create({
     color: COLORS.neutral.white,
   },
   pastMeetupContainer: {
-    backgroundColor: '#f8f9fa',
+    backgroundColor: COLORS.neutral.background,
     borderRadius: 12,
     paddingVertical: 16,
     paddingHorizontal: 20,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#e9ecef',
+    borderColor: COLORS.neutral.grey200,
   },
   pastMeetupText: {
     fontSize: 16,
@@ -1340,7 +1330,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   modalAmountContainer: {
-    backgroundColor: '#f8f9fa',
+    backgroundColor: COLORS.neutral.background,
     borderRadius: 12,
     padding: 16,
     alignItems: 'center',
@@ -1357,7 +1347,7 @@ const styles = StyleSheet.create({
   },
   modalCancelButton: {
     flex: 1,
-    backgroundColor: '#e9ecef',
+    backgroundColor: COLORS.neutral.grey200,
     borderRadius: 12,
     padding: 12,
     alignItems: 'center',

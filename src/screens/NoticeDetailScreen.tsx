@@ -1,5 +1,6 @@
 import React from 'react';
 import { Text } from 'react-native';
+import { COLORS } from '../styles/colors';
 import UniversalNoticeDetailScreen from '../components/shared/UniversalNoticeDetailScreen';
 
 interface NoticeDetailScreenProps {
@@ -17,7 +18,7 @@ const NativeRenderer: React.FC<{ content: string }> = ({ content }) => {
   };
 
   return (
-    <Text style={{ fontSize: 16, lineHeight: 24, color: '#333' }}>
+    <Text style={{ fontSize: 16, lineHeight: 24, color: COLORS.text.primary }}>
       {stripHtml(content)}
     </Text>
   );

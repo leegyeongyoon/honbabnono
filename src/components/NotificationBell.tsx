@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { COLORS } from '../styles/colors';
 import { Icon } from './Icon';
 import useNotifications from '../hooks/useNotifications';
 
@@ -10,24 +11,22 @@ interface NotificationBellProps {
   userId?: string;
 }
 
-const NotificationBell: React.FC<NotificationBellProps> = ({ 
-  onPress, 
-  color = '#333', 
+const NotificationBell: React.FC<NotificationBellProps> = ({
+  onPress,
+  color = COLORS.text.primary,
   size = 24,
-  userId 
+  userId
 }) => {
   const { unreadCount, fetchUnreadCount, requestNotificationPermission } = useNotifications(userId);
 
   useEffect(() => {
     fetchUnreadCount();
-    
-    // 30초마다 읽지 않은 알림 개수 업데이트
+
     const interval = setInterval(fetchUnreadCount, 30000);
-    
+
     return () => clearInterval(interval);
   }, [fetchUnreadCount]);
 
-  // 브라우저 알림 권한 요청 (컴포넌트 마운트 시)
   useEffect(() => {
     if (userId) {
       requestNotificationPermission();
@@ -35,22 +34,18 @@ const NotificationBell: React.FC<NotificationBellProps> = ({
   }, [userId, requestNotificationPermission]);
 
   return (
-    <TouchableOpacity 
-      style={styles.container} 
+    <TouchableOpacity
+      style={styles.container}
       onPress={onPress}
       activeOpacity={0.7}
     >
-      <Icon 
-        name="bell" 
-        size={size} 
+      <Icon
+        name="bell"
+        size={size}
         color={color}
       />
       {unreadCount > 0 && (
-        <View style={styles.badge}>
-          <Text style={styles.badgeText}>
-            {unreadCount > 99 ? '99+' : unreadCount.toString()}
-          </Text>
-        </View>
+        <View style={styles.badge} />
       )}
     </TouchableOpacity>
   );
@@ -63,21 +58,12 @@ const styles = StyleSheet.create({
   },
   badge: {
     position: 'absolute',
-    top: 0,
-    right: 0,
-    backgroundColor: '#FF6B6B',
-    borderRadius: 10,
-    minWidth: 20,
-    height: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 4,
-  },
-  badgeText: {
-    color: 'white',
-    fontSize: 11,
-    fontWeight: 'bold',
-    lineHeight: 13,
+    top: 6,
+    right: 8,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: COLORS.functional.error,
   },
 });
 

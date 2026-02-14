@@ -174,7 +174,7 @@ const PaymentScreen: React.FC = () => {
             <View style={styles.meetupInfoRow}>
               <Text style={styles.meetupInfoLabel}>현재 포인트</Text>
               <Text style={[styles.meetupInfoAmount, { 
-                color: user.points >= requiredAmount ? COLORS.functional.success : '#f44336' 
+                color: user.points >= requiredAmount ? COLORS.functional.success : COLORS.functional.error 
               }]}>
                 {user.points.toLocaleString()}원
               </Text>
@@ -182,7 +182,7 @@ const PaymentScreen: React.FC = () => {
             {user.points < requiredAmount && (
               <View style={styles.meetupInfoRow}>
                 <Text style={styles.meetupInfoLabel}>부족한 포인트</Text>
-                <Text style={[styles.meetupInfoAmount, { color: '#f44336' }]}>
+                <Text style={[styles.meetupInfoAmount, { color: COLORS.functional.error }]}>
                   {(requiredAmount - user.points).toLocaleString()}원
                 </Text>
               </View>
@@ -263,9 +263,9 @@ const PaymentScreen: React.FC = () => {
           >
             <View style={styles.paymentMethodRow}>
               <View style={styles.radioButton} />
-              <Text style={[styles.paymentMethodText, { color: '#ccc' }]}>계좌이체</Text>
+              <Text style={[styles.paymentMethodText, { color: COLORS.neutral.grey300 }]}>계좌이체</Text>
             </View>
-            <Text style={[styles.paymentMethodSubtext, { color: '#ccc' }]}>
+            <Text style={[styles.paymentMethodSubtext, { color: COLORS.neutral.grey300 }]}>
               준비 중입니다
             </Text>
           </TouchableOpacity>
@@ -279,9 +279,9 @@ const PaymentScreen: React.FC = () => {
           >
             <View style={styles.paymentMethodRow}>
               <View style={styles.radioButton} />
-              <Text style={[styles.paymentMethodText, { color: '#ccc' }]}>간편결제</Text>
+              <Text style={[styles.paymentMethodText, { color: COLORS.neutral.grey300 }]}>간편결제</Text>
             </View>
-            <Text style={[styles.paymentMethodSubtext, { color: '#ccc' }]}>
+            <Text style={[styles.paymentMethodSubtext, { color: COLORS.neutral.grey300 }]}>
               카카오페이, 네이버페이 등 (준비 중)
             </Text>
           </TouchableOpacity>
@@ -325,14 +325,14 @@ const PaymentScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: COLORS.neutral.white,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: COLORS.neutral.background,
   },
   backButton: {
     marginRight: 16,
@@ -359,19 +359,19 @@ const styles = StyleSheet.create({
   },
   pointsTitle: {
     fontSize: 16,
-    color: '#fff',
+    color: COLORS.text.white,
     opacity: 0.9,
     marginBottom: 8,
   },
   pointsAmount: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: '#fff',
+    color: COLORS.text.white,
     marginBottom: 8,
   },
   pointsSubtext: {
     fontSize: 14,
-    color: '#fff',
+    color: COLORS.text.white,
     opacity: 0.8,
   },
   section: {
@@ -392,12 +392,12 @@ const styles = StyleSheet.create({
   amountButton: {
     flex: 1,
     minWidth: '30%',
-    backgroundColor: '#f8f9fa',
+    backgroundColor: COLORS.neutral.background,
     borderRadius: 8,
     padding: 16,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#e9ecef',
+    borderColor: COLORS.neutral.grey200,
   },
   selectedAmountButton: {
     backgroundColor: COLORS.primary.main,
@@ -409,7 +409,7 @@ const styles = StyleSheet.create({
     color: COLORS.text.primary,
   },
   selectedAmountButtonText: {
-    color: '#fff',
+    color: COLORS.text.white,
   },
   customAmountSection: {
     marginTop: 12,
@@ -422,18 +422,18 @@ const styles = StyleSheet.create({
   },
   customAmountInput: {
     borderWidth: 1,
-    borderColor: '#e9ecef',
+    borderColor: COLORS.neutral.grey200,
     borderRadius: 8,
     padding: 16,
     fontSize: 16,
   },
   paymentMethodButton: {
-    backgroundColor: '#f8f9fa',
+    backgroundColor: COLORS.neutral.background,
     borderRadius: 8,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#e9ecef',
+    borderColor: COLORS.neutral.grey200,
   },
   selectedPaymentMethod: {
     borderColor: COLORS.primary.main,
@@ -449,7 +449,7 @@ const styles = StyleSheet.create({
     height: 20,
     borderRadius: 10,
     borderWidth: 2,
-    borderColor: '#ddd',
+    borderColor: COLORS.neutral.grey200,
     marginRight: 12,
     alignItems: 'center',
     justifyContent: 'center',
@@ -471,7 +471,7 @@ const styles = StyleSheet.create({
     marginLeft: 32,
   },
   paymentInfo: {
-    backgroundColor: '#f8f9fa',
+    backgroundColor: COLORS.neutral.background,
     borderRadius: 8,
     padding: 16,
     marginBottom: 24,
@@ -499,7 +499,7 @@ const styles = StyleSheet.create({
   footer: {
     padding: 16,
     borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
+    borderTopColor: COLORS.neutral.background,
   },
   payButton: {
     backgroundColor: COLORS.primary.main,
@@ -508,12 +508,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   payButtonDisabled: {
-    backgroundColor: '#ccc',
+    backgroundColor: COLORS.neutral.grey300,
   },
   payButtonText: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#fff',
+    color: COLORS.text.white,
   },
   meetupInfoSection: {
     backgroundColor: '#FFF3E0',

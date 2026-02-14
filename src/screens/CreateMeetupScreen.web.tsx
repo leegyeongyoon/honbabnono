@@ -292,7 +292,7 @@ const LocationSelector: React.FC<{
               style={{
                 width: '100%',
                 height: '400px',
-                backgroundColor: '#f5f5f5',
+                backgroundColor: COLORS.neutral.background,
                 borderRadius: '12px',
                 position: 'relative'
               }}
@@ -1386,7 +1386,7 @@ const CreateMeetupScreen: React.FC<CreateMeetupScreenProps> = ({ user }) => {
         {/* 생성 버튼 */}
         <button
           style={{
-            backgroundColor: loading ? '#a0aec0' : '#667eea',
+            backgroundColor: loading ? COLORS.neutral.grey400 : COLORS.functional.info,
             color: COLORS.neutral.white,
             fontSize: '18px',
             fontWeight: '700',
@@ -1478,7 +1478,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#2d3748',
+    color: COLORS.text.primary,
     marginBottom: 16,
   },
   inputGroup: {
@@ -1487,7 +1487,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#4a5568',
+    color: COLORS.text.secondary,
     marginBottom: 8,
   },
   input: {
@@ -1495,9 +1495,9 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     fontSize: 16,
-    color: '#2d3748',
+    color: COLORS.text.primary,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: COLORS.neutral.grey200,
   },
   textArea: {
     height: 100,
@@ -1518,22 +1518,22 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.neutral.white,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: COLORS.neutral.grey200,
   },
   categoryButtonSelected: {
-    backgroundColor: '#667eea',
-    borderColor: '#667eea',
+    backgroundColor: COLORS.functional.info,
+    borderColor: COLORS.functional.info,
   },
   categoryText: {
     fontSize: 14,
-    color: '#718096',
+    color: COLORS.text.secondary,
     fontWeight: '500',
   },
   categoryTextSelected: {
     color: COLORS.neutral.white,
   },
   createButton: {
-    backgroundColor: '#667eea',
+    backgroundColor: COLORS.functional.info,
     borderRadius: 16,
     padding: 20,
     alignItems: 'center',
@@ -1545,7 +1545,7 @@ const styles = StyleSheet.create({
     shadowRadius: 16,
   },
   createButtonDisabled: {
-    backgroundColor: '#a0aec0',
+    backgroundColor: COLORS.neutral.grey400,
   },
   createButtonText: {
     color: COLORS.neutral.white,
@@ -1567,11 +1567,11 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.neutral.white,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#667eea',
+    borderColor: COLORS.functional.info,
   },
   toggleButtonText: {
     fontSize: 12,
-    color: '#667eea',
+    color: COLORS.functional.info,
     fontWeight: '600',
     marginRight: 4,
   },
@@ -1587,7 +1587,7 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#f0f0f0',
+    borderColor: COLORS.neutral.background,
   },
   filterGroupTitle: {
     fontSize: 16,
@@ -1617,7 +1617,7 @@ const styles = StyleSheet.create({
     height: 20,
     borderRadius: 4,
     borderWidth: 2,
-    borderColor: '#e0e0e0',
+    borderColor: COLORS.neutral.grey200,
     backgroundColor: COLORS.neutral.white,
     marginRight: 12,
     alignItems: 'center',
@@ -1788,7 +1788,7 @@ const styles = StyleSheet.create({
     height: 20,
     borderRadius: 10,
     backgroundColor: COLORS.neutral.white,
-    shadowColor: '#000',
+    shadowColor: COLORS.neutral.black,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.2,
     shadowRadius: 2,
@@ -1834,7 +1834,7 @@ const styles = StyleSheet.create({
     padding: 32,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FAFAFA',
+    backgroundColor: COLORS.neutral.background,
     minHeight: 160,
   },
   imageUploadIcon: {
@@ -1984,7 +1984,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f5f5f5',
+    backgroundColor: COLORS.neutral.background,
     borderRadius: 12,
   },
   mapLoadingText: {
@@ -1999,12 +1999,12 @@ const styles = StyleSheet.create({
     bottom: 0,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f5f5f5',
+    backgroundColor: COLORS.neutral.background,
     borderRadius: 12,
   },
   mapErrorText: {
     fontSize: 14,
-    color: '#d32f2f',
+    color: COLORS.functional.error,
   },
   // 지도 위 툴팁
   mapTooltip: {
@@ -2019,7 +2019,7 @@ const styles = StyleSheet.create({
     zIndex: 1000,
   },
   tooltipText: {
-    color: '#fff',
+    color: COLORS.text.white,
     fontSize: 14,
     fontWeight: '500',
     textAlign: 'center',
@@ -2040,7 +2040,7 @@ const styles = StyleSheet.create({
   },
   // 위치 확인 컨테이너
   locationConfirmContainer: {
-    backgroundColor: '#fff',
+    backgroundColor: COLORS.neutral.white,
     borderRadius: 12,
     ...SHADOWS.small,
     marginTop: 16,
@@ -2048,7 +2048,7 @@ const styles = StyleSheet.create({
   selectedLocationCard: {
     padding: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: COLORS.neutral.background,
   },
   selectedLocationTitle: {
     fontSize: 18,
@@ -2075,7 +2075,7 @@ const styles = StyleSheet.create({
     ...SHADOWS.small,
   },
   confirmLocationText: {
-    color: '#fff',
+    color: COLORS.text.white,
     fontSize: 16,
     fontWeight: '600',
   },
@@ -2110,7 +2110,7 @@ const styles = StyleSheet.create({
   // 입력 힌트 스타일
   inputHint: {
     fontSize: 12,
-    color: '#888',
+    color: COLORS.text.tertiary,
     marginTop: 6,
     fontStyle: 'italic',
   },

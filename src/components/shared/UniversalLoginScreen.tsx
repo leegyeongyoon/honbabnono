@@ -128,15 +128,12 @@ const UniversalLoginScreen: React.FC<UniversalLoginScreenProps> = ({
   };
 
   const handleQuickLogin = async () => {
-    console.log('🚀 [UniversalLoginScreen] handleQuickLogin 시작');
     setLoading(true);
     try {
       // React Native에서는 실제 IP 사용
       const apiUrl = Platform.OS === 'web'
         ? (process.env.REACT_APP_API_URL || 'http://localhost:3001/api')
         : `http://${API_HOSTS[0]}:3001/api`;
-      
-      console.log('🚀 [UniversalLoginScreen] API URL:', apiUrl);
       const response = await fetch(`${apiUrl}/auth/test-login`, {
         method: 'POST',
         headers: {
@@ -145,11 +142,8 @@ const UniversalLoginScreen: React.FC<UniversalLoginScreenProps> = ({
         body: JSON.stringify({ email: 'test1@test.com' }),
       });
 
-      console.log('🚀 [UniversalLoginScreen] 응답 상태:', response.status, response.ok);
-      
       if (response.ok) {
         const data = await response.json();
-        console.log('🚀 [UniversalLoginScreen] 응답 데이터:', { hasUser: !!data.user, hasToken: !!data.token, userName: data.user?.name });
         
         if (Platform.OS === 'web') {
           localStorage.setItem('token', data.token);
@@ -158,10 +152,8 @@ const UniversalLoginScreen: React.FC<UniversalLoginScreenProps> = ({
         
         Alert.alert('빠른 로그인 성공! 🚀', `${data.user.name}으로 로그인되었습니다.`);
         
-        console.log('🚀 [UniversalLoginScreen] onLogin 호출 전, onLogin:', !!onLogin);
         if (onLogin) {
           onLogin(data.user, data.token);
-          console.log('🚀 [UniversalLoginScreen] onLogin 호출 완료');
         }
 
         // AuthNavigator가 자동으로 리다이렉트하므로 여기서는 따로 navigate하지 않음
@@ -522,7 +514,7 @@ const styles = StyleSheet.create({
   kakaoLogo: {
     width: 24,
     height: 24,
-    backgroundColor: '#000',
+    backgroundColor: COLORS.neutral.black,
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
@@ -534,7 +526,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   kakaoButtonText: {
-    color: '#000',
+    color: COLORS.neutral.black,
     fontSize: Platform.OS === 'web' ? 19 : 16,
     fontWeight: '800',
     ...(Platform.OS === 'web' && { letterSpacing: -0.5 }),

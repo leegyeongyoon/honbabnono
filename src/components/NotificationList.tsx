@@ -16,11 +16,13 @@ import notificationApiService from '../services/notificationApiService';
 interface NotificationListProps {
   onNotificationPress?: (notification: Notification) => void;
   showUnreadOnly?: boolean;
+  emptyComponent?: React.ReactNode;
 }
 
-const NotificationList: React.FC<NotificationListProps> = ({ 
+const NotificationList: React.FC<NotificationListProps> = ({
   onNotificationPress,
-  showUnreadOnly = false 
+  showUnreadOnly = false,
+  emptyComponent,
 }) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(false);
@@ -259,7 +261,7 @@ const NotificationList: React.FC<NotificationListProps> = ({
         onEndReached={handleLoadMore}
         onEndReachedThreshold={0.3}
         ListFooterComponent={renderFooter}
-        ListEmptyComponent={!loading ? renderEmptyState : null}
+        ListEmptyComponent={!loading ? (emptyComponent ?? renderEmptyState()) : null}
         showsVerticalScrollIndicator={false}
       />
     </View>

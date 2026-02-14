@@ -91,12 +91,12 @@ export const ProfileImage: React.FC<ProfileImageProps> = ({
 
 const styles = StyleSheet.create({
   defaultImage: {
-    backgroundColor: '#F5F5DC',
+    backgroundColor: COLORS.primary.accent,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: '#EEEEEE',
-    shadowColor: '#000',
+    borderColor: COLORS.neutral.grey100,
+    shadowColor: COLORS.neutral.black,
     shadowOffset: {
       width: 0,
       height: 2,
