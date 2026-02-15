@@ -29,7 +29,7 @@ export type IconName =
   | 'birthday-cake' | 'drumstick-bite' | 'flame' | 'navigation' | 'list'
   | 'check-circle' | 'x-circle' | 'alert-triangle' | 'alert-circle'
   | 'zap' | 'arrow-up-left' | 'arrow-right' | 'times' | 'smartphone'
-  | 'notifications-none' | 'compass';
+  | 'notifications-none' | 'compass' | 'eye' | 'log-out' | 'plus-circle';
 
 interface IconProps {
   name: IconName;

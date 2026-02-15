@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView } from 'react-native';
 import { COLORS, SHADOWS } from '../../styles/colors';
 import { useUserStore } from '../../store/userStore';
 import { useAuth } from '../../contexts/AuthContext';
@@ -7,6 +7,9 @@ import { Icon, IconName } from '../Icon';
 import userApiService from '../../services/userApiService';
 import { ProfileImage } from '../ProfileImage';
 import { ProfileSkeleton } from '../skeleton';
+import { FadeIn } from '../animated';
+import ConfirmDialog from '../ConfirmDialog';
+import { useConfirmDialog } from '../../hooks/useConfirmDialog';
 
 interface User {
   id: string;
@@ -79,6 +82,7 @@ const UniversalMyPageScreen: React.FC<UniversalMyPageScreenProps> = ({
   const [loading, setLoading] = useState(true);
   const [userProfileImageUrl, setUserProfileImageUrl] = useState(null);
   const [supportExpanded, setSupportExpanded] = useState(false);
+  const { dialog, confirmDanger, confirm } = useConfirmDialog();
 
   // API에서 유저 데이터 가져오기
   useEffect(() => {
@@ -109,8 +113,8 @@ const UniversalMyPageScreen: React.FC<UniversalMyPageScreenProps> = ({
         const userData = await userApiService.getProfile();
         setUserProfileImageUrl(userData.profileImage);
 
-      } catch (error) {
-        console.error('유저 데이터 조회 실패:', error);
+      } catch (_error) {
+        // silently handle
       } finally {
         setLoading(false);
       }
@@ -119,43 +123,23 @@ const UniversalMyPageScreen: React.FC<UniversalMyPageScreenProps> = ({
     fetchUserData();
   }, [user, isAuthenticated]);
 
-  const handleLogout = () => {
-    Alert.alert(
-      '로그아웃',
-      '로그아웃 하시겠습니까?',
-      [
-        { text: '취소', style: 'cancel' },
-        {
-          text: '로그아웃',
-          style: 'destructive',
-          onPress: () => {
-            logout();
-            if (onLogout) {
-              onLogout();
-            } else {
-              navigation.navigate('Login');
-            }
-          }
-        }
-      ]
-    );
+  const handleLogout = async () => {
+    const confirmed = await confirm('로그아웃', '로그아웃 하시겠습니까?');
+    if (confirmed) {
+      logout();
+      if (onLogout) {
+        onLogout();
+      } else {
+        navigation.navigate('Login');
+      }
+    }
   };
 
-  const handleDeleteAccount = () => {
-    Alert.alert(
-      '회원 탈퇴',
-      '정말로 계정을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.',
-      [
-        { text: '취소', style: 'cancel' },
-        {
-          text: '탈퇴',
-          style: 'destructive',
-          onPress: () => {
-            // TODO: 계정 삭제 API 호출
-          }
-        }
-      ]
-    );
+  const handleDeleteAccount = async () => {
+    const confirmed = await confirmDanger('회원 탈퇴', '정말로 계정을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.');
+    if (confirmed) {
+      // TODO: 계정 삭제 API 호출
+    }
   };
 
   const riceGrade = getRiceGrade(userStats.riceIndex);
@@ -168,6 +152,7 @@ const UniversalMyPageScreen: React.FC<UniversalMyPageScreenProps> = ({
         <TouchableOpacity
           style={styles.loginButton}
           onPress={() => navigation.navigate('Login')}
+          activeOpacity={0.7}
         >
           <Text style={styles.loginButtonText}>로그인하기</Text>
         </TouchableOpacity>
@@ -200,147 +185,164 @@ const UniversalMyPageScreen: React.FC<UniversalMyPageScreenProps> = ({
 
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
           {/* 프로필 섹션 */}
-          <View style={styles.profileSection}>
-            <View style={styles.profileRow}>
-              <ProfileImage
-                profileImage={userProfileImageUrl}
-                name={user?.name || '사용자'}
-                size={96}
-              />
-              <View style={styles.profileInfo}>
-                <Text style={styles.userName}>{user?.name || '사용자'}</Text>
-                <Text style={styles.userEmail}>{user?.email || ''}</Text>
-                <TouchableOpacity
-                  style={styles.editProfileButton}
-                  onPress={() => navigation.navigate('EditProfile')}
-                >
-                  <Text style={styles.editProfileText}>프로필 수정</Text>
-                </TouchableOpacity>
+          <FadeIn delay={0}>
+            <View style={styles.profileSection}>
+              <View style={styles.profileRow}>
+                <ProfileImage
+                  profileImage={userProfileImageUrl}
+                  name={user?.name || '사용자'}
+                  size={96}
+                />
+                <View style={styles.profileInfo}>
+                  <Text style={styles.userName}>{user?.name || '사용자'}</Text>
+                  <Text style={styles.userEmail}>{user?.email || ''}</Text>
+                  <TouchableOpacity
+                    style={styles.editProfileButton}
+                    onPress={() => navigation.navigate('EditProfile')}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.editProfileText}>프로필 수정</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
             </View>
-          </View>
+          </FadeIn>
 
           {/* 통계 카드 (3열) */}
-          <View style={styles.statsCard}>
-            <View style={styles.statItem}>
-              <Text style={styles.statValue}>{userStats.totalMeetups}</Text>
-              <Text style={styles.statLabel}>참여</Text>
+          <FadeIn delay={50}>
+            <View style={styles.statsCard}>
+              <View style={styles.statItem}>
+                <Text style={styles.statValue}>{userStats.totalMeetups}</Text>
+                <Text style={styles.statLabel}>참여</Text>
+              </View>
+              <View style={styles.statDivider} />
+              <View style={styles.statItem}>
+                <Text style={styles.statValue}>{userStats.hostedMeetups}</Text>
+                <Text style={styles.statLabel}>주최</Text>
+              </View>
+              <View style={styles.statDivider} />
+              <View style={styles.statItem}>
+                <Text style={styles.statValue}>{userStats.reviewCount}</Text>
+                <Text style={styles.statLabel}>리뷰</Text>
+              </View>
             </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statItem}>
-              <Text style={styles.statValue}>{userStats.hostedMeetups}</Text>
-              <Text style={styles.statLabel}>주최</Text>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statItem}>
-              <Text style={styles.statValue}>{userStats.reviewCount}</Text>
-              <Text style={styles.statLabel}>리뷰</Text>
-            </View>
-          </View>
+          </FadeIn>
 
           {/* 포인트 배너 */}
-          <TouchableOpacity
-            style={styles.pointBanner}
-            onPress={() => navigation.navigate('PointCharge')}
-            activeOpacity={0.7}
-          >
-            <View style={styles.pointBannerLeft}>
-              <Icon name="credit-card" size={18} color={COLORS.primary.main} />
-              <Text style={styles.pointBannerLabel}>보유 포인트</Text>
-            </View>
-            <View style={styles.pointBannerRight}>
-              <Text style={styles.pointBannerValue}>{userStats.availablePoints.toLocaleString()}P</Text>
-              <Icon name="chevron-right" size={16} color={COLORS.text.tertiary} />
-            </View>
-          </TouchableOpacity>
-
-          {/* 밥알지수 카드 */}
-          <View style={styles.riceCard}>
-            <View style={styles.riceHeader}>
-              <Text style={styles.riceLabel}>밥알지수</Text>
-              <Text style={styles.riceScore}>{userStats.riceIndex}점</Text>
-            </View>
-            <View style={styles.riceProgressBg}>
-              <View
-                style={[
-                  styles.riceProgressFill,
-                  { width: `${Math.min(userStats.riceIndex, 100)}%` as any },
-                ]}
-              />
-            </View>
-            <Text style={styles.riceGradeText}>
-              {riceGrade.emoji} 등급: {riceGrade.label}
-            </Text>
-          </View>
-
-          {/* 빠른 메뉴 (2x3 그리드) */}
-          <View style={styles.quickMenuCard}>
-            <View style={styles.quickMenuGrid}>
-              {QUICK_MENUS.map((menu) => (
-                <TouchableOpacity
-                  key={menu.id}
-                  style={styles.quickMenuItem}
-                  onPress={() => navigation.navigate(menu.screen)}
-                  activeOpacity={0.7}
-                >
-                  <View style={styles.quickMenuIconBox}>
-                    <Icon name={menu.icon} size={24} color={COLORS.primary.main} />
-                  </View>
-                  <Text style={styles.quickMenuLabel}>{menu.label}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-
-          {/* 고객지원 (접힌 목록) */}
-          <View style={styles.supportCard}>
+          <FadeIn delay={75}>
             <TouchableOpacity
-              style={styles.supportHeader}
-              onPress={() => setSupportExpanded(!supportExpanded)}
+              style={styles.pointBanner}
+              onPress={() => navigation.navigate('PointCharge')}
               activeOpacity={0.7}
             >
-              <Text style={styles.supportTitle}>고객지원</Text>
-              <Icon
-                name={supportExpanded ? 'chevron-up' : 'chevron-down'}
-                size={18}
-                color={COLORS.text.secondary}
-              />
+              <View style={styles.pointBannerLeft}>
+                <Icon name="credit-card" size={18} color={COLORS.primary.main} />
+                <Text style={styles.pointBannerLabel}>보유 포인트</Text>
+              </View>
+              <View style={styles.pointBannerRight}>
+                <Text style={styles.pointBannerValue}>{userStats.availablePoints.toLocaleString()}P</Text>
+                <Icon name="chevron-right" size={16} color={COLORS.text.tertiary} />
+              </View>
             </TouchableOpacity>
-            {supportExpanded && (
-              <View style={styles.supportList}>
-                {SUPPORT_MENUS.map((menu, idx) => (
+          </FadeIn>
+
+          {/* 밥알지수 카드 */}
+          <FadeIn delay={100}>
+            <View style={styles.riceCard}>
+              <View style={styles.riceHeader}>
+                <Text style={styles.riceLabel}>밥알지수</Text>
+                <Text style={styles.riceScore}>{userStats.riceIndex}점</Text>
+              </View>
+              <View style={styles.riceProgressBg}>
+                <View
+                  style={[
+                    styles.riceProgressFill,
+                    { width: `${Math.min(userStats.riceIndex, 100)}%` as any },
+                  ]}
+                />
+              </View>
+              <Text style={styles.riceGradeText}>
+                {riceGrade.emoji} 등급: {riceGrade.label}
+              </Text>
+            </View>
+          </FadeIn>
+
+          {/* 빠른 메뉴 (2x3 그리드) */}
+          <FadeIn delay={150}>
+            <View style={styles.quickMenuCard}>
+              <View style={styles.quickMenuGrid}>
+                {QUICK_MENUS.map((menu) => (
                   <TouchableOpacity
                     key={menu.id}
-                    style={[
-                      styles.supportItem,
-                      idx === SUPPORT_MENUS.length - 1 && { borderBottomWidth: 0 },
-                    ]}
+                    style={styles.quickMenuItem}
                     onPress={() => navigation.navigate(menu.screen)}
                     activeOpacity={0.7}
                   >
-                    <Text style={styles.supportItemText}>{menu.label}</Text>
-                    <Icon name="chevron-right" size={16} color={COLORS.text.tertiary} />
+                    <View style={styles.quickMenuIconBox}>
+                      <Icon name={menu.icon} size={24} color={COLORS.primary.main} />
+                    </View>
+                    <Text style={styles.quickMenuLabel}>{menu.label}</Text>
                   </TouchableOpacity>
                 ))}
               </View>
-            )}
-          </View>
+            </View>
+          </FadeIn>
+
+          {/* 고객지원 (접힌 목록) */}
+          <FadeIn delay={200}>
+            <View style={styles.supportCard}>
+              <TouchableOpacity
+                style={styles.supportHeader}
+                onPress={() => setSupportExpanded(!supportExpanded)}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.supportTitle}>고객지원</Text>
+                <Icon
+                  name={supportExpanded ? 'chevron-up' : 'chevron-down'}
+                  size={18}
+                  color={COLORS.text.secondary}
+                />
+              </TouchableOpacity>
+              {supportExpanded && (
+                <View style={styles.supportList}>
+                  {SUPPORT_MENUS.map((menu, idx) => (
+                    <TouchableOpacity
+                      key={menu.id}
+                      style={[
+                        styles.supportItem,
+                        idx === SUPPORT_MENUS.length - 1 && { borderBottomWidth: 0 },
+                      ]}
+                      onPress={() => navigation.navigate(menu.screen)}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={styles.supportItemText}>{menu.label}</Text>
+                      <Icon name="chevron-right" size={16} color={COLORS.text.tertiary} />
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+            </View>
+          </FadeIn>
 
           {/* 로그아웃 / 회원탈퇴 */}
-          <View style={styles.bottomActions}>
-            <TouchableOpacity style={styles.logoutButton} onPress={handleLogout} activeOpacity={0.7}>
-              <Icon name="log-out" size={18} color={COLORS.text.secondary} />
-              <Text style={styles.logoutText}>로그아웃</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.deleteButton} onPress={handleDeleteAccount} activeOpacity={0.7}>
-              <Text style={styles.deleteText}>회원탈퇴</Text>
-            </TouchableOpacity>
-          </View>
+          <FadeIn delay={250}>
+            <View style={styles.bottomActions}>
+              <TouchableOpacity style={styles.logoutButton} onPress={handleLogout} activeOpacity={0.7}>
+                <Icon name="log-out" size={18} color={COLORS.text.secondary} />
+                <Text style={styles.logoutText}>로그아웃</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.deleteButton} onPress={handleDeleteAccount} activeOpacity={0.7}>
+                <Text style={styles.deleteText}>회원탈퇴</Text>
+              </TouchableOpacity>
+            </View>
+          </FadeIn>
 
           {/* 하단 여백 */}
           <View style={styles.bottomSpacing} />
         </ScrollView>
       </View>
+
+      <ConfirmDialog {...dialog} />
     </SafeAreaView>
   );
 };
@@ -372,6 +374,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.neutral.white,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.neutral.grey100,
+    ...SHADOWS.small,
   },
   headerTitle: {
     fontSize: 18,

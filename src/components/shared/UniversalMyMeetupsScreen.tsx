@@ -1,20 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  ScrollView, 
-  TouchableOpacity, 
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
   RefreshControl,
-  Platform,
-  SafeAreaView 
+  SafeAreaView,
 } from 'react-native';
-import { COLORS, SHADOWS, LAYOUT } from '../../styles/colors';
-import { Icon } from '../Icon';
+import { COLORS } from '../../styles/colors';
 import { NotificationBell } from '../NotificationBell';
 import MeetupCard from '../MeetupCard';
+import EmptyState from '../EmptyState';
 import userApiService, { JoinedMeetup, HostedMeetup } from '../../services/userApiService';
-import { formatKoreanDateTime } from '../../utils/dateUtils';
+import { FadeIn } from '../animated';
 
 interface User {
   id: string;
@@ -53,20 +52,6 @@ const UniversalMyMeetupsScreen: React.FC<UniversalMyMeetupsScreenProps> = ({
       onNavigate(screen, params);
     } else if (navigation?.navigate) {
       navigation.navigate(screen, params);
-    } else if (Platform.OS === 'web' && typeof window !== 'undefined') {
-      if (screen === 'MeetupDetail' && params?.meetupId) {
-        window.location.href = `/meetup/${params.meetupId}`;
-      }
-    }
-  };
-
-  const handleGoBackPress = () => {
-    if (onGoBack) {
-      onGoBack();
-    } else if (navigation?.goBack) {
-      navigation.goBack();
-    } else if (Platform.OS === 'web' && typeof window !== 'undefined') {
-      window.history.back();
     }
   };
 
@@ -83,45 +68,43 @@ const UniversalMyMeetupsScreen: React.FC<UniversalMyMeetupsScreenProps> = ({
         loadPastMeetups()
       ]);
     } catch (error) {
-      console.error('❌ [UniversalMyMeetups] 모임 데이터 로드 실패:', error);
+      // silently fail
     } finally {
       setLoading(false);
     }
   };
 
+  const transformMeetupData = (meetup: any) => ({
+    ...meetup,
+    maxParticipants: meetup.max_participants || meetup.maxParticipants,
+    currentParticipants: meetup.current_participants || meetup.currentParticipants,
+    priceRange: meetup.price_range || meetup.priceRange,
+    ageRange: meetup.age_range || meetup.ageRange,
+    genderPreference: meetup.gender_preference || meetup.genderPreference,
+    diningPreferences: meetup.dining_preferences || meetup.diningPreferences || {},
+    promiseDepositAmount: meetup.promise_deposit_amount || meetup.promiseDepositAmount || 0,
+    promiseDepositRequired: meetup.promise_deposit_required || meetup.promiseDepositRequired || false,
+    createdAt: meetup.created_at || meetup.createdAt
+  });
+
   const loadAppliedMeetups = async () => {
     try {
       const response = await userApiService.getJoinedMeetups(1, 50);
       const { data } = response;
-      
+
       if (!Array.isArray(data)) {
-        console.error('❌ [UniversalMyMeetups] 데이터가 배열이 아님:', data);
         setAppliedMeetups([]);
         return;
       }
-      
-      // 백엔드에서 받은 snake_case를 camelCase로 변환
-      const transformedData = data.map(meetup => ({
-        ...meetup,
-        maxParticipants: meetup.max_participants || meetup.maxParticipants,
-        currentParticipants: meetup.current_participants || meetup.currentParticipants,
-        priceRange: meetup.price_range || meetup.priceRange,
-        ageRange: meetup.age_range || meetup.ageRange,
-        genderPreference: meetup.gender_preference || meetup.genderPreference,
-        diningPreferences: meetup.dining_preferences || meetup.diningPreferences || {},
-        promiseDepositAmount: meetup.promise_deposit_amount || meetup.promiseDepositAmount || 0,
-        promiseDepositRequired: meetup.promise_deposit_required || meetup.promiseDepositRequired || false,
-        createdAt: meetup.created_at || meetup.createdAt
-      }));
-      
-      // 진행 중인 모임만 필터링 (지난 모임 제외)
+
+      const transformedData = data.map(transformMeetupData);
+
       const activeMeetups = transformedData.filter(meetup =>
         !['완료', '종료', '취소', '파토'].includes(meetup.status)
       );
 
       setAppliedMeetups(activeMeetups);
     } catch (error) {
-      console.error('신청한 모임 로드 실패:', error);
       setAppliedMeetups([]);
     }
   };
@@ -130,93 +113,50 @@ const UniversalMyMeetupsScreen: React.FC<UniversalMyMeetupsScreenProps> = ({
     try {
       const response = await userApiService.getHostedMeetups(1, 50);
       const { data } = response;
-      
+
       if (!Array.isArray(data)) {
-        console.error('❌ [UniversalMyMeetups] 호스팅 데이터가 배열이 아님:', data);
         setCreatedMeetups([]);
         return;
       }
-      
-      // 백엔드에서 받은 snake_case를 camelCase로 변환
-      const transformedData = data.map(meetup => ({
-        ...meetup,
-        maxParticipants: meetup.max_participants || meetup.maxParticipants,
-        currentParticipants: meetup.current_participants || meetup.currentParticipants,
-        priceRange: meetup.price_range || meetup.priceRange,
-        ageRange: meetup.age_range || meetup.ageRange,
-        genderPreference: meetup.gender_preference || meetup.genderPreference,
-        diningPreferences: meetup.dining_preferences || meetup.diningPreferences || {},
-        promiseDepositAmount: meetup.promise_deposit_amount || meetup.promiseDepositAmount || 0,
-        promiseDepositRequired: meetup.promise_deposit_required || meetup.promiseDepositRequired || false,
-        createdAt: meetup.created_at || meetup.createdAt
-      }));
-      
-      // 진행 중인 모임만 필터링
+
+      const transformedData = data.map(transformMeetupData);
+
       const activeMeetups = transformedData.filter(meetup =>
         !['완료', '종료', '취소', '파토'].includes(meetup.status)
       );
 
       setCreatedMeetups(activeMeetups);
     } catch (error) {
-      console.error('만든 모임 로드 실패:', error);
       setCreatedMeetups([]);
     }
   };
 
   const loadPastMeetups = async () => {
     try {
-      // 참가한 모임과 호스팅한 모임을 모두 가져옴
       const [joinedResponse, hostedResponse] = await Promise.all([
         userApiService.getJoinedMeetups(1, 50),
         userApiService.getHostedMeetups(1, 50)
       ]);
-      
+
       const joinedData = Array.isArray(joinedResponse.data) ? joinedResponse.data : [];
       const hostedData = Array.isArray(hostedResponse.data) ? hostedResponse.data : [];
-      
-      // 데이터 변환
-      const transformedJoined = joinedData.map(meetup => ({
-        ...meetup,
-        maxParticipants: meetup.max_participants || meetup.maxParticipants,
-        currentParticipants: meetup.current_participants || meetup.currentParticipants,
-        priceRange: meetup.price_range || meetup.priceRange,
-        ageRange: meetup.age_range || meetup.ageRange,
-        genderPreference: meetup.gender_preference || meetup.genderPreference,
-        diningPreferences: meetup.dining_preferences || meetup.diningPreferences || {},
-        promiseDepositAmount: meetup.promise_deposit_amount || meetup.promiseDepositAmount || 0,
-        promiseDepositRequired: meetup.promise_deposit_required || meetup.promiseDepositRequired || false,
-        createdAt: meetup.created_at || meetup.createdAt
-      }));
-      
-      const transformedHosted = hostedData.map(meetup => ({
-        ...meetup,
-        maxParticipants: meetup.max_participants || meetup.maxParticipants,
-        currentParticipants: meetup.current_participants || meetup.currentParticipants,
-        priceRange: meetup.price_range || meetup.priceRange,
-        ageRange: meetup.age_range || meetup.ageRange,
-        genderPreference: meetup.gender_preference || meetup.genderPreference,
-        diningPreferences: meetup.dining_preferences || meetup.diningPreferences || {},
-        promiseDepositAmount: meetup.promise_deposit_amount || meetup.promiseDepositAmount || 0,
-        promiseDepositRequired: meetup.promise_deposit_required || meetup.promiseDepositRequired || false,
-        createdAt: meetup.created_at || meetup.createdAt
-      }));
-      
-      // 지난 모임 필터링 (완료/종료/취소/파토 모두 포함)
-      const pastJoined = transformedJoined.filter(meetup => 
+
+      const transformedJoined = joinedData.map(transformMeetupData);
+      const transformedHosted = hostedData.map(transformMeetupData);
+
+      const pastJoined = transformedJoined.filter(meetup =>
         ['완료', '종료', '취소', '파토'].includes(meetup.status)
       );
-      const pastHosted = transformedHosted.filter(meetup => 
+      const pastHosted = transformedHosted.filter(meetup =>
         ['완료', '종료', '취소', '파토'].includes(meetup.status)
       );
-      
-      // 두 배열을 합치고 날짜순으로 정렬
-      const allPast = [...pastJoined, ...pastHosted].sort((a, b) => 
+
+      const allPast = [...pastJoined, ...pastHosted].sort((a, b) =>
         new Date(b.date).getTime() - new Date(a.date).getTime()
       );
-      
+
       setPastMeetups(allPast);
     } catch (error) {
-      console.error('지난 모임 로드 실패:', error);
       setPastMeetups([]);
     }
   };
@@ -235,118 +175,94 @@ const UniversalMyMeetupsScreen: React.FC<UniversalMyMeetupsScreenProps> = ({
     handleNavigate('Notification');
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case '완료': return COLORS.functional.success;
-      case '종료': return COLORS.functional.success;
-      case '취소': return COLORS.functional.error;
-      case '파토': return COLORS.functional.error;
-      case '예정': return COLORS.functional.warning;
-      case '모집중': return COLORS.functional.success;
-      case '모집완료': return COLORS.primary.main;
-      case '진행중': return COLORS.secondary?.main || COLORS.primary.main;
-      default: return COLORS.neutral.grey400;
-    }
-  };
-
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case '완료': return '✅ 정상 완료';
-      case '종료': return '✅ 정상 완료';
-      case '취소': return '❌ 취소됨';
-      case '파토': return '💥 파토됨';
-      case '예정': return '⏰ 예정';
-      case '모집중': return '🔥 모집중';
-      case '모집완료': return '👥 모집완료';
-      case '진행중': return '🍽️ 진행중';
-      default: return status;
-    }
-  };
+  const renderSkeletonLoader = () => (
+    <View style={styles.skeletonContainer}>
+      {[1, 2, 3].map((i) => (
+        <View key={i} style={styles.skeletonCard}>
+          <View style={styles.skeletonImage} />
+          <View style={styles.skeletonTextArea}>
+            <View style={styles.skeletonTitle} />
+            <View style={styles.skeletonMeta} />
+            <View style={styles.skeletonMetaShort} />
+          </View>
+        </View>
+      ))}
+    </View>
+  );
 
   const renderMeetupItem = (meetup: JoinedMeetup | HostedMeetup, showHostInfo: boolean = false, keyPrefix?: string) => (
     <MeetupCard
       key={keyPrefix ? `${keyPrefix}-${meetup.id}` : meetup.id}
       meetup={meetup}
       onPress={handleMeetupPress}
+      variant="compact"
     />
   );
 
   const renderTabContent = () => {
     if (loading) {
-      return (
-        <View style={styles.loadingContainer}>
-          <Text style={styles.loadingText}>로딩 중...</Text>
-        </View>
-      );
+      return renderSkeletonLoader();
     }
 
     switch (activeTab) {
       case 'applied':
         return (
+          <FadeIn>
           <View style={styles.meetupsContainer}>
             <Text style={styles.sectionTitle}>신청한 모임 ({appliedMeetups.length}개)</Text>
             {appliedMeetups.length === 0 ? (
-              <View style={styles.emptyContainer}>
-                <Text style={styles.emptyIcon}>🍽️</Text>
-                <Text style={styles.emptyText}>신청한 모임이 없습니다</Text>
-                <Text style={styles.emptySubtext}>홈에서 모임을 찾아보세요!</Text>
-                <TouchableOpacity 
-                  style={styles.emptyButton}
-                  onPress={() => handleNavigate('Home')}
-                >
-                  <Text style={styles.emptyButtonText}>모임 찾기</Text>
-                </TouchableOpacity>
-              </View>
+              <EmptyState
+                icon="calendar"
+                title="신청한 모임이 없습니다"
+                description="홈에서 모임을 찾아보세요!"
+                actionLabel="모임 찾아보기"
+                onAction={() => handleNavigate('Home')}
+              />
             ) : (
               appliedMeetups.map((meetup, index) => renderMeetupItem(meetup, true, `applied-${index}`))
             )}
           </View>
+          </FadeIn>
         );
-      
+
       case 'created':
         return (
+          <FadeIn>
           <View style={styles.meetupsContainer}>
             <Text style={styles.sectionTitle}>만든 모임 ({createdMeetups.length}개)</Text>
             {createdMeetups.length === 0 ? (
-              <View style={styles.emptyContainer}>
-                <Text style={styles.emptyIcon}>🍽️</Text>
-                <Text style={styles.emptyText}>만든 모임이 없습니다</Text>
-                <Text style={styles.emptySubtext}>새로운 모임을 만들어보세요!</Text>
-                <TouchableOpacity 
-                  style={styles.emptyButton}
-                  onPress={() => handleNavigate('CreateMeetup')}
-                >
-                  <Text style={styles.emptyButtonText}>모임 만들기</Text>
-                </TouchableOpacity>
-              </View>
+              <EmptyState
+                icon="plus-circle"
+                title="만든 모임이 없습니다"
+                description="새로운 모임을 만들어보세요!"
+                actionLabel="모임 만들기"
+                onAction={() => handleNavigate('CreateMeetup')}
+              />
             ) : (
               createdMeetups.map((meetup, index) => renderMeetupItem(meetup, false, `created-${index}`))
             )}
           </View>
+          </FadeIn>
         );
-      
+
       case 'past':
         return (
+          <FadeIn>
           <View style={styles.meetupsContainer}>
             <Text style={styles.sectionTitle}>지난 모임 ({pastMeetups.length}개)</Text>
             {pastMeetups.length === 0 ? (
-              <View style={styles.emptyContainer}>
-                <Text style={styles.emptyIcon}>📚</Text>
-                <Text style={styles.emptyText}>지난 모임이 없습니다</Text>
-                <Text style={styles.emptySubtext}>모임에 참여해보세요!</Text>
-                <TouchableOpacity 
-                  style={styles.emptyButton}
-                  onPress={() => handleNavigate('Home')}
-                >
-                  <Text style={styles.emptyButtonText}>모임 찾기</Text>
-                </TouchableOpacity>
-              </View>
+              <EmptyState
+                icon="clock"
+                title="지난 모임이 없습니다"
+                description="모임에 참여해보세요!"
+              />
             ) : (
               pastMeetups.map((meetup, index) => renderMeetupItem(meetup, !('hostName' in meetup), `past-${index}`))
             )}
           </View>
+          </FadeIn>
         );
-      
+
       default:
         return null;
     }
@@ -357,25 +273,12 @@ const UniversalMyMeetupsScreen: React.FC<UniversalMyMeetupsScreenProps> = ({
       {/* 헤더 */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>내 모임</Text>
-        
-        <View style={styles.headerRight}>
-          {typeof NotificationBell !== 'undefined' && (
-            <NotificationBell
-              userId={user?.id?.toString()}
-              onPress={handleNotificationPress}
-              color={COLORS.text.primary}
-              size={20}
-            />
-          )}
-          {typeof NotificationBell === 'undefined' && (
-            <TouchableOpacity 
-              style={styles.notificationButton}
-              onPress={handleNotificationPress}
-            >
-              <Icon name="bell" size={20} color={COLORS.text.primary} />
-            </TouchableOpacity>
-          )}
-        </View>
+        <NotificationBell
+          userId={user?.id?.toString()}
+          onPress={handleNotificationPress}
+          color={COLORS.text.primary}
+          size={20}
+        />
       </View>
 
       {/* 탭 버튼 */}
@@ -383,6 +286,7 @@ const UniversalMyMeetupsScreen: React.FC<UniversalMyMeetupsScreenProps> = ({
         <TouchableOpacity
           style={[styles.tabButton, activeTab === 'applied' && styles.activeTabButton]}
           onPress={() => setActiveTab('applied')}
+          activeOpacity={0.7}
         >
           <Text style={[styles.tabButtonText, activeTab === 'applied' && styles.activeTabButtonText]}>
             신청한 모임
@@ -391,6 +295,7 @@ const UniversalMyMeetupsScreen: React.FC<UniversalMyMeetupsScreenProps> = ({
         <TouchableOpacity
           style={[styles.tabButton, activeTab === 'created' && styles.activeTabButton]}
           onPress={() => setActiveTab('created')}
+          activeOpacity={0.7}
         >
           <Text style={[styles.tabButtonText, activeTab === 'created' && styles.activeTabButtonText]}>
             내가 만든 모임
@@ -399,6 +304,7 @@ const UniversalMyMeetupsScreen: React.FC<UniversalMyMeetupsScreenProps> = ({
         <TouchableOpacity
           style={[styles.tabButton, activeTab === 'past' && styles.activeTabButton]}
           onPress={() => setActiveTab('past')}
+          activeOpacity={0.7}
         >
           <Text style={[styles.tabButtonText, activeTab === 'past' && styles.activeTabButtonText]}>
             지난 모임
@@ -414,6 +320,7 @@ const UniversalMyMeetupsScreen: React.FC<UniversalMyMeetupsScreenProps> = ({
             refreshing={refreshing}
             onRefresh={onRefresh}
             colors={[COLORS.primary.main]}
+            tintColor={COLORS.primary.main}
           />
         }
         showsVerticalScrollIndicator={false}
@@ -430,40 +337,30 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.neutral.background,
   },
   header: {
-    height: LAYOUT.HEADER_HEIGHT || 56,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
+    paddingVertical: 16,
+    paddingTop: 20,
     backgroundColor: COLORS.neutral.white,
-    ...SHADOWS.small,
-  },
-  backButton: {
-    padding: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.neutral.grey100,
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: '700',
     color: COLORS.text.primary,
-    flex: 1,
-    textAlign: Platform.OS === 'web' ? 'left' : 'center',
-    marginHorizontal: Platform.OS === 'web' ? 0 : 16,
-  },
-  headerRight: {
-    alignItems: 'flex-end',
-  },
-  notificationButton: {
-    padding: 8,
   },
   tabContainer: {
     flexDirection: 'row',
     backgroundColor: COLORS.neutral.white,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.neutral.grey200,
+    borderBottomColor: COLORS.neutral.grey100,
   },
   tabButton: {
     flex: 1,
-    paddingVertical: 16,
+    paddingVertical: 14,
     alignItems: 'center',
     borderBottomWidth: 2,
     borderBottomColor: 'transparent',
@@ -473,19 +370,19 @@ const styles = StyleSheet.create({
   },
   tabButtonText: {
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: COLORS.text.tertiary,
     fontWeight: '500',
   },
   activeTabButtonText: {
     color: COLORS.primary.main,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   scrollView: {
     flex: 1,
   },
   meetupsContainer: {
     paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingVertical: 16,
   },
   sectionTitle: {
     fontSize: 18,
@@ -494,49 +391,48 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     paddingHorizontal: 4,
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
+  // Skeleton loader styles
+  skeletonContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+  },
+  skeletonCard: {
+    flexDirection: 'row',
     alignItems: 'center',
-    padding: 40,
-  },
-  loadingText: {
-    fontSize: 16,
-    color: COLORS.text.secondary,
-  },
-  emptyContainer: {
-    alignItems: 'center',
-    padding: 60,
-    marginTop: 40,
-  },
-  emptyIcon: {
-    fontSize: 48,
-    marginBottom: 16,
-  },
-  emptyText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: COLORS.text.primary,
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  emptySubtext: {
-    fontSize: 14,
-    color: COLORS.text.secondary,
-    textAlign: 'center',
-    marginBottom: 24,
-    lineHeight: 20,
-  },
-  emptyButton: {
-    backgroundColor: COLORS.primary.main,
-    borderRadius: 12,
-    paddingHorizontal: 24,
+    paddingHorizontal: 20,
     paddingVertical: 12,
+    backgroundColor: COLORS.neutral.white,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.neutral.grey100,
   },
-  emptyButtonText: {
-    color: COLORS.text.white,
-    fontSize: 14,
-    fontWeight: '600',
+  skeletonImage: {
+    width: 64,
+    height: 64,
+    borderRadius: 12,
+    backgroundColor: COLORS.neutral.grey100,
+    marginRight: 12,
+  },
+  skeletonTextArea: {
+    flex: 1,
+    gap: 8,
+  },
+  skeletonTitle: {
+    height: 16,
+    width: '70%',
+    borderRadius: 4,
+    backgroundColor: COLORS.neutral.grey100,
+  },
+  skeletonMeta: {
+    height: 12,
+    width: '50%',
+    borderRadius: 4,
+    backgroundColor: COLORS.neutral.grey100,
+  },
+  skeletonMetaShort: {
+    height: 12,
+    width: '35%',
+    borderRadius: 4,
+    backgroundColor: COLORS.neutral.grey100,
   },
 });
 

@@ -589,6 +589,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
     backgroundColor: COLORS.neutral.white,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.neutral.grey100,
     ...SHADOWS.small,
   },
   headerTitle: {
@@ -618,6 +620,7 @@ const styles = StyleSheet.create({
   },
   selectedTabButton: {
     borderBottomColor: COLORS.primary.main,
+    borderBottomWidth: 2,
   },
   tabButtonText: {
     fontSize: 14,
