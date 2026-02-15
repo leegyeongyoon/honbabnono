@@ -316,11 +316,12 @@ const UniversalMyMeetupsScreen: React.FC<UniversalMyMeetupsScreenProps> = ({
           onPress={handleNotificationPress}
           color={COLORS.text.primary}
           size={22}
+          accessibilityLabel="알림"
         />
       </View>
 
       {/* 탭 바 */}
-      <View style={styles.tabContainer}>
+      <View style={styles.tabContainer} accessibilityRole="tablist">
         {TAB_ITEMS.map((tab) => {
           const isActive = activeTab === tab.key;
           const count = getTabCount(tab.key);
@@ -330,6 +331,9 @@ const UniversalMyMeetupsScreen: React.FC<UniversalMyMeetupsScreenProps> = ({
               style={[styles.tabButton, isActive && styles.activeTabButton]}
               onPress={() => setActiveTab(tab.key)}
               activeOpacity={0.7}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: isActive }}
+              accessibilityLabel={`${tab.label} ${count > 0 ? `${count}개` : ''}`}
             >
               <Text style={[styles.tabButtonText, isActive && styles.activeTabButtonText]}>
                 {tab.label}
@@ -359,6 +363,7 @@ const UniversalMyMeetupsScreen: React.FC<UniversalMyMeetupsScreenProps> = ({
           />
         }
         showsVerticalScrollIndicator={false}
+        bounces={true}
       >
         {renderTabContent()}
       </ScrollView>
@@ -402,6 +407,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 24,
     paddingVertical: 14,
+    minHeight: 48,
     borderBottomWidth: 3,
     borderBottomColor: 'transparent',
     gap: 6,

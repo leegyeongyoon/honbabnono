@@ -60,13 +60,13 @@ const SkeletonLoader: React.FC<SkeletonLoaderProps> = ({
     const animation = Animated.loop(
       Animated.sequence([
         Animated.timing(opacity, {
-          toValue: 0.6,
-          duration: ANIMATION.duration.skeleton / 2,
+          toValue: 0.3,
+          duration: 500,
           useNativeDriver: true,
         }),
         Animated.timing(opacity, {
-          toValue: 1.0,
-          duration: ANIMATION.duration.skeleton / 2,
+          toValue: 0.8,
+          duration: 500,
           useNativeDriver: true,
         }),
       ])

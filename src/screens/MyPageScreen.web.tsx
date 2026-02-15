@@ -12,6 +12,16 @@ import { useConfirmDialog } from '../hooks/useConfirmDialog';
 import { ProfileSkeleton } from '../components/skeleton';
 import { FadeIn } from '../components/animated';
 
+// 웹 호버 상태 관리 훅
+const useHover = () => {
+  const [hovered, setHovered] = useState(false);
+  const bind = {
+    onMouseEnter: () => setHovered(true),
+    onMouseLeave: () => setHovered(false),
+  };
+  return { hovered, bind };
+};
+
 interface UserType {
   id: string;
   name: string;
@@ -55,6 +65,56 @@ const SUPPORT_MENUS = [
   { id: 'terms', label: '이용약관', path: '/terms' },
 ];
 
+// 호버 가능한 퀵메뉴 아이템
+const HoverQuickMenuItem: React.FC<{ menu: QuickMenuItem; onPress: () => void }> = ({ menu, onPress }) => {
+  const { hovered, bind } = useHover();
+  return (
+    <TouchableOpacity
+      key={menu.id}
+      style={[
+        styles.quickMenuItem,
+        hovered && {
+          // @ts-ignore
+          transform: 'translateY(-2px)',
+          boxShadow: CSS_SHADOWS.medium,
+        },
+      ]}
+      onPress={onPress}
+      activeOpacity={0.7}
+      {...bind}
+    >
+      <View style={styles.quickMenuIconBox}>
+        <Icon name={menu.icon} size={24} color={COLORS.primary.main} />
+      </View>
+      <Text style={styles.quickMenuLabel} numberOfLines={1}>{menu.label}</Text>
+    </TouchableOpacity>
+  );
+};
+
+// 호버 가능한 설정(고객지원) 메뉴 아이템
+const HoverSupportItem: React.FC<{
+  menu: { id: string; label: string; path: string };
+  isLast: boolean;
+  onPress: () => void;
+}> = ({ menu, isLast, onPress }) => {
+  const { hovered, bind } = useHover();
+  return (
+    <TouchableOpacity
+      style={[
+        styles.supportItem,
+        isLast && { borderBottomWidth: 0 },
+        hovered && { backgroundColor: COLORS.neutral.grey100 },
+      ]}
+      onPress={onPress}
+      activeOpacity={0.7}
+      {...bind}
+    >
+      <Text style={styles.supportItemText}>{menu.label}</Text>
+      <Icon name="chevron-right" size={16} color={COLORS.text.tertiary} />
+    </TouchableOpacity>
+  );
+};
+
 const MyPageScreen: React.FC<MyPageScreenProps> = ({ user: propsUser }) => {
   const navigate = useNavigate();
   const { user: storeUser, logout } = useUserStore();
@@ -71,6 +131,13 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ user: propsUser }) => {
   const [userProfileImageUrl, setUserProfileImageUrl] = useState(null);
   const [supportExpanded, setSupportExpanded] = useState(false);
   const { dialog, confirmDanger, confirm } = useConfirmDialog();
+
+  // 호버 상태
+  const editProfileHover = useHover();
+  const statsCardHover = useHover();
+  const pointBannerHover = useHover();
+  const logoutHover = useHover();
+  const deleteHover = useHover();
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -135,7 +202,10 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ user: propsUser }) => {
         <FadeIn delay={0}>
           <View style={styles.profileCard}>
             <View style={styles.profileRow}>
-              <View style={styles.profileImageWrapper}>
+              <View
+                style={styles.profileImageWrapper}
+                accessibilityLabel="프로필 사진"
+              >
                 <ProfileImage
                   profileImage={userProfileImageUrl}
                   name={user?.name || '사용자'}
@@ -143,14 +213,23 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ user: propsUser }) => {
                 />
               </View>
               <View style={styles.profileInfo}>
-                <Text style={styles.userName}>{user?.name || '사용자'}</Text>
-                <Text style={styles.userEmail}>{user?.email || ''}</Text>
+                <Text style={styles.userName} numberOfLines={1}>{user?.name || '사용자'}</Text>
+                <Text style={styles.userEmail} numberOfLines={1}>{user?.email || ''}</Text>
                 <TouchableOpacity
-                  style={styles.editProfileButton}
+                  style={[
+                    styles.editProfileButton,
+                    editProfileHover.hovered && {
+                      backgroundColor: COLORS.primary.main,
+                    },
+                  ]}
                   onPress={() => navigate('/mypage/edit')}
                   activeOpacity={0.7}
+                  {...editProfileHover.bind}
                 >
-                  <Text style={styles.editProfileText}>프로필 수정</Text>
+                  <Text style={[
+                    styles.editProfileText,
+                    editProfileHover.hovered && { color: COLORS.neutral.white },
+                  ]}>프로필 수정</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -159,7 +238,16 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ user: propsUser }) => {
 
         {/* 통계 카드 */}
         <FadeIn delay={50}>
-          <View style={styles.statsCard}>
+          <View
+            style={[
+              styles.statsCard,
+              statsCardHover.hovered && {
+                // @ts-ignore
+                boxShadow: CSS_SHADOWS.medium,
+              },
+            ]}
+            {...statsCardHover.bind}
+          >
             <View style={styles.statItem}>
               <Text style={styles.statValue}>{userStats.totalMeetups}</Text>
               <Text style={styles.statLabel}>참여</Text>
@@ -180,9 +268,16 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ user: propsUser }) => {
         {/* 포인트 배너 */}
         <FadeIn delay={75}>
           <TouchableOpacity
-            style={styles.pointBanner}
+            style={[
+              styles.pointBanner,
+              pointBannerHover.hovered && {
+                // @ts-ignore
+                boxShadow: CSS_SHADOWS.medium,
+              },
+            ]}
             onPress={() => navigate('/point-charge')}
             activeOpacity={0.7}
+            {...pointBannerHover.bind}
           >
             <View style={styles.pointBannerLeft}>
               <Icon name="credit-card" size={20} color={COLORS.primary.main} />
@@ -206,7 +301,11 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ user: propsUser }) => {
               <View
                 style={[
                   styles.riceProgressFill,
-                  { width: `${Math.min(userStats.riceIndex, 100)}%` as any },
+                  {
+                    width: `${Math.min(userStats.riceIndex, 100)}%` as any,
+                    // @ts-ignore
+                    transition: 'width 600ms ease',
+                  },
                 ]}
               />
             </View>
@@ -221,17 +320,11 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ user: propsUser }) => {
           <View style={styles.quickMenuCard}>
             <View style={styles.quickMenuGrid}>
               {QUICK_MENUS.map((menu) => (
-                <TouchableOpacity
+                <HoverQuickMenuItem
                   key={menu.id}
-                  style={styles.quickMenuItem}
+                  menu={menu}
                   onPress={() => navigate(menu.path)}
-                  activeOpacity={0.7}
-                >
-                  <View style={styles.quickMenuIconBox}>
-                    <Icon name={menu.icon} size={24} color={COLORS.primary.main} />
-                  </View>
-                  <Text style={styles.quickMenuLabel}>{menu.label}</Text>
-                </TouchableOpacity>
+                />
               ))}
             </View>
           </View>
@@ -255,18 +348,12 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ user: propsUser }) => {
             {supportExpanded && (
               <View style={styles.supportList}>
                 {SUPPORT_MENUS.map((menu, idx) => (
-                  <TouchableOpacity
+                  <HoverSupportItem
                     key={menu.id}
-                    style={[
-                      styles.supportItem,
-                      idx === SUPPORT_MENUS.length - 1 && { borderBottomWidth: 0 },
-                    ]}
+                    menu={menu}
+                    isLast={idx === SUPPORT_MENUS.length - 1}
                     onPress={() => navigate(menu.path)}
-                    activeOpacity={0.7}
-                  >
-                    <Text style={styles.supportItemText}>{menu.label}</Text>
-                    <Icon name="chevron-right" size={16} color={COLORS.text.tertiary} />
-                  </TouchableOpacity>
+                  />
                 ))}
               </View>
             )}
@@ -276,11 +363,29 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ user: propsUser }) => {
         {/* 로그아웃 / 회원탈퇴 */}
         <FadeIn delay={250}>
           <View style={styles.bottomActions}>
-            <TouchableOpacity style={styles.logoutButton} onPress={handleLogout} activeOpacity={0.7}>
+            <TouchableOpacity
+              style={[
+                styles.logoutButton,
+                logoutHover.hovered && { backgroundColor: COLORS.neutral.grey100 },
+              ]}
+              onPress={handleLogout}
+              activeOpacity={0.7}
+              accessibilityLabel="로그아웃"
+              {...logoutHover.bind}
+            >
               <Icon name="log-out" size={18} color={COLORS.text.secondary} />
               <Text style={styles.logoutText}>로그아웃</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.deleteButton} onPress={handleDeleteAccount} activeOpacity={0.7}>
+            <TouchableOpacity
+              style={[
+                styles.deleteButton,
+                deleteHover.hovered && { opacity: 0.7 },
+              ]}
+              onPress={handleDeleteAccount}
+              activeOpacity={0.7}
+              accessibilityLabel="회원탈퇴"
+              {...deleteHover.bind}
+            >
               <Text style={styles.deleteText}>회원탈퇴</Text>
             </TouchableOpacity>
           </View>
@@ -390,6 +495,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     ...SHADOWS.small,
     ...CARD_STYLE,
+    // @ts-ignore
+    transition: 'box-shadow 200ms ease',
   },
   statItem: {
     flex: 1,
@@ -607,13 +714,15 @@ const styles = StyleSheet.create({
   deleteButton: {
     marginTop: 16,
     paddingVertical: 8,
+    minHeight: 44,
+    justifyContent: 'center',
     // @ts-ignore
     cursor: 'pointer',
   },
   deleteText: {
     fontSize: 13,
     fontWeight: '400',
-    color: COLORS.text.tertiary,
+    color: COLORS.functional.error,
   },
 });
 

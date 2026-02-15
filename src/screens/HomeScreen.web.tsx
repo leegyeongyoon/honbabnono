@@ -52,6 +52,10 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
   const [searchFocused, setSearchFocused] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
+  const [hoveredCategoryId, setHoveredCategoryId] = useState<string | null>(null);
+  const [hoveredSeeAll, setHoveredSeeAll] = useState<string | null>(null);
+  const [hoveredCardId, setHoveredCardId] = useState<string | null>(null);
+  const [hoveredAllMeetups, setHoveredAllMeetups] = useState(false);
 
   const handleMeetupClick = useCallback((meetup: any) => {
     const meetupId = typeof meetup === 'string' ? meetup : meetup.id;
@@ -179,7 +183,11 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
         <View style={styles.header}>
           <Text style={styles.headerLogo}>혼밥시러</Text>
 
-          <TouchableOpacity style={styles.locationButton} onPress={openNeighborhoodSelector}>
+          <TouchableOpacity
+            style={[styles.locationButton, { cursor: 'pointer' } as any]}
+            onPress={openNeighborhoodSelector}
+            accessibilityLabel="동네 변경"
+          >
             <Icon name="map-pin" size={14} color={COLORS.primary.main} />
             <Text style={styles.locationText}>
               {currentNeighborhood ? `${currentNeighborhood.neighborhood}` : '역삼동'}
@@ -213,12 +221,16 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
       >
         {/* 검색 바 */}
         <View style={styles.searchSection}>
-          <TouchableOpacity
-            style={[
-              styles.searchBar,
-              searchFocused && styles.searchBarFocused,
-            ]}
-            activeOpacity={0.8}
+          <div
+            style={{
+              ...StyleSheet.flatten([
+                styles.searchBar,
+                searchFocused && styles.searchBarFocused,
+              ]),
+              transition: 'box-shadow 200ms ease, border-color 200ms ease',
+              boxShadow: searchFocused ? CSS_SHADOWS.focused : 'none',
+              cursor: 'text',
+            }}
           >
             <Icon name="search" size={20} color={searchFocused ? COLORS.primary.main : COLORS.text.tertiary} />
             <TextInput
@@ -251,7 +263,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
                 </TouchableOpacity>
               </>
             )}
-          </TouchableOpacity>
+          </div>
 
           {/* 검색 제안 드롭다운 */}
           {showSearchSuggestions && (
@@ -282,23 +294,34 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
           <View style={styles.categorySection}>
             <View style={styles.categoryGrid}>
               {FOOD_CATEGORIES.map((category) => (
-                <TouchableOpacity
+                <div
                   key={category.id}
-                  style={styles.categoryItem}
-                  onPress={() => navigate(`/explore?category=${encodeURIComponent(category.name)}`)}
-                  activeOpacity={0.7}
-                  accessibilityLabel={category.name}
+                  onClick={() => navigate(`/explore?category=${encodeURIComponent(category.name)}`)}
+                  onMouseEnter={() => setHoveredCategoryId(category.id)}
+                  onMouseLeave={() => setHoveredCategoryId(null)}
+                  style={{
+                    ...StyleSheet.flatten(styles.categoryItem),
+                    cursor: 'pointer',
+                  }}
+                  role="button"
+                  aria-label={category.name}
                 >
-                  <View style={[styles.categoryIconBox, { backgroundColor: category.bgColor }]}>
+                  <View style={[
+                    styles.categoryIconBox,
+                    {
+                      backgroundColor: hoveredCategoryId === category.id ? COLORS.primary.light : category.bgColor,
+                      transition: 'background-color 200ms ease',
+                    } as any,
+                  ]}>
                     <CategoryIcon
                       iconName={category.icon}
                       size={48}
                       color={category.color}
-                      backgroundColor={category.bgColor}
+                      backgroundColor={hoveredCategoryId === category.id ? COLORS.primary.light : category.bgColor}
                     />
                   </View>
-                  <Text style={styles.categoryName}>{category.name}</Text>
-                </TouchableOpacity>
+                  <Text style={styles.categoryName} numberOfLines={1}>{category.name}</Text>
+                </div>
               ))}
             </View>
           </View>
@@ -316,9 +339,16 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
                   <Text style={styles.sectionEmoji}>&#x23F0;</Text>
                   <Text style={styles.sectionTitle}>곧 시작하는 밥약속</Text>
                 </View>
-                <TouchableOpacity onPress={() => navigate('/explore')}>
-                  <Text style={styles.seeAllText}>더보기</Text>
-                </TouchableOpacity>
+                <div
+                  onClick={() => navigate('/explore')}
+                  onMouseEnter={() => setHoveredSeeAll('soon')}
+                  onMouseLeave={() => setHoveredSeeAll(null)}
+                  style={{ cursor: 'pointer' }}
+                  role="link"
+                  aria-label="곧 시작하는 밥약속 더보기"
+                >
+                  <Text style={[styles.seeAllText, hoveredSeeAll === 'soon' && { textDecorationLine: 'underline' as any }]}>더보기</Text>
+                </div>
               </View>
               {isLoading ? (
                 <ScrollView
@@ -343,13 +373,24 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
                   {soonMeetups.map((meetup) => {
                     if (!meetup.id) return null;
                     return (
-                      <View key={meetup.id} style={styles.horizontalCardWrapper}>
+                      <div
+                        key={meetup.id}
+                        onMouseEnter={() => setHoveredCardId(`soon-${meetup.id}`)}
+                        onMouseLeave={() => setHoveredCardId(null)}
+                        style={{
+                          ...StyleSheet.flatten(styles.horizontalCardWrapper),
+                          transition: 'all 200ms ease',
+                          transform: hoveredCardId === `soon-${meetup.id}` ? 'translateY(-2px)' : 'none',
+                          boxShadow: hoveredCardId === `soon-${meetup.id}` ? CSS_SHADOWS.medium : 'none',
+                          borderRadius: 16,
+                        }}
+                      >
                         <MeetupCard
                           meetup={meetup}
                           onPress={handleMeetupClick}
                           variant="grid"
                         />
-                      </View>
+                      </div>
                     );
                   })}
                 </ScrollView>
@@ -367,9 +408,16 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
                   <Text style={styles.sectionEmoji}>&#x2728;</Text>
                   <Text style={styles.sectionTitle}>새로 올라온 모임</Text>
                 </View>
-                <TouchableOpacity onPress={() => navigate('/explore')}>
-                  <Text style={styles.seeAllText}>더보기</Text>
-                </TouchableOpacity>
+                <div
+                  onClick={() => navigate('/explore')}
+                  onMouseEnter={() => setHoveredSeeAll('new')}
+                  onMouseLeave={() => setHoveredSeeAll(null)}
+                  style={{ cursor: 'pointer' }}
+                  role="link"
+                  aria-label="새로 올라온 모임 더보기"
+                >
+                  <Text style={[styles.seeAllText, hoveredSeeAll === 'new' && { textDecorationLine: 'underline' as any }]}>더보기</Text>
+                </div>
               </View>
               {isLoading ? (
                 <ScrollView
@@ -394,13 +442,24 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
                   {newMeetups.map((meetup) => {
                     if (!meetup.id) return null;
                     return (
-                      <View key={meetup.id} style={styles.horizontalCardWrapper}>
+                      <div
+                        key={meetup.id}
+                        onMouseEnter={() => setHoveredCardId(`new-${meetup.id}`)}
+                        onMouseLeave={() => setHoveredCardId(null)}
+                        style={{
+                          ...StyleSheet.flatten(styles.horizontalCardWrapper),
+                          transition: 'all 200ms ease',
+                          transform: hoveredCardId === `new-${meetup.id}` ? 'translateY(-2px)' : 'none',
+                          boxShadow: hoveredCardId === `new-${meetup.id}` ? CSS_SHADOWS.medium : 'none',
+                          borderRadius: 16,
+                        }}
+                      >
                         <MeetupCard
                           meetup={meetup}
                           onPress={handleMeetupClick}
                           variant="grid"
                         />
-                      </View>
+                      </div>
                     );
                   })}
                 </ScrollView>
@@ -418,9 +477,16 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
                   <Text style={styles.sectionEmoji}>&#x1F91D;</Text>
                   <Text style={styles.sectionTitle}>모집중인 모임</Text>
                 </View>
-                <TouchableOpacity onPress={() => navigate('/explore')}>
-                  <Text style={styles.seeAllText}>더보기</Text>
-                </TouchableOpacity>
+                <div
+                  onClick={() => navigate('/explore')}
+                  onMouseEnter={() => setHoveredSeeAll('recruiting')}
+                  onMouseLeave={() => setHoveredSeeAll(null)}
+                  style={{ cursor: 'pointer' }}
+                  role="link"
+                  aria-label="모집중인 모임 더보기"
+                >
+                  <Text style={[styles.seeAllText, hoveredSeeAll === 'recruiting' && { textDecorationLine: 'underline' as any }]}>더보기</Text>
+                </div>
               </View>
               {isLoading ? (
                 <View style={styles.verticalList}>
@@ -437,12 +503,23 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
                   {recruitingMeetups.map((meetup) => {
                     if (!meetup.id) return null;
                     return (
-                      <MeetupCard
+                      <div
                         key={meetup.id}
-                        meetup={meetup}
-                        onPress={handleMeetupClick}
-                        variant="compact"
-                      />
+                        onMouseEnter={() => setHoveredCardId(`rec-${meetup.id}`)}
+                        onMouseLeave={() => setHoveredCardId(null)}
+                        style={{
+                          transition: 'all 200ms ease',
+                          transform: hoveredCardId === `rec-${meetup.id}` ? 'translateY(-2px)' : 'none',
+                          boxShadow: hoveredCardId === `rec-${meetup.id}` ? CSS_SHADOWS.medium : 'none',
+                          borderRadius: 16,
+                        }}
+                      >
+                        <MeetupCard
+                          meetup={meetup}
+                          onPress={handleMeetupClick}
+                          variant="compact"
+                        />
+                      </div>
                     );
                   })}
                 </View>
@@ -463,14 +540,23 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
         )}
 
         {/* 모든 모임 보기 버튼 */}
-        <TouchableOpacity
-          style={styles.allMeetupsButton}
-          onPress={() => navigate('/explore')}
-          activeOpacity={0.7}
+        <div
+          onClick={() => navigate('/explore')}
+          onMouseEnter={() => setHoveredAllMeetups(true)}
+          onMouseLeave={() => setHoveredAllMeetups(false)}
+          style={{
+            ...StyleSheet.flatten(styles.allMeetupsButton),
+            cursor: 'pointer',
+            transition: 'all 200ms ease',
+            transform: hoveredAllMeetups ? 'translateY(-2px)' : 'none',
+            boxShadow: hoveredAllMeetups ? CSS_SHADOWS.medium : CSS_SHADOWS.small,
+          }}
+          role="button"
+          aria-label="모든 모임 보기"
         >
           <Text style={styles.allMeetupsText}>모든 모임 보기</Text>
           <Icon name="chevron-right" size={16} color={COLORS.primary.main} />
-        </TouchableOpacity>
+        </div>
 
         {/* 하단 여백 */}
         <View style={styles.bottomPadding} />
@@ -641,6 +727,10 @@ const styles = StyleSheet.create({
   },
   clearButton: {
     padding: SPACING.xs,
+    minWidth: 44,
+    minHeight: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   searchSubmitButton: {
     width: 34,
@@ -676,6 +766,7 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.md,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.neutral.grey100,
+    minHeight: 44,
   },
   suggestionText: {
     ...TYPOGRAPHY.body.medium,
@@ -716,6 +807,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.2,
     color: COLORS.text.tertiary,
     textAlign: 'center',
+    overflow: 'hidden',
   },
 
   // ─── 콘텐츠 섹션 ─────────────────────────────────────
@@ -751,6 +843,8 @@ const styles = StyleSheet.create({
     fontWeight: FONT_WEIGHTS.medium as any,
     letterSpacing: 0.2,
     color: COLORS.primary.main,
+    minHeight: 44,
+    lineHeight: 44,
   },
   horizontalCardList: {
     paddingLeft: SPACING.xl,

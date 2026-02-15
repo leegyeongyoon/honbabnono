@@ -57,7 +57,56 @@ interface Meetup {
 
 const CATEGORY_NAMES = FOOD_CATEGORIES.map(c => c.name);
 
+// Inject hover styles for web
+const HOVER_STYLE_ID = 'explore-hover-styles';
+const injectHoverStyles = () => {
+  if (typeof document === 'undefined') return;
+  if (document.getElementById(HOVER_STYLE_ID)) return;
+  const style = document.createElement('style');
+  style.id = HOVER_STYLE_ID;
+  style.textContent = `
+    .explore-category-chip:hover {
+      background-color: ${COLORS.neutral.grey200} !important;
+    }
+    .explore-category-chip-active:hover {
+      background-color: ${COLORS.primary.main} !important;
+    }
+    .explore-radius-chip:hover {
+      border-color: ${COLORS.primary.main} !important;
+    }
+    .explore-radius-chip-active:hover {
+      border-color: ${COLORS.primary.main} !important;
+    }
+    .explore-meetup-card:hover {
+      transform: translateY(-2px) !important;
+      box-shadow: ${CSS_SHADOWS.medium} !important;
+    }
+    .explore-popup-card:hover {
+      box-shadow: ${CSS_SHADOWS.hover} !important;
+    }
+    .explore-toggle-btn:hover {
+      background-color: ${COLORS.neutral.grey200} !important;
+    }
+    .explore-toggle-btn-active:hover {
+      background-color: ${COLORS.primary.dark} !important;
+    }
+    .explore-search-clear:hover {
+      color: ${COLORS.text.secondary} !important;
+    }
+    .explore-popup-close:hover {
+      background-color: ${COLORS.neutral.grey100} !important;
+    }
+    .explore-popup-detail:hover {
+      background-color: ${COLORS.primary.dark} !important;
+    }
+  `;
+  document.head.appendChild(style);
+};
+
 const ExploreScreen: React.FC = () => {
+  // Inject hover CSS on mount
+  useEffect(() => { injectHoverStyles(); }, []);
+
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const categoryFromUrl = searchParams.get('category');
@@ -178,14 +227,18 @@ const ExploreScreen: React.FC = () => {
         <Text style={styles.headerTitle}>탐색</Text>
         {/* 뷰 모드 토글 */}
         <View style={styles.viewToggle}>
+          {/* @ts-ignore className for web */}
           <TouchableOpacity
+            className={viewMode === 'map' ? 'explore-toggle-btn-active' : 'explore-toggle-btn'}
             style={[styles.toggleButton, viewMode === 'map' && styles.toggleButtonActive]}
             onPress={() => setViewMode('map')}
           >
             <Icon name="map" size={16} color={viewMode === 'map' ? COLORS.text.white : COLORS.text.secondary} />
             <Text style={[styles.toggleText, viewMode === 'map' && styles.toggleTextActive]}>지도</Text>
           </TouchableOpacity>
+          {/* @ts-ignore className for web */}
           <TouchableOpacity
+            className={viewMode === 'list' ? 'explore-toggle-btn-active' : 'explore-toggle-btn'}
             style={[styles.toggleButton, viewMode === 'list' && styles.toggleButtonActive]}
             onPress={() => setViewMode('list')}
           >
@@ -202,7 +255,9 @@ const ExploreScreen: React.FC = () => {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.categoryTabScroll}
         >
+          {/* @ts-ignore className for web */}
           <TouchableOpacity
+            className={!selectedCategory ? 'explore-category-chip-active' : 'explore-category-chip'}
             style={[styles.categoryChip, !selectedCategory && styles.categoryChipActive]}
             onPress={() => handleCategoryChange(null)}
             activeOpacity={0.7}
@@ -210,8 +265,10 @@ const ExploreScreen: React.FC = () => {
             <Text style={[styles.categoryChipText, !selectedCategory && styles.categoryChipTextActive]}>전체</Text>
           </TouchableOpacity>
           {CATEGORY_NAMES.map((name) => (
+            // @ts-ignore className for web
             <TouchableOpacity
               key={name}
+              className={selectedCategory === name ? 'explore-category-chip-active' : 'explore-category-chip'}
               style={[styles.categoryChip, selectedCategory === name && styles.categoryChipActive]}
               onPress={() => handleCategoryChange(name)}
               activeOpacity={0.7}
@@ -240,7 +297,10 @@ const ExploreScreen: React.FC = () => {
             returnKeyType="search"
           />
           {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={() => { setSearchQuery(''); fetchNearbyMeetups(center.lat, center.lng, radius); }}>
+            <TouchableOpacity
+              onPress={() => { setSearchQuery(''); fetchNearbyMeetups(center.lat, center.lng, radius); }}
+              style={styles.searchClearButton}
+            >
               <Icon name="times" size={14} color={COLORS.text.tertiary} />
             </TouchableOpacity>
           )}
@@ -250,8 +310,10 @@ const ExploreScreen: React.FC = () => {
           <Icon name="map-pin" size={14} color={COLORS.text.secondary} />
           <Text style={styles.radiusLabel}>반경</Text>
           {RADIUS_OPTIONS.map((opt) => (
+            // @ts-ignore className for web
             <TouchableOpacity
               key={opt.value}
+              className={radius === opt.value ? 'explore-radius-chip-active' : 'explore-radius-chip'}
               style={[
                 styles.radiusChip,
                 radius === opt.value && styles.radiusChipActive,
@@ -304,7 +366,18 @@ const ExploreScreen: React.FC = () => {
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 16, fontWeight: '700', color: COLORS.text.primary, marginBottom: 6, lineHeight: '22px' }}>
+                  <div style={{
+                    fontSize: 16,
+                    fontWeight: '700',
+                    color: COLORS.text.primary,
+                    marginBottom: 6,
+                    lineHeight: '22px',
+                    display: '-webkit-box',
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: 'vertical',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                  }}>
                     {selectedMeetup.title}
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
@@ -319,7 +392,14 @@ const ExploreScreen: React.FC = () => {
                     }}>
                       {selectedMeetup.category}
                     </span>
-                    <span style={{ fontSize: 13, color: COLORS.text.secondary }}>
+                    <span style={{
+                      fontSize: 13,
+                      color: COLORS.text.secondary,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                      maxWidth: 150,
+                    }}>
                       {selectedMeetup.location}
                     </span>
                   </div>
@@ -343,6 +423,7 @@ const ExploreScreen: React.FC = () => {
                   </div>
                 </div>
                 <div
+                  className="explore-popup-close"
                   onClick={() => setSelectedMeetup(null)}
                   style={{
                     cursor: 'pointer',
@@ -364,6 +445,7 @@ const ExploreScreen: React.FC = () => {
                 </div>
               </div>
               <div
+                className="explore-popup-detail"
                 onClick={() => handleMeetupClick(selectedMeetup)}
                 style={{
                   marginTop: 14,
@@ -399,17 +481,20 @@ const ExploreScreen: React.FC = () => {
                 {[1, 2, 3].map(i => <MeetupCardSkeleton key={i} />)}
               </View>
             ) : displayMeetups.length === 0 ? (
-              <EmptyState
-                compact
-                icon="search"
-                title={selectedCategory ? `${selectedCategory} 모임이 없어요` : searchQuery ? '조건에 맞는 모임이 없어요' : '주변에 모임이 없어요'}
-                description={selectedCategory ? '다른 카테고리를 선택해보세요' : '다른 위치로 이동해보세요'}
-              />
+              <FadeIn>
+                <EmptyState
+                  compact
+                  icon="search"
+                  title={selectedCategory ? `${selectedCategory} 모임이 없어요` : searchQuery ? '조건에 맞는 모임이 없어요' : '주변에 모임이 없어요'}
+                  description={selectedCategory ? '다른 카테고리를 선택해보세요' : '검색 조건을 변경해보세요'}
+                />
+              </FadeIn>
             ) : (
               <FadeIn>
                 <View style={styles.meetupList}>
                   {displayMeetups.map(meetup => (
-                    <View key={meetup.id} style={styles.meetupItemWrapper}>
+                    // @ts-ignore className for web
+                    <View key={meetup.id} className="explore-meetup-card" style={styles.meetupItemWrapper}>
                       <MeetupCard
                         meetup={meetup}
                         onPress={handleMeetupClick}
@@ -418,7 +503,7 @@ const ExploreScreen: React.FC = () => {
                       {meetup.distance != null && (
                         <View style={styles.distanceBadge}>
                           <Icon name="map-pin" size={10} color={COLORS.primary.main} />
-                          <Text style={styles.distanceText}>{formatDistance(meetup.distance)}</Text>
+                          <Text style={styles.distanceText} numberOfLines={1}>{formatDistance(meetup.distance)}</Text>
                         </View>
                       )}
                     </View>
@@ -447,16 +532,19 @@ const ExploreScreen: React.FC = () => {
               {[1, 2, 3, 4, 5].map(i => <MeetupCardSkeleton key={i} />)}
             </View>
           ) : displayMeetups.length === 0 ? (
-            <EmptyState
-              icon={searchQuery ? 'search' : 'map-pin'}
-              title={selectedCategory ? `${selectedCategory} 모임이 없어요` : searchQuery ? '조건에 맞는 모임이 없어요' : '주변에 모임이 없어요'}
-              description={selectedCategory ? '다른 카테고리를 선택해보세요' : searchQuery ? '다른 검색어를 사용해보세요' : '반경을 넓히거나 위치를 변경해보세요'}
-            />
+            <FadeIn>
+              <EmptyState
+                icon={searchQuery ? 'search' : 'map-pin'}
+                title={selectedCategory ? `${selectedCategory} 모임이 없어요` : searchQuery ? '조건에 맞는 모임이 없어요' : '주변에 모임이 없어요'}
+                description={selectedCategory ? '다른 카테고리를 선택해보세요' : searchQuery ? '검색어를 변경하거나 조건을 변경해보세요' : '반경을 넓히거나 위치를 변경해보세요'}
+              />
+            </FadeIn>
           ) : (
             <FadeIn>
               <View style={styles.meetupList}>
                 {displayMeetups.map(meetup => (
-                  <View key={meetup.id} style={styles.meetupItemWrapper}>
+                  // @ts-ignore className for web
+                  <View key={meetup.id} className="explore-meetup-card" style={styles.meetupItemWrapper}>
                     <MeetupCard
                       meetup={meetup}
                       onPress={handleMeetupClick}
@@ -465,7 +553,7 @@ const ExploreScreen: React.FC = () => {
                     {meetup.distance != null && (
                       <View style={styles.distanceBadge}>
                         <Icon name="map-pin" size={10} color={COLORS.primary.main} />
-                        <Text style={styles.distanceText}>{formatDistance(meetup.distance)}</Text>
+                        <Text style={styles.distanceText} numberOfLines={1}>{formatDistance(meetup.distance)}</Text>
                       </View>
                     )}
                   </View>
@@ -518,6 +606,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 7,
     borderRadius: 10,
+    cursor: 'pointer',
     transition: 'all 200ms ease',
   },
   toggleButtonActive: {
@@ -548,11 +637,12 @@ const styles = StyleSheet.create({
   },
   categoryChip: {
     height: 36,
+    minHeight: 44,
     justifyContent: 'center',
-    paddingHorizontal: 16,
+    paddingHorizontal: 18,
     borderRadius: 18,
     backgroundColor: COLORS.neutral.grey100,
-    transition: 'background-color 150ms ease',
+    transition: 'all 200ms ease',
     cursor: 'pointer',
   },
   categoryChipActive: {
@@ -599,6 +689,14 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
     outline: 'none',
   },
+  searchClearButton: {
+    cursor: 'pointer',
+    padding: 6,
+    minWidth: 28,
+    minHeight: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
 
   // Radius Filter
   radiusRow: {
@@ -615,13 +713,14 @@ const styles = StyleSheet.create({
   },
   radiusChip: {
     height: 32,
+    minHeight: 44,
     justifyContent: 'center',
     paddingHorizontal: 14,
     borderRadius: 16,
     backgroundColor: 'transparent',
     borderWidth: 1.5,
     borderColor: COLORS.neutral.grey300,
-    transition: 'all 150ms ease',
+    transition: 'all 200ms ease',
     cursor: 'pointer',
   },
   radiusChipActive: {

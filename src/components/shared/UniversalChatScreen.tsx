@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,8 @@ import {
   Image,
   Modal,
   SafeAreaView,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { COLORS, SHADOWS, LAYOUT } from '../../styles/colors';
 import { SPACING } from '../../styles/spacing';
@@ -54,10 +56,12 @@ const UniversalChatScreen: React.FC<UniversalChatScreenProps> = ({
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [messageText, setMessageText] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isSending, setIsSending] = useState(false);
   const [currentChatRoom, setCurrentChatRoom] = useState<ChatRoom | null>(null);
   const [selectedUserForDM, setSelectedUserForDM] = useState<any>(null);
   const [showDMModal, setShowDMModal] = useState(false);
   const [messageInputFocused, setMessageInputFocused] = useState(false);
+  const messageListRef = useRef<ScrollView>(null);
 
   const tabs = ['전체', '모임', '개인'];
   const userId = currentUser?.id || '';
@@ -235,7 +239,7 @@ const UniversalChatScreen: React.FC<UniversalChatScreenProps> = ({
 
   // 메시지 전송
   const sendMessage = async () => {
-    if (!messageText.trim() || !selectedChatId || !currentChatRoom) {return;}
+    if (!messageText.trim() || !selectedChatId || !currentChatRoom || isSending) {return;}
 
     const messageData = {
       message: messageText.trim(),
@@ -244,6 +248,8 @@ const UniversalChatScreen: React.FC<UniversalChatScreenProps> = ({
     };
 
     try {
+      setIsSending(true);
+
       // API로 메시지 전송
       const sentMessage = await chatApiService.sendMessage(selectedChatId, messageData, userId);
 
@@ -266,9 +272,15 @@ const UniversalChatScreen: React.FC<UniversalChatScreenProps> = ({
       ));
 
       setMessageText('');
+
+      // 스크롤 하단 이동
+      setTimeout(() => {
+        messageListRef.current?.scrollToEnd?.({ animated: true });
+      }, 100);
     } catch (error) {
-      console.error('메시지 전송 실패:', error);
       Alert.alert('오류', '메시지를 전송할 수 없습니다.');
+    } finally {
+      setIsSending(false);
     }
   };
 
@@ -358,7 +370,11 @@ const UniversalChatScreen: React.FC<UniversalChatScreenProps> = ({
 
   // 채팅방 내부 UI
   const renderChatRoom = () => (
-    <View style={styles.chatRoom}>
+    <KeyboardAvoidingView
+      style={styles.chatRoom}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+    >
       {/* 채팅 헤더 */}
       <View style={styles.chatRoomHeader}>
         <TouchableOpacity
@@ -373,22 +389,31 @@ const UniversalChatScreen: React.FC<UniversalChatScreenProps> = ({
             }
           }}
           activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel="뒤로 가기"
         >
           <Icon name="chevron-left" size={20} color={COLORS.text.primary} />
         </TouchableOpacity>
         <Text style={styles.chatRoomTitle}>
           {currentChatRoom?.title || '채팅'}
         </Text>
-        <TouchableOpacity style={styles.menuButton} activeOpacity={0.7}>
+        <TouchableOpacity
+          style={styles.menuButton}
+          activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel="메뉴"
+        >
           <Icon name="more-vertical" size={20} color={COLORS.text.primary} />
         </TouchableOpacity>
       </View>
 
       {/* 메시지 목록 */}
       <ScrollView
+        ref={messageListRef}
         style={styles.messageList}
         contentContainerStyle={styles.messageListContainer}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
       >
         {messages.map((message, index) => {
           // 이전 메시지와 날짜가 다르면 날짜 헤더 표시
@@ -499,20 +524,25 @@ const UniversalChatScreen: React.FC<UniversalChatScreenProps> = ({
             onBlur={() => setMessageInputFocused(false)}
           />
           <TouchableOpacity
-            style={[styles.sendButton, messageText.trim() && styles.sendButtonActive]}
+            style={[
+              styles.sendButton,
+              messageText.trim() && !isSending && styles.sendButtonActive,
+            ]}
             onPress={sendMessage}
-            disabled={!messageText.trim()}
+            disabled={!messageText.trim() || isSending}
             activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="메시지 전송"
           >
             <Icon
               name="send"
               size={18}
-              color={messageText.trim() ? COLORS.text.white : COLORS.text.tertiary}
+              color={messageText.trim() && !isSending ? COLORS.text.white : COLORS.text.tertiary}
             />
           </TouchableOpacity>
         </View>
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 
   // 채팅방이 선택된 경우 채팅방 UI 표시

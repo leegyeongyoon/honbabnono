@@ -11,6 +11,40 @@ import userApiService, { JoinedMeetup, HostedMeetup } from '../services/userApiS
 import { formatKoreanDateTime } from '../utils/dateUtils';
 import { FadeIn } from '../components/animated';
 
+// Web hover wrapper for tab buttons
+const WebTabButton: React.FC<{
+  isActive: boolean;
+  onPress: () => void;
+  children: React.ReactNode;
+  ariaLabel: string;
+}> = ({ isActive, onPress, children, ariaLabel }) => {
+  const [hovered, setHovered] = useState(false);
+
+  return (
+    <TouchableOpacity
+      // @ts-ignore web-specific props
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={[
+        styles.tabButton,
+        isActive && styles.activeTabButton,
+        // @ts-ignore web-specific style
+        {
+          transition: `all ${TRANSITIONS.normal}`,
+          cursor: 'pointer',
+          backgroundColor: hovered && !isActive ? COLORS.neutral.grey100 + '40' : 'transparent',
+        },
+      ]}
+      onPress={onPress}
+      // @ts-ignore web-specific
+      aria-label={ariaLabel}
+      accessibilityRole="tab"
+    >
+      {children}
+    </TouchableOpacity>
+  );
+};
+
 interface User {
   id: string;
   name: string;
@@ -360,20 +394,22 @@ const MyMeetupsScreen: React.FC<MyMeetupsScreenProps> = ({ user: propsUser }) =>
           }}
           color={COLORS.text.primary}
           size={22}
+          // @ts-ignore web-specific
+          aria-label="알림"
         />
       </View>
 
       {/* 탭 바 */}
-      <View style={styles.tabContainer}>
+      <View style={styles.tabContainer} accessibilityRole="tablist">
         {TAB_ITEMS.map((tab) => {
           const isActive = activeTab === tab.key;
           const count = getTabCount(tab.key);
           return (
-            <TouchableOpacity
+            <WebTabButton
               key={tab.key}
-              // @ts-ignore web-specific style
-              style={[styles.tabButton, isActive && styles.activeTabButton, { transition: `all ${TRANSITIONS.normal}`, cursor: 'pointer' }]}
+              isActive={isActive}
               onPress={() => setActiveTab(tab.key)}
+              ariaLabel={`${tab.label} ${count > 0 ? `${count}개` : ''}`}
             >
               {/* @ts-ignore web-specific style */}
               <Text style={[styles.tabButtonText, isActive && styles.activeTabButtonText, { transition: `color ${TRANSITIONS.normal}` }]}>
@@ -387,7 +423,7 @@ const MyMeetupsScreen: React.FC<MyMeetupsScreenProps> = ({ user: propsUser }) =>
                   </Text>
                 </View>
               )}
-            </TouchableOpacity>
+            </WebTabButton>
           );
         })}
       </View>
@@ -448,6 +484,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 24,
     paddingVertical: 14,
+    minHeight: 48,
     borderBottomWidth: 3,
     borderBottomColor: 'transparent',
     gap: 6,

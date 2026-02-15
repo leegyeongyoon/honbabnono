@@ -39,7 +39,7 @@ const EmptyState: React.FC<EmptyStateProps> = ({
   onAction,
   compact = false,
   variant,
-  iconSize = 48,
+  iconSize = 64,
   secondaryActionLabel,
   onSecondaryAction,
 }) => {
@@ -71,7 +71,7 @@ const EmptyState: React.FC<EmptyStateProps> = ({
         <View style={[styles.iconCircle, compact && styles.iconCircleCompact]}>
           <Icon
             name={resolvedIcon as IconName}
-            size={compact ? 28 : 36}
+            size={compact ? 28 : 48}
             color={COLORS.primary.main}
           />
         </View>
@@ -124,13 +124,13 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.lg,
   },
   iconCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 96,
+    height: 96,
+    borderRadius: 48,
     backgroundColor: COLORS.primary.accent,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: SPACING.md,
+    marginBottom: 20,
   },
   iconCircleCompact: {
     width: 64,
@@ -138,7 +138,7 @@ const styles = StyleSheet.create({
     borderRadius: 32,
   },
   emojiIcon: {
-    marginBottom: SPACING.md,
+    marginBottom: 20,
   },
   title: {
     fontSize: 18,
@@ -158,8 +158,11 @@ const styles = StyleSheet.create({
     marginTop: SPACING.md,
     paddingHorizontal: 24,
     paddingVertical: 14,
+    minHeight: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: COLORS.primary.main,
-    borderRadius: 12,
+    borderRadius: 24,
   },
   actionText: {
     fontSize: 15,

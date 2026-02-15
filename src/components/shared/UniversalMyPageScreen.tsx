@@ -189,7 +189,10 @@ const UniversalMyPageScreen: React.FC<UniversalMyPageScreenProps> = ({
           <FadeIn delay={0}>
             <View style={styles.profileCard}>
               <View style={styles.profileRow}>
-                <View style={styles.profileImageWrapper}>
+                <View
+                style={styles.profileImageWrapper}
+                accessibilityLabel="프로필 사진"
+              >
                   <ProfileImage
                     profileImage={userProfileImageUrl}
                     name={user?.name || '사용자'}
@@ -197,12 +200,14 @@ const UniversalMyPageScreen: React.FC<UniversalMyPageScreenProps> = ({
                   />
                 </View>
                 <View style={styles.profileInfo}>
-                  <Text style={styles.userName}>{user?.name || '사용자'}</Text>
-                  <Text style={styles.userEmail}>{user?.email || ''}</Text>
+                  <Text style={styles.userName} numberOfLines={1}>{user?.name || '사용자'}</Text>
+                  <Text style={styles.userEmail} numberOfLines={1}>{user?.email || ''}</Text>
                   <TouchableOpacity
                     style={styles.editProfileButton}
                     onPress={() => navigation.navigate('EditProfile')}
                     activeOpacity={0.7}
+                    accessibilityLabel="프로필 수정"
+                    accessibilityRole="button"
                   >
                     <Text style={styles.editProfileText}>프로필 수정</Text>
                   </TouchableOpacity>
@@ -284,7 +289,7 @@ const UniversalMyPageScreen: React.FC<UniversalMyPageScreenProps> = ({
                     <View style={styles.quickMenuIconBox}>
                       <Icon name={menu.icon} size={24} color={COLORS.primary.main} />
                     </View>
-                    <Text style={styles.quickMenuLabel}>{menu.label}</Text>
+                    <Text style={styles.quickMenuLabel} numberOfLines={1}>{menu.label}</Text>
                   </TouchableOpacity>
                 ))}
               </View>
@@ -330,11 +335,23 @@ const UniversalMyPageScreen: React.FC<UniversalMyPageScreenProps> = ({
           {/* 로그아웃 / 회원탈퇴 */}
           <FadeIn delay={250}>
             <View style={styles.bottomActions}>
-              <TouchableOpacity style={styles.logoutButton} onPress={handleLogout} activeOpacity={0.7}>
+              <TouchableOpacity
+                style={styles.logoutButton}
+                onPress={handleLogout}
+                activeOpacity={0.7}
+                accessibilityLabel="로그아웃"
+                accessibilityRole="button"
+              >
                 <Icon name="log-out" size={18} color={COLORS.text.secondary} />
                 <Text style={styles.logoutText}>로그아웃</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.deleteButton} onPress={handleDeleteAccount} activeOpacity={0.7}>
+              <TouchableOpacity
+                style={styles.deleteButton}
+                onPress={handleDeleteAccount}
+                activeOpacity={0.7}
+                accessibilityLabel="회원탈퇴"
+                accessibilityRole="button"
+              >
                 <Text style={styles.deleteText}>회원탈퇴</Text>
               </TouchableOpacity>
             </View>
@@ -656,11 +673,13 @@ const styles = StyleSheet.create({
   deleteButton: {
     marginTop: 16,
     paddingVertical: 8,
+    minHeight: 44,
+    justifyContent: 'center',
   },
   deleteText: {
     fontSize: 13,
     fontWeight: '400',
-    color: COLORS.text.tertiary,
+    color: COLORS.functional.error,
   },
 
   bottomSpacing: {

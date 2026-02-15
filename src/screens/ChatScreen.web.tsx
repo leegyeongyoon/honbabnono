@@ -35,7 +35,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation }) => {
   const routerNavigation = useRouterNavigation();
   const { id: chatIdFromUrl } = useParams<{ id?: string }>();
   const { user } = useUserStore();
-  
+
   const [selectedTab, setSelectedTab] = useState('전체');
   const [chatRooms, setChatRooms] = useState<ChatRoom[]>([]);
   const [selectedChatId, setSelectedChatId] = useState<number | null>(
@@ -44,11 +44,13 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [messageText, setMessageText] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isSending, setIsSending] = useState(false);
   const [currentChatRoom, setCurrentChatRoom] = useState<ChatRoom | null>(null);
   const [selectedUserForDM, setSelectedUserForDM] = useState<any>(null);
   const [showDMModal, setShowDMModal] = useState(false);
   const { toast, showError, hideToast } = useToast();
   const [messageInputFocused, setMessageInputFocused] = useState(false);
+  const messageListRef = React.useRef<ScrollView>(null);
 
   const tabs = ['전체', '모임', '개인'];
   const userId = user?.id?.toString() || '';
@@ -241,7 +243,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation }) => {
 
   // 메시지 전송
   const sendMessage = async () => {
-    if (!messageText.trim() || !selectedChatId || !currentChatRoom) {return;}
+    if (!messageText.trim() || !selectedChatId || !currentChatRoom || isSending) {return;}
 
     const messageData = {
       message: messageText.trim(),
@@ -250,12 +252,14 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation }) => {
     };
 
     try {
+      setIsSending(true);
+
       // API로 메시지 전송
       const sentMessage = await chatApiService.sendMessage(selectedChatId, messageData, userId);
-      
+
       // 로컬 상태에 메시지 추가
       setMessages(prev => [...prev, sentMessage]);
-      
+
       // WebSocket으로 실시간 전송
       chatService.sendMessage({
         roomId: selectedChatId,
@@ -265,16 +269,23 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation }) => {
       });
 
       // 채팅방 목록의 마지막 메시지 업데이트
-      setChatRooms(prev => prev.map(room => 
-        room.id === selectedChatId 
+      setChatRooms(prev => prev.map(room =>
+        room.id === selectedChatId
           ? { ...room, lastMessage: messageText.trim(), lastTime: sentMessage.timestamp }
           : room
       ));
 
       setMessageText('');
+
+      // 스크롤 하단 이동
+      setTimeout(() => {
+        messageListRef.current?.scrollToEnd?.({ animated: true });
+      }, 100);
     } catch (error) {
       // silently handle error
       showError('메시지를 전송할 수 없습니다.');
+    } finally {
+      setIsSending(false);
     }
   };
 
@@ -375,26 +386,41 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation }) => {
     <View style={styles.chatRoom}>
       {/* 채팅 헤더 */}
       <View style={styles.chatRoomHeader}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => {
-            routerNavigation.goBack();
-          }}
-          activeOpacity={0.7}
+        <div
+          style={{ cursor: 'pointer', borderRadius: 22, transition: 'background-color 150ms ease' }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = COLORS.neutral.grey100; }}
+          onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent'; }}
         >
-          <Icon name="chevron-left" size={20} color={COLORS.text.primary} />
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => {
+              routerNavigation.goBack();
+            }}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="뒤로 가기"
+          >
+            <Icon name="chevron-left" size={20} color={COLORS.text.primary} />
+          </TouchableOpacity>
+        </div>
         <Text style={styles.chatRoomTitle}>
           {currentChatRoom?.title || '채팅'}
         </Text>
-        <TouchableOpacity style={styles.menuButton} activeOpacity={0.7}>
-          <Icon name="more-vertical" size={20} color={COLORS.text.primary} />
-        </TouchableOpacity>
+        <div
+          style={{ cursor: 'pointer', borderRadius: 22, transition: 'background-color 150ms ease' }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = COLORS.neutral.grey100; }}
+          onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent'; }}
+        >
+          <TouchableOpacity style={styles.menuButton} activeOpacity={0.7} accessibilityRole="button" accessibilityLabel="메뉴">
+            <Icon name="more-vertical" size={20} color={COLORS.text.primary} />
+          </TouchableOpacity>
+        </div>
       </View>
 
       {/* 메시지 목록 */}
-      <ScrollView 
-        style={styles.messageList} 
+      <ScrollView
+        ref={messageListRef}
+        style={styles.messageList}
         contentContainerStyle={styles.messageListContainer}
         showsVerticalScrollIndicator={false}
       >
@@ -448,11 +474,17 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation }) => {
                           </Text>
                         )}
                       </View>
-                      <View style={[styles.messageBubble]}>
-                        <Text style={[styles.messageText]}>
-                          {message.message}
-                        </Text>
-                      </View>
+                      <div
+                        style={{ transition: 'filter 150ms ease', borderRadius: 20 }}
+                        onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.filter = 'brightness(0.95)'; }}
+                        onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.filter = 'none'; }}
+                      >
+                        <View style={[styles.messageBubble]}>
+                          <Text style={[styles.messageText]}>
+                            {message.message}
+                          </Text>
+                        </View>
+                      </div>
                       <Text style={[styles.messageTime]}>
                         {new Date(message.timestamp).toLocaleTimeString('ko-KR', { 
                           hour: '2-digit', 
@@ -465,11 +497,17 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation }) => {
                 )}
                 {message.isMe && (
                   <View>
-                    <View style={[styles.messageBubble, styles.myMessageBubble]}>
-                      <Text style={[styles.messageText, styles.myMessageText]}>
-                        {message.message}
-                      </Text>
-                    </View>
+                    <div
+                      style={{ transition: 'filter 150ms ease', borderRadius: 20 }}
+                      onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.filter = 'brightness(0.95)'; }}
+                      onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.filter = 'none'; }}
+                    >
+                      <View style={[styles.messageBubble, styles.myMessageBubble]}>
+                        <Text style={[styles.messageText, styles.myMessageText]}>
+                          {message.message}
+                        </Text>
+                      </View>
+                    </div>
                     <View style={styles.myMessageMeta}>
                       <Text style={[styles.messageTime, styles.myMessageTime]}>
                         {new Date(message.timestamp).toLocaleTimeString('ko-KR', {
@@ -511,18 +549,39 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation }) => {
             onFocus={() => setMessageInputFocused(true)}
             onBlur={() => setMessageInputFocused(false)}
           />
-          <TouchableOpacity
-            style={[styles.sendButton, messageText.trim() && styles.sendButtonActive]}
-            onPress={sendMessage}
-            disabled={!messageText.trim()}
-            activeOpacity={0.7}
+          <div
+            style={{
+              cursor: messageText.trim() && !isSending ? 'pointer' : 'default',
+              borderRadius: 20,
+              transition: 'background-color 150ms ease',
+            }}
+            onMouseEnter={(e) => {
+              if (messageText.trim() && !isSending) {
+                (e.currentTarget as HTMLElement).style.backgroundColor = COLORS.primary.dark;
+              }
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent';
+            }}
           >
-            <Icon
-              name="send"
-              size={18}
-              color={messageText.trim() ? COLORS.text.white : COLORS.text.tertiary}
-            />
-          </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.sendButton,
+                messageText.trim() && !isSending && styles.sendButtonActive,
+              ]}
+              onPress={sendMessage}
+              disabled={!messageText.trim() || isSending}
+              activeOpacity={0.7}
+              accessibilityRole="button"
+              accessibilityLabel="메시지 전송"
+            >
+              <Icon
+                name="send"
+                size={18}
+                color={messageText.trim() && !isSending ? COLORS.text.white : COLORS.text.tertiary}
+              />
+            </TouchableOpacity>
+          </div>
         </View>
       </View>
     </View>
@@ -539,31 +598,38 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation }) => {
       <View style={styles.header}>
         <Text style={styles.headerTitle}>채팅</Text>
         <View style={styles.headerIcons}>
-          <TouchableOpacity style={styles.headerIcon} activeOpacity={0.7}>
-            <Icon name="bell" size={20} color={COLORS.text.primary} />
-          </TouchableOpacity>
+          <div
+            style={{ cursor: 'pointer', borderRadius: 20, transition: 'background-color 150ms ease' }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = COLORS.neutral.grey100; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent'; }}
+          >
+            <TouchableOpacity style={styles.headerIcon} activeOpacity={0.7}>
+              <Icon name="bell" size={20} color={COLORS.text.primary} />
+            </TouchableOpacity>
+          </div>
         </View>
       </View>
 
       {/* 탭 네비게이션 */}
       <View style={styles.tabNavigation}>
         {tabs.map((tab) => (
-          <TouchableOpacity
-            key={tab}
-            style={[
-              styles.tabButton,
-              selectedTab === tab && styles.selectedTabButton
-            ]}
-            onPress={() => setSelectedTab(tab)}
-            activeOpacity={0.7}
-          >
-            <Text style={[
-              styles.tabButtonText,
-              selectedTab === tab && styles.selectedTabButtonText
-            ]}>
-              {tab}
-            </Text>
-          </TouchableOpacity>
+          <div key={tab} style={{ cursor: 'pointer' }}>
+            <TouchableOpacity
+              style={[
+                styles.tabButton,
+                selectedTab === tab && styles.selectedTabButton,
+              ]}
+              onPress={() => setSelectedTab(tab)}
+              activeOpacity={0.7}
+            >
+              <Text style={[
+                styles.tabButtonText,
+                selectedTab === tab && styles.selectedTabButtonText
+              ]}>
+                {tab}
+              </Text>
+            </TouchableOpacity>
+          </div>
         ))}
       </View>
 
@@ -654,7 +720,8 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.neutral.grey100,
     alignItems: 'center',
     justifyContent: 'center',
-  },
+    transition: 'all 200ms ease',
+  } as any,
   selectedTabButton: {
     backgroundColor: COLORS.primary.main,
   },
@@ -662,7 +729,8 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     color: COLORS.text.secondary,
-  },
+    transition: 'color 200ms ease',
+  } as any,
   selectedTabButtonText: {
     color: COLORS.text.white,
     fontWeight: '700',
@@ -939,7 +1007,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginLeft: 8,
-  },
+    transition: 'background-color 150ms ease',
+  } as any,
   sendButtonActive: {
     backgroundColor: COLORS.primary.main,
   },

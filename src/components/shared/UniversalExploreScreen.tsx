@@ -269,12 +269,14 @@ const UniversalExploreScreen: React.FC<UniversalExploreScreenProps> = ({ navigat
           {[1, 2, 3].map(i => <MeetupCardSkeleton key={i} />)}
         </View>
       ) : displayMeetups.length === 0 ? (
-        <EmptyState
-          compact
-          icon="search"
-          title={selectedCategory ? `${selectedCategory} 모임이 없어요` : searchQuery ? '조건에 맞는 모임이 없어요' : '주변에 모임이 없어요'}
-          description={selectedCategory ? '다른 카테고리를 선택해보세요' : '다른 위치로 이동해보세요'}
-        />
+        <FadeIn>
+          <EmptyState
+            compact
+            icon="search"
+            title={selectedCategory ? `${selectedCategory} 모임이 없어요` : searchQuery ? '조건에 맞는 모임이 없어요' : '주변에 모임이 없어요'}
+            description={selectedCategory ? '다른 카테고리를 선택해보세요' : '검색 조건을 변경해보세요'}
+          />
+        </FadeIn>
       ) : (
         <FadeIn>
           <View style={styles.meetupList}>
@@ -288,7 +290,7 @@ const UniversalExploreScreen: React.FC<UniversalExploreScreenProps> = ({ navigat
                 {meetup.distance != null && (
                   <View style={styles.distanceBadge}>
                     <Icon name="map-pin" size={10} color={COLORS.primary.main} />
-                    <Text style={styles.distanceText}>{formatDistance(meetup.distance)}</Text>
+                    <Text style={styles.distanceText} numberOfLines={1}>{formatDistance(meetup.distance)}</Text>
                   </View>
                 )}
               </View>
@@ -389,7 +391,12 @@ const UniversalExploreScreen: React.FC<UniversalExploreScreenProps> = ({ navigat
               returnKeyType="search"
             />
             {searchQuery.length > 0 && (
-              <TouchableOpacity onPress={() => { handleClearSearch(); fetchNearbyMeetups(center.latitude, center.longitude, radius); }} activeOpacity={0.7}>
+              <TouchableOpacity
+                onPress={() => { handleClearSearch(); fetchNearbyMeetups(center.latitude, center.longitude, radius); }}
+                activeOpacity={0.7}
+                style={styles.searchClearButton}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
                 <Icon name="x" size={14} color={COLORS.text.tertiary} />
               </TouchableOpacity>
             )}
@@ -492,11 +499,13 @@ const UniversalExploreScreen: React.FC<UniversalExploreScreenProps> = ({ navigat
                   {[1, 2, 3, 4, 5].map(i => <MeetupCardSkeleton key={i} />)}
                 </View>
               ) : displayMeetups.length === 0 ? (
-                <EmptyState
-                  icon={searchQuery ? 'search' : 'map-pin'}
-                  title={selectedCategory ? `${selectedCategory} 모임이 없어요` : searchQuery ? '조건에 맞는 모임이 없어요' : '주변에 모임이 없어요'}
-                  description={selectedCategory ? '다른 카테고리를 선택해보세요' : searchQuery ? '다른 검색어를 사용해보세요' : '반경을 넓히거나 위치를 변경해보세요'}
-                />
+                <FadeIn>
+                  <EmptyState
+                    icon={searchQuery ? 'search' : 'map-pin'}
+                    title={selectedCategory ? `${selectedCategory} 모임이 없어요` : searchQuery ? '조건에 맞는 모임이 없어요' : '주변에 모임이 없어요'}
+                    description={selectedCategory ? '다른 카테고리를 선택해보세요' : searchQuery ? '검색어를 변경하거나 조건을 변경해보세요' : '반경을 넓히거나 위치를 변경해보세요'}
+                  />
+                </FadeIn>
               ) : (
                 <FadeIn>
                   <View style={styles.meetupList}>
@@ -510,7 +519,7 @@ const UniversalExploreScreen: React.FC<UniversalExploreScreenProps> = ({ navigat
                         {meetup.distance != null && (
                           <View style={styles.distanceBadge}>
                             <Icon name="map-pin" size={10} color={COLORS.primary.main} />
-                            <Text style={styles.distanceText}>{formatDistance(meetup.distance)}</Text>
+                            <Text style={styles.distanceText} numberOfLines={1}>{formatDistance(meetup.distance)}</Text>
                           </View>
                         )}
                       </View>
@@ -569,8 +578,9 @@ const styles = StyleSheet.create({
   },
   categoryChip: {
     height: 36,
+    minHeight: 44,
     justifyContent: 'center',
-    paddingHorizontal: 16,
+    paddingHorizontal: 18,
     borderRadius: 18,
     backgroundColor: COLORS.neutral.grey100,
   },
@@ -614,6 +624,13 @@ const styles = StyleSheet.create({
     color: COLORS.text.primary,
     padding: 0,
   },
+  searchClearButton: {
+    padding: 6,
+    minWidth: 28,
+    minHeight: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
 
   // Radius Filter Chips
   radiusRow: {
@@ -630,6 +647,7 @@ const styles = StyleSheet.create({
   },
   radiusChip: {
     height: 32,
+    minHeight: 44,
     justifyContent: 'center',
     paddingHorizontal: 14,
     borderRadius: 16,
@@ -761,6 +779,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 7,
     borderRadius: 10,
+    minHeight: 44,
   },
   toggleButtonActive: {
     backgroundColor: COLORS.primary.main,

@@ -7,6 +7,8 @@ import {
   TouchableOpacity,
   TextInput,
   SafeAreaView,
+  RefreshControl,
+  Platform,
 } from 'react-native';
 import {COLORS, SHADOWS, LAYOUT} from '../../styles/colors';
 import {SPACING, BORDER_RADIUS} from '../../styles/spacing';
@@ -77,6 +79,23 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
   const [fetchError, setFetchError] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const handleRefresh = useCallback(() => {
+    setRefreshing(true);
+    const neighborhood = storeUser?.neighborhood;
+    const fetchPromise = (neighborhood?.latitude && neighborhood?.longitude)
+      ? fetchHomeMeetups({
+          latitude: neighborhood.latitude,
+          longitude: neighborhood.longitude,
+          radius: neighborhood.radius || 3000,
+        })
+      : fetchHomeMeetups();
+
+    fetchPromise
+      .catch(() => setFetchError(true))
+      .finally(() => setRefreshing(false));
+  }, [storeUser?.neighborhood, fetchHomeMeetups]);
 
   const {
     popupState,
@@ -278,13 +297,19 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
         <View style={styles.header}>
           <Text style={styles.headerLogo}>혼밥시러</Text>
 
-          <TouchableOpacity style={styles.locationButton} onPress={openNeighborhoodSelector}>
+          <TouchableOpacity
+            style={styles.locationButton}
+            onPress={openNeighborhoodSelector}
+            activeOpacity={0.7}
+            accessibilityLabel="동네 변경"
+            accessibilityRole="button"
+          >
             <Icon name="map-pin" size={14} color={COLORS.primary.main} />
-            <Text style={styles.locationText}>
+            <Text style={styles.locationText} numberOfLines={1}>
               {currentNeighborhood ? `${currentNeighborhood.neighborhood}` : '역삼동'}
             </Text>
             {storeUser?.neighborhood?.radius && (
-              <Text style={styles.radiusText}>
+              <Text style={styles.radiusText} numberOfLines={1}>
                 · {formatRadius(storeUser.neighborhood.radius)}
               </Text>
             )}
@@ -310,15 +335,23 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
           onScroll={handleScroll}
           scrollEventThrottle={100}
           onScrollBeginDrag={() => setShowSearchSuggestions(false)}
+          bounces={true}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              tintColor={COLORS.primary.main}
+              colors={[COLORS.primary.main]}
+            />
+          }
         >
           {/* 검색 바 */}
           <View style={styles.searchSection}>
-            <TouchableOpacity
+            <View
               style={[
                 styles.searchBar,
                 searchFocused && styles.searchBarFocused,
               ]}
-              activeOpacity={0.8}
             >
               <Icon name="search" size={20} color={searchFocused ? COLORS.primary.main : COLORS.text.tertiary} />
               <TextInput
@@ -339,18 +372,29 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
                 autoCapitalize="none"
                 autoCorrect={false}
                 returnKeyType="search"
+                accessibilityLabel="모임 검색"
               />
               {searchQuery.length > 0 && (
                 <>
-                  <TouchableOpacity onPress={clearSearch} style={styles.clearButton}>
+                  <TouchableOpacity
+                    onPress={clearSearch}
+                    style={styles.clearButton}
+                    activeOpacity={0.7}
+                    accessibilityLabel="검색어 지우기"
+                  >
                     <Icon name="times" size={14} color={COLORS.text.tertiary} />
                   </TouchableOpacity>
-                  <TouchableOpacity onPress={handleSearch} style={styles.searchSubmitButton}>
+                  <TouchableOpacity
+                    onPress={handleSearch}
+                    style={styles.searchSubmitButton}
+                    activeOpacity={0.7}
+                    accessibilityLabel="검색"
+                  >
                     <Icon name="search" size={12} color={COLORS.neutral.white} />
                   </TouchableOpacity>
                 </>
               )}
-            </TouchableOpacity>
+            </View>
 
             {/* 검색 제안 드롭다운 */}
             {showSearchSuggestions && (
@@ -367,9 +411,11 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
                       key={index}
                       style={styles.suggestionItem}
                       onPress={() => handleSuggestionPress(suggestion)}
+                      activeOpacity={0.7}
+                      accessibilityLabel={suggestion}
                     >
                       <Icon name="search" size={12} color={COLORS.text.tertiary} />
-                      <Text style={styles.suggestionText}>{suggestion}</Text>
+                      <Text style={styles.suggestionText} numberOfLines={1} ellipsizeMode="tail">{suggestion}</Text>
                     </TouchableOpacity>
                   ))}
               </View>
@@ -385,6 +431,8 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
                   style={styles.categoryItem}
                   onPress={() => navigation.navigate('MeetupList', { category: category.name })}
                   activeOpacity={0.7}
+                  accessibilityLabel={`${category.name} 카테고리`}
+                  accessibilityRole="button"
                 >
                   <View style={[styles.categoryIconBox, { backgroundColor: category.bgColor }]}>
                     <CategoryIcon
@@ -394,7 +442,7 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
                       backgroundColor={category.bgColor}
                     />
                   </View>
-                  <Text style={styles.categoryName}>{category.name}</Text>
+                  <Text style={styles.categoryName} numberOfLines={1} ellipsizeMode="tail">{category.name}</Text>
                 </TouchableOpacity>
               ))}
             </View>
@@ -411,7 +459,12 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
                   <Text style={styles.sectionEmoji}>{'\u23F0'}</Text>
                   <Text style={styles.sectionTitle}>곧 시작하는 밥약속</Text>
                 </View>
-                <TouchableOpacity onPress={() => navigation.navigate('MeetupList')}>
+                <TouchableOpacity
+                  onPress={() => navigation.navigate('MeetupList')}
+                  activeOpacity={0.7}
+                  accessibilityLabel="곧 시작하는 밥약속 더보기"
+                  style={styles.seeAllButton as any}
+                >
                   <Text style={styles.seeAllText}>더보기</Text>
                 </TouchableOpacity>
               </View>
@@ -450,7 +503,12 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
                   <Text style={styles.sectionEmoji}>{'\u2728'}</Text>
                   <Text style={styles.sectionTitle}>새로 올라온 모임</Text>
                 </View>
-                <TouchableOpacity onPress={() => navigation.navigate('MeetupList')}>
+                <TouchableOpacity
+                  onPress={() => navigation.navigate('MeetupList')}
+                  activeOpacity={0.7}
+                  accessibilityLabel="새로 올라온 모임 더보기"
+                  style={styles.seeAllButton as any}
+                >
                   <Text style={styles.seeAllText}>더보기</Text>
                 </TouchableOpacity>
               </View>
@@ -489,7 +547,12 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
                   <Text style={styles.sectionEmoji}>{'\uD83E\uDD1D'}</Text>
                   <Text style={styles.sectionTitle}>모집중인 모임</Text>
                 </View>
-                <TouchableOpacity onPress={() => navigation.navigate('MeetupList')}>
+                <TouchableOpacity
+                  onPress={() => navigation.navigate('MeetupList')}
+                  activeOpacity={0.7}
+                  accessibilityLabel="모집중인 모임 더보기"
+                  style={styles.seeAllButton as any}
+                >
                   <Text style={styles.seeAllText}>더보기</Text>
                 </TouchableOpacity>
               </View>
@@ -531,6 +594,8 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
             style={styles.allMeetupsButton}
             onPress={() => navigation.navigate('MeetupList')}
             activeOpacity={0.7}
+            accessibilityLabel="모든 모임 보기"
+            accessibilityRole="button"
           >
             <Text style={styles.allMeetupsText}>모든 모임 보기</Text>
             <Icon name="chevron-right" size={16} color={COLORS.primary.main} />
@@ -556,6 +621,8 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
             style={styles.scrollTopButton}
             onPress={scrollToTop}
             activeOpacity={0.7}
+            accessibilityLabel="맨 위로 스크롤"
+            accessibilityRole="button"
           >
             <Text style={styles.scrollTopText}>{'\u2191'}</Text>
           </TouchableOpacity>
@@ -566,6 +633,8 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
           style={styles.fab}
           onPress={() => navigation.navigate('CreateMeetup')}
           activeOpacity={0.7}
+          accessibilityLabel="새 모임 만들기"
+          accessibilityRole="button"
         >
           <Text style={styles.fabIcon}>+</Text>
         </TouchableOpacity>
@@ -729,6 +798,10 @@ const styles = StyleSheet.create({
   },
   clearButton: {
     padding: SPACING.xs,
+    minWidth: 44,
+    minHeight: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   searchSubmitButton: {
     width: 34,
@@ -764,6 +837,7 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.md,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.neutral.grey100,
+    minHeight: 44,
   },
   suggestionText: {
     ...TYPOGRAPHY.body.medium,
@@ -834,6 +908,13 @@ const styles = StyleSheet.create({
     letterSpacing: -0.3,
     color: COLORS.text.primary,
   },
+  seeAllButton: {
+    minHeight: 44,
+    minWidth: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: SPACING.sm,
+  },
   seeAllText: {
     fontSize: 13,
     fontWeight: FONT_WEIGHTS.medium as any,
@@ -884,9 +965,9 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 170,
     right: 20,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: COLORS.neutral.white,
     alignItems: 'center',
     justifyContent: 'center',
