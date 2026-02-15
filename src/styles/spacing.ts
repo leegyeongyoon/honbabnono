@@ -31,7 +31,12 @@ export const SPACING = {
   },
 
   bottomNav: {
-    height: 60,
+    height: 64,
+  },
+
+  grid: {
+    gap: 12,
+    rowGap: 16,
   },
 } as const;
 

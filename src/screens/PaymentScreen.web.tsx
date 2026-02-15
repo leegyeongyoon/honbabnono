@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, ScrollView } from 'react-native';
-import { COLORS, SHADOWS } from '../styles/colors';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView } from 'react-native';
+import { COLORS, SHADOWS, CARD_STYLE } from '../styles/colors';
 import { useNavigate } from 'react-router-dom';
+import { Icon } from '../components/Icon';
+import { useToast } from '../hooks/useToast';
+import Toast from '../components/Toast';
+import { FadeIn } from '../components/animated';
 
 interface User {
   id: string;
@@ -12,6 +16,7 @@ interface User {
 
 const PaymentScreen: React.FC = () => {
   const navigate = useNavigate();
+  const { toast, showSuccess, showError, showInfo, hideToast } = useToast();
   const [user, setUser] = useState<User>({ id: 'user1', name: '사용자', email: 'user@example.com', points: 0 });
   const [loading, setLoading] = useState(false);
   const [selectedAmount, setSelectedAmount] = useState<number>(0);
@@ -19,6 +24,8 @@ const PaymentScreen: React.FC = () => {
   const [selectedMethod, setSelectedMethod] = useState<'points' | 'card'>('card');
   const [requiredAmount, setRequiredAmount] = useState<number>(0);
   const [isFromMeetup, setIsFromMeetup] = useState<boolean>(false);
+  const [payButtonPressed, setPayButtonPressed] = useState(false);
+  const [customAmountFocused, setCustomAmountFocused] = useState(false);
 
   const predefinedAmounts = [3000, 5000, 10000, 20000, 50000, 100000];
 
@@ -43,7 +50,7 @@ const PaymentScreen: React.FC = () => {
           }));
         }
       } catch (error) {
-        console.error('포인트 조회 오류:', error);
+        // 포인트 조회 실패 시 무시
       }
     };
 
@@ -84,7 +91,7 @@ const PaymentScreen: React.FC = () => {
   const handlePointCharge = async () => {
     const amount = getCurrentAmount();
     if (amount < 1000) {
-      Alert.alert('충전 오류', '최소 충전 금액은 1,000원입니다.');
+      showError('최소 충전 금액은 1,000원입니다.');
       return;
     }
 
@@ -105,19 +112,17 @@ const PaymentScreen: React.FC = () => {
 
       if (data.success) {
         setUser(prev => ({ ...prev, points: data.data.newPoints }));
-        
-        let alertTitle = '충전 완료';
-        let alertMessage = data.data.message || `${amount.toLocaleString()}원이 충전되었습니다.`;
-        
+
+        let toastMessage = data.data.message || `${amount.toLocaleString()}원이 충전되었습니다.`;
+
         if (data.data.isDeveloperAccount && data.data.bonusAmount > 0) {
-          alertTitle = '🎉 개발자 혜택!';
-          alertMessage = data.data.message;
+          toastMessage = data.data.message;
         }
-        
-        Alert.alert(alertTitle, alertMessage);
+
+        showSuccess(toastMessage);
         setSelectedAmount(0);
         setCustomAmount('');
-        
+
         // 충전 완료 후 원래 페이지로 돌아가기
         const returnUrl = sessionStorage.getItem('returnUrl');
         if (returnUrl) {
@@ -125,14 +130,13 @@ const PaymentScreen: React.FC = () => {
           sessionStorage.removeItem('requiredPoints');
           setTimeout(() => {
             navigate(returnUrl);
-          }, data.data.isDeveloperAccount ? 2000 : 1000); // 개발자는 2초 후 이동
+          }, data.data.isDeveloperAccount ? 2000 : 1000);
         }
       } else {
-        Alert.alert('충전 실패', data.message || '충전 중 오류가 발생했습니다.');
+        showError(data.message || '충전 중 오류가 발생했습니다.');
       }
     } catch (error) {
-      console.error('포인트 충전 오류:', error);
-      Alert.alert('충전 실패', '네트워크 오류가 발생했습니다.');
+      showError('네트워크 오류가 발생했습니다.');
     } finally {
       setLoading(false);
     }
@@ -155,13 +159,14 @@ const PaymentScreen: React.FC = () => {
           }} 
           style={styles.backButton}
         >
-          <Text style={styles.backButtonText}>←</Text>
+          <Icon name="arrow-left" size={20} color={COLORS.text.primary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>
           {isFromMeetup ? '모임 참여비 충전' : '포인트 충전'}
         </Text>
       </View>
 
+      <FadeIn>
       <View style={styles.content}>
         {/* 모임 참여비 정보 (모임에서 온 경우만 표시) */}
         {isFromMeetup && requiredAmount > 0 && (
@@ -223,11 +228,19 @@ const PaymentScreen: React.FC = () => {
           <View style={styles.customAmountSection}>
             <Text style={styles.customAmountLabel}>직접 입력</Text>
             <TextInput
-              style={styles.customAmountInput}
+              style={[
+                styles.customAmountInput,
+                customAmountFocused && {
+                  borderColor: COLORS.primary.main,
+                  boxShadow: '0 0 0 3px rgba(139, 105, 20, 0.15)',
+                } as any,
+              ]}
               placeholder="원하는 금액을 입력하세요"
               value={customAmount}
               onChangeText={handleCustomAmountChange}
               keyboardType="numeric"
+              onFocus={() => setCustomAmountFocused(true)}
+              onBlur={() => setCustomAmountFocused(false)}
             />
           </View>
         </View>
@@ -302,22 +315,36 @@ const PaymentScreen: React.FC = () => {
           </View>
         )}
       </View>
+      </FadeIn>
 
       {/* 결제 버튼 */}
       <View style={styles.footer}>
-        <TouchableOpacity
-          style={[
-            styles.payButton,
-            (getCurrentAmount() === 0 || loading) && styles.payButtonDisabled
-          ]}
-          onPress={handlePointCharge}
-          disabled={getCurrentAmount() === 0 || loading}
+        <div
+          style={{
+            transition: 'all 150ms ease',
+            transform: payButtonPressed ? 'scale(0.97)' : 'scale(1)',
+            borderRadius: 12,
+          }}
+          onMouseDown={() => setPayButtonPressed(true)}
+          onMouseUp={() => setPayButtonPressed(false)}
+          onMouseLeave={() => setPayButtonPressed(false)}
         >
-          <Text style={styles.payButtonText}>
-            {loading ? '충전 중...' : getCurrentAmount() > 0 ? `${getCurrentAmount().toLocaleString()}원 충전하기` : '금액을 선택하세요'}
-          </Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.payButton,
+              (getCurrentAmount() === 0 || loading) && styles.payButtonDisabled
+            ]}
+            onPress={handlePointCharge}
+            disabled={getCurrentAmount() === 0 || loading}
+          >
+            <Text style={styles.payButtonText}>
+              {loading ? '충전 중...' : getCurrentAmount() > 0 ? `${getCurrentAmount().toLocaleString()}원 충전하기` : '금액을 선택하세요'}
+            </Text>
+          </TouchableOpacity>
+        </div>
       </View>
+
+      <Toast visible={toast.visible} message={toast.message} type={toast.type} onHide={hideToast} />
     </ScrollView>
   );
 };
@@ -331,11 +358,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
+    paddingVertical: 18,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.neutral.background,
+    borderBottomColor: 'rgba(0,0,0,0.06)',
+    backgroundColor: COLORS.neutral.white,
   },
   backButton: {
     marginRight: 16,
+    padding: 4,
   },
   backButtonText: {
     fontSize: 20,
@@ -343,7 +373,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: '700',
     color: COLORS.text.primary,
   },
   content: {
@@ -352,25 +382,27 @@ const styles = StyleSheet.create({
   },
   pointsSection: {
     backgroundColor: COLORS.primary.main,
-    borderRadius: 12,
-    padding: 20,
+    borderRadius: 16,
+    padding: 24,
     marginBottom: 24,
     alignItems: 'center',
+    ...SHADOWS.medium,
   },
   pointsTitle: {
-    fontSize: 16,
+    fontSize: 14,
+    fontWeight: '500',
     color: COLORS.text.white,
     opacity: 0.9,
     marginBottom: 8,
   },
   pointsAmount: {
     fontSize: 32,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: COLORS.text.white,
     marginBottom: 8,
   },
   pointsSubtext: {
-    fontSize: 14,
+    fontSize: 13,
     color: COLORS.text.white,
     opacity: 0.8,
   },
@@ -378,8 +410,8 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 17,
+    fontWeight: '700',
     color: COLORS.text.primary,
     marginBottom: 16,
   },
@@ -392,24 +424,25 @@ const styles = StyleSheet.create({
   amountButton: {
     flex: 1,
     minWidth: '30%',
-    backgroundColor: COLORS.neutral.background,
-    borderRadius: 8,
+    backgroundColor: COLORS.neutral.white,
+    borderRadius: 12,
     padding: 16,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: COLORS.neutral.grey200,
+    borderColor: 'rgba(0,0,0,0.06)',
   },
   selectedAmountButton: {
     backgroundColor: COLORS.primary.main,
     borderColor: COLORS.primary.main,
   },
   amountButtonText: {
-    fontSize: 16,
-    fontWeight: '500',
+    fontSize: 15,
+    fontWeight: '600',
     color: COLORS.text.primary,
   },
   selectedAmountButtonText: {
     color: COLORS.text.white,
+    fontWeight: '700',
   },
   customAmountSection: {
     marginTop: 12,
@@ -422,22 +455,24 @@ const styles = StyleSheet.create({
   },
   customAmountInput: {
     borderWidth: 1,
-    borderColor: COLORS.neutral.grey200,
-    borderRadius: 8,
+    borderColor: 'rgba(0,0,0,0.06)',
+    borderRadius: 12,
     padding: 16,
     fontSize: 16,
+    backgroundColor: COLORS.neutral.white,
+    transition: 'border-color 150ms ease, box-shadow 150ms ease',
   },
   paymentMethodButton: {
-    backgroundColor: COLORS.neutral.background,
-    borderRadius: 8,
+    backgroundColor: COLORS.neutral.white,
+    borderRadius: 12,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: COLORS.neutral.grey200,
+    borderColor: 'rgba(0,0,0,0.06)',
   },
   selectedPaymentMethod: {
     borderColor: COLORS.primary.main,
-    backgroundColor: '#f0f7ff',
+    backgroundColor: COLORS.primary.light,
   },
   paymentMethodRow: {
     flexDirection: 'row',
@@ -449,7 +484,7 @@ const styles = StyleSheet.create({
     height: 20,
     borderRadius: 10,
     borderWidth: 2,
-    borderColor: COLORS.neutral.grey200,
+    borderColor: COLORS.neutral.grey300,
     marginRight: 12,
     alignItems: 'center',
     justifyContent: 'center',
@@ -471,16 +506,21 @@ const styles = StyleSheet.create({
     marginLeft: 32,
   },
   paymentInfo: {
-    backgroundColor: COLORS.neutral.background,
-    borderRadius: 8,
-    padding: 16,
+    backgroundColor: COLORS.neutral.white,
+    borderRadius: 16,
+    padding: 20,
     marginBottom: 24,
+    ...CARD_STYLE,
+    ...SHADOWS.small,
   },
   paymentInfoTitle: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
     color: COLORS.text.primary,
     marginBottom: 12,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.06)',
   },
   paymentInfoRow: {
     flexDirection: 'row',
@@ -492,41 +532,44 @@ const styles = StyleSheet.create({
     color: COLORS.text.secondary,
   },
   paymentInfoValue: {
-    fontSize: 14,
-    fontWeight: '500',
+    fontSize: 15,
+    fontWeight: '600',
     color: COLORS.text.primary,
   },
   footer: {
     padding: 16,
     borderTopWidth: 1,
-    borderTopColor: COLORS.neutral.background,
+    borderTopColor: 'rgba(0,0,0,0.06)',
+    backgroundColor: COLORS.neutral.white,
   },
   payButton: {
     backgroundColor: COLORS.primary.main,
-    borderRadius: 8,
-    padding: 16,
+    borderRadius: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
     alignItems: 'center',
   },
   payButtonDisabled: {
     backgroundColor: COLORS.neutral.grey300,
+    opacity: 0.7,
   },
   payButtonText: {
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 17,
+    fontWeight: '700',
     color: COLORS.text.white,
   },
   meetupInfoSection: {
-    backgroundColor: '#FFF3E0',
-    borderRadius: 12,
-    padding: 16,
+    backgroundColor: '#FFF8F0',
+    borderRadius: 16,
+    padding: 20,
     marginBottom: 24,
     borderWidth: 1,
-    borderColor: '#FFB74D',
+    borderColor: 'rgba(229, 168, 75, 0.3)',
   },
   meetupInfoTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#E65100',
+    fontSize: 15,
+    fontWeight: '700',
+    color: COLORS.functional.warning,
     marginBottom: 12,
     textAlign: 'center',
   },

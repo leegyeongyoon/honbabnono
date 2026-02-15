@@ -98,7 +98,6 @@ class NativeBridgeHelper {
       try {
         await AsyncStorage.setItem('authToken', token);
       } catch (error) {
-        console.warn('Failed to save token to AsyncStorage:', error);
         // Fallback to bridge if direct AsyncStorage fails
         window.NativeBridge?.saveToken(token);
       }
@@ -118,7 +117,6 @@ class NativeBridgeHelper {
       try {
         return await AsyncStorage.getItem('authToken');
       } catch (error) {
-        console.warn('Failed to get token from AsyncStorage:', error);
         // Fallback to bridge if direct AsyncStorage fails
         return new Promise((resolve) => {
           this.once('TOKEN_RESULT', (data) => resolve(data.token));
@@ -157,15 +155,10 @@ class NativeBridgeHelper {
 
   // 즉시 알림 표시
   showNotification(title: string, body: string, data?: any): void {
-    console.log('🔔 [nativeBridge] showNotification 호출:', { title, body, isNativeApp: this.isNativeApp() });
-    
     if (this.isNativeApp()) {
       // 네이티브 앱에서는 WebView 브리지 사용 (React Native 모듈 직접 접근 불가)
       if (window.NativeBridge) {
-        console.log('📱 [nativeBridge] window.NativeBridge.showNotification 호출');
         window.NativeBridge.showNotification(title, body, data);
-      } else {
-        console.error('❌ [nativeBridge] window.NativeBridge not available');
       }
     } else {
       // 웹에서는 브라우저 알림 사용
@@ -185,19 +178,13 @@ class NativeBridgeHelper {
 
   // 지연 알림 스케줄링
   scheduleNotification(title: string, body: string, delay: number, data?: any): void {
-    console.log('⏰ [nativeBridge] scheduleNotification 호출:', { title, body, delay, isNativeApp: this.isNativeApp() });
-    
     if (this.isNativeApp()) {
       // 네이티브 앱에서는 WebView 브리지 사용 (React Native 모듈 직접 접근 불가)
       if (window.NativeBridge) {
-        console.log('📱 [nativeBridge] window.NativeBridge.scheduleNotification 호출');
         window.NativeBridge.scheduleNotification(title, body, delay, data);
-      } else {
-        console.error('❌ [nativeBridge] window.NativeBridge not available');
       }
     } else {
       // 웹에서는 setTimeout + 브라우저 알림 사용
-      console.log('🌐 [nativeBridge] 웹 환경에서 setTimeout 사용');
       setTimeout(() => {
         this.showNotification(title, body, data);
       }, delay * 1000);

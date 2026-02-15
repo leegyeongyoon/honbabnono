@@ -27,7 +27,6 @@ export const formatKoreanDateTime = (
     
     // 유효한 날짜인지 확인
     if (isNaN(dateObj.getTime())) {
-      console.error('Invalid date:', date);
       return '날짜 오류';
     }
   
@@ -65,7 +64,6 @@ export const formatKoreanDateTime = (
         return formatKoreanDateTime(date, 'full');
     }
   } catch (error) {
-    console.error('formatKoreanDateTime error:', error, 'date:', date, 'format:', format);
     return '날짜 오류';
   }
 };
@@ -150,7 +148,6 @@ export const getMeetupStatus = (meetupDate: string, meetupTime: string): {
     
     // 유효한 날짜인지 확인
     if (isNaN(meetupDateTime.getTime())) {
-      console.error('Invalid meetup date/time:', meetupDate, meetupTime);
       return {
         status: 'upcoming',
         label: '예정',
@@ -187,7 +184,6 @@ export const getMeetupStatus = (meetupDate: string, meetupTime: string): {
       };
     }
   } catch (error) {
-    console.error('getMeetupStatus error:', error, 'meetupDate:', meetupDate, 'meetupTime:', meetupTime);
     return {
       status: 'upcoming',
       label: '예정',

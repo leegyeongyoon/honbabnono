@@ -2,6 +2,10 @@
 #
 .DS_Store
 
+# Cookies (sensitive)
+cookies.txt
+**/cookies.txt
+
 # Xcode
 #
 build/
@@ -90,3 +94,9 @@ terraform/terraform.tfstate*
 
 # MCP configuration (contains API keys)
 .mcp.json
+
+# Python venv
+venv/
+
+# YouTube transcript output
+yt_transcripts/

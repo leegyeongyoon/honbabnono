@@ -5,7 +5,6 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  ActivityIndicator,
 } from 'react-native';
 import { useRouterNavigation } from '../components/RouterNavigation';
 import MeetupCard from '../components/MeetupCard';
@@ -15,6 +14,8 @@ import { formatKoreanDateTime } from '../utils/dateUtils';
 import { Icon } from '../components/Icon';
 import { FOOD_CATEGORIES } from '../constants/categories';
 import { NotificationBell } from '../components/NotificationBell';
+import ErrorState from '../components/ErrorState';
+import { MeetupCardSkeleton } from '../components/skeleton';
 
 
 const MeetupListScreen = () => {
@@ -27,11 +28,13 @@ const MeetupListScreen = () => {
   }, []);
 
   const filteredMeetups = meetups.filter(meetup => {
+    const currentP = meetup.currentParticipants ?? 0;
+    const maxP = meetup.maxParticipants ?? 4;
     switch (filter) {
       case 'recruiting':
         return meetup.status === '모집중';
       case 'full':
-        return (meetup.currentParticipants || meetup.current_participants) >= (meetup.maxParticipants || meetup.max_participants);
+        return currentP >= maxP;
       default:
         return true;
     }
@@ -39,20 +42,56 @@ const MeetupListScreen = () => {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={COLORS.primary.main} />
-        <Text style={styles.loadingText}>모임을 불러오는 중...</Text>
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => {
+              try {
+                window.history.go(-1);
+              } catch (e) {
+                navigation.navigate('Home');
+              }
+            }}
+          >
+            <Icon name="chevron-left" size={24} color={COLORS.text.primary} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>모든 모임</Text>
+          <View style={{ width: 20 }} />
+        </View>
+        <View style={styles.skeletonWrap}>
+          {[0, 1, 2, 3, 4].map((i) => (
+            <MeetupCardSkeleton key={i} />
+          ))}
+        </View>
       </View>
     );
   }
 
   if (error) {
     return (
-      <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>모임을 불러올 수 없습니다.</Text>
-        <TouchableOpacity style={styles.retryButton} onPress={refreshMeetups}>
-          <Text style={styles.retryButtonText}>다시 시도</Text>
-        </TouchableOpacity>
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => {
+              try {
+                window.history.go(-1);
+              } catch (e) {
+                navigation.navigate('Home');
+              }
+            }}
+          >
+            <Icon name="chevron-left" size={24} color={COLORS.text.primary} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>모든 모임</Text>
+          <View style={{ width: 20 }} />
+        </View>
+        <ErrorState
+          title="모임을 불러올 수 없습니다"
+          description="네트워크 상태를 확인하고 다시 시도해주세요"
+          onRetry={refreshMeetups}
+        />
       </View>
     );
   }
@@ -64,13 +103,11 @@ const MeetupListScreen = () => {
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => {
-            console.log('MeetupList: 뒤로가기 버튼 클릭됨');
             try {
               // React Router의 navigate(-1) 시도
               window.history.go(-1);
-              console.log('MeetupList: history.go(-1) 실행됨');
             } catch (error) {
-              console.log('MeetupList: 뒤로가기 실패, 홈으로 이동:', error);
+              // silently handle error
               navigation.navigate('Home');
             }
           }}
@@ -79,9 +116,7 @@ const MeetupListScreen = () => {
         </TouchableOpacity>
         <Text style={styles.headerTitle}>모든 모임</Text>
         <NotificationBell
-          onPress={() => {
-            console.log('🔔 알림 버튼 클릭됨');
-          }}
+          onPress={() => {}}
           color={COLORS.text.primary}
           size={20}
         />
@@ -112,7 +147,7 @@ const MeetupListScreen = () => {
           onPress={() => setFilter('full')}
         >
           <Text style={[styles.filterText, filter === 'full' && styles.activeFilterText]}>
-            모집완료 ({meetups.filter(m => (m.currentParticipants || m.current_participants) >= (m.maxParticipants || m.max_participants)).length})
+            모집완료 ({meetups.filter(m => (m.currentParticipants ?? 0) >= (m.maxParticipants ?? 4)).length})
           </Text>
         </TouchableOpacity>
       </View>
@@ -134,6 +169,7 @@ const MeetupListScreen = () => {
               key={meetup.id}
               meetup={meetup}
               onPress={() => navigation.navigate('MeetupDetail', { meetupId: meetup.id })}
+              variant="compact"
             />
           ))
         )}
@@ -155,39 +191,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.neutral.background,
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: COLORS.neutral.background,
-  },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: COLORS.text.secondary,
-  },
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: COLORS.neutral.background,
+  skeletonWrap: {
     padding: 20,
-  },
-  errorText: {
-    fontSize: 16,
-    color: COLORS.text.secondary,
-    marginBottom: 16,
-    textAlign: 'center',
-  },
-  retryButton: {
-    backgroundColor: COLORS.primary.main,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 8,
-  },
-  retryButtonText: {
-    color: COLORS.text.white,
-    fontWeight: '500',
+    gap: 16,
   },
   header: {
     flexDirection: 'row',
@@ -237,6 +243,7 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
     backgroundColor: COLORS.neutral.white,
+    paddingTop: 0,
   },
   meetupCard: {
     backgroundColor: COLORS.neutral.white,

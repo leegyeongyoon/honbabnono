@@ -1,76 +1,77 @@
+import type { IconName } from '../components/SimpleIcon';
+
 // 카테고리 관련 상수 (혼밥하기 어려운 카테고리 중심)
-export const FOOD_CATEGORIES = [
+export const FOOD_CATEGORIES: {
+  id: string;
+  name: string;
+  icon: IconName;
+  desc: string;
+  color: string;
+  bgColor: string;
+}[] = [
   {
     id: 'bbq',
     name: '고기/구이',
-    icon: 'fire',
-    emoji: '🥩',
+    icon: 'flame',
     desc: '삼겹살/갈비/곱창',
-    color: '#C9B59C',
-    bgColor: '#F9F8F6'
+    color: '#8B6914',
+    bgColor: '#FFF8E7'
   },
   {
     id: 'hotpot',
     name: '전골/찌개',
-    icon: 'utensils',
-    emoji: '🍲',
+    icon: 'soup',
     desc: '부대찌개/김치찌개',
-    color: '#C9B59C',
-    bgColor: '#F9F8F6'
+    color: '#D4A54A',
+    bgColor: '#FFF8E7'
   },
   {
     id: 'buffet',
     name: '뷔페/무한리필',
-    icon: 'concierge-bell',
-    emoji: '🍽️',
+    icon: 'utensils',
     desc: '고기뷔페/샐러드바',
-    color: '#C9B59C',
-    bgColor: '#F9F8F6'
+    color: '#5B9A6F',
+    bgColor: '#E8F5E9'
   },
   {
     id: 'seafood',
     name: '해산물/회',
     icon: 'fish',
-    emoji: '🐟',
     desc: '회/조개구이/랍스터',
-    color: '#C9B59C',
-    bgColor: '#F9F8F6'
+    color: '#6B8EAE',
+    bgColor: '#E3F2FD'
   },
   {
     id: 'pizza',
     name: '피자/치킨',
-    icon: 'drumstick-bite',
-    emoji: '🍕',
+    icon: 'pizza',
     desc: '피자/후라이드치킨',
-    color: '#C9B59C',
-    bgColor: '#F9F8F6'
+    color: '#6B4F0E',
+    bgColor: '#FFF8E7'
   },
   {
     id: 'bar',
     name: '주점/술집',
-    icon: 'wine-glass',
-    emoji: '🍺',
+    icon: 'wine',
     desc: '호프집/이자카야',
-    color: '#C9B59C',
-    bgColor: '#F9F8F6'
+    color: '#9B6B9E',
+    bgColor: '#F3E5F5'
   },
   {
     id: 'course',
     name: '코스요리',
     icon: 'award',
-    emoji: '🍴',
     desc: '오마카세/프렌치',
-    color: '#C9B59C',
-    bgColor: '#F9F8F6'
+    color: '#B8912E',
+    bgColor: '#FFF8E7'
   },
   {
     id: 'party',
     name: '파티룸',
     icon: 'birthday-cake',
-    emoji: '🎉',
     desc: '생일파티/회식',
-    color: '#C9B59C',
-    bgColor: '#F9F8F6'
+    color: '#8B6914',
+    bgColor: '#FCE4EC'
   },
 ];
 

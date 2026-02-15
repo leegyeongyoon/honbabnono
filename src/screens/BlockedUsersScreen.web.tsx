@@ -1,10 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { useNavigate } from 'react-router-dom';
-import { COLORS, SHADOWS } from '../styles/colors';
+import { COLORS, SHADOWS, CARD_STYLE } from '../styles/colors';
+import { Icon } from '../components/Icon';
 import { ArrowLeft, UserX, Shield, AlertTriangle } from 'lucide-react';
 import apiClient from '../services/apiClient';
 import { ProfileImage } from '../components/ProfileImage';
+import EmptyState from '../components/EmptyState';
+import { useToast } from '../hooks/useToast';
+import { useConfirmDialog } from '../hooks/useConfirmDialog';
+import Toast from '../components/Toast';
+import ConfirmDialog from '../components/ConfirmDialog';
 
 interface BlockedUser {
   block_id: string;
@@ -20,6 +26,8 @@ const BlockedUsersScreen: React.FC = () => {
   const navigate = useNavigate();
   const [blockedUsers, setBlockedUsers] = useState<BlockedUser[]>([]);
   const [loading, setLoading] = useState(true);
+  const { toast, showSuccess, showError, hideToast } = useToast();
+  const { dialog, showDialog } = useConfirmDialog();
 
   useEffect(() => {
     fetchBlockedUsers();
@@ -28,20 +36,16 @@ const BlockedUsersScreen: React.FC = () => {
   const fetchBlockedUsers = async () => {
     try {
       setLoading(true);
-      console.log('🚫 차단 회원 목록 조회 시작');
       const response = await apiClient.get('/user/blocked-users', {
         params: { page: 1, limit: 50 }
       });
-      
+
       if (response.data && response.data.success) {
         setBlockedUsers(response.data.data || []);
-        console.log('✅ 차단 회원 목록 조회 성공:', response.data.data?.length, '건');
       } else {
-        console.error('❌ 차단 회원 목록 조회 실패:', response.data?.message || 'Unknown error');
         setBlockedUsers([]);
       }
     } catch (error) {
-      console.error('❌ 차단 회원 목록 조회 실패:', error);
       setBlockedUsers([]);
     } finally {
       setLoading(false);
@@ -49,45 +53,35 @@ const BlockedUsersScreen: React.FC = () => {
   };
 
   const unblockUser = async (userId: string, userName: string) => {
-    Alert.alert(
-      '차단 해제',
-      `${userName}님의 차단을 해제하시겠습니까?`,
-      [
-        {
-          text: '취소',
-          style: 'cancel',
-        },
-        {
-          text: '해제',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              console.log('🔓 회원 차단 해제 시도:', userId);
-              const response = await apiClient.delete(`/users/${userId}/block`);
-              
-              if (response.data && response.data.success) {
-                setBlockedUsers(prev => prev.filter(user => user.id !== userId));
-                console.log('✅ 회원 차단 해제 성공');
-                Alert.alert('완료', response.data.message);
-              } else {
-                console.error('❌ 회원 차단 해제 실패:', response.data?.message);
-                Alert.alert('오류', response.data?.message || '차단 해제에 실패했습니다.');
-              }
-            } catch (error) {
-              console.error('❌ 회원 차단 해제 실패:', error);
-              Alert.alert('오류', '차단 해제 중 오류가 발생했습니다.');
-            }
-          },
-        },
-      ]
-    );
+    const confirmed = await showDialog({
+      title: '차단 해제',
+      message: `${userName}님의 차단을 해제하시겠습니까?`,
+      confirmLabel: '해제',
+      cancelLabel: '취소',
+      variant: 'danger',
+    });
+
+    if (!confirmed) return;
+
+    try {
+      const response = await apiClient.delete(`/users/${userId}/block`);
+
+      if (response.data && response.data.success) {
+        setBlockedUsers(prev => prev.filter(user => user.id !== userId));
+        showSuccess(response.data.message || '차단이 해제되었습니다.');
+      } else {
+        showError(response.data?.message || '차단 해제에 실패했습니다.');
+      }
+    } catch (error) {
+      showError('차단 해제 중 오류가 발생했습니다.');
+    }
   };
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
     const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
-    
+
     if (diffInHours < 1) {
       const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
       return `${diffInMinutes}분 전`;
@@ -116,18 +110,18 @@ const BlockedUsersScreen: React.FC = () => {
           name={user.name}
           style={styles.profileImage}
         />
-        
+
         <View style={styles.userDetails}>
           <Text style={styles.userName}>{user.name}</Text>
           <Text style={styles.userEmail}>{user.email}</Text>
-          
+
           {user.reason && (
             <View style={styles.reasonContainer}>
               <AlertTriangle size={14} color={COLORS.text.secondary} />
               <Text style={styles.reasonText}>{user.reason}</Text>
             </View>
           )}
-          
+
           <Text style={styles.blockedDate}>
             {formatDate(user.blocked_at)} 차단
           </Text>
@@ -179,19 +173,13 @@ const BlockedUsersScreen: React.FC = () => {
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {blockedUsers.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyIcon}>🚫</Text>
-            <Text style={styles.emptyTitle}>차단한 회원이 없습니다</Text>
-            <Text style={styles.emptyDescription}>
-              불편을 끼치는 회원이 있다면{'\n'}차단 기능을 이용하세요.
-            </Text>
-            <TouchableOpacity
-              style={styles.exploreButton}
-              onPress={() => navigate('/home')}
-            >
-              <Text style={styles.exploreButtonText}>홈으로 돌아가기</Text>
-            </TouchableOpacity>
-          </View>
+          <EmptyState
+            icon="shield"
+            title="차단한 회원이 없습니다"
+            description="불편을 끼치는 회원이 있다면 차단 기능을 이용하세요."
+            actionLabel="홈으로 돌아가기"
+            onAction={() => navigate('/home')}
+          />
         ) : (
           <View style={styles.blockedUsersGrid}>
             <View style={styles.sectionHeader}>
@@ -204,6 +192,14 @@ const BlockedUsersScreen: React.FC = () => {
           </View>
         )}
       </ScrollView>
+
+      <Toast
+        message={toast.message}
+        type={toast.type}
+        visible={toast.visible}
+        onHide={hideToast}
+      />
+      <ConfirmDialog {...dialog} />
     </View>
   );
 };
@@ -221,30 +217,32 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: COLORS.text.secondary,
   },
-  
+
   // 헤더
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingTop: 20,
+    paddingBottom: 16,
     backgroundColor: COLORS.neutral.white,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.neutral.border,
+    borderBottomColor: 'rgba(0,0,0,0.06)',
+    ...SHADOWS.small,
   },
   backButton: {
     padding: 8,
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 20,
+    fontWeight: '700',
     color: COLORS.text.primary,
   },
   placeholder: {
     width: 40,
   },
-  
+
   // 통계
   statsContainer: {
     paddingHorizontal: 20,
@@ -253,14 +251,15 @@ const styles = StyleSheet.create({
   },
   statCard: {
     backgroundColor: COLORS.neutral.background,
-    borderRadius: 12,
+    borderRadius: 16,
     padding: 20,
     alignItems: 'center',
+    ...CARD_STYLE,
     ...SHADOWS.small,
   },
   statNumber: {
     fontSize: 24,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: COLORS.text.error,
     marginTop: 8,
     marginBottom: 4,
@@ -270,47 +269,12 @@ const styles = StyleSheet.create({
     color: COLORS.text.secondary,
     textAlign: 'center',
   },
-  
+
   // 컨텐츠
   content: {
     flex: 1,
   },
-  
-  // 빈 상태
-  emptyState: {
-    alignItems: 'center',
-    paddingHorizontal: 40,
-    paddingTop: 80,
-  },
-  emptyIcon: {
-    fontSize: 64,
-    marginBottom: 24,
-  },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: COLORS.text.primary,
-    marginBottom: 8,
-  },
-  emptyDescription: {
-    fontSize: 14,
-    color: COLORS.text.secondary,
-    textAlign: 'center',
-    lineHeight: 20,
-    marginBottom: 32,
-  },
-  exploreButton: {
-    backgroundColor: COLORS.primary.main,
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-  },
-  exploreButtonText: {
-    color: COLORS.neutral.white,
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  
+
   // 차단 회원 목록
   blockedUsersGrid: {
     paddingHorizontal: 20,
@@ -320,8 +284,8 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 18,
+    fontWeight: '700',
     color: COLORS.text.primary,
     marginBottom: 4,
   },
@@ -330,16 +294,16 @@ const styles = StyleSheet.create({
     color: COLORS.text.secondary,
     lineHeight: 18,
   },
-  
+
   // 사용자 카드
   userCard: {
     backgroundColor: COLORS.neutral.white,
-    borderRadius: 12,
     padding: 16,
     marginBottom: 12,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    ...CARD_STYLE,
     ...SHADOWS.small,
   },
   userInfo: {
@@ -376,8 +340,8 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
   },
   blockedDate: {
-    fontSize: 12,
-    color: COLORS.text.disabled,
+    fontSize: 13,
+    color: COLORS.text.tertiary,
   },
   unblockButton: {
     flexDirection: 'row',
@@ -385,13 +349,13 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.text.error,
     paddingHorizontal: 16,
     paddingVertical: 10,
-    borderRadius: 8,
+    borderRadius: 10,
     gap: 6,
   },
   unblockButtonText: {
     color: COLORS.neutral.white,
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: '600',
   },
 });
 

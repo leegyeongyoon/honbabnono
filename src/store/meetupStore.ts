@@ -97,13 +97,11 @@ interface MeetupState {
 // API 호출 헬퍼 함수 (axios 직접 사용)
 const apiCall = async (endpoint: string, options: any = {}) => {
   try {
-    console.log('🚀 API Call:', endpoint, options);
-    
     // axios 메서드별로 호출
     let response;
     const method = (options.method || 'GET').toUpperCase();
     const data = options.body ? (typeof options.body === 'string' ? JSON.parse(options.body) : options.body) : undefined;
-    
+
     switch (method) {
       case 'GET':
         response = await apiClient.get(endpoint);
@@ -123,29 +121,15 @@ const apiCall = async (endpoint: string, options: any = {}) => {
       default:
         response = await apiClient.get(endpoint);
     }
-    
-    // 상세한 응답 로그
-    console.log('📦 Full axios response:', {
-      status: response.status,
-      statusText: response.statusText,
-      headers: response.headers,
-      data: response.data,
-      dataType: typeof response.data,
-      isDataEmpty: Object.keys(response.data || {}).length === 0
-    });
-    
+
     // 전체 응답 객체를 반환
     return response.data;
   } catch (error: any) {
-    console.error('💥 API Call Error:', error);
     if (error.response) {
-      console.error('💥 Error response:', error.response.data);
       throw new Error(`API Error: ${error.response.status} ${error.response.data?.message || error.message}`);
     } else if (error.request) {
-      console.error('💥 Error request:', error.request);
       throw new Error(`Network Error: No response from server`);
     } else {
-      console.error('💥 Error message:', error.message);
       throw new Error(`Error: ${error.message}`);
     }
   }
@@ -153,8 +137,6 @@ const apiCall = async (endpoint: string, options: any = {}) => {
 
 // 백엔드 데이터를 프론트엔드 형식으로 변환
 const transformMeetupData = (meetupData: any): Meetup => {
-  console.log('🔄 Transform meetup data:', meetupData);
-  
   // 다양한 응답 구조 처리
   let actualData;
   if (meetupData.success && meetupData.meetup) {
@@ -165,21 +147,19 @@ const transformMeetupData = (meetupData: any): Meetup => {
     actualData = meetupData;
   }
   
-  console.log('📝 Actual data:', actualData);
-  
   return {
     id: actualData.id,
-    title: actualData.title,
+    title: actualData.title || '제목 없음',
     description: actualData.description || '',
-    category: actualData.category,
-    location: actualData.location,
+    category: actualData.category || '기타',
+    location: actualData.location || '위치 미정',
     address: actualData.address,
     latitude: actualData.latitude,
     longitude: actualData.longitude,
-    date: actualData.date,
-    time: actualData.time,
-    maxParticipants: actualData.maxParticipants,
-    currentParticipants: actualData.currentParticipants,
+    date: actualData.date || '',
+    time: actualData.time || '',
+    maxParticipants: actualData.maxParticipants ?? actualData.max_participants ?? 4,
+    currentParticipants: actualData.currentParticipants ?? actualData.current_participants ?? 0,
     priceRange: actualData.priceRange,
     ageRange: actualData.ageRange,
     genderPreference: actualData.genderPreference,
@@ -231,22 +211,11 @@ export const useMeetupStore = create<MeetupState>()(
     fetchMeetups: async () => {
       set({ loading: true, error: null });
       try {
-        console.log('📋 Fetching meetups list');
         const response = await apiCall('/meetups');
-        
-        console.log('🎯 Response received in fetchMeetups:', {
-          response,
-          responseType: typeof response,
-          responseKeys: Object.keys(response || {}),
-          meetupsArray: response?.meetups,
-          meetupsLength: response?.meetups?.length,
-          stringified: JSON.stringify(response)
-        });
-        
+
         const transformedMeetups = response.meetups?.map(transformMeetupData) || [];
         set({ meetups: transformedMeetups, loading: false });
       } catch (error) {
-        console.error('모임 목록 조회 실패:', error);
         set({ error: (error as Error).message, loading: false });
       }
     },
@@ -271,7 +240,6 @@ export const useMeetupStore = create<MeetupState>()(
         const transformedMeetups = response.meetups?.map(transformMeetupData) || [];
         set({ meetups: transformedMeetups, loading: false });
       } catch (error) {
-        console.error('홈 모임 목록 조회 실패:', error);
         set({ error: (error as Error).message, loading: false });
       }
     },
@@ -279,13 +247,11 @@ export const useMeetupStore = create<MeetupState>()(
     fetchActiveMeetups: async () => {
       set({ loading: true, error: null });
       try {
-        console.log('⚡ Fetching active meetups list');
         const response = await apiCall('/meetups/active');
         
         const transformedMeetups = response.meetups?.map(transformMeetupData) || [];
         set({ meetups: transformedMeetups, loading: false });
       } catch (error) {
-        console.error('활성 모임 목록 조회 실패:', error);
         set({ error: (error as Error).message, loading: false });
       }
     },
@@ -293,36 +259,24 @@ export const useMeetupStore = create<MeetupState>()(
     fetchCompletedMeetups: async () => {
       set({ loading: true, error: null });
       try {
-        console.log('✅ Fetching completed meetups list');
         const response = await apiCall('/meetups/completed');
         
         const transformedMeetups = response.meetups?.map(transformMeetupData) || [];
         set({ meetups: transformedMeetups, loading: false });
       } catch (error) {
-        console.error('완료된 모임 목록 조회 실패:', error);
         set({ error: (error as Error).message, loading: false });
       }
     },
-    
+
     fetchMeetupById: async (id: string) => {
       set({ loading: true, error: null });
       try {
-        console.log('📋 Fetching meetup by ID:', id);
         const response = await apiCall(`/meetups/${id}`);
-        
-        console.log('🎯 Response received in fetchMeetupById:', {
-          response,
-          responseType: typeof response,
-          responseKeys: Object.keys(response || {}),
-          hasData: !!response,
-          stringified: JSON.stringify(response)
-        });
-        
+
         const meetup = transformMeetupData(response);
         set({ currentMeetup: meetup, loading: false });
         return meetup;
       } catch (error) {
-        console.error('모임 상세 조회 실패:', error);
         set({ error: (error as Error).message, loading: false });
         return null;
       }
@@ -347,7 +301,6 @@ export const useMeetupStore = create<MeetupState>()(
         
         return newMeetup;
       } catch (error) {
-        console.error('모임 생성 실패:', error);
         set({ error: (error as Error).message, loading: false });
         return null;
       }
@@ -373,7 +326,6 @@ export const useMeetupStore = create<MeetupState>()(
           loading: false 
         });
       } catch (error) {
-        console.error('모임 수정 실패:', error);
         set({ error: (error as Error).message, loading: false });
       }
     },
@@ -393,7 +345,6 @@ export const useMeetupStore = create<MeetupState>()(
           loading: false 
         });
       } catch (error) {
-        console.error('모임 삭제 실패:', error);
         set({ error: (error as Error).message, loading: false });
       }
     },
@@ -409,7 +360,6 @@ export const useMeetupStore = create<MeetupState>()(
         // 모임 데이터 새로고침
         await get().fetchMeetupById(meetupId);
       } catch (error) {
-        console.error('모임 참가 실패:', error);
         set({ error: (error as Error).message });
       }
     },
@@ -428,7 +378,6 @@ export const useMeetupStore = create<MeetupState>()(
         
         return response;
       } catch (error) {
-        console.error('모임 탈퇴 실패:', error);
         set({ error: (error as Error).message });
         throw error;
       }
@@ -443,7 +392,6 @@ export const useMeetupStore = create<MeetupState>()(
         // 모임 데이터 새로고침
         await get().fetchMeetupById(meetupId);
       } catch (error) {
-        console.error('참가자 승인 실패:', error);
         set({ error: (error as Error).message });
       }
     },
@@ -457,7 +405,6 @@ export const useMeetupStore = create<MeetupState>()(
         // 모임 데이터 새로고침
         await get().fetchMeetupById(meetupId);
       } catch (error) {
-        console.error('참가자 거절 실패:', error);
         set({ error: (error as Error).message });
       }
     },

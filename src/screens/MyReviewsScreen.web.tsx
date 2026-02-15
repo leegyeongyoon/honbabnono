@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { COLORS, SHADOWS } from '../styles/colors';
 import { Icon } from '../components/Icon';
 import apiClient from '../services/apiClient';
+import EmptyState from '../components/EmptyState';
 
 interface Review {
   id: string;
@@ -26,9 +27,9 @@ const MyReviewsScreen: React.FC = () => {
       try {
         setLoading(true);
         const response = await apiClient.get('/user/reviews');
-        setReviews(response.data.reviews);
+        setReviews(response.data.reviews || []);
       } catch (error) {
-        console.error('내 리뷰 조회 실패:', error);
+        // silently fail
       } finally {
         setLoading(false);
       }
@@ -43,7 +44,7 @@ const MyReviewsScreen: React.FC = () => {
       stars.push(
         <Icon
           key={i}
-          name={i <= rating ? "star" : "star"}
+          name="star"
           size={16}
           color={i <= rating ? "#FFD700" : COLORS.neutral.grey200}
         />
@@ -59,19 +60,19 @@ const MyReviewsScreen: React.FC = () => {
     >
       <View style={styles.profileImage}>
         <View style={styles.avatarCircle}>
-          <Text style={styles.avatarText}>⭐</Text>
+          <Icon name="star" size={20} color="#FFD700" />
         </View>
       </View>
 
       <View style={styles.reviewInfo}>
-        <Text style={styles.reviewTitle}>{review.meetup_title}</Text>
+        <Text style={styles.reviewTitle}>{review.meetup_title || '모임'}</Text>
         <View style={styles.ratingRow}>
-          {renderStars(review.rating)}
-          <Text style={styles.ratingText}>({review.rating}.0)</Text>
+          {renderStars(review.rating ?? 0)}
+          <Text style={styles.ratingText}>({review.rating ?? 0}.0)</Text>
         </View>
         <View style={styles.reviewMeta}>
           <Text style={styles.metaText}>
-            {review.meetup_location} • {new Date(review.created_at).toLocaleDateString()}
+            {review.meetup_location || '장소 미정'} • {new Date(review.created_at).toLocaleDateString()}
           </Text>
         </View>
       </View>
@@ -102,19 +103,14 @@ const MyReviewsScreen: React.FC = () => {
 
       <ScrollView style={styles.content}>
         {reviews.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Icon name="star" size={48} color={COLORS.text.secondary} />
-            <Text style={styles.emptyTitle}>작성한 리뷰가 없습니다</Text>
-            <Text style={styles.emptyDescription}>
-              참여한 모임에 대한 리뷰를 작성해보세요!
-            </Text>
-            <TouchableOpacity
-              style={styles.exploreButton}
-              onPress={() => navigate('/my-activities')}
-            >
-              <Text style={styles.exploreButtonText}>내 활동 보기</Text>
-            </TouchableOpacity>
-          </View>
+          <EmptyState
+            variant="no-data"
+            icon="star"
+            title="아직 작성한 리뷰가 없어요"
+            description="참여한 모임에 대한 리뷰를 작성해보세요!"
+            actionLabel="내 활동 보기"
+            onAction={() => navigate('/my-activities')}
+          />
         ) : (
           <View style={styles.reviewsList}>
             <View style={styles.summarySection}>
@@ -127,8 +123,8 @@ const MyReviewsScreen: React.FC = () => {
                 <View style={styles.summaryDivider} />
                 <View style={styles.summaryItem}>
                   <Text style={styles.summaryNumber}>
-                    {reviews.length > 0 
-                      ? (reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length).toFixed(1)
+                    {reviews.length > 0
+                      ? (reviews.reduce((sum, review) => sum + (review.rating ?? 0), 0) / reviews.length).toFixed(1)
                       : '0.0'
                     }
                   </Text>
@@ -284,9 +280,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFE0B2',
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  avatarText: {
-    fontSize: 20,
   },
   reviewInfo: {
     flex: 1,

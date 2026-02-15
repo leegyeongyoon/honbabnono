@@ -54,8 +54,6 @@ const LocationSelector: React.FC<{
     const loadKakaoMap = () => {
       try {
         if (window.kakao && window.kakao.maps && mapRef.current) {
-          console.log('🗺️ 위치 선택 지도 로드됨');
-          
           // 서울 시청 좌표 (중립적인 기본 위치)
           const seoulCityHall = new window.kakao.maps.LatLng(37.5665, 126.9780);
           
@@ -99,7 +97,6 @@ const LocationSelector: React.FC<{
                 });
               },
               (error) => {
-                console.log('위치 정보를 가져올 수 없어 서울 시청으로 설정합니다.');
                 // 위치 정보를 가져올 수 없는 경우 서울 시청으로 설정
                 onLocationSelect('서울 시청', '서울특별시 중구 세종대로 110', 37.5665, 126.9780);
               },
@@ -129,20 +126,6 @@ const LocationSelector: React.FC<{
                 const displayAddress = roadAddress ? roadAddress.address_name : basicAddress.address_name;
                 const addressType = roadAddress ? '도로명' : '지번';
                 
-                console.log('📍 지도에서 선택된 위치:', { 
-                  roadAddress: roadAddress?.address_name,
-                  basicAddress: basicAddress.address_name,
-                  selectedAddress: displayAddress,
-                  addressType,
-                  lat: latlng.getLat(), 
-                  lng: latlng.getLng()
-                });
-                
-                // 도로명 주소가 없으면 경고
-                if (!roadAddress) {
-                  console.warn('⚠️ 도로명 주소가 없는 위치입니다. 지번 주소를 사용합니다.');
-                }
-                
                 onLocationSelect(displayAddress, displayAddress, latlng.getLat(), latlng.getLng());
               }
             });
@@ -152,13 +135,12 @@ const LocationSelector: React.FC<{
           setMapError(null);
         }
       } catch (error) {
-        console.error('❌ 위치 선택 지도 로딩 에러:', error);
+        // silently handle error
         setMapError('지도를 불러올 수 없습니다.');
       }
     };
 
     if (!window.kakao) {
-      console.log('📥 카카오맵 스크립트 로딩 중...');
       const script = document.createElement('script');
       script.async = true;
       script.src = `//dapi.kakao.com/v2/maps/sdk.js?appkey=5a202bd90ab8dff01348f24cb1c37f3f&libraries=services&autoload=false`;
@@ -180,8 +162,6 @@ const LocationSelector: React.FC<{
   const searchAddress = () => {
     if (!searchQuery.trim() || !window.kakao) {return;}
 
-    console.log('🔍 검색 시작:', searchQuery);
-
     // 1. 먼저 키워드 검색 (가게명, 장소명)
     const places = new window.kakao.maps.services.Places();
     
@@ -190,14 +170,6 @@ const LocationSelector: React.FC<{
         // 키워드 검색 성공
         const place = keywordResult[0]; // 첫 번째 결과 사용
         const coords = new window.kakao.maps.LatLng(place.y, place.x);
-        
-        console.log('🎯 키워드 검색 성공:', { 
-          placeName: place.place_name, 
-          categoryName: place.category_name,
-          address: place.address_name,
-          roadAddress: place.road_address_name,
-          coords 
-        });
         
         // 지도 중심 이동 및 마커 업데이트
         if (mapInstance && markerInstance) {
@@ -209,16 +181,9 @@ const LocationSelector: React.FC<{
         const displayLocation = place.place_name;
         const displayAddress = place.road_address_name || place.address_name;
         
-        // 도로명 주소가 없으면 경고 표시
-        if (!place.road_address_name) {
-          console.warn('⚠️ 도로명 주소가 없는 장소:', place.place_name);
-        }
-        
         onLocationSelect(displayLocation, displayAddress, parseFloat(place.y), parseFloat(place.x));
       } else {
         // 키워드 검색 실패 시 주소 검색 시도
-        console.log('🔍 키워드 검색 실패, 주소 검색 시도');
-        
         const geocoder = new window.kakao.maps.services.Geocoder();
         geocoder.addressSearch(searchQuery, function(addressResult: any, addressStatus: any) {
           if (addressStatus === window.kakao.maps.services.Status.OK && addressResult.length > 0) {
@@ -229,19 +194,6 @@ const LocationSelector: React.FC<{
             const displayAddress = address.road_address_name || address.address_name;
             const addressType = address.road_address_name ? '도로명' : '지번';
             
-            console.log('📍 주소 검색 성공:', { 
-              roadAddress: address.road_address_name,
-              basicAddress: address.address_name,
-              selectedAddress: displayAddress,
-              addressType,
-              coords 
-            });
-            
-            // 도로명 주소가 없으면 경고
-            if (!address.road_address_name) {
-              console.warn('⚠️ 도로명 주소가 없습니다. 지번 주소를 사용합니다.');
-            }
-            
             // 지도 중심 이동 및 마커 업데이트
             if (mapInstance && markerInstance) {
               mapInstance.setCenter(coords);
@@ -250,7 +202,6 @@ const LocationSelector: React.FC<{
             
             onLocationSelect(displayAddress, displayAddress, parseFloat(address.y), parseFloat(address.x));
           } else {
-            console.log('❌ 검색 실패');
             alert('장소를 찾을 수 없습니다. 가게명, 지역명 또는 도로명 주소를 다시 확인해주세요.');
           }
         });
@@ -408,7 +359,6 @@ const CreateMeetupScreen: React.FC<CreateMeetupScreenProps> = ({ user }) => {
   const priceRanges = PRICE_RANGES;
 
   const handleInputChange = (field: string, value: string) => {
-    console.log(`📝 입력 변경: ${field} = "${value}"`);
     setFormData(prev => ({
       ...prev,
       [field]: value
@@ -416,7 +366,6 @@ const CreateMeetupScreen: React.FC<CreateMeetupScreenProps> = ({ user }) => {
   };
 
   const handleLocationSelect = (location: string, address: string, lat: number, lng: number) => {
-    console.log(`📍 위치 선택됨: ${location} (${lat}, ${lng})`);
     setFormData(prev => ({
       ...prev,
       location,
@@ -443,54 +392,37 @@ const CreateMeetupScreen: React.FC<CreateMeetupScreenProps> = ({ user }) => {
   };
 
   const validateForm = () => {
-    console.log('🔍 폼 검증 시작');
-    console.log('📋 폼 데이터:', formData);
-    console.log('⚙️ 필터 데이터:', preferenceFilter);
-    
     if (!formData.title.trim()) {
-      console.log('❌ 제목 검증 실패:', formData.title);
       Alert.alert('오류', '모임 제목을 입력해주세요.');
       return false;
     }
-    console.log('✅ 제목 검증 통과');
-    
+
     if (!formData.location.trim()) {
-      console.log('❌ 장소 검증 실패:', formData.location);
       Alert.alert('오류', '모임 장소를 입력해주세요.');
       return false;
     }
-    console.log('✅ 장소 검증 통과');
-    
+
     if (!formData.date || formData.date.trim() === '') {
-      console.log('❌ 날짜 검증 실패:', `"${formData.date}"`);
       Alert.alert('오류', '모임 날짜를 입력해주세요.');
       return false;
     }
-    console.log('✅ 날짜 검증 통과:', formData.date);
-    
+
     if (!formData.time || formData.time.trim() === '') {
-      console.log('❌ 시간 검증 실패:', `"${formData.time}"`);
       Alert.alert('오류', '모임 시간을 입력해주세요.');
       return false;
     }
-    console.log('✅ 시간 검증 통과:', formData.time);
-    
+
     if (!formData.maxParticipants.trim() || parseInt(formData.maxParticipants) < 2) {
-      console.log('❌ 참가자 수 검증 실패:', formData.maxParticipants);
       Alert.alert('오류', '최대 참가자 수를 2명 이상으로 입력해주세요.');
       return false;
     }
-    console.log('✅ 참가자 수 검증 통과');
-    
+
     // 필수 필터 검증 (기본값이 있으면 통과)
     if (preferenceFilter.ageFilterMax < preferenceFilter.ageFilterMin) {
-      console.log('❌ 나이 범위 검증 실패:', preferenceFilter.ageFilterMin, '-', preferenceFilter.ageFilterMax);
       Alert.alert('오류', '최대 나이는 최소 나이보다 크거나 같아야 합니다.');
       return false;
     }
-    console.log('✅ 나이 범위 검증 통과');
-    
-    console.log('✅ 모든 검증 통과');
+
     return true;
   };
 
@@ -532,16 +464,10 @@ const CreateMeetupScreen: React.FC<CreateMeetupScreenProps> = ({ user }) => {
   };
 
   const handleCreateMeetup = async () => {
-    console.log('🔍 모임 만들기 버튼 클릭됨');
-    console.log('📋 현재 폼 데이터:', formData);
-    console.log('⚙️ 현재 필터 데이터:', preferenceFilter);
-    
     if (!validateForm()) {
-      console.log('❌ 폼 검증 실패');
       return;
     }
 
-    console.log('✅ 폼 검증 통과, 약속금 결제 팝업 표시');
     // 모임 데이터를 임시로 저장하고 약속금 결제 팝업만 표시
     setTempMeetupData({ meetupId: '', formData, preferenceFilter });
     setShowDepositSelector(true);
@@ -594,8 +520,6 @@ const CreateMeetupScreen: React.FC<CreateMeetupScreenProps> = ({ user }) => {
         formDataToSend.append('image', meetupFormData.image);
       }
       
-      console.log('📤 약속금 결제 후 실제 모임 생성 요청:', depositId);
-      
       const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:3001/api'}/meetups`, {
         method: 'POST',
         headers: {
@@ -609,14 +533,13 @@ const CreateMeetupScreen: React.FC<CreateMeetupScreenProps> = ({ user }) => {
 
       if (response.ok) {
         const meetupId = data.meetup?.id;
-        console.log('✅ 모임 생성 성공, meetupId:', meetupId);
         return meetupId;
       } else {
         showError(data.error || '모임 생성에 실패했습니다.');
         return null;
       }
     } catch (error) {
-      console.error('모임 생성 오류:', error);
+      // silently handle error
       showError('서버 연결에 실패했습니다.');
       return null;
     } finally {
@@ -625,8 +548,6 @@ const CreateMeetupScreen: React.FC<CreateMeetupScreenProps> = ({ user }) => {
   };
 
   const handleDepositPaid = async (depositId: string, amount: number) => {
-    console.log('💰 약속금 결제 완료:', depositId, amount);
-    
     // 약속금 결제 완료 후 실제 모임 생성
     const meetupId = await createActualMeetup(depositId);
     
@@ -660,13 +581,11 @@ const CreateMeetupScreen: React.FC<CreateMeetupScreenProps> = ({ user }) => {
             body: JSON.stringify(filterData),
           });
           
-          if (filterResponse.ok) {
-            console.log('✅ 모임 필터 설정 성공');
-          } else {
-            console.error('⚠️ 모임 필터 설정 실패');
+          if (!filterResponse.ok) {
+            // silently handle filter setting failure
           }
         } catch (filterError) {
-          console.error('⚠️ 모임 필터 설정 중 오류:', filterError);
+          // silently handle error
         }
       }
       
@@ -682,13 +601,12 @@ const CreateMeetupScreen: React.FC<CreateMeetupScreenProps> = ({ user }) => {
       }, 2000);
       
     } catch (error) {
-      console.error('약속금 결제 후 처리 오류:', error);
+      // silently handle error
       showError('모임 생성 완료 중 오류가 발생했습니다.');
     }
   };
 
   const handleDepositCancelled = () => {
-    console.log('💸 약속금 결제 취소됨');
     // 임시 데이터 정리
     setTempMeetupData(null);
     setShowDepositSelector(false);
@@ -1398,7 +1316,6 @@ const CreateMeetupScreen: React.FC<CreateMeetupScreenProps> = ({ user }) => {
             cursor: loading ? 'not-allowed' : 'pointer',
           }}
           onClick={() => {
-            console.log('🖱️ 버튼 클릭 이벤트 발생, loading 상태:', loading);
             handleCreateMeetup();
           }}
           disabled={loading}

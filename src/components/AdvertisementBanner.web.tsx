@@ -39,7 +39,7 @@ const AdvertisementBannerWeb: React.FC<AdvertisementBannerProps> = ({
       setAdvertisements(ads);
       setCurrentAdIndex(0);
     } catch (error) {
-      console.error('광고 로딩 실패:', error);
+      // silently handle error
       setAdvertisements([]);
     } finally {
       setLoading(false);
@@ -48,31 +48,21 @@ const AdvertisementBannerWeb: React.FC<AdvertisementBannerProps> = ({
 
   const handleAdvertisementClick = async (advertisement: Advertisement) => {
     try {
-      console.log('🔔 광고 클릭 (웹):', advertisement);
-      console.log('🔔 useDetailPage:', advertisement.useDetailPage);
-      console.log('🔔 linkUrl:', advertisement.linkUrl);
-      
       // 클릭 수 기록
       await advertisementApiService.recordClick(advertisement.id);
-      
+
       // 디테일 페이지 사용 여부에 따라 분기
       if (advertisement.useDetailPage) {
-        console.log('✅ 디테일 페이지로 이동 (웹)');
         // 디테일 페이지로 이동 (웹용 URL 변경)
         window.location.href = `/advertisement/${advertisement.id}`;
       } else if (advertisement.linkUrl) {
-        console.log('🌐 외부 링크로 이동 (웹)');
         // 외부 링크로 이동
         if (advertisement.linkUrl.startsWith('http')) {
           window.open(advertisement.linkUrl, '_blank');
-        } else {
-          console.log('내부 링크:', advertisement.linkUrl);
         }
-      } else {
-        console.log('❓ 아무 동작도 없음 (웹)');
       }
     } catch (error) {
-      console.error('광고 클릭 처리 실패:', error);
+      // silently handle error
     }
   };
 
@@ -98,6 +88,7 @@ const AdvertisementBannerWeb: React.FC<AdvertisementBannerProps> = ({
             backgroundRepeat: 'no-repeat',
             borderRadius: 16,
             position: 'relative',
+            transition: 'opacity 0.4s ease-in-out',
           }}>
             {/* 오버레이 텍스트 */}
             <View style={styles.overlay}>
@@ -217,22 +208,23 @@ const styles = StyleSheet.create({
   },
   indicators: {
     position: 'absolute',
-    bottom: 8,
+    bottom: 10,
     right: 12,
     flexDirection: 'row',
-    gap: 4,
+    gap: 6,
   },
   indicator: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: 'rgba(255, 255, 255, 0.5)',
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.4)',
   },
   activeIndicator: {
+    width: 20,
     backgroundColor: COLORS.neutral.white,
   },
   loadingContainer: {
-    backgroundColor: COLORS.neutral.gray100,
+    backgroundColor: COLORS.neutral.grey100,
     justifyContent: 'center',
     alignItems: 'center',
   },

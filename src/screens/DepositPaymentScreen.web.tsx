@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView } from 'react-native';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Icon } from '../components/Icon';
-import { COLORS } from '../styles/colors';
+import { COLORS, SHADOWS, CARD_STYLE } from '../styles/colors';
+import { useToast } from '../hooks/useToast';
+import Toast from '../components/Toast';
+import { FadeIn } from '../components/animated';
 
 interface UserPoints {
   availablePoints: number;
@@ -12,6 +15,7 @@ interface UserPoints {
 const DepositPaymentScreen: React.FC = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
+  const { toast, showSuccess, showError, showInfo, hideToast } = useToast();
   const [userPoints, setUserPoints] = useState<UserPoints>({ availablePoints: 0, totalPoints: 0 });
   const [selectedMethod, setSelectedMethod] = useState<'points' | 'card'>('points');
   const [loading, setLoading] = useState(false);
@@ -45,7 +49,7 @@ const DepositPaymentScreen: React.FC = () => {
           }
         }
       } catch (error) {
-        console.error('포인트 조회 오류:', error);
+        // 포인트 조회 실패 시 무시
       }
     };
 
@@ -77,7 +81,7 @@ const DepositPaymentScreen: React.FC = () => {
 
         const pointsData = await usePointsResponse.json();
         if (!pointsData.success) {
-          Alert.alert('결제 실패', pointsData.message || '포인트 사용 중 오류가 발생했습니다.');
+          showError(pointsData.message || '포인트 사용 중 오류가 발생했습니다.');
           setLoading(false);
           return;
         }
@@ -93,29 +97,20 @@ const DepositPaymentScreen: React.FC = () => {
 
         const joinData = await joinResponse.json();
         if (!joinData.success) {
-          Alert.alert('참여 실패', joinData.message || '모임 참여 중 오류가 발생했습니다.');
+          showError(joinData.message || '모임 참여 중 오류가 발생했습니다.');
           setLoading(false);
           return;
         }
 
-        Alert.alert('참여 완료!', `약속금 ${depositAmount.toLocaleString()}원이 결제되어 모임에 참여했습니다.`, [
-          {
-            text: '확인',
-            onPress: () => navigate(`/meetup/${id}`)
-          }
-        ]);
+        showSuccess(`약속금 ${depositAmount.toLocaleString()}원이 결제되어 모임에 참여했습니다.`);
+        setTimeout(() => navigate(`/meetup/${id}`), 1000);
       } else {
         // 카드 결제 (추후 구현)
-        Alert.alert('준비중', '카드 결제는 준비중입니다.', [
-          {
-            text: '확인',
-            onPress: () => setLoading(false)
-          }
-        ]);
+        showInfo('카드 결제는 준비중입니다.');
+        setLoading(false);
       }
     } catch (error) {
-      console.error('결제 오류:', error);
-      Alert.alert('결제 실패', '결제 중 오류가 발생했습니다.');
+      showError('결제 중 오류가 발생했습니다.');
     } finally {
       setLoading(false);
     }
@@ -139,13 +134,17 @@ const DepositPaymentScreen: React.FC = () => {
         <Text style={styles.headerTitle}>서로의 신뢰를 위해{'\n'}약속금을 미리 걸어두요</Text>
       </View>
 
+      <FadeIn>
       {/* 약속금 정보 */}
       <View style={styles.amountSection}>
         <Text style={styles.amountLabel}>약속금</Text>
         <Text style={styles.amountValue}>{depositAmount.toLocaleString()}원</Text>
-        <Text style={styles.amountDescription}>
-          노쇼 방지 목적이며, 1일 이내 다시 입금됩니다.
-        </Text>
+        <View style={styles.warningBox}>
+          <Icon name="info" size={14} color={COLORS.functional.info} />
+          <Text style={styles.amountDescription}>
+            노쇼 방지 목적이며, 1일 이내 다시 입금됩니다.
+          </Text>
+        </View>
       </View>
 
       {/* 결제 방식 선택 */}
@@ -204,10 +203,11 @@ const DepositPaymentScreen: React.FC = () => {
           disabled={loading}
         >
           <Text style={styles.paymentButtonText}>
-            {loading ? '결제 중...' : '다음'}
+            {loading ? '결제 중...' : `${depositAmount.toLocaleString()}원 결제하기`}
           </Text>
         </TouchableOpacity>
       </View>
+      </FadeIn>
 
       {/* 포인트 부족 모달 */}
       {showInsufficientModal && (
@@ -236,6 +236,7 @@ const DepositPaymentScreen: React.FC = () => {
           </View>
         </View>
       )}
+      <Toast visible={toast.visible} message={toast.message} type={toast.type} onHide={hideToast} />
     </SafeAreaView>
   );
 };
@@ -249,46 +250,64 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 20,
-    paddingTop: 40,
+    paddingTop: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.06)',
+    backgroundColor: COLORS.neutral.white,
   },
   backButton: {
-    padding: 8,
+    padding: 4,
     marginRight: 12,
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: '700',
     color: COLORS.text.primary,
-    lineHeight: 24,
+    lineHeight: 26,
   },
   amountSection: {
-    padding: 20,
+    padding: 24,
     alignItems: 'center',
-    marginVertical: 20,
+    marginVertical: 16,
+    marginHorizontal: 20,
+    backgroundColor: COLORS.neutral.white,
+    borderRadius: 16,
+    ...CARD_STYLE,
+    ...SHADOWS.small,
   },
   amountLabel: {
-    fontSize: 16,
+    fontSize: 14,
+    fontWeight: '500',
     color: COLORS.text.secondary,
     marginBottom: 8,
   },
   amountValue: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: COLORS.text.primary,
-    marginBottom: 8,
+    fontSize: 36,
+    fontWeight: '700',
+    color: COLORS.primary.main,
+    marginBottom: 16,
+  },
+  warningBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: COLORS.primary.light,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
   },
   amountDescription: {
-    fontSize: 14,
-    color: COLORS.text.tertiary,
+    fontSize: 13,
+    color: COLORS.text.secondary,
     textAlign: 'center',
-    lineHeight: 20,
+    lineHeight: 18,
   },
   paymentSection: {
     padding: 20,
   },
   sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 17,
+    fontWeight: '700',
     color: COLORS.text.primary,
     marginBottom: 16,
   },
@@ -300,12 +319,13 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.neutral.white,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: COLORS.neutral.border,
+    borderColor: 'rgba(0,0,0,0.06)',
     marginBottom: 12,
   },
   selectedOption: {
     borderColor: COLORS.primary.main,
-    backgroundColor: COLORS.primary.light + '10',
+    borderWidth: 2,
+    backgroundColor: COLORS.primary.light,
   },
   paymentOptionLeft: {
     flexDirection: 'row',
@@ -316,7 +336,7 @@ const styles = StyleSheet.create({
     height: 20,
     borderRadius: 10,
     borderWidth: 2,
-    borderColor: COLORS.neutral.border,
+    borderColor: COLORS.neutral.grey300,
     marginRight: 12,
     alignItems: 'center',
     justifyContent: 'center',
@@ -356,18 +376,20 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   paymentButton: {
-    backgroundColor: COLORS.text.primary,
+    backgroundColor: COLORS.primary.main,
     borderRadius: 12,
-    padding: 16,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
     alignItems: 'center',
   },
   disabledButton: {
-    backgroundColor: COLORS.neutral.border,
+    backgroundColor: COLORS.neutral.grey300,
+    opacity: 0.7,
   },
   paymentButtonText: {
     color: COLORS.neutral.white,
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 17,
+    fontWeight: '700',
   },
   modalOverlay: {
     position: 'absolute',
@@ -382,23 +404,24 @@ const styles = StyleSheet.create({
   },
   modal: {
     backgroundColor: COLORS.neutral.white,
-    borderRadius: 16,
-    padding: 24,
+    borderRadius: 20,
+    padding: 28,
     width: '100%',
     maxWidth: 320,
+    ...SHADOWS.large,
   },
   modalTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: '700',
     color: COLORS.text.primary,
     textAlign: 'center',
     marginBottom: 12,
-    lineHeight: 24,
+    lineHeight: 26,
   },
   modalSubtitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: COLORS.text.primary,
+    fontSize: 24,
+    fontWeight: '700',
+    color: COLORS.primary.main,
     textAlign: 'center',
     marginBottom: 8,
   },
@@ -415,27 +438,29 @@ const styles = StyleSheet.create({
   },
   modalCancelButton: {
     flex: 1,
-    padding: 12,
-    borderRadius: 8,
+    paddingVertical: 14,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: COLORS.neutral.border,
+    borderColor: 'rgba(0,0,0,0.06)',
     alignItems: 'center',
+    backgroundColor: COLORS.neutral.background,
   },
   modalCancelText: {
     color: COLORS.text.secondary,
-    fontSize: 16,
+    fontSize: 15,
+    fontWeight: '600',
   },
   modalConfirmButton: {
     flex: 1,
-    padding: 12,
-    borderRadius: 8,
+    paddingVertical: 14,
+    borderRadius: 12,
     backgroundColor: COLORS.primary.main,
     alignItems: 'center',
   },
   modalConfirmText: {
     color: COLORS.neutral.white,
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 15,
+    fontWeight: '700',
   },
 });
 

@@ -26,7 +26,6 @@ interface AuthProviderProps {
 const validateTokenWithServer = async (token: string): Promise<boolean> => {
   try {
     const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
-    // /api/user/me 엔드포인트로 토큰 유효성 검증
     const response = await fetch(`${apiUrl}/user/me`, {
       method: 'GET',
       headers: {
@@ -35,11 +34,13 @@ const validateTokenWithServer = async (token: string): Promise<boolean> => {
       },
     });
 
-    console.log('🔐 [AuthContext] 토큰 검증 응답:', response.status);
+    // 서버 에러(5xx)나 네트워크 문제 시에도 토큰이 있으면 유효로 간주 (오프라인 지원)
+    if (!response.ok && response.status >= 500) {
+      return !!token;
+    }
     return response.ok;
   } catch (error) {
-    console.error('🔐 [AuthContext] 토큰 검증 실패:', error);
-    return false;
+    return !!token;
   }
 };
 
@@ -49,7 +50,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const { setUser, logout, user } = useUserStore();
 
   const checkAuthStatus = async () => {
-    console.log('🔐 [AuthContext] checkAuthStatus 시작');
     try {
       setIsLoading(true);
 
@@ -57,11 +57,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const token = await storage.getItem('token');
       const userStr = await storage.getItem('user');
 
-      console.log('🔐 [AuthContext] 인증 상태 확인:', { hasToken: !!token, hasUser: !!userStr });
-
       if (token && userStr) {
         // 서버에 토큰 유효성 검증
-        console.log('🔐 [AuthContext] 서버에 토큰 유효성 검증 중...');
         const isValidToken = await validateTokenWithServer(token);
 
         if (isValidToken) {
@@ -69,21 +66,45 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             const userData = JSON.parse(userStr);
             setUser(userData);
             setIsAuthenticated(true);
-            console.log('✅ [AuthContext] 토큰 검증 성공, 자동 로그인:', userData.name);
           } catch (error) {
-            console.error('❌ [AuthContext] 사용자 데이터 파싱 실패:', error);
             await clearAuthData();
           }
         } else {
-          console.log('❌ [AuthContext] 토큰이 만료되었거나 유효하지 않음, 로그아웃 처리');
           await clearAuthData();
         }
       } else {
-        console.log('❌ [AuthContext] 로그인 정보 없음');
-        setIsAuthenticated(false);
+        // testgy 프리뷰 모드
+        // URL에 ?preview=testgy가 있으면 플래그 저장
+        if (typeof window !== 'undefined') {
+          const urlParams = new URLSearchParams(window.location.search);
+          if (urlParams.get('preview') === 'testgy') {
+            localStorage.setItem('preview-mode', 'testgy');
+          }
+        }
+        // 플래그가 있으면 인증 우회
+        const previewFlag = typeof window !== 'undefined' ? localStorage.getItem('preview-mode') : null;
+        if (previewFlag === 'testgy') {
+          const previewUser = {
+            id: '999',
+            name: '경윤(테스트)',
+            email: 'testgy@preview.local',
+            provider: 'preview',
+            isVerified: true,
+            babAlScore: 75,
+            meetupsHosted: 3,
+            meetupsJoined: 12,
+            rating: 4.5,
+            createdAt: '2024-01-01',
+          } as any;
+          await storage.setItem('token', 'preview-testgy');
+          await storage.setItem('user', JSON.stringify(previewUser));
+          setUser(previewUser);
+          setIsAuthenticated(true);
+        } else {
+          setIsAuthenticated(false);
+        }
       }
     } catch (error) {
-      console.error('❌ [AuthContext] 인증 상태 확인 실패:', error);
       await clearAuthData();
     } finally {
       setIsLoading(false);
@@ -99,9 +120,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       await storage.removeItem('user-storage');
       await logout();
       setIsAuthenticated(false);
-      console.log('🔐 [AuthContext] 인증 데이터 초기화 완료');
     } catch (error) {
-      console.error('❌ [AuthContext] 인증 데이터 초기화 실패:', error);
+      // silently handle error
       setIsAuthenticated(false);
     }
   };

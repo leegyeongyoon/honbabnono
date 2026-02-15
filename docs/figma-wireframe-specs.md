@@ -1202,3 +1202,87 @@
 ---
 
 이 명세서는 Figma Make를 통해 혼밥시러 앱의 와이어프레임을 제작할 때 필요한 모든 디자인 정보를 포괄합니다. 각 화면의 정확한 레이아웃, 색상 시스템, 타이포그래피, 컴포넌트 스펙이 실제 코드베이스를 분석하여 작성되었으므로, 일관성 있는 디자인을 구현할 수 있습니다.
+
+---
+
+## 5. 디자인 워크플로우
+
+### 5.1 도구 연동
+
+혼밥시러 프로젝트는 다음 MCP 도구들을 활용하여 디자인-개발 워크플로우를 구성합니다:
+
+| 단계 | 도구 | 용도 |
+|------|------|------|
+| 1. 와이어프레임 | **Pencil** | 빠른 레이아웃 프로토타입 (.pen) |
+| 2. 하이파이 디자인 | **Figma** | 시각적 디자인 완성 (.fig) |
+| 3. 코드 구현 | **VS Code** | React Native 컴포넌트 (.tsx) |
+
+### 5.2 Pencil → Figma 워크플로우
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                                                                 │
+│   Pencil (.pen)                    Figma (.fig)                │
+│   ┌─────────────┐                  ┌─────────────┐             │
+│   │ 와이어프레임  │  ─────────────▶  │ 하이파이 디자인│             │
+│   │ • 레이아웃   │                  │ • 색상 적용   │             │
+│   │ • 구조 설계  │                  │ • 타이포 적용 │             │
+│   │ • 빠른 반복  │                  │ • 에셋 적용   │             │
+│   └─────────────┘                  └─────────────┘             │
+│         │                                │                      │
+│         ▼                                ▼                      │
+│   mcp__pencil__*                   mcp__figma__*               │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### 5.3 Figma MCP 활용
+
+```javascript
+// 디자인 컨텍스트 가져오기
+mcp__figma__get_design_context({
+  fileKey: "figma_file_key",
+  nodeId: "1:2",
+  clientLanguages: "typescript",
+  clientFrameworks: "react"
+})
+
+// 스크린샷 확인
+mcp__figma__get_screenshot({
+  fileKey: "figma_file_key",
+  nodeId: "1:2"
+})
+
+// 변수 정의 가져오기 (색상, 간격 등)
+mcp__figma__get_variable_defs({
+  fileKey: "figma_file_key",
+  nodeId: "1:2"
+})
+```
+
+### 5.4 Pencil MCP 활용
+
+```javascript
+// 에디터 상태 확인
+mcp__pencil__get_editor_state({ include_schema: true })
+
+// 스타일 가이드 가져오기
+mcp__pencil__get_style_guide({ tags: ["mobile", "app", "beige"] })
+
+// 디자인 배치 작업
+mcp__pencil__batch_design({
+  operations: `
+    screen=I(document, {type: "frame", name: "HomeScreen", width: 390, height: 844})
+    header=I(screen, {type: "frame", name: "Header", height: 72, layout: "horizontal"})
+  `
+})
+
+// 스크린샷 확인
+mcp__pencil__get_screenshot({ nodeId: "screen_id" })
+```
+
+### 5.5 관련 문서
+
+- [Pencil 설치 가이드](./PENCIL_SETUP.md) - Pencil 설치 및 MCP 연결
+- [디자인 워크플로우](./DESIGN_WORKFLOW.md) - 전체 디자인 프로세스
+- [컬러 가이드](../COLOR_GUIDE.md) - 앱 색상 시스템

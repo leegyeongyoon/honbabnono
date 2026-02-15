@@ -11,14 +11,19 @@ interface IconProps {
   size?: number;
   color?: string;
   style?: ViewStyle;
+  solid?: boolean;
+  fill?: string;
 }
 
-export const Icon: React.FC<IconProps> = ({ 
-  name, 
-  size = 20, 
+export const Icon: React.FC<IconProps> = ({
+  name,
+  size = 20,
   color = COLORS.text.secondary,
-  style 
+  style,
+  solid,
+  fill,
 }) => {
   // Web에서는 SVG를 사용할 수 있지만, 지금은 모든 플랫폼에서 SimpleIcon 사용
-  return <SimpleIcon name={name} size={size} color={color} style={style} />;
+  const fillColor = fill || (solid ? color : undefined);
+  return <SimpleIcon name={name} size={size} color={color} style={style} fill={fillColor} />;
 };

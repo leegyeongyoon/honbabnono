@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { useNavigate } from 'react-router-dom';
-import { COLORS, SHADOWS } from '../styles/colors';
+import { COLORS, SHADOWS, CARD_STYLE, CSS_SHADOWS } from '../styles/colors';
 import { Icon } from '../components/Icon';
+import { FadeIn } from '../components/animated';
+import EmptyState from '../components/EmptyState';
+import { ListItemSkeleton } from '../components/skeleton';
 import apiClient from '../services/apiClient';
 
 interface ManageableReview {
@@ -33,7 +36,7 @@ const ReviewManagementScreen: React.FC = () => {
         const response = await apiClient.get('/user/reviews/manage');
         setReviews(response.data.reviews || []);
       } catch (error) {
-        console.error('관리 가능한 리뷰 조회 실패:', error);
+        // silently handle error
         setReviews([]);
       } finally {
         setLoading(false);
@@ -58,7 +61,7 @@ const ReviewManagementScreen: React.FC = () => {
               setReviews(prev => prev.filter(review => review.id !== reviewId));
               Alert.alert('성공', '리뷰가 삭제되었습니다.');
             } catch (error) {
-              console.error('리뷰 삭제 실패:', error);
+              // silently handle error
               Alert.alert('오류', '리뷰 삭제에 실패했습니다.');
             }
           }
@@ -73,16 +76,16 @@ const ReviewManagementScreen: React.FC = () => {
       await apiClient.patch(`/reviews/${reviewId}/feature`, {
         featured: !review?.is_featured
       });
-      
-      setReviews(prev => 
-        prev.map(review => 
-          review.id === reviewId 
+
+      setReviews(prev =>
+        prev.map(review =>
+          review.id === reviewId
             ? { ...review, is_featured: !review.is_featured }
             : review
         )
       );
     } catch (error) {
-      console.error('리뷰 추천 상태 변경 실패:', error);
+      // silently handle error
       Alert.alert('오류', '리뷰 추천 상태 변경에 실패했습니다.');
     }
   };
@@ -92,7 +95,7 @@ const ReviewManagementScreen: React.FC = () => {
       case 'featured':
         return reviews.filter(review => review.is_featured);
       case 'recent':
-        return reviews.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).slice(0, 10);
+        return [...reviews].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).slice(0, 10);
       default:
         return reviews;
     }
@@ -106,7 +109,7 @@ const ReviewManagementScreen: React.FC = () => {
           key={i}
           name="star"
           size={14}
-          color={i <= rating ? "#FFD700" : COLORS.neutral.grey200}
+          color={i <= rating ? COLORS.functional.warning : COLORS.neutral.grey200}
         />
       );
     }
@@ -116,68 +119,87 @@ const ReviewManagementScreen: React.FC = () => {
   const renderReviewItem = (review: ManageableReview) => (
     <TouchableOpacity
       key={review.id}
-      style={styles.reviewItem}
+      style={styles.reviewCard}
       onPress={() => navigate(`/review/${review.id}`)}
+      activeOpacity={0.7}
     >
-      <View style={styles.profileImage}>
-        <View style={[styles.avatarCircle, review.is_featured && styles.featuredAvatar]}>
-          <Text style={styles.avatarText}>
-            {review.is_featured ? '⭐' : '📝'}
-          </Text>
+      {/* 상단: 모임 제목 + 별점 */}
+      <View style={styles.reviewHeader}>
+        <View style={styles.reviewTitleRow}>
+          <View style={[styles.avatarCircle, review.is_featured && styles.featuredAvatar]}>
+            <Icon
+              name={review.is_featured ? 'star' : 'edit'}
+              size={16}
+              color={review.is_featured ? COLORS.functional.warning : COLORS.primary.main}
+            />
+          </View>
+          <View style={styles.titleWrap}>
+            <Text style={styles.reviewTitle} numberOfLines={1}>{review.meetup_title || '모임'}</Text>
+            <View style={styles.ratingContainer}>
+              {renderStars(review.rating ?? 0)}
+              <Text style={styles.ratingText}>{review.rating ?? 0}.0</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* 액션 버튼 */}
+        <View style={styles.actionContainer}>
+          <TouchableOpacity
+            style={[styles.actionButton, review.is_featured && styles.featuredButton]}
+            onPress={(e) => {
+              e.stopPropagation();
+              handleToggleFeatured(review.id);
+            }}
+          >
+            <Icon
+              name="star"
+              size={14}
+              color={review.is_featured ? COLORS.functional.warning : COLORS.text.tertiary}
+            />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={(e) => {
+              e.stopPropagation();
+              navigate(`/review/${review.id}/edit`);
+            }}
+          >
+            <Icon name="edit" size={14} color={COLORS.text.tertiary} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={(e) => {
+              e.stopPropagation();
+              handleDeleteReview(review.id);
+            }}
+          >
+            <Icon name="trash-2" size={14} color={COLORS.functional.error} />
+          </TouchableOpacity>
         </View>
       </View>
 
-      <View style={styles.reviewInfo}>
-        <Text style={styles.reviewTitle}>{review.meetup_title}</Text>
-        <View style={styles.ratingContainer}>
-          {renderStars(review.rating)}
-          <Text style={styles.ratingText}>({review.rating}.0)</Text>
-        </View>
-        <Text style={styles.reviewContent} numberOfLines={2}>
-          {review.content}
+      {/* 리뷰 내용 */}
+      <Text style={styles.reviewContent} numberOfLines={2}>
+        {review.content}
+      </Text>
+
+      {/* 하단: 메타 정보 */}
+      <View style={styles.reviewFooter}>
+        <Text style={styles.metaText}>
+          {new Date(review.created_at).toLocaleDateString('ko-KR')}
         </Text>
-        <View style={styles.reviewMeta}>
-          <Text style={styles.metaText}>
-            {new Date(review.created_at).toLocaleDateString()} • 
-            좋아요 {review.like_count} • 댓글 {review.reply_count}
-          </Text>
+        <View style={styles.metaDivider} />
+        <View style={styles.metaItem}>
+          <Icon name="heart" size={12} color={COLORS.text.tertiary} />
+          <Text style={styles.metaText}>{review.like_count ?? 0}</Text>
         </View>
-      </View>
-
-      <View style={styles.actionContainer}>
-        <TouchableOpacity
-          style={[styles.actionButton, review.is_featured && styles.featuredButton]}
-          onPress={(e) => {
-            e.stopPropagation();
-            handleToggleFeatured(review.id);
-          }}
-        >
-          <Icon 
-            name="star" 
-            size={16} 
-            color={review.is_featured ? COLORS.primary.main : COLORS.text.secondary} 
-          />
-        </TouchableOpacity>
-        
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={(e) => {
-            e.stopPropagation();
-            navigate(`/review/${review.id}/edit`);
-          }}
-        >
-          <Icon name="edit" size={16} color={COLORS.text.secondary} />
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={(e) => {
-            e.stopPropagation();
-            handleDeleteReview(review.id);
-          }}
-        >
-          <Icon name="trash-2" size={16} color={COLORS.text.error} />
-        </TouchableOpacity>
+        <View style={styles.metaDivider} />
+        <View style={styles.metaItem}>
+          <Icon name="message-circle" size={12} color={COLORS.text.tertiary} />
+          <Text style={styles.metaText}>{review.reply_count ?? 0}</Text>
+        </View>
       </View>
     </TouchableOpacity>
   );
@@ -186,14 +208,25 @@ const ReviewManagementScreen: React.FC = () => {
 
   if (loading) {
     return (
-      <View style={[styles.container, styles.centerContent]}>
-        <Text style={styles.loadingText}>리뷰를 불러오는 중...</Text>
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.backButton} onPress={() => navigate('/mypage')}>
+            <Icon name="arrow-left" size={24} color={COLORS.text.primary} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>리뷰 관리</Text>
+          <View style={styles.headerRight} />
+        </View>
+        <View style={styles.skeletonWrap}>
+          {[0, 1, 2, 3].map((i) => (
+            <ListItemSkeleton key={i} size={48} />
+          ))}
+        </View>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <FadeIn style={styles.container}>
       {/* 헤더 */}
       <View style={styles.header}>
         <TouchableOpacity
@@ -207,11 +240,11 @@ const ReviewManagementScreen: React.FC = () => {
           style={styles.addButton}
           onPress={() => navigate('/write-review')}
         >
-          <Icon name="plus" size={24} color={COLORS.primary.main} />
+          <Icon name="plus" size={20} color={COLORS.primary.main} />
         </TouchableOpacity>
       </View>
 
-      {/* 필터 버튼 */}
+      {/* 필터 탭 */}
       <View style={styles.filterContainer}>
         <TouchableOpacity
           style={[styles.filterButton, selectedFilter === 'all' && styles.activeFilterButton]}
@@ -221,7 +254,7 @@ const ReviewManagementScreen: React.FC = () => {
             전체 ({reviews.length})
           </Text>
         </TouchableOpacity>
-        
+
         <TouchableOpacity
           style={[styles.filterButton, selectedFilter === 'featured' && styles.activeFilterButton]}
           onPress={() => setSelectedFilter('featured')}
@@ -230,7 +263,7 @@ const ReviewManagementScreen: React.FC = () => {
             추천 ({reviews.filter(r => r.is_featured).length})
           </Text>
         </TouchableOpacity>
-        
+
         <TouchableOpacity
           style={[styles.filterButton, selectedFilter === 'recent' && styles.activeFilterButton]}
           onPress={() => setSelectedFilter('recent')}
@@ -241,35 +274,22 @@ const ReviewManagementScreen: React.FC = () => {
         </TouchableOpacity>
       </View>
 
-      <ScrollView style={styles.content}>
+      <ScrollView style={styles.content} contentContainerStyle={styles.contentInner}>
         {filteredReviews.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Icon name="star" size={48} color={COLORS.text.secondary} />
-            <Text style={styles.emptyTitle}>
-              {selectedFilter === 'featured' ? '추천 리뷰가 없습니다' : '작성한 리뷰가 없습니다'}
-            </Text>
-            <Text style={styles.emptyDescription}>
-              참여한 모임에 대한 리뷰를 작성해보세요!
-            </Text>
-            <TouchableOpacity
-              style={styles.exploreButton}
-              onPress={() => navigate('/my-meetups')}
-            >
-              <Text style={styles.exploreButtonText}>내 모임 보기</Text>
-            </TouchableOpacity>
-          </View>
+          <EmptyState
+            icon="star"
+            title={selectedFilter === 'featured' ? '추천 리뷰가 없습니다' : '작성한 리뷰가 없습니다'}
+            description="참여한 모임에 대한 리뷰를 작성해보세요!"
+            actionLabel="내 모임 보기"
+            onAction={() => navigate('/my-meetups')}
+          />
         ) : (
           <View style={styles.reviewsList}>
-            <Text style={styles.sectionTitle}>
-              {selectedFilter === 'all' ? '전체 리뷰' : 
-               selectedFilter === 'featured' ? '추천 리뷰' : '최근 작성한 리뷰'} 
-              ({filteredReviews.length}개)
-            </Text>
             {filteredReviews.map(renderReviewItem)}
           </View>
         )}
       </ScrollView>
-    </View>
+    </FadeIn>
   );
 };
 
@@ -277,14 +297,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.neutral.background,
-  },
-  centerContent: {
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    fontSize: 16,
-    color: COLORS.text.secondary,
   },
   header: {
     flexDirection: 'row',
@@ -294,125 +306,108 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     paddingBottom: 16,
     backgroundColor: COLORS.neutral.white,
-    ...SHADOWS.small,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.06)',
   },
   backButton: {
     padding: 4,
   },
   headerTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '700',
     color: COLORS.text.primary,
   },
+  headerRight: {
+    width: 32,
+  },
   addButton: {
-    padding: 4,
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    backgroundColor: COLORS.primary.light,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   filterContainer: {
     flexDirection: 'row',
     paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingVertical: 12,
     backgroundColor: COLORS.neutral.white,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.neutral.grey200,
+    borderBottomColor: 'rgba(0,0,0,0.06)',
+    gap: 8,
   },
   filterButton: {
     paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: 20,
-    marginRight: 12,
+    borderRadius: 12,
     backgroundColor: COLORS.neutral.grey100,
   },
   activeFilterButton: {
     backgroundColor: COLORS.primary.main,
   },
   filterText: {
-    fontSize: 14,
+    fontSize: 13,
     color: COLORS.text.secondary,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   activeFilterText: {
     color: COLORS.text.white,
-    fontWeight: '600',
   },
   content: {
     flex: 1,
   },
-  emptyState: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 40,
-    paddingTop: 100,
+  contentInner: {
+    padding: 16,
+    paddingBottom: 32,
   },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: COLORS.text.primary,
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  emptyDescription: {
-    fontSize: 14,
-    color: COLORS.text.secondary,
-    textAlign: 'center',
-    marginBottom: 24,
-  },
-  exploreButton: {
-    backgroundColor: COLORS.primary.main,
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-  },
-  exploreButtonText: {
-    color: COLORS.text.white,
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  reviewsList: {
+  skeletonWrap: {
+    paddingTop: 8,
     backgroundColor: COLORS.neutral.white,
     marginTop: 8,
-    marginHorizontal: 16,
     borderRadius: 16,
+    marginHorizontal: 16,
+  },
+  reviewsList: {
+    gap: 12,
+  },
+  reviewCard: {
+    backgroundColor: COLORS.neutral.white,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.04)',
+    padding: 16,
     ...SHADOWS.small,
   },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: COLORS.text.primary,
-    padding: 20,
-    paddingBottom: 0,
-  },
-  reviewItem: {
+  reviewHeader: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'flex-start',
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.neutral.grey200,
+    marginBottom: 12,
   },
-  profileImage: {
-    marginRight: 16,
+  reviewTitleRow: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 8,
   },
   avatarCircle: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: '#FFE0B2',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: COLORS.primary.light,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  featuredAvatar: {
-    backgroundColor: '#FFD700',
-  },
-  avatarText: {
-    fontSize: 20,
-  },
-  reviewInfo: {
-    flex: 1,
     marginRight: 12,
   },
+  featuredAvatar: {
+    backgroundColor: 'rgba(229, 168, 75, 0.15)',
+  },
+  titleWrap: {
+    flex: 1,
+  },
   reviewTitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
     color: COLORS.text.primary,
     marginBottom: 4,
@@ -420,35 +415,49 @@ const styles = StyleSheet.create({
   ratingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
   },
   starsContainer: {
     flexDirection: 'row',
     gap: 2,
-    marginRight: 8,
+    marginRight: 6,
   },
   ratingText: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: COLORS.text.tertiary,
+    fontWeight: '500',
   },
   reviewContent: {
-    fontSize: 14,
+    fontSize: 15,
     color: COLORS.text.primary,
-    lineHeight: 20,
-    marginBottom: 8,
+    lineHeight: 22,
+    marginBottom: 12,
   },
-  reviewMeta: {
+  reviewFooter: {
     flexDirection: 'row',
     alignItems: 'center',
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(0,0,0,0.04)',
+  },
+  metaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  metaDivider: {
+    width: 1,
+    height: 12,
+    backgroundColor: COLORS.neutral.grey200,
+    marginHorizontal: 10,
   },
   metaText: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: COLORS.text.tertiary,
   },
   actionContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 4,
   },
   actionButton: {
     padding: 8,
@@ -456,7 +465,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.neutral.grey100,
   },
   featuredButton: {
-    backgroundColor: COLORS.primary.light,
+    backgroundColor: 'rgba(229, 168, 75, 0.12)',
   },
 });
 

@@ -7,18 +7,23 @@ import {
   TouchableOpacity,
   FlatList,
   TextInput,
-  Alert,
   Image,
 } from 'react-native';
 import { useNavigate, useParams } from 'react-router-dom';
 import { COLORS, SHADOWS, LAYOUT } from '../styles/colors';
-import { BORDER_RADIUS } from '../styles/spacing';
+import { BORDER_RADIUS, SPACING } from '../styles/spacing';
 import { Icon } from '../components/Icon';
 import chatService from '../services/chatService';
 import chatApiService, { ChatRoom, ChatMessage } from '../services/chatApiService';
 import { getDetailedDateFormat, getChatDateHeader, isSameDay } from '../utils/timeUtils';
 import { useRouterNavigation } from '../components/RouterNavigation';
 import { useUserStore } from '../store/userStore';
+import Toast from '../components/Toast';
+import { useToast } from '../hooks/useToast';
+import EmptyState from '../components/EmptyState';
+import { FadeIn } from '../components/animated';
+import { ChatListSkeleton } from '../components/skeleton';
+import { getAvatarColor, getInitials } from '../utils/avatarColor';
 
 interface ChatScreenProps {
   navigation?: any;
@@ -42,9 +47,11 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation }) => {
   const [currentChatRoom, setCurrentChatRoom] = useState<ChatRoom | null>(null);
   const [selectedUserForDM, setSelectedUserForDM] = useState<any>(null);
   const [showDMModal, setShowDMModal] = useState(false);
+  const { toast, showError, hideToast } = useToast();
+  const [messageInputFocused, setMessageInputFocused] = useState(false);
 
   const tabs = ['모임채팅', '1:1채팅'];
-  const userId = user?.id || '';
+  const userId = user?.id?.toString() || '';
 
   // 1대1 채팅 권한 체크
   const checkDirectChatPermission = async (targetUserId: string) => {
@@ -54,7 +61,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation }) => {
       const data = await response.json();
       return data.data || { allowed: false };
     } catch (error) {
-      // console.error('1대1 채팅 권한 체크 실패:', error);
+      // silently handle error
       return { allowed: false };
     }
   };
@@ -64,7 +71,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation }) => {
     try {
       const permission = await checkDirectChatPermission(targetUser.id);
       if (!permission.allowed) {
-        Alert.alert('알림', '1대1 채팅을 시작할 수 없습니다.');
+        showError('1대1 채팅을 시작할 수 없습니다.');
         return;
       }
 
@@ -81,11 +88,11 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation }) => {
         setShowDMModal(false);
         await loadMessages(response.data.id);
       } else {
-        Alert.alert('오류', response.message || '1대1 채팅방을 생성할 수 없습니다.');
+        showError(response.message || '1대1 채팅방을 생성할 수 없습니다.');
       }
     } catch (error) {
-      // console.error('1대1 채팅 시작 실패:', error);
-      Alert.alert('오류', '1대1 채팅을 시작할 수 없습니다.');
+      // silently handle error
+      showError('1대1 채팅을 시작할 수 없습니다.');
     }
   };
 
@@ -103,21 +110,12 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation }) => {
     }
   };
 
-  // 컴포넌트 마운트 시 WebSocket 연결 및 채팅방 목록 로드
+  // 컴포넌트 마운트 시 WebSocket 연결
   useEffect(() => {
-    // 기존 리스너 제거
     chatService.offNewMessage();
-    
-    // WebSocket 연결
     chatService.connect();
-    
-    // 채팅방 목록 로드
-    loadChatRooms();
-
-    // 실시간 메시지 수신 설정
     chatService.onNewMessage(handleNewMessage);
 
-    // 정리 함수
     return () => {
       chatService.offNewMessage();
       if (selectedChatId) {
@@ -126,31 +124,33 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation }) => {
     };
   }, []);
 
-  // URL에서 채팅방 ID가 있으면 해당 채팅방 로드
+  // 유저 정보가 준비되면 채팅방 목록 로드
   useEffect(() => {
-    // console.log('🔍 useEffect 실행:', { chatIdFromUrl, loading, selectedChatId });
-    
+    if (userId) {
+      loadChatRooms();
+    }
+  }, [userId]);
+
+  // URL에서 채팅방 ID가 있으면 해당 채팅방 로드 (userId 의존성 추가)
+  useEffect(() => {
+    if (!userId) return;
+
     if (chatIdFromUrl) {
       const roomId = parseInt(chatIdFromUrl);
-      
+
       // 이미 선택된 채팅방이면 중복 호출 방지
       if (selectedChatId === roomId && currentChatRoom) {
-        // console.log('🔍 이미 로드된 채팅방:', roomId);
         return;
       }
-      
-      // console.log('🔍 URL에서 채팅방 ID 감지, 강제 로드:', roomId);
+
       selectChatRoomFromUrl(roomId);
     } else if (!chatIdFromUrl && selectedChatId) {
-      // console.log('🔍 URL에 채팅방 ID 없음, 목록으로 돌아가기');
-      if (selectedChatId) {
-        chatService.leaveRoom(selectedChatId);
-      }
+      chatService.leaveRoom(selectedChatId);
       setSelectedChatId(null);
       setCurrentChatRoom(null);
       setMessages([]);
     }
-  }, [chatIdFromUrl]);
+  }, [chatIdFromUrl, userId]);
 
   // 채팅방 목록 로드
   const loadChatRooms = async () => {
@@ -159,8 +159,8 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation }) => {
       const rooms = await chatApiService.getChatRooms(userId);
       setChatRooms(rooms);
     } catch (error) {
-      // console.error('채팅방 목록 로드 실패:', error);
-      Alert.alert('오류', '채팅방 목록을 불러올 수 없습니다.');
+      // silently handle error
+      showError('채팅방 목록을 불러올 수 없습니다.');
     } finally {
       setLoading(false);
     }
@@ -188,7 +188,6 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation }) => {
   // URL에서 채팅방 로드 (navigate 호출 없음)
   const selectChatRoomFromUrl = async (roomId: number) => {
     try {
-      // console.log('🔍 selectChatRoomFromUrl 시작:', roomId);
       setLoading(true);
       
       // 이전 채팅방에서 나가기
@@ -199,11 +198,8 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation }) => {
       // 새 채팅방 입장
       chatService.joinRoom(roomId);
       
-      // console.log('🔍 API 호출 시작: getChatMessages');
       // 메시지 로드
       const { chatRoom, messages: roomMessages } = await chatApiService.getChatMessages(roomId, userId);
-      
-      // console.log('🔍 API 호출 완료, 채팅방:', chatRoom?.title, '메시지 수:', roomMessages?.length);
       
       setSelectedChatId(roomId);
       setCurrentChatRoom(chatRoom);
@@ -224,19 +220,14 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation }) => {
           }
         });
         
-        if (response.ok) {
-          // console.log('✅ 채팅방 읽음 처리 완료:', roomId);
-        } else {
-          // console.warn('⚠️ 채팅방 읽음 처리 실패:', response.status);
-        }
+        // silently handle read status
       } catch (error) {
-        // console.error('채팅방 읽음 처리 오류:', error);
+        // silently handle error
       }
       
-      // console.log('🔍 상태 설정 완료, selectedChatId:', roomId, 'currentChatRoom:', chatRoom?.title);
     } catch (error) {
-      // console.error('채팅방 선택 실패:', error);
-      Alert.alert('오류', '채팅방을 열 수 없습니다.');
+      // silently handle error
+      showError('채팅방을 열 수 없습니다.');
     } finally {
       setLoading(false);
     }
@@ -282,44 +273,54 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation }) => {
 
       setMessageText('');
     } catch (error) {
-      // console.error('메시지 전송 실패:', error);
-      Alert.alert('오류', '메시지를 전송할 수 없습니다.');
+      // silently handle error
+      showError('메시지를 전송할 수 없습니다.');
     }
   };
 
   const renderChatListItem = (item: ChatRoom) => {
     const displayTitle = item.type === 'meetup' ? item.title : item.title;
     const participantCount = item.type === 'meetup' ? item.participants.length : undefined;
-    
+
     return (
-      <TouchableOpacity 
-        style={styles.chatItem} 
-        onPress={() => selectChatRoom(item.id)}
+      <div
+        style={{ transition: 'background-color 150ms ease', cursor: 'pointer' }}
+        onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = 'rgba(0,0,0,0.02)'; }}
+        onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent'; }}
+        role="button"
+        aria-label={`${displayTitle} 채팅방${item.unreadCount > 0 ? `, 읽지 않은 메시지 ${item.unreadCount}개` : ''}`}
       >
-        <View style={styles.chatAvatar}>
-          <Text style={styles.chatAvatarText}>
-            {displayTitle.charAt(0)}
-          </Text>
-        </View>
-        <View style={styles.chatInfo}>
-          <Text style={styles.chatTitle} numberOfLines={1}>
-            {displayTitle}
-          </Text>
-          <Text style={styles.lastMessage} numberOfLines={1}>
-            {item.lastMessage || '아직 메시지가 없습니다'}
-          </Text>
-          <Text style={styles.chatTime}>
-            {getDetailedDateFormat(item.lastTime)}
-            {participantCount && item.lastTime ? ' • ' : ''}
-            {participantCount ? `${participantCount}명` : ''}
-          </Text>
-        </View>
-        {item.unreadCount > 0 && (
-          <View style={styles.unreadBadge}>
-            <Text style={styles.unreadCount}>{item.unreadCount}</Text>
+        <TouchableOpacity
+          style={styles.chatItem}
+          onPress={() => selectChatRoom(item.id)}
+        >
+          <View style={[styles.chatAvatar, { backgroundColor: getAvatarColor(displayTitle) }]}>
+            <Text style={styles.chatAvatarText}>
+              {getInitials(displayTitle)}
+            </Text>
           </View>
-        )}
-      </TouchableOpacity>
+          <View style={styles.chatInfo}>
+            <Text style={styles.chatTitle} numberOfLines={1}>
+              {displayTitle}
+            </Text>
+            <Text style={styles.lastMessage} numberOfLines={1}>
+              {item.lastMessage || '아직 메시지가 없습니다'}
+            </Text>
+          </View>
+          <View style={styles.chatMeta}>
+            <Text style={styles.chatTime}>
+              {getDetailedDateFormat(item.lastTime)}
+              {participantCount && item.lastTime ? ' • ' : ''}
+              {participantCount ? `${participantCount}명` : ''}
+            </Text>
+            {item.unreadCount > 0 && (
+              <View style={styles.unreadBadge}>
+                <Text style={styles.unreadCount}>{item.unreadCount}</Text>
+              </View>
+            )}
+          </View>
+        </TouchableOpacity>
+      </div>
     );
   };
 
@@ -330,19 +331,21 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation }) => {
 
     if (loading) {
       return (
-        <View style={styles.loadingContainer}>
-          <Text style={styles.loadingText}>채팅방을 불러오는 중...</Text>
+        <View style={styles.chatListSkeletonContainer}>
+          {[1, 2, 3, 4].map((i) => (
+            <ChatListSkeleton key={i} />
+          ))}
         </View>
       );
     }
 
     if (filteredRooms.length === 0) {
       return (
-        <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>
-            {selectedTab === '모임채팅' ? '참여한 모임이 없습니다' : '1:1 채팅이 없습니다'}
-          </Text>
-        </View>
+        <EmptyState
+          icon="message-circle"
+          title={selectedTab === '모임채팅' ? '참여한 모임 채팅이 없어요' : '1:1 채팅이 없어요'}
+          description="모임에 참가하면 채팅방이 자동으로 생성됩니다"
+        />
       );
     }
 
@@ -417,7 +420,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation }) => {
                       ) : (
                         <View style={styles.defaultProfileImage}>
                           <Text style={styles.defaultProfileText}>
-                            {message.senderName.charAt(0)}
+                            {(message.senderName || '?').charAt(0)}
                           </Text>
                         </View>
                       )}
@@ -425,7 +428,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation }) => {
                     <View style={styles.messageContentWrapper}>
                       <View style={styles.messageHeader}>
                         <TouchableOpacity onPress={() => handleUserProfileClick(message)}>
-                          <Text style={styles.senderName}>{message.senderName}</Text>
+                          <Text style={styles.senderName}>{message.senderName || '사용자'}</Text>
                         </TouchableOpacity>
                         {message.riceIndex && (
                           <Text style={styles.riceIndex}>
@@ -463,7 +466,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation }) => {
                           hour12: true
                         })}
                       </Text>
-                      <Text style={styles.readReceipt}>✓✓</Text>
+                      <Text style={styles.readReceipt}>읽음</Text>
                     </View>
                   </View>
                 )}
@@ -475,7 +478,14 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation }) => {
 
       {/* 메시지 입력 */}
       <View style={styles.messageInput}>
-        <View style={styles.inputContainer}>
+        <View style={[
+          styles.inputContainer,
+          messageInputFocused && {
+            borderWidth: 1,
+            borderColor: COLORS.primary.main,
+            boxShadow: '0 0 0 3px rgba(139, 105, 20, 0.15)',
+          } as any,
+        ]}>
           <TextInput
             style={styles.textInput}
             placeholder="메시지를 입력하세요..."
@@ -484,15 +494,17 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation }) => {
             multiline
             maxLength={500}
             onSubmitEditing={sendMessage}
+            onFocus={() => setMessageInputFocused(true)}
+            onBlur={() => setMessageInputFocused(false)}
           />
           <TouchableOpacity
             style={[styles.sendButton, messageText.trim() && styles.sendButtonActive]}
             onPress={sendMessage}
             disabled={!messageText.trim()}
           >
-            <Icon 
-              name="send" 
-              size={18} 
+            <Icon
+              name="send"
+              size={20}
               color={messageText.trim() ? COLORS.text.white : COLORS.text.secondary} 
             />
           </TouchableOpacity>
@@ -502,9 +514,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation }) => {
   );
 
   // 채팅방이 선택된 경우 채팅방 UI 표시
-  // console.log('🔍 렌더링 조건 체크:', { selectedChatId, currentChatRoom: currentChatRoom?.title, loading });
   if (selectedChatId && currentChatRoom) {
-    // console.log('🔍 채팅방 UI 렌더링');
     return renderChatRoom();
   }
 
@@ -553,14 +563,14 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation }) => {
               {selectedUserForDM.name}님과 개인적인 대화를 나누시겠습니까?
             </Text>
             <View style={styles.modalButtons}>
-              <TouchableOpacity 
-                style={styles.modalButtonCancel} 
+              <TouchableOpacity
+                style={styles.modalButtonCancel}
                 onPress={() => setShowDMModal(false)}
               >
                 <Text style={styles.modalButtonCancelText}>취소</Text>
               </TouchableOpacity>
-              <TouchableOpacity 
-                style={styles.modalButtonConfirm} 
+              <TouchableOpacity
+                style={styles.modalButtonConfirm}
                 onPress={() => startDirectChat(selectedUserForDM)}
               >
                 <Text style={styles.modalButtonConfirmText}>채팅 시작</Text>
@@ -569,6 +579,8 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation }) => {
           </View>
         </View>
       )}
+
+      <Toast message={toast.message} type={toast.type} visible={toast.visible} onHide={hideToast} />
     </View>
   );
 };
@@ -586,10 +598,12 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     paddingTop: 52,
     backgroundColor: COLORS.neutral.white,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.neutral.grey100,
     ...SHADOWS.small,
   },
   headerTitle: {
-    fontSize: 17,
+    fontSize: 18,
     fontWeight: '700',
     color: COLORS.text.primary,
   },
@@ -604,7 +618,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     backgroundColor: COLORS.neutral.white,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.neutral.grey200,
+    borderBottomColor: COLORS.neutral.grey100,
   },
   tabButton: {
     flex: 1,
@@ -615,15 +629,16 @@ const styles = StyleSheet.create({
   },
   selectedTabButton: {
     borderBottomColor: COLORS.primary.main,
+    borderBottomWidth: 2,
   },
   tabButtonText: {
     fontSize: 14,
     fontWeight: '500',
-    color: COLORS.text.secondary,
+    color: COLORS.text.tertiary,
   },
   selectedTabButtonText: {
     color: COLORS.primary.main,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   chatList: {
     flex: 1,
@@ -635,56 +650,60 @@ const styles = StyleSheet.create({
   chatItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
     paddingVertical: 16,
     backgroundColor: COLORS.neutral.white,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.neutral.grey100,
   },
   chatAvatar: {
-    width: 50,
-    height: 50,
-    borderRadius: 12,
-    backgroundColor: COLORS.neutral.grey200,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
   },
   chatAvatarText: {
     fontSize: 18,
-    fontWeight: '600',
-    color: COLORS.text.primary,
+    fontWeight: '700',
+    color: COLORS.text.white,
   },
   chatInfo: {
     flex: 1,
   },
   chatTitle: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
     color: COLORS.text.primary,
     marginBottom: 4,
   },
   lastMessage: {
-    fontSize: 14,
-    color: COLORS.text.secondary,
-    marginBottom: 4,
+    fontSize: 13,
+    color: COLORS.text.tertiary,
+  },
+  chatMeta: {
+    alignItems: 'flex-end',
+    justifyContent: 'flex-start',
+    gap: 6,
+    paddingTop: 2,
   },
   chatTime: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: COLORS.text.tertiary,
   },
   unreadBadge: {
     backgroundColor: COLORS.primary.main,
-    borderRadius: 8,
-    minWidth: 24,
-    height: 24,
+    borderRadius: 11,
+    minWidth: 22,
+    height: 22,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 6,
   },
   unreadCount: {
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: 11,
+    fontWeight: '700',
     color: COLORS.text.white,
   },
   loadingContainer: {
@@ -697,6 +716,11 @@ const styles = StyleSheet.create({
   loadingText: {
     fontSize: 16,
     color: COLORS.text.secondary,
+  },
+  chatListSkeletonContainer: {
+    flex: 1,
+    backgroundColor: COLORS.neutral.white,
+    paddingTop: 8,
   },
   emptyContainer: {
     flex: 1,
@@ -715,27 +739,36 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.neutral.background,
   },
   chatRoomHeader: {
-    height: 60,
+    height: 64,
     backgroundColor: COLORS.neutral.white,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.neutral.grey200,
+    borderBottomColor: COLORS.neutral.grey100,
+    ...SHADOWS.small,
   },
   backButton: {
     padding: 8,
+    minWidth: 44,
+    minHeight: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   chatRoomTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: '700',
     color: COLORS.text.primary,
     flex: 1,
     textAlign: 'center',
   },
   menuButton: {
     padding: 8,
+    minWidth: 44,
+    minHeight: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   messageList: {
     flex: 1,
@@ -746,7 +779,7 @@ const styles = StyleSheet.create({
   },
   messageItem: {
     marginBottom: 16,
-    maxWidth: '80%',
+    maxWidth: '75%',
   },
   myMessage: {
     alignSelf: 'flex-end',
@@ -762,15 +795,22 @@ const styles = StyleSheet.create({
   },
   messageBubble: {
     backgroundColor: COLORS.neutral.white,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    borderBottomLeftRadius: 4,
+    borderBottomRightRadius: 20,
   },
   myMessageBubble: {
     backgroundColor: COLORS.primary.main,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 4,
   },
   messageText: {
-    fontSize: 14,
+    fontSize: 15,
     color: COLORS.text.primary,
     lineHeight: 20,
   },
@@ -778,7 +818,7 @@ const styles = StyleSheet.create({
     color: COLORS.text.white,
   },
   messageTime: {
-    fontSize: 10,
+    fontSize: 11,
     color: COLORS.text.secondary,
     marginTop: 4,
   },
@@ -794,15 +834,16 @@ const styles = StyleSheet.create({
   },
   readReceipt: {
     fontSize: 10,
-    color: COLORS.text.tertiary,
+    color: COLORS.primary.main,
   },
   messageInput: {
     backgroundColor: COLORS.neutral.white,
     borderTopWidth: 1,
-    borderTopColor: COLORS.neutral.grey200,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    height: 60,
+    borderTopColor: COLORS.neutral.grey100,
+    ...SHADOWS.large,
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    height: 72,
     justifyContent: 'center',
   },
   inputContainer: {
@@ -813,19 +854,24 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     minHeight: 40,
+    width: '100%',
+    boxSizing: 'border-box',
+    borderWidth: 1,
+    borderColor: 'transparent',
+    transition: 'border-color 150ms ease, box-shadow 150ms ease',
   },
   textInput: {
     flex: 1,
-    fontSize: 14,
+    fontSize: 15,
     color: COLORS.text.primary,
     maxHeight: 100,
     paddingVertical: 8,
   },
   sendButton: {
     marginLeft: 12,
-    width: 32,
-    height: 32,
-    borderRadius: BORDER_RADIUS.sm,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: COLORS.neutral.grey200,
     justifyContent: 'center',
     alignItems: 'center',
@@ -838,14 +884,15 @@ const styles = StyleSheet.create({
     marginVertical: 20,
   },
   dateHeaderText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
     color: COLORS.text.secondary,
-    backgroundColor: 'rgba(0, 0, 0, 0.05)',
+    backgroundColor: COLORS.neutral.white,
     paddingHorizontal: 16,
-    paddingVertical: 6,
-    borderRadius: 8,
+    paddingVertical: 8,
+    borderRadius: 12,
     textAlign: 'center',
+    ...SHADOWS.small,
   },
   messageWithProfile: {
     flexDirection: 'row',
@@ -855,7 +902,7 @@ const styles = StyleSheet.create({
   profileImageContainer: {
     width: 40,
     height: 40,
-    borderRadius: 10,
+    borderRadius: 20,
     overflow: 'hidden',
     backgroundColor: COLORS.neutral.grey200,
     justifyContent: 'center',
@@ -864,13 +911,13 @@ const styles = StyleSheet.create({
   profileImage: {
     width: 40,
     height: 40,
-    borderRadius: 10,
+    borderRadius: 20,
     resizeMode: 'cover',
   },
   defaultProfileImage: {
     width: 40,
     height: 40,
-    borderRadius: 10,
+    borderRadius: 20,
     backgroundColor: COLORS.primary.main,
     justifyContent: 'center',
     alignItems: 'center',
@@ -903,7 +950,7 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     backgroundColor: COLORS.neutral.white,
-    borderRadius: 12,
+    borderRadius: 16,
     padding: 24,
     margin: 20,
     maxWidth: 400,
@@ -932,7 +979,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 12,
     paddingHorizontal: 16,
-    borderRadius: 8,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: COLORS.neutral.grey300,
     backgroundColor: COLORS.neutral.white,
@@ -947,7 +994,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 12,
     paddingHorizontal: 16,
-    borderRadius: 8,
+    borderRadius: 12,
     backgroundColor: COLORS.primary.main,
     alignItems: 'center',
   },

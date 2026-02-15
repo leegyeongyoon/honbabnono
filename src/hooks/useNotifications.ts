@@ -45,7 +45,6 @@ const useNotifications = (userId?: string) => {
     });
 
     newSocket.on('connect', () => {
-      console.log('WebSocket 연결됨');
       setConnected(true);
       
       // 사용자 인증
@@ -53,14 +52,11 @@ const useNotifications = (userId?: string) => {
     });
 
     newSocket.on('disconnect', () => {
-      console.log('WebSocket 연결 해제됨');
       setConnected(false);
     });
 
     // 새 알림 수신
     newSocket.on('new_notification', (notification: Notification) => {
-      console.log('새 알림 수신:', notification);
-      
       setNotifications(prev => [notification, ...prev]);
       setUnreadCount(prev => prev + 1);
       
@@ -73,12 +69,11 @@ const useNotifications = (userId?: string) => {
           });
         }
       } catch (error) {
-        console.warn('브라우저 알림 표시 실패:', error);
+        // silently handle error
       }
     });
 
     newSocket.on('connect_error', (error) => {
-      console.error('WebSocket 연결 오류:', error);
       setConnected(false);
     });
 
@@ -109,7 +104,7 @@ const useNotifications = (userId?: string) => {
           return;
         }
       }
-      console.error('읽지 않은 알림 개수 조회 실패:', error);
+      // silently handle error
     }
   };
 
@@ -126,7 +121,7 @@ const useNotifications = (userId?: string) => {
         }
       }
     } catch (error) {
-      console.warn('브라우저 알림 권한 요청 실패:', error);
+      // silently handle error
     }
     return false;
   };
@@ -144,7 +139,7 @@ const useNotifications = (userId?: string) => {
       );
       setUnreadCount(prev => Math.max(0, prev - 1));
     } catch (error) {
-      console.error('알림 읽음 처리 실패:', error);
+      // silently handle error
     }
   };
 
@@ -157,7 +152,7 @@ const useNotifications = (userId?: string) => {
       );
       setUnreadCount(0);
     } catch (error) {
-      console.error('모든 알림 읽음 처리 실패:', error);
+      // silently handle error
     }
   };
 

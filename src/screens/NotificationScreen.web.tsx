@@ -7,11 +7,12 @@ import {
   Alert,
   SafeAreaView,
 } from 'react-native';
-import { COLORS } from '../styles/colors';
+import { COLORS, SHADOWS, CARD_STYLE, CSS_SHADOWS } from '../styles/colors';
 import { TYPOGRAPHY } from '../styles/typography';
 import { SPACING, BORDER_RADIUS } from '../styles/spacing';
 import Header from '../components/Header';
 import EmptyState from '../components/EmptyState';
+import { FadeIn } from '../components/animated';
 import { NotificationList } from '../components/NotificationList';
 import { Notification } from '../types/notification';
 import notificationApiService from '../services/notificationApiService';
@@ -62,7 +63,7 @@ const NotificationScreen: React.FC<NotificationScreenProps> = ({ navigation, use
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <FadeIn style={styles.container}>
       <Header
         mode="sub"
         title="알림"
@@ -101,13 +102,13 @@ const NotificationScreen: React.FC<NotificationScreenProps> = ({ navigation, use
         showUnreadOnly={showUnreadOnly}
         emptyComponent={
           <EmptyState
-            icon="🔔"
+            icon="bell"
             title="알림이 없습니다"
             description="새로운 소식이 있으면 알려드릴게요"
           />
         }
       />
-    </SafeAreaView>
+    </FadeIn>
   );
 };
 
@@ -124,14 +125,15 @@ const styles = StyleSheet.create({
   filterButton: {
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.xs,
-    borderRadius: BORDER_RADIUS.full,
-    backgroundColor: COLORS.neutral.background,
+    borderRadius: 12,
+    backgroundColor: COLORS.neutral.grey100,
   },
   filterButtonActive: {
     backgroundColor: COLORS.primary.main,
   },
   filterButtonText: {
-    ...TYPOGRAPHY.button.small,
+    fontSize: 13,
+    fontWeight: '600',
     color: COLORS.text.secondary,
   },
   filterButtonTextActive: {
@@ -142,8 +144,9 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.xs,
   },
   markAllText: {
-    ...TYPOGRAPHY.body.small,
+    fontSize: 13,
     color: COLORS.text.tertiary,
+    fontWeight: '500',
   },
 });
 

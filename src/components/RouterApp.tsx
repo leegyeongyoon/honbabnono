@@ -35,6 +35,7 @@ import NoticesScreen from '../screens/NoticesScreen.web';
 import NoticeDetailScreen from '../screens/NoticeDetailScreen.web';
 import SearchScreen from '../screens/SearchScreen.web';
 import AISearchResultScreen from '../screens/AISearchResultScreen.web';
+import ExploreScreen from '../screens/ExploreScreen.web';
 
 // Components
 import BottomTabBar from './BottomTabBar';
@@ -43,44 +44,51 @@ const RouterApp: React.FC = () => {
   const { user, isLoggedIn, login, logout, setUser, setToken } = useUserStore();
   const [isLoading, setIsLoading] = useState(true);
   
-  console.log('RouterApp rendering, isLoggedIn:', isLoggedIn, 'isLoading:', isLoading, 'current path:', window.location.pathname);
-
   // 로그인 상태 확인
   useEffect(() => {
     checkLoginStatus();
   }, []);
 
   const checkLoginStatus = async () => {
-    console.log('checkLoginStatus called');
     // URL에서 토큰과 사용자 정보 확인 (카카오 로그인 후 리다이렉트)
     const urlParams = new URLSearchParams(window.location.search);
     const token = urlParams.get('token');
     const userParam = urlParams.get('user');
-    
+
+    // testgy 프리뷰 모드: URL 파라미터로 플래그 저장
+    if (urlParams.get('preview') === 'testgy') {
+      localStorage.setItem('preview-mode', 'testgy');
+    }
+    const isPreviewMode = localStorage.getItem('preview-mode') === 'testgy';
+
     // 또는 localStorage에서 토큰 확인
     const storedToken = localStorage.getItem('token');
-    
-    console.log('🔍 RouterApp 초기화:', {
-      hasToken: !!token,
-      hasUserParam: !!userParam,
-      hasStoredToken: !!storedToken,
-      tokenLength: storedToken?.length,
-      currentPath: window.location.pathname
-    });
+
+    // 완전한 로그아웃 (zustand persist 스토리지도 클리어)
+    const fullLogout = () => {
+      logout();
+      try {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        localStorage.removeItem('user-storage');
+      } catch (_e) { /* ignore */ }
+    };
 
     if (token && userParam) {
       // 카카오 로그인 성공 후 리다이렉트된 경우
-      const userData = JSON.parse(decodeURIComponent(userParam));
-      login(userData, token);
+      try {
+        const userData = JSON.parse(decodeURIComponent(userParam));
+        login(userData, token);
+      } catch (_e) {
+        fullLogout();
+      }
       // URL 파라미터 제거
       window.history.replaceState({}, document.title, window.location.pathname);
       setIsLoading(false);
     } else if (storedToken) {
       // 저장된 토큰이 있으면 서버에서 검증
-      console.log('Found stored token, verifying with server...');
       const apiUrl = `${process.env.REACT_APP_API_URL || 'http://localhost:3001/api'}/auth/verify-token`;
-      console.log('📡 Sending verify-token request to:', apiUrl);
-      
+
       try {
         const response = await fetch(apiUrl, {
           method: 'POST',
@@ -90,34 +98,47 @@ const RouterApp: React.FC = () => {
           body: JSON.stringify({ token: storedToken }),
         });
 
-        console.log('📡 Response status:', response.status, response.statusText);
-        
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
-        
+
         const data = await response.json();
-        console.log('📡 Response data:', data);
 
         if (data.success) {
           // 토큰이 유효하면 자동 로그인
-          console.log('✅ 자동 로그인 성공:', data.user.email);
           login(data.user, storedToken);
         } else {
-          // 토큰이 유효하지 않으면 로그아웃 처리
-          console.log('❌ 토큰 무효, 로그아웃 처리:', data.error);
-          logout();
+          // 토큰이 유효하지 않으면 완전 로그아웃 처리
+          fullLogout();
         }
       } catch (error) {
-        // 네트워크 오류 등의 경우 로그아웃 처리
-        console.error('📡 verify-token 요청 실패:', error);
-        console.error('토큰 검증 오류:', error);
-        logout();
+        // 서버 오류 시 프리뷰 모드면 유지, 아니면 완전 로그아웃
+        if (!isPreviewMode) {
+          fullLogout();
+        }
       }
       setIsLoading(false);
+    } else if (isPreviewMode) {
+      // testgy 프리뷰 모드 — DB 없이 더미 유저로 진입
+      const previewUser = {
+        id: '999',
+        name: '경윤(테스트)',
+        email: 'testgy@preview.local',
+        provider: 'preview',
+        isVerified: true,
+        babAlScore: 75,
+        meetupsHosted: 3,
+        meetupsJoined: 12,
+        rating: 4.5,
+        createdAt: '2024-01-01',
+      };
+      localStorage.setItem('token', 'preview-testgy');
+      localStorage.setItem('user', JSON.stringify(previewUser));
+      login(previewUser as any, 'preview-testgy');
+      setIsLoading(false);
     } else {
-      // 토큰이 없으면 로그인되지 않은 상태
-      console.log('No token found, staying logged out');
+      // 토큰 없고 프리뷰도 아닌 경우 — 확실하게 로그아웃 상태 보장
+      fullLogout();
       setIsLoading(false);
     }
   };
@@ -140,15 +161,14 @@ const RouterApp: React.FC = () => {
     }
   }, [isLoggedIn, user, fetchMeetups]);
 
-  // 보호된 라우트 컴포넌트
-  const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    console.log('ProtectedRoute: isLoggedIn =', isLoggedIn);
-    return isLoggedIn ? <>{children}</> : <Navigate to="/login" replace />;
+  // 보호된 라우트 헬퍼 (컴포넌트가 아닌 함수로 — 매 렌더 재생성 방지)
+  const protectedElement = (children: React.ReactNode) => {
+    return isLoggedIn ? children : <Navigate to="/login" replace />;
   };
 
-  // 로그인된 사용자 리다이렉트 컴포넌트
-  const LoginRedirect: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    return isLoggedIn ? <Navigate to="/home" replace /> : <>{children}</>;
+  // 로그인된 사용자 리다이렉트 헬퍼
+  const loginRedirectElement = (children: React.ReactNode) => {
+    return isLoggedIn ? <Navigate to="/home" replace /> : children;
   };
 
   // 공통 네비게이션 props
@@ -205,296 +225,47 @@ const RouterApp: React.FC = () => {
       <View style={styles.container}>
         <Routes>
           {/* 공개 라우트들 - 로그인 불필요 */}
-          <Route 
-            path="/advertisement/:id" 
-            element={
-              <AdvertisementDetailScreen user={user} navigation={getReactRouterNavigation()} />
-            } 
-          />
+          <Route path="/advertisement/:id" element={<AdvertisementDetailScreen user={user} navigation={getReactRouterNavigation()} />} />
+          <Route path="/notices" element={<NoticesScreen />} />
+          <Route path="/notices/:id" element={<NoticeDetailScreen />} />
 
-          {/* 보호된 라우트들 - 구체적인 경로부터 먼저 */}
-          <Route 
-            path="/chat/:id" 
-            element={
-              <ProtectedRoute>
-                <MainLayout>
-                  <ChatScreen {...getNavigationProps()} />
-                </MainLayout>
-              </ProtectedRoute>
-            } 
-          />
-
-          <Route 
-            path="/meetup/:id/deposit-payment" 
-            element={
-              <ProtectedRoute>
-                <DepositPaymentScreen />
-              </ProtectedRoute>
-            } 
-          />
-
-          <Route 
-            path="/meetup/:id" 
-            element={
-              <ProtectedRoute>
-                <MeetupDetailScreen user={user} />
-              </ProtectedRoute>
-            } 
-          />
-
-          <Route 
-            path="/home" 
-            element={
-              <ProtectedRoute>
-                <MainLayout>
-                  <HomeScreen user={user} navigation={getReactRouterNavigation()} />
-                </MainLayout>
-              </ProtectedRoute>
-            } 
-          />
-
-          <Route 
-            path="/search" 
-            element={
-              <ProtectedRoute>
-                <MainLayout>
-                  <SearchScreen user={user} navigation={getReactRouterNavigation()} />
-                </MainLayout>
-              </ProtectedRoute>
-            } 
-          />
-
-          <Route 
-            path="/ai-search" 
-            element={
-              <ProtectedRoute>
-                <AISearchResultScreen user={user} navigation={getReactRouterNavigation()} />
-              </ProtectedRoute>
-            } 
-          />
-
-          <Route 
-            path="/notifications" 
-            element={
-              <ProtectedRoute>
-                <MainLayout>
-                  <NotificationScreen user={user} navigation={getReactRouterNavigation()} />
-                </MainLayout>
-              </ProtectedRoute>
-            } 
-          />
-
-          <Route 
-            path="/my-meetups" 
-            element={
-              <ProtectedRoute>
-                <MainLayout>
-                  <MyMeetupsScreen user={user} />
-                </MainLayout>
-              </ProtectedRoute>
-            } 
-          />
-
-          <Route 
-            path="/chat" 
-            element={
-              <ProtectedRoute>
-                <MainLayout>
-                  <ChatScreen user={user} />
-                </MainLayout>
-              </ProtectedRoute>
-            } 
-          />
-
-          <Route 
-            path="/mypage" 
-            element={
-              <ProtectedRoute>
-                <MainLayout>
-                  <MyPageScreen user={user} onLogout={handleLogout} />
-                </MainLayout>
-              </ProtectedRoute>
-            } 
-          />
-
-          <Route 
-            path="/create-meetup" 
-            element={
-              <ProtectedRoute>
-                <CreateMeetupWizard user={user} />
-              </ProtectedRoute>
-            } 
-          />
-
-          <Route 
-            path="/meetup-list" 
-            element={
-              <ProtectedRoute>
-                <MeetupListScreen />
-              </ProtectedRoute>
-            } 
-          />
-
-          <Route 
-            path="/payment" 
-            element={
-              <ProtectedRoute>
-                <PaymentScreen />
-              </ProtectedRoute>
-            } 
-          />
-
-          <Route 
-            path="/my-activities" 
-            element={
-              <ProtectedRoute>
-                <MyActivitiesScreen />
-              </ProtectedRoute>
-            } 
-          />
-
-          <Route 
-            path="/wishlist" 
-            element={
-              <ProtectedRoute>
-                <WishlistScreen />
-              </ProtectedRoute>
-            } 
-          />
-
-          <Route 
-            path="/my-reviews" 
-            element={
-              <ProtectedRoute>
-                <MyReviewsScreen />
-              </ProtectedRoute>
-            } 
-          />
-
-          <Route 
-            path="/joined-meetups" 
-            element={
-              <ProtectedRoute>
-                <JoinedMeetupsScreen />
-              </ProtectedRoute>
-            } 
-          />
-
-          <Route 
-            path="/point-history" 
-            element={
-              <ProtectedRoute>
-                <PointHistoryScreen />
-              </ProtectedRoute>
-            } 
-          />
-
-          <Route 
-            path="/point-charge" 
-            element={
-              <ProtectedRoute>
-                <PointChargeScreen />
-              </ProtectedRoute>
-            } 
-          />
-
-          <Route 
-            path="/review-management" 
-            element={
-              <ProtectedRoute>
-                <ReviewManagementScreen />
-              </ProtectedRoute>
-            } 
-          />
-
-          <Route 
-            path="/notification-settings" 
-            element={
-              <ProtectedRoute>
-                <NotificationSettingsScreen />
-              </ProtectedRoute>
-            } 
-          />
-
-          <Route 
-            path="/privacy-settings" 
-            element={
-              <ProtectedRoute>
-                <PrivacySettingsScreen />
-              </ProtectedRoute>
-            } 
-          />
-
-          <Route 
-            path="/notices" 
-            element={
-              <NoticesScreen />
-            } 
-          />
-
-          <Route 
-            path="/notices/:id" 
-            element={
-              <NoticeDetailScreen />
-            } 
-          />
-
-          <Route 
-            path="/my-badges" 
-            element={
-              <ProtectedRoute>
-                <MyBadgesScreen />
-              </ProtectedRoute>
-            } 
-          />
-
-          <Route 
-            path="/point-balance" 
-            element={
-              <ProtectedRoute>
-                <PointBalanceScreen />
-              </ProtectedRoute>
-            } 
-          />
-
-          <Route 
-            path="/recent-views" 
-            element={
-              <ProtectedRoute>
-                <RecentViewsScreen />
-              </ProtectedRoute>
-            } 
-          />
-
-          <Route 
-            path="/blocked-users" 
-            element={
-              <ProtectedRoute>
-                <BlockedUsersScreen />
-              </ProtectedRoute>
-            } 
-          />
+          {/* 보호된 라우트들 */}
+          <Route path="/chat/:id" element={protectedElement(<MainLayout><ChatScreen {...getNavigationProps()} /></MainLayout>)} />
+          <Route path="/meetup/:id/deposit-payment" element={protectedElement(<DepositPaymentScreen />)} />
+          <Route path="/meetup/:id" element={protectedElement(<MeetupDetailScreen user={user} />)} />
+          <Route path="/home" element={protectedElement(<MainLayout><HomeScreen user={user} navigation={getReactRouterNavigation()} /></MainLayout>)} />
+          <Route path="/search" element={protectedElement(<MainLayout><SearchScreen user={user} navigation={getReactRouterNavigation()} /></MainLayout>)} />
+          <Route path="/ai-search" element={protectedElement(<AISearchResultScreen user={user} navigation={getReactRouterNavigation()} />)} />
+          <Route path="/notifications" element={protectedElement(<MainLayout><NotificationScreen user={user} navigation={getReactRouterNavigation()} /></MainLayout>)} />
+          <Route path="/my-meetups" element={protectedElement(<MainLayout><MyMeetupsScreen user={user} /></MainLayout>)} />
+          <Route path="/chat" element={protectedElement(<MainLayout><ChatScreen user={user} /></MainLayout>)} />
+          <Route path="/mypage" element={protectedElement(<MainLayout><MyPageScreen user={user} onLogout={handleLogout} /></MainLayout>)} />
+          <Route path="/create-meetup" element={protectedElement(<CreateMeetupWizard user={user} />)} />
+          <Route path="/explore" element={protectedElement(<MainLayout><ExploreScreen /></MainLayout>)} />
+          <Route path="/meetup-list" element={protectedElement(<MeetupListScreen />)} />
+          <Route path="/payment" element={protectedElement(<PaymentScreen />)} />
+          <Route path="/my-activities" element={protectedElement(<MyActivitiesScreen />)} />
+          <Route path="/wishlist" element={protectedElement(<WishlistScreen />)} />
+          <Route path="/my-reviews" element={protectedElement(<MyReviewsScreen />)} />
+          <Route path="/joined-meetups" element={protectedElement(<JoinedMeetupsScreen />)} />
+          <Route path="/point-history" element={protectedElement(<PointHistoryScreen />)} />
+          <Route path="/point-charge" element={protectedElement(<PointChargeScreen />)} />
+          <Route path="/review-management" element={protectedElement(<ReviewManagementScreen />)} />
+          <Route path="/notification-settings" element={protectedElement(<NotificationSettingsScreen />)} />
+          <Route path="/privacy-settings" element={protectedElement(<PrivacySettingsScreen />)} />
+          <Route path="/my-badges" element={protectedElement(<MyBadgesScreen />)} />
+          <Route path="/point-balance" element={protectedElement(<PointBalanceScreen />)} />
+          <Route path="/recent-views" element={protectedElement(<RecentViewsScreen />)} />
+          <Route path="/blocked-users" element={protectedElement(<BlockedUsersScreen />)} />
 
           {/* 로그인 페이지 */}
-          <Route 
-            path="/login" 
-            element={
-              <LoginRedirect>
-                <LoginScreen />
-              </LoginRedirect>
-            } 
-          />
+          <Route path="/login" element={loginRedirectElement(<LoginScreen />)} />
 
           {/* 루트 경로 - 로그인 상태에 따라 리다이렉트 */}
-          <Route 
-            path="/" 
-            element={
-              isLoggedIn ? <Navigate to="/home" replace /> : <Navigate to="/login" replace />
-            } 
-          />
+          <Route path="/" element={isLoggedIn ? <Navigate to="/home" replace /> : <Navigate to="/login" replace />} />
 
-          {/* 404 페이지 - 가장 마지막에 위치 */}
-          <Route path="*" element={<Navigate to="/home" replace />} />
+          {/* 404 — 로그인 안 됐으면 /login으로, 됐으면 /home으로 */}
+          <Route path="*" element={isLoggedIn ? <Navigate to="/home" replace /> : <Navigate to="/login" replace />} />
         </Routes>
       </View>
     </Router>

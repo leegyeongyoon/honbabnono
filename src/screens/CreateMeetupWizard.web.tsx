@@ -77,8 +77,6 @@ const KakaoMapComponent: React.FC<KakaoMapComponentProps> = ({ onMapLoad, onLoca
   const [isWebView, setIsWebView] = React.useState(false);
 
   const sendLogToNative = (message: string) => {
-    console.log(`🗺️ [KakaoMapComponent] ${message}`);
-    
     if (window.ReactNativeWebView) {
       window.ReactNativeWebView.postMessage(JSON.stringify({
         type: 'LOG',
@@ -362,6 +360,7 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
     { name: '수원역', district: '수원시', fullAddress: '경기도 수원시 팔달구 수원역 일대' },
     { name: '인천역', district: '인천시', fullAddress: '인천광역시 중구 인천역 일대' },
   ];
+  const [focusedInput, setFocusedInput] = useState<string | null>(null);
   const [meetupData, setMeetupData] = useState<MeetupData>({
     category: '',
     date: '',
@@ -443,7 +442,6 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
   // Kakao 장소 검색 함수
   const performKakaoPlaceSearch = React.useCallback((query: string) => {
     if (!(window as any).kakao || !(window as any).kakao.maps || !(window as any).kakao.maps.services) {
-      console.warn('Kakao Maps API not loaded');
       return;
     }
 
@@ -564,15 +562,6 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
         formData.append('image', meetupData.image);
       }
 
-      console.log('📤 모임 생성 요청:', {
-        title: meetupData.title,
-        description: meetupData.description,
-        category: meetupData.category,
-        location: meetupData.location,
-        date: meetupData.date,
-        time: meetupData.time
-      });
-
       const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:3001/api'}/meetups`, {
         method: 'POST',
         headers: {
@@ -587,7 +576,6 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
         const meetupId = data.meetup.id;
         
         // 필터 설정 API는 현재 미구현으로 스킵
-        console.log('📝 모임 생성 완료 - 필터 설정은 향후 구현 예정');
 
         // 약속금이 있는 경우 결제 단계로 이동
         if (meetupData.deposit > 0) {
@@ -602,7 +590,7 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
         showToast(data.message || '모임 생성에 실패했습니다.', 'error');
       }
     } catch (error) {
-      console.error('모임 생성 오류:', error);
+      // silently handle error
       showToast('서버 오류가 발생했습니다.', 'error');
     }
   };
@@ -624,7 +612,7 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
         setUserPoints(data.data?.availablePoints || 0);
       }
     } catch (error) {
-      console.error('포인트 조회 오류:', error);
+      // silently handle error
     }
   };
 
@@ -691,7 +679,7 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
         }, remainingTime);
       }
     } catch (error) {
-      console.error('결제 오류:', error);
+      // silently handle error
       showToast('결제 처리 중 오류가 발생했습니다.', 'error');
       // 에러한 경우 즉시 로딩 해제
       const elapsedTime = Date.now() - startTime;
@@ -907,7 +895,6 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
                                 !isCurrentMonth ? styles.otherMonthDate : null
                               ]}
                               onPress={() => {
-                                console.log('날짜 클릭:', date);
                                 const newDate = new Date(date);
                                 
                                 // 현재 선택된 시간 적용
@@ -926,8 +913,6 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
                                 const month = (newDate.getMonth() + 1).toString().padStart(2, '0');
                                 const day = newDate.getDate().toString().padStart(2, '0');
                                 updateMeetupData('date', `${year}-${month}-${day}`);
-                                
-                                console.log('날짜 업데이트 완료:', newDate.toLocaleDateString('ko-KR'));
                               }}
                             >
                               <Text style={[
@@ -1289,11 +1274,19 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
             <View style={styles.detailAddressContainer}>
               <Text style={styles.addressLabel}>상세 주소</Text>
               <TextInput
-                style={styles.detailAddressInput}
+                style={[
+                  styles.detailAddressInput,
+                  focusedInput === 'detailAddress' && {
+                    borderColor: COLORS.primary.main,
+                    boxShadow: '0 0 0 3px rgba(139, 105, 20, 0.15)',
+                  } as any,
+                ]}
                 placeholder="건물명, 층수, 호수 등을 입력하세요"
                 value={meetupData.detailAddress}
                 onChangeText={(text) => updateMeetupData('detailAddress', text)}
                 placeholderTextColor={COLORS.text.tertiary}
+                onFocus={() => setFocusedInput('detailAddress')}
+                onBlur={() => setFocusedInput(null)}
               />
             </View>
           </View>
@@ -1315,7 +1308,13 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
             
             <View style={styles.locationSearchContainer}>
               <TextInput
-                style={styles.locationSearchInput}
+                style={[
+                  styles.locationSearchInput,
+                  focusedInput === 'locationSearch' && {
+                    borderColor: COLORS.primary.main,
+                    boxShadow: '0 0 0 3px rgba(139, 105, 20, 0.15)',
+                  } as any,
+                ]}
                 placeholder="주소나 장소명을 검색하세요"
                 value={searchQuery}
                 onChangeText={(text) => {
@@ -1328,6 +1327,8 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
                   }
                 }}
                 autoFocus
+                onFocus={() => setFocusedInput('locationSearch')}
+                onBlur={() => setFocusedInput(null)}
               />
               <TouchableOpacity 
                 style={styles.searchButton}
@@ -1423,22 +1424,38 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
       <View style={styles.titleSection}>
         <Text style={styles.inputLabel}>모임 제목</Text>
         <TextInput
-          style={styles.titleInput}
+          style={[
+            styles.titleInput,
+            focusedInput === 'title' && {
+              borderColor: COLORS.primary.main,
+              boxShadow: '0 0 0 3px rgba(139, 105, 20, 0.15)',
+            } as any,
+          ]}
           placeholder="모임 제목을 입력하세요"
           value={meetupData.title}
           onChangeText={(text) => updateMeetupData('title', text)}
+          onFocus={() => setFocusedInput('title')}
+          onBlur={() => setFocusedInput(null)}
         />
       </View>
       
       <View style={styles.descriptionSection}>
         <Text style={styles.inputLabel}>모임 소개</Text>
         <TextInput
-          style={styles.descriptionInput}
+          style={[
+            styles.descriptionInput,
+            focusedInput === 'description' && {
+              borderColor: COLORS.primary.main,
+              boxShadow: '0 0 0 3px rgba(139, 105, 20, 0.15)',
+            } as any,
+          ]}
           placeholder="모임에 대해 자유롭게 소개해주세요"
           value={meetupData.description}
           onChangeText={(text) => updateMeetupData('description', text)}
           multiline
           numberOfLines={4}
+          onFocus={() => setFocusedInput('description')}
+          onBlur={() => setFocusedInput(null)}
         />
       </View>
       
@@ -1512,7 +1529,13 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
         <Text style={styles.inputLabel}>약속금 금액</Text>
         <View style={styles.depositAmountContainer}>
           <TextInput
-            style={styles.depositInput}
+            style={[
+              styles.depositInput,
+              focusedInput === 'deposit' && {
+                borderColor: COLORS.primary.main,
+                boxShadow: '0 0 0 3px rgba(139, 105, 20, 0.15)',
+              } as any,
+            ]}
             placeholder="10,000"
             value={meetupData.deposit.toString()}
             onChangeText={(text) => {
@@ -1520,6 +1543,8 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
               updateMeetupData('deposit', amount);
             }}
             keyboardType="numeric"
+            onFocus={() => setFocusedInput('deposit')}
+            onBlur={() => setFocusedInput(null)}
           />
           <Text style={styles.currencyText}>원</Text>
         </View>
@@ -1614,7 +1639,7 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
       <View style={styles.paymentInfoContainer}>
         <View style={styles.paymentRow}>
           <Text style={styles.paymentLabel}>결제 금액</Text>
-          <Text style={styles.paymentAmount}>{meetupData.deposit?.toLocaleString() || 0}원</Text>
+          <Text style={styles.paymentAmount}>{(meetupData.deposit ?? 0).toLocaleString()}원</Text>
         </View>
         <View style={styles.paymentRow}>
           <Text style={styles.paymentLabel}>보유 포인트</Text>
@@ -1758,22 +1783,23 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 12,
-    marginBottom: 20,
+    gap: 10,
+    marginBottom: 24,
+    paddingVertical: 4,
   },
   stepDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: COLORS.neutral.grey300,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: COLORS.neutral.grey200,
   },
   stepDotActive: {
-    backgroundColor: COLORS.neutral.grey500,
+    backgroundColor: COLORS.primary.main + '60',
   },
   stepDotCurrent: {
     backgroundColor: COLORS.primary.main,
-    width: 24,
-    borderRadius: 12,
+    width: 28,
+    borderRadius: 14,
   },
   content: {
     flex: 1,
@@ -1843,9 +1869,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   dateTimeLabel: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: COLORS.text.secondary,
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.text.primary,
     marginBottom: 8,
     textAlign: 'center',
   },
@@ -1997,7 +2023,7 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   preferenceLabel: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
     color: COLORS.text.primary,
     marginBottom: 12,
@@ -2008,10 +2034,10 @@ const styles = StyleSheet.create({
   },
   preferenceOption: {
     flex: 1,
-    paddingVertical: 12,
-    borderRadius: 8,
+    paddingVertical: 14,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: COLORS.neutral.grey200,
+    borderColor: 'rgba(0,0,0,0.08)',
     backgroundColor: COLORS.neutral.white,
   },
   preferenceSelected: {
@@ -2035,9 +2061,9 @@ const styles = StyleSheet.create({
   ageOption: {
     paddingHorizontal: 16,
     paddingVertical: 12,
-    borderRadius: 8,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: COLORS.neutral.grey200,
+    borderColor: 'rgba(0,0,0,0.08)',
     backgroundColor: COLORS.neutral.white,
     minWidth: 70,
   },
@@ -2065,7 +2091,7 @@ const styles = StyleSheet.create({
     padding: 16,
     fontSize: 16,
     borderWidth: 1,
-    borderColor: COLORS.neutral.grey200,
+    borderColor: 'rgba(0,0,0,0.08)',
     ...SHADOWS.small,
   },
   currentLocationButton: {
@@ -2143,7 +2169,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   inputLabel: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
     color: COLORS.text.primary,
     marginBottom: 8,
@@ -2154,7 +2180,8 @@ const styles = StyleSheet.create({
     padding: 16,
     fontSize: 16,
     borderWidth: 1,
-    borderColor: COLORS.neutral.grey200,
+    borderColor: 'rgba(0,0,0,0.08)',
+    transition: 'border-color 150ms ease, box-shadow 150ms ease',
     ...SHADOWS.small,
   },
   descriptionInput: {
@@ -2163,9 +2190,10 @@ const styles = StyleSheet.create({
     padding: 16,
     fontSize: 16,
     borderWidth: 1,
-    borderColor: COLORS.neutral.grey200,
+    borderColor: 'rgba(0,0,0,0.08)',
     minHeight: 120,
     textAlignVertical: 'top',
+    transition: 'border-color 150ms ease, box-shadow 150ms ease',
     ...SHADOWS.small,
   },
   priceOptions: {
@@ -2176,9 +2204,9 @@ const styles = StyleSheet.create({
   priceOption: {
     paddingHorizontal: 16,
     paddingVertical: 10,
-    borderRadius: 8,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: COLORS.neutral.grey200,
+    borderColor: 'rgba(0,0,0,0.08)',
     backgroundColor: COLORS.neutral.white,
   },
   priceSelected: {
@@ -2201,14 +2229,16 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.neutral.white,
   },
   nextButton: {
-    backgroundColor: COLORS.neutral.grey800,
-    borderRadius: 16,
-    paddingVertical: 20,
+    backgroundColor: COLORS.primary.main,
+    borderRadius: 12,
+    paddingVertical: 16,
     alignItems: 'center',
     marginHorizontal: 20,
+    ...SHADOWS.small,
   },
   nextButtonDisabled: {
     backgroundColor: COLORS.neutral.grey300,
+    ...SHADOWS.small,
   },
   nextButtonText: {
     fontSize: 18,
@@ -2489,6 +2519,10 @@ const styles = StyleSheet.create({
     color: COLORS.text.primary,
     paddingVertical: 16,
     textAlign: 'right',
+    borderWidth: 1,
+    borderColor: 'transparent',
+    borderRadius: 8,
+    transition: 'border-color 150ms ease, box-shadow 150ms ease',
   },
   currencyText: {
     fontSize: 16,
@@ -2672,6 +2706,9 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     fontSize: 16,
     color: COLORS.text.primary,
+    borderWidth: 1,
+    borderColor: 'transparent',
+    transition: 'border-color 150ms ease, box-shadow 150ms ease',
   },
   searchButton: {
     backgroundColor: COLORS.neutral.grey700,
@@ -2759,6 +2796,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     fontSize: 16,
     color: COLORS.text.primary,
+    transition: 'border-color 150ms ease, box-shadow 150ms ease',
   },
   
   // 검색 결과 스타일

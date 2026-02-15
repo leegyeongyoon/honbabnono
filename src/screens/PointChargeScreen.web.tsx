@@ -1,14 +1,17 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput } from 'react-native';
 import { useNavigate } from 'react-router-dom';
-import { COLORS, SHADOWS } from '../styles/colors';
+import { COLORS, SHADOWS, CARD_STYLE } from '../styles/colors';
 import { Icon } from '../components/Icon';
 import apiClient from '../services/apiClient';
+import { useToast } from '../hooks/useToast';
+import Toast from '../components/Toast';
 
 const PointChargeScreen: React.FC = () => {
   const navigate = useNavigate();
   const [amount, setAmount] = useState('');
   const [loading, setLoading] = useState(false);
+  const { toast, showSuccess, showError, showInfo, hideToast } = useToast();
 
   const presetAmounts = [1000, 3000, 5000, 10000, 20000, 50000];
 
@@ -20,12 +23,12 @@ const PointChargeScreen: React.FC = () => {
     const chargeAmount = parseInt(amount);
     
     if (!chargeAmount || chargeAmount < 1000) {
-      Alert.alert('알림', '최소 충전 금액은 1,000원입니다.');
+      showInfo('최소 충전 금액은 1,000원입니다.');
       return;
     }
 
     if (chargeAmount > 100000) {
-      Alert.alert('알림', '최대 충전 금액은 100,000원입니다.');
+      showInfo('최대 충전 금액은 100,000원입니다.');
       return;
     }
 
@@ -37,22 +40,13 @@ const PointChargeScreen: React.FC = () => {
       });
 
       if (response.data.success) {
-        Alert.alert(
-          '충전 완료',
-          `${chargeAmount.toLocaleString()}원이 충전되었습니다.`,
-          [
-            {
-              text: '확인',
-              onPress: () => navigate('/point-history')
-            }
-          ]
-        );
+        showSuccess(`${chargeAmount.toLocaleString()}원이 충전되었습니다.`);
+        setTimeout(() => navigate('/point-history'), 1000);
       } else {
-        Alert.alert('오류', response.data.message || '포인트 충전에 실패했습니다.');
+        showError(response.data.message || '포인트 충전에 실패했습니다.');
       }
     } catch (error: any) {
-      console.error('포인트 충전 오류:', error);
-      Alert.alert('오류', '포인트 충전 중 오류가 발생했습니다.');
+      showError('포인트 충전 중 오류가 발생했습니다.');
     } finally {
       setLoading(false);
     }
@@ -145,10 +139,12 @@ const PointChargeScreen: React.FC = () => {
           disabled={!amount || parseInt(amount) < 1000 || loading}
         >
           <Text style={styles.chargeButtonText}>
-            {loading ? '충전 중...' : `${amount ? parseInt(amount).toLocaleString() : '0'}원 충전하기`}
+            {loading ? '충전 중...' : `${amount ? (parseInt(amount) || 0).toLocaleString() : '0'}원 충전하기`}
           </Text>
         </TouchableOpacity>
       </View>
+
+      <Toast visible={toast.visible} message={toast.message} type={toast.type} onHide={hideToast} />
     </View>
   );
 };
@@ -166,6 +162,8 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     paddingBottom: 16,
     backgroundColor: COLORS.neutral.white,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.06)',
     ...SHADOWS.small,
   },
   backButton: {
@@ -175,8 +173,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
+    fontSize: 20,
+    fontWeight: '700',
     color: COLORS.text.primary,
   },
   content: {
@@ -188,8 +186,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: COLORS.primary.light,
     padding: 16,
-    borderRadius: 12,
+    borderRadius: 16,
     marginBottom: 24,
+    ...CARD_STYLE,
+    borderColor: 'rgba(139, 105, 20, 0.12)',
   },
   infoText: {
     flex: 1,
@@ -203,17 +203,17 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
     color: COLORS.text.primary,
     marginBottom: 12,
   },
   amountInput: {
     borderWidth: 1,
     borderColor: COLORS.neutral.grey200,
-    borderRadius: 12,
-    padding: 16,
-    fontSize: 18,
-    fontWeight: '600',
+    borderRadius: 16,
+    padding: 20,
+    fontSize: 28,
+    fontWeight: '700',
     color: COLORS.text.primary,
     backgroundColor: COLORS.neutral.white,
     textAlign: 'center',
@@ -233,34 +233,35 @@ const styles = StyleSheet.create({
   presetButton: {
     paddingVertical: 12,
     paddingHorizontal: 20,
-    borderRadius: 20,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: COLORS.neutral.grey200,
+    borderColor: 'rgba(0,0,0,0.04)',
     backgroundColor: COLORS.neutral.white,
     minWidth: 90,
     alignItems: 'center',
+    ...SHADOWS.small,
   },
   presetButtonSelected: {
     borderColor: COLORS.primary.main,
     backgroundColor: COLORS.primary.light,
+    borderWidth: 1.5,
   },
   presetButtonText: {
-    fontSize: 14,
-    fontWeight: '500',
+    fontSize: 15,
+    fontWeight: '600',
     color: COLORS.text.secondary,
   },
   presetButtonTextSelected: {
     color: COLORS.primary.main,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   paymentMethodCard: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: COLORS.neutral.white,
     padding: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: COLORS.neutral.grey200,
+    borderRadius: 16,
+    ...CARD_STYLE,
     ...SHADOWS.small,
   },
   paymentMethodInfo: {
@@ -294,7 +295,7 @@ const styles = StyleSheet.create({
   },
   chargeButtonText: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '600',
     color: COLORS.text.white,
   },
 });

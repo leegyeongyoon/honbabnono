@@ -1,14 +1,20 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput } from 'react-native';
 import { useNavigate } from 'react-router-dom';
 import { COLORS, SHADOWS } from '../styles/colors';
 import { Icon } from '../components/Icon';
 import { useUserStore } from '../store/userStore';
 import apiClient from '../services/apiClient';
+import { useToast } from '../hooks/useToast';
+import { useConfirmDialog } from '../hooks/useConfirmDialog';
+import Toast from '../components/Toast';
+import ConfirmDialog from '../components/ConfirmDialog';
 
 const PrivacySettingsScreen: React.FC = () => {
   const navigate = useNavigate();
   const { user, logout } = useUserStore();
+  const { toast, showSuccess, showError, showInfo, hideToast } = useToast();
+  const { dialog, confirm, confirmDanger, hideDialog } = useConfirmDialog();
   const [showPasswordChange, setShowPasswordChange] = useState(false);
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
@@ -19,12 +25,12 @@ const PrivacySettingsScreen: React.FC = () => {
 
   const handlePasswordChange = async () => {
     if (passwordData.newPassword !== passwordData.confirmPassword) {
-      Alert.alert('오류', '새 비밀번호가 일치하지 않습니다.');
+      showError('새 비밀번호가 일치하지 않습니다.');
       return;
     }
 
     if (passwordData.newPassword.length < 8) {
-      Alert.alert('오류', '비밀번호는 8자 이상이어야 합니다.');
+      showError('비밀번호는 8자 이상이어야 합니다.');
       return;
     }
 
@@ -36,7 +42,7 @@ const PrivacySettingsScreen: React.FC = () => {
       });
 
       if (response.data.success) {
-        Alert.alert('성공', '비밀번호가 성공적으로 변경되었습니다.');
+        showSuccess('비밀번호가 성공적으로 변경되었습니다.');
         setPasswordData({
           currentPassword: '',
           newPassword: '',
@@ -45,62 +51,41 @@ const PrivacySettingsScreen: React.FC = () => {
         setShowPasswordChange(false);
       }
     } catch (error: any) {
-      console.error('비밀번호 변경 실패:', error);
       const message = error.response?.data?.message || '비밀번호 변경에 실패했습니다.';
-      Alert.alert('오류', message);
+      showError(message);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleDeleteAccount = () => {
-    Alert.alert(
-      '계정 삭제',
-      '정말로 계정을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.',
-      [
-        { text: '취소', style: 'cancel' },
-        {
-          text: '삭제',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              const response = await apiClient.delete('/user/account');
-              if (response.data.success) {
-                Alert.alert('완료', '계정이 삭제되었습니다.');
-                logout();
-                navigate('/');
-              }
-            } catch (error) {
-              console.error('계정 삭제 실패:', error);
-              Alert.alert('오류', '계정 삭제에 실패했습니다.');
-            }
-          }
+  const handleDeleteAccount = async () => {
+    const confirmed = await confirmDanger('계정 삭제', '정말로 계정을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.');
+    if (confirmed) {
+      try {
+        const response = await apiClient.delete('/user/account');
+        if (response.data.success) {
+          showSuccess('계정이 삭제되었습니다.');
+          logout();
+          navigate('/');
         }
-      ]
-    );
+      } catch (error) {
+        showError('계정 삭제에 실패했습니다.');
+      }
+    }
   };
 
-  const handleLogout = () => {
-    Alert.alert(
-      '로그아웃',
-      '정말로 로그아웃하시겠습니까?',
-      [
-        { text: '취소', style: 'cancel' },
-        {
-          text: '로그아웃',
-          onPress: () => {
-            logout();
-            navigate('/');
-          }
-        }
-      ]
-    );
+  const handleLogout = async () => {
+    const confirmed = await confirm('로그아웃', '정말로 로그아웃하시겠습니까?');
+    if (confirmed) {
+      logout();
+      navigate('/');
+    }
   };
 
   const renderMenuItem = (
     title: string,
     description: string,
-    icon: string,
+    iconName: string,
     onPress: () => void,
     danger: boolean = false
   ) => (
@@ -109,7 +94,7 @@ const PrivacySettingsScreen: React.FC = () => {
       onPress={onPress}
     >
       <View style={styles.menuIconContainer}>
-        <Text style={styles.menuIcon}>{icon}</Text>
+        <Icon name={iconName} size={18} color={danger ? COLORS.text.error : COLORS.primary.main} />
       </View>
       <View style={styles.menuInfo}>
         <Text style={[styles.menuTitle, danger && styles.dangerText]}>{title}</Text>
@@ -155,14 +140,14 @@ const PrivacySettingsScreen: React.FC = () => {
             {user?.provider !== 'kakao' && renderMenuItem(
               '비밀번호 변경',
               '계정 보안을 위해 주기적으로 변경하세요',
-              '🔐',
+              'settings',
               () => setShowPasswordChange(true)
             )}
             {renderMenuItem(
               '로그인 기록',
               '최근 로그인 활동을 확인합니다',
-              '📱',
-              () => Alert.alert('구현 예정', '로그인 기록 기능은 곧 추가될 예정입니다.')
+              'smartphone',
+              () => showInfo('로그인 기록 기능은 곧 추가될 예정입니다.')
             )}
           </View>
         </View>
@@ -174,14 +159,14 @@ const PrivacySettingsScreen: React.FC = () => {
             {renderMenuItem(
               '데이터 다운로드',
               '내 활동 데이터를 다운로드합니다',
-              '📥',
-              () => Alert.alert('구현 예정', '데이터 다운로드 기능은 곧 추가될 예정입니다.')
+              'arrow-left',
+              () => showInfo('데이터 다운로드 기능은 곧 추가될 예정입니다.')
             )}
             {renderMenuItem(
               '데이터 삭제 요청',
               '개인 데이터 삭제를 요청합니다',
-              '🗑️',
-              () => Alert.alert('구현 예정', '데이터 삭제 요청 기능은 곧 추가될 예정입니다.')
+              'trash-2',
+              () => showInfo('데이터 삭제 요청 기능은 곧 추가될 예정입니다.')
             )}
           </View>
         </View>
@@ -193,13 +178,13 @@ const PrivacySettingsScreen: React.FC = () => {
             {renderMenuItem(
               '로그아웃',
               '현재 계정에서 로그아웃합니다',
-              '🚪',
+              'external-link',
               handleLogout
             )}
             {renderMenuItem(
               '계정 삭제',
               '계정을 영구적으로 삭제합니다',
-              '⚠️',
+              'alert-triangle',
               handleDeleteAccount,
               true
             )}
@@ -263,6 +248,9 @@ const PrivacySettingsScreen: React.FC = () => {
           </View>
         </View>
       )}
+
+      <Toast visible={toast.visible} message={toast.message} type={toast.type} onHide={hideToast} />
+      <ConfirmDialog {...dialog} />
     </View>
   );
 };

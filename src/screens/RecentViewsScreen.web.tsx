@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
 import { useNavigate } from 'react-router-dom';
-import { COLORS, SHADOWS } from '../styles/colors';
+import { COLORS, SHADOWS, CARD_STYLE } from '../styles/colors';
 import { Icon } from '../components/Icon';
-import { ArrowLeft, Clock, Users, MapPin, Trash2, History } from 'lucide-react';
+import EmptyState from '../components/EmptyState';
+import { ArrowLeft, Clock, Users, MapPin, Trash2 } from 'lucide-react';
 import apiClient from '../services/apiClient';
 
 interface RecentViewItem {
@@ -40,20 +41,16 @@ const RecentViewsScreen: React.FC = () => {
   const fetchRecentViews = async () => {
     try {
       setLoading(true);
-      console.log('📖 최근 본 글 목록 조회 시작');
       const response = await apiClient.get('/user/recent-views', {
         params: { page: 1, limit: 50 }
       });
-      
+
       if (response.data && response.data.success) {
         setRecentViews(response.data.data || []);
-        console.log('✅ 최근 본 글 목록 조회 성공:', response.data.data?.length, '건');
       } else {
-        console.error('❌ 최근 본 글 목록 조회 실패:', response.data?.message || 'Unknown error');
         setRecentViews([]);
       }
     } catch (error) {
-      console.error('❌ 최근 본 글 목록 조회 실패:', error);
       setRecentViews([]);
     } finally {
       setLoading(false);
@@ -62,33 +59,25 @@ const RecentViewsScreen: React.FC = () => {
 
   const removeFromRecentViews = async (viewId: string) => {
     try {
-      console.log('🗑️ 최근 본 글 제거 시도:', viewId);
       const response = await apiClient.delete(`/user/recent-views/${viewId}`);
-      
+
       if (response.data && response.data.success) {
         setRecentViews(prev => prev.filter(item => item.id !== viewId));
-        console.log('✅ 최근 본 글 제거 성공');
-      } else {
-        console.error('❌ 최근 본 글 제거 실패:', response.data?.message);
       }
     } catch (error) {
-      console.error('❌ 최근 본 글 제거 실패:', error);
+      // silently fail
     }
   };
 
   const clearAllRecentViews = async () => {
     try {
-      console.log('🗑️ 전체 최근 본 글 삭제 시도');
       const response = await apiClient.delete('/user/recent-views');
-      
+
       if (response.data && response.data.success) {
         setRecentViews([]);
-        console.log('✅ 전체 최근 본 글 삭제 성공');
-      } else {
-        console.error('❌ 전체 최근 본 글 삭제 실패:', response.data?.message);
       }
     } catch (error) {
-      console.error('❌ 전체 최근 본 글 삭제 실패:', error);
+      // silently fail
     }
   };
 
@@ -96,7 +85,7 @@ const RecentViewsScreen: React.FC = () => {
     const date = new Date(dateString);
     const now = new Date();
     const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
-    
+
     if (diffInHours < 1) {
       const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
       return `${diffInMinutes}분 전`;
@@ -124,9 +113,10 @@ const RecentViewsScreen: React.FC = () => {
   };
 
   const formatTime = (timeString: string) => {
+    if (!timeString) return '';
     const [hours, minutes] = timeString.split(':');
     const time = new Date();
-    time.setHours(parseInt(hours), parseInt(minutes));
+    time.setHours(parseInt(hours) || 0, parseInt(minutes) || 0);
     return time.toLocaleTimeString('ko-KR', {
       hour: '2-digit',
       minute: '2-digit',
@@ -150,13 +140,13 @@ const RecentViewsScreen: React.FC = () => {
 
   const getStatusColor = (item: RecentViewItem) => {
     if (item.is_ended) {
-      return COLORS.text.disabled;
+      return COLORS.text.tertiary;
     }
     switch (item.status) {
       case '모집중': return COLORS.secondary.main;
       case '모집완료': return COLORS.primary.main;
-      case '진행중': return COLORS.accent?.green || '#4CAF50';
-      case '종료': return COLORS.text.disabled;
+      case '진행중': return COLORS.functional.success;
+      case '종료': return COLORS.text.tertiary;
       case '취소': return COLORS.text.error;
       default: return COLORS.text.secondary;
     }
@@ -174,17 +164,17 @@ const RecentViewsScreen: React.FC = () => {
       {/* 모임 이미지 */}
       <View style={styles.imageContainer}>
         {item.image ? (
-          <Image 
-            source={{ uri: item.image }} 
+          <Image
+            source={{ uri: item.image }}
             style={styles.meetupImage}
             resizeMode="cover"
           />
         ) : (
           <View style={styles.placeholderImage}>
-            <Text style={styles.placeholderText}>🍽️</Text>
+            <Icon name="utensils" size={32} color={COLORS.text.tertiary} />
           </View>
         )}
-        
+
         {/* 종료 오버레이 */}
         {item.is_ended && (
           <View style={styles.endedOverlay}>
@@ -222,7 +212,7 @@ const RecentViewsScreen: React.FC = () => {
 
         <View style={styles.cardMeta}>
           <View style={styles.metaRow}>
-            <Clock size={14} color={item.is_ended ? COLORS.text.disabled : COLORS.text.secondary} />
+            <Clock size={14} color={item.is_ended ? COLORS.text.tertiary : COLORS.text.secondary} />
             <Text style={[
               styles.metaText,
               item.is_ended && styles.endedText
@@ -232,7 +222,7 @@ const RecentViewsScreen: React.FC = () => {
           </View>
 
           <View style={styles.metaRow}>
-            <MapPin size={14} color={item.is_ended ? COLORS.text.disabled : COLORS.text.secondary} />
+            <MapPin size={14} color={item.is_ended ? COLORS.text.tertiary : COLORS.text.secondary} />
             <Text style={[
               styles.metaText,
               item.is_ended && styles.endedText
@@ -242,12 +232,12 @@ const RecentViewsScreen: React.FC = () => {
           </View>
 
           <View style={styles.metaRow}>
-            <Users size={14} color={item.is_ended ? COLORS.text.disabled : COLORS.text.secondary} />
+            <Users size={14} color={item.is_ended ? COLORS.text.tertiary : COLORS.text.secondary} />
             <Text style={[
               styles.metaText,
               item.is_ended && styles.endedText
             ]}>
-              {item.current_participants}/{item.max_participants}명
+              {item.current_participants ?? 0}/{item.max_participants ?? 4}명
             </Text>
           </View>
         </View>
@@ -264,7 +254,7 @@ const RecentViewsScreen: React.FC = () => {
               {getStatusText(item)}
             </Text>
           </View>
-          
+
           <Text style={styles.viewedAtText}>
             {formatDate(item.viewed_at)} 조회
           </Text>
@@ -320,19 +310,13 @@ const RecentViewsScreen: React.FC = () => {
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {recentViews.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyIcon}>📖</Text>
-            <Text style={styles.emptyTitle}>아직 본 글이 없어요</Text>
-            <Text style={styles.emptyDescription}>
-              모임을 둘러보고 관심있는 모임을 확인해보세요!{'\n'}최근 본 글 내역이 여기에 표시됩니다.
-            </Text>
-            <TouchableOpacity
-              style={styles.exploreButton}
-              onPress={() => navigate('/home')}
-            >
-              <Text style={styles.exploreButtonText}>모임 둘러보기</Text>
-            </TouchableOpacity>
-          </View>
+          <EmptyState
+            icon="clock"
+            title="아직 본 글이 없어요"
+            description="모임을 둘러보고 관심있는 모임을 확인해보세요! 최근 본 글 내역이 여기에 표시됩니다."
+            actionLabel="모임 둘러보기"
+            onAction={() => navigate('/home')}
+          />
         ) : (
           <View style={styles.recentViewsGrid}>
             <Text style={styles.sectionTitle}>최근 본 글 ({recentViews.length}개)</Text>
@@ -357,35 +341,40 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: COLORS.text.secondary,
   },
-  
+
   // 헤더
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingTop: 20,
+    paddingBottom: 16,
     backgroundColor: COLORS.neutral.white,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.neutral.border,
+    borderBottomColor: 'rgba(0,0,0,0.06)',
+    ...SHADOWS.small,
   },
   backButton: {
     padding: 8,
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 20,
+    fontWeight: '700',
     color: COLORS.text.primary,
   },
   clearAllButton: {
-    padding: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: 'rgba(212, 84, 78, 0.08)',
   },
   clearAllText: {
     fontSize: 14,
     color: COLORS.text.error,
-    fontWeight: '500',
+    fontWeight: '600',
   },
-  
+
   // 통계
   statsContainer: {
     flexDirection: 'row',
@@ -397,14 +386,15 @@ const styles = StyleSheet.create({
   statCard: {
     flex: 1,
     backgroundColor: COLORS.neutral.background,
-    borderRadius: 12,
+    borderRadius: 16,
     padding: 16,
     alignItems: 'center',
+    ...CARD_STYLE,
     ...SHADOWS.small,
   },
   statNumber: {
     fontSize: 24,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: COLORS.primary.main,
     marginBottom: 4,
   },
@@ -413,66 +403,32 @@ const styles = StyleSheet.create({
     color: COLORS.text.secondary,
     textAlign: 'center',
   },
-  
+
   // 컨텐츠
   content: {
     flex: 1,
   },
-  
-  // 빈 상태
-  emptyState: {
-    alignItems: 'center',
-    paddingHorizontal: 40,
-    paddingTop: 80,
-  },
-  emptyIcon: {
-    fontSize: 64,
-    marginBottom: 24,
-  },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: COLORS.text.primary,
-    marginBottom: 8,
-  },
-  emptyDescription: {
-    fontSize: 14,
-    color: COLORS.text.secondary,
-    textAlign: 'center',
-    lineHeight: 20,
-    marginBottom: 32,
-  },
-  exploreButton: {
-    backgroundColor: COLORS.primary.main,
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-  },
-  exploreButtonText: {
-    color: COLORS.neutral.white,
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  
+
   // 최근 본 글 목록
   recentViewsGrid: {
     paddingHorizontal: 20,
     paddingVertical: 16,
   },
   sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 18,
+    fontWeight: '700',
     color: COLORS.text.primary,
     marginBottom: 16,
   },
-  
+
   // 최근 본 글 카드
   recentViewCard: {
     backgroundColor: COLORS.neutral.white,
-    borderRadius: 12,
+    borderRadius: 16,
     marginBottom: 16,
     overflow: 'hidden',
-    ...SHADOWS.medium,
+    ...CARD_STYLE,
+    ...SHADOWS.small,
   },
   endedCard: {
     opacity: 0.7,
@@ -492,9 +448,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  placeholderText: {
-    fontSize: 32,
-  },
   endedOverlay: {
     position: 'absolute',
     top: 0,
@@ -510,7 +463,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
-  
+
   // 카드 컨텐츠
   cardContent: {
     padding: 16,
@@ -524,12 +477,12 @@ const styles = StyleSheet.create({
   cardTitle: {
     flex: 1,
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
     color: COLORS.text.primary,
     marginRight: 12,
   },
   endedTitle: {
-    color: COLORS.text.disabled,
+    color: COLORS.text.tertiary,
   },
   removeButton: {
     padding: 4,
@@ -540,9 +493,9 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   endedText: {
-    color: COLORS.text.disabled,
+    color: COLORS.text.tertiary,
   },
-  
+
   // 메타 정보
   cardMeta: {
     gap: 6,
@@ -557,7 +510,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: COLORS.text.secondary,
   },
-  
+
   // 카드 푸터
   cardFooter: {
     flexDirection: 'row',
@@ -574,8 +527,8 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   viewedAtText: {
-    fontSize: 12,
-    color: COLORS.text.secondary,
+    fontSize: 13,
+    color: COLORS.text.tertiary,
     fontWeight: '500',
   },
 });

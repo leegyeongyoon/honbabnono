@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -17,6 +17,9 @@ import { NotificationBell } from '../components/NotificationBell';
 import CreateMeetupWizard from './CreateMeetupWizard.web';
 import NeighborhoodSelector from '../components/NeighborhoodSelector';
 import MeetupCard from '../components/MeetupCard';
+import CategoryIcon from '../components/CategoryIcon';
+import FadeIn from '../components/animated/FadeIn';
+import MeetupCardSkeleton from '../components/skeleton/MeetupCardSkeleton';
 import locationService from '../services/locationService';
 import { useUserStore } from '../store/userStore';
 import { useMeetupStore } from '../store/meetupStore';
@@ -45,11 +48,15 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
   const [isLoading, setIsLoading] = useState(true);
   const [fetchError, setFetchError] = useState(false);
   const [fabHovered, setFabHovered] = useState(false);
+  const [fabPressed, setFabPressed] = useState(false);
+  const [searchFocused, setSearchFocused] = useState(false);
+  const [showScrollTop, setShowScrollTop] = useState(false);
+  const scrollViewRef = useRef<ScrollView>(null);
 
-  const handleMeetupClick = (meetup: any) => {
+  const handleMeetupClick = useCallback((meetup: any) => {
     const meetupId = typeof meetup === 'string' ? meetup : meetup.id;
     navigate(`/meetup/${meetupId}`);
-  };
+  }, [navigate]);
 
   useEffect(() => {
     loadSavedNeighborhood();
@@ -127,11 +134,43 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
       .finally(() => setIsLoading(false));
   };
 
-  // 섹션별 모임 데이터 분류
-  const instantMeetups = meetups.slice(0, 4);
-  const popularMeetups = meetups.slice(2, 6);
-  const nearbyMeetups = meetups.slice(1, 5);
-  const todayMeetups = meetups.slice(3, 7);
+  const handleScroll = useCallback((event: any) => {
+    const offsetY = event.nativeEvent?.contentOffset?.y || 0;
+    setShowScrollTop(offsetY > 400);
+  }, []);
+
+  const scrollToTop = useCallback(() => {
+    scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+  }, []);
+
+  // ─── 섹션별 모임 데이터 분류 ─────────────────────────────
+  const now = new Date();
+
+  // 곧 시작하는 밥약속: 오늘/내일 모임, 시간 임박 순
+  const soonMeetups = meetups
+    .filter((m) => {
+      if (!m.date) return false;
+      const meetupDate = new Date(m.date);
+      const diffMs = meetupDate.getTime() - now.getTime();
+      const diffHours = diffMs / (1000 * 60 * 60);
+      return diffHours > -2 && diffHours < 48 && m.status === 'recruiting';
+    })
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+    .slice(0, 6);
+
+  // 새로 올라온 모임: createdAt 최신 순
+  const newMeetups = [...meetups]
+    .sort((a, b) => {
+      const aTime = new Date(a.createdAt || a.updatedAt).getTime();
+      const bTime = new Date(b.createdAt || b.updatedAt).getTime();
+      return bTime - aTime;
+    })
+    .slice(0, 6);
+
+  // 모집중인 모임: status === 'recruiting'
+  const recruitingMeetups = meetups
+    .filter((m) => m.status === 'recruiting')
+    .slice(0, 10);
 
   return (
     <View style={styles.container}>
@@ -163,14 +202,23 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
         </View>
       </View>
 
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        ref={scrollViewRef}
+        style={styles.scrollView}
+        showsVerticalScrollIndicator={false}
+        onScroll={handleScroll}
+        scrollEventThrottle={100}
+      >
         {/* 검색 바 */}
         <View style={styles.searchSection}>
           <TouchableOpacity
-            style={styles.searchBar}
+            style={[
+              styles.searchBar,
+              searchFocused && styles.searchBarFocused,
+            ]}
             activeOpacity={0.8}
           >
-            <Icon name="search" size={16} color={COLORS.text.tertiary} />
+            <Icon name="search" size={16} color={searchFocused ? COLORS.primary.main : COLORS.text.tertiary} />
             <TextInput
               style={styles.searchInput}
               placeholder="어떤 모임을 찾고 계세요?"
@@ -178,8 +226,14 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
               value={searchQuery}
               onChangeText={handleSearchInput}
               onKeyPress={handleKeyPress}
-              onFocus={() => setShowSearchSuggestions(searchQuery.length > 0)}
-              onBlur={() => setTimeout(() => setShowSearchSuggestions(false), 150)}
+              onFocus={() => {
+                setSearchFocused(true);
+                setShowSearchSuggestions(searchQuery.length > 0);
+              }}
+              onBlur={() => {
+                setSearchFocused(false);
+                setTimeout(() => setShowSearchSuggestions(false), 150);
+              }}
               autoCapitalize="none"
               autoCorrect={false}
               returnKeyType="search"
@@ -221,199 +275,195 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
           )}
         </View>
 
-        {/* 카테고리 그리드 (4x2) */}
-        <View style={styles.categorySection}>
-          <View style={styles.categoryGrid}>
-            {FOOD_CATEGORIES.map((category) => (
-              <TouchableOpacity
-                key={category.id}
-                style={styles.categoryItem}
-                onPress={() => navigate('/meetups', { state: { category: category.name } })}
-                activeOpacity={0.7}
-                accessibilityLabel={category.name}
-              >
-                <View style={styles.categoryIconBox}>
-                  <Text style={styles.categoryEmoji}>{category.emoji}</Text>
-                </View>
-                <Text style={styles.categoryName}>{category.name}</Text>
-              </TouchableOpacity>
-            ))}
+        {/* 카테고리 그리드 (4x2) with CategoryIcon */}
+        <FadeIn delay={100}>
+          <View style={styles.categorySection}>
+            <View style={styles.categoryGrid}>
+              {FOOD_CATEGORIES.map((category) => (
+                <TouchableOpacity
+                  key={category.id}
+                  style={styles.categoryItem}
+                  onPress={() => navigate(`/explore?category=${encodeURIComponent(category.name)}`)}
+                  activeOpacity={0.7}
+                  accessibilityLabel={category.name}
+                >
+                  <View style={[styles.categoryIconBox, { backgroundColor: category.bgColor }]}>
+                    <CategoryIcon
+                      iconName={category.icon}
+                      size={48}
+                      color={category.color}
+                      backgroundColor={category.bgColor}
+                    />
+                  </View>
+                  <Text style={styles.categoryName}>{category.name}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
           </View>
-        </View>
+        </FadeIn>
 
         {/* 광고 배너 */}
         <AdvertisementBanner position="home_banner" navigation={navigation} />
 
-        {/* 섹션 1: 지금 바로 참여할 수 있는 번개 */}
-        <View style={styles.contentSection}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>지금 바로 참여할 수 있는 번개</Text>
-            <TouchableOpacity onPress={() => navigate('/meetup-list')}>
-              <Text style={styles.seeAllText}>더보기</Text>
-            </TouchableOpacity>
-          </View>
-          {isLoading ? (
-            <SkeletonCardRow />
-          ) : fetchError ? (
-            <ErrorState onRetry={handleRetry} />
-          ) : instantMeetups.length === 0 ? (
-            <EmptyState
-              compact
-              icon="🍽️"
-              title="아직 즉석 모임이 없어요"
-              description="첫 번째 모임을 만들어보세요!"
-              actionLabel="모임 만들기"
-              onAction={() => setShowCreateMeetup(true)}
-            />
-          ) : (
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.horizontalCardList}
-            >
-              {instantMeetups.map((meetup) => {
-                if (!meetup.id) return null;
-                return (
-                  <View key={meetup.id} style={styles.horizontalCardWrapper}>
-                    <MeetupCard
-                      meetup={meetup}
-                      onPress={handleMeetupClick}
-                    />
-                  </View>
-                );
-              })}
-            </ScrollView>
-          )}
-        </View>
+        {/* 섹션 1: 곧 시작하는 밥약속 */}
+        {(isLoading || soonMeetups.length > 0) && (
+          <FadeIn delay={200}>
+            <View style={styles.contentSection}>
+              <View style={styles.sectionHeader}>
+                <View style={styles.sectionTitleRow}>
+                  <Text style={styles.sectionEmoji}>&#x23F0;</Text>
+                  <Text style={styles.sectionTitle}>곧 시작하는 밥약속</Text>
+                </View>
+                <TouchableOpacity onPress={() => navigate('/explore')}>
+                  <Text style={styles.seeAllText}>더보기</Text>
+                </TouchableOpacity>
+              </View>
+              {isLoading ? (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.horizontalCardList}
+                >
+                  {[1, 2, 3].map((i) => (
+                    <View key={i} style={styles.horizontalCardWrapper}>
+                      <MeetupCardSkeleton variant="grid" />
+                    </View>
+                  ))}
+                </ScrollView>
+              ) : fetchError ? (
+                <ErrorState onRetry={handleRetry} />
+              ) : (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.horizontalCardList}
+                >
+                  {soonMeetups.map((meetup) => {
+                    if (!meetup.id) return null;
+                    return (
+                      <View key={meetup.id} style={styles.horizontalCardWrapper}>
+                        <MeetupCard
+                          meetup={meetup}
+                          onPress={handleMeetupClick}
+                          variant="grid"
+                        />
+                      </View>
+                    );
+                  })}
+                </ScrollView>
+              )}
+            </View>
+          </FadeIn>
+        )}
 
-        {/* 섹션 2: 요즘 가장 인기 있는 메뉴 */}
-        <View style={styles.contentSection}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>요즘 가장 인기 있는 메뉴</Text>
-            <TouchableOpacity onPress={() => navigate('/meetup-list')}>
-              <Text style={styles.seeAllText}>더보기</Text>
-            </TouchableOpacity>
-          </View>
-          {isLoading ? (
-            <SkeletonCardRow />
-          ) : fetchError ? (
-            <ErrorState onRetry={handleRetry} />
-          ) : popularMeetups.length === 0 ? (
-            <EmptyState
-              compact
-              icon="🔥"
-              title="인기 메뉴가 아직 없어요"
-              description="모임에 참여하고 인기 메뉴를 만들어보세요"
-            />
-          ) : (
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.horizontalCardList}
-            >
-              {popularMeetups.map((meetup) => {
-                if (!meetup.id) return null;
-                return (
-                  <View key={meetup.id} style={styles.horizontalCardWrapper}>
-                    <MeetupCard
-                      meetup={meetup}
-                      onPress={handleMeetupClick}
-                    />
-                  </View>
-                );
-              })}
-            </ScrollView>
-          )}
-        </View>
+        {/* 섹션 2: 새로 올라온 모임 */}
+        {(isLoading || newMeetups.length > 0) && (
+          <FadeIn delay={300}>
+            <View style={styles.contentSection}>
+              <View style={styles.sectionHeader}>
+                <View style={styles.sectionTitleRow}>
+                  <Text style={styles.sectionEmoji}>&#x2728;</Text>
+                  <Text style={styles.sectionTitle}>새로 올라온 모임</Text>
+                </View>
+                <TouchableOpacity onPress={() => navigate('/explore')}>
+                  <Text style={styles.seeAllText}>더보기</Text>
+                </TouchableOpacity>
+              </View>
+              {isLoading ? (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.horizontalCardList}
+                >
+                  {[1, 2, 3].map((i) => (
+                    <View key={i} style={styles.horizontalCardWrapper}>
+                      <MeetupCardSkeleton variant="grid" />
+                    </View>
+                  ))}
+                </ScrollView>
+              ) : fetchError ? (
+                <ErrorState onRetry={handleRetry} />
+              ) : (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.horizontalCardList}
+                >
+                  {newMeetups.map((meetup) => {
+                    if (!meetup.id) return null;
+                    return (
+                      <View key={meetup.id} style={styles.horizontalCardWrapper}>
+                        <MeetupCard
+                          meetup={meetup}
+                          onPress={handleMeetupClick}
+                          variant="grid"
+                        />
+                      </View>
+                    );
+                  })}
+                </ScrollView>
+              )}
+            </View>
+          </FadeIn>
+        )}
 
-        {/* 섹션 3: 도보 15분 이내의 번개 */}
-        <View style={styles.contentSection}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>도보 15분 이내의 번개</Text>
-            <TouchableOpacity onPress={() => navigate('/meetup-list')}>
-              <Text style={styles.seeAllText}>더보기</Text>
-            </TouchableOpacity>
-          </View>
-          {isLoading ? (
-            <SkeletonCardRow />
-          ) : fetchError ? (
-            <ErrorState onRetry={handleRetry} />
-          ) : nearbyMeetups.length === 0 ? (
-            <EmptyState
-              compact
-              icon="📍"
-              title="근처에 모임이 없어요"
-              description="동네를 변경하거나 새 모임을 만들어보세요"
-              actionLabel="모임 만들기"
-              onAction={() => setShowCreateMeetup(true)}
-            />
-          ) : (
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.horizontalCardList}
-            >
-              {nearbyMeetups.map((meetup) => {
-                if (!meetup.id) return null;
-                return (
-                  <View key={meetup.id} style={styles.horizontalCardWrapper}>
-                    <MeetupCard
-                      meetup={meetup}
-                      onPress={handleMeetupClick}
-                    />
-                  </View>
-                );
-              })}
-            </ScrollView>
-          )}
-        </View>
+        {/* 섹션 3: 모집중인 모임 (세로 리스트) */}
+        {(isLoading || recruitingMeetups.length > 0) && (
+          <FadeIn delay={400}>
+            <View style={styles.contentSection}>
+              <View style={styles.sectionHeader}>
+                <View style={styles.sectionTitleRow}>
+                  <Text style={styles.sectionEmoji}>&#x1F91D;</Text>
+                  <Text style={styles.sectionTitle}>모집중인 모임</Text>
+                </View>
+                <TouchableOpacity onPress={() => navigate('/explore')}>
+                  <Text style={styles.seeAllText}>더보기</Text>
+                </TouchableOpacity>
+              </View>
+              {isLoading ? (
+                <View style={styles.verticalList}>
+                  {[1, 2, 3].map((i) => (
+                    <View key={i} style={styles.verticalListItem}>
+                      <MeetupCardSkeleton variant="list" />
+                    </View>
+                  ))}
+                </View>
+              ) : fetchError ? (
+                <ErrorState onRetry={handleRetry} />
+              ) : (
+                <View style={styles.verticalList}>
+                  {recruitingMeetups.map((meetup) => {
+                    if (!meetup.id) return null;
+                    return (
+                      <MeetupCard
+                        key={meetup.id}
+                        meetup={meetup}
+                        onPress={handleMeetupClick}
+                        variant="compact"
+                      />
+                    );
+                  })}
+                </View>
+              )}
+            </View>
+          </FadeIn>
+        )}
 
-        {/* 섹션 4: 오늘 점심/저녁 번개 */}
-        <View style={styles.contentSection}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>오늘 점심/저녁 번개</Text>
-            <TouchableOpacity onPress={() => navigate('/meetup-list')}>
-              <Text style={styles.seeAllText}>더보기</Text>
-            </TouchableOpacity>
-          </View>
-          {isLoading ? (
-            <SkeletonCardRow />
-          ) : fetchError ? (
-            <ErrorState onRetry={handleRetry} />
-          ) : todayMeetups.length === 0 ? (
-            <EmptyState
-              compact
-              icon="☀️"
-              title="오늘 예정된 모임이 없어요"
-              description="지금 바로 오늘의 모임을 만들어보세요!"
-              actionLabel="모임 만들기"
-              onAction={() => setShowCreateMeetup(true)}
-            />
-          ) : (
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.horizontalCardList}
-            >
-              {todayMeetups.map((meetup) => {
-                if (!meetup.id) return null;
-                return (
-                  <View key={meetup.id} style={styles.horizontalCardWrapper}>
-                    <MeetupCard
-                      meetup={meetup}
-                      onPress={handleMeetupClick}
-                    />
-                  </View>
-                );
-              })}
-            </ScrollView>
-          )}
-        </View>
+        {/* 모임이 전혀 없을 때 */}
+        {!isLoading && !fetchError && meetups.length === 0 && (
+          <EmptyState
+            icon="&#x1F37D;"
+            title="아직 등록된 모임이 없어요"
+            description="첫 번째 모임을 만들어보세요!"
+            actionLabel="모임 만들기"
+            onAction={() => setShowCreateMeetup(true)}
+          />
+        )}
 
         {/* 모든 모임 보기 버튼 */}
         <TouchableOpacity
           style={styles.allMeetupsButton}
-          onPress={() => navigate('/meetup-list')}
+          onPress={() => navigate('/explore')}
           activeOpacity={0.7}
         >
           <Text style={styles.allMeetupsText}>모든 모임 보기</Text>
@@ -424,11 +474,40 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
         <View style={styles.bottomPadding} />
       </ScrollView>
 
+      {/* Scroll to Top */}
+      {showScrollTop && (
+        <div
+          onClick={scrollToTop}
+          style={{
+            position: 'fixed',
+            bottom: 150,
+            right: 20,
+            width: 40,
+            height: 40,
+            borderRadius: 20,
+            backgroundColor: COLORS.neutral.white,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: CSS_SHADOWS.medium,
+            cursor: 'pointer',
+            zIndex: 999,
+            border: `1px solid ${COLORS.neutral.grey100}`,
+          }}
+          role="button"
+          aria-label="맨 위로"
+        >
+          <span style={{ fontSize: 16, color: COLORS.text.secondary }}>&#x2191;</span>
+        </div>
+      )}
+
       {/* FAB - Enhanced */}
       <div
         onClick={() => setShowCreateMeetup(true)}
         onMouseEnter={() => setFabHovered(true)}
-        onMouseLeave={() => setFabHovered(false)}
+        onMouseLeave={() => { setFabHovered(false); setFabPressed(false); }}
+        onMouseDown={() => setFabPressed(true)}
+        onMouseUp={() => setFabPressed(false)}
         style={{
           position: 'fixed',
           bottom: 80,
@@ -438,17 +517,17 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
           paddingLeft: fabHovered ? 20 : 0,
           paddingRight: fabHovered ? 20 : 0,
           borderRadius: 30,
-          backgroundColor: COLORS.text.primary,
+          backgroundColor: fabPressed ? COLORS.primary.dark : COLORS.text.primary,
           display: 'flex',
           flexDirection: 'row',
           alignItems: 'center',
           justifyContent: 'center',
           gap: fabHovered ? 8 : 0,
-          boxShadow: CSS_SHADOWS.large,
+          boxShadow: fabHovered ? CSS_SHADOWS.large : CSS_SHADOWS.medium,
           cursor: 'pointer',
           zIndex: 1000,
           transition: 'all 200ms ease',
-          transform: fabHovered ? 'scale(1.05)' : 'scale(1)',
+          transform: fabPressed ? 'scale(0.95)' : fabHovered ? 'scale(1.05)' : 'scale(1)',
         }}
         role="button"
         aria-label="새 모임 만들기"
@@ -487,26 +566,6 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
     </View>
   );
 };
-
-// 스켈레톤 로딩 UI 컴포넌트
-const SkeletonCardRow: React.FC = () => (
-  <ScrollView
-    horizontal
-    showsHorizontalScrollIndicator={false}
-    contentContainerStyle={styles.horizontalCardList}
-  >
-    {[1, 2, 3].map((i) => (
-      <View key={i} style={styles.skeletonCard}>
-        <View style={styles.skeletonImage} />
-        <View style={styles.skeletonContent}>
-          <View style={styles.skeletonTitle} />
-          <View style={styles.skeletonLine} />
-          <View style={styles.skeletonLineShort} />
-        </View>
-      </View>
-    ))}
-  </ScrollView>
-);
 
 const styles = StyleSheet.create({
   container: {
@@ -572,6 +631,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.xl,
     gap: SPACING.md,
     ...SHADOWS.small,
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  searchBarFocused: {
+    borderColor: COLORS.primary.main,
+    backgroundColor: COLORS.neutral.white,
   },
   searchInput: {
     flex: 1,
@@ -641,16 +706,12 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: BORDER_RADIUS.lg,
-    backgroundColor: COLORS.neutral.background,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: SPACING.sm,
     borderWidth: 1,
     borderColor: COLORS.neutral.grey100,
     ...SHADOWS.small,
-  },
-  categoryEmoji: {
-    fontSize: 28,
   },
   categoryName: {
     ...TYPOGRAPHY.body.small,
@@ -672,6 +733,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.xl,
     marginBottom: SPACING.lg,
   },
+  sectionTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+  },
+  sectionEmoji: {
+    fontSize: 18,
+  },
   sectionTitle: {
     ...TYPOGRAPHY.heading.h3,
     color: COLORS.text.primary,
@@ -686,7 +755,16 @@ const styles = StyleSheet.create({
     gap: SPACING.md,
   },
   horizontalCardWrapper: {
-    width: 280,
+    width: 200,
+  },
+
+  // ─── 세로 리스트 ─────────────────────────────────────
+  verticalList: {
+    paddingHorizontal: 0,
+  },
+  verticalListItem: {
+    paddingHorizontal: SPACING.xl,
+    marginBottom: SPACING.sm,
   },
 
   // ─── 모든 모임 보기 버튼 ─────────────────────────────
@@ -712,46 +790,6 @@ const styles = StyleSheet.create({
   // ─── 하단 여백 ───────────────────────────────────────
   bottomPadding: {
     height: SPACING.xxxl,
-  },
-
-  // ─── 스켈레톤 로딩 ───────────────────────────────────
-  skeletonCard: {
-    width: 280,
-    backgroundColor: COLORS.neutral.white,
-    borderRadius: BORDER_RADIUS.lg,
-    padding: SPACING.lg,
-    flexDirection: 'row',
-    gap: SPACING.md,
-    ...SHADOWS.small,
-  },
-  skeletonImage: {
-    width: 80,
-    height: 80,
-    borderRadius: BORDER_RADIUS.md,
-    backgroundColor: COLORS.neutral.grey100,
-  },
-  skeletonContent: {
-    flex: 1,
-    gap: SPACING.sm,
-    justifyContent: 'center',
-  },
-  skeletonTitle: {
-    height: 16,
-    width: '80%',
-    backgroundColor: COLORS.neutral.grey100,
-    borderRadius: BORDER_RADIUS.xs,
-  },
-  skeletonLine: {
-    height: 12,
-    width: '60%',
-    backgroundColor: COLORS.neutral.grey100,
-    borderRadius: BORDER_RADIUS.xs,
-  },
-  skeletonLineShort: {
-    height: 12,
-    width: '40%',
-    backgroundColor: COLORS.neutral.grey100,
-    borderRadius: BORDER_RADIUS.xs,
   },
 });
 

@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
 import { useNavigate } from 'react-router-dom';
-import { COLORS, SHADOWS } from '../styles/colors';
+import { COLORS, SHADOWS, CARD_STYLE } from '../styles/colors';
 import { Icon } from '../components/Icon';
 import { NotificationBell } from '../components/NotificationBell';
 import MeetupCard from '../components/MeetupCard';
+import EmptyState from '../components/EmptyState';
 import { useUserStore } from '../store/userStore';
 import userApiService, { JoinedMeetup, HostedMeetup } from '../services/userApiService';
 import { formatKoreanDateTime } from '../utils/dateUtils';
+import { FadeIn } from '../components/animated';
 
 interface User {
   id: string;
@@ -31,35 +33,27 @@ const MyMeetupsScreen: React.FC<MyMeetupsScreenProps> = ({ user: propsUser }) =>
 
   // props로 받은 user가 있으면 사용, 없으면 store의 user 사용
   const user = propsUser || storeUser;
-  console.log('🔍 [MyMeetups] User 상태:', { propsUser, storeUser, finalUser: user });
 
   useEffect(() => {
-    console.log('🔍 [MyMeetups] useEffect 실행됨, user:', user);
     if (user) {
       loadMeetupData();
     }
-  }, [user]); // user가 변경될 때마다 실행
-
-  console.log('🔍 [MyMeetups] 컴포넌트 렌더링됨, user:', user, 'activeTab:', activeTab);
+  }, [user]);
 
   const loadMeetupData = async () => {
-    console.log('🔍 [MyMeetups] loadMeetupData 시작, user:', user);
     if (!user) {
-      console.log('❌ [MyMeetups] user가 없어서 종료');
       return;
     }
-    
+
     try {
       setLoading(true);
-      console.log('🔍 [MyMeetups] 데이터 로딩 시작, Promise.all 실행');
       await Promise.all([
         loadAppliedMeetups(),
         loadCreatedMeetups(),
         loadPastMeetups()
       ]);
-      console.log('🔍 [MyMeetups] 모든 데이터 로딩 완료');
     } catch (error) {
-      console.error('❌ [MyMeetups] 모임 데이터 로드 실패:', error);
+      // silently fail
     } finally {
       setLoading(false);
     }
@@ -67,74 +61,14 @@ const MyMeetupsScreen: React.FC<MyMeetupsScreenProps> = ({ user: propsUser }) =>
 
   const loadAppliedMeetups = async () => {
     try {
-      console.log('🔍 [MyMeetups] 신청한 모임 로드 시작...');
       const response = await userApiService.getJoinedMeetups(1, 50);
-      console.log('🔍 [MyMeetups] API 전체 응답:', response);
       const { data } = response;
-      console.log('🔍 [MyMeetups] 응답 데이터:', data, '타입:', typeof data, '배열여부:', Array.isArray(data));
-      
+
       if (!Array.isArray(data)) {
-        console.error('❌ [MyMeetups] 데이터가 배열이 아님:', data);
         setAppliedMeetups([]);
         return;
       }
-      
-      // 백엔드에서 받은 snake_case를 camelCase로 변환
-      const transformedData = data.map(meetup => {
-        const transformed = {
-          ...meetup,
-          maxParticipants: meetup.max_participants || meetup.maxParticipants,
-          currentParticipants: meetup.current_participants || meetup.currentParticipants,
-          priceRange: meetup.price_range || meetup.priceRange,
-          ageRange: meetup.age_range || meetup.ageRange,
-          genderPreference: meetup.gender_preference || meetup.genderPreference,
-          diningPreferences: meetup.dining_preferences || meetup.diningPreferences || {},
-          promiseDepositAmount: meetup.promise_deposit_amount || meetup.promiseDepositAmount || 0,
-          promiseDepositRequired: meetup.promise_deposit_required || meetup.promiseDepositRequired || false,
-          createdAt: meetup.created_at || meetup.createdAt
-        };
-        console.log('🔍 [MyMeetups] 원본 데이터:', {
-          title: meetup.title,
-          price_range: meetup.price_range,
-          age_range: meetup.age_range,
-          gender_preference: meetup.gender_preference,
-          dining_preferences: meetup.dining_preferences,
-          promise_deposit_amount: meetup.promise_deposit_amount
-        });
-        console.log('🔍 [MyMeetups] 변환 후 데이터:', {
-          title: transformed.title,
-          priceRange: transformed.priceRange,
-          ageRange: transformed.ageRange,
-          genderPreference: transformed.genderPreference,
-          diningPreferences: transformed.diningPreferences,
-          promiseDepositAmount: transformed.promiseDepositAmount
-        });
-        return transformed;
-      });
-      
-      console.log('🔍 [MyMeetups] 각 모임 데이터 확인:');
-      transformedData.forEach((meetup, index) => {
-        console.log(`  ${index + 1}. ${meetup.title} - 상태: "${meetup.status}"`);
-      });
-      
-      // 현재 진행중인 모임만 필터링
-      const activeMeetups = transformedData.filter(meetup => {
-        const isActive = meetup.status === '모집중' || meetup.status === '예정';
-        console.log(`🔍 [MyMeetups] "${meetup.title}" 필터링: ${meetup.status} -> ${isActive}`);
-        return isActive;
-      });
-      
-      console.log('🔍 [MyMeetups] 필터링된 결과:', activeMeetups.length, '개');
-      setAppliedMeetups(activeMeetups);
-    } catch (error) {
-      console.error('❌ 신청한 모임 로드 실패:', error);
-    }
-  };
 
-  const loadCreatedMeetups = async () => {
-    try {
-      const { data } = await userApiService.getHostedMeetups(1, 50);
-      
       // 백엔드에서 받은 snake_case를 camelCase로 변환
       const transformedData = data.map(meetup => ({
         ...meetup,
@@ -148,28 +82,53 @@ const MyMeetupsScreen: React.FC<MyMeetupsScreenProps> = ({ user: propsUser }) =>
         promiseDepositRequired: meetup.promise_deposit_required || meetup.promiseDepositRequired || false,
         createdAt: meetup.created_at || meetup.createdAt
       }));
-      
+
       // 현재 진행중인 모임만 필터링
-      const activeMeetups = transformedData.filter(meetup => 
+      const activeMeetups = transformedData.filter(meetup => {
+        return meetup.status === '모집중' || meetup.status === '예정';
+      });
+
+      setAppliedMeetups(activeMeetups);
+    } catch (error) {
+      // silently fail
+    }
+  };
+
+  const loadCreatedMeetups = async () => {
+    try {
+      const { data } = await userApiService.getHostedMeetups(1, 50);
+
+      // 백엔드에서 받은 snake_case를 camelCase로 변환
+      const transformedData = data.map(meetup => ({
+        ...meetup,
+        maxParticipants: meetup.max_participants || meetup.maxParticipants,
+        currentParticipants: meetup.current_participants || meetup.currentParticipants,
+        priceRange: meetup.price_range || meetup.priceRange,
+        ageRange: meetup.age_range || meetup.ageRange,
+        genderPreference: meetup.gender_preference || meetup.genderPreference,
+        diningPreferences: meetup.dining_preferences || meetup.diningPreferences || {},
+        promiseDepositAmount: meetup.promise_deposit_amount || meetup.promiseDepositAmount || 0,
+        promiseDepositRequired: meetup.promise_deposit_required || meetup.promiseDepositRequired || false,
+        createdAt: meetup.created_at || meetup.createdAt
+      }));
+
+      // 현재 진행중인 모임만 필터링
+      const activeMeetups = transformedData.filter(meetup =>
         meetup.status === '모집중' || meetup.status === '예정'
       );
       setCreatedMeetups(activeMeetups);
     } catch (error) {
-      console.error('만든 모임 로드 실패:', error);
+      // silently fail
     }
   };
 
   const loadPastMeetups = async () => {
     try {
-      console.log('🔍 [MyMeetups] 지난 모임 로드 시작...');
       const [joinedResponse, hostedResponse] = await Promise.all([
         userApiService.getJoinedMeetups(1, 50),
         userApiService.getHostedMeetups(1, 50)
       ]);
-      
-      console.log('🔍 [MyMeetups] 참가 모임 응답:', joinedResponse);
-      console.log('🔍 [MyMeetups] 호스팅 모임 응답:', hostedResponse);
-      
+
       // 백엔드에서 받은 snake_case를 camelCase로 변환
       const transformedJoined = joinedResponse.data.map(meetup => ({
         ...meetup,
@@ -183,7 +142,7 @@ const MyMeetupsScreen: React.FC<MyMeetupsScreenProps> = ({ user: propsUser }) =>
         promiseDepositRequired: meetup.promise_deposit_required || meetup.promiseDepositRequired || false,
         createdAt: meetup.created_at || meetup.createdAt
       }));
-      
+
       const transformedHosted = hostedResponse.data.map(meetup => ({
         ...meetup,
         maxParticipants: meetup.max_participants || meetup.maxParticipants,
@@ -196,33 +155,25 @@ const MyMeetupsScreen: React.FC<MyMeetupsScreenProps> = ({ user: propsUser }) =>
         promiseDepositRequired: meetup.promise_deposit_required || meetup.promiseDepositRequired || false,
         createdAt: meetup.created_at || meetup.createdAt
       }));
-      
+
       // 지난 모임 필터링 (완료/종료/취소/파토 모두 포함)
       const pastJoined = transformedJoined.filter(meetup => {
-        const isPast = meetup.status === '완료' || meetup.status === '종료' || 
-                       meetup.status === '취소' || meetup.status === '파토';
-        console.log(`🔍 [MyMeetups] 참가모임 "${meetup.title}" 상태: "${meetup.status}" -> isPast: ${isPast}`);
-        return isPast;
+        return meetup.status === '완료' || meetup.status === '종료' ||
+               meetup.status === '취소' || meetup.status === '파토';
       });
       const pastHosted = transformedHosted.filter(meetup => {
-        const isPast = meetup.status === '완료' || meetup.status === '종료' || 
-                       meetup.status === '취소' || meetup.status === '파토';
-        console.log(`🔍 [MyMeetups] 호스팅모임 "${meetup.title}" 상태: "${meetup.status}" -> isPast: ${isPast}`);
-        return isPast;
+        return meetup.status === '완료' || meetup.status === '종료' ||
+               meetup.status === '취소' || meetup.status === '파토';
       });
-      
-      console.log('🔍 [MyMeetups] 필터링된 참가 지난 모임:', pastJoined.length, '개');
-      console.log('🔍 [MyMeetups] 필터링된 호스팅 지난 모임:', pastHosted.length, '개');
-      
+
       // 두 배열을 합치고 날짜순으로 정렬
-      const allPast = [...pastJoined, ...pastHosted].sort((a, b) => 
+      const allPast = [...pastJoined, ...pastHosted].sort((a, b) =>
         new Date(b.date).getTime() - new Date(a.date).getTime()
       );
-      
-      console.log('🔍 [MyMeetups] 전체 지난 모임:', allPast.length, '개');
+
       setPastMeetups(allPast);
     } catch (error) {
-      console.error('지난 모임 로드 실패:', error);
+      // silently fail
     }
   };
 
@@ -232,8 +183,11 @@ const MyMeetupsScreen: React.FC<MyMeetupsScreenProps> = ({ user: propsUser }) =>
     setRefreshing(false);
   };
 
-  const handleMeetupPress = (meetupId: string) => {
-    navigate(`/meetup/${meetupId}`);
+  const handleMeetupPress = (meetupOrId: any) => {
+    const meetupId = typeof meetupOrId === 'string' ? meetupOrId : meetupOrId?.id;
+    if (meetupId) {
+      navigate(`/meetup/${meetupId}`);
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -252,14 +206,14 @@ const MyMeetupsScreen: React.FC<MyMeetupsScreenProps> = ({ user: propsUser }) =>
 
   const getStatusText = (status: string) => {
     switch (status) {
-      case '완료': return '✅ 정상 완료';
-      case '종료': return '✅ 정상 완료';
-      case '취소': return '❌ 취소됨';
-      case '파토': return '💥 파토됨';
-      case '예정': return '⏰ 예정';
-      case '모집중': return '🔥 모집중';
-      case '모집완료': return '👥 모집완료';
-      case '진행중': return '🍽️ 진행중';
+      case '완료': return '정상 완료';
+      case '종료': return '정상 완료';
+      case '취소': return '취소됨';
+      case '파토': return '파토됨';
+      case '예정': return '예정';
+      case '모집중': return '모집중';
+      case '모집완료': return '모집완료';
+      case '진행중': return '진행중';
       default: return status;
     }
   };
@@ -269,6 +223,7 @@ const MyMeetupsScreen: React.FC<MyMeetupsScreenProps> = ({ user: propsUser }) =>
       key={keyPrefix ? `${keyPrefix}-${meetup.id}` : meetup.id}
       meetup={meetup}
       onPress={handleMeetupPress}
+      variant="compact"
     />
   );
 
@@ -284,49 +239,62 @@ const MyMeetupsScreen: React.FC<MyMeetupsScreenProps> = ({ user: propsUser }) =>
     switch (activeTab) {
       case 'applied':
         return (
+          <FadeIn>
           <View style={styles.meetupsContainer}>
             <Text style={styles.sectionTitle}>신청한 모임 ({appliedMeetups.length}개)</Text>
             {appliedMeetups.length === 0 ? (
-              <View style={styles.emptyContainer}>
-                <Text style={styles.emptyText}>신청한 모임이 없습니다</Text>
-                <Text style={styles.emptySubtext}>홈에서 모임을 찾아보세요!</Text>
-              </View>
+              <EmptyState
+                icon="calendar"
+                title="신청한 모임이 없습니다"
+                description="홈에서 모임을 찾아보세요!"
+                actionLabel="모임 찾아보기"
+                onAction={() => navigate('/')}
+              />
             ) : (
               appliedMeetups.map((meetup, index) => renderMeetupItem(meetup, true, `applied-${index}`))
             )}
           </View>
+          </FadeIn>
         );
-      
+
       case 'created':
         return (
+          <FadeIn>
           <View style={styles.meetupsContainer}>
             <Text style={styles.sectionTitle}>만든 모임 ({createdMeetups.length}개)</Text>
             {createdMeetups.length === 0 ? (
-              <View style={styles.emptyContainer}>
-                <Text style={styles.emptyText}>만든 모임이 없습니다</Text>
-                <Text style={styles.emptySubtext}>새로운 모임을 만들어보세요!</Text>
-              </View>
+              <EmptyState
+                icon="plus-circle"
+                title="만든 모임이 없습니다"
+                description="새로운 모임을 만들어보세요!"
+                actionLabel="모임 만들기"
+                onAction={() => navigate('/create')}
+              />
             ) : (
               createdMeetups.map((meetup, index) => renderMeetupItem(meetup, false, `created-${index}`))
             )}
           </View>
+          </FadeIn>
         );
-      
+
       case 'past':
         return (
+          <FadeIn>
           <View style={styles.meetupsContainer}>
             <Text style={styles.sectionTitle}>지난 모임 ({pastMeetups.length}개)</Text>
             {pastMeetups.length === 0 ? (
-              <View style={styles.emptyContainer}>
-                <Text style={styles.emptyText}>지난 모임이 없습니다</Text>
-                <Text style={styles.emptySubtext}>모임에 참여해보세요!</Text>
-              </View>
+              <EmptyState
+                icon="clock"
+                title="지난 모임이 없습니다"
+                description="모임에 참여해보세요!"
+              />
             ) : (
               pastMeetups.map((meetup, index) => renderMeetupItem(meetup, !('hostName' in meetup), `past-${index}`))
             )}
           </View>
+          </FadeIn>
         );
-      
+
       default:
         return null;
     }
@@ -340,7 +308,7 @@ const MyMeetupsScreen: React.FC<MyMeetupsScreenProps> = ({ user: propsUser }) =>
         <NotificationBell
           userId={user?.id?.toString()}
           onPress={() => {
-            console.log('🔔 알림 버튼 클릭됨');
+            navigate('/notifications');
           }}
           color={COLORS.text.primary}
           size={20}
@@ -404,24 +372,25 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 16,
-    paddingTop: 52,
+    paddingTop: 20,
     backgroundColor: COLORS.neutral.white,
-    ...SHADOWS.small,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.06)',
   },
   headerTitle: {
-    fontSize: 17,
+    fontSize: 20,
     fontWeight: '700',
     color: COLORS.text.primary,
   },
   tabContainer: {
     flexDirection: 'row',
-    backgroundColor: 'white',
+    backgroundColor: COLORS.neutral.white,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.neutral.grey200,
+    borderBottomColor: 'rgba(0,0,0,0.06)',
   },
   tabButton: {
     flex: 1,
-    paddingVertical: 16,
+    paddingVertical: 14,
     alignItems: 'center',
     borderBottomWidth: 2,
     borderBottomColor: 'transparent',
@@ -431,19 +400,19 @@ const styles = StyleSheet.create({
   },
   tabButtonText: {
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: COLORS.text.tertiary,
     fontWeight: '500',
   },
   activeTabButtonText: {
     color: COLORS.primary.main,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   scrollView: {
     flex: 1,
   },
   meetupsContainer: {
     paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingVertical: 16,
   },
   sectionTitle: {
     fontSize: 18,
@@ -458,7 +427,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     paddingHorizontal: 20,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.neutral.grey200,
+    borderBottomColor: 'rgba(0,0,0,0.06)',
   },
   profileImage: {
     marginRight: 16,

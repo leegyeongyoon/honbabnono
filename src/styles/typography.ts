@@ -6,23 +6,23 @@ export const TYPOGRAPHY = {
   // 제목 스타일 (헤더, 큰 제목)
   heading: {
     h1: {
-      fontSize: 24,
-      fontWeight: '700' as TextStyle['fontWeight'],
-      lineHeight: 32,
+      fontSize: 28,
+      fontWeight: '800' as TextStyle['fontWeight'],
+      lineHeight: 36,
       letterSpacing: -0.3,
       color: COLORS.text.primary,
     },
     h2: {
-      fontSize: 20,
+      fontSize: 22,
       fontWeight: '700' as TextStyle['fontWeight'],
-      lineHeight: 28,
+      lineHeight: 30,
       letterSpacing: -0.2,
       color: COLORS.text.primary,
     },
     h3: {
       fontSize: 18,
-      fontWeight: '600' as TextStyle['fontWeight'],
-      lineHeight: 24,
+      fontWeight: '700' as TextStyle['fontWeight'],
+      lineHeight: 26,
       letterSpacing: -0.1,
       color: COLORS.text.primary,
     },
@@ -45,27 +45,36 @@ export const TYPOGRAPHY = {
       color: COLORS.text.primary,
     },
     medium: {
-      fontSize: 14,
+      fontSize: 15,
       fontWeight: '400' as TextStyle['fontWeight'],
-      lineHeight: 20,
+      lineHeight: 22,
       letterSpacing: 0,
       color: COLORS.text.secondary,
     },
     small: {
-      fontSize: 12,
+      fontSize: 13,
       fontWeight: '400' as TextStyle['fontWeight'],
-      lineHeight: 18,
+      lineHeight: 20,
       letterSpacing: 0,
       color: COLORS.text.tertiary,
     },
+  },
+
+  // 캡션 스타일
+  caption: {
+    fontSize: 12,
+    fontWeight: '400' as TextStyle['fontWeight'],
+    lineHeight: 18,
+    letterSpacing: 0.1,
+    color: COLORS.text.tertiary,
   },
   
   // 특별한 용도별 스타일
   card: {
     title: {
-      fontSize: 15,
-      fontWeight: '600' as TextStyle['fontWeight'],
-      lineHeight: 20,
+      fontSize: 16,
+      fontWeight: '700' as TextStyle['fontWeight'],
+      lineHeight: 22,
       letterSpacing: -0.03,
       color: COLORS.text.primary,
     },
@@ -77,7 +86,21 @@ export const TYPOGRAPHY = {
       color: COLORS.text.secondary,
     },
     meta: {
-      fontSize: 11,
+      fontSize: 13,
+      fontWeight: '400' as TextStyle['fontWeight'],
+      lineHeight: 18,
+      letterSpacing: 0.05,
+      color: COLORS.text.tertiary,
+    },
+    gridTitle: {
+      fontSize: 14,
+      fontWeight: '700' as TextStyle['fontWeight'],
+      lineHeight: 20,
+      letterSpacing: -0.03,
+      color: COLORS.text.primary,
+    },
+    gridMeta: {
+      fontSize: 12,
       fontWeight: '400' as TextStyle['fontWeight'],
       lineHeight: 16,
       letterSpacing: 0.05,
@@ -95,9 +118,9 @@ export const TYPOGRAPHY = {
       color: COLORS.text.primary,
     },
     secondary: {
-      fontSize: 11,
+      fontSize: 13,
       fontWeight: '400' as TextStyle['fontWeight'],
-      lineHeight: 14,
+      lineHeight: 18,
       letterSpacing: 0,
       color: COLORS.text.secondary,
     },
@@ -108,7 +131,7 @@ export const TYPOGRAPHY = {
     large: {
       fontSize: 16,
       fontWeight: '600' as TextStyle['fontWeight'],
-      lineHeight: 20,
+      lineHeight: 22,
       letterSpacing: -0.05,
     },
     medium: {
@@ -118,9 +141,9 @@ export const TYPOGRAPHY = {
       letterSpacing: -0.03,
     },
     small: {
-      fontSize: 12,
-      fontWeight: '500' as TextStyle['fontWeight'],
-      lineHeight: 16,
+      fontSize: 14,
+      fontWeight: '600' as TextStyle['fontWeight'],
+      lineHeight: 20,
       letterSpacing: 0,
     },
   },
@@ -135,9 +158,9 @@ export const TYPOGRAPHY = {
   
   // 캐주얼한 텍스트 (뱃지, 라벨 등)
   label: {
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: '500' as TextStyle['fontWeight'],
-    lineHeight: 14,
+    lineHeight: 16,
     letterSpacing: 0.1,
     color: COLORS.text.tertiary,
   },

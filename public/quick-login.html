@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<body>
+<p>Setting up preview login...</p>
+<script>
+var u = '{"id":"1","name":"테스트유저","email":"test@test.com","provider":"test","isVerified":true,"babAlScore":75,"meetupsHosted":3,"meetupsJoined":12,"rating":4.5,"createdAt":"2024-01-01"}';
+var s = '{"state":{"user":{"id":"1","name":"테스트유저","email":"test@test.com","provider":"test","isVerified":true,"babAlScore":75,"meetupsHosted":3,"meetupsJoined":12,"rating":4.5,"createdAt":"2024-01-01"},"isLoggedIn":true,"token":"mock-preview-token"},"version":0}';
+localStorage.setItem("token", "mock-preview-token");
+localStorage.setItem("user", u);
+localStorage.setItem("user-storage", s);
+document.body.innerHTML = "<p>Done! Redirecting...</p>";
+window.location.replace("/");
+</script>
+</body>
+</html>

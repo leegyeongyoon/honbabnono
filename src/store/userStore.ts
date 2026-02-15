@@ -80,48 +80,48 @@ export const useUserStore = create<UserState>()(
         try {
           await storage.setObject('user', user);
         } catch (error) {
-          console.warn('User storage save failed:', error);
+          // silently handle error
         }
       },
       
       setToken: (token: string) => set({ token }),
       
       login: async (user: User, token: string) => {
-        let babAlScore = calculateBabAlFromStats(user); // 기본값
-        
-        // DB에서 실제 밥알지수 가져오기 시도
+        const babAlScore = calculateBabAlFromStats(user);
+        const updatedUser = { ...user, babAlScore };
+
+        // 즉시 로그인 상태 설정 (API 호출 전에)
+        set({
+          user: updatedUser,
+          token,
+          isLoggedIn: true
+        });
+
+        // 토큰을 storage에 저장
+        try {
+          await storage.setItem('token', token);
+          await storage.setObject('user', updatedUser);
+        } catch (error) {
+          // silently handle error
+        }
+
+        // DB에서 실제 밥알지수 가져오기 (비동기, 논블로킹)
         try {
           const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
           const response = await fetch(`${apiUrl}/user/rice-index`, {
             headers: { 'Authorization': `Bearer ${token}` },
           });
-          
+
           if (response.ok) {
             const riceData = await response.json();
-            console.log('🍚 밥알지수 API 응답:', riceData);
             if (riceData.riceIndex !== undefined) {
-              babAlScore = riceData.riceIndex;
-              console.log('🍚 밥알지수 설정됨:', babAlScore);
+              set((state) => ({
+                user: state.user ? { ...state.user, babAlScore: riceData.riceIndex } : null
+              }));
             }
           }
         } catch (error) {
-          console.warn('밥알지수 조회 실패, 계산값 사용:', error);
-        }
-        
-        const updatedUser = { ...user, babAlScore };
-        
-        set({ 
-          user: updatedUser, 
-          token, 
-          isLoggedIn: true 
-        });
-        
-        // 토큰을 storage에 저장 (브라우저/React Native 호환성)
-        try {
-          await storage.setItem('token', token);
-          await storage.setObject('user', updatedUser);
-        } catch (error) {
-          console.warn('Storage save failed:', error);
+          // silently handle error - use calculated value
         }
       },
       
@@ -137,7 +137,7 @@ export const useUserStore = create<UserState>()(
           await storage.removeItem('token');
           await storage.removeItem('user');
         } catch (error) {
-          console.warn('Storage cleanup failed:', error);
+          // silently handle error
         }
       },
       
@@ -199,10 +199,8 @@ export const useUserStore = create<UserState>()(
             // DB에서 가져온 밥알지수가 있으면 우선 사용
             if (riceIndexResponse.ok) {
               const riceData = await riceIndexResponse.json();
-              console.log('🍚 fetchUserProfile - 밥알지수 API 응답:', riceData);
               if (riceData.riceIndex !== undefined) {
                 babAlScore = riceData.riceIndex;
-                console.log('🍚 fetchUserProfile - 밥알지수 설정됨:', babAlScore);
               }
             }
             
@@ -210,7 +208,7 @@ export const useUserStore = create<UserState>()(
             set({ user: updatedUser });
           }
         } catch (error) {
-          console.error('사용자 프로필 조회 실패:', error);
+          // silently handle error
         }
       },
     }),

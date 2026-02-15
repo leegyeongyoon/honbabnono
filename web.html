@@ -7,10 +7,17 @@
     <link rel="preconnect" href="https://cdn.jsdelivr.net">
     <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" />
     <style>
-        * { 
-            box-sizing: border-box; 
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
         }
-        html, body, #root { 
+        html {
+            scroll-behavior: smooth;
+        }
+        ::selection {
+            background: rgba(139, 105, 20, 0.2);
+        }
+        html, body, #root {
             height: 100%; 
             margin: 0; 
             font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, "Helvetica Neue", "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", sans-serif;
@@ -31,6 +38,14 @@
         #root {
             display: flex;
             flex-direction: column;
+        }
+        /* Keyboard navigation focus indicators */
+        :focus-visible {
+            outline: 2px solid rgba(139, 105, 20, 0.5);
+            outline-offset: 2px;
+        }
+        :focus:not(:focus-visible) {
+            outline: none;
         }
     </style>
 </head>

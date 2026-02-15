@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { COLORS } from '../styles/colors';
 import { SPACING } from '../styles/spacing';
@@ -16,8 +16,9 @@ const BottomTabBar: React.FC = () => {
   const tabs = [
     { key: 'home', title: '홈', icon: 'home' as IconName, path: '/home' },
     { key: 'my-meetups', title: '내모임', icon: 'calendar' as IconName, path: '/my-meetups' },
+    { key: 'explore', title: '탐색', icon: 'compass' as IconName, path: '/explore' },
     { key: 'chat', title: '채팅', icon: 'message-circle' as IconName, path: '/chat' },
-    { key: 'mypage', title: '마이', icon: 'user' as IconName, path: '/mypage' },
+    { key: 'mypage', title: '마이페이지', icon: 'user' as IconName, path: '/mypage' },
   ];
 
   const getActiveTab = () => {
@@ -26,8 +27,14 @@ const BottomTabBar: React.FC = () => {
     if (currentPath.startsWith('/chat')) {
       return 'chat';
     }
-    if (currentPath.startsWith('/my-meetups')) {
+    if (currentPath.startsWith('/my-meetups') || currentPath.startsWith('/joined-meetups')) {
       return 'my-meetups';
+    }
+    if (currentPath.startsWith('/explore') || currentPath.startsWith('/meetup-list') || currentPath.startsWith('/search') || currentPath.startsWith('/ai-search')) {
+      return 'explore';
+    }
+    if (currentPath.startsWith('/mypage') || currentPath.startsWith('/my-page') || currentPath.startsWith('/my-reviews') || currentPath.startsWith('/my-activities')) {
+      return 'mypage';
     }
     if (currentPath.startsWith('/meetup')) {
       return 'home';
@@ -40,10 +47,8 @@ const BottomTabBar: React.FC = () => {
   const handleTabPress = (path: string) => {
     if (path === '/chat') {
       setUnreadChatCount(0);
-      navigate('/chat');
-    } else {
-      navigate(path);
     }
+    navigate(path);
   };
 
   const fetchUnreadChatCount = async () => {
@@ -63,7 +68,9 @@ const BottomTabBar: React.FC = () => {
 
     chatService.connect();
 
-    const interval = setInterval(fetchUnreadChatCount, 30 * 1000);
+    const interval = setInterval(() => {
+      fetchUnreadChatCount();
+    }, 30 * 1000);
 
     const handleUnreadCountUpdate = (data: { unreadCount: number }) => {
       setUnreadChatCount(data.unreadCount);
@@ -94,20 +101,28 @@ const BottomTabBar: React.FC = () => {
     <View style={styles.tabBar}>
       {tabs.map(tab => {
         const isActive = activeTab === tab.key;
+        const showChatBadge = tab.key === 'chat' && unreadChatCount > 0;
+
         return (
           <TouchableOpacity
             key={tab.key}
             style={styles.tabItem}
             onPress={() => handleTabPress(tab.path)}
             activeOpacity={0.7}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: isActive }}
+            accessibilityLabel={`${tab.title} 탭`}
           >
+            {isActive && (
+              <View style={styles.activeIndicator} />
+            )}
             <View style={styles.tabIconContainer}>
               <Icon
                 name={tab.icon}
-                size={24}
-                color={isActive ? COLORS.primary.main : COLORS.neutral.grey400}
+                size={22}
+                color={isActive ? COLORS.primary.main : COLORS.text.tertiary}
               />
-              {tab.key === 'chat' && unreadChatCount > 0 && (
+              {showChatBadge && (
                 <View style={styles.chatBadge}>
                   <Text style={styles.chatBadgeText}>
                     {unreadChatCount > 99 ? '99+' : unreadChatCount.toString()}
@@ -131,24 +146,37 @@ const BottomTabBar: React.FC = () => {
 const styles = StyleSheet.create({
   tabBar: {
     flexDirection: 'row',
-    height: SPACING.bottomNav.height,
+    height: 64,
     backgroundColor: COLORS.neutral.white,
     borderTopWidth: 1,
-    borderTopColor: COLORS.primary.accent,
+    borderTopColor: COLORS.neutral.grey100,
+    ...(Platform.OS === 'web' ? {
+      // @ts-ignore: web-only boxShadow
+      boxShadow: '0 -2px 8px rgba(0,0,0,0.04)',
+    } : {}),
   },
   tabItem: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: SPACING.tab.paddingVertical,
+    paddingBottom: 8,
+    minHeight: 44,
+  },
+  activeIndicator: {
+    width: 16,
+    height: 2,
+    borderRadius: 1,
+    backgroundColor: COLORS.primary.main,
+    marginBottom: 2,
   },
   tabIconContainer: {
     position: 'relative',
-    width: 24,
-    height: 24,
+    width: 22,
+    height: 22,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 2,
+    marginBottom: 3,
   },
   chatBadge: {
     position: 'absolute',
@@ -169,12 +197,13 @@ const styles = StyleSheet.create({
     lineHeight: 12,
   },
   tabLabel: {
-    fontSize: TYPOGRAPHY.tab.fontSize,
-    fontWeight: TYPOGRAPHY.tab.fontWeight,
-    color: COLORS.neutral.grey400,
+    fontSize: 10,
+    fontWeight: '500',
+    color: COLORS.text.tertiary,
   },
   activeTabLabel: {
     color: COLORS.primary.main,
+    fontWeight: '700',
   },
 });
 

@@ -37,7 +37,6 @@ class NotificationService {
   async requestPermission(): Promise<NotificationPermission> {
     if (Platform.OS === 'web') {
       if (!this.isSupported) {
-        console.warn('이 브라우저는 알림을 지원하지 않습니다.');
         return 'denied';
       }
 
@@ -45,7 +44,7 @@ class NotificationService {
         try {
           this.permission = await (window as any).Notification.requestPermission();
         } catch (error) {
-          console.error('알림 권한 요청 실패:', error);
+          // silently handle error
           this.permission = 'denied';
         }
       }
@@ -64,12 +63,10 @@ class NotificationService {
   async showNotification(payload: NotificationPayload): Promise<any> {
     if (Platform.OS === 'web') {
       if (!this.isSupported || typeof window === 'undefined') {
-        console.warn('이 브라우저는 알림을 지원하지 않습니다.');
         return null;
       }
 
       if (this.permission !== 'granted') {
-        console.warn('알림 권한이 없습니다.');
         return null;
       }
 
@@ -104,7 +101,7 @@ class NotificationService {
 
         return notification;
       } catch (error) {
-        console.error('알림 표시 실패:', error);
+        // silently handle error
         return null;
       }
     } else {
@@ -115,7 +112,7 @@ class NotificationService {
           onPress: () => {
             // 필요시 navigation 처리
             if (payload.data?.meetupId) {
-              console.log('Navigate to meetup:', payload.data.meetupId);
+              // navigate to meetup detail
             }
           }
         }
@@ -226,7 +223,6 @@ class NotificationService {
    */
   closeAllNotifications(): void {
     // 태그별로 알림 닫기는 브라우저 API 제한으로 개별 참조가 필요
-    console.log('알림 닫기 요청됨');
   }
 
   /**
@@ -234,7 +230,6 @@ class NotificationService {
    */
   closeNotificationByTag(tag: string): void {
     // 개별 Notification 객체 참조가 필요한 작업
-    console.log(`태그 ${tag}의 알림 닫기 요청됨`);
   }
 }
 
@@ -245,10 +240,9 @@ export const notificationService = new NotificationService();
 export const initializeNotifications = async (): Promise<boolean> => {
   try {
     const permission = await notificationService.requestPermission();
-    console.log('알림 권한:', permission);
     return permission === 'granted';
   } catch (error) {
-    console.error('알림 초기화 실패:', error);
+    // silently handle error
     return false;
   }
 };

@@ -37,7 +37,7 @@ class AdvertisementApiService {
       const data = await response.json();
       return data.success ? data.data : [];
     } catch (error) {
-      console.error('활성 광고 조회 실패:', error);
+      // silently handle error
       return [];
     }
   }
@@ -61,7 +61,7 @@ class AdvertisementApiService {
       const data = await response.json();
       return data.success;
     } catch (error) {
-      console.error('광고 클릭 기록 실패:', error);
+      // silently handle error
       return false;
     }
   }
@@ -85,7 +85,7 @@ class AdvertisementApiService {
       const data = await response.json();
       return data.success ? data.data : null;
     } catch (error) {
-      console.error('광고 디테일 조회 실패:', error);
+      // silently handle error
       return null;
     }
   }
@@ -129,7 +129,6 @@ class AdvertisementApiService {
         pagination: data.pagination || {}
       };
     } catch (error) {
-      console.error('광고 목록 조회 실패:', error);
       throw error;
     }
   }
@@ -160,7 +159,6 @@ class AdvertisementApiService {
       const data = await response.json();
       return data.data;
     } catch (error) {
-      console.error('광고 생성 실패:', error);
       throw error;
     }
   }
@@ -191,7 +189,6 @@ class AdvertisementApiService {
       const data = await response.json();
       return data.data;
     } catch (error) {
-      console.error('광고 수정 실패:', error);
       throw error;
     }
   }
@@ -221,7 +218,6 @@ class AdvertisementApiService {
 
       return true;
     } catch (error) {
-      console.error('광고 삭제 실패:', error);
       throw error;
     }
   }
@@ -252,7 +248,6 @@ class AdvertisementApiService {
       const data = await response.json();
       return data.data;
     } catch (error) {
-      console.error('광고 상태 변경 실패:', error);
       throw error;
     }
   }

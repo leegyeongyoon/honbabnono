@@ -63,7 +63,6 @@ class ChatApiService {
         throw new Error(data.message || '채팅방 목록 조회 실패');
       }
     } catch (error) {
-      console.error('채팅방 목록 조회 오류:', error);
       throw error;
     }
   }
@@ -81,14 +80,17 @@ class ChatApiService {
         },
       });
       const data = await response.json();
-      
+
       if (data.success) {
-        return data.data;
+        // 서버가 { success, chatRoom, messages } 형태로 반환
+        return {
+          chatRoom: data.data?.chatRoom || data.chatRoom,
+          messages: data.data?.messages || data.messages || [],
+        };
       } else {
         throw new Error(data.message || '메시지 조회 실패');
       }
     } catch (error) {
-      console.error('메시지 조회 오류:', error);
       throw error;
     }
   }
@@ -105,16 +107,16 @@ class ChatApiService {
         },
         body: JSON.stringify(messageData),
       });
-      
+
       const data = await response.json();
-      
+
       if (data.success) {
-        return data.data;
+        // 서버가 { success, message: {...} } 형태로 반환
+        return data.data || data.message;
       } else {
         throw new Error(data.message || '메시지 전송 실패');
       }
     } catch (error) {
-      console.error('메시지 전송 오류:', error);
       throw error;
     }
   }
@@ -140,7 +142,6 @@ class ChatApiService {
         throw new Error(data.message || '채팅방 생성 실패');
       }
     } catch (error) {
-      console.error('채팅방 생성 오류:', error);
       throw error;
     }
   }
@@ -166,7 +167,6 @@ class ChatApiService {
         throw new Error(data.message || '채팅방 생성 실패');
       }
     } catch (error) {
-      console.error('채팅방 생성 오류:', error);
       throw error;
     }
   }
@@ -192,7 +192,6 @@ class ChatApiService {
         throw new Error(data.message || '사용자 추가 실패');
       }
     } catch (error) {
-      console.error('사용자 추가 오류:', error);
       throw error;
     }
   }
@@ -214,7 +213,6 @@ class ChatApiService {
         throw new Error(data.message || '읽음 처리 실패');
       }
     } catch (error) {
-      console.error('읽음 처리 오류:', error);
       // 읽음 처리 실패는 조용히 무시 (UX에 영향 없음)
     }
   }

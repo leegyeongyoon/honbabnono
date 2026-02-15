@@ -5,6 +5,8 @@ import { COLORS, SHADOWS } from '../styles/colors';
 import { Icon } from '../components/Icon';
 import { NotificationBell } from '../components/NotificationBell';
 import apiClient from '../services/apiClient';
+import EmptyState from '../components/EmptyState';
+import { MeetupCardSkeleton } from '../components/skeleton';
 
 interface JoinedMeetup {
   id: string;
@@ -37,7 +39,6 @@ const JoinedMeetupsScreen: React.FC = () => {
         const response = await apiClient.get('/user/joined-meetups');
         setJoinedMeetups(response.data.meetups || []);
       } catch (error) {
-        console.error('참여한 모임 조회 실패:', error);
         setJoinedMeetups([]);
       } finally {
         setLoading(false);
@@ -104,7 +105,7 @@ const JoinedMeetupsScreen: React.FC = () => {
     >
       <View style={styles.profileImage}>
         <View style={styles.avatarCircle}>
-          <Text style={styles.avatarText}>🍚</Text>
+          <Icon name="utensils" size={20} color={COLORS.primary.main} />
         </View>
       </View>
 
@@ -113,7 +114,7 @@ const JoinedMeetupsScreen: React.FC = () => {
         <Text style={styles.meetupCategory}>{meetup.category}</Text>
         <View style={styles.meetupMeta}>
           <Text style={styles.metaText}>
-            {meetup.location} • {new Date(meetup.date).toLocaleDateString()} • 
+            {meetup.location} • {new Date(meetup.date).toLocaleDateString()} •
             <Text style={[styles.statusText, { color: getStatusColor(meetup.participation_status) }]}>
               {' '}{getStatusText(meetup.participation_status)}
             </Text>
@@ -146,8 +147,22 @@ const JoinedMeetupsScreen: React.FC = () => {
 
   if (loading) {
     return (
-      <View style={[styles.container, styles.centerContent]}>
-        <Text style={styles.loadingText}>참여한 모임을 불러오는 중...</Text>
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigate('/mypage')}
+          >
+            <Icon name="arrow-left" size={24} color={COLORS.text.primary} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>참여한 모임</Text>
+          <View style={{ width: 20 }} />
+        </View>
+        <View style={styles.skeletonWrap}>
+          {[0, 1, 2, 3, 4].map((i) => (
+            <MeetupCardSkeleton key={i} />
+          ))}
+        </View>
       </View>
     );
   }
@@ -165,7 +180,7 @@ const JoinedMeetupsScreen: React.FC = () => {
         <Text style={styles.headerTitle}>참여한 모임</Text>
         <NotificationBell
           onPress={() => {
-            console.log('🔔 알림 버튼 클릭됨');
+            navigate('/notifications');
           }}
           color={COLORS.text.primary}
           size={20}
@@ -194,21 +209,14 @@ const JoinedMeetupsScreen: React.FC = () => {
 
       <ScrollView style={styles.content}>
         {filteredMeetups.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Icon name="calendar" size={48} color={COLORS.text.secondary} />
-            <Text style={styles.emptyTitle}>
-              {activeTab === 'upcoming' ? '예정된 모임이 없습니다' : '완료된 모임이 없습니다'}
-            </Text>
-            <Text style={styles.emptyDescription}>
-              새로운 모임을 찾아 참여해보세요!
-            </Text>
-            <TouchableOpacity
-              style={styles.exploreButton}
-              onPress={() => navigate('/home')}
-            >
-              <Text style={styles.exploreButtonText}>모임 찾아보기</Text>
-            </TouchableOpacity>
-          </View>
+          <EmptyState
+            variant="no-data"
+            icon="calendar"
+            title={activeTab === 'upcoming' ? '예정된 모임이 없어요' : '완료된 모임이 없어요'}
+            description="새로운 모임을 찾아 참여해보세요!"
+            actionLabel="모임 찾아보기"
+            onAction={() => navigate('/home')}
+          />
         ) : (
           <View style={styles.meetupsList}>
             <Text style={styles.sectionTitle}>
@@ -227,13 +235,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.neutral.background,
   },
-  centerContent: {
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    fontSize: 16,
-    color: COLORS.text.secondary,
+  skeletonWrap: {
+    padding: 20,
+    gap: 16,
   },
   header: {
     flexDirection: 'row',
@@ -340,9 +344,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFE0B2',
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  avatarText: {
-    fontSize: 20,
   },
   meetupInfo: {
     flex: 1,

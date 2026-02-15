@@ -37,7 +37,7 @@ class AISearchService {
   }
 
   constructor() {
-    console.log('✅ AI 검색 서비스 초기화됨 (백엔드 API 사용)');
+    // AI search service initialized (backend API)
   }
 
   /**
@@ -46,7 +46,6 @@ class AISearchService {
   async searchWithAI(query: string): Promise<SearchResult[]> {
     try {
       const apiUrl = this.getApiUrl();
-      console.log('🤖 백엔드 AI 검색 요청:', query, 'API URL:', apiUrl);
 
       const response = await fetch(`${apiUrl}/search/ai`, {
         method: 'POST',
@@ -63,14 +62,12 @@ class AISearchService {
       const data = await response.json();
       
       if (data.success) {
-        console.log('✅ 백엔드 AI 검색 성공:', data.results);
         return data.results;
       } else {
         throw new Error(data.error || 'AI 검색 실패');
       }
 
     } catch (error) {
-      console.error('🤖 백엔드 AI 검색 오류:', error);
       // 폴백: 검색 실패 시 빈 결과 반환
       return [{
         isNoMatch: true,

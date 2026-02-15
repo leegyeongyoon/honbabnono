@@ -34,24 +34,20 @@ class ChatService {
     });
 
     this.socket.on('connect', () => {
-      console.log('✅ WebSocket 연결 성공:', this.socket?.id);
       this.isConnected = true;
-      
+
       // 자동 인증
       const token = localStorage.getItem('token');
       if (token) {
         this.socket?.emit('authenticate', token);
-        console.log('🔐 WebSocket 자동 인증 요청');
       }
     });
 
     this.socket.on('disconnect', () => {
-      console.log('❌ WebSocket 연결 해제');
       this.isConnected = false;
     });
 
     this.socket.on('connect_error', (error) => {
-      console.error('❌ WebSocket 연결 오류:', error);
       this.isConnected = false;
     });
 
@@ -69,14 +65,12 @@ class ChatService {
   joinRoom(roomId: number) {
     if (this.socket?.connected) {
       this.socket.emit('join_room', roomId);
-      console.log(`👥 채팅방 ${roomId} 입장`);
     }
   }
 
   leaveRoom(roomId: number) {
     if (this.socket?.connected) {
       this.socket.emit('leave_room', roomId);
-      console.log(`👋 채팅방 ${roomId} 퇴장`);
     }
   }
 

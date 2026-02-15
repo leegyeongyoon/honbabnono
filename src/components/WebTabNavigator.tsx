@@ -13,6 +13,8 @@ import MeetupDetailScreen from '../screens/MeetupDetailScreen';
 import CreateMeetupScreen from '../screens/CreateMeetupScreen.web';
 import ChatScreen from '../screens/ChatScreen.web';
 import AdvertisementDetailScreen from '../screens/AdvertisementDetailScreen';
+import apiClient from '../services/apiClient';
+import chatService from '../services/chatService';
 
 const WebTabNavigator = () => {
   const [activeTab, setActiveTab] = useState('Home');
@@ -20,6 +22,8 @@ const WebTabNavigator = () => {
   const [screenParams, setScreenParams] = useState({});
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState(null);
+  const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false);
+  const [hasUnreadChats, setHasUnreadChats] = useState(false);
 
   const tabs = [
     {key: 'Home', title: '홈', icon: 'home' as IconName, component: HomeScreen},
@@ -47,6 +51,45 @@ const WebTabNavigator = () => {
     handleUrlChange();
   }, [isLoggedIn]);
 
+  // 알림 및 채팅 읽지 않은 상태 가져오기
+  useEffect(() => {
+    if (!isLoggedIn) return;
+
+    const fetchUnreadStatus = async () => {
+      try {
+        const chatRes = await apiClient.get('/chat/unread-count');
+        if (chatRes.data.success) {
+          setHasUnreadChats((chatRes.data.unreadCount || 0) > 0);
+        }
+      } catch {
+        // 무시
+      }
+      try {
+        const notiRes = await apiClient.get('/notifications/unread-count');
+        if (notiRes.data.success) {
+          setHasUnreadNotifications((notiRes.data.unreadCount || 0) > 0);
+        }
+      } catch {
+        // 알림 API가 없을 수 있으므로 데모 목적으로 true 설정
+        setHasUnreadNotifications(true);
+      }
+    };
+
+    fetchUnreadStatus();
+
+    chatService.connect();
+    const handleUnreadCountUpdate = (data: { unreadCount: number }) => {
+      setHasUnreadChats((data.unreadCount || 0) > 0);
+    };
+    chatService.onUnreadCountUpdated(handleUnreadCountUpdate);
+
+    const interval = setInterval(fetchUnreadStatus, 30 * 1000);
+    return () => {
+      clearInterval(interval);
+      chatService.offUnreadCountUpdated(handleUnreadCountUpdate);
+    };
+  }, [isLoggedIn]);
+
   // URL 변경을 감지하기 위한 추가 effect
   useEffect(() => {
     const interval = setInterval(() => {
@@ -64,8 +107,6 @@ const WebTabNavigator = () => {
   const handleUrlChange = () => {
     const path = window.location.pathname;
     const urlParams = new URLSearchParams(window.location.search);
-    
-    // console.log('🔄 URL 변경 처리:', { path, isLoggedIn });
     
     // 루트 경로 처리 - 로그인 상태에 따라 분기
     if (path === '/') {
@@ -86,11 +127,8 @@ const WebTabNavigator = () => {
     
     // 광고 디테일 페이지는 공개 (로그인 불필요)
     if (path.startsWith('/advertisement/')) {
-      // console.log('🎯 광고 디테일 페이지 감지:', path);
       const advertisementId = parseInt(path.split('/')[2]);
-      // console.log('🎯 광고 ID:', advertisementId);
       if (!isNaN(advertisementId)) {
-        // console.log('✅ 광고 디테일 페이지로 설정');
         setCurrentScreen('advertisementDetail');
         setScreenParams({ advertisementId });
         return;
@@ -134,7 +172,6 @@ const WebTabNavigator = () => {
       setCurrentScreen('tabs');
       setActiveTab('Search');
     } else if (path === '/notifications') {
-      // console.log('✅ 알림 페이지로 이동');
       setCurrentScreen('tabs');
       setActiveTab('Notifications');
     } else if (path === '/chat') {
@@ -292,8 +329,6 @@ const WebTabNavigator = () => {
     
     // HomeScreen에 네비게이션 함수들 전달
     if (activeTab === 'Home') {
-      // console.log('🏠 HomeScreen 렌더링 - webNavigation:', webNavigation);
-      // console.log('🏠 HomeScreen 렌더링 - webNavigation 메서드들:', Object.keys(webNavigation));
       return <ScreenComponent navigateToLogin={navigateToLogin} navigation={webNavigation} user={user} />;
     }
     
@@ -336,12 +371,19 @@ const WebTabNavigator = () => {
                 accessibilityRole="tab"
                 accessibilityState={{ selected: isActive }}
               >
+                {isActive && <View style={styles.tabIndicator} />}
                 <View style={styles.tabIconContainer}>
                   <Icon
                     name={tab.icon}
                     size={24}
-                    color={isActive ? COLORS.primary.main : COLORS.neutral.grey400}
+                    color={isActive ? COLORS.primary.main : COLORS.text.tertiary}
                   />
+                  {tab.key === 'Notifications' && hasUnreadNotifications && !isActive && (
+                    <View style={styles.unreadDot} />
+                  )}
+                  {tab.key === 'Chat' && hasUnreadChats && !isActive && (
+                    <View style={styles.unreadDot} />
+                  )}
                 </View>
                 <Text style={[
                   styles.tabLabel,
@@ -377,21 +419,43 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: SPACING.tab.paddingVertical,
+    position: 'relative' as const,
+  },
+  tabIndicator: {
+    position: 'absolute' as const,
+    top: 0,
+    left: '20%' as unknown as number,
+    right: '20%' as unknown as number,
+    height: 2,
+    backgroundColor: COLORS.primary.main,
+    borderBottomLeftRadius: 1,
+    borderBottomRightRadius: 1,
   },
   tabIconContainer: {
+    position: 'relative' as const,
     width: 24,
     height: 24,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 2,
   },
+  unreadDot: {
+    position: 'absolute' as const,
+    top: -2,
+    right: -4,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: COLORS.functional.error,
+  },
   tabLabel: {
     fontSize: TYPOGRAPHY.tab.fontSize,
-    fontWeight: TYPOGRAPHY.tab.fontWeight,
-    color: COLORS.neutral.grey400,
+    fontWeight: '500' as const,
+    color: COLORS.text.tertiary,
   },
   activeTabLabel: {
     color: COLORS.primary.main,
+    fontWeight: '700' as const,
   },
 });
 

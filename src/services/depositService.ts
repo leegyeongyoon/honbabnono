@@ -62,10 +62,6 @@ class DepositService {
       const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
       const token = await localStorage.getItem('token');
       
-      console.log('🔗 API URL:', `${apiUrl}/deposits/payment`);
-      console.log('🔑 Token:', token ? 'Present' : 'Missing');
-      console.log('📤 Request:', request);
-      
       const response = await fetch(`${apiUrl}/deposits/payment`, {
         method: 'POST',
         headers: {
@@ -75,14 +71,9 @@ class DepositService {
         body: JSON.stringify(request),
       });
 
-      console.log('📥 Response status:', response.status);
-      console.log('📥 Response headers:', Object.fromEntries(response.headers.entries()));
-      
       const result = await response.json();
-      console.log('📥 Response body:', result);
 
       if (!response.ok) {
-        console.error('❌ API 요청 실패:', response.status, result);
         return {
           success: false,
           errorMessage: result.error || '결제 처리 중 오류가 발생했습니다.'
@@ -95,7 +86,7 @@ class DepositService {
         redirectUrl: result.redirectUrl
       };
     } catch (error) {
-      console.error('결제 처리 실패:', error);
+      // silently handle error
       return {
         success: false,
         errorMessage: error.message || '결제 처리 중 오류가 발생했습니다.'
@@ -228,7 +219,7 @@ class DepositService {
 
       return true;
     } catch (error) {
-      console.error('자동 환불 처리 실패:', error);
+      // silently handle error
       return false;
     }
   }
@@ -257,7 +248,7 @@ class DepositService {
 
       return true;
     } catch (error) {
-      console.error('포인트 전환 처리 실패:', error);
+      // silently handle error
       return false;
     }
   }
@@ -268,7 +259,6 @@ class DepositService {
   async processNoShowPenalty(meetupId: string, noShowUserIds: string[], attendeeUserIds: string[]): Promise<boolean> {
     try {
       if (attendeeUserIds.length === 0) {
-        console.warn('참석자가 없어 포인트 분배를 건너뜁니다.');
         return true;
       }
 
@@ -298,7 +288,7 @@ class DepositService {
 
       return true;
     } catch (error) {
-      console.error('노쇼 페널티 처리 실패:', error);
+      // silently handle error
       return false;
     }
   }
@@ -323,7 +313,7 @@ class DepositService {
 
       return false;
     } catch (error) {
-      console.error('환불 처리 실패:', error);
+      // silently handle error
       return false;
     }
   }
@@ -400,12 +390,10 @@ class DepositService {
 
   private async updateDepositStatus(depositId: string, status: DepositStatus): Promise<void> {
     // 데이터베이스 업데이트
-    console.log(`약속금 ${depositId} 상태를 ${status}로 업데이트`);
   }
 
   private async executeRefund(deposit: UserDeposit, amount: number): Promise<boolean> {
     // 실제 환불 처리 (결제 게이트웨이별)
-    console.log(`${deposit.paymentMethod}로 ${amount}원 환불 처리`);
     return true;
   }
 
@@ -426,8 +414,7 @@ class DepositService {
       }
 
       const result = await response.json();
-      console.log('💰 포인트 API 응답:', result);
-      
+
       // API 응답 형태 변환
       const pointsData = result.data;
       return {
@@ -440,7 +427,6 @@ class DepositService {
         lastUpdatedAt: pointsData.lastUpdatedAt || new Date().toISOString()
       };
     } catch (error) {
-      console.error('포인트 조회 오류:', error);
       // 실패 시 기본값 반환
       return {
         id: userId,
@@ -456,12 +442,10 @@ class DepositService {
 
   private async addPoints(userId: string, amount: number, description: string, relatedDepositId?: string): Promise<void> {
     // 포인트 적립 처리
-    console.log(`사용자 ${userId}에게 ${amount}P 적립: ${description}`);
   }
 
   private async deductPoints(userId: string, amount: number, description: string): Promise<void> {
     // 포인트 차감 처리
-    console.log(`사용자 ${userId}에서 ${amount}P 차감: ${description}`);
   }
 }
 

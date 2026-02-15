@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
 import { useNavigate } from 'react-router-dom';
-import { COLORS, SHADOWS } from '../styles/colors';
+import { COLORS, SHADOWS, CARD_STYLE, CSS_SHADOWS } from '../styles/colors';
 import { Icon } from '../components/Icon';
+import { FadeIn } from '../components/animated';
+import EmptyState from '../components/EmptyState';
+import { ListItemSkeleton } from '../components/skeleton';
 import apiClient from '../services/apiClient';
 
 interface Activity {
@@ -21,19 +24,29 @@ interface Activity {
   host_name: string;
 }
 
+type TabKey = 'all' | 'approved' | 'pending' | 'cancelled';
+
+const TABS: { key: TabKey; label: string }[] = [
+  { key: 'all', label: '전체' },
+  { key: 'approved', label: '참여 완료' },
+  { key: 'pending', label: '신청 중' },
+  { key: 'cancelled', label: '취소/거절' },
+];
+
 const MyActivitiesScreen: React.FC = () => {
   const navigate = useNavigate();
   const [activities, setActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<TabKey>('all');
 
   useEffect(() => {
     const fetchActivities = async () => {
       try {
         setLoading(true);
         const response = await apiClient.get('/user/activities');
-        setActivities(response.data.activities);
+        setActivities(response.data.activities || []);
       } catch (error) {
-        console.error('내 활동 조회 실패:', error);
+        // silently fail
       } finally {
         setLoading(false);
       }
@@ -54,51 +67,92 @@ const MyActivitiesScreen: React.FC = () => {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case '참가승인': return COLORS.secondary.main;
+      case '참가승인': return COLORS.functional.success;
       case '참가신청': return COLORS.primary.main;
-      case '참가거절': return COLORS.text.error;
-      case '참가취소': return COLORS.text.secondary;
+      case '참가거절': return COLORS.functional.error;
+      case '참가취소': return COLORS.text.tertiary;
       default: return COLORS.text.secondary;
     }
   };
 
-  const renderActivity = (activity: Activity) => (
+  const getStatusBg = (status: string) => {
+    switch (status) {
+      case '참가승인': return 'rgba(91, 154, 111, 0.1)';
+      case '참가신청': return COLORS.primary.light;
+      case '참가거절': return 'rgba(212, 84, 78, 0.1)';
+      case '참가취소': return 'rgba(168, 152, 136, 0.1)';
+      default: return COLORS.neutral.grey100;
+    }
+  };
+
+  const filteredActivities = activities.filter((activity) => {
+    if (activeTab === 'all') return true;
+    if (activeTab === 'approved') return activity.participation_status === '참가승인';
+    if (activeTab === 'pending') return activity.participation_status === '참가신청';
+    if (activeTab === 'cancelled')
+      return activity.participation_status === '참가거절' || activity.participation_status === '참가취소';
+    return true;
+  });
+
+  const renderActivity = (activity: Activity, index: number) => (
     <TouchableOpacity
       key={activity.id}
-      style={styles.activityItem}
+      style={styles.activityCard}
       onPress={() => navigate(`/meetup/${activity.id}`)}
+      activeOpacity={0.7}
     >
-      <View style={styles.profileImage}>
+      <View style={styles.cardIconWrap}>
         <View style={styles.avatarCircle}>
-          <Text style={styles.avatarText}>🍚</Text>
+          <Icon name="utensils" size={20} color={COLORS.primary.main} />
         </View>
       </View>
 
       <View style={styles.activityInfo}>
-        <Text style={styles.activityTitle}>{activity.title}</Text>
+        <Text style={styles.activityTitle} numberOfLines={1}>{activity.title}</Text>
         <Text style={styles.activityCategory}>{activity.category}</Text>
         <View style={styles.activityMeta}>
-          <Text style={styles.metaText}>
-            {activity.location} • {activity.current_participants}/{activity.max_participants}명 • 
-            <Text style={[styles.statusText, { color: getStatusColor(activity.participation_status) }]}>
-              {' '}{getStatusText(activity.participation_status)}
+          <View style={styles.metaItem}>
+            <Icon name="map-pin" size={12} color={COLORS.text.tertiary} />
+            <Text style={styles.metaText}>{activity.location}</Text>
+          </View>
+          <View style={styles.metaItem}>
+            <Icon name="users" size={12} color={COLORS.text.tertiary} />
+            <Text style={styles.metaText}>
+              {activity.current_participants ?? 0}/{activity.max_participants ?? 4}명
             </Text>
-          </Text>
+          </View>
         </View>
+      </View>
+
+      <View style={[styles.statusBadge, { backgroundColor: getStatusBg(activity.participation_status) }]}>
+        <Text style={[styles.statusText, { color: getStatusColor(activity.participation_status) }]}>
+          {getStatusText(activity.participation_status)}
+        </Text>
       </View>
     </TouchableOpacity>
   );
 
   if (loading) {
     return (
-      <View style={[styles.container, styles.centerContent]}>
-        <Text style={styles.loadingText}>내 활동을 불러오는 중...</Text>
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.backButton} onPress={() => navigate('/mypage')}>
+            <Icon name="arrow-left" size={24} color={COLORS.text.primary} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>내 활동</Text>
+          <View style={styles.placeholder} />
+        </View>
+        <View style={styles.skeletonWrap}>
+          {[0, 1, 2, 3, 4].map((i) => (
+            <ListItemSkeleton key={i} size={50} />
+          ))}
+        </View>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <FadeIn style={styles.container}>
       {/* 헤더 */}
       <View style={styles.header}>
         <TouchableOpacity
@@ -111,29 +165,47 @@ const MyActivitiesScreen: React.FC = () => {
         <View style={styles.placeholder} />
       </View>
 
-      <ScrollView style={styles.content}>
-        {activities.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Icon name="calendar" size={48} color={COLORS.text.secondary} />
-            <Text style={styles.emptyTitle}>참여한 모임이 없습니다</Text>
-            <Text style={styles.emptyDescription}>
-              새로운 모임을 찾아 참여해보세요!
-            </Text>
+      {/* 탭 내비게이션 */}
+      <View style={styles.tabContainer}>
+        {TABS.map((tab) => {
+          const isActive = activeTab === tab.key;
+          const count = tab.key === 'all'
+            ? activities.length
+            : activities.filter((a) => {
+                if (tab.key === 'approved') return a.participation_status === '참가승인';
+                if (tab.key === 'pending') return a.participation_status === '참가신청';
+                return a.participation_status === '참가거절' || a.participation_status === '참가취소';
+              }).length;
+          return (
             <TouchableOpacity
-              style={styles.exploreButton}
-              onPress={() => navigate('/home')}
+              key={tab.key}
+              style={[styles.tab, isActive && styles.tabActive]}
+              onPress={() => setActiveTab(tab.key)}
             >
-              <Text style={styles.exploreButtonText}>모임 찾아보기</Text>
+              <Text style={[styles.tabText, isActive && styles.tabTextActive]}>
+                {tab.label} ({count})
+              </Text>
             </TouchableOpacity>
-          </View>
+          );
+        })}
+      </View>
+
+      <ScrollView style={styles.content} contentContainerStyle={styles.contentInner}>
+        {filteredActivities.length === 0 ? (
+          <EmptyState
+            icon="calendar"
+            title="참여한 모임이 없습니다"
+            description="새로운 모임을 찾아 참여해보세요!"
+            actionLabel="모임 찾아보기"
+            onAction={() => navigate('/home')}
+          />
         ) : (
           <View style={styles.activitiesList}>
-            <Text style={styles.sectionTitle}>참여한 모임 ({activities.length}개)</Text>
-            {activities.map(renderActivity)}
+            {filteredActivities.map(renderActivity)}
           </View>
         )}
       </ScrollView>
-    </View>
+    </FadeIn>
   );
 };
 
@@ -141,14 +213,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.neutral.background,
-  },
-  centerContent: {
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    fontSize: 16,
-    color: COLORS.text.secondary,
   },
   header: {
     flexDirection: 'row',
@@ -158,111 +222,120 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     paddingBottom: 16,
     backgroundColor: COLORS.neutral.white,
-    ...SHADOWS.small,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.06)',
   },
   backButton: {
     padding: 4,
   },
   headerTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '700',
     color: COLORS.text.primary,
   },
   placeholder: {
     width: 32,
   },
+  tabContainer: {
+    flexDirection: 'row',
+    backgroundColor: COLORS.neutral.white,
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.06)',
+  },
+  tab: {
+    paddingVertical: 14,
+    marginRight: 24,
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+  },
+  tabActive: {
+    borderBottomColor: COLORS.primary.main,
+  },
+  tabText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: COLORS.text.tertiary,
+  },
+  tabTextActive: {
+    fontWeight: '600',
+    color: COLORS.primary.main,
+  },
   content: {
     flex: 1,
   },
-  emptyState: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 40,
-    paddingTop: 100,
+  contentInner: {
+    padding: 16,
+    paddingBottom: 32,
   },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: COLORS.text.primary,
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  emptyDescription: {
-    fontSize: 14,
-    color: COLORS.text.secondary,
-    textAlign: 'center',
-    marginBottom: 24,
-  },
-  exploreButton: {
-    backgroundColor: COLORS.primary.main,
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-  },
-  exploreButtonText: {
-    color: COLORS.text.white,
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  activitiesList: {
+  skeletonWrap: {
+    paddingTop: 8,
     backgroundColor: COLORS.neutral.white,
     marginTop: 8,
+    borderRadius: 16,
+    marginHorizontal: 16,
   },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: COLORS.text.primary,
-    padding: 20,
-    paddingBottom: 0,
+  activitiesList: {
+    gap: 12,
   },
-  activityItem: {
+  activityCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.neutral.grey200,
+    padding: 16,
+    backgroundColor: COLORS.neutral.white,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.04)',
+    ...SHADOWS.small,
   },
-  profileImage: {
-    marginRight: 16,
+  cardIconWrap: {
+    marginRight: 14,
   },
   avatarCircle: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: '#FFE0B2',
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: COLORS.primary.light,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  avatarText: {
-    fontSize: 20,
   },
   activityInfo: {
     flex: 1,
+    marginRight: 8,
   },
   activityTitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
     color: COLORS.text.primary,
-    marginBottom: 4,
+    marginBottom: 3,
   },
   activityCategory: {
-    fontSize: 14,
-    color: COLORS.text.secondary,
-    marginBottom: 4,
+    fontSize: 13,
+    color: COLORS.text.tertiary,
+    marginBottom: 6,
   },
   activityMeta: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 12,
+  },
+  metaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
   metaText: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: COLORS.text.tertiary,
+  },
+  statusBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
   },
   statusText: {
     fontSize: 12,
-    fontWeight: '500',
+    fontWeight: '600',
   },
 });
 

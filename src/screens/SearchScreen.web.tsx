@@ -10,7 +10,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useNavigate } from 'react-router-dom';
-import { COLORS, SHADOWS, LAYOUT } from '../styles/colors';
+import { COLORS, SHADOWS, LAYOUT, CSS_SHADOWS, CARD_STYLE } from '../styles/colors';
 import { TYPOGRAPHY, FONT_WEIGHTS } from '../styles/typography';
 import { SPACING, BORDER_RADIUS } from '../styles/spacing';
 import { Icon } from '../components/Icon';
@@ -20,6 +20,9 @@ import { SEARCH_CATEGORIES, SEARCH_LOCATIONS, SORT_OPTION_NAMES } from '../const
 import { formatKoreanDateTime } from '../utils/dateUtils';
 import aiSearchService from '../services/aiSearchService';
 import riceCharacterImage from '../assets/images/rice-character.png';
+import { FadeIn } from '../components/animated';
+import { MeetupCardSkeleton } from '../components/skeleton';
+import { getAvatarColor, getInitials } from '../utils/avatarColor';
 
 interface SearchScreenProps {
   navigation?: any;
@@ -37,6 +40,7 @@ const SearchScreen: React.FC<SearchScreenProps> = ({ navigation, user }) => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [searchIntent, setSearchIntent] = useState<any>(null);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [searchInputFocused, setSearchInputFocused] = useState(false);
   
   const { meetups, searchMeetups, loading } = useMeetups();
   
@@ -48,7 +52,6 @@ const SearchScreen: React.FC<SearchScreenProps> = ({ navigation, user }) => {
 
   // 실제 검색 수행
   const performSearch = async (searchText: string, category: string = selectedCategory, location: string = selectedLocation) => {
-    // console.log('🔍 검색 수행:', { searchText, category, location });
     try {
       await searchMeetups({
         search: searchText || undefined,
@@ -57,7 +60,7 @@ const SearchScreen: React.FC<SearchScreenProps> = ({ navigation, user }) => {
         limit: 50
       });
     } catch (error) {
-      // console.error('검색 오류:', error);
+      // silently handle error
     }
   };
 
@@ -89,7 +92,6 @@ const SearchScreen: React.FC<SearchScreenProps> = ({ navigation, user }) => {
         // 검색 수행
         performSearch(text, analysis.intent.category || selectedCategory, analysis.intent.location || selectedLocation);
       } catch (error) {
-        // console.error('AI 검색 분석 오류:', error);
         // AI 오류 시에도 기본 검색 수행
         performSearch(text);
       } finally {
@@ -125,52 +127,75 @@ const SearchScreen: React.FC<SearchScreenProps> = ({ navigation, user }) => {
   }, [selectedCategory, selectedLocation]);
 
   const filteredMeetups = meetups.filter(meetup => {
-    const matchesSearch = searchText === '' || 
-                         meetup.title.toLowerCase().includes(searchText.toLowerCase()) ||
-                         meetup.location.toLowerCase().includes(searchText.toLowerCase()) ||
+    const matchesSearch = searchText === '' ||
+                         (meetup.title || '').toLowerCase().includes(searchText.toLowerCase()) ||
+                         (meetup.location || '').toLowerCase().includes(searchText.toLowerCase()) ||
                          meetup.description?.toLowerCase().includes(searchText.toLowerCase());
     const matchesCategory = selectedCategory === '전체' || meetup.category === selectedCategory;
-    const matchesLocation = selectedLocation === '전체' || meetup.location.includes(selectedLocation.replace('구', ''));
+    const matchesLocation = selectedLocation === '전체' || (meetup.location || '').includes(selectedLocation.replace('구', ''));
     return matchesSearch && matchesCategory && matchesLocation;
   });
 
   const renderTabButton = (title: string, selectedValue: string, onPress: (value: string) => void, options: string[]) => (
     <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tabContainer}>
-      {options.map((option) => (
-        <TouchableOpacity
-          key={option}
-          style={[
-            styles.tabButton,
-            selectedValue === option && styles.selectedTabButton
-          ]}
-          onPress={() => onPress(option)}
-        >
-          <Text style={[
-            styles.tabButtonText,
-            selectedValue === option && styles.selectedTabButtonText
-          ]}>
-            {option}
-          </Text>
-        </TouchableOpacity>
-      ))}
+      {options.map((option) => {
+        const isSelected = selectedValue === option;
+        return (
+          <div
+            key={option}
+            style={{
+              transition: 'all 150ms ease',
+              borderRadius: 20,
+              cursor: 'pointer',
+            }}
+            onMouseEnter={(e) => {
+              if (!isSelected) {
+                (e.currentTarget.firstChild as HTMLElement).style.borderColor = COLORS.primary.main;
+                (e.currentTarget.firstChild as HTMLElement).style.backgroundColor = 'rgba(139, 105, 20, 0.06)';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (!isSelected) {
+                (e.currentTarget.firstChild as HTMLElement).style.borderColor = COLORS.neutral.grey200;
+                (e.currentTarget.firstChild as HTMLElement).style.backgroundColor = COLORS.neutral.white;
+              }
+            }}
+          >
+            <TouchableOpacity
+              style={[
+                styles.tabButton,
+                isSelected && styles.selectedTabButton
+              ]}
+              onPress={() => onPress(option)}
+            >
+              <Text style={[
+                styles.tabButtonText,
+                isSelected && styles.selectedTabButtonText
+              ]}>
+                {option}
+              </Text>
+            </TouchableOpacity>
+          </div>
+        );
+      })}
     </ScrollView>
   );
 
-  const renderMeetupItem = (meetup: any) => (
+  const renderMeetupItem = (meetup: any, index?: number) => (
     <TouchableOpacity
       style={styles.meetupCard}
       onPress={() => navigate(`/meetup/${meetup.id}`)}
     >
       <View style={styles.meetupHeader}>
         <View style={styles.meetupTitleSection}>
-          <Text style={styles.meetupTitle} numberOfLines={2}>{meetup.title}</Text>
+          <Text style={styles.meetupTitle} numberOfLines={2}>{meetup.title || '제목 없음'}</Text>
           <View style={styles.meetupMeta}>
             <View style={{flexDirection: 'row', alignItems: 'center', gap: 4}}>
-              <Icon name="map-pin" size={11} color={COLORS.text.secondary} />
-              <Text style={styles.meetupLocation}>{meetup.location}</Text>
+              <Icon name="map-pin" size={14} color={COLORS.text.secondary} />
+              <Text style={styles.meetupLocation}>{meetup.location || '장소 미정'}</Text>
             </View>
             <View style={{flexDirection: 'row', alignItems: 'center', gap: 4}}>
-              <Icon name="clock" size={11} color={COLORS.text.secondary} />
+              <Icon name="clock" size={14} color={COLORS.text.secondary} />
               <Text style={styles.meetupTime}>
                 {formatKoreanDateTime(meetup.date, 'datetime')}
               </Text>
@@ -179,23 +204,23 @@ const SearchScreen: React.FC<SearchScreenProps> = ({ navigation, user }) => {
         </View>
         <View style={styles.meetupStatus}>
           <Text style={styles.statusText}>모집중</Text>
-          <Text style={styles.participantCount}>{meetup.currentParticipants}/{meetup.maxParticipants}</Text>
+          <Text style={styles.participantCount}>{meetup.currentParticipants ?? 0}/{meetup.maxParticipants ?? 4}</Text>
         </View>
       </View>
       
       <View style={styles.meetupFooter}>
         <View style={styles.hostInfo}>
-          <View style={styles.hostAvatar}>
-            <Text style={styles.hostInitial}>{meetup.hostName.charAt(0)}</Text>
+          <View style={[styles.hostAvatar, { backgroundColor: getAvatarColor(meetup.hostName || '호스트') }]}>
+            <Text style={styles.hostInitial}>{getInitials(meetup.hostName || '호스트')}</Text>
           </View>
-          <Text style={styles.hostName}>{meetup.hostName}</Text>
+          <Text style={styles.hostName}>{meetup.hostName || '호스트'}</Text>
           <View style={{flexDirection: 'row', alignItems: 'center', gap: 2}}>
-            <Icon name="star" size={11} color={COLORS.functional.warning} />
+            <Icon name="star" size={14} color={COLORS.functional.warning} />
             <Text style={styles.hostRating}>4.8</Text>
           </View>
         </View>
         <View style={styles.categoryBadge}>
-          <Text style={styles.categoryBadgeText}>{meetup.category}</Text>
+          <Text style={styles.categoryBadgeText}>{meetup.category || '기타'}</Text>
         </View>
       </View>
     </TouchableOpacity>
@@ -213,11 +238,11 @@ const SearchScreen: React.FC<SearchScreenProps> = ({ navigation, user }) => {
       <Text style={styles.restaurantCategory}>{restaurant.category}</Text>
       <View style={styles.restaurantMeta}>
         <View style={{flexDirection: 'row', alignItems: 'center', gap: 4}}>
-          <Icon name="map-pin" size={11} color={COLORS.text.secondary} />
+          <Icon name="map-pin" size={14} color={COLORS.text.secondary} />
           <Text style={styles.restaurantLocation}>{restaurant.location}</Text>
         </View>
         <View style={{flexDirection: 'row', alignItems: 'center', gap: 4}}>
-          <Icon name="clock" size={11} color={COLORS.text.secondary} />
+          <Icon name="clock" size={14} color={COLORS.text.secondary} />
           <Text style={styles.restaurantHours}>{restaurant.hours}</Text>
         </View>
       </View>
@@ -230,28 +255,37 @@ const SearchScreen: React.FC<SearchScreenProps> = ({ navigation, user }) => {
         if (loading) {
           return (
             <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color={COLORS.primary.main} />
-              <Text style={styles.loadingText}>검색 중...</Text>
+              {[1, 2, 3].map((i) => (
+                <View key={i} style={{ paddingHorizontal: 16, marginBottom: 16 }}>
+                  <MeetupCardSkeleton />
+                </View>
+              ))}
             </View>
           );
         }
         
         return (
-          <FlatList
-            data={filteredMeetups}
-            keyExtractor={(item) => item.id.toString()}
-            renderItem={({ item }) => renderMeetupItem(item)}
-            style={styles.resultsList}
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.resultsContainer}
-            ListEmptyComponent={
-              <EmptyState
-                icon="🔍"
-                title="검색 결과가 없습니다"
-                description="다른 키워드로 검색해보세요"
-              />
-            }
-          />
+          <FadeIn>
+            <FlatList
+              data={filteredMeetups}
+              keyExtractor={(item) => item.id.toString()}
+              renderItem={({ item, index }) => (
+                <FadeIn delay={index < 8 ? index * 40 : 0}>
+                  {renderMeetupItem(item, index)}
+                </FadeIn>
+              )}
+              style={styles.resultsList}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.resultsContainer}
+              ListEmptyComponent={
+                <EmptyState
+                  icon="search"
+                  title="검색 결과가 없습니다"
+                  description="다른 키워드로 검색해보세요"
+                />
+              }
+            />
+          </FadeIn>
         );
       
       case '맛집리스트':
@@ -300,10 +334,21 @@ const SearchScreen: React.FC<SearchScreenProps> = ({ navigation, user }) => {
 
   return (
     <View style={styles.container}>
+      {/* 스크롤바 숨김 스타일 (webkit) */}
+      <style dangerouslySetInnerHTML={{ __html: `
+        .filter-chips-scroll::-webkit-scrollbar { display: none; }
+      ` }} />
       {/* 검색바 */}
       <View style={styles.searchContainer}>
-        <View style={styles.searchInputContainer}>
-          <Icon name="search" size={16} color={COLORS.text.tertiary} />
+        <View style={[
+          styles.searchInputContainer,
+          searchInputFocused && {
+            borderWidth: 1,
+            borderColor: COLORS.primary.main,
+            boxShadow: '0 0 0 3px rgba(139, 105, 20, 0.15)',
+          } as any,
+        ]}>
+          <Icon name="search" size={16} color={searchInputFocused ? COLORS.primary.main : COLORS.text.tertiary} />
           <TextInput
             style={styles.searchInput}
             placeholder="모임 제목이나 장소를 검색해보세요 (AI 추천 기능)"
@@ -316,8 +361,9 @@ const SearchScreen: React.FC<SearchScreenProps> = ({ navigation, user }) => {
                 setSuggestions([]);
               }
             }}
-            placeholderTextColor={COLORS.text.tertiary}
-            onFocus={() => setShowSuggestions(searchText.length > 0)}
+            placeholderTextColor={COLORS.text.secondary}
+            onFocus={() => { setSearchInputFocused(true); setShowSuggestions(searchText.length > 0); }}
+            onBlur={() => setSearchInputFocused(false)}
           />
           {searchText.length > 0 && (
             <TouchableOpacity
@@ -424,22 +470,61 @@ const SearchScreen: React.FC<SearchScreenProps> = ({ navigation, user }) => {
 
       {/* 필터 칩 */}
       {(selectedCategory !== '전체' || selectedLocation !== '전체') && (
-        <View style={styles.filterChipsContainer}>
+        <div className="filter-chips-scroll" style={{
+          display: 'flex',
+          flexDirection: 'row',
+          alignItems: 'center',
+          flexWrap: 'nowrap',
+          gap: 12,
+          paddingLeft: 16,
+          paddingRight: 16,
+          paddingTop: 8,
+          paddingBottom: 8,
+          backgroundColor: COLORS.neutral.white,
+          borderBottom: `1px solid ${COLORS.neutral.grey100}`,
+          overflowX: 'auto',
+          WebkitOverflowScrolling: 'touch',
+          scrollbarWidth: 'none',
+        }}>
           {selectedCategory !== '전체' && (
-            <View style={styles.filterChip}>
-              <Text style={styles.filterChipText}>{selectedCategory}</Text>
-              <TouchableOpacity onPress={() => setSelectedCategory('전체')}>
-                <Icon name="times" size={10} color={COLORS.text.secondary} />
-              </TouchableOpacity>
-            </View>
+            <div
+              style={{ transition: 'all 150ms ease', borderRadius: 16, display: 'inline-flex' }}
+              onMouseEnter={(e) => {
+                (e.currentTarget as HTMLElement).style.transform = 'scale(1.03)';
+                (e.currentTarget as HTMLElement).style.boxShadow = '0 1px 4px rgba(0,0,0,0.08)';
+              }}
+              onMouseLeave={(e) => {
+                (e.currentTarget as HTMLElement).style.transform = 'scale(1)';
+                (e.currentTarget as HTMLElement).style.boxShadow = 'none';
+              }}
+            >
+              <View style={styles.filterChip}>
+                <Text style={styles.filterChipText}>{selectedCategory}</Text>
+                <TouchableOpacity onPress={() => setSelectedCategory('전체')}>
+                  <Icon name="times" size={10} color={COLORS.text.secondary} />
+                </TouchableOpacity>
+              </View>
+            </div>
           )}
           {selectedLocation !== '전체' && (
-            <View style={styles.filterChip}>
-              <Text style={styles.filterChipText}>{selectedLocation}</Text>
-              <TouchableOpacity onPress={() => setSelectedLocation('전체')}>
-                <Icon name="times" size={10} color={COLORS.text.secondary} />
-              </TouchableOpacity>
-            </View>
+            <div
+              style={{ transition: 'all 150ms ease', borderRadius: 16, display: 'inline-flex' }}
+              onMouseEnter={(e) => {
+                (e.currentTarget as HTMLElement).style.transform = 'scale(1.03)';
+                (e.currentTarget as HTMLElement).style.boxShadow = '0 1px 4px rgba(0,0,0,0.08)';
+              }}
+              onMouseLeave={(e) => {
+                (e.currentTarget as HTMLElement).style.transform = 'scale(1)';
+                (e.currentTarget as HTMLElement).style.boxShadow = 'none';
+              }}
+            >
+              <View style={styles.filterChip}>
+                <Text style={styles.filterChipText}>{selectedLocation}</Text>
+                <TouchableOpacity onPress={() => setSelectedLocation('전체')}>
+                  <Icon name="times" size={10} color={COLORS.text.secondary} />
+                </TouchableOpacity>
+              </View>
+            </div>
           )}
           <TouchableOpacity
             style={styles.filterResetButton}
@@ -451,7 +536,7 @@ const SearchScreen: React.FC<SearchScreenProps> = ({ navigation, user }) => {
           >
             <Text style={styles.filterResetText}>초기화</Text>
           </TouchableOpacity>
-        </View>
+        </div>
       )}
 
       {/* 검색 결과 */}
@@ -497,30 +582,24 @@ const styles = StyleSheet.create({
     zIndex: 1000,
     height: LAYOUT.HEADER_HEIGHT,
     paddingHorizontal: LAYOUT.HEADER_PADDING_HORIZONTAL,
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    backgroundColor: 'rgba(255, 251, 247, 0.95)',
     backdropFilter: 'blur(20px)',
     WebkitBackdropFilter: 'blur(20px)',
     borderBottomWidth: 0,
     justifyContent: 'center',
     ...SHADOWS.medium,
-    shadowColor: 'rgba(0,0,0,0.05)',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 1,
-    shadowRadius: 12,
   },
   searchInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    borderRadius: 20,
-    borderWidth: 0,
+    backgroundColor: COLORS.neutral.white,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'transparent',
     paddingHorizontal: 16,
     paddingVertical: 12,
+    transition: 'border-color 150ms ease, box-shadow 150ms ease',
     ...SHADOWS.small,
-    shadowColor: 'rgba(0,0,0,0.04)',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 1,
-    shadowRadius: 8,
   },
   searchIcon: {
     fontSize: 16,
@@ -559,8 +638,8 @@ const styles = StyleSheet.create({
     borderColor: COLORS.neutral.grey200,
   },
   selectedTabButton: {
-    backgroundColor: COLORS.primary.accent,
-    borderColor: COLORS.primary.accent,
+    backgroundColor: COLORS.primary.main,
+    borderColor: COLORS.primary.main,
   },
   tabButtonText: {
     fontSize: 14,
@@ -572,30 +651,29 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   resultsHeader: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
     paddingVertical: 12,
   },
   resultsCount: {
-    fontSize: 14,
-    color: COLORS.text.secondary,
-    fontWeight: '500',
+    fontSize: 15,
+    color: COLORS.text.primary,
+    fontWeight: '600',
   },
   resultsList: {
     flex: 1,
   },
   resultsContainer: {
-    paddingBottom: 20,
+    paddingBottom: 80,
   },
   meetupCard: {
     backgroundColor: COLORS.neutral.white,
-    marginHorizontal: 0,
-    marginTop: 0,
-    padding: 16,
-    paddingHorizontal: 16,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.neutral.background,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.neutral.background,
+    marginHorizontal: 16,
+    marginTop: 16,
+    padding: 20,
+    borderRadius: CARD_STYLE.borderRadius,
+    borderWidth: CARD_STYLE.borderWidth,
+    borderColor: CARD_STYLE.borderColor,
+    ...SHADOWS.medium,
   },
   meetupHeader: {
     flexDirection: 'row',
@@ -607,11 +685,8 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   meetupTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: COLORS.text.primary,
+    ...TYPOGRAPHY.card.title,
     marginBottom: 6,
-    lineHeight: 22,
   },
   meetupMeta: {
     flexDirection: 'row',
@@ -631,15 +706,20 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   statusText: {
-    fontSize: 12,
+    fontSize: 11,
     color: COLORS.functional.info,
     fontWeight: '600',
     marginBottom: 4,
+    backgroundColor: 'rgba(107, 142, 174, 0.1)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: BORDER_RADIUS.full,
+    overflow: 'hidden',
   },
   participantCount: {
     fontSize: 12,
-    color: COLORS.text.secondary,
-    fontWeight: '500',
+    color: COLORS.primary.main,
+    fontWeight: '600',
   },
   meetupFooter: {
     flexDirection: 'row',
@@ -651,18 +731,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   hostAvatar: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: COLORS.primary.light,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 8,
   },
   hostInitial: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: COLORS.primary.main,
+    fontSize: 11,
+    fontWeight: '700',
+    color: COLORS.text.white,
   },
   hostName: {
     fontSize: 12,
@@ -679,7 +758,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: COLORS.neutral.grey200,
+    borderColor: COLORS.primary.light,
   },
   categoryBadgeText: {
     fontSize: 10,
@@ -688,16 +767,21 @@ const styles = StyleSheet.create({
   },
   tabNavigation: {
     flexDirection: 'row',
+    height: 56,
     backgroundColor: COLORS.neutral.white,
+    paddingTop: LAYOUT.HEADER_HEIGHT + SPACING.sm,
+    paddingHorizontal: SPACING.lg,
+    alignItems: 'center',
+    gap: 0,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.neutral.grey100,
-    paddingTop: LAYOUT.HEADER_HEIGHT + LAYOUT.CONTENT_TOP_MARGIN,
-    paddingHorizontal: SPACING.lg,
   },
   tabNavButton: {
     flex: 1,
-    paddingVertical: SPACING.lg,
+    height: 40,
     alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'transparent',
     borderBottomWidth: 2,
     borderBottomColor: 'transparent',
   },
@@ -710,16 +794,16 @@ const styles = StyleSheet.create({
     color: COLORS.text.tertiary,
   },
   selectedTabNavButtonText: {
-    color: COLORS.text.primary,
-    fontWeight: FONT_WEIGHTS.semiBold as any,
+    color: COLORS.primary.main,
+    fontWeight: '700' as any,
   },
   restaurantCard: {
     backgroundColor: COLORS.neutral.white,
     padding: 16,
     borderTopWidth: 1,
-    borderTopColor: COLORS.neutral.background,
+    borderTopColor: COLORS.neutral.grey100,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.neutral.background,
+    borderBottomColor: COLORS.neutral.grey100,
   },
   restaurantHeader: {
     flexDirection: 'row',
@@ -765,7 +849,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   filterSection: {
-    padding: 16,
+    padding: 20,
   },
   filterSectionTitle: {
     fontSize: 18,
@@ -796,10 +880,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginTop: 4,
     ...SHADOWS.medium,
-    shadowColor: 'rgba(0,0,0,0.1)',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 1,
-    shadowRadius: 12,
     maxHeight: 200,
     overflow: 'hidden',
   },
@@ -807,9 +887,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 12,
-    backgroundColor: 'rgba(99, 102, 241, 0.05)',
+    backgroundColor: COLORS.primary.light,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.neutral.background,
+    borderBottomColor: COLORS.neutral.grey100,
   },
   suggestionsTitle: {
     fontSize: 12,
@@ -823,7 +903,7 @@ const styles = StyleSheet.create({
     padding: 12,
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.neutral.background,
+    borderBottomColor: COLORS.neutral.grey100,
   },
   suggestionText: {
     fontSize: 14,
@@ -832,10 +912,10 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   intentContainer: {
-    backgroundColor: 'rgba(99, 102, 241, 0.05)',
+    backgroundColor: COLORS.primary.light,
     padding: 12,
     marginTop: 8,
-    borderRadius: 8,
+    borderRadius: 12,
   },
   intentText: {
     fontSize: 12,
@@ -863,7 +943,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     backgroundColor: 'rgba(239, 68, 68, 0.1)',
-    borderRadius: 8,
+    borderRadius: 12,
   },
   clearButtonText: {
     fontSize: 12,
@@ -873,9 +953,7 @@ const styles = StyleSheet.create({
   // 로딩 및 빈 상태 스타일
   loadingContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 40,
+    padding: 0,
   },
   loadingText: {
     fontSize: 16,
@@ -906,13 +984,16 @@ const styles = StyleSheet.create({
   filterChipsContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: SPACING.sm,
+    flexWrap: 'nowrap',
+    gap: 12,
     paddingHorizontal: SPACING.lg,
     paddingVertical: SPACING.md,
     backgroundColor: COLORS.neutral.white,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.neutral.grey100,
+    overflowX: 'auto',
+    WebkitOverflowScrolling: 'touch',
+    scrollbarWidth: 'none',
   },
   filterChip: {
     flexDirection: 'row',
@@ -921,7 +1002,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.xs,
     backgroundColor: COLORS.primary.accent,
-    borderRadius: BORDER_RADIUS.full,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: COLORS.neutral.grey200,
   },

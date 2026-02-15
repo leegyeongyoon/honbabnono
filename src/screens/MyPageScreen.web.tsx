@@ -2,74 +2,62 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { useNavigate } from 'react-router-dom';
 import { COLORS, SHADOWS } from '../styles/colors';
+import { SPACING, BORDER_RADIUS } from '../styles/spacing';
 import { useUserStore } from '../store/userStore';
-import { Icon } from '../components/Icon';
+import { Icon, IconName } from '../components/Icon';
 import userApiService from '../services/userApiService';
 import { ProfileImage } from '../components/ProfileImage';
-import {
-  User, Award, Gift, Users, Heart, Eye, UserX, FileText, 
-  CreditCard, DollarSign, UserPlus, Bell, HelpCircle, 
-  Phone, FileCheck, Info, Settings, LogOut, Trash2
-} from 'lucide-react';
+import ConfirmDialog from '../components/ConfirmDialog';
+import { useConfirmDialog } from '../hooks/useConfirmDialog';
+import { ProfileSkeleton } from '../components/skeleton';
+import { FadeIn } from '../components/animated';
 
-interface User {
+interface UserType {
   id: string;
   name: string;
   email: string;
 }
 
 interface MyPageScreenProps {
-  user?: User | null;
+  user?: UserType | null;
+  onLogout?: () => void;
 }
 
-// 메뉴 카드 컴포넌트
-const MenuCard: React.FC<{
-  title: string;
-  icon: React.ReactNode;
-  items: Array<{
-    id: string;
-    title: string;
-    subtitle?: string;
-    onPress: () => void;
-  }>;
-}> = ({ title, icon, items }) => (
-  <View style={styles.menuCard}>
-    <View style={styles.menuCardHeader}>
-      <View style={styles.menuCardIcon}>
-        {icon}
-      </View>
-      <Text style={styles.menuCardTitle}>{title}</Text>
-    </View>
-    <View style={styles.menuCardContent}>
-      {items.map((item, index) => (
-        <TouchableOpacity 
-          key={item.id}
-          style={[
-            styles.menuItem,
-            index === items.length - 1 && styles.lastMenuItem
-          ]}
-          onPress={item.onPress}
-        >
-          <View style={styles.menuItemLeft}>
-            <View style={styles.menuItemText}>
-              <Text style={styles.menuItemTitle}>{item.title}</Text>
-              {item.subtitle && (
-                <Text style={styles.menuItemSubtitle}>{item.subtitle}</Text>
-              )}
-            </View>
-          </View>
-          <Icon name="chevron-right" size={16} color={COLORS.text.secondary} />
-        </TouchableOpacity>
-      ))}
-    </View>
-  </View>
-);
+// 밥알지수 등급 계산
+const getRiceGrade = (score: number): { label: string; emoji: string } => {
+  if (score >= 86) return { label: '밥알마스터', emoji: '👑' };
+  if (score >= 61) return { label: '밥알고수', emoji: '⭐' };
+  if (score >= 31) return { label: '밥알친구', emoji: '🍚' };
+  return { label: '밥알초보', emoji: '🌱' };
+};
+
+// 빠른 메뉴 아이템
+interface QuickMenuItem {
+  id: string;
+  label: string;
+  icon: IconName;
+  path: string;
+}
+
+const QUICK_MENUS: QuickMenuItem[] = [
+  { id: 'my-meetups', label: '내 모임', icon: 'calendar', path: '/my-meetups' },
+  { id: 'wishlist', label: '찜 목록', icon: 'heart', path: '/wishlist' },
+  { id: 'point-charge', label: '포인트', icon: 'credit-card', path: '/point-charge' },
+  { id: 'my-reviews', label: '리뷰', icon: 'star', path: '/my-reviews' },
+  { id: 'recent-views', label: '최근 본', icon: 'eye', path: '/recent-views' },
+  { id: 'notification-settings', label: '설정', icon: 'settings', path: '/notification-settings' },
+];
+
+// 고객지원 메뉴
+const SUPPORT_MENUS = [
+  { id: 'notices', label: '공지사항', path: '/notices' },
+  { id: 'faq', label: '자주 묻는 질문', path: '/faq' },
+  { id: 'terms', label: '이용약관', path: '/terms' },
+];
 
 const MyPageScreen: React.FC<MyPageScreenProps> = ({ user: propsUser }) => {
   const navigate = useNavigate();
   const { user: storeUser, logout } = useUserStore();
-  
-  // props로 받은 user가 있으면 사용, 없으면 store의 user 사용
   const user = propsUser || storeUser;
 
   const [userStats, setUserStats] = useState({
@@ -77,297 +65,60 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ user: propsUser }) => {
     availablePoints: 0,
     totalMeetups: 0,
     hostedMeetups: 0,
-    reviewCount: 0
+    reviewCount: 0,
   });
-
   const [loading, setLoading] = useState(true);
   const [userProfileImageUrl, setUserProfileImageUrl] = useState(null);
+  const [supportExpanded, setSupportExpanded] = useState(false);
+  const { dialog, confirmDanger, confirm } = useConfirmDialog();
 
-  // API에서 유저 데이터 가져오기
   useEffect(() => {
     const fetchUserData = async () => {
       try {
         setLoading(true);
-        
-        // 사용자 통계 가져오기
         const stats = await userApiService.getUserStats();
-        
-        // 밥알지수 가져오기
         const riceIndexResponse = await userApiService.getRiceIndex();
-        console.log('🍚 웹 밥알지수 API 응답:', riceIndexResponse);
-        
-        // 통계에 밥알지수 추가
-        const updatedStats = {
+        setUserStats({
           ...stats,
-          riceIndex: riceIndexResponse?.riceIndex || 0
-        };
-        setUserStats(updatedStats);
-        console.log('🍚 웹 최종 userStats:', updatedStats);
-        
-        // 프로필 정보 가져오기
+          riceIndex: riceIndexResponse?.riceIndex || 0,
+        });
         const userData = await userApiService.getProfile();
-        console.log('🔍 받아온 프로필 데이터:', userData);
-        console.log('🖼️ 프로필 이미지 URL:', userData.profileImage);
         setUserProfileImageUrl(userData.profileImage);
-        
       } catch (error) {
-        console.error('유저 데이터 조회 실패:', error);
+        // silently handle
       } finally {
         setLoading(false);
       }
     };
-
-    if (user) {
-      fetchUserData();
-    }
+    if (user) fetchUserData();
   }, [user]);
 
-  // 메뉴 핸들러들
-  const handleMenuPress = (menuId: string) => {
-    console.log('메뉴 선택:', menuId);
-    
-    switch (menuId) {
-      // 기본 정보
-      case 'badge-info':
-        navigate('/my-badges');
-        break;
-      case 'point-balance':
-        navigate('/point-balance');
-        break;
-      case 'my-meetups':
-        navigate('/my-meetups');
-        break;
-      case 'review-management':
-        navigate('/my-reviews');
-        break;
-        
-      // 활동 관리
-      case 'wishlist':
-        navigate('/wishlist');
-        break;
-      case 'recent-views':
-        navigate('/recent-views');
-        break;
-      case 'blocked-users':
-        navigate('/blocked-users');
-        break;
-      case 'my-reviews':
-        navigate('/my-reviews');
-        break;
-        
-      // 결제 관리
-      case 'payment-history':
-        navigate('/payment-history');
-        break;
-      case 'point-charge':
-        navigate('/point-charge');
-        break;
-        
-      // 친구 초대
-      case 'invite-friends':
-        navigate('/invite-friends');
-        break;
-        
-      // 고객 지원
-      case 'notices':
-        navigate('/notices');
-        break;
-      case 'faq':
-        navigate('/faq');
-        break;
-      case 'customer-support':
-        navigate('/customer-support');
-        break;
-      case 'terms':
-        navigate('/terms');
-        break;
-      case 'app-info':
-        navigate('/app-info');
-        break;
-        
-      // 설정
-      case 'notification-settings':
-        navigate('/notification-settings');
-        break;
-      case 'logout':
-        handleLogout();
-        break;
-      case 'delete-account':
-        handleDeleteAccount();
-        break;
-        
-      default:
-        console.log('구현되지 않은 메뉴:', menuId);
-        break;
-    }
-  };
-
-  const handleLogout = () => {
-    if (confirm('로그아웃 하시겠습니까?')) {
+  const handleLogout = async () => {
+    const confirmed = await confirm('로그아웃', '로그아웃 하시겠습니까?');
+    if (confirmed) {
       logout();
       navigate('/login');
     }
   };
 
-  const handleDeleteAccount = () => {
-    if (confirm('정말로 계정을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) {
-      // 계정 삭제 API 호출
-      console.log('계정 삭제 요청');
+  const handleDeleteAccount = async () => {
+    const confirmed = await confirmDanger('회원 탈퇴', '정말로 계정을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.');
+    if (confirmed) {
+      // TODO: 계정 삭제 API 호출
     }
   };
 
-  // 메뉴 구조 정의
-  const menuSections = [
-    {
-      title: '내 정보',
-      icon: <User size={20} color={COLORS.primary.main} />,
-      items: [
-        {
-          id: 'point-balance',
-          title: '보유 포인트',
-          subtitle: `${userStats.availablePoints?.toLocaleString() || '0'}P`,
-          onPress: () => handleMenuPress('point-balance')
-        },
-        {
-          id: 'my-meetups',
-          title: '참가한 모임',
-          subtitle: `총 ${userStats.totalMeetups || 0}회 참가`,
-          onPress: () => handleMenuPress('my-meetups')
-        },
-        {
-          id: 'review-management',
-          title: '후기 관리',
-          subtitle: `작성한 리뷰 ${userStats.reviewCount || 0}개`,
-          onPress: () => handleMenuPress('review-management')
-        }
-      ]
-    },
-    {
-      title: '활동관리',
-      icon: <Heart size={20} color={COLORS.primary.main} />,
-      items: [
-        {
-          id: 'wishlist',
-          title: '찜 목록',
-          subtitle: '관심있는 모임들',
-          onPress: () => handleMenuPress('wishlist')
-        },
-        {
-          id: 'recent-views',
-          title: '최근 본 글',
-          subtitle: '최근에 본 모임들',
-          onPress: () => handleMenuPress('recent-views')
-        },
-        {
-          id: 'blocked-users',
-          title: '차단 회원관리',
-          subtitle: '차단한 사용자 목록',
-          onPress: () => handleMenuPress('blocked-users')
-        },
-        {
-          id: 'my-reviews',
-          title: '리뷰 관리',
-          subtitle: '내가 작성한 리뷰들',
-          onPress: () => handleMenuPress('my-reviews')
-        }
-      ]
-    },
-    {
-      title: '결제 관리',
-      icon: <CreditCard size={20} color={COLORS.primary.main} />,
-      items: [
-        {
-          id: 'payment-history',
-          title: '약속금 결제 내역',
-          subtitle: '결제 및 환불 내역',
-          onPress: () => handleMenuPress('payment-history')
-        },
-        {
-          id: 'point-charge',
-          title: '포인트 충전/ 사용',
-          subtitle: '포인트 관리',
-          onPress: () => handleMenuPress('point-charge')
-        }
-      ]
-    },
-    {
-      title: '친구 초대',
-      icon: <UserPlus size={20} color={COLORS.primary.main} />,
-      items: [
-        {
-          id: 'invite-friends',
-          title: '친구코드/초대코드',
-          subtitle: '친구를 초대하고 포인트 받기',
-          onPress: () => handleMenuPress('invite-friends')
-        }
-      ]
-    },
-    {
-      title: '고객 지원',
-      icon: <HelpCircle size={20} color={COLORS.primary.main} />,
-      items: [
-        {
-          id: 'notices',
-          title: '공지사항',
-          subtitle: '최신 소식과 공지',
-          onPress: () => handleMenuPress('notices')
-        },
-        {
-          id: 'faq',
-          title: '자주 묻는 질문',
-          subtitle: 'FAQ 및 도움말',
-          onPress: () => handleMenuPress('faq')
-        },
-        {
-          id: 'customer-support',
-          title: '고객 센터',
-          subtitle: '문의사항 등록 및 확인',
-          onPress: () => handleMenuPress('customer-support')
-        },
-        {
-          id: 'terms',
-          title: '약관 및 정책',
-          subtitle: '이용약관 및 개인정보처리방침',
-          onPress: () => handleMenuPress('terms')
-        },
-        {
-          id: 'app-info',
-          title: '버전 정보',
-          subtitle: 'v1.0.0',
-          onPress: () => handleMenuPress('app-info')
-        }
-      ]
-    },
-    {
-      title: '설정',
-      icon: <Settings size={20} color={COLORS.primary.main} />,
-      items: [
-        {
-          id: 'notification-settings',
-          title: '알림 설정',
-          subtitle: '푸시 알림 설정 관리',
-          onPress: () => handleMenuPress('notification-settings')
-        },
-        {
-          id: 'logout',
-          title: '로그아웃',
-          subtitle: '안전하게 로그아웃',
-          onPress: () => handleMenuPress('logout')
-        },
-        {
-          id: 'delete-account',
-          title: '회원 탈퇴',
-          subtitle: '계정을 영구적으로 삭제',
-          onPress: () => handleMenuPress('delete-account')
-        }
-      ]
-    }
-  ];
+  const riceGrade = getRiceGrade(userStats.riceIndex);
 
   if (loading) {
     return (
-      <View style={[styles.container, styles.centerContent]}>
-        <Text style={styles.loadingText}>로딩 중...</Text>
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>마이페이지</Text>
+        </View>
+        <View style={{ padding: 20, backgroundColor: COLORS.neutral.white }}>
+          <ProfileSkeleton />
+        </View>
       </View>
     );
   }
@@ -377,105 +128,145 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ user: propsUser }) => {
       {/* 헤더 */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>마이페이지</Text>
-        <View style={styles.headerButtons}>
-          <TouchableOpacity style={styles.headerButton}>
-            <Icon name="bell" size={24} color={COLORS.text.primary} />
-          </TouchableOpacity>
-        </View>
       </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* 사용자 프로필 섹션 */}
-        <View style={styles.profileSection}>
-          <View style={styles.profileRow}>
-            {/* 프로필 이미지 */}
-            <View style={styles.profileImageContainer}>
-              <ProfileImage 
+      <ScrollView style={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        {/* 프로필 헤더 */}
+        <FadeIn delay={0}>
+          <View style={styles.profileSection}>
+            <View style={styles.profileRow}>
+              <ProfileImage
                 profileImage={userProfileImageUrl}
                 name={user?.name || '사용자'}
-                size={80}
+                size={96}
               />
-            </View>
-
-            {/* 사용자 정보 */}
-            <View style={styles.userInfo}>
-              <Text style={styles.userName}>{user?.name || '사용자'}</Text>
-              <Text style={styles.userEmail}>{user?.email || 'user@example.com'}</Text>
-              
-              <View style={styles.userStatsRow}>
-                <View style={styles.userStatItem}>
-                  <Text style={styles.userStatValue}>{userStats.totalMeetups}</Text>
-                  <Text style={styles.userStatLabel}>참여모임</Text>
-                </View>
-                <View style={styles.userStatItem}>
-                  <Text style={styles.userStatValue}>{userStats.hostedMeetups}</Text>
-                  <Text style={styles.userStatLabel}>주최모임</Text>
-                </View>
-                <View style={styles.userStatItem}>
-                  <Text style={styles.userStatValue}>{userStats.reviewCount}</Text>
-                  <Text style={styles.userStatLabel}>리뷰</Text>
-                </View>
-              </View>
-            </View>
-          </View>
-          
-          {/* 밥알지수 */}
-          <View style={styles.riceIndexContainer}>
-            <View style={styles.riceIndexHeader}>
-              <Text style={styles.riceIndexLabel}>밥알지수</Text>
-              <Text style={styles.riceIndexValue}>{userStats.riceIndex} 밥알</Text>
-            </View>
-            <View style={styles.progressBarContainer}>
-              <View style={styles.progressBar}>
-                <View style={[
-                  styles.progressFill, 
-                  { width: `${userStats.riceIndex}%` }
-                ]} />
-              </View>
-            </View>
-            
-            {/* 뱃지 섹션 */}
-            <View style={styles.badgeSection}>
-              <Text style={styles.badgeLabel}>내 뱃지</Text>
-              <View style={styles.badgeContainer}>
-                <View style={styles.badge}>
-                  <Text style={styles.badgeEmoji}>🥇</Text>
-                  <Text style={styles.badgeTitle}>첫걸음</Text>
-                </View>
-                <View style={styles.badge}>
-                  <Text style={styles.badgeEmoji}>🤝</Text>
-                  <Text style={styles.badgeTitle}>밥친구</Text>
-                </View>
-                <View style={styles.badge}>
-                  <Text style={styles.badgeEmoji}>⭐</Text>
-                  <Text style={styles.badgeTitle}>우수회원</Text>
-                </View>
-                <TouchableOpacity 
-                  style={styles.moreBadges}
-                  onPress={() => navigate('/my-badges')}
+              <View style={styles.profileInfo}>
+                <Text style={styles.userName}>{user?.name || '사용자'}</Text>
+                <Text style={styles.userEmail}>{user?.email || ''}</Text>
+                <TouchableOpacity
+                  style={styles.editProfileButton}
+                  onPress={() => navigate('/mypage/edit')}
                 >
-                  <Text style={styles.moreBadgesText}>+</Text>
+                  <Text style={styles.editProfileText}>프로필 수정</Text>
                 </TouchableOpacity>
               </View>
             </View>
           </View>
-        </View>
+        </FadeIn>
 
-        {/* 메뉴 카드들 */}
-        <View style={styles.menuContainer}>
-          {menuSections.map((section, index) => (
-            <MenuCard
-              key={index}
-              title={section.title}
-              icon={section.icon}
-              items={section.items}
-            />
-          ))}
-        </View>
+        {/* 통계 카드 (3열) */}
+        <FadeIn delay={50}>
+          <View style={styles.statsCard}>
+            <View style={styles.statItem}>
+              <Text style={styles.statValue}>{userStats.totalMeetups}</Text>
+              <Text style={styles.statLabel}>참여</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statItem}>
+              <Text style={styles.statValue}>{userStats.hostedMeetups}</Text>
+              <Text style={styles.statLabel}>주최</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statItem}>
+              <Text style={styles.statValue}>{userStats.reviewCount}</Text>
+              <Text style={styles.statLabel}>리뷰</Text>
+            </View>
+          </View>
+        </FadeIn>
 
-        {/* 하단 여백 */}
-        <View style={styles.bottomSpacing} />
+        {/* 밥알지수 카드 */}
+        <FadeIn delay={100}>
+          <View style={styles.riceCard}>
+            <View style={styles.riceHeader}>
+              <Text style={styles.riceLabel}>밥알지수</Text>
+              <Text style={styles.riceScore}>{userStats.riceIndex}점</Text>
+            </View>
+            <View style={styles.riceProgressBg}>
+              <View
+                style={[
+                  styles.riceProgressFill,
+                  { width: `${Math.min(userStats.riceIndex, 100)}%` as any },
+                ]}
+              />
+            </View>
+            <Text style={styles.riceGradeText}>
+              {riceGrade.emoji} 등급: {riceGrade.label}
+            </Text>
+          </View>
+        </FadeIn>
+
+        {/* 빠른 메뉴 (2x3 그리드) */}
+        <FadeIn delay={150}>
+          <View style={styles.quickMenuCard}>
+            <View style={styles.quickMenuGrid}>
+              {QUICK_MENUS.map((menu) => (
+                <TouchableOpacity
+                  key={menu.id}
+                  style={styles.quickMenuItem}
+                  onPress={() => navigate(menu.path)}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.quickMenuIconBox}>
+                    <Icon name={menu.icon} size={24} color={COLORS.primary.main} />
+                  </View>
+                  <Text style={styles.quickMenuLabel}>{menu.label}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        </FadeIn>
+
+        {/* 고객지원 (접힌 목록) */}
+        <FadeIn delay={200}>
+          <View style={styles.supportCard}>
+            <TouchableOpacity
+              style={styles.supportHeader}
+              onPress={() => setSupportExpanded(!supportExpanded)}
+            >
+              <Text style={styles.supportTitle}>고객지원</Text>
+              <Icon
+                name={supportExpanded ? 'chevron-up' : 'chevron-down'}
+                size={18}
+                color={COLORS.text.secondary}
+              />
+            </TouchableOpacity>
+            {supportExpanded && (
+              <View style={styles.supportList}>
+                {SUPPORT_MENUS.map((menu, idx) => (
+                  <TouchableOpacity
+                    key={menu.id}
+                    style={[
+                      styles.supportItem,
+                      idx === SUPPORT_MENUS.length - 1 && { borderBottomWidth: 0 },
+                    ]}
+                    onPress={() => navigate(menu.path)}
+                  >
+                    <Text style={styles.supportItemText}>{menu.label}</Text>
+                    <Icon name="chevron-right" size={16} color={COLORS.text.tertiary} />
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+          </View>
+        </FadeIn>
+
+        {/* 로그아웃 / 회원탈퇴 */}
+        <FadeIn delay={250}>
+          <View style={styles.bottomActions}>
+            <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+              <Icon name="log-out" size={18} color={COLORS.text.secondary} />
+              <Text style={styles.logoutText}>로그아웃</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.deleteButton} onPress={handleDeleteAccount}>
+              <Text style={styles.deleteText}>회원탈퇴</Text>
+            </TouchableOpacity>
+          </View>
+        </FadeIn>
+
+        <View style={{ height: 100 }} />
       </ScrollView>
+
+      <ConfirmDialog {...dialog} />
     </View>
   );
 };
@@ -485,58 +276,41 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.neutral.background,
   },
-  centerContent: {
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    fontSize: 16,
-    color: COLORS.text.secondary,
-  },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 16,
-    paddingTop: 52,
+    paddingTop: 20,
     backgroundColor: COLORS.neutral.white,
-    ...SHADOWS.small,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.neutral.grey100,
     ...SHADOWS.small,
   },
   headerTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '700',
     color: COLORS.text.primary,
   },
-  headerButtons: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  headerButton: {
-    padding: 4,
-  },
-  content: {
+  scrollContent: {
     flex: 1,
   },
-  
-  // 프로필 섹션
+
+  // 프로필
   profileSection: {
+    // @ts-ignore
+    backgroundImage: `linear-gradient(180deg, ${COLORS.primary.accent} 0%, ${COLORS.neutral.background} 100%)`,
     backgroundColor: COLORS.neutral.white,
     paddingHorizontal: 20,
     paddingVertical: 24,
-    marginBottom: 16,
-    ...SHADOWS.small,
   },
   profileRow: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 20,
+    alignItems: 'center',
+    gap: 16,
   },
-  profileImageContainer: {
-    marginRight: 16,
-  },
-  userInfo: {
+  profileInfo: {
     flex: 1,
   },
   userName: {
@@ -548,198 +322,202 @@ const styles = StyleSheet.create({
   userEmail: {
     fontSize: 14,
     color: COLORS.text.secondary,
-    marginBottom: 16,
+    marginBottom: 12,
   },
-  userStatsRow: {
-    flexDirection: 'row',
-    gap: 24,
+  editProfileButton: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: COLORS.neutral.grey200,
+    backgroundColor: COLORS.neutral.white,
   },
-  userStatItem: {
-    alignItems: 'center',
-  },
-  userStatValue: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: COLORS.text.primary,
-    marginBottom: 2,
-  },
-  userStatLabel: {
-    fontSize: 12,
+  editProfileText: {
+    fontSize: 13,
+    fontWeight: '600',
     color: COLORS.text.secondary,
   },
-  
-  // 밥알지수
-  riceIndexContainer: {
-    backgroundColor: COLORS.neutral.background,
-    borderRadius: 12,
-    padding: 16,
+
+  // 통계 카드
+  statsCard: {
+    flexDirection: 'row',
+    backgroundColor: COLORS.neutral.white,
+    marginHorizontal: 16,
+    marginTop: 16,
+    borderRadius: 16,
+    padding: 20,
+    alignItems: 'center',
+    ...SHADOWS.medium,
   },
-  riceIndexHeader: {
+  statItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  statValue: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: COLORS.primary.main,
+    marginBottom: 4,
+  },
+  statLabel: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: COLORS.text.secondary,
+  },
+  statDivider: {
+    width: 1,
+    height: 32,
+    backgroundColor: COLORS.neutral.grey200,
+  },
+
+  // 밥알지수
+  riceCard: {
+    backgroundColor: COLORS.neutral.white,
+    marginHorizontal: 16,
+    marginTop: 12,
+    borderRadius: 16,
+    padding: 20,
+    ...SHADOWS.medium,
+  },
+  riceHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 12,
   },
-  riceIndexLabel: {
+  riceLabel: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
     color: COLORS.text.primary,
   },
-  riceIndexValue: {
+  riceScore: {
     fontSize: 16,
     fontWeight: '700',
     color: COLORS.primary.main,
   },
-  progressBarContainer: {
-    marginTop: 8,
-  },
-  progressBar: {
-    height: 8,
-    backgroundColor: COLORS.neutral.grey200,
-    borderRadius: 4,
+  riceProgressBg: {
+    height: 10,
+    backgroundColor: COLORS.neutral.grey100,
+    borderRadius: 5,
     overflow: 'hidden',
+    marginBottom: 10,
   },
-  progressFill: {
+  riceProgressFill: {
     height: '100%',
+    borderRadius: 5,
+    // @ts-ignore
+    backgroundImage: `linear-gradient(90deg, ${COLORS.primary.main} 0%, ${COLORS.primary.dark} 100%)`,
     backgroundColor: COLORS.primary.main,
-    borderRadius: 4,
   },
-  
-  // 메뉴 컨테이너
-  menuContainer: {
-    paddingHorizontal: 16,
-    gap: 16,
+  riceGradeText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.text.secondary,
   },
-  
-  // 메뉴 카드
-  menuCard: {
+
+  // 빠른 메뉴
+  quickMenuCard: {
     backgroundColor: COLORS.neutral.white,
+    marginHorizontal: 16,
+    marginTop: 12,
     borderRadius: 16,
-    ...SHADOWS.small,
+    padding: 16,
+    ...SHADOWS.medium,
   },
-  menuCardHeader: {
+  quickMenuGrid: {
     flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.neutral.grey200,
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
   },
-  menuCardIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+  quickMenuItem: {
+    width: '30%',
+    alignItems: 'center',
+    paddingVertical: 14,
+  },
+  quickMenuIconBox: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
     backgroundColor: COLORS.primary.light,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    marginBottom: 8,
   },
-  menuCardTitle: {
-    fontSize: 18,
+  quickMenuLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+    textAlign: 'center',
+  },
+
+  // 고객지원
+  supportCard: {
+    backgroundColor: COLORS.neutral.white,
+    marginHorizontal: 16,
+    marginTop: 12,
+    borderRadius: 16,
+    ...SHADOWS.small,
+    overflow: 'hidden',
+  },
+  supportHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+  },
+  supportTitle: {
+    fontSize: 16,
     fontWeight: '700',
     color: COLORS.text.primary,
   },
-  menuCardContent: {
-    paddingVertical: 8,
-  },
-  
-  // 메뉴 아이템
-  menuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.neutral.grey200,
-  },
-  lastMenuItem: {
-    borderBottomWidth: 0,
-  },
-  menuItemLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  menuItemIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  menuItemText: {
-    flex: 1,
-  },
-  menuItemTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: COLORS.text.primary,
-    marginBottom: 2,
-  },
-  menuItemSubtitle: {
-    fontSize: 13,
-    color: COLORS.text.secondary,
-  },
-  
-  // 뱃지 스타일
-  badgeSection: {
-    marginTop: 16,
-    paddingTop: 16,
+  supportList: {
     borderTopWidth: 1,
-    borderTopColor: COLORS.neutral.border,
+    borderTopColor: COLORS.neutral.grey100,
   },
-  badgeLabel: {
-    fontSize: 14,
-    fontWeight: '600',
+  supportItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.neutral.grey100,
+  },
+  supportItemText: {
+    fontSize: 15,
     color: COLORS.text.primary,
-    marginBottom: 12,
   },
-  badgeContainer: {
+
+  // 하단 액션
+  bottomActions: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 24,
+    gap: 24,
+    paddingHorizontal: 16,
+  },
+  logoutButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 6,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
   },
-  badge: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: COLORS.neutral.white,
-    borderRadius: 12,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    minWidth: 60,
-    ...SHADOWS.small,
-  },
-  badgeEmoji: {
-    fontSize: 18,
-    marginBottom: 4,
-  },
-  badgeTitle: {
-    fontSize: 11,
+  logoutText: {
+    fontSize: 14,
+    color: COLORS.text.secondary,
     fontWeight: '500',
-    color: COLORS.text.secondary,
-    textAlign: 'center',
   },
-  moreBadges: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: COLORS.neutral.light,
-    borderRadius: 12,
-    width: 40,
-    height: 40,
-    borderWidth: 1,
-    borderColor: COLORS.neutral.border,
-    borderStyle: 'dashed',
+  deleteButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 16,
   },
-  moreBadgesText: {
-    fontSize: 16,
-    color: COLORS.text.secondary,
-    fontWeight: '600',
-  },
-  
-  bottomSpacing: {
-    height: 40,
+  deleteText: {
+    fontSize: 14,
+    color: COLORS.functional.error,
+    fontWeight: '500',
   },
 });
 

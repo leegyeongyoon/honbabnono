@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { COLORS } from '../styles/colors';
+import { COLORS, CSS_SHADOWS, CARD_STYLE } from '../styles/colors';
 import MeetupCard from '../components/MeetupCard';
 import { useMeetupStore } from '../store/meetupStore';
 import { Icon } from '../components/Icon';
@@ -98,7 +98,6 @@ const AISearchResultScreen: React.FC<{ user: any; navigation: any }> = ({ user, 
     for (const [pattern, range] of Object.entries(pricePatterns)) {
       if (queryLower.replace(/\s+/g, '').includes(pattern)) {
         priceFilter = range;
-        console.log('💰 가격 필터 감지:', pattern, range);
         break;
       }
     }
@@ -115,12 +114,6 @@ const AISearchResultScreen: React.FC<{ user: any; navigation: any }> = ({ user, 
     if (priceFilter && queryWords.length === 0) {
       queryWords = []; // 가격만으로 검색 허용
     }
-
-    console.log('🔍 필터링 시작:', {
-      query: queryLower,
-      keywords: queryWords,
-      totalMeetups: meetups.length
-    });
 
     // 각 모임에 대해 관련성 점수 계산
     const scoredMeetups = meetups.map(meetup => {
@@ -326,18 +319,6 @@ const AISearchResultScreen: React.FC<{ user: any; navigation: any }> = ({ user, 
     const filtered = scoredMeetups
       .filter(m => m.relevanceScore > 0)
       .sort((a, b) => b.relevanceScore - a.relevanceScore);
-
-    console.log('🎯 필터링 결과:', {
-      total: meetups.length,
-      filtered: filtered.length,
-      excluded: scoredMeetups.filter(m => m.relevanceScore <= 0).length,
-      topResults: filtered.slice(0, 3).map(m => ({
-        title: m.title,
-        score: m.relevanceScore,
-        reasons: m.matchReasons,
-        debug: m.debugInfo
-      }))
-    });
 
     return filtered;
   };
@@ -612,9 +593,9 @@ const AISearchResultScreen: React.FC<{ user: any; navigation: any }> = ({ user, 
         }
 
         // 사용자 성향과 연결된 추천 이유
-        if (userIntent.userPersonality === 'solo' && meetup.max_participants <= 4) {
+        if (userIntent.userPersonality === 'solo' && (meetup.max_participants ?? 4) <= 4) {
           reasons.push(`소규모 모임이라 부담없이 참여하실 수 있어요`);
-        } else if (userIntent.userPersonality === 'social' && meetup.max_participants >= 6) {
+        } else if (userIntent.userPersonality === 'social' && (meetup.max_participants ?? 4) >= 6) {
           reasons.push(`많은 사람들과 교류할 수 있는 활발한 모임이에요`);
         }
 
@@ -633,8 +614,8 @@ const AISearchResultScreen: React.FC<{ user: any; navigation: any }> = ({ user, 
         }
 
         // 인기도 분석
-        if (meetup.current_participants > 0) {
-          const fillRate = (meetup.current_participants / meetup.max_participants) * 100;
+        if ((meetup.current_participants ?? 0) > 0 && (meetup.max_participants ?? 0) > 0) {
+          const fillRate = ((meetup.current_participants ?? 0) / (meetup.max_participants ?? 1)) * 100;
           if (fillRate >= 70) {
             reasons.push(`🔥 인기 모임! 벌써 ${Math.round(fillRate)}% 마감되었어요`);
           } else if (fillRate >= 50) {
@@ -761,11 +742,8 @@ const AISearchResultScreen: React.FC<{ user: any; navigation: any }> = ({ user, 
     setSearchResults([]);
 
     try {
-      console.log('🤖 백엔드 AI 검색 시작:', query);
-
       // 백엔드 AI 검색 API 호출
       const results = await aiSearchService.searchWithAI(query);
-      console.log('🎯 AI 검색 결과:', results);
 
       if (results.length > 0) {
         const result = results[0];
@@ -775,7 +753,6 @@ const AISearchResultScreen: React.FC<{ user: any; navigation: any }> = ({ user, 
         
         if (result.isNoMatch) {
           // 매칭되는 모임이 없는 경우
-          console.log('❌ 조건에 맞는 모임 없음:', result.noMatchReason);
           setSearchResults([]);
           
           let conversationalResponse = `🤔 "${query}"에 대해 분석해봤는데요...\n\n`;
@@ -796,7 +773,6 @@ const AISearchResultScreen: React.FC<{ user: any; navigation: any }> = ({ user, 
           setAiResponse(conversationalResponse);
         } else if (result.recommendedMeetups && result.recommendedMeetups.length > 0) {
           // 추천 모임이 있는 경우
-          console.log('✅ AI 추천 모임:', result.recommendedMeetups.length, '개');
           setSearchResults(result.recommendedMeetups);
           
           let conversationalResponse = `🤖 "${query}"를 분석해봤습니다!\n\n`;
@@ -875,7 +851,7 @@ const AISearchResultScreen: React.FC<{ user: any; navigation: any }> = ({ user, 
       }
 
     } catch (error) {
-      console.error('AI 검색 오류:', error);
+      // silently handle error
       setSearchResults([]);
       setAiResponse('검색 중 오류가 발생했습니다. 다시 시도해주세요.');
     } finally {
@@ -1052,15 +1028,8 @@ cleanJson = result.replace(/```json\n?/g, '').replace(/```\n?/g, '');
 // JSON 파싱
 const parsed = JSON.parse(cleanJson.trim());
 
-console.log('🎯 AI 응답:', {
-  hasMatch: parsed.hasMatch,
-  recommendationsCount: parsed.recommendations?.length || 0,
-  noMatchReason: parsed.noMatchReason
-});
-
 // hasMatch가 false면 추천을 무시하고 바로 "없음" 처리
 if (parsed.hasMatch === false) {
-  console.log('❌ AI가 매칭 실패 응답 - 모든 추천 무시');
   return [{
     isNoMatch: true,
     userContext: parsed.userContext,
@@ -1071,15 +1040,9 @@ if (parsed.hasMatch === false) {
 
 // AI 응답에서 추천 가져오기
 const recommendations = parsed.recommendations || [];
-console.log('🎯 AI 추천 결과:', {
-  hasMatch: parsed.hasMatch,
-  recommendationsCount: recommendations.length,
-  noMatchReason: parsed.noMatchReason
-});
 
 // 추천이 없으면 바로 "없음" 처리
 if (recommendations.length === 0) {
-  console.log('❌ 추천 결과가 비어있음');
   return [{
     isNoMatch: true,
     userContext: parsed.userContext,
@@ -1094,7 +1057,6 @@ let mappedRecommendations = recommendations
   .map((rec: any) => {
     const meetup = meetups[rec.index - 1];
     if (!meetup) {
-      console.warn(`⚠️ 모임 인덱스 ${rec.index} 찾을 수 없음`);
       return null;
     }
     return {
@@ -1117,7 +1079,6 @@ if (wantedCategory) {
 
   // 모두 제거된 경우 hasMatch=false 시나리오로 전환
   if (categoryValidated.length === 0) {
-    console.log('❌ wantedCategory와 일치하는 추천이 없음 - noMatch 처리');
     return [{
       isNoMatch: true,
       userContext: parsed.userContext,
@@ -1127,26 +1088,19 @@ if (wantedCategory) {
   }
 }
 
-// 카테고리 검증 완료
-console.log('🤖 카테고리 검증 완료:', categoryValidated.length, '건');
-
 // AI가 추천한 개수대로 반환 (3-5개)
 const finalRecommendations = categoryValidated.slice(0, Math.min(5, categoryValidated.length));
-console.log('✅ 최종 추천 모임:', finalRecommendations.length, '개');
 return finalRecommendations;
           } catch (parseError) {
-  console.error('AI 응답 파싱 오류:', parseError);
-  console.error('원본 응답:', result);
-  // 파싱 실패 시 기본 로직으로 폴백
+  // silently handle error - fallback to default logic
 }
         }
       }
     } catch (error) {
-  console.error('AI 분석 오류:', error);
+  // silently handle error
 }
 
 // 폴백: 기존 필터링 로직 사용
-console.log('⚠️ AI 분석 실패, 폴백 로직 사용');
 const filtered = smartFilterMeetups(meetups, query, aiAnalysis);
 
 // 폴백에서도 카테고리 검증 적용
@@ -1366,7 +1320,7 @@ const fallbackSearch = async (query: string) => {
     setAiResponse(naturalResponse);
     setSearchResults(filtered);
   } catch (error) {
-    console.error('폴백 검색 오류:', error);
+    // silently handle error
     setAiResponse('검색 중 오류가 발생했습니다.');
   }
 
@@ -1419,15 +1373,15 @@ const handleKeyPress = (e: React.KeyboardEvent) => {
 return (
   <div style={{
     flex: 1,
-    backgroundColor: '#f7f8fa',
+    backgroundColor: COLORS.neutral.background,
     minHeight: '100vh'
   }}>
-    {/* AI 검색 헤더 - 앱 색상으로 AI 브랜딩 강화 */}
+    {/* AI 검색 헤더 */}
     <div style={{
       background: `linear-gradient(135deg, ${COLORS.primary.main} 0%, ${COLORS.primary.dark} 100%)`,
       padding: '16px 20px',
       paddingTop: '52px',
-      borderBottom: '1px solid #e5e5ea',
+      borderBottom: '1px solid rgba(0,0,0,0.06)',
       color: 'white'
     }}>
       {/* 헤더 상단 - AI 검색 타이틀 */}
@@ -1600,15 +1554,15 @@ return (
     </div>
 
     <div style={{ padding: '20px', maxWidth: '800px', margin: '0 auto' }}>
-      {/* AI 분석 중 표시 - 미래지향적 디자인 */}
+      {/* AI 분석 중 표시 */}
       {isAnalyzing && (
         <div style={{
           background: `linear-gradient(135deg, ${COLORS.primary.light} 0%, ${COLORS.primary.accent} 100%)`,
-          borderRadius: '20px',
-          padding: '32px',
-          marginBottom: '24px',
-          boxShadow: `0 8px 32px ${COLORS.primary.main}20`,
-          border: `1px solid ${COLORS.primary.main}20`,
+          borderRadius: '16px',
+          padding: '28px',
+          marginBottom: '20px',
+          boxShadow: CSS_SHADOWS.medium,
+          border: '1px solid rgba(0,0,0,0.04)',
           position: 'relative',
           overflow: 'hidden'
         }}>
@@ -1702,15 +1656,15 @@ return (
         </div>
       )}
 
-      {/* AI 응답 - 고급스러운 ChatGPT 스타일 */}
+      {/* AI 응답 */}
       {(displayedResponse || isTyping) && !isAnalyzing && (
         <div style={{
           background: `linear-gradient(135deg, ${COLORS.primary.light} 0%, ${COLORS.neutral.white} 100%)`,
-          borderRadius: '20px',
-          padding: '28px',
-          marginBottom: '24px',
-          boxShadow: `0 8px 32px ${COLORS.primary.main}15`,
-          border: `1px solid ${COLORS.primary.main}15`,
+          borderRadius: '16px',
+          padding: '24px',
+          marginBottom: '20px',
+          boxShadow: CSS_SHADOWS.medium,
+          border: '1px solid rgba(0,0,0,0.04)',
           position: 'relative'
         }}>
           {/* AI 레이블 */}
@@ -1786,17 +1740,17 @@ return (
                   alignItems: 'center',
                   gap: '8px',
                   marginTop: '16px',
-                  padding: '8px 12px',
-                  backgroundColor: 'rgba(102, 126, 234, 0.05)',
+                  padding: '10px 14px',
+                  backgroundColor: 'rgba(139, 105, 20, 0.06)',
                   borderRadius: '12px',
                   fontSize: '12px',
                   color: COLORS.text.secondary
                 }}>
-                  <span>✨ AI 신뢰도</span>
-                  <div style={{ flex: 1, height: '3px', backgroundColor: 'rgba(102, 126, 234, 0.2)', borderRadius: '2px' }}>
-                    <div style={{ width: '92%', height: '100%', background: 'linear-gradient(45deg, #667eea, #764ba2)', borderRadius: '2px' }} />
+                  <span style={{ fontWeight: '600' }}>AI 신뢰도</span>
+                  <div style={{ flex: 1, height: '4px', backgroundColor: 'rgba(139, 105, 20, 0.15)', borderRadius: '2px' }}>
+                    <div style={{ width: '92%', height: '100%', background: `linear-gradient(45deg, ${COLORS.primary.main}, ${COLORS.functional.warning})`, borderRadius: '2px' }} />
                   </div>
-                  <span style={{ fontWeight: '600', color: '#667eea' }}>92%</span>
+                  <span style={{ fontWeight: '700', color: COLORS.primary.main }}>92%</span>
                 </div>
               )}
             </div>
@@ -1820,17 +1774,15 @@ return (
                 }}
                 style={{
                   padding: '10px 18px',
-                  borderRadius: '20px',
-                  border: '1px solid #e5e5ea',
+                  borderRadius: '12px',
+                  border: '1px solid rgba(0,0,0,0.06)',
                   backgroundColor: COLORS.neutral.white,
                   color: COLORS.text.primary,
                   fontSize: '14px',
+                  fontWeight: '500',
                   cursor: 'pointer',
                   transition: 'all 0.2s',
-                  ':hover': {
-                    backgroundColor: COLORS.primary.light,
-                    borderColor: COLORS.primary.main
-                  }
+                  boxShadow: CSS_SHADOWS.small,
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.backgroundColor = COLORS.primary.light;
@@ -1838,7 +1790,7 @@ return (
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.backgroundColor = COLORS.neutral.white;
-                  e.currentTarget.style.borderColor = '#e5e5ea';
+                  e.currentTarget.style.borderColor = 'rgba(0,0,0,0.06)';
                 }}
               >
                 {suggestion}
@@ -1853,7 +1805,7 @@ return (
         <div>
           <h3 style={{
             fontSize: '18px',
-            fontWeight: '600',
+            fontWeight: '700',
             marginBottom: '16px',
             color: COLORS.text.primary
           }}>
@@ -1866,10 +1818,10 @@ return (
                 {meetup.aiReasons && meetup.aiReasons.length > 0 && (
                   <div style={{
                     marginBottom: '8px',
-                    padding: '8px 12px',
-                    backgroundColor: 'rgba(201, 181, 156, 0.1)',
-                    borderRadius: '8px',
-                    border: '1px solid rgba(201, 181, 156, 0.2)',
+                    padding: '10px 14px',
+                    backgroundColor: COLORS.primary.accent,
+                    borderRadius: '12px',
+                    border: '1px solid rgba(139, 105, 20, 0.12)',
                   }}>
                     <div style={{
                       display: 'flex',
@@ -1954,35 +1906,40 @@ return (
         </div>
       )}
 
-      {/* 결과 없음 - 더 친근하게 */}
+      {/* 결과 없음 */}
       {!isAnalyzing && searchResults.length === 0 && aiResponse && !displayedResponse.includes('검색을 분석해봤어요') && (
         <div style={{
           textAlign: 'center',
-          marginTop: '60px',
-          padding: '40px'
+          marginTop: '48px',
+          padding: '32px',
+          backgroundColor: COLORS.neutral.white,
+          borderRadius: '16px',
+          border: '1px solid rgba(0,0,0,0.04)',
+          boxShadow: CSS_SHADOWS.small,
         }}>
           <div style={{
-            width: '80px',
-            height: '80px',
-            backgroundColor: '#f0f0f5',
+            width: '72px',
+            height: '72px',
+            backgroundColor: COLORS.primary.light,
             borderRadius: '50%',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             margin: '0 auto 20px'
           }}>
-            <Icon name="search" size={40} color={COLORS.neutral.grey400} />
+            <Icon name="search" size={32} color={COLORS.primary.main} />
           </div>
           <p style={{
             fontSize: '18px',
-            fontWeight: '600',
+            fontWeight: '700',
             color: COLORS.text.primary,
             marginBottom: '8px'
           }}>
-            앗, 조건에 맞는 모임이 없어요
+            조건에 맞는 모임이 없어요
           </p>
           <p style={{
-            fontSize: '14px',
+            fontSize: 15,
+            lineHeight: '22px',
             color: COLORS.text.secondary,
             marginBottom: '24px'
           }}>
@@ -1995,11 +1952,12 @@ return (
               backgroundColor: COLORS.primary.main,
               color: COLORS.neutral.white,
               border: 'none',
-              borderRadius: '24px',
+              borderRadius: '12px',
               fontSize: '15px',
               fontWeight: '600',
               cursor: 'pointer',
-              boxShadow: '0 4px 12px rgba(201, 181, 156, 0.3)'
+              boxShadow: `0 4px 12px rgba(139, 105, 20, 0.3)`,
+              transition: 'all 0.2s',
             }}
           >
             새 모임 만들기

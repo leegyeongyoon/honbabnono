@@ -5,6 +5,9 @@ import { COLORS, SHADOWS } from '../styles/colors';
 import { Icon } from '../components/Icon';
 import { Heart, ArrowLeft, Clock, Users, MapPin } from 'lucide-react';
 import apiClient from '../services/apiClient';
+import EmptyState from '../components/EmptyState';
+import ErrorState from '../components/ErrorState';
+import { MeetupCardSkeleton } from '../components/skeleton';
 
 interface WishlistItem {
   wishlist_id: string;
@@ -32,47 +35,42 @@ const WishlistScreen: React.FC = () => {
   const navigate = useNavigate();
   const [wishlist, setWishlist] = useState<WishlistItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+
+  const fetchWishlist = async () => {
+    try {
+      setLoading(true);
+      setError(false);
+      const response = await apiClient.get('/user/wishlists', {
+        params: { page: 1, limit: 50 }
+      });
+
+      if (response.data && response.data.success) {
+        setWishlist(response.data.data || []);
+      } else {
+        setWishlist([]);
+      }
+    } catch (err) {
+      setWishlist([]);
+      setError(true);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchWishlist = async () => {
-      try {
-        setLoading(true);
-        console.log('🤍 찜 목록 조회 시작');
-        const response = await apiClient.get('/user/wishlists', {
-          params: { page: 1, limit: 50 }
-        });
-        
-        if (response.data && response.data.success) {
-          setWishlist(response.data.data || []);
-          console.log('✅ 찜 목록 조회 성공:', response.data.data?.length, '건');
-        } else {
-          console.error('❌ 찜 목록 조회 실패:', response.data?.message || 'Unknown error');
-          setWishlist([]);
-        }
-      } catch (error) {
-        console.error('❌ 찜 목록 조회 실패:', error);
-        setWishlist([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchWishlist();
   }, []);
 
   const removeFromWishlist = async (meetupId: string) => {
     try {
-      console.log('🤍 찜 제거 시도:', meetupId);
       const response = await apiClient.delete(`/meetups/${meetupId}/wishlist`);
-      
+
       if (response.data && response.data.success) {
         setWishlist(prev => prev.filter(item => item.id !== meetupId));
-        console.log('✅ 찜 제거 성공');
-      } else {
-        console.error('❌ 찜 제거 실패:', response.data?.message);
       }
     } catch (error) {
-      console.error('위시리스트 제거 실패:', error);
+      // silently fail
     }
   };
 
@@ -85,9 +83,10 @@ const WishlistScreen: React.FC = () => {
   };
 
   const formatTime = (timeString: string) => {
+    if (!timeString) return '';
     const [hours, minutes] = timeString.split(':');
     const time = new Date();
-    time.setHours(parseInt(hours), parseInt(minutes));
+    time.setHours(parseInt(hours) || 0, parseInt(minutes) || 0);
     return time.toLocaleTimeString('ko-KR', {
       hour: '2-digit',
       minute: '2-digit',
@@ -111,13 +110,13 @@ const WishlistScreen: React.FC = () => {
 
   const getStatusColor = (item: WishlistItem) => {
     if (item.is_ended) {
-      return COLORS.text.disabled;
+      return COLORS.text.tertiary;
     }
     switch (item.status) {
       case '모집중': return COLORS.secondary.main;
       case '모집완료': return COLORS.primary.main;
-      case '진행중': return COLORS.accent?.green || '#4CAF50';
-      case '종료': return COLORS.text.disabled;
+      case '진행중': return COLORS.functional.success;
+      case '종료': return COLORS.text.tertiary;
       case '취소': return COLORS.text.error;
       default: return COLORS.text.secondary;
     }
@@ -135,17 +134,17 @@ const WishlistScreen: React.FC = () => {
       {/* 모임 이미지 */}
       <View style={styles.imageContainer}>
         {item.image ? (
-          <Image 
-            source={{ uri: item.image }} 
+          <Image
+            source={{ uri: item.image }}
             style={styles.meetupImage}
             resizeMode="cover"
           />
         ) : (
           <View style={styles.placeholderImage}>
-            <Text style={styles.placeholderText}>🍽️</Text>
+            <Icon name="utensils" size={32} color={COLORS.text.tertiary} />
           </View>
         )}
-        
+
         {/* 종료 오버레이 */}
         {item.is_ended && (
           <View style={styles.endedOverlay}>
@@ -170,9 +169,9 @@ const WishlistScreen: React.FC = () => {
               removeFromWishlist(item.id);
             }}
           >
-            <Heart 
-              size={18} 
-              color="#E74C3C" 
+            <Heart
+              size={18}
+              color="#E74C3C"
               fill="#E74C3C"
             />
           </TouchableOpacity>
@@ -187,7 +186,7 @@ const WishlistScreen: React.FC = () => {
 
         <View style={styles.cardMeta}>
           <View style={styles.metaRow}>
-            <Clock size={14} color={item.is_ended ? COLORS.text.disabled : COLORS.text.secondary} />
+            <Clock size={14} color={item.is_ended ? COLORS.text.tertiary : COLORS.text.secondary} />
             <Text style={[
               styles.metaText,
               item.is_ended && styles.endedText
@@ -197,7 +196,7 @@ const WishlistScreen: React.FC = () => {
           </View>
 
           <View style={styles.metaRow}>
-            <MapPin size={14} color={item.is_ended ? COLORS.text.disabled : COLORS.text.secondary} />
+            <MapPin size={14} color={item.is_ended ? COLORS.text.tertiary : COLORS.text.secondary} />
             <Text style={[
               styles.metaText,
               item.is_ended && styles.endedText
@@ -207,12 +206,12 @@ const WishlistScreen: React.FC = () => {
           </View>
 
           <View style={styles.metaRow}>
-            <Users size={14} color={item.is_ended ? COLORS.text.disabled : COLORS.text.secondary} />
+            <Users size={14} color={item.is_ended ? COLORS.text.tertiary : COLORS.text.secondary} />
             <Text style={[
               styles.metaText,
               item.is_ended && styles.endedText
             ]}>
-              {item.current_participants}/{item.max_participants}명
+              {item.current_participants ?? 0}/{item.max_participants ?? 4}명
             </Text>
           </View>
         </View>
@@ -229,7 +228,7 @@ const WishlistScreen: React.FC = () => {
               {getStatusText(item)}
             </Text>
           </View>
-          
+
           {item.deposit_amount > 0 && (
             <Text style={[
               styles.depositText,
@@ -245,8 +244,44 @@ const WishlistScreen: React.FC = () => {
 
   if (loading) {
     return (
-      <View style={[styles.container, styles.centerContent]}>
-        <Text style={styles.loadingText}>위시리스트를 불러오는 중...</Text>
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigate(-1)}
+          >
+            <ArrowLeft size={24} color={COLORS.text.primary} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>찜 목록</Text>
+          <View style={styles.placeholder} />
+        </View>
+        <View style={styles.skeletonWrap}>
+          {[0, 1, 2, 3].map((i) => (
+            <MeetupCardSkeleton key={i} />
+          ))}
+        </View>
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigate(-1)}
+          >
+            <ArrowLeft size={24} color={COLORS.text.primary} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>찜 목록</Text>
+          <View style={styles.placeholder} />
+        </View>
+        <ErrorState
+          title="위시리스트를 불러올 수 없습니다"
+          description="네트워크 상태를 확인하고 다시 시도해주세요"
+          onRetry={fetchWishlist}
+        />
       </View>
     );
   }
@@ -283,19 +318,14 @@ const WishlistScreen: React.FC = () => {
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {wishlist.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyIcon}>💝</Text>
-            <Text style={styles.emptyTitle}>아직 찜한 모임이 없어요</Text>
-            <Text style={styles.emptyDescription}>
-              마음에 드는 모임을 찜해보세요!{'\n'}언제든지 다시 확인할 수 있어요.
-            </Text>
-            <TouchableOpacity
-              style={styles.exploreButton}
-              onPress={() => navigate('/home')}
-            >
-              <Text style={styles.exploreButtonText}>모임 찾아보기</Text>
-            </TouchableOpacity>
-          </View>
+          <EmptyState
+            variant="no-data"
+            icon="heart"
+            title="아직 찜한 모임이 없어요"
+            description="마음에 드는 모임을 찜해보세요! 언제든지 다시 확인할 수 있어요."
+            actionLabel="모임 찾아보기"
+            onAction={() => navigate('/home')}
+          />
         ) : (
           <View style={styles.wishlistGrid}>
             <Text style={styles.sectionTitle}>저장한 모임 ({wishlist.length}개)</Text>
@@ -312,15 +342,11 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.neutral.background,
   },
-  centerContent: {
-    justifyContent: 'center',
-    alignItems: 'center',
+  skeletonWrap: {
+    padding: 20,
+    gap: 16,
   },
-  loadingText: {
-    fontSize: 16,
-    color: COLORS.text.secondary,
-  },
-  
+
   // 헤더
   header: {
     flexDirection: 'row',
@@ -330,7 +356,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     backgroundColor: COLORS.neutral.white,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.neutral.border,
+    borderBottomColor: COLORS.neutral.grey100,
   },
   backButton: {
     padding: 8,
@@ -343,7 +369,7 @@ const styles = StyleSheet.create({
   placeholder: {
     width: 40,
   },
-  
+
   // 통계
   statsContainer: {
     flexDirection: 'row',
@@ -371,26 +397,23 @@ const styles = StyleSheet.create({
     color: COLORS.text.secondary,
     textAlign: 'center',
   },
-  
+
   // 컨텐츠
   content: {
     flex: 1,
   },
-  
+
   // 빈 상태
   emptyState: {
     alignItems: 'center',
     paddingHorizontal: 40,
     paddingTop: 80,
   },
-  emptyIcon: {
-    fontSize: 64,
-    marginBottom: 24,
-  },
   emptyTitle: {
     fontSize: 18,
     fontWeight: '600',
     color: COLORS.text.primary,
+    marginTop: 24,
     marginBottom: 8,
   },
   emptyDescription: {
@@ -411,7 +434,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
-  
+
   // 찜 목록
   wishlistGrid: {
     paddingHorizontal: 20,
@@ -423,7 +446,7 @@ const styles = StyleSheet.create({
     color: COLORS.text.primary,
     marginBottom: 16,
   },
-  
+
   // 찜 카드
   wishlistCard: {
     backgroundColor: COLORS.neutral.white,
@@ -450,9 +473,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  placeholderText: {
-    fontSize: 32,
-  },
   endedOverlay: {
     position: 'absolute',
     top: 0,
@@ -468,7 +488,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
-  
+
   // 카드 컨텐츠
   cardContent: {
     padding: 16,
@@ -487,7 +507,7 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   endedTitle: {
-    color: COLORS.text.disabled,
+    color: COLORS.text.tertiary,
   },
   heartButton: {
     padding: 4,
@@ -497,7 +517,7 @@ const styles = StyleSheet.create({
     color: COLORS.text.secondary,
     marginBottom: 12,
   },
-  
+
   // 메타 정보
   cardMeta: {
     gap: 6,
@@ -512,7 +532,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: COLORS.text.secondary,
   },
-  
+
   // 카드 푸터
   cardFooter: {
     flexDirection: 'row',

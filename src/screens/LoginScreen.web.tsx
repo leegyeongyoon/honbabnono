@@ -1,17 +1,24 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
   StyleSheet,
-  Alert,
-  Image,
+  Platform,
 } from 'react-native';
-import {COLORS, SHADOWS} from '../styles/colors';
+import {COLORS, SHADOWS, CSS_SHADOWS} from '../styles/colors';
 import apiClient from '../services/apiClient';
+import { Icon } from '../components/Icon';
+import { FeatureFlags } from '../utils/featureFlags';
+import Toast from '../components/Toast';
+import { useToast } from '../hooks/useToast';
+import { FadeIn } from '../components/animated';
+import { useUserStore } from '../store/userStore';
 
 const LoginScreen = () => {
   const [loading, setLoading] = useState(false);
+  const { toast, showSuccess, showError, hideToast } = useToast();
+  const { login } = useUserStore();
 
   useEffect(() => {
     // URL에서 OAuth 결과 확인
@@ -22,20 +29,27 @@ const LoginScreen = () => {
     const userParam = urlParams.get('user');
 
     if (success === 'true' && token) {
-      // 카카오 로그인 성공
+      // 카카오 로그인 성공 — zustand store 통해 로그인 처리
       localStorage.setItem('token', token);
+      let userData: any = null;
       if (userParam) {
-        localStorage.setItem('user', decodeURIComponent(userParam));
+        try {
+          userData = JSON.parse(decodeURIComponent(userParam));
+          localStorage.setItem('user', JSON.stringify(userData));
+        } catch (_e) { /* ignore */ }
       }
-      Alert.alert('환영합니다! 🎉', '카카오 로그인이 완료되었습니다.');
-      window.location.href = '/';
+      if (userData) {
+        login(userData, token);
+      }
+      showSuccess('카카오 로그인이 완료되었습니다.');
+      window.location.href = '/home';
     } else if (error) {
       const errorMessages: { [key: string]: string } = {
         'kakao_auth_failed': '카카오 인증에 실패했습니다.',
         'no_auth_code': '인증 코드를 받지 못했습니다.',
         'kakao_login_failed': '카카오 로그인 처리에 실패했습니다.'
       };
-      Alert.alert('로그인 실패', errorMessages[error] || '알 수 없는 오류가 발생했습니다.');
+      showError(errorMessages[error] || '알 수 없는 오류가 발생했습니다.');
     }
   }, []);
 
@@ -60,13 +74,14 @@ const LoginScreen = () => {
         const data = await response.json();
         localStorage.setItem('token', data.token);
         localStorage.setItem('user', JSON.stringify(data.user));
-        Alert.alert('빠른 로그인 성공! 🚀', `${data.user.name}으로 로그인되었습니다.`);
-        window.location.href = '/';
+        login(data.user, data.token);
+        showSuccess(data.user.name + '으로 로그인되었습니다.');
+        window.location.href = '/home';
       } else {
-        Alert.alert('로그인 실패', '빠른 테스트 로그인에 실패했습니다.');
+        showError('빠른 테스트 로그인에 실패했습니다.');
       }
     } catch (error) {
-      Alert.alert('로그인 실패', '서버 연결에 실패했습니다.');
+      showError('서버 연결에 실패했습니다.');
     } finally {
       setLoading(false);
     }
@@ -76,18 +91,18 @@ const LoginScreen = () => {
     setLoading(true);
     try {
       const response = await apiClient.post('/auth/test-login', { email });
-      
+
       if (response.data) {
         localStorage.setItem('token', response.data.token);
         localStorage.setItem('user', JSON.stringify(response.data.user));
-        Alert.alert('테스트 로그인 성공! 🎉', `${name}으로 로그인되었습니다.`);
-        window.location.href = '/';
+        login(response.data.user, response.data.token);
+        showSuccess(name + '으로 로그인되었습니다.');
+        window.location.href = '/home';
       } else {
-        Alert.alert('로그인 실패', '테스트 로그인에 실패했습니다.');
+        showError('테스트 로그인에 실패했습니다.');
       }
     } catch (error) {
-      console.error('테스트 로그인 오류:', error);
-      Alert.alert('로그인 실패', '서버 연결에 실패했습니다.');
+      showError('서버 연결에 실패했습니다.');
     } finally {
       setLoading(false);
     }
@@ -97,108 +112,161 @@ const LoginScreen = () => {
     <View style={styles.container}>
       {/* 배경 그라데이션 */}
       <View style={styles.backgroundGradient} />
-      
+
       {/* 로고 섹션 */}
-      <View style={styles.logoSection}>
-        <View style={styles.logoContainer}>
-          <Text style={styles.logoEmoji}>🍽️</Text>
-          <Text style={styles.appName}>혼밥시러</Text>
+      <FadeIn delay={0}>
+        <View style={styles.logoSection}>
+          <View style={styles.logoContainer}>
+            <Icon name="utensils" size={48} color={COLORS.primary.main} />
+            <Text style={styles.appName}>혼밥시러</Text>
+          </View>
+          <Text style={styles.tagline}>혼자 먹는 밥은 이제 그만!</Text>
+          <Text style={styles.description}>
+            따뜻한 사람들과 함께하는 맛있는 식사를 시작해보세요
+          </Text>
         </View>
-        <Text style={styles.tagline}>혼자 먹는 밥은 이제 그만!</Text>
-        <Text style={styles.description}>
-          따뜻한 사람들과 함께하는 맛있는 식사를 시작해보세요
-        </Text>
-      </View>
+      </FadeIn>
 
       {/* 메인 컨테이너 */}
-      <View style={styles.mainContainer}>
-        <View style={styles.loginCard}>
-          <View style={styles.cardHeader}>
-            <Text style={styles.welcomeText}>환영합니다! 👋</Text>
-            <Text style={styles.loginSubtitle}>카카오 계정으로 간편하게 시작하세요</Text>
-          </View>
+      <FadeIn delay={100}>
+        <View style={styles.mainContainer}>
+          <View style={styles.loginCard}>
+            <View style={styles.cardHeader}>
+              <Text style={styles.welcomeText}>환영합니다!</Text>
+              <Text style={styles.loginSubtitle}>카카오 계정으로 간편하게 시작하세요</Text>
+            </View>
 
           {/* 카카오 로그인 버튼 */}
-          <TouchableOpacity
-            style={[styles.kakaoButton, loading && styles.disabledButton]}
-            onPress={handleKakaoLogin}
-            disabled={loading}
-          >
-            <View style={styles.kakaoButtonContent}>
-              <View style={styles.kakaoLogo}>
-                <Text style={styles.kakaoLogoText}>카</Text>
+          {Platform.OS === 'web' ? (
+            <div
+              onClick={loading ? undefined : handleKakaoLogin}
+              style={{
+                background: 'linear-gradient(135deg, #FEE500 0%, #FFD700 100%)',
+                borderRadius: 12,
+                paddingTop: 16,
+                paddingBottom: 16,
+                paddingLeft: 20,
+                paddingRight: 20,
+                marginBottom: 16,
+                cursor: loading ? 'default' : 'pointer',
+                opacity: loading ? 0.6 : 1,
+                boxShadow: '0 4px 16px rgba(254, 229, 0, 0.3)',
+                transition: 'transform 150ms ease, box-shadow 150ms ease',
+              }}
+              onMouseEnter={(e) => {
+                if (!loading) {
+                  e.currentTarget.style.transform = 'scale(1.02)';
+                  e.currentTarget.style.boxShadow = '0 8px 24px rgba(254, 229, 0, 0.45)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'scale(1)';
+                e.currentTarget.style.boxShadow = '0 4px 16px rgba(254, 229, 0, 0.3)';
+              }}
+            >
+              <View style={styles.kakaoButtonContent}>
+                <View style={styles.kakaoLogo}>
+                  <Text style={styles.kakaoLogoText}>카</Text>
+                </View>
+                <Text style={styles.kakaoButtonText}>
+                  {loading ? '로그인 중...' : '카카오로 시작하기'}
+                </Text>
               </View>
-              <Text style={styles.kakaoButtonText}>
-                {loading ? '로그인 중...' : '카카오로 시작하기'}
-              </Text>
-            </View>
-          </TouchableOpacity>
+            </div>
+          ) : (
+            <TouchableOpacity
+              style={[styles.kakaoButton, loading && styles.disabledButton]}
+              onPress={handleKakaoLogin}
+              disabled={loading}
+            >
+              <View style={styles.kakaoButtonContent}>
+                <View style={styles.kakaoLogo}>
+                  <Text style={styles.kakaoLogoText}>카</Text>
+                </View>
+                <Text style={styles.kakaoButtonText}>
+                  {loading ? '로그인 중...' : '카카오로 시작하기'}
+                </Text>
+              </View>
+            </TouchableOpacity>
+          )}
 
-          {/* 구분선 */}
-          <View style={styles.dividerContainer}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>또는</Text>
-            <View style={styles.dividerLine} />
-          </View>
+          {FeatureFlags.SHOW_TEST_LOGIN && (
+            <>
+              {/* 구분선 */}
+              <View style={styles.dividerContainer}>
+                <View style={styles.dividerLine} />
+                <Text style={styles.dividerText}>또는</Text>
+                <View style={styles.dividerLine} />
+              </View>
 
-          {/* 테스트 로그인 버튼들 */}
-          <View style={styles.testLoginSection}>
-            <Text style={styles.testLoginTitle}>빠른 테스트 로그인</Text>
-            <View style={styles.testButtonsContainer}>
-              <TouchableOpacity
-                style={[styles.testButton, loading && styles.disabledButton]}
-                onPress={handleQuickLogin}
-                disabled={loading}
-              >
-                <Text style={styles.testButtonText}>🚀 빠른 로그인</Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity
-                style={[styles.testButton, loading && styles.disabledButton]}
-                onPress={() => handleTestLogin('test2@test.com', '테스트유저2')}
-                disabled={loading}
-              >
-                <Text style={styles.testButtonText}>👤 테스트유저2</Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity
-                style={[styles.testButton, loading && styles.disabledButton]}
-                onPress={() => handleTestLogin('test3@test.com', '테스트유저3')}
-                disabled={loading}
-              >
-                <Text style={styles.testButtonText}>👤 테스트유저3</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
+              {/* 테스트 로그인 버튼들 */}
+              <View style={styles.testLoginSection}>
+                <Text style={styles.testLoginTitle}>빠른 테스트 로그인</Text>
+                <View style={styles.testButtonsContainer}>
+                  <TouchableOpacity
+                    style={[styles.testButton, loading && styles.disabledButton]}
+                    onPress={handleQuickLogin}
+                    disabled={loading}
+                  >
+                    <Text style={styles.testButtonText}>빠른 로그인</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[styles.testButton, loading && styles.disabledButton]}
+                    onPress={() => handleTestLogin('test2@test.com', '테스트유저2')}
+                    disabled={loading}
+                  >
+                    <Text style={styles.testButtonText}>테스트유저2</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[styles.testButton, loading && styles.disabledButton]}
+                    onPress={() => handleTestLogin('test3@test.com', '테스트유저3')}
+                    disabled={loading}
+                  >
+                    <Text style={styles.testButtonText}>테스트유저3</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </>
+          )}
 
           {/* 기능 소개 */}
-          <View style={styles.featuresSection}>
-            <Text style={styles.featuresTitle}>혼밥시러에서 할 수 있는 일</Text>
-            <View style={styles.featuresList}>
-              <View style={styles.featureItem}>
-                <Text style={styles.featureIcon}>🔍</Text>
-                <Text style={styles.featureText}>내 주변 맛집 모임 찾기</Text>
-              </View>
-              <View style={styles.featureItem}>
-                <Text style={styles.featureIcon}>👥</Text>
-                <Text style={styles.featureText}>새로운 사람들과 만남</Text>
-              </View>
-              <View style={styles.featureItem}>
-                <Text style={styles.featureIcon}>✨</Text>
-                <Text style={styles.featureText}>취향 맞는 모임 추천</Text>
+          <FadeIn delay={200}>
+            <View style={styles.featuresSection}>
+              <Text style={styles.featuresTitle}>혼밥시러에서 할 수 있는 일</Text>
+              <View style={styles.featuresList}>
+                <View style={styles.featureItem}>
+                  <View style={styles.featureIcon}>
+                    <Icon name="search" size={20} color={COLORS.primary.main} />
+                  </View>
+                  <Text style={styles.featureText}>내 주변 맛집 모임 찾기</Text>
+                </View>
+                <View style={styles.featureItem}>
+                  <View style={styles.featureIcon}>
+                    <Icon name="users" size={20} color={COLORS.primary.main} />
+                  </View>
+                  <Text style={styles.featureText}>새로운 사람들과 만남</Text>
+                </View>
+                <View style={styles.featureItem}>
+                  <View style={styles.featureIcon}>
+                    <Icon name="star" size={20} color={COLORS.primary.main} />
+                  </View>
+                  <Text style={styles.featureText}>취향 맞는 모임 추천</Text>
+                </View>
               </View>
             </View>
-          </View>
+          </FadeIn>
 
           {/* 개인정보 정책 */}
           <View style={styles.policyContainer}>
             <Text style={styles.policyText}>
               로그인 시{' '}
-              <TouchableOpacity onPress={() => Alert.alert('이용약관', '이용약관 내용을 확인하세요.')}>
+              <TouchableOpacity>
                 <Text style={styles.policyLink}>이용약관</Text>
               </TouchableOpacity>
               {' '}및{' '}
-              <TouchableOpacity onPress={() => Alert.alert('개인정보처리방침', '개인정보처리방침을 확인하세요.')}>
+              <TouchableOpacity>
                 <Text style={styles.policyLink}>개인정보처리방침</Text>
               </TouchableOpacity>
               에 동의하게 됩니다.
@@ -206,11 +274,14 @@ const LoginScreen = () => {
           </View>
         </View>
       </View>
+      </FadeIn>
 
       {/* 푸터 */}
       <View style={styles.footer}>
-        <Text style={styles.footerText}>© 2024 혼밥시러. Made with ❤️</Text>
+        <Text style={styles.footerText}>© 2024 혼밥시러. Made with love</Text>
       </View>
+
+      <Toast message={toast.message} type={toast.type} visible={toast.visible} onHide={hideToast} />
     </View>
   );
 };
@@ -228,8 +299,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: '100%',
-    backgroundColor: COLORS.primary.main,
-    opacity: 0.9,
+    background: `linear-gradient(135deg, ${COLORS.neutral.background} 0%, ${COLORS.primary.light} 50%, ${COLORS.primary.light} 100%)`,
   },
   logoSection: {
     alignItems: 'center',
@@ -242,65 +312,59 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   logoEmoji: {
-    fontSize: 80,
+    fontSize: 48,
     marginBottom: 20,
     textShadowColor: 'rgba(0,0,0,0.1)',
     textShadowOffset: { width: 0, height: 4 },
     textShadowRadius: 8,
   },
   appName: {
-    fontSize: 48,
+    fontSize: 44,
     fontWeight: '800',
-    color: COLORS.text.white,
-    textShadowColor: 'rgba(0,0,0,0.2)',
-    textShadowOffset: { width: 0, height: 4 },
-    textShadowRadius: 12,
+    color: COLORS.neutral.grey600,
     letterSpacing: -1,
+    borderBottomWidth: 3,
+    borderBottomColor: 'rgba(139, 105, 20, 0.3)',
+    paddingBottom: 4,
   },
   tagline: {
-    fontSize: 22,
-    color: COLORS.text.white,
-    fontWeight: '600',
+    fontSize: 15,
+    color: COLORS.text.secondary,
+    fontWeight: '500',
     marginBottom: 8,
     textAlign: 'center',
   },
   description: {
     fontSize: 16,
-    color: 'rgba(255,255,255,0.9)',
+    color: COLORS.text.secondary,
     textAlign: 'center',
     maxWidth: 300,
     lineHeight: 24,
   },
   mainContainer: {
     flex: 1,
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     justifyContent: 'center',
     zIndex: 1,
     marginTop: -20,
   },
   loginCard: {
-    maxWidth: 460,
+    maxWidth: 420,
     alignSelf: 'center',
     width: '100%',
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    backdropFilter: 'blur(20px)',
-    WebkitBackdropFilter: 'blur(20px)',
-    borderRadius: 32,
-    padding: 40,
-    border: '1px solid rgba(255, 255, 255, 0.2)',
-    ...SHADOWS.large,
-    shadowColor: 'rgba(0,0,0,0.1)',
-    shadowOffset: { width: 0, height: 20 },
-    shadowOpacity: 1,
-    shadowRadius: 40,
-    elevation: 20,
+    backgroundColor: COLORS.neutral.white,
+    borderRadius: 16,
+    padding: 16,
+    border: `1px solid ${COLORS.neutral.grey100}`,
+    boxSizing: 'border-box',
+    ...SHADOWS.medium,
   },
   cardHeader: {
     alignItems: 'center',
     marginBottom: 32,
   },
   welcomeText: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: '800',
     color: COLORS.text.primary,
     marginBottom: 12,
@@ -314,16 +378,12 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   kakaoButton: {
-    backgroundColor: COLORS.functional.warning,
-    borderRadius: 20,
-    padding: 20,
-    marginBottom: 32,
+    backgroundColor: COLORS.special.kakao,
+    borderRadius: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    marginBottom: 16,
     ...SHADOWS.medium,
-    shadowColor: 'rgba(254, 229, 0, 0.3)',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 1,
-    shadowRadius: 16,
-    elevation: 12,
     transform: [{ scale: 1 }],
   },
   kakaoButtonContent: {
@@ -347,8 +407,8 @@ const styles = StyleSheet.create({
   },
   kakaoButtonText: {
     color: COLORS.neutral.black,
-    fontSize: 19,
-    fontWeight: '800',
+    fontSize: 16,
+    fontWeight: '600',
     letterSpacing: -0.5,
   },
   disabledButton: {
@@ -362,7 +422,7 @@ const styles = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: COLORS.neutral.border,
+    backgroundColor: COLORS.neutral.grey100,
   },
   dividerText: {
     marginHorizontal: 16,
@@ -384,27 +444,24 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   testButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.8)',
-    borderWidth: 0,
-    borderRadius: 16,
+    backgroundColor: COLORS.neutral.white,
+    borderWidth: 1,
+    borderColor: COLORS.secondary.main,
+    borderRadius: 12,
     padding: 16,
     alignItems: 'center',
     ...SHADOWS.small,
-    shadowColor: 'rgba(0,0,0,0.05)',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 1,
-    shadowRadius: 8,
   },
   testButtonText: {
     color: COLORS.text.primary,
-    fontSize: 15,
-    fontWeight: '600',
+    fontSize: 16,
+    fontWeight: '500',
   },
   featuresSection: {
     marginBottom: 28,
   },
   featuresTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '700',
     color: COLORS.text.primary,
     marginBottom: 20,
@@ -417,13 +474,22 @@ const styles = StyleSheet.create({
   featureItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 8,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    backgroundColor: COLORS.primary.accent,
+    borderRadius: 12,
   },
   featureIcon: {
-    fontSize: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: COLORS.primary.light,
     marginRight: 12,
-    width: 32,
-    textAlign: 'center',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(139, 105, 20, 0.15)',
+    ...SHADOWS.small,
   },
   featureText: {
     fontSize: 15,
@@ -431,13 +497,16 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   policyContainer: {
-    paddingHorizontal: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    backgroundColor: 'rgba(240, 230, 221, 0.3)',
+    borderRadius: 12,
   },
   policyText: {
-    fontSize: 12,
+    fontSize: 13,
     color: COLORS.text.secondary,
     textAlign: 'center',
-    lineHeight: 18,
+    lineHeight: 20,
   },
   policyLink: {
     color: COLORS.primary.main,

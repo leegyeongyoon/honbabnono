@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch } from 'react-native';
 import { useNavigate } from 'react-router-dom';
-import { COLORS, SHADOWS } from '../styles/colors';
+import { COLORS, SHADOWS, CARD_STYLE } from '../styles/colors';
 import { Icon } from '../components/Icon';
 import apiClient from '../services/apiClient';
 
@@ -24,8 +24,6 @@ const NotificationSettingsScreen: React.FC = () => {
       try {
         setLoading(true);
         const response = await apiClient.get('/user/notification-settings');
-        console.log('알림 설정 API 응답:', response.data);
-        
         // API 응답 구조: { success: true, data: settings }
         if (response.data && response.data.success && response.data.data) {
           const apiSettings = response.data.data;
@@ -39,7 +37,6 @@ const NotificationSettingsScreen: React.FC = () => {
             weeklyDigest: true, // 백엔드에 없는 설정은 기본값 사용
           });
         } else {
-          console.warn('알림 설정 API에서 예상되지 않은 응답 구조를 받았습니다:', response.data);
           // 기본값 설정
           setSettings({
             pushNotifications: true,
@@ -51,8 +48,6 @@ const NotificationSettingsScreen: React.FC = () => {
           });
         }
       } catch (error) {
-        console.error('알림 설정 조회 실패:', error);
-        console.log('기본 알림 설정을 사용합니다.');
         // 오류 발생시에도 기본값 설정
         setSettings({
           pushNotifications: true,
@@ -92,12 +87,8 @@ const NotificationSettingsScreen: React.FC = () => {
         await apiClient.put('/user/notification-settings', {
           [backendKey]: value
         });
-        console.log('알림 설정이 업데이트되었습니다:', key, '=', value);
-      } else {
-        console.log('백엔드에서 지원하지 않는 설정:', key);
       }
     } catch (error) {
-      console.error('알림 설정 업데이트 실패:', error);
       // 실패시 원래 값으로 되돌리기
       setSettings(settings);
     }
@@ -209,13 +200,13 @@ const NotificationSettingsScreen: React.FC = () => {
               'marketingEmails',
               '마케팅 이메일',
               '이벤트, 할인 정보 등을 받습니다',
-              'target'
+              'megaphone'
             )}
             {renderSettingItem(
               'weeklyDigest',
               '주간 리포트',
               '주간 활동 요약을 받습니다',
-              'bar-chart'
+              'list'
             )}
           </View>
         </View>
@@ -256,6 +247,8 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     paddingBottom: 16,
     backgroundColor: COLORS.neutral.white,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.06)',
     ...SHADOWS.small,
   },
   backButton: {
@@ -286,16 +279,16 @@ const styles = StyleSheet.create({
   settingsContainer: {
     backgroundColor: COLORS.neutral.white,
     marginHorizontal: 16,
-    borderRadius: 16,
+    ...CARD_STYLE,
     ...SHADOWS.small,
   },
   settingItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 16,
+    padding: 16,
     paddingHorizontal: 20,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.neutral.grey200,
+    borderBottomColor: 'rgba(0,0,0,0.06)',
   },
   settingIconContainer: {
     width: 40,
@@ -325,7 +318,9 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary.light,
     marginHorizontal: 16,
     padding: 16,
-    borderRadius: 12,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(139, 105, 20, 0.12)',
   },
   infoText: {
     flex: 1,

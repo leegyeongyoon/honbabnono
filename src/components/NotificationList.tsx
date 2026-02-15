@@ -10,6 +10,8 @@ import {
 } from 'react-native';
 import { Icon } from './Icon';
 import { ProfileImage } from './ProfileImage';
+import { COLORS } from '../styles/colors';
+import { SPACING, BORDER_RADIUS } from '../styles/spacing';
 import { Notification } from '../types/notification';
 import notificationApiService from '../services/notificationApiService';
 
@@ -55,7 +57,7 @@ const NotificationList: React.FC<NotificationListProps> = ({
       setHasMore(pageNum < response.pagination.totalPages);
       setPage(pageNum);
     } catch (error) {
-      console.error('알림 목록 조회 실패:', error);
+      // silently handle notification fetch failure
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -85,32 +87,32 @@ const NotificationList: React.FC<NotificationListProps> = ({
       
       onNotificationPress?.(notification);
     } catch (error) {
-      console.error('알림 읽음 처리 실패:', error);
+      // silently handle mark-as-read failure
     }
   };
 
   const getNotificationIcon = (type: string): string => {
     switch (type) {
       case 'chat_message':
-        return 'chat';
+        return 'message-circle';
       case 'meetup_join_request':
       case 'meetup_join_approved':
       case 'meetup_join_rejected':
-        return 'people';
+        return 'users';
       case 'meetup_reminder':
       case 'meetup_start':
-        return 'schedule';
+        return 'clock';
       case 'attendance_check':
         return 'check-circle';
       case 'payment_success':
       case 'payment_failed':
         return 'credit-card';
       case 'system_announcement':
-        return 'campaign';
+        return 'megaphone';
       case 'direct_chat_request':
-        return 'person-add';
+        return 'user';
       default:
-        return 'notifications';
+        return 'bell';
     }
   };
 
@@ -118,23 +120,23 @@ const NotificationList: React.FC<NotificationListProps> = ({
     switch (type) {
       case 'chat_message':
       case 'direct_chat_request':
-        return '#4CAF50';
+        return COLORS.functional.success;
       case 'meetup_join_request':
       case 'meetup_join_approved':
-        return '#2196F3';
+        return COLORS.functional.info;
       case 'meetup_join_rejected':
-        return '#FF9800';
+        return COLORS.primary.main;
       case 'meetup_reminder':
       case 'attendance_check':
-        return '#9C27B0';
+        return COLORS.text.secondary;
       case 'payment_success':
-        return '#4CAF50';
+        return COLORS.functional.success;
       case 'payment_failed':
-        return '#F44336';
+        return COLORS.functional.error;
       case 'system_announcement':
-        return '#FF6B6B';
+        return COLORS.primary.main;
       default:
-        return '#757575';
+        return COLORS.text.tertiary;
     }
   };
 
@@ -170,9 +172,9 @@ const NotificationList: React.FC<NotificationListProps> = ({
       <View style={styles.iconContainer}>
         {item.relatedUser?.profileImage ? (
           <ProfileImage
-            uri={item.relatedUser.profileImage}
+            profileImage={item.relatedUser.profileImage}
+            name={item.relatedUser?.name || ''}
             size={40}
-            defaultImage="profile"
           />
         ) : (
           <View style={[
@@ -206,9 +208,12 @@ const NotificationList: React.FC<NotificationListProps> = ({
         </Text>
         
         {item.meetup && (
-          <Text style={styles.meetupInfo} numberOfLines={1}>
-            📍 {item.meetup.title} • {item.meetup.location}
-          </Text>
+          <View style={{flexDirection: 'row', alignItems: 'center', gap: 4}}>
+            <Icon name="map-pin" size={12} color={COLORS.text.tertiary} />
+            <Text style={styles.meetupInfo} numberOfLines={1}>
+              {item.meetup.title} • {item.meetup.location}
+            </Text>
+          </View>
         )}
       </View>
       
@@ -221,14 +226,14 @@ const NotificationList: React.FC<NotificationListProps> = ({
     
     return (
       <View style={styles.footer}>
-        <ActivityIndicator size="small" color="#FF6B6B" />
+        <ActivityIndicator size="small" color={COLORS.primary.main} />
       </View>
     );
   };
 
   const renderEmptyState = () => (
     <View style={styles.emptyState}>
-      <Icon name="notifications-none" size={64} color="#E0E0E0" />
+      <Icon name="notifications-none" size={64} color={COLORS.neutral.grey200} />
       <Text style={styles.emptyTitle}>
         {showUnreadOnly ? '새로운 알림이 없습니다' : '알림이 없습니다'}
       </Text>
@@ -255,7 +260,7 @@ const NotificationList: React.FC<NotificationListProps> = ({
           <RefreshControl 
             refreshing={refreshing} 
             onRefresh={handleRefresh}
-            colors={['#FF6B6B']}
+            colors={[COLORS.primary.main]}
           />
         }
         onEndReached={handleLoadMore}
@@ -271,20 +276,21 @@ const NotificationList: React.FC<NotificationListProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: COLORS.neutral.white,
   },
   notificationItem: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     padding: 16,
-    backgroundColor: 'white',
+    minHeight: 72,
+    backgroundColor: COLORS.neutral.white,
     borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
+    borderBottomColor: 'rgba(0,0,0,0.06)',
   },
   unreadItem: {
-    backgroundColor: '#F8F9FF',
+    backgroundColor: COLORS.primary.light,
     borderLeftWidth: 4,
-    borderLeftColor: '#FF6B6B',
+    borderLeftColor: COLORS.primary.main,
   },
   iconContainer: {
     marginRight: 12,
@@ -307,9 +313,9 @@ const styles = StyleSheet.create({
   },
   title: {
     flex: 1,
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
-    color: '#333',
+    color: COLORS.text.primary,
     marginRight: 8,
   },
   unreadTitle: {
@@ -317,24 +323,25 @@ const styles = StyleSheet.create({
   },
   timestamp: {
     fontSize: 12,
-    color: '#999',
+    color: COLORS.text.tertiary,
+    fontWeight: '400',
   },
   message: {
-    fontSize: 14,
-    color: '#666',
+    fontSize: 13,
+    color: COLORS.text.secondary,
     lineHeight: 20,
     marginBottom: 4,
   },
   meetupInfo: {
     fontSize: 12,
-    color: '#999',
+    color: COLORS.text.tertiary,
     fontStyle: 'italic',
   },
   unreadDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#FF6B6B',
+    backgroundColor: COLORS.primary.main,
     marginLeft: 8,
     marginTop: 6,
   },
@@ -352,13 +359,13 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#333',
+    color: COLORS.text.primary,
     marginTop: 16,
     marginBottom: 8,
   },
   emptyDescription: {
     fontSize: 14,
-    color: '#666',
+    color: COLORS.text.secondary,
     textAlign: 'center',
     lineHeight: 20,
   },

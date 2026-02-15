@@ -7,12 +7,17 @@ import {
   TouchableOpacity,
   Image,
   Switch,
-  Alert,
   TextInput,
   Modal,
 } from 'react-native';
 import { COLORS, SHADOWS, LAYOUT } from '../styles/colors';
 import BabAlIndex from '../components/BabAlIndex';
+import { Icon } from '../components/Icon';
+import type { IconName } from '../components/SimpleIcon';
+import { useToast } from '../hooks/useToast';
+import Toast from '../components/Toast';
+import { useConfirmDialog } from '../hooks/useConfirmDialog';
+import ConfirmDialog from '../components/ConfirmDialog';
 
 interface ProfileScreenProps {
   navigation?: any;
@@ -25,6 +30,8 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation, user, onLogou
   const [locationEnabled, setLocationEnabled] = useState(true);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editedName, setEditedName] = useState(user?.name || '');
+  const { toast, showSuccess, showError, showInfo, hideToast } = useToast();
+  const { dialog, confirm, confirmDanger, hideDialog } = useConfirmDialog();
 
   const userProfile = {
     name: user?.name || '사용자',
@@ -40,12 +47,12 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation, user, onLogou
   };
 
   const menuItems = [
-    { id: 1, title: '내 모임 관리', icon: '📅', subtitle: '참여/주최한 모임 확인', onPress: () => navigation?.navigate('MyMeetups') },
-    { id: 2, title: '리뷰 보기', icon: '⭐', subtitle: '내가 쓴 후기 및 받은 평가', onPress: () => navigation?.navigate('MyReviews') },
-    { id: 3, title: '내 뱃지', icon: '🏅', subtitle: '획득한 뱃지 및 업적', onPress: () => navigation?.navigate('MyBadges') },
-    { id: 4, title: '포인트 내역', icon: '📊', subtitle: '포인트 충전 및 사용 기록', onPress: () => navigation?.navigate('PointHistory') },
-    { id: 5, title: '설정', icon: '⚙️', subtitle: '앱 설정 및 알림 관리', onPress: () => navigation?.navigate('Settings') },
-    { id: 6, title: '차단 관리', icon: '🚫', subtitle: '차단한 사용자 관리', onPress: () => navigation?.navigate('BlockedUsers') },
+    { id: 1, title: '내 모임 관리', icon: 'calendar' as IconName, subtitle: '참여/주최한 모임 확인', onPress: () => navigation?.navigate('MyMeetups') },
+    { id: 2, title: '리뷰 보기', icon: 'star' as IconName, subtitle: '내가 쓴 후기 및 받은 평가', onPress: () => navigation?.navigate('MyReviews') },
+    { id: 3, title: '내 뱃지', icon: 'award' as IconName, subtitle: '획득한 뱃지 및 업적', onPress: () => navigation?.navigate('MyBadges') },
+    { id: 4, title: '포인트 내역', icon: 'dollar-sign' as IconName, subtitle: '포인트 충전 및 사용 기록', onPress: () => navigation?.navigate('PointHistory') },
+    { id: 5, title: '설정', icon: 'settings' as IconName, subtitle: '앱 설정 및 알림 관리', onPress: () => navigation?.navigate('Settings') },
+    { id: 6, title: '차단 관리', icon: 'x-circle' as IconName, subtitle: '차단한 사용자 관리', onPress: () => navigation?.navigate('BlockedUsers') },
   ];
 
   const handleEditProfile = () => {
@@ -55,36 +62,26 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation, user, onLogou
 
   const handleSaveProfile = () => {
     // TODO: 실제 API 호출로 이름 업데이트
-    Alert.alert('성공', '프로필이 업데이트되었습니다.');
+    showSuccess('프로필이 업데이트되었습니다.');
     setShowEditModal(false);
   };
 
-  const handleVerification = () => {
-    Alert.alert(
-      '본인인증',
-      '추가 본인인증을 진행하시겠습니까?\n- 신분증 인증\n- 전화번호 인증\n- 이메일 인증',
-      [
-        { text: '취소', style: 'cancel' },
-        { text: '인증하기', onPress: () => Alert.alert('준비중', '본인인증 기능은 준비중입니다.') }
-      ]
-    );
+  const handleVerification = async () => {
+    const confirmed = await confirm('본인인증', '추가 본인인증을 진행하시겠습니까?\n- 신분증 인증\n- 전화번호 인증\n- 이메일 인증');
+    if (confirmed) {
+      showInfo('본인인증 기능은 준비중입니다.');
+    }
   };
 
-  const handleLogout = () => {
-    Alert.alert(
-      '로그아웃',
-      '정말로 로그아웃하시겠습니까?',
-      [
-        { text: '취소', style: 'cancel' },
-        { text: '로그아웃', style: 'destructive', onPress: () => {
-          if (onLogout) {
-            onLogout();
-          } else {
-            Alert.alert('완료', '로그아웃되었습니다.');
-          }
-        }}
-      ]
-    );
+  const handleLogout = async () => {
+    const confirmed = await confirmDanger('로그아웃', '정말로 로그아웃하시겠습니까?');
+    if (confirmed) {
+      if (onLogout) {
+        onLogout();
+      } else {
+        showSuccess('로그아웃되었습니다.');
+      }
+    }
   };
 
   return (
@@ -94,7 +91,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation, user, onLogou
         <View style={styles.headerContent}>
           <Text style={styles.headerTitle}>마이페이지</Text>
           <TouchableOpacity style={styles.settingsButton} onPress={() => navigation?.navigate('Settings')}>
-            <Text style={styles.settingsIcon}>⚙️</Text>
+            <Icon name="settings" size={20} color={COLORS.text.primary} />
           </TouchableOpacity>
         </View>
       </View>
@@ -106,7 +103,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation, user, onLogou
             <Image source={{ uri: userProfile.profileImage }} style={styles.profileImage} />
             {userProfile.isVerified && (
               <View style={styles.verifiedBadge}>
-                <Text style={styles.verifiedText}>✅</Text>
+                <Icon name="check-circle" size={16} color={COLORS.functional.success} />
               </View>
             )}
           </View>
@@ -114,7 +111,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation, user, onLogou
           <View style={styles.profileInfo}>
             <Text style={styles.userName}>{userProfile.name}</Text>
             <Text style={styles.userEmail}>{userProfile.email}</Text>
-            <Text style={styles.userRating}>⭐ {userProfile.rating} · {userProfile.joinDate} 가입</Text>
+            <View style={{flexDirection:'row', alignItems:'center', gap:4}}><Icon name="star" size={12} color={COLORS.functional.warning} /><Text style={styles.userRating}>{userProfile.rating} · {userProfile.joinDate} 가입</Text></View>
           </View>
 
           <TouchableOpacity style={styles.editButton} onPress={handleEditProfile}>
@@ -142,7 +139,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation, user, onLogou
 
       {/* 본인인증 섹션 */}
       <View style={styles.verificationSection}>
-        <Text style={styles.sectionTitle}>🛡️ 안전 인증</Text>
+        <View style={{flexDirection:'row', alignItems:'center', gap:8}}><Icon name="award" size={18} color={COLORS.primary.main} /><Text style={styles.sectionTitle}>안전 인증</Text></View>
         <TouchableOpacity style={styles.verificationItem} onPress={handleVerification}>
           <View style={styles.verificationInfo}>
             <Text style={styles.verificationTitle}>추가 본인인증</Text>
@@ -154,7 +151,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation, user, onLogou
 
       {/* 설정 섹션 */}
       <View style={styles.settingsSection}>
-        <Text style={styles.sectionTitle}>⚙️ 설정</Text>
+        <View style={{flexDirection:'row', alignItems:'center', gap:8}}><Icon name="settings" size={18} color={COLORS.primary.main} /><Text style={styles.sectionTitle}>설정</Text></View>
         
         <View style={styles.settingItem}>
           <View style={styles.settingInfo}>
@@ -185,11 +182,13 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation, user, onLogou
 
       {/* 메뉴 섹션 */}
       <View style={styles.menuSection}>
-        <Text style={styles.sectionTitle}>📋 메뉴</Text>
+        <View style={{flexDirection:'row', alignItems:'center', gap:8}}><Icon name="list" size={18} color={COLORS.primary.main} /><Text style={styles.sectionTitle}>메뉴</Text></View>
         {menuItems.map((item) => (
           <TouchableOpacity key={item.id} style={styles.menuItem} onPress={item.onPress}>
             <View style={styles.menuInfo}>
-              <Text style={styles.menuIcon}>{item.icon}</Text>
+              <View style={{width:36, height:36, borderRadius:18, backgroundColor:COLORS.primary.light, alignItems:'center', justifyContent:'center', marginRight:16}}>
+                <Icon name={item.icon as IconName} size={18} color={COLORS.primary.main} />
+              </View>
               <View style={styles.menuTextContainer}>
                 <Text style={styles.menuTitle}>{item.title}</Text>
                 <Text style={styles.menuSubtitle}>{item.subtitle}</Text>
@@ -228,7 +227,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation, user, onLogou
                 style={styles.closeButton}
                 onPress={() => setShowEditModal(false)}
               >
-                <Text style={styles.closeButtonText}>✕</Text>
+                <Icon name="x" size={18} color={COLORS.text.primary} />
               </TouchableOpacity>
             </View>
             
@@ -261,6 +260,8 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation, user, onLogou
         </View>
       </Modal>
       </ScrollView>
+      <Toast visible={toast.visible} message={toast.message} type={toast.type} onHide={hideToast} />
+      <ConfirmDialog {...dialog} onConfirm={hideDialog} onCancel={hideDialog} />
     </View>
   );
 };
@@ -286,6 +287,8 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
+    borderWidth: 3,
+    borderColor: '#EFE9E3',
   },
   verifiedBadge: {
     position: 'absolute',
@@ -305,7 +308,8 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
     color: COLORS.text.primary,
-    marginBottom: 4,
+    marginTop: 16,
+    marginBottom: 8,
   },
   userEmail: {
     fontSize: 14,
@@ -317,24 +321,25 @@ const styles = StyleSheet.create({
     color: COLORS.text.secondary,
   },
   editButton: {
-    backgroundColor: COLORS.primary.main,
+    backgroundColor: COLORS.primary.accent,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
   },
   editButtonText: {
-    color: COLORS.text.white,
+    color: COLORS.text.primary,
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '500',
   },
   statsSection: {
-    backgroundColor: COLORS.neutral.white,
+    backgroundColor: COLORS.primary.light,
     marginTop: 10,
-    padding: 20,
+    paddingVertical: 16,
+    paddingHorizontal: 12,
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',
-    borderRadius: 8,
+    borderRadius: 12,
     borderWidth: 0,
   },
   statItem: {
@@ -342,9 +347,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   statNumber: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: 'bold',
-    color: COLORS.primary.main,
+    color: COLORS.text.primary,
     marginBottom: 4,
   },
   statLabel: {
@@ -425,6 +430,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingVertical: 16,
+    minHeight: 56,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.neutral.grey100,
   },
@@ -435,11 +441,10 @@ const styles = StyleSheet.create({
   },
   menuIcon: {
     fontSize: 20,
-    marginRight: 16,
   },
   menuTitle: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '400',
     color: COLORS.text.primary,
     marginBottom: 2,
   },
@@ -451,8 +456,8 @@ const styles = StyleSheet.create({
     color: COLORS.text.secondary,
   },
   arrow: {
-    fontSize: 20,
-    color: COLORS.text.secondary,
+    fontSize: 16,
+    color: COLORS.text.tertiary,
   },
   logoutSection: {
     padding: 20,

@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
 import { useNavigate } from 'react-router-dom';
-import { COLORS, SHADOWS } from '../styles/colors';
+import { COLORS, SHADOWS, CARD_STYLE } from '../styles/colors';
 import { Icon } from '../components/Icon';
 import apiClient from '../services/apiClient';
+import EmptyState from '../components/EmptyState';
+import { FadeIn } from '../components/animated';
 
 interface Notice {
   id: number;
@@ -26,7 +28,7 @@ const NoticesScreen: React.FC = () => {
       const response = await apiClient.get('/notices');
       setNotices(response.data.notices || []);
     } catch (error) {
-      console.error('공지사항 로드 실패:', error);
+      // silently handle error
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -120,23 +122,25 @@ const NoticesScreen: React.FC = () => {
         <View style={styles.placeholder} />
       </View>
 
-      <ScrollView 
+      <ScrollView
         style={styles.content}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
         }
       >
+        <FadeIn>
         {notices.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Icon name="bell-off" size={48} color={COLORS.text.secondary} />
-            <Text style={styles.emptyTitle}>등록된 공지사항이 없습니다</Text>
-            <Text style={styles.emptySubtitle}>새로운 소식이 있으면 알려드릴게요!</Text>
-          </View>
+          <EmptyState
+            icon="bell-off"
+            title="등록된 공지사항이 없습니다"
+            description="새로운 소식이 있으면 알려드릴게요!"
+          />
         ) : (
           <View style={styles.noticesList}>
             {notices.map(renderNoticeItem)}
           </View>
         )}
+        </FadeIn>
       </ScrollView>
     </View>
   );
@@ -163,7 +167,8 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     paddingBottom: 16,
     backgroundColor: COLORS.neutral.white,
-    ...SHADOWS.small,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.06)',
   },
   backButton: {
     padding: 4,
@@ -187,12 +192,13 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 20,
     marginBottom: 12,
+    ...CARD_STYLE,
     ...SHADOWS.small,
   },
   pinnedNotice: {
-    borderWidth: 2,
-    borderColor: COLORS.functional.warning + '30',
-    backgroundColor: COLORS.functional.warning + '08',
+    borderWidth: 1.5,
+    borderColor: 'rgba(229, 168, 75, 0.3)',
+    backgroundColor: '#FFFCF5',
   },
   noticeHeader: {
     marginBottom: 12,
@@ -208,18 +214,18 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   typeTag: {
-    paddingHorizontal: 8,
+    paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 12,
+    borderRadius: 8,
   },
   typeTagText: {
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: 11,
+    fontWeight: '700',
     color: COLORS.text.white,
   },
   noticeDate: {
-    fontSize: 12,
-    color: COLORS.text.secondary,
+    fontSize: 13,
+    color: COLORS.text.tertiary,
   },
   noticeTitle: {
     fontSize: 16,
@@ -235,7 +241,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: COLORS.text.secondary,
     lineHeight: 20,
-    marginBottom: 12,
+    marginBottom: 8,
   },
   noticeActions: {
     alignItems: 'flex-end',

@@ -35,18 +35,12 @@ class LocationService {
     
     if (permissionState === 'denied') {
       const error = new Error('위치 접근 권한이 차단되었습니다. 브라우저 설정에서 위치 권한을 허용해주세요.');
-      if (isDevelopment) {
-        console.warn('🔒 개발 환경: 위치 권한이 차단됨');
-      }
       throw error;
     }
 
     return new Promise((resolve, reject) => {
       if (!navigator.geolocation) {
         const error = new Error('이 브라우저는 위치 서비스를 지원하지 않습니다.');
-        if (isDevelopment) {
-          console.warn('📍 개발 환경: 위치 서비스 미지원');
-        }
         reject(error);
         return;
       }
@@ -106,25 +100,6 @@ class LocationService {
               userAction = '📍 다음을 시도해보세요:\n• 브라우저 새로고침\n• 다른 브라우저 사용\n• 아래 목록에서 수동 선택';
           }
           
-          // 운영환경에서는 간단한 warn으로만 기록 (iOS는 더 조용히)
-          if (isProduction) {
-            const isIOS = userAgent.includes('iPhone') || userAgent.includes('iPad');
-            if (isIOS) {
-              // iOS에서는 GPS 실패가 흔하므로 아예 로깅하지 않음
-              console.debug('📱 iOS GPS 제한 (정상)');
-            } else {
-              console.warn('📍 GPS 실패:', { code: error.code, protocol });
-            }
-          }
-          
-          // 개발 환경에서는 더 조용한 로깅
-          if (isDevelopment) {
-            console.warn(`📍 개발 환경 위치 오류 (${error.code}):`, errorMessage);
-            if (userAction) {
-              console.info('💡 해결방법:', userAction);
-            }
-          }
-          
           const fullError = userAction ? `${errorMessage}\n\n해결방법: ${userAction}` : errorMessage;
           reject(new Error(fullError));
         },
@@ -142,7 +117,6 @@ class LocationService {
    */
   startWatchingLocation(callback: (location: LocationData) => void): void {
     if (!navigator.geolocation) {
-      console.error('위치 서비스를 지원하지 않습니다.');
       return;
     }
 
@@ -159,7 +133,7 @@ class LocationService {
         callback(locationData);
       },
       (error) => {
-        console.error('위치 추적 오류:', error.message);
+        // silently handle error
       },
       {
         enableHighAccuracy: true,
@@ -246,9 +220,6 @@ class LocationService {
   async geocodeAddress(address: string): Promise<{ latitude: number; longitude: number } | null> {
     try {
       // 실제로는 Google Maps API나 Kakao Map API를 사용해야 함
-      // 여기서는 간단한 예시로 서울 시청 좌표 반환
-      console.log(`주소 "${address}"를 좌표로 변환 중...`);
-      
       // 임시 더미 데이터 (실제 구현에서는 지오코딩 API 사용)
       const dummyCoordinates = {
         latitude: 37.5665,
@@ -257,7 +228,7 @@ class LocationService {
       
       return dummyCoordinates;
     } catch (error) {
-      console.error('지오코딩 실패:', error);
+      // silently handle error
       return null;
     }
   }
@@ -297,7 +268,7 @@ class LocationService {
       
       return null;
     } catch (error) {
-      console.error('역지오코딩 실패:', error);
+      // silently handle error
       return null;
     }
   }
@@ -320,7 +291,7 @@ class LocationService {
       }
       return 'granted'; // 권한 API가 없으면 허용으로 가정
     } catch (error) {
-      console.error('위치 권한 확인 실패:', error);
+      // silently handle error
       return 'denied';
     }
   }
@@ -393,7 +364,7 @@ class LocationService {
         };
       });
     } catch (error) {
-      console.error('주소 검색 실패:', error);
+      // silently handle error
       return [];
     }
   }
@@ -445,7 +416,7 @@ class LocationService {
         try {
           return JSON.parse(saved);
         } catch (error) {
-          console.error('저장된 동네 정보 파싱 실패:', error);
+          // silently handle error
         }
       }
     }

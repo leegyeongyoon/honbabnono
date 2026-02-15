@@ -19,7 +19,7 @@ class UniversalStorage {
         return await AsyncStorage.getItem(key);
       }
     } catch (error) {
-      console.error('Storage getItem error:', error);
+      // silently handle error
       return null;
     }
   }
@@ -34,7 +34,7 @@ class UniversalStorage {
         await AsyncStorage.setItem(key, value);
       }
     } catch (error) {
-      console.error('Storage setItem error:', error);
+      // silently handle error
     }
   }
 
@@ -48,7 +48,7 @@ class UniversalStorage {
         await AsyncStorage.removeItem(key);
       }
     } catch (error) {
-      console.error('Storage removeItem error:', error);
+      // silently handle error
     }
   }
 
@@ -62,7 +62,7 @@ class UniversalStorage {
         await AsyncStorage.clear();
       }
     } catch (error) {
-      console.error('Storage clear error:', error);
+      // silently handle error
     }
   }
 
@@ -72,7 +72,7 @@ class UniversalStorage {
       const item = await this.getItem(key);
       return item ? JSON.parse(item) : null;
     } catch (error) {
-      console.error('Storage getObject error:', error);
+      // silently handle error
       return null;
     }
   }
@@ -81,7 +81,7 @@ class UniversalStorage {
     try {
       await this.setItem(key, JSON.stringify(value));
     } catch (error) {
-      console.error('Storage setObject error:', error);
+      // silently handle error
     }
   }
 }

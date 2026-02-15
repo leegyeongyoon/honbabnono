@@ -17,9 +17,7 @@ export const useMeetups = () => {
     setLoading(true);
     try {
       const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
-      console.log('🔍 Using API URL:', apiUrl);
-      console.log('🔍 ENV REACT_APP_API_URL:', process.env.REACT_APP_API_URL);
-      
+
       // URL 구성
       const queryParams = new URLSearchParams();
       if (searchParams.search) {queryParams.append('search', searchParams.search);}
@@ -34,23 +32,23 @@ export const useMeetups = () => {
       
       const queryString = queryParams.toString();
       const fullUrl = `${apiUrl}/meetups${queryString ? '?' + queryString : ''}`;
-      console.log('🔍 Fetching meetups from:', fullUrl);
-      
+
       const response = await fetch(fullUrl);
       const data = await response.json();
       
       // 백엔드 데이터를 프론트엔드 형식에 맞게 변환
-      const transformedMeetups = data.meetups.map((meetup: any) => ({
+      const meetupList = data.meetups || [];
+      const transformedMeetups = meetupList.map((meetup: any) => ({
         id: meetup.id,
-        title: meetup.title,
+        title: meetup.title || '제목 없음',
         description: meetup.description || '',
-        category: meetup.category,
-        location: meetup.location,
+        category: meetup.category || '기타',
+        location: meetup.location || '위치 미정',
         address: meetup.address,
-        date: meetup.date,
-        time: meetup.time,
-        maxParticipants: meetup.maxParticipants,
-        currentParticipants: meetup.currentParticipants,
+        date: meetup.date || '',
+        time: meetup.time || '',
+        maxParticipants: meetup.maxParticipants ?? meetup.max_participants ?? 4,
+        currentParticipants: meetup.currentParticipants ?? meetup.current_participants ?? 0,
         priceRange: meetup.priceRange,
         ageRange: meetup.ageRange,
         genderPreference: meetup.genderPreference,
@@ -73,7 +71,6 @@ export const useMeetups = () => {
       
       setMeetups(transformedMeetups);
     } catch (error) {
-      console.error('모임 목록 조회 실패:', error);
       // 에러 시 빈 배열 설정
       setMeetups([]);
     } finally {
@@ -165,14 +162,14 @@ export const useMeetups = () => {
       // 백엔드 데이터를 프론트엔드 형식에 맞게 변환
       const meetup = {
         id: meetupData.id,
-        title: meetupData.title,
+        title: meetupData.title || '제목 없음',
         description: meetupData.description || '',
-        category: meetupData.category,
-        location: meetupData.location,
-        date: meetupData.date,
-        time: meetupData.time,
-        max_participants: meetupData.maxParticipants,
-        current_participants: meetupData.currentParticipants,
+        category: meetupData.category || '기타',
+        location: meetupData.location || '위치 미정',
+        date: meetupData.date || '',
+        time: meetupData.time || '',
+        maxParticipants: meetupData.maxParticipants ?? meetupData.max_participants ?? 4,
+        currentParticipants: meetupData.currentParticipants ?? meetupData.current_participants ?? 0,
         hostName: meetupData.host?.name || '익명',
         hostId: meetupData.hostId,
         hostBabAlScore: 98, // 임시 고정값
@@ -183,7 +180,6 @@ export const useMeetups = () => {
       
       return meetup;
     } catch (error) {
-      console.error('모임 상세 조회 실패:', error);
       // 에러 시 null 반환
       return null;
     }

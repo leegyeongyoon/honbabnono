@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { useNavigate, useParams } from 'react-router-dom';
-import { COLORS, SHADOWS } from '../styles/colors';
+import { COLORS, SHADOWS, CARD_STYLE } from '../styles/colors';
 import { Icon } from '../components/Icon';
 import apiClient from '../services/apiClient';
+import { FadeIn } from '../components/animated';
 
 interface Notice {
   id: number;
@@ -30,7 +31,7 @@ const NoticeDetailScreen: React.FC = () => {
       const response = await apiClient.get(`/notices/${id}`);
       setNotice(response.data.notice);
     } catch (error) {
-      console.error('공지사항 상세 조회 실패:', error);
+      // silently handle error
     } finally {
       setLoading(false);
     }
@@ -119,6 +120,7 @@ const NoticeDetailScreen: React.FC = () => {
       </View>
 
       <ScrollView style={styles.content}>
+        <FadeIn>
         <View style={styles.noticeContainer}>
           {/* 공지사항 메타 정보 */}
           <View style={styles.noticeMeta}>
@@ -169,6 +171,7 @@ const NoticeDetailScreen: React.FC = () => {
             </TouchableOpacity>
           </View>
         </View>
+        </FadeIn>
       </ScrollView>
     </View>
   );
@@ -195,7 +198,8 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     paddingBottom: 16,
     backgroundColor: COLORS.neutral.white,
-    ...SHADOWS.small,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.06)',
   },
   backButton: {
     padding: 4,
@@ -216,13 +220,14 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.neutral.white,
     borderRadius: 16,
     padding: 24,
-    ...SHADOWS.medium,
+    ...CARD_STYLE,
+    ...SHADOWS.small,
   },
   noticeMeta: {
     marginBottom: 20,
     paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.neutral.grey200,
+    borderBottomColor: 'rgba(0,0,0,0.06)',
   },
   metaTop: {
     flexDirection: 'row',
@@ -237,12 +242,12 @@ const styles = StyleSheet.create({
   },
   typeTag: {
     paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
+    paddingVertical: 5,
+    borderRadius: 8,
   },
   typeTagText: {
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: 11,
+    fontWeight: '700',
     color: COLORS.text.white,
   },
   pinnedTag: {
@@ -270,41 +275,41 @@ const styles = StyleSheet.create({
   },
   noticeDate: {
     fontSize: 13,
-    color: COLORS.text.secondary,
+    color: COLORS.text.tertiary,
   },
   updatedText: {
     fontSize: 12,
     color: COLORS.text.tertiary,
   },
   noticeTitle: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: '700',
     color: COLORS.text.primary,
-    lineHeight: 32,
+    lineHeight: 30,
     marginBottom: 24,
   },
   contentContainer: {
     marginBottom: 32,
   },
   noticeContent: {
-    fontSize: 16,
+    fontSize: 15,
     color: COLORS.text.primary,
-    lineHeight: 26,
+    lineHeight: 24,
   },
   bottomActions: {
     alignItems: 'center',
     paddingTop: 20,
     borderTopWidth: 1,
-    borderTopColor: COLORS.neutral.grey200,
+    borderTopColor: 'rgba(0,0,0,0.06)',
   },
   listButton: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    paddingHorizontal: 20,
+    paddingHorizontal: 24,
     paddingVertical: 12,
     backgroundColor: COLORS.primary.light,
-    borderRadius: 24,
+    borderRadius: 12,
   },
   listButtonText: {
     fontSize: 14,
@@ -322,7 +327,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingVertical: 12,
     backgroundColor: COLORS.primary.main,
-    borderRadius: 24,
+    borderRadius: 12,
   },
   backToListText: {
     fontSize: 14,

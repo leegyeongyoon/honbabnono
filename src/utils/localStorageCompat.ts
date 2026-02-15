@@ -24,7 +24,7 @@ class ReactNativeLocalStorage implements LocalStorage {
         return await AsyncStorage.getItem(key);
       }
     } catch (error) {
-      console.error('LocalStorage getItem error:', error);
+      // silently handle error
       return null;
     }
   }
@@ -39,7 +39,7 @@ class ReactNativeLocalStorage implements LocalStorage {
         await AsyncStorage.setItem(key, value);
       }
     } catch (error) {
-      console.error('LocalStorage setItem error:', error);
+      // silently handle error
     }
   }
 
@@ -53,7 +53,7 @@ class ReactNativeLocalStorage implements LocalStorage {
         await AsyncStorage.removeItem(key);
       }
     } catch (error) {
-      console.error('LocalStorage removeItem error:', error);
+      // silently handle error
     }
   }
 
@@ -67,7 +67,7 @@ class ReactNativeLocalStorage implements LocalStorage {
         await AsyncStorage.clear();
       }
     } catch (error) {
-      console.error('LocalStorage clear error:', error);
+      // silently handle error
     }
   }
 }

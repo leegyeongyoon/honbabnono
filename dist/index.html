@@ -1,15 +1,56 @@
-<!doctype html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>혼밥시러 - 소모임 앱</title><link rel="preconnect" href="https://cdn.jsdelivr.net"><link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css"/><style>* { 
-            box-sizing: border-box; 
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>혼밥시러 - 소모임 앱</title>
+    <link rel="preconnect" href="https://cdn.jsdelivr.net">
+    <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" />
+    <style>
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
         }
-        html, body, #root { 
+        html {
+            scroll-behavior: smooth;
+        }
+        ::selection {
+            background: rgba(139, 105, 20, 0.2);
+        }
+        html, body, #root {
             height: 100%; 
             margin: 0; 
             font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, "Helvetica Neue", "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", sans-serif;
             background-color: #ffffff;
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
+            /* 모바일 웹뷰 터치/확대축소 방지 */
+            touch-action: pan-x pan-y;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            -khtml-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            -webkit-text-size-adjust: 100%;
+            -ms-text-size-adjust: 100%;
         }
         #root {
             display: flex;
             flex-direction: column;
-        }</style></head><body><div id="root"></div><script src="/bundle.js"></script></body></html>
+        }
+        /* Keyboard navigation focus indicators */
+        :focus-visible {
+            outline: 2px solid rgba(139, 105, 20, 0.5);
+            outline-offset: 2px;
+        }
+        :focus:not(:focus-visible) {
+            outline: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    <script src="/bundle.js"></script>
+</body>
+</html>
