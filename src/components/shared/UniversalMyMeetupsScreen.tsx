@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -7,8 +7,9 @@ import {
   TouchableOpacity,
   RefreshControl,
   SafeAreaView,
+  Animated,
 } from 'react-native';
-import { COLORS } from '../../styles/colors';
+import { COLORS, SHADOWS } from '../../styles/colors';
 import { NotificationBell } from '../NotificationBell';
 import MeetupCard from '../MeetupCard';
 import EmptyState from '../EmptyState';
@@ -27,6 +28,37 @@ interface UniversalMyMeetupsScreenProps {
   onNavigate?: (screen: string, params?: any) => void;
   onGoBack?: () => void;
 }
+
+const TAB_ITEMS = [
+  { key: 'applied' as const, label: '신청한 모임' },
+  { key: 'created' as const, label: '내가 만든 모임' },
+  { key: 'past' as const, label: '지난 모임' },
+];
+
+const SkeletonPulse: React.FC<{ style?: any }> = ({ style }) => {
+  const pulseAnim = useRef(new Animated.Value(0.4)).current;
+
+  useEffect(() => {
+    const animation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 800,
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 0.4,
+          duration: 800,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    animation.start();
+    return () => animation.stop();
+  }, [pulseAnim]);
+
+  return <Animated.View style={[style, { opacity: pulseAnim }]} />;
+};
 
 const UniversalMyMeetupsScreen: React.FC<UniversalMyMeetupsScreenProps> = ({
   navigation,
@@ -175,16 +207,25 @@ const UniversalMyMeetupsScreen: React.FC<UniversalMyMeetupsScreenProps> = ({
     handleNavigate('Notification');
   };
 
+  const getTabCount = (tab: 'applied' | 'created' | 'past') => {
+    switch (tab) {
+      case 'applied': return appliedMeetups.length;
+      case 'created': return createdMeetups.length;
+      case 'past': return pastMeetups.length;
+    }
+  };
+
   const renderSkeletonLoader = () => (
     <View style={styles.skeletonContainer}>
       {[1, 2, 3].map((i) => (
         <View key={i} style={styles.skeletonCard}>
-          <View style={styles.skeletonImage} />
-          <View style={styles.skeletonTextArea}>
-            <View style={styles.skeletonTitle} />
-            <View style={styles.skeletonMeta} />
-            <View style={styles.skeletonMetaShort} />
+          <View style={styles.skeletonLeft}>
+            <SkeletonPulse style={styles.skeletonBadge} />
+            <SkeletonPulse style={styles.skeletonTitle} />
+            <SkeletonPulse style={styles.skeletonMeta} />
+            <SkeletonPulse style={styles.skeletonMetaShort} />
           </View>
+          <SkeletonPulse style={styles.skeletonImage} />
         </View>
       ))}
     </View>
@@ -209,7 +250,6 @@ const UniversalMyMeetupsScreen: React.FC<UniversalMyMeetupsScreenProps> = ({
         return (
           <FadeIn>
           <View style={styles.meetupsContainer}>
-            <Text style={styles.sectionTitle}>신청한 모임 ({appliedMeetups.length}개)</Text>
             {appliedMeetups.length === 0 ? (
               <EmptyState
                 icon="calendar"
@@ -229,7 +269,6 @@ const UniversalMyMeetupsScreen: React.FC<UniversalMyMeetupsScreenProps> = ({
         return (
           <FadeIn>
           <View style={styles.meetupsContainer}>
-            <Text style={styles.sectionTitle}>만든 모임 ({createdMeetups.length}개)</Text>
             {createdMeetups.length === 0 ? (
               <EmptyState
                 icon="plus-circle"
@@ -249,7 +288,6 @@ const UniversalMyMeetupsScreen: React.FC<UniversalMyMeetupsScreenProps> = ({
         return (
           <FadeIn>
           <View style={styles.meetupsContainer}>
-            <Text style={styles.sectionTitle}>지난 모임 ({pastMeetups.length}개)</Text>
             {pastMeetups.length === 0 ? (
               <EmptyState
                 icon="clock"
@@ -277,44 +315,41 @@ const UniversalMyMeetupsScreen: React.FC<UniversalMyMeetupsScreenProps> = ({
           userId={user?.id?.toString()}
           onPress={handleNotificationPress}
           color={COLORS.text.primary}
-          size={20}
+          size={22}
         />
       </View>
 
-      {/* 탭 버튼 */}
+      {/* 탭 바 */}
       <View style={styles.tabContainer}>
-        <TouchableOpacity
-          style={[styles.tabButton, activeTab === 'applied' && styles.activeTabButton]}
-          onPress={() => setActiveTab('applied')}
-          activeOpacity={0.7}
-        >
-          <Text style={[styles.tabButtonText, activeTab === 'applied' && styles.activeTabButtonText]}>
-            신청한 모임
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tabButton, activeTab === 'created' && styles.activeTabButton]}
-          onPress={() => setActiveTab('created')}
-          activeOpacity={0.7}
-        >
-          <Text style={[styles.tabButtonText, activeTab === 'created' && styles.activeTabButtonText]}>
-            내가 만든 모임
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tabButton, activeTab === 'past' && styles.activeTabButton]}
-          onPress={() => setActiveTab('past')}
-          activeOpacity={0.7}
-        >
-          <Text style={[styles.tabButtonText, activeTab === 'past' && styles.activeTabButtonText]}>
-            지난 모임
-          </Text>
-        </TouchableOpacity>
+        {TAB_ITEMS.map((tab) => {
+          const isActive = activeTab === tab.key;
+          const count = getTabCount(tab.key);
+          return (
+            <TouchableOpacity
+              key={tab.key}
+              style={[styles.tabButton, isActive && styles.activeTabButton]}
+              onPress={() => setActiveTab(tab.key)}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.tabButtonText, isActive && styles.activeTabButtonText]}>
+                {tab.label}
+              </Text>
+              {count > 0 && (
+                <View style={[styles.tabCountBadge, isActive && styles.activeTabCountBadge]}>
+                  <Text style={[styles.tabCountText, isActive && styles.activeTabCountText]}>
+                    {count}
+                  </Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          );
+        })}
       </View>
 
       {/* 컨텐츠 */}
       <ScrollView
         style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -336,6 +371,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.neutral.background,
   },
+  // Header
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -344,94 +380,123 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     paddingTop: 20,
     backgroundColor: COLORS.neutral.white,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.neutral.grey100,
+    ...SHADOWS.small,
   },
   headerTitle: {
     fontSize: 20,
-    fontWeight: '700',
+    fontWeight: '800',
     color: COLORS.text.primary,
+    letterSpacing: -0.3,
   },
+  // Tabs
   tabContainer: {
     flexDirection: 'row',
     backgroundColor: COLORS.neutral.white,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.neutral.grey100,
+    paddingHorizontal: 4,
   },
   tabButton: {
-    flex: 1,
-    paddingVertical: 14,
+    flexDirection: 'row',
     alignItems: 'center',
-    borderBottomWidth: 2,
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+    borderBottomWidth: 3,
     borderBottomColor: 'transparent',
+    gap: 6,
   },
   activeTabButton: {
     borderBottomColor: COLORS.primary.main,
   },
   tabButtonText: {
-    fontSize: 14,
+    fontSize: 15,
     color: COLORS.text.tertiary,
     fontWeight: '500',
   },
   activeTabButtonText: {
-    color: COLORS.primary.main,
+    color: COLORS.text.primary,
     fontWeight: '700',
   },
+  tabCountBadge: {
+    backgroundColor: COLORS.neutral.grey100,
+    borderRadius: 9999,
+    paddingHorizontal: 7,
+    paddingVertical: 1,
+    minWidth: 20,
+    alignItems: 'center',
+  },
+  activeTabCountBadge: {
+    backgroundColor: COLORS.primary.light,
+  },
+  tabCountText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: COLORS.text.tertiary,
+  },
+  activeTabCountText: {
+    color: COLORS.primary.main,
+  },
+  // Content
   scrollView: {
     flex: 1,
   },
+  scrollContent: {
+    paddingBottom: 32,
+  },
   meetupsContainer: {
     paddingHorizontal: 16,
-    paddingVertical: 16,
+    paddingTop: 16,
+    gap: 12,
   },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: COLORS.text.primary,
-    marginBottom: 16,
-    paddingHorizontal: 4,
-  },
-  // Skeleton loader styles
+  // Skeleton
   skeletonContainer: {
     paddingHorizontal: 16,
-    paddingVertical: 16,
+    paddingTop: 16,
+    gap: 12,
   },
   skeletonCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
+    justifyContent: 'space-between',
     backgroundColor: COLORS.neutral.white,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.neutral.grey100,
+    borderRadius: 16,
+    padding: 16,
+    ...SHADOWS.small,
+  },
+  skeletonLeft: {
+    flex: 1,
+    gap: 10,
+    marginRight: 16,
+  },
+  skeletonBadge: {
+    height: 22,
+    width: 56,
+    borderRadius: 9999,
+    backgroundColor: COLORS.neutral.grey100,
+  },
+  skeletonTitle: {
+    height: 18,
+    width: '75%',
+    borderRadius: 6,
+    backgroundColor: COLORS.neutral.grey100,
+  },
+  skeletonMeta: {
+    height: 14,
+    width: '55%',
+    borderRadius: 4,
+    backgroundColor: COLORS.neutral.grey100,
+  },
+  skeletonMetaShort: {
+    height: 14,
+    width: '40%',
+    borderRadius: 4,
+    backgroundColor: COLORS.neutral.grey100,
   },
   skeletonImage: {
     width: 64,
     height: 64,
     borderRadius: 12,
-    backgroundColor: COLORS.neutral.grey100,
-    marginRight: 12,
-  },
-  skeletonTextArea: {
-    flex: 1,
-    gap: 8,
-  },
-  skeletonTitle: {
-    height: 16,
-    width: '70%',
-    borderRadius: 4,
-    backgroundColor: COLORS.neutral.grey100,
-  },
-  skeletonMeta: {
-    height: 12,
-    width: '50%',
-    borderRadius: 4,
-    backgroundColor: COLORS.neutral.grey100,
-  },
-  skeletonMetaShort: {
-    height: 12,
-    width: '35%',
-    borderRadius: 4,
     backgroundColor: COLORS.neutral.grey100,
   },
 });

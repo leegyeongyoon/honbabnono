@@ -245,18 +245,24 @@ const UniversalExploreScreen: React.FC<UniversalExploreScreenProps> = ({ navigat
 
   // Build list title (matches web format)
   const listTitle = useMemo(() => {
-    const count = displayMeetups.length;
-    const countStr = count > 0 ? ` ${count}개` : '';
     if (selectedCategory) {
-      return `${selectedCategory} 모임${countStr}`;
+      return `${selectedCategory} 모임`;
     }
-    return `반경 ${formatRadiusLabel(radius)} 모임${countStr}`;
-  }, [selectedCategory, radius, displayMeetups.length]);
+    return `반경 ${formatRadiusLabel(radius)} 모임`;
+  }, [selectedCategory, radius]);
+
+  const listCountStr = useMemo(() => {
+    const count = displayMeetups.length;
+    return count > 0 ? `${count}개` : '';
+  }, [displayMeetups.length]);
 
   // Render map below list (matches web mapListBelow)
   const renderMapBelowList = () => (
     <ScrollView style={styles.mapListBelow} showsVerticalScrollIndicator={false}>
-      <Text style={styles.mapListTitle}>{listTitle}</Text>
+      <View style={styles.listTitleRow}>
+        <Text style={styles.mapListTitle}>{listTitle}</Text>
+        {listCountStr ? <Text style={styles.listCount}>{listCountStr}</Text> : null}
+      </View>
       {isLoading ? (
         <View style={styles.skeletonPadding}>
           {[1, 2, 3].map(i => <MeetupCardSkeleton key={i} />)}
@@ -272,7 +278,7 @@ const UniversalExploreScreen: React.FC<UniversalExploreScreenProps> = ({ navigat
         <FadeIn>
           <View style={styles.meetupList}>
             {displayMeetups.map(meetup => (
-              <View key={meetup.id} style={styles.meetupItemRelative}>
+              <View key={meetup.id} style={styles.meetupItemWrapper}>
                 <MeetupCard
                   meetup={meetup}
                   onPress={handleMeetupPress}
@@ -319,7 +325,7 @@ const UniversalExploreScreen: React.FC<UniversalExploreScreenProps> = ({ navigat
           </View>
         </View>
 
-        {/* Category Tabs (배민 스타일 underline) */}
+        {/* Category Tabs (배민 스타일 pill 칩) */}
         <View style={styles.categoryTabBar}>
           <ScrollView
             horizontal
@@ -328,16 +334,16 @@ const UniversalExploreScreen: React.FC<UniversalExploreScreenProps> = ({ navigat
           >
             <TouchableOpacity
               style={[
-                styles.categoryTab,
-                !selectedCategory && styles.categoryTabActive,
+                styles.categoryChip,
+                !selectedCategory && styles.categoryChipActive,
               ]}
               onPress={() => handleCategoryChange(null)}
               activeOpacity={0.7}
             >
               <Text
                 style={[
-                  styles.categoryTabText,
-                  !selectedCategory && styles.categoryTabTextActive,
+                  styles.categoryChipText,
+                  !selectedCategory && styles.categoryChipTextActive,
                 ]}
               >
                 전체
@@ -347,16 +353,16 @@ const UniversalExploreScreen: React.FC<UniversalExploreScreenProps> = ({ navigat
               <TouchableOpacity
                 key={name}
                 style={[
-                  styles.categoryTab,
-                  selectedCategory === name && styles.categoryTabActive,
+                  styles.categoryChip,
+                  selectedCategory === name && styles.categoryChipActive,
                 ]}
                 onPress={() => handleCategoryChange(name)}
                 activeOpacity={0.7}
               >
                 <Text
                   style={[
-                    styles.categoryTabText,
-                    selectedCategory === name && styles.categoryTabTextActive,
+                    styles.categoryChipText,
+                    selectedCategory === name && styles.categoryChipTextActive,
                   ]}
                 >
                   {name}
@@ -473,7 +479,10 @@ const UniversalExploreScreen: React.FC<UniversalExploreScreenProps> = ({ navigat
               }
             >
               <View style={styles.listHeader}>
-                <Text style={styles.mapListTitle}>{listTitle}</Text>
+                <View style={styles.listTitleRow}>
+                  <Text style={styles.mapListTitle}>{listTitle}</Text>
+                  {listCountStr ? <Text style={styles.listCount}>{listCountStr}</Text> : null}
+                </View>
               </View>
               {isLoading ? (
                 <View style={styles.skeletonPadding}>
@@ -489,7 +498,7 @@ const UniversalExploreScreen: React.FC<UniversalExploreScreenProps> = ({ navigat
                 <FadeIn>
                   <View style={styles.meetupList}>
                     {displayMeetups.map(meetup => (
-                      <View key={meetup.id} style={styles.meetupItemRelative}>
+                      <View key={meetup.id} style={styles.meetupItemWrapper}>
                         <MeetupCard
                           meetup={meetup}
                           onPress={handleMeetupPress}
@@ -531,52 +540,55 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingVertical: 14,
     paddingTop: 20,
     backgroundColor: COLORS.neutral.white,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.neutral.grey100,
     ...SHADOWS.small,
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
+    fontSize: 20,
+    fontWeight: '800',
     color: COLORS.text.primary,
+    letterSpacing: -0.3,
   },
 
-  // Category Tabs (배민 스타일 underline)
+  // Category Tabs (배민 스타일 pill 칩)
   categoryTabBar: {
     backgroundColor: COLORS.neutral.white,
+    paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.neutral.grey100,
   },
   categoryTabScroll: {
+    paddingHorizontal: 20,
+    gap: 8,
+  },
+  categoryChip: {
     paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: BORDER_RADIUS.full,
+    backgroundColor: COLORS.neutral.grey100,
   },
-  categoryTab: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
+  categoryChipActive: {
+    backgroundColor: COLORS.primary.main,
   },
-  categoryTabActive: {
-    borderBottomColor: COLORS.text.primary,
-  },
-  categoryTabText: {
-    fontSize: 15,
+  categoryChipText: {
+    fontSize: 14,
     fontWeight: '500',
-    color: COLORS.text.tertiary,
+    color: COLORS.text.secondary,
   },
-  categoryTabTextActive: {
+  categoryChipTextActive: {
     fontWeight: '700',
-    color: COLORS.text.primary,
+    color: COLORS.text.white,
   },
 
-  // Search Section (matches web: padding 12, paddingHorizontal 20, no border)
+  // Search Section
   searchSection: {
-    padding: 12,
+    paddingVertical: 12,
     paddingHorizontal: 20,
     backgroundColor: COLORS.neutral.white,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.neutral.grey100,
   },
   searchBar: {
     flexDirection: 'row',
@@ -585,7 +597,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.neutral.background,
     borderRadius: BORDER_RADIUS.md,
     paddingHorizontal: 14,
-    gap: 8,
+    gap: 10,
   },
   searchInput: {
     flex: 1,
@@ -608,11 +620,11 @@ const styles = StyleSheet.create({
     marginRight: 2,
   },
   radiusChip: {
-    paddingHorizontal: 12,
+    paddingHorizontal: 14,
     paddingVertical: 6,
-    borderRadius: 16,
+    borderRadius: BORDER_RADIUS.full,
     backgroundColor: COLORS.neutral.grey100,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: 'transparent',
   },
   radiusChipActive: {
@@ -644,20 +656,34 @@ const styles = StyleSheet.create({
     zIndex: 50,
   },
 
-  // Map below list (matches web mapListBelow)
+  // Map below list
   mapListBelow: {
     flex: 1,
     backgroundColor: COLORS.neutral.white,
   },
-  mapListTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: COLORS.text.primary,
-    padding: 16,
+
+  // List Title
+  listTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 20,
+    paddingTop: 20,
     paddingBottom: 8,
   },
+  mapListTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: COLORS.text.primary,
+    letterSpacing: -0.1,
+  },
+  listCount: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.primary.main,
+  },
 
-  // List View (matches web structure)
+  // List View
   listScrollContainer: {
     flex: 1,
   },
@@ -665,31 +691,37 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.neutral.white,
     paddingBottom: 0,
   },
+
+  // Meetup List
   meetupList: {
+    paddingHorizontal: 16,
+    gap: 12,
+  },
+  meetupItemWrapper: {
+    position: 'relative',
     backgroundColor: COLORS.neutral.white,
     borderRadius: BORDER_RADIUS.lg,
     overflow: 'hidden',
-  },
-  meetupItemRelative: {
-    position: 'relative',
+    ...SHADOWS.medium,
   },
 
-  // Distance Badge (matches web exactly)
+  // Distance Badge
   distanceBadge: {
     position: 'absolute',
     top: 12,
     right: 12,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 3,
-    backgroundColor: 'rgba(255,255,255,0.92)',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 10,
+    gap: 4,
+    backgroundColor: 'rgba(255,255,255,0.95)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: BORDER_RADIUS.full,
+    ...SHADOWS.small,
   },
   distanceText: {
     fontSize: 11,
-    fontWeight: '600',
+    fontWeight: '700',
     color: COLORS.primary.main,
   },
 
@@ -703,23 +735,24 @@ const styles = StyleSheet.create({
     height: 100,
   },
 
-  // View Toggle
+  // View Toggle (pill 형태)
   viewToggle: {
     flexDirection: 'row',
     backgroundColor: COLORS.neutral.grey100,
-    borderRadius: 10,
+    borderRadius: 12,
     padding: 3,
   },
   toggleButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
+    gap: 5,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 10,
   },
   toggleButtonActive: {
     backgroundColor: COLORS.primary.main,
+    ...SHADOWS.small,
   },
   toggleText: {
     fontSize: 13,

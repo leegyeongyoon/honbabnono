@@ -323,7 +323,7 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
               <Icon name="search" size={16} color={searchFocused ? COLORS.primary.main : COLORS.text.tertiary} />
               <TextInput
                 style={styles.searchInput}
-                placeholder="어떤 모임을 찾고 계세요?"
+                placeholder="오늘은 뭐 먹을까요?"
                 placeholderTextColor={COLORS.text.tertiary}
                 value={searchQuery}
                 onChangeText={handleSearchInput}
@@ -652,24 +652,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: SPACING.xl,
     backgroundColor: COLORS.neutral.white,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.neutral.grey100,
+    ...SHADOWS.small,
     gap: SPACING.md,
   },
   headerLogo: {
-    ...TYPOGRAPHY.heading.h2,
-    color: COLORS.primary.main,
-    fontWeight: FONT_WEIGHTS.bold as any,
+    fontSize: 22,
+    fontWeight: FONT_WEIGHTS.extraBold as any,
     letterSpacing: -0.5,
+    color: COLORS.primary.main,
+    lineHeight: 30,
   },
   locationButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: SPACING.xs,
+    gap: 6,
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.sm,
     backgroundColor: COLORS.neutral.background,
-    borderRadius: BORDER_RADIUS.xl,
+    borderRadius: BORDER_RADIUS.full,
     borderWidth: 1,
     borderColor: COLORS.neutral.grey100,
   },
@@ -696,18 +696,18 @@ const styles = StyleSheet.create({
   // ─── 검색 바 ─────────────────────────────────────────
   searchSection: {
     paddingHorizontal: SPACING.xl,
-    paddingVertical: SPACING.lg,
+    paddingTop: SPACING.lg,
+    paddingBottom: SPACING.xl,
     backgroundColor: COLORS.neutral.white,
   },
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    height: 48,
+    height: 52,
     backgroundColor: COLORS.neutral.background,
-    borderRadius: BORDER_RADIUS.xxl,
+    borderRadius: 26,
     paddingHorizontal: SPACING.xl,
     gap: SPACING.md,
-    ...SHADOWS.small,
     borderWidth: 2,
     borderColor: 'transparent',
   },
@@ -724,8 +724,8 @@ const styles = StyleSheet.create({
     padding: SPACING.xs,
   },
   searchSubmitButton: {
-    width: 32,
-    height: 32,
+    width: 34,
+    height: 34,
     borderRadius: BORDER_RADIUS.full,
     backgroundColor: COLORS.primary.main,
     justifyContent: 'center',
@@ -734,37 +734,41 @@ const styles = StyleSheet.create({
 
   // ─── 검색 제안 ─────────────────────────────────────
   suggestionsDropdown: {
-    marginTop: SPACING.sm,
+    marginTop: SPACING.md,
     backgroundColor: COLORS.neutral.white,
     borderRadius: BORDER_RADIUS.lg,
-    padding: SPACING.lg,
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.md,
     ...SHADOWS.medium,
     borderWidth: 1,
     borderColor: COLORS.neutral.grey100,
   },
   suggestionsLabel: {
-    ...TYPOGRAPHY.body.small,
+    fontSize: 12,
     color: COLORS.primary.main,
     fontWeight: FONT_WEIGHTS.semiBold as any,
-    marginBottom: SPACING.md,
+    marginBottom: SPACING.sm,
+    marginTop: SPACING.xs,
   },
   suggestionItem: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: SPACING.md,
-    paddingVertical: SPACING.md,
+    paddingVertical: 11,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.neutral.grey100,
   },
   suggestionText: {
     ...TYPOGRAPHY.body.medium,
     color: COLORS.text.primary,
+    fontSize: 14,
   },
 
   // ─── 카테고리 그리드 ─────────────────────────────────
   categorySection: {
     backgroundColor: COLORS.neutral.white,
-    paddingVertical: SPACING.xl,
+    paddingTop: SPACING.lg,
+    paddingBottom: SPACING.xxl,
     paddingHorizontal: SPACING.xl,
     marginBottom: SPACING.sm,
   },
@@ -772,34 +776,33 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
-    rowGap: SPACING.lg,
+    rowGap: SPACING.xl,
   },
   categoryItem: {
     width: '23%',
     alignItems: 'center',
   },
   categoryIconBox: {
-    width: 64,
-    height: 64,
-    borderRadius: BORDER_RADIUS.lg,
+    width: 72,
+    height: 72,
+    borderRadius: BORDER_RADIUS.xl,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: SPACING.sm,
-    borderWidth: 1,
-    borderColor: COLORS.neutral.grey100,
-    ...SHADOWS.small,
+    ...SHADOWS.medium,
   },
   categoryName: {
-    ...TYPOGRAPHY.body.small,
+    fontSize: 13,
+    fontWeight: FONT_WEIGHTS.semiBold as any,
+    lineHeight: 18,
     color: COLORS.text.primary,
-    fontWeight: FONT_WEIGHTS.medium as any,
     textAlign: 'center',
   },
 
   // ─── 콘텐츠 섹션 ─────────────────────────────────────
   contentSection: {
-    paddingTop: SPACING.xl,
-    paddingBottom: SPACING.sm,
+    paddingTop: SPACING.xxl,
+    paddingBottom: SPACING.md,
     marginBottom: SPACING.sm,
   },
   sectionHeader: {
@@ -815,10 +818,13 @@ const styles = StyleSheet.create({
     gap: SPACING.sm,
   },
   sectionEmoji: {
-    fontSize: 18,
+    fontSize: 20,
   },
   sectionTitle: {
-    ...TYPOGRAPHY.heading.h3,
+    fontSize: 20,
+    fontWeight: FONT_WEIGHTS.extraBold as any,
+    lineHeight: 28,
+    letterSpacing: -0.2,
     color: COLORS.text.primary,
   },
   seeAllText: {
@@ -828,19 +834,19 @@ const styles = StyleSheet.create({
   },
   horizontalCardList: {
     paddingHorizontal: SPACING.xl,
-    gap: SPACING.md,
+    gap: SPACING.lg,
   },
   horizontalCardWrapper: {
-    width: 200,
+    width: 220,
   },
 
   // ─── 세로 리스트 ─────────────────────────────────────
   verticalList: {
-    paddingHorizontal: 0,
+    paddingHorizontal: SPACING.xl,
+    gap: SPACING.md,
   },
   verticalListItem: {
-    paddingHorizontal: SPACING.xl,
-    marginBottom: SPACING.sm,
+    marginBottom: SPACING.md,
   },
 
   // ─── 모든 모임 보기 버튼 ─────────────────────────────
@@ -850,10 +856,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: SPACING.sm,
     marginHorizontal: SPACING.xl,
-    marginVertical: SPACING.lg,
+    marginTop: SPACING.lg,
+    marginBottom: SPACING.xl,
     paddingVertical: SPACING.lg,
     backgroundColor: COLORS.neutral.white,
-    borderRadius: BORDER_RADIUS.md,
+    borderRadius: BORDER_RADIUS.lg,
     borderWidth: 1,
     borderColor: COLORS.neutral.grey100,
     ...SHADOWS.small,
@@ -866,7 +873,7 @@ const styles = StyleSheet.create({
   // ─── Scroll to Top ────────────────────────────────────
   scrollTopButton: {
     position: 'absolute',
-    bottom: 150,
+    bottom: 170,
     right: 20,
     width: 40,
     height: 40,
@@ -887,7 +894,7 @@ const styles = StyleSheet.create({
   // ─── FAB (Enhanced — 웹과 동일한 다크 배경) ───────────
   fab: {
     position: 'absolute',
-    bottom: 80,
+    bottom: 100,
     right: 20,
     height: 60,
     paddingHorizontal: 20,
@@ -897,15 +904,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    ...SHADOWS.large,
+    ...SHADOWS.hover,
     zIndex: 1000,
   },
   fabPlus: {
-    fontSize: 24,
+    fontSize: 22,
     color: COLORS.text.white,
+    fontWeight: FONT_WEIGHTS.light as any,
   },
   fabText: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: FONT_WEIGHTS.semiBold as any,
     color: COLORS.text.white,
   },
@@ -925,7 +933,7 @@ const styles = StyleSheet.create({
 
   // ─── 하단 여백 ───────────────────────────────────────
   bottomPadding: {
-    height: SPACING.xxxl,
+    height: 80,
   },
 });
 

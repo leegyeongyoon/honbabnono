@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView } from 'react-native';
 import { COLORS, SHADOWS } from '../../styles/colors';
+import { BORDER_RADIUS } from '../../styles/spacing';
 import { useUserStore } from '../../store/userStore';
 import { useAuth } from '../../contexts/AuthContext';
 import { Icon, IconName } from '../Icon';
@@ -184,15 +185,17 @@ const UniversalMyPageScreen: React.FC<UniversalMyPageScreenProps> = ({
         </View>
 
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-          {/* 프로필 섹션 */}
+          {/* 프로필 카드 */}
           <FadeIn delay={0}>
-            <View style={styles.profileSection}>
+            <View style={styles.profileCard}>
               <View style={styles.profileRow}>
-                <ProfileImage
-                  profileImage={userProfileImageUrl}
-                  name={user?.name || '사용자'}
-                  size={96}
-                />
+                <View style={styles.profileImageWrapper}>
+                  <ProfileImage
+                    profileImage={userProfileImageUrl}
+                    name={user?.name || '사용자'}
+                    size={80}
+                  />
+                </View>
                 <View style={styles.profileInfo}>
                   <Text style={styles.userName}>{user?.name || '사용자'}</Text>
                   <Text style={styles.userEmail}>{user?.email || ''}</Text>
@@ -208,7 +211,7 @@ const UniversalMyPageScreen: React.FC<UniversalMyPageScreenProps> = ({
             </View>
           </FadeIn>
 
-          {/* 통계 카드 (3열) */}
+          {/* 통계 카드 */}
           <FadeIn delay={50}>
             <View style={styles.statsCard}>
               <View style={styles.statItem}>
@@ -236,7 +239,7 @@ const UniversalMyPageScreen: React.FC<UniversalMyPageScreenProps> = ({
               activeOpacity={0.7}
             >
               <View style={styles.pointBannerLeft}>
-                <Icon name="credit-card" size={18} color={COLORS.primary.main} />
+                <Icon name="credit-card" size={20} color={COLORS.primary.main} />
                 <Text style={styles.pointBannerLabel}>보유 포인트</Text>
               </View>
               <View style={styles.pointBannerRight}>
@@ -262,12 +265,12 @@ const UniversalMyPageScreen: React.FC<UniversalMyPageScreenProps> = ({
                 />
               </View>
               <Text style={styles.riceGradeText}>
-                {riceGrade.emoji} 등급: {riceGrade.label}
+                {riceGrade.emoji} {riceGrade.label}
               </Text>
             </View>
           </FadeIn>
 
-          {/* 빠른 메뉴 (2x3 그리드) */}
+          {/* 빠른 메뉴 (3x2 그리드) */}
           <FadeIn delay={150}>
             <View style={styles.quickMenuCard}>
               <View style={styles.quickMenuGrid}>
@@ -372,14 +375,13 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     paddingTop: 20,
     backgroundColor: COLORS.neutral.white,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.neutral.grey100,
     ...SHADOWS.small,
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
+    fontSize: 20,
+    fontWeight: '800',
     color: COLORS.text.primary,
+    letterSpacing: -0.3,
   },
   content: {
     flex: 1,
@@ -389,36 +391,46 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.neutral.white,
   },
 
-  // 프로필 섹션
-  profileSection: {
+  // 프로필 카드
+  profileCard: {
     backgroundColor: COLORS.neutral.white,
-    paddingHorizontal: 20,
-    paddingVertical: 24,
+    marginHorizontal: 16,
+    marginTop: 16,
+    borderRadius: 20,
+    padding: 24,
+    ...SHADOWS.medium,
   },
   profileRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 16,
+    gap: 20,
+  },
+  profileImageWrapper: {
+    borderRadius: 40,
+    borderWidth: 3,
+    borderColor: COLORS.primary.light,
+    overflow: 'hidden',
   },
   profileInfo: {
     flex: 1,
   },
   userName: {
     fontSize: 22,
-    fontWeight: '700',
+    fontWeight: '800',
     color: COLORS.text.primary,
     marginBottom: 4,
+    letterSpacing: -0.2,
   },
   userEmail: {
     fontSize: 14,
-    color: COLORS.text.secondary,
-    marginBottom: 12,
+    color: COLORS.text.tertiary,
+    marginBottom: 14,
   },
   editProfileButton: {
     alignSelf: 'flex-start',
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 16,
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    borderRadius: BORDER_RADIUS.full,
     borderWidth: 1,
     borderColor: COLORS.neutral.grey200,
     backgroundColor: COLORS.neutral.white,
@@ -429,14 +441,15 @@ const styles = StyleSheet.create({
     color: COLORS.text.secondary,
   },
 
-  // 통계 카드 (3열)
+  // 통계 카드
   statsCard: {
     flexDirection: 'row',
     backgroundColor: COLORS.neutral.white,
     marginHorizontal: 16,
-    marginTop: 16,
-    borderRadius: 16,
-    padding: 20,
+    marginTop: 12,
+    borderRadius: 20,
+    paddingVertical: 24,
+    paddingHorizontal: 16,
     alignItems: 'center',
     ...SHADOWS.medium,
   },
@@ -445,20 +458,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   statValue: {
-    fontSize: 24,
-    fontWeight: '700',
+    fontSize: 28,
+    fontWeight: '800',
     color: COLORS.primary.main,
-    marginBottom: 4,
+    marginBottom: 6,
+    letterSpacing: -0.3,
   },
   statLabel: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '500',
     color: COLORS.text.secondary,
   },
   statDivider: {
     width: 1,
-    height: 32,
-    backgroundColor: COLORS.neutral.grey200,
+    height: 40,
+    backgroundColor: COLORS.neutral.grey100,
   },
 
   // 포인트 배너
@@ -466,17 +480,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: COLORS.neutral.white,
+    backgroundColor: COLORS.primary.light,
     marginHorizontal: 16,
     marginTop: 12,
     borderRadius: 16,
-    padding: 16,
-    ...SHADOWS.small,
+    paddingVertical: 18,
+    paddingHorizontal: 20,
   },
   pointBannerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 10,
   },
   pointBannerLabel: {
     fontSize: 15,
@@ -486,12 +500,13 @@ const styles = StyleSheet.create({
   pointBannerRight: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 6,
   },
   pointBannerValue: {
-    fontSize: 18,
-    fontWeight: '700',
+    fontSize: 20,
+    fontWeight: '800',
     color: COLORS.primary.main,
+    letterSpacing: -0.2,
   },
 
   // 밥알지수 카드
@@ -499,15 +514,15 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.neutral.white,
     marginHorizontal: 16,
     marginTop: 12,
-    borderRadius: 16,
-    padding: 20,
+    borderRadius: 20,
+    padding: 24,
     ...SHADOWS.medium,
   },
   riceHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 16,
   },
   riceLabel: {
     fontSize: 16,
@@ -520,19 +535,19 @@ const styles = StyleSheet.create({
     color: COLORS.primary.main,
   },
   riceProgressBg: {
-    height: 10,
+    height: 12,
     backgroundColor: COLORS.neutral.grey100,
-    borderRadius: 5,
+    borderRadius: 6,
     overflow: 'hidden',
-    marginBottom: 10,
+    marginBottom: 12,
   },
   riceProgressFill: {
     height: '100%',
-    borderRadius: 5,
+    borderRadius: 6,
     backgroundColor: COLORS.primary.main,
   },
   riceGradeText: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '600',
     color: COLORS.text.secondary,
   },
@@ -542,8 +557,8 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.neutral.white,
     marginHorizontal: 16,
     marginTop: 12,
-    borderRadius: 16,
-    padding: 16,
+    borderRadius: 20,
+    padding: 20,
     ...SHADOWS.medium,
   },
   quickMenuGrid: {
@@ -554,19 +569,19 @@ const styles = StyleSheet.create({
   quickMenuItem: {
     width: '30%',
     alignItems: 'center',
-    paddingVertical: 14,
+    paddingVertical: 12,
   },
   quickMenuIconBox: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
+    width: 52,
+    height: 52,
+    borderRadius: 16,
     backgroundColor: COLORS.primary.light,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 10,
   },
   quickMenuLabel: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '600',
     color: COLORS.text.primary,
     textAlign: 'center',
@@ -585,7 +600,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 16,
+    paddingHorizontal: 20,
+    paddingVertical: 18,
   },
   supportTitle: {
     fontSize: 16,
@@ -600,13 +616,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.neutral.grey100,
   },
   supportItemText: {
     fontSize: 15,
+    fontWeight: '500',
     color: COLORS.text.primary,
   },
 
@@ -615,7 +632,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 24,
+    marginTop: 32,
     gap: 24,
     paddingHorizontal: 16,
   },

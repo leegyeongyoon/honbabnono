@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Animated } from 'react-native';
 import { useNavigate } from 'react-router-dom';
 import { COLORS, SHADOWS, CARD_STYLE } from '../styles/colors';
 import { Icon } from '../components/Icon';
@@ -20,6 +20,37 @@ interface User {
 interface MyMeetupsScreenProps {
   user?: User | null;
 }
+
+const TAB_ITEMS = [
+  { key: 'applied' as const, label: '신청한 모임' },
+  { key: 'created' as const, label: '내가 만든 모임' },
+  { key: 'past' as const, label: '지난 모임' },
+];
+
+const SkeletonPulse: React.FC<{ style?: any }> = ({ style }) => {
+  const pulseAnim = useRef(new Animated.Value(0.4)).current;
+
+  useEffect(() => {
+    const animation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 800,
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 0.4,
+          duration: 800,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    animation.start();
+    return () => animation.stop();
+  }, [pulseAnim]);
+
+  return <Animated.View style={[style, { opacity: pulseAnim }]} />;
+};
 
 const MyMeetupsScreen: React.FC<MyMeetupsScreenProps> = ({ user: propsUser }) => {
   const navigate = useNavigate();
@@ -227,13 +258,33 @@ const MyMeetupsScreen: React.FC<MyMeetupsScreenProps> = ({ user: propsUser }) =>
     />
   );
 
+  const getTabCount = (tab: 'applied' | 'created' | 'past') => {
+    switch (tab) {
+      case 'applied': return appliedMeetups.length;
+      case 'created': return createdMeetups.length;
+      case 'past': return pastMeetups.length;
+    }
+  };
+
+  const renderSkeletonLoader = () => (
+    <View style={styles.skeletonContainer}>
+      {[1, 2, 3].map((i) => (
+        <View key={i} style={styles.skeletonCard}>
+          <View style={styles.skeletonLeft}>
+            <SkeletonPulse style={styles.skeletonBadge} />
+            <SkeletonPulse style={styles.skeletonTitle} />
+            <SkeletonPulse style={styles.skeletonMeta} />
+            <SkeletonPulse style={styles.skeletonMetaShort} />
+          </View>
+          <SkeletonPulse style={styles.skeletonImage} />
+        </View>
+      ))}
+    </View>
+  );
+
   const renderTabContent = () => {
     if (loading) {
-      return (
-        <View style={styles.loadingContainer}>
-          <Text style={styles.loadingText}>로딩 중...</Text>
-        </View>
-      );
+      return renderSkeletonLoader();
     }
 
     switch (activeTab) {
@@ -241,7 +292,6 @@ const MyMeetupsScreen: React.FC<MyMeetupsScreenProps> = ({ user: propsUser }) =>
         return (
           <FadeIn>
           <View style={styles.meetupsContainer}>
-            <Text style={styles.sectionTitle}>신청한 모임 ({appliedMeetups.length}개)</Text>
             {appliedMeetups.length === 0 ? (
               <EmptyState
                 icon="calendar"
@@ -261,7 +311,6 @@ const MyMeetupsScreen: React.FC<MyMeetupsScreenProps> = ({ user: propsUser }) =>
         return (
           <FadeIn>
           <View style={styles.meetupsContainer}>
-            <Text style={styles.sectionTitle}>만든 모임 ({createdMeetups.length}개)</Text>
             {createdMeetups.length === 0 ? (
               <EmptyState
                 icon="plus-circle"
@@ -281,7 +330,6 @@ const MyMeetupsScreen: React.FC<MyMeetupsScreenProps> = ({ user: propsUser }) =>
         return (
           <FadeIn>
           <View style={styles.meetupsContainer}>
-            <Text style={styles.sectionTitle}>지난 모임 ({pastMeetups.length}개)</Text>
             {pastMeetups.length === 0 ? (
               <EmptyState
                 icon="clock"
@@ -311,41 +359,40 @@ const MyMeetupsScreen: React.FC<MyMeetupsScreenProps> = ({ user: propsUser }) =>
             navigate('/notifications');
           }}
           color={COLORS.text.primary}
-          size={20}
+          size={22}
         />
       </View>
 
-      {/* 탭 버튼 */}
+      {/* 탭 바 */}
       <View style={styles.tabContainer}>
-        <TouchableOpacity
-          style={[styles.tabButton, activeTab === 'applied' && styles.activeTabButton]}
-          onPress={() => setActiveTab('applied')}
-        >
-          <Text style={[styles.tabButtonText, activeTab === 'applied' && styles.activeTabButtonText]}>
-            신청한 모임
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tabButton, activeTab === 'created' && styles.activeTabButton]}
-          onPress={() => setActiveTab('created')}
-        >
-          <Text style={[styles.tabButtonText, activeTab === 'created' && styles.activeTabButtonText]}>
-            내가 만든 모임
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tabButton, activeTab === 'past' && styles.activeTabButton]}
-          onPress={() => setActiveTab('past')}
-        >
-          <Text style={[styles.tabButtonText, activeTab === 'past' && styles.activeTabButtonText]}>
-            지난 모임
-          </Text>
-        </TouchableOpacity>
+        {TAB_ITEMS.map((tab) => {
+          const isActive = activeTab === tab.key;
+          const count = getTabCount(tab.key);
+          return (
+            <TouchableOpacity
+              key={tab.key}
+              style={[styles.tabButton, isActive && styles.activeTabButton]}
+              onPress={() => setActiveTab(tab.key)}
+            >
+              <Text style={[styles.tabButtonText, isActive && styles.activeTabButtonText]}>
+                {tab.label}
+              </Text>
+              {count > 0 && (
+                <View style={[styles.tabCountBadge, isActive && styles.activeTabCountBadge]}>
+                  <Text style={[styles.tabCountText, isActive && styles.activeTabCountText]}>
+                    {count}
+                  </Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          );
+        })}
       </View>
 
       {/* 컨텐츠 */}
       <ScrollView
         style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -366,6 +413,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.neutral.background,
   },
+  // Header
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -374,152 +422,124 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     paddingTop: 20,
     backgroundColor: COLORS.neutral.white,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0,0,0,0.06)',
+    ...SHADOWS.small,
   },
   headerTitle: {
     fontSize: 20,
-    fontWeight: '700',
+    fontWeight: '800',
     color: COLORS.text.primary,
+    letterSpacing: -0.3,
   },
+  // Tabs
   tabContainer: {
     flexDirection: 'row',
     backgroundColor: COLORS.neutral.white,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0,0,0,0.06)',
+    borderBottomColor: COLORS.neutral.grey100,
+    paddingHorizontal: 4,
   },
   tabButton: {
-    flex: 1,
-    paddingVertical: 14,
+    flexDirection: 'row',
     alignItems: 'center',
-    borderBottomWidth: 2,
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+    borderBottomWidth: 3,
     borderBottomColor: 'transparent',
+    gap: 6,
   },
   activeTabButton: {
     borderBottomColor: COLORS.primary.main,
   },
   tabButtonText: {
-    fontSize: 14,
+    fontSize: 15,
     color: COLORS.text.tertiary,
     fontWeight: '500',
   },
   activeTabButtonText: {
-    color: COLORS.primary.main,
+    color: COLORS.text.primary,
     fontWeight: '700',
   },
+  tabCountBadge: {
+    backgroundColor: COLORS.neutral.grey100,
+    borderRadius: 9999,
+    paddingHorizontal: 7,
+    paddingVertical: 1,
+    minWidth: 20,
+    alignItems: 'center',
+  },
+  activeTabCountBadge: {
+    backgroundColor: COLORS.primary.light,
+  },
+  tabCountText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: COLORS.text.tertiary,
+  },
+  activeTabCountText: {
+    color: COLORS.primary.main,
+  },
+  // Content
   scrollView: {
     flex: 1,
   },
+  scrollContent: {
+    paddingBottom: 32,
+  },
   meetupsContainer: {
     paddingHorizontal: 16,
-    paddingVertical: 16,
+    paddingTop: 16,
+    gap: 12,
   },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: COLORS.text.primary,
-    marginBottom: 16,
-    paddingHorizontal: 4,
+  // Skeleton
+  skeletonContainer: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    gap: 12,
   },
-  meetupItem: {
+  skeletonCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0,0,0,0.06)',
+    justifyContent: 'space-between',
+    backgroundColor: COLORS.neutral.white,
+    borderRadius: 16,
+    padding: 16,
+    ...SHADOWS.small,
   },
-  profileImage: {
+  skeletonLeft: {
+    flex: 1,
+    gap: 10,
     marginRight: 16,
   },
-  avatarCircle: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: '#FFE0B2',
-    justifyContent: 'center',
-    alignItems: 'center',
+  skeletonBadge: {
+    height: 22,
+    width: 56,
+    borderRadius: 9999,
+    backgroundColor: COLORS.neutral.grey100,
   },
-  avatarText: {
-    fontSize: 20,
+  skeletonTitle: {
+    height: 18,
+    width: '75%',
+    borderRadius: 6,
+    backgroundColor: COLORS.neutral.grey100,
   },
-  meetupInfo: {
-    flex: 1,
+  skeletonMeta: {
+    height: 14,
+    width: '55%',
+    borderRadius: 4,
+    backgroundColor: COLORS.neutral.grey100,
   },
-  meetupTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: COLORS.text.primary,
-    marginBottom: 4,
+  skeletonMetaShort: {
+    height: 14,
+    width: '40%',
+    borderRadius: 4,
+    backgroundColor: COLORS.neutral.grey100,
   },
-  meetupCategory: {
-    fontSize: 14,
-    color: COLORS.text.secondary,
-    marginBottom: 4,
-  },
-  meetupMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  metaText: {
-    fontSize: 12,
-    color: COLORS.text.secondary,
-  },
-  statusText: {
-    fontSize: 12,
-    fontWeight: '500',
-  },
-  meetupLocation: {
-    fontSize: 14,
-    color: COLORS.text.secondary,
-    marginBottom: 2,
-  },
-  meetupDate: {
-    fontSize: 12,
-    color: COLORS.text.secondary,
-    marginBottom: 2,
-  },
-  hostName: {
-    fontSize: 12,
-    color: COLORS.text.tertiary,
-  },
-  meetupRight: {
-    alignItems: 'flex-end',
-  },
-  statusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+  skeletonImage: {
+    width: 64,
+    height: 64,
     borderRadius: 12,
-    marginBottom: 4,
-  },
-  participantInfo: {
-    fontSize: 11,
-    color: COLORS.text.secondary,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 40,
-  },
-  loadingText: {
-    fontSize: 16,
-    color: COLORS.text.secondary,
-  },
-  emptyContainer: {
-    alignItems: 'center',
-    padding: 40,
-  },
-  emptyText: {
-    fontSize: 16,
-    color: COLORS.text.secondary,
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  emptySubtext: {
-    fontSize: 14,
-    color: COLORS.text.tertiary,
-    textAlign: 'center',
+    backgroundColor: COLORS.neutral.grey100,
   },
 });
 

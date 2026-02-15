@@ -8,7 +8,7 @@ import {
   TextInput,
 } from 'react-native';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { COLORS, SHADOWS } from '../styles/colors';
+import { COLORS, SHADOWS, CSS_SHADOWS } from '../styles/colors';
 import { SPACING, BORDER_RADIUS } from '../styles/spacing';
 import { Icon } from '../components/Icon';
 import WebKakaoMap, { MapMarker } from '../components/WebKakaoMap';
@@ -194,7 +194,7 @@ const ExploreScreen: React.FC = () => {
         </View>
       </View>
 
-      {/* 카테고리 탭 (배민 스타일) */}
+      {/* 카테고리 탭 (배민 스타일 pill 칩) */}
       <View style={styles.categoryTabBar}>
         <ScrollView
           horizontal
@@ -202,20 +202,20 @@ const ExploreScreen: React.FC = () => {
           contentContainerStyle={styles.categoryTabScroll}
         >
           <TouchableOpacity
-            style={[styles.categoryTab, !selectedCategory && styles.categoryTabActive]}
+            style={[styles.categoryChip, !selectedCategory && styles.categoryChipActive]}
             onPress={() => handleCategoryChange(null)}
             activeOpacity={0.7}
           >
-            <Text style={[styles.categoryTabText, !selectedCategory && styles.categoryTabTextActive]}>전체</Text>
+            <Text style={[styles.categoryChipText, !selectedCategory && styles.categoryChipTextActive]}>전체</Text>
           </TouchableOpacity>
           {CATEGORY_NAMES.map((name) => (
             <TouchableOpacity
               key={name}
-              style={[styles.categoryTab, selectedCategory === name && styles.categoryTabActive]}
+              style={[styles.categoryChip, selectedCategory === name && styles.categoryChipActive]}
               onPress={() => handleCategoryChange(name)}
               activeOpacity={0.7}
             >
-              <Text style={[styles.categoryTabText, selectedCategory === name && styles.categoryTabTextActive]}>
+              <Text style={[styles.categoryChipText, selectedCategory === name && styles.categoryChipTextActive]}>
                 {name}
               </Text>
             </TouchableOpacity>
@@ -223,7 +223,7 @@ const ExploreScreen: React.FC = () => {
         </ScrollView>
       </View>
 
-      {/* 검색바 */}
+      {/* 검색바 + 반경 필터 */}
       <View style={styles.searchSection}>
         <View style={styles.searchBar}>
           <Icon name="search" size={16} color={COLORS.text.tertiary} />
@@ -291,30 +291,61 @@ const ExploreScreen: React.FC = () => {
                 left: 16,
                 right: 16,
                 backgroundColor: COLORS.neutral.white,
-                borderRadius: 16,
-                padding: 16,
-                boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
+                borderRadius: 20,
+                padding: 20,
+                boxShadow: '0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06)',
                 zIndex: 20,
               }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 16, fontWeight: '700', color: COLORS.text.primary, marginBottom: 4 }}>
+                  <div style={{ fontSize: 16, fontWeight: '700', color: COLORS.text.primary, marginBottom: 6, lineHeight: '22px' }}>
                     {selectedMeetup.title}
                   </div>
-                  <div style={{ fontSize: 13, color: COLORS.text.secondary, marginBottom: 4 }}>
-                    {selectedMeetup.category} · {selectedMeetup.location}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+                    <span style={{
+                      display: 'inline-block',
+                      fontSize: 12,
+                      fontWeight: '600',
+                      color: COLORS.primary.main,
+                      backgroundColor: COLORS.primary.light,
+                      padding: '3px 8px',
+                      borderRadius: 6,
+                    }}>
+                      {selectedMeetup.category}
+                    </span>
+                    <span style={{ fontSize: 13, color: COLORS.text.secondary }}>
+                      {selectedMeetup.location}
+                    </span>
                   </div>
-                  <div style={{ fontSize: 13, color: COLORS.text.tertiary }}>
-                    {selectedMeetup.date} {selectedMeetup.time} · {selectedMeetup.currentParticipants}/{selectedMeetup.maxParticipants}명
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 13, color: COLORS.text.tertiary }}>
+                    <span>{selectedMeetup.date} {selectedMeetup.time}</span>
+                    <span style={{ color: COLORS.neutral.grey300 }}>|</span>
+                    <span>{selectedMeetup.currentParticipants}/{selectedMeetup.maxParticipants}명</span>
                     {selectedMeetup.distance != null && (
-                      <span style={{ color: COLORS.primary.main, fontWeight: '600' }}> · {formatDistance(selectedMeetup.distance)}</span>
+                      <>
+                        <span style={{ color: COLORS.neutral.grey300 }}>|</span>
+                        <span style={{ color: COLORS.primary.main, fontWeight: '600' }}>{formatDistance(selectedMeetup.distance)}</span>
+                      </>
                     )}
                   </div>
                 </div>
                 <div
                   onClick={() => setSelectedMeetup(null)}
-                  style={{ cursor: 'pointer', padding: 4, color: COLORS.text.tertiary }}
+                  style={{
+                    cursor: 'pointer',
+                    padding: 6,
+                    color: COLORS.text.tertiary,
+                    fontSize: 16,
+                    lineHeight: '16px',
+                    borderRadius: 8,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: 28,
+                    height: 28,
+                    backgroundColor: COLORS.neutral.background,
+                  }}
                 >
                   ✕
                 </div>
@@ -322,15 +353,17 @@ const ExploreScreen: React.FC = () => {
               <div
                 onClick={() => handleMeetupClick(selectedMeetup)}
                 style={{
-                  marginTop: 12,
-                  padding: '10px 0',
+                  marginTop: 14,
+                  padding: '11px 0',
                   textAlign: 'center',
                   backgroundColor: COLORS.primary.main,
                   color: COLORS.text.white,
-                  borderRadius: 10,
+                  borderRadius: 12,
                   fontSize: 14,
                   fontWeight: '600',
                   cursor: 'pointer',
+                  letterSpacing: '-0.03em',
+                  transition: 'background-color 200ms ease',
                 }}
               >
                 상세보기
@@ -340,11 +373,16 @@ const ExploreScreen: React.FC = () => {
 
           {/* 지도 아래 모임 리스트 */}
           <ScrollView style={styles.mapListBelow} showsVerticalScrollIndicator={false}>
-            <Text style={styles.mapListTitle}>
-              {selectedCategory ? `${selectedCategory}` : `반경 ${radius >= 1000 ? `${radius / 1000}km` : `${radius}m`}`} 모임 {displayMeetups.length > 0 ? `${displayMeetups.length}개` : ''}
-            </Text>
+            <View style={styles.listTitleRow}>
+              <Text style={styles.mapListTitle}>
+                {selectedCategory ? `${selectedCategory}` : `반경 ${radius >= 1000 ? `${radius / 1000}km` : `${radius}m`}`} 모임
+              </Text>
+              {displayMeetups.length > 0 && (
+                <Text style={styles.listCount}>{displayMeetups.length}개</Text>
+              )}
+            </View>
             {loading ? (
-              <View style={{ padding: 16 }}>
+              <View style={styles.skeletonPadding}>
                 {[1, 2, 3].map(i => <MeetupCardSkeleton key={i} />)}
               </View>
             ) : displayMeetups.length === 0 ? (
@@ -358,7 +396,7 @@ const ExploreScreen: React.FC = () => {
               <FadeIn>
                 <View style={styles.meetupList}>
                   {displayMeetups.map(meetup => (
-                    <View key={meetup.id} style={{ position: 'relative' }}>
+                    <View key={meetup.id} style={styles.meetupItemWrapper}>
                       <MeetupCard
                         meetup={meetup}
                         onPress={handleMeetupClick}
@@ -382,12 +420,17 @@ const ExploreScreen: React.FC = () => {
         /* 리스트 뷰 */
         <ScrollView style={styles.listContainer} showsVerticalScrollIndicator={false}>
           <View style={styles.listHeader}>
-            <Text style={styles.mapListTitle}>
-              {selectedCategory ? `${selectedCategory}` : `반경 ${radius >= 1000 ? `${radius / 1000}km` : `${radius}m`}`} 모임 {displayMeetups.length > 0 ? `${displayMeetups.length}개` : ''}
-            </Text>
+            <View style={styles.listTitleRow}>
+              <Text style={styles.mapListTitle}>
+                {selectedCategory ? `${selectedCategory}` : `반경 ${radius >= 1000 ? `${radius / 1000}km` : `${radius}m`}`} 모임
+              </Text>
+              {displayMeetups.length > 0 && (
+                <Text style={styles.listCount}>{displayMeetups.length}개</Text>
+              )}
+            </View>
           </View>
           {loading ? (
-            <View style={{ padding: 16 }}>
+            <View style={styles.skeletonPadding}>
               {[1, 2, 3, 4, 5].map(i => <MeetupCardSkeleton key={i} />)}
             </View>
           ) : displayMeetups.length === 0 ? (
@@ -400,7 +443,7 @@ const ExploreScreen: React.FC = () => {
             <FadeIn>
               <View style={styles.meetupList}>
                 {displayMeetups.map(meetup => (
-                  <View key={meetup.id}>
+                  <View key={meetup.id} style={styles.meetupItemWrapper}>
                     <MeetupCard
                       meetup={meetup}
                       onPress={handleMeetupClick}
@@ -429,39 +472,43 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.neutral.background,
   },
+
+  // Header
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingVertical: 14,
     paddingTop: 20,
     backgroundColor: COLORS.neutral.white,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.neutral.grey100,
     ...SHADOWS.small,
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
+    fontSize: 20,
+    fontWeight: '800',
     color: COLORS.text.primary,
+    letterSpacing: -0.3,
   },
+
+  // View Toggle (pill 형태)
   viewToggle: {
     flexDirection: 'row',
     backgroundColor: COLORS.neutral.grey100,
-    borderRadius: 10,
+    borderRadius: 12,
     padding: 3,
   },
   toggleButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
+    gap: 5,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 10,
   },
   toggleButtonActive: {
     backgroundColor: COLORS.primary.main,
+    ...SHADOWS.small,
   },
   toggleText: {
     fontSize: 13,
@@ -471,10 +518,45 @@ const styles = StyleSheet.create({
   toggleTextActive: {
     color: COLORS.text.white,
   },
+
+  // Category Tabs (배민 스타일 pill 칩)
+  categoryTabBar: {
+    backgroundColor: COLORS.neutral.white,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.neutral.grey100,
+  },
+  categoryTabScroll: {
+    paddingHorizontal: 20,
+    gap: 8,
+  },
+  categoryChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: BORDER_RADIUS.full,
+    backgroundColor: COLORS.neutral.grey100,
+  },
+  categoryChipActive: {
+    backgroundColor: COLORS.primary.main,
+  },
+  categoryChipText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: COLORS.text.secondary,
+    whiteSpace: 'nowrap',
+  },
+  categoryChipTextActive: {
+    fontWeight: '700',
+    color: COLORS.text.white,
+  },
+
+  // Search Section
   searchSection: {
-    padding: 12,
+    paddingVertical: 12,
     paddingHorizontal: 20,
     backgroundColor: COLORS.neutral.white,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.neutral.grey100,
   },
   searchBar: {
     flexDirection: 'row',
@@ -483,7 +565,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.neutral.background,
     borderRadius: BORDER_RADIUS.md,
     paddingHorizontal: 14,
-    gap: 8,
+    gap: 10,
   },
   searchInput: {
     flex: 1,
@@ -493,32 +575,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
     outline: 'none',
   },
-  mapContainer: {
-    flex: 1,
-  },
-  mapListBelow: {
-    flex: 1,
-    backgroundColor: COLORS.neutral.white,
-  },
-  mapListTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: COLORS.text.primary,
-    padding: 16,
-    paddingBottom: 8,
-  },
-  listContainer: {
-    flex: 1,
-  },
-  meetupList: {
-    backgroundColor: COLORS.neutral.white,
-    borderRadius: BORDER_RADIUS.lg,
-    overflow: 'hidden',
-  },
-  listHeader: {
-    backgroundColor: COLORS.neutral.white,
-    paddingBottom: 0,
-  },
+
+  // Radius Filter
   radiusRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -532,11 +590,11 @@ const styles = StyleSheet.create({
     marginRight: 2,
   },
   radiusChip: {
-    paddingHorizontal: 12,
+    paddingHorizontal: 14,
     paddingVertical: 6,
-    borderRadius: 16,
+    borderRadius: BORDER_RADIUS.full,
     backgroundColor: COLORS.neutral.grey100,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: 'transparent',
   },
   radiusChipActive: {
@@ -551,51 +609,82 @@ const styles = StyleSheet.create({
   radiusChipTextActive: {
     color: COLORS.primary.main,
   },
+
+  // Map View
+  mapContainer: {
+    flex: 1,
+  },
+  mapListBelow: {
+    flex: 1,
+    backgroundColor: COLORS.neutral.white,
+  },
+
+  // List Title
+  listTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 6,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 8,
+  },
+  mapListTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: COLORS.text.primary,
+    letterSpacing: -0.1,
+  },
+  listCount: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.primary.main,
+  },
+
+  // List View
+  listContainer: {
+    flex: 1,
+  },
+  listHeader: {
+    backgroundColor: COLORS.neutral.white,
+    paddingBottom: 0,
+  },
+
+  // Meetup List
+  meetupList: {
+    paddingHorizontal: 16,
+    gap: 12,
+  },
+  meetupItemWrapper: {
+    position: 'relative',
+    backgroundColor: COLORS.neutral.white,
+    borderRadius: BORDER_RADIUS.lg,
+    overflow: 'hidden',
+    ...SHADOWS.medium,
+  },
+
+  // Distance Badge
   distanceBadge: {
     position: 'absolute',
     top: 12,
     right: 12,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 3,
-    backgroundColor: 'rgba(255,255,255,0.92)',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 10,
+    gap: 4,
+    backgroundColor: 'rgba(255,255,255,0.95)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: BORDER_RADIUS.full,
+    ...SHADOWS.small,
   },
   distanceText: {
     fontSize: 11,
-    fontWeight: '600',
+    fontWeight: '700',
     color: COLORS.primary.main,
   },
-  // 카테고리 탭 (배민 스타일)
-  categoryTabBar: {
-    backgroundColor: COLORS.neutral.white,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.neutral.grey100,
-  },
-  categoryTabScroll: {
-    paddingHorizontal: 16,
-    gap: 0,
-  },
-  categoryTab: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
-  },
-  categoryTabActive: {
-    borderBottomColor: COLORS.text.primary,
-  },
-  categoryTabText: {
-    fontSize: 15,
-    fontWeight: '500',
-    color: COLORS.text.tertiary,
-    whiteSpace: 'nowrap',
-  },
-  categoryTabTextActive: {
-    fontWeight: '700',
-    color: COLORS.text.primary,
+
+  // Skeleton Loading
+  skeletonPadding: {
+    padding: 16,
   },
 });
 
