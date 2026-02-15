@@ -6,34 +6,40 @@ import SkeletonLoader from './SkeletonLoader';
 const ChatListSkeleton: React.FC = () => {
   return (
     <View style={styles.container}>
-      <SkeletonLoader variant="circle" height={48} />
+      <SkeletonLoader variant="circle" height={52} />
       <View style={styles.content}>
         <SkeletonLoader variant="text" width="60%" height={16} />
         <SkeletonLoader
           variant="text"
           width="80%"
-          height={12}
+          height={13}
           style={styles.messageLine}
         />
       </View>
-      <SkeletonLoader variant="text" width={40} height={10} />
+      <View style={styles.meta}>
+        <SkeletonLoader variant="text" width={36} height={10} />
+      </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    paddingVertical: SPACING.md,
+    paddingVertical: 14,
     paddingHorizontal: SPACING.xl,
     flexDirection: 'row',
     alignItems: 'center',
   },
   content: {
     flex: 1,
-    marginLeft: SPACING.md,
+    marginLeft: 14,
   },
   messageLine: {
-    marginTop: SPACING.xs,
+    marginTop: 6,
+  },
+  meta: {
+    alignItems: 'flex-end',
+    paddingTop: 2,
   },
 });
 

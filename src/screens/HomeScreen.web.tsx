@@ -174,8 +174,8 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
 
   return (
     <View style={styles.container}>
-      {/* 고정 헤더 (72px) - 듀얼 레이어 그림자 */}
-      <div style={{ boxShadow: '0 1px 0 rgba(0,0,0,0.04), 0 2px 8px rgba(0,0,0,0.04)' }}>
+      {/* 고정 헤더 (72px) - SHADOWS.small 부드러운 구분 */}
+      <div style={{ boxShadow: CSS_SHADOWS.small }}>
         <View style={styles.header}>
           <Text style={styles.headerLogo}>혼밥시러</Text>
 
@@ -184,7 +184,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
             <Text style={styles.locationText}>
               {currentNeighborhood ? `${currentNeighborhood.neighborhood}` : '역삼동'}
             </Text>
-            <Icon name="chevron-down" size={12} color={COLORS.text.tertiary} />
+            <Icon name="chevron-down" size={14} color={COLORS.text.tertiary} />
           </TouchableOpacity>
 
           <View style={styles.headerRight}>
@@ -220,10 +220,10 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
             ]}
             activeOpacity={0.8}
           >
-            <Icon name="search" size={16} color={searchFocused ? COLORS.primary.main : COLORS.text.tertiary} />
+            <Icon name="search" size={20} color={searchFocused ? COLORS.primary.main : COLORS.text.tertiary} />
             <TextInput
               style={styles.searchInput}
-              placeholder="오늘은 뭐 먹을까요?"
+              placeholder="오늘 같이 밥 먹을 사람 찾기"
               placeholderTextColor={COLORS.text.tertiary}
               value={searchQuery}
               onChangeText={handleSearchInput}
@@ -503,7 +503,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
         </div>
       )}
 
-      {/* FAB - Enhanced */}
+      {/* FAB - 원형 모임 만들기 버튼 */}
       <div
         onClick={() => setShowCreateMeetup(true)}
         onMouseEnter={() => setFabHovered(true)}
@@ -514,16 +514,13 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
           position: 'fixed',
           bottom: 100,
           right: 20,
+          width: 60,
           height: 60,
-          paddingLeft: 20,
-          paddingRight: 24,
           borderRadius: 30,
-          backgroundColor: fabPressed ? COLORS.primary.dark : COLORS.text.primary,
+          backgroundColor: fabPressed ? COLORS.primary.dark : COLORS.primary.main,
           display: 'flex',
-          flexDirection: 'row',
           alignItems: 'center',
           justifyContent: 'center',
-          gap: 8,
           boxShadow: fabHovered ? CSS_SHADOWS.hover : CSS_SHADOWS.large,
           cursor: 'pointer',
           zIndex: 1000,
@@ -533,15 +530,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
         role="button"
         aria-label="새 모임 만들기"
       >
-        <span style={{ fontSize: 22, color: COLORS.text.white, fontWeight: '300' }}>+</span>
-        <span style={{
-          fontSize: 15,
-          fontWeight: '600',
-          color: COLORS.text.white,
-          whiteSpace: 'nowrap',
-        }}>
-          모임 만들기
-        </span>
+        <span style={{ fontSize: 28, color: COLORS.neutral.white, fontWeight: '300', lineHeight: '28px' }}>+</span>
       </div>
 
       {/* 모달들 */}
@@ -592,7 +581,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    paddingHorizontal: SPACING.md,
+    minHeight: 44,
+    minWidth: 44,
+    paddingHorizontal: SPACING.lg,
     paddingVertical: SPACING.sm,
     backgroundColor: COLORS.neutral.background,
     borderRadius: BORDER_RADIUS.full,
@@ -601,6 +592,7 @@ const styles = StyleSheet.create({
   },
   locationText: {
     ...TYPOGRAPHY.location.primary,
+    fontWeight: FONT_WEIGHTS.bold as any,
   },
   headerRight: {
     marginLeft: 'auto',
@@ -616,7 +608,7 @@ const styles = StyleSheet.create({
 
   // ─── 검색 바 ─────────────────────────────────────────
   searchSection: {
-    paddingHorizontal: SPACING.xl,
+    paddingHorizontal: 20,
     paddingTop: SPACING.lg,
     paddingBottom: SPACING.xl,
     backgroundColor: COLORS.neutral.white,
@@ -625,9 +617,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     height: 52,
-    backgroundColor: COLORS.neutral.background,
+    backgroundColor: COLORS.neutral.grey100,
     borderRadius: 26,
-    paddingHorizontal: SPACING.xl,
+    paddingHorizontal: 20,
     gap: SPACING.md,
     borderWidth: 2,
     borderColor: 'transparent',
@@ -635,10 +627,15 @@ const styles = StyleSheet.create({
   searchBarFocused: {
     borderColor: COLORS.primary.main,
     backgroundColor: COLORS.neutral.white,
+    ...SHADOWS.focused,
   },
   searchInput: {
     flex: 1,
-    ...TYPOGRAPHY.input,
+    fontSize: 15,
+    fontWeight: FONT_WEIGHTS.regular as any,
+    lineHeight: 20,
+    letterSpacing: 0,
+    color: COLORS.text.primary,
     border: 'none',
     backgroundColor: 'transparent',
   },
@@ -691,7 +688,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.neutral.white,
     paddingTop: SPACING.lg,
     paddingBottom: SPACING.xxl,
-    paddingHorizontal: SPACING.xl,
+    paddingHorizontal: 20,
     marginBottom: SPACING.sm,
   },
   categoryGrid: {
@@ -699,31 +696,31 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     justifyContent: 'space-between',
     rowGap: SPACING.xl,
+    gap: 16,
   },
   categoryItem: {
-    width: '23%',
+    width: '21%',
     alignItems: 'center',
   },
   categoryIconBox: {
-    width: 72,
-    height: 72,
-    borderRadius: BORDER_RADIUS.xl,
+    width: 68,
+    height: 68,
+    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: SPACING.sm,
-    ...SHADOWS.medium,
+    marginBottom: 8,
   },
   categoryName: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: FONT_WEIGHTS.semiBold as any,
-    lineHeight: 18,
-    color: COLORS.text.primary,
+    lineHeight: 16,
+    color: COLORS.text.secondary,
     textAlign: 'center',
   },
 
   // ─── 콘텐츠 섹션 ─────────────────────────────────────
   contentSection: {
-    paddingTop: SPACING.xxl,
+    paddingTop: SPACING.xxxl,
     paddingBottom: SPACING.md,
     marginBottom: SPACING.sm,
   },
@@ -731,7 +728,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: SPACING.xl,
+    paddingHorizontal: 20,
     marginBottom: SPACING.lg,
   },
   sectionTitleRow: {
@@ -743,23 +740,24 @@ const styles = StyleSheet.create({
     fontSize: 20,
   },
   sectionTitle: {
-    fontSize: 20,
+    fontSize: 19,
     fontWeight: FONT_WEIGHTS.extraBold as any,
-    lineHeight: 28,
-    letterSpacing: -0.2,
+    lineHeight: 26,
+    letterSpacing: -0.3,
     color: COLORS.text.primary,
   },
   seeAllText: {
-    ...TYPOGRAPHY.body.small,
-    color: COLORS.text.tertiary,
-    fontWeight: FONT_WEIGHTS.medium as any,
+    fontSize: 13,
+    fontWeight: FONT_WEIGHTS.semiBold as any,
+    color: COLORS.primary.main,
   },
   horizontalCardList: {
-    paddingHorizontal: SPACING.xl,
-    gap: SPACING.lg,
+    paddingLeft: 20,
+    paddingRight: 20,
+    gap: 14,
   },
   horizontalCardWrapper: {
-    width: 220,
+    width: 240,
   },
 
   // ─── 세로 리스트 ─────────────────────────────────────

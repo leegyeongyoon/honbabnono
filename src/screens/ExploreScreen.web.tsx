@@ -8,7 +8,7 @@ import {
   TextInput,
 } from 'react-native';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { COLORS, SHADOWS, CSS_SHADOWS } from '../styles/colors';
+import { COLORS, SHADOWS, CSS_SHADOWS, CARD_STYLE } from '../styles/colors';
 import { SPACING, BORDER_RADIUS } from '../styles/spacing';
 import { Icon } from '../components/Icon';
 import WebKakaoMap, { MapMarker } from '../components/WebKakaoMap';
@@ -70,6 +70,7 @@ const ExploreScreen: React.FC = () => {
   const [selectedMeetup, setSelectedMeetup] = useState<Meetup | null>(null);
   const [radius, setRadius] = useState(3000);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(categoryFromUrl);
+  const [searchFocused, setSearchFocused] = useState(false);
 
   // 사용자 현재 위치 가져오기
   useEffect(() => {
@@ -225,8 +226,8 @@ const ExploreScreen: React.FC = () => {
 
       {/* 검색바 + 반경 필터 */}
       <View style={styles.searchSection}>
-        <View style={styles.searchBar}>
-          <Icon name="search" size={16} color={COLORS.text.tertiary} />
+        <View style={[styles.searchBar, searchFocused && styles.searchBarFocused]}>
+          <Icon name="search" size={16} color={searchFocused ? COLORS.primary.main : COLORS.text.tertiary} />
           <TextInput
             style={styles.searchInput}
             placeholder="모임 검색 (제목, 위치, 카테고리)"
@@ -234,6 +235,8 @@ const ExploreScreen: React.FC = () => {
             value={searchQuery}
             onChangeText={setSearchQuery}
             onSubmitEditing={handleSearchSubmit}
+            onFocus={() => setSearchFocused(true)}
+            onBlur={() => setSearchFocused(false)}
             returnKeyType="search"
           />
           {searchQuery.length > 0 && (
@@ -285,16 +288,18 @@ const ExploreScreen: React.FC = () => {
           {/* 선택된 모임 팝업 카드 */}
           {selectedMeetup && (
             <div
+              className="explore-popup-card"
               style={{
                 position: 'absolute',
                 bottom: 16,
                 left: 16,
                 right: 16,
                 backgroundColor: COLORS.neutral.white,
-                borderRadius: 20,
-                padding: 20,
-                boxShadow: '0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06)',
+                borderRadius: 16,
+                padding: 16,
+                boxShadow: CSS_SHADOWS.large,
                 zIndex: 20,
+                transition: `box-shadow 200ms ease, transform 200ms ease`,
               }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -310,7 +315,7 @@ const ExploreScreen: React.FC = () => {
                       color: COLORS.primary.main,
                       backgroundColor: COLORS.primary.light,
                       padding: '3px 8px',
-                      borderRadius: 6,
+                      borderRadius: 10,
                     }}>
                       {selectedMeetup.category}
                     </span>
@@ -318,14 +323,21 @@ const ExploreScreen: React.FC = () => {
                       {selectedMeetup.location}
                     </span>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 13, color: COLORS.text.tertiary }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: COLORS.text.tertiary }}>
                     <span>{selectedMeetup.date} {selectedMeetup.time}</span>
                     <span style={{ color: COLORS.neutral.grey300 }}>|</span>
                     <span>{selectedMeetup.currentParticipants}/{selectedMeetup.maxParticipants}명</span>
                     {selectedMeetup.distance != null && (
                       <>
                         <span style={{ color: COLORS.neutral.grey300 }}>|</span>
-                        <span style={{ color: COLORS.primary.main, fontWeight: '600' }}>{formatDistance(selectedMeetup.distance)}</span>
+                        <span style={{
+                          color: COLORS.primary.main,
+                          fontWeight: '600',
+                          backgroundColor: COLORS.primary.light,
+                          padding: '2px 8px',
+                          borderRadius: 10,
+                          fontSize: 12,
+                        }}>{formatDistance(selectedMeetup.distance)}</span>
                       </>
                     )}
                   </div>
@@ -345,6 +357,7 @@ const ExploreScreen: React.FC = () => {
                     width: 28,
                     height: 28,
                     backgroundColor: COLORS.neutral.background,
+                    transition: 'background-color 150ms ease',
                   }}
                 >
                   ✕
@@ -378,7 +391,7 @@ const ExploreScreen: React.FC = () => {
                 {selectedCategory ? `${selectedCategory}` : `반경 ${radius >= 1000 ? `${radius / 1000}km` : `${radius}m`}`} 모임
               </Text>
               {displayMeetups.length > 0 && (
-                <Text style={styles.listCount}>{displayMeetups.length}개</Text>
+                <Text style={styles.listCount}>총 {displayMeetups.length}개의 모임</Text>
               )}
             </View>
             {loading ? (
@@ -388,8 +401,8 @@ const ExploreScreen: React.FC = () => {
             ) : displayMeetups.length === 0 ? (
               <EmptyState
                 compact
-                icon="map-pin"
-                title={selectedCategory ? `${selectedCategory} 모임이 없어요` : '주변에 모임이 없어요'}
+                icon="search"
+                title={selectedCategory ? `${selectedCategory} 모임이 없어요` : searchQuery ? '조건에 맞는 모임이 없어요' : '주변에 모임이 없어요'}
                 description={selectedCategory ? '다른 카테고리를 선택해보세요' : '다른 위치로 이동해보세요'}
               />
             ) : (
@@ -425,7 +438,7 @@ const ExploreScreen: React.FC = () => {
                 {selectedCategory ? `${selectedCategory}` : `반경 ${radius >= 1000 ? `${radius / 1000}km` : `${radius}m`}`} 모임
               </Text>
               {displayMeetups.length > 0 && (
-                <Text style={styles.listCount}>{displayMeetups.length}개</Text>
+                <Text style={styles.listCount}>총 {displayMeetups.length}개의 모임</Text>
               )}
             </View>
           </View>
@@ -435,9 +448,9 @@ const ExploreScreen: React.FC = () => {
             </View>
           ) : displayMeetups.length === 0 ? (
             <EmptyState
-              icon="compass"
-              title={selectedCategory ? `${selectedCategory} 모임이 없어요` : '주변에 모임이 없어요'}
-              description={selectedCategory ? '다른 카테고리를 선택해보세요' : '반경을 넓히거나 다른 검색어를 사용해보세요'}
+              icon={searchQuery ? 'search' : 'map-pin'}
+              title={selectedCategory ? `${selectedCategory} 모임이 없어요` : searchQuery ? '조건에 맞는 모임이 없어요' : '주변에 모임이 없어요'}
+              description={selectedCategory ? '다른 카테고리를 선택해보세요' : searchQuery ? '다른 검색어를 사용해보세요' : '반경을 넓히거나 위치를 변경해보세요'}
             />
           ) : (
             <FadeIn>
@@ -505,6 +518,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 7,
     borderRadius: 10,
+    transition: 'all 200ms ease',
   },
   toggleButtonActive: {
     backgroundColor: COLORS.primary.main,
@@ -514,6 +528,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     color: COLORS.text.secondary,
+    transition: 'color 200ms ease',
   },
   toggleTextActive: {
     color: COLORS.text.white,
@@ -527,14 +542,18 @@ const styles = StyleSheet.create({
     borderBottomColor: COLORS.neutral.grey100,
   },
   categoryTabScroll: {
-    paddingHorizontal: 20,
+    paddingLeft: 20,
+    paddingRight: 12,
     gap: 8,
   },
   categoryChip: {
+    height: 36,
+    justifyContent: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: BORDER_RADIUS.full,
+    borderRadius: 18,
     backgroundColor: COLORS.neutral.grey100,
+    transition: 'background-color 150ms ease',
+    cursor: 'pointer',
   },
   categoryChipActive: {
     backgroundColor: COLORS.primary.main,
@@ -561,11 +580,16 @@ const styles = StyleSheet.create({
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    height: 44,
-    backgroundColor: COLORS.neutral.background,
-    borderRadius: BORDER_RADIUS.md,
-    paddingHorizontal: 14,
+    height: 48,
+    backgroundColor: COLORS.neutral.grey100,
+    borderRadius: 24,
+    paddingHorizontal: 20,
     gap: 10,
+    transition: 'background-color 200ms ease, box-shadow 200ms ease',
+  },
+  searchBarFocused: {
+    backgroundColor: COLORS.neutral.white,
+    boxShadow: CSS_SHADOWS.focused,
   },
   searchInput: {
     flex: 1,
@@ -590,12 +614,15 @@ const styles = StyleSheet.create({
     marginRight: 2,
   },
   radiusChip: {
+    height: 32,
+    justifyContent: 'center',
     paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: BORDER_RADIUS.full,
-    backgroundColor: COLORS.neutral.grey100,
+    borderRadius: 16,
+    backgroundColor: 'transparent',
     borderWidth: 1.5,
-    borderColor: 'transparent',
+    borderColor: COLORS.neutral.grey300,
+    transition: 'all 150ms ease',
+    cursor: 'pointer',
   },
   radiusChipActive: {
     backgroundColor: COLORS.primary.light,
@@ -617,13 +644,15 @@ const styles = StyleSheet.create({
   mapListBelow: {
     flex: 1,
     backgroundColor: COLORS.neutral.white,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.neutral.grey100,
   },
 
   // List Title
   listTitleRow: {
     flexDirection: 'row',
     alignItems: 'baseline',
-    gap: 6,
+    justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingTop: 20,
     paddingBottom: 8,
@@ -637,7 +666,7 @@ const styles = StyleSheet.create({
   listCount: {
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.primary.main,
+    color: COLORS.text.secondary,
   },
 
   // List View
@@ -652,14 +681,17 @@ const styles = StyleSheet.create({
   // Meetup List
   meetupList: {
     paddingHorizontal: 16,
-    gap: 12,
+    gap: 14,
   },
   meetupItemWrapper: {
     position: 'relative',
     backgroundColor: COLORS.neutral.white,
-    borderRadius: BORDER_RADIUS.lg,
+    borderRadius: 16,
     overflow: 'hidden',
-    ...SHADOWS.medium,
+    ...CARD_STYLE,
+    ...SHADOWS.small,
+    transition: 'box-shadow 200ms ease, transform 200ms ease',
+    cursor: 'pointer',
   },
 
   // Distance Badge
@@ -677,8 +709,8 @@ const styles = StyleSheet.create({
     ...SHADOWS.small,
   },
   distanceText: {
-    fontSize: 11,
-    fontWeight: '700',
+    fontSize: 12,
+    fontWeight: '600',
     color: COLORS.primary.main,
   },
 

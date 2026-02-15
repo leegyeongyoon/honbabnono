@@ -288,7 +288,7 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
                 · {formatRadius(storeUser.neighborhood.radius)}
               </Text>
             )}
-            <Icon name="chevron-down" size={12} color={COLORS.text.tertiary} />
+            <Icon name="chevron-down" size={14} color={COLORS.text.tertiary} />
           </TouchableOpacity>
 
           <View style={styles.headerRight}>
@@ -320,10 +320,10 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
               ]}
               activeOpacity={0.8}
             >
-              <Icon name="search" size={16} color={searchFocused ? COLORS.primary.main : COLORS.text.tertiary} />
+              <Icon name="search" size={20} color={searchFocused ? COLORS.primary.main : COLORS.text.tertiary} />
               <TextInput
                 style={styles.searchInput}
-                placeholder="오늘은 뭐 먹을까요?"
+                placeholder="오늘 같이 밥 먹을 사람 찾기"
                 placeholderTextColor={COLORS.text.tertiary}
                 value={searchQuery}
                 onChangeText={handleSearchInput}
@@ -561,14 +561,13 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
           </TouchableOpacity>
         )}
 
-        {/* FAB - Enhanced (웹과 동일한 다크 배경) */}
+        {/* FAB - 원형 모임 만들기 버튼 */}
         <TouchableOpacity
           style={styles.fab}
           onPress={() => navigation.navigate('CreateMeetup')}
           activeOpacity={0.8}
         >
-          <Text style={styles.fabPlus}>+</Text>
-          <Text style={styles.fabText}>모임 만들기</Text>
+          <Text style={styles.fabIcon}>+</Text>
         </TouchableOpacity>
 
         {/* 모달들 */}
@@ -666,7 +665,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    paddingHorizontal: SPACING.md,
+    minHeight: 44,
+    minWidth: 44,
+    paddingHorizontal: SPACING.lg,
     paddingVertical: SPACING.sm,
     backgroundColor: COLORS.neutral.background,
     borderRadius: BORDER_RADIUS.full,
@@ -675,6 +676,7 @@ const styles = StyleSheet.create({
   },
   locationText: {
     ...TYPOGRAPHY.location.primary,
+    fontWeight: FONT_WEIGHTS.bold as any,
   },
   radiusText: {
     fontSize: 12,
@@ -695,7 +697,7 @@ const styles = StyleSheet.create({
 
   // ─── 검색 바 ─────────────────────────────────────────
   searchSection: {
-    paddingHorizontal: SPACING.xl,
+    paddingHorizontal: 20,
     paddingTop: SPACING.lg,
     paddingBottom: SPACING.xl,
     backgroundColor: COLORS.neutral.white,
@@ -704,9 +706,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     height: 52,
-    backgroundColor: COLORS.neutral.background,
+    backgroundColor: COLORS.neutral.grey100,
     borderRadius: 26,
-    paddingHorizontal: SPACING.xl,
+    paddingHorizontal: 20,
     gap: SPACING.md,
     borderWidth: 2,
     borderColor: 'transparent',
@@ -714,10 +716,15 @@ const styles = StyleSheet.create({
   searchBarFocused: {
     borderColor: COLORS.primary.main,
     backgroundColor: COLORS.neutral.white,
+    ...SHADOWS.focused,
   },
   searchInput: {
     flex: 1,
-    ...TYPOGRAPHY.input,
+    fontSize: 15,
+    fontWeight: FONT_WEIGHTS.regular as any,
+    lineHeight: 20,
+    letterSpacing: 0,
+    color: COLORS.text.primary,
     backgroundColor: 'transparent',
   },
   clearButton: {
@@ -769,7 +776,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.neutral.white,
     paddingTop: SPACING.lg,
     paddingBottom: SPACING.xxl,
-    paddingHorizontal: SPACING.xl,
+    paddingHorizontal: 20,
     marginBottom: SPACING.sm,
   },
   categoryGrid: {
@@ -777,31 +784,31 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     justifyContent: 'space-between',
     rowGap: SPACING.xl,
+    gap: 16,
   },
   categoryItem: {
-    width: '23%',
+    width: '21%',
     alignItems: 'center',
   },
   categoryIconBox: {
-    width: 72,
-    height: 72,
-    borderRadius: BORDER_RADIUS.xl,
+    width: 68,
+    height: 68,
+    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: SPACING.sm,
-    ...SHADOWS.medium,
+    marginBottom: 8,
   },
   categoryName: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: FONT_WEIGHTS.semiBold as any,
-    lineHeight: 18,
-    color: COLORS.text.primary,
+    lineHeight: 16,
+    color: COLORS.text.secondary,
     textAlign: 'center',
   },
 
   // ─── 콘텐츠 섹션 ─────────────────────────────────────
   contentSection: {
-    paddingTop: SPACING.xxl,
+    paddingTop: SPACING.xxxl,
     paddingBottom: SPACING.md,
     marginBottom: SPACING.sm,
   },
@@ -809,7 +816,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: SPACING.xl,
+    paddingHorizontal: 20,
     marginBottom: SPACING.lg,
   },
   sectionTitleRow: {
@@ -821,23 +828,24 @@ const styles = StyleSheet.create({
     fontSize: 20,
   },
   sectionTitle: {
-    fontSize: 20,
+    fontSize: 19,
     fontWeight: FONT_WEIGHTS.extraBold as any,
-    lineHeight: 28,
-    letterSpacing: -0.2,
+    lineHeight: 26,
+    letterSpacing: -0.3,
     color: COLORS.text.primary,
   },
   seeAllText: {
-    ...TYPOGRAPHY.body.small,
-    color: COLORS.text.tertiary,
-    fontWeight: FONT_WEIGHTS.medium as any,
+    fontSize: 13,
+    fontWeight: FONT_WEIGHTS.semiBold as any,
+    color: COLORS.primary.main,
   },
   horizontalCardList: {
-    paddingHorizontal: SPACING.xl,
-    gap: SPACING.lg,
+    paddingLeft: 20,
+    paddingRight: 20,
+    gap: 14,
   },
   horizontalCardWrapper: {
-    width: 220,
+    width: 240,
   },
 
   // ─── 세로 리스트 ─────────────────────────────────────
@@ -891,31 +899,25 @@ const styles = StyleSheet.create({
     color: COLORS.text.secondary,
   },
 
-  // ─── FAB (Enhanced — 웹과 동일한 다크 배경) ───────────
+  // ─── FAB (원형 모임 만들기 버튼) ───────────────────────
   fab: {
     position: 'absolute',
     bottom: 100,
     right: 20,
+    width: 60,
     height: 60,
-    paddingHorizontal: 20,
     borderRadius: 30,
-    backgroundColor: COLORS.text.primary,
-    flexDirection: 'row',
+    backgroundColor: COLORS.primary.main,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
     ...SHADOWS.hover,
     zIndex: 1000,
   },
-  fabPlus: {
-    fontSize: 22,
-    color: COLORS.text.white,
+  fabIcon: {
+    fontSize: 28,
+    color: COLORS.neutral.white,
     fontWeight: FONT_WEIGHTS.light as any,
-  },
-  fabText: {
-    fontSize: 15,
-    fontWeight: FONT_WEIGHTS.semiBold as any,
-    color: COLORS.text.white,
+    lineHeight: 28,
   },
 
   // ─── 테스트 버튼 (디버그용) ───────────────────────────

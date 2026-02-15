@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Animated } from 'react-native';
 import { useNavigate } from 'react-router-dom';
-import { COLORS, SHADOWS, CARD_STYLE } from '../styles/colors';
+import { COLORS, SHADOWS, CARD_STYLE, CSS_SHADOWS, TRANSITIONS } from '../styles/colors';
 import { Icon } from '../components/Icon';
 import { NotificationBell } from '../components/NotificationBell';
 import MeetupCard from '../components/MeetupCard';
@@ -28,19 +28,19 @@ const TAB_ITEMS = [
 ];
 
 const SkeletonPulse: React.FC<{ style?: any }> = ({ style }) => {
-  const pulseAnim = useRef(new Animated.Value(0.4)).current;
+  const pulseAnim = useRef(new Animated.Value(0.3)).current;
 
   useEffect(() => {
     const animation = Animated.loop(
       Animated.sequence([
         Animated.timing(pulseAnim, {
-          toValue: 1,
-          duration: 800,
+          toValue: 0.7,
+          duration: 1000,
           useNativeDriver: true,
         }),
         Animated.timing(pulseAnim, {
-          toValue: 0.4,
-          duration: 800,
+          toValue: 0.3,
+          duration: 1000,
           useNativeDriver: true,
         }),
       ])
@@ -295,7 +295,7 @@ const MyMeetupsScreen: React.FC<MyMeetupsScreenProps> = ({ user: propsUser }) =>
             {appliedMeetups.length === 0 ? (
               <EmptyState
                 icon="calendar"
-                title="신청한 모임이 없습니다"
+                title="아직 신청한 모임이 없어요"
                 description="홈에서 모임을 찾아보세요!"
                 actionLabel="모임 찾아보기"
                 onAction={() => navigate('/')}
@@ -314,7 +314,7 @@ const MyMeetupsScreen: React.FC<MyMeetupsScreenProps> = ({ user: propsUser }) =>
             {createdMeetups.length === 0 ? (
               <EmptyState
                 icon="plus-circle"
-                title="만든 모임이 없습니다"
+                title="모임을 만들어보세요!"
                 description="새로운 모임을 만들어보세요!"
                 actionLabel="모임 만들기"
                 onAction={() => navigate('/create')}
@@ -333,7 +333,7 @@ const MyMeetupsScreen: React.FC<MyMeetupsScreenProps> = ({ user: propsUser }) =>
             {pastMeetups.length === 0 ? (
               <EmptyState
                 icon="clock"
-                title="지난 모임이 없습니다"
+                title="아직 지난 모임이 없어요"
                 description="모임에 참여해보세요!"
               />
             ) : (
@@ -371,14 +371,17 @@ const MyMeetupsScreen: React.FC<MyMeetupsScreenProps> = ({ user: propsUser }) =>
           return (
             <TouchableOpacity
               key={tab.key}
-              style={[styles.tabButton, isActive && styles.activeTabButton]}
+              // @ts-ignore web-specific style
+              style={[styles.tabButton, isActive && styles.activeTabButton, { transition: `all ${TRANSITIONS.normal}`, cursor: 'pointer' }]}
               onPress={() => setActiveTab(tab.key)}
             >
-              <Text style={[styles.tabButtonText, isActive && styles.activeTabButtonText]}>
+              {/* @ts-ignore web-specific style */}
+              <Text style={[styles.tabButtonText, isActive && styles.activeTabButtonText, { transition: `color ${TRANSITIONS.normal}` }]}>
                 {tab.label}
               </Text>
               {count > 0 && (
-                <View style={[styles.tabCountBadge, isActive && styles.activeTabCountBadge]}>
+                // @ts-ignore web-specific style
+                <View style={[styles.tabCountBadge, isActive && styles.activeTabCountBadge, { transition: `all ${TRANSITIONS.normal}` }]}>
                   <Text style={[styles.tabCountText, isActive && styles.activeTabCountText]}>
                     {count}
                   </Text>
@@ -398,6 +401,7 @@ const MyMeetupsScreen: React.FC<MyMeetupsScreenProps> = ({ user: propsUser }) =>
             refreshing={refreshing}
             onRefresh={onRefresh}
             colors={[COLORS.primary.main]}
+            tintColor={COLORS.primary.main}
           />
         }
         showsVerticalScrollIndicator={false}
@@ -462,22 +466,23 @@ const styles = StyleSheet.create({
   },
   tabCountBadge: {
     backgroundColor: COLORS.neutral.grey100,
-    borderRadius: 9999,
-    paddingHorizontal: 7,
-    paddingVertical: 1,
-    minWidth: 20,
+    borderRadius: 11,
+    minWidth: 22,
+    height: 22,
     alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 6,
   },
   activeTabCountBadge: {
-    backgroundColor: COLORS.primary.light,
+    backgroundColor: COLORS.primary.main,
   },
   tabCountText: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '700',
     color: COLORS.text.tertiary,
   },
   activeTabCountText: {
-    color: COLORS.primary.main,
+    color: COLORS.text.white,
   },
   // Content
   scrollView: {
@@ -487,15 +492,15 @@ const styles = StyleSheet.create({
     paddingBottom: 32,
   },
   meetupsContainer: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
     paddingTop: 16,
-    gap: 12,
+    gap: 14,
   },
   // Skeleton
   skeletonContainer: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
     paddingTop: 16,
-    gap: 12,
+    gap: 14,
   },
   skeletonCard: {
     flexDirection: 'row',
@@ -504,6 +509,8 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.neutral.white,
     borderRadius: 16,
     padding: 16,
+    borderWidth: CARD_STYLE.borderWidth,
+    borderColor: CARD_STYLE.borderColor,
     ...SHADOWS.small,
   },
   skeletonLeft: {

@@ -324,7 +324,7 @@ const UniversalChatScreen: React.FC<UniversalChatScreenProps> = ({
     if (loading) {
       return (
         <View style={styles.chatListSkeletonContainer}>
-          {[1, 2, 3, 4].map((i) => (
+          {[1, 2, 3, 4, 5].map((i) => (
             <ChatListSkeleton key={i} />
           ))}
         </View>
@@ -335,8 +335,9 @@ const UniversalChatScreen: React.FC<UniversalChatScreenProps> = ({
       return (
         <EmptyState
           icon="message-circle"
+          iconSize={56}
           title={selectedTab === '개인' ? '1:1 채팅이 없어요' : '아직 대화가 없어요'}
-          description="모임에 참가하면 채팅방이 자동으로 생성됩니다"
+          description="모임에 참여하고 대화를 시작해보세요!"
         />
       );
     }
@@ -667,7 +668,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingVertical: 14,
     backgroundColor: COLORS.neutral.white,
   },
   chatAvatar: {
@@ -677,7 +678,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 14,
-    ...SHADOWS.small,
+    borderWidth: 2,
+    borderColor: COLORS.neutral.grey100,
   },
   chatAvatarText: {
     fontSize: 19,
@@ -698,6 +700,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     color: COLORS.text.primary,
+    letterSpacing: -0.2,
     flexShrink: 1,
   },
   chatParticipantCount: {
@@ -718,6 +721,7 @@ const styles = StyleSheet.create({
   chatTime: {
     fontSize: 12,
     color: COLORS.text.tertiary,
+    fontWeight: '400',
   },
   unreadBadge: {
     backgroundColor: COLORS.functional.error,
@@ -801,9 +805,8 @@ const styles = StyleSheet.create({
   // === 말풍선 ===
   messageBubble: {
     backgroundColor: COLORS.neutral.white,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderTopLeftRadius: 4,
+    padding: 14,
+    borderTopLeftRadius: 6,
     borderTopRightRadius: 20,
     borderBottomLeftRadius: 20,
     borderBottomRightRadius: 20,
@@ -814,7 +817,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 4,
+    borderBottomRightRadius: 6,
   },
   messageText: {
     fontSize: 15,
@@ -840,15 +843,15 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   readReceipt: {
-    fontSize: 10,
-    color: COLORS.primary.main,
-    fontWeight: '500',
+    fontSize: 11,
+    color: COLORS.text.tertiary,
+    fontWeight: '400',
   },
 
   // === 메시지 입력 바 ===
   messageInput: {
     backgroundColor: COLORS.neutral.white,
-    ...SHADOWS.large,
+    ...SHADOWS.small,
     paddingHorizontal: 16,
     paddingVertical: 10,
     height: 64,
@@ -858,7 +861,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: COLORS.neutral.background,
-    borderRadius: 24,
+    borderRadius: 22,
     paddingLeft: 18,
     paddingRight: 4,
     height: 44,
@@ -867,6 +870,7 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   inputContainerFocused: {
+    backgroundColor: COLORS.neutral.white,
     borderColor: COLORS.primary.main,
     ...SHADOWS.focused,
   },
@@ -878,10 +882,10 @@ const styles = StyleSheet.create({
     paddingVertical: 0,
   },
   sendButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: COLORS.neutral.grey300,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: COLORS.neutral.grey200,
     justifyContent: 'center',
     alignItems: 'center',
     marginLeft: 8,

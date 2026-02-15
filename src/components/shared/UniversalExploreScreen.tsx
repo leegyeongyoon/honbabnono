@@ -11,7 +11,7 @@ import {
   SafeAreaView,
   ScrollView,
 } from 'react-native';
-import { COLORS, SHADOWS } from '../../styles/colors';
+import { COLORS, SHADOWS, CARD_STYLE } from '../../styles/colors';
 import { BORDER_RADIUS } from '../../styles/spacing';
 import { Icon } from '../Icon';
 import MeetupCard from '../MeetupCard';
@@ -100,6 +100,7 @@ const UniversalExploreScreen: React.FC<UniversalExploreScreenProps> = ({ navigat
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [radius, setRadius] = useState<number>(userRadius);
+  const [searchFocused, setSearchFocused] = useState(false);
 
   // Default center (사용자 설정이 있으면 사용, 없으면 강남역)
   const [center, setCenter] = useState({
@@ -253,7 +254,7 @@ const UniversalExploreScreen: React.FC<UniversalExploreScreenProps> = ({ navigat
 
   const listCountStr = useMemo(() => {
     const count = displayMeetups.length;
-    return count > 0 ? `${count}개` : '';
+    return count > 0 ? `총 ${count}개의 모임` : '';
   }, [displayMeetups.length]);
 
   // Render map below list (matches web mapListBelow)
@@ -270,8 +271,8 @@ const UniversalExploreScreen: React.FC<UniversalExploreScreenProps> = ({ navigat
       ) : displayMeetups.length === 0 ? (
         <EmptyState
           compact
-          icon="map-pin"
-          title={selectedCategory ? `${selectedCategory} 모임이 없어요` : '주변에 모임이 없어요'}
+          icon="search"
+          title={selectedCategory ? `${selectedCategory} 모임이 없어요` : searchQuery ? '조건에 맞는 모임이 없어요' : '주변에 모임이 없어요'}
           description={selectedCategory ? '다른 카테고리를 선택해보세요' : '다른 위치로 이동해보세요'}
         />
       ) : (
@@ -374,8 +375,8 @@ const UniversalExploreScreen: React.FC<UniversalExploreScreenProps> = ({ navigat
 
         {/* Search Section */}
         <View style={styles.searchSection}>
-          <View style={styles.searchBar}>
-            <Icon name="search" size={16} color={COLORS.text.tertiary} />
+          <View style={[styles.searchBar, searchFocused && styles.searchBarFocused]}>
+            <Icon name="search" size={16} color={searchFocused ? COLORS.primary.main : COLORS.text.tertiary} />
             <TextInput
               style={styles.searchInput}
               placeholder="모임 검색 (제목, 위치, 카테고리)"
@@ -383,6 +384,8 @@ const UniversalExploreScreen: React.FC<UniversalExploreScreenProps> = ({ navigat
               value={searchQuery}
               onChangeText={setSearchQuery}
               onSubmitEditing={handleSearchSubmit}
+              onFocus={() => setSearchFocused(true)}
+              onBlur={() => setSearchFocused(false)}
               returnKeyType="search"
             />
             {searchQuery.length > 0 && (
@@ -490,9 +493,9 @@ const UniversalExploreScreen: React.FC<UniversalExploreScreenProps> = ({ navigat
                 </View>
               ) : displayMeetups.length === 0 ? (
                 <EmptyState
-                  icon="compass"
-                  title={selectedCategory ? `${selectedCategory} 모임이 없어요` : '주변에 모임이 없어요'}
-                  description={selectedCategory ? '다른 카테고리를 선택해보세요' : '반경을 넓히거나 다른 검색어를 사용해보세요'}
+                  icon={searchQuery ? 'search' : 'map-pin'}
+                  title={selectedCategory ? `${selectedCategory} 모임이 없어요` : searchQuery ? '조건에 맞는 모임이 없어요' : '주변에 모임이 없어요'}
+                  description={selectedCategory ? '다른 카테고리를 선택해보세요' : searchQuery ? '다른 검색어를 사용해보세요' : '반경을 넓히거나 위치를 변경해보세요'}
                 />
               ) : (
                 <FadeIn>
@@ -560,13 +563,15 @@ const styles = StyleSheet.create({
     borderBottomColor: COLORS.neutral.grey100,
   },
   categoryTabScroll: {
-    paddingHorizontal: 20,
+    paddingLeft: 20,
+    paddingRight: 12,
     gap: 8,
   },
   categoryChip: {
+    height: 36,
+    justifyContent: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: BORDER_RADIUS.full,
+    borderRadius: 18,
     backgroundColor: COLORS.neutral.grey100,
   },
   categoryChipActive: {
@@ -593,11 +598,15 @@ const styles = StyleSheet.create({
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    height: 44,
-    backgroundColor: COLORS.neutral.background,
-    borderRadius: BORDER_RADIUS.md,
-    paddingHorizontal: 14,
+    height: 48,
+    backgroundColor: COLORS.neutral.grey100,
+    borderRadius: 24,
+    paddingHorizontal: 20,
     gap: 10,
+  },
+  searchBarFocused: {
+    backgroundColor: COLORS.neutral.white,
+    ...SHADOWS.focused,
   },
   searchInput: {
     flex: 1,
@@ -620,12 +629,13 @@ const styles = StyleSheet.create({
     marginRight: 2,
   },
   radiusChip: {
+    height: 32,
+    justifyContent: 'center',
     paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: BORDER_RADIUS.full,
-    backgroundColor: COLORS.neutral.grey100,
+    borderRadius: 16,
+    backgroundColor: 'transparent',
     borderWidth: 1.5,
-    borderColor: 'transparent',
+    borderColor: COLORS.neutral.grey300,
   },
   radiusChipActive: {
     backgroundColor: COLORS.primary.light,
@@ -660,13 +670,15 @@ const styles = StyleSheet.create({
   mapListBelow: {
     flex: 1,
     backgroundColor: COLORS.neutral.white,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.neutral.grey100,
   },
 
   // List Title
   listTitleRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
+    alignItems: 'baseline',
+    justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingTop: 20,
     paddingBottom: 8,
@@ -680,7 +692,7 @@ const styles = StyleSheet.create({
   listCount: {
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.primary.main,
+    color: COLORS.text.secondary,
   },
 
   // List View
@@ -695,14 +707,15 @@ const styles = StyleSheet.create({
   // Meetup List
   meetupList: {
     paddingHorizontal: 16,
-    gap: 12,
+    gap: 14,
   },
   meetupItemWrapper: {
     position: 'relative',
     backgroundColor: COLORS.neutral.white,
-    borderRadius: BORDER_RADIUS.lg,
+    borderRadius: 16,
     overflow: 'hidden',
-    ...SHADOWS.medium,
+    ...CARD_STYLE,
+    ...SHADOWS.small,
   },
 
   // Distance Badge
@@ -720,8 +733,8 @@ const styles = StyleSheet.create({
     ...SHADOWS.small,
   },
   distanceText: {
-    fontSize: 11,
-    fontWeight: '700',
+    fontSize: 12,
+    fontWeight: '600',
     color: COLORS.primary.main,
   },
 

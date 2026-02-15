@@ -282,7 +282,7 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ user: propsUser }) => {
           </View>
         </FadeIn>
 
-        <View style={{ height: 100 }} />
+        <View style={{ height: 40 }} />
       </ScrollView>
 
       <ConfirmDialog {...dialog} />
@@ -313,6 +313,8 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flex: 1,
+    paddingTop: 16,
+    paddingBottom: 40,
   },
   skeletonWrapper: {
     padding: 20,
@@ -322,8 +324,7 @@ const styles = StyleSheet.create({
   // 프로필 카드
   profileCard: {
     backgroundColor: COLORS.neutral.white,
-    marginHorizontal: 16,
-    marginTop: 16,
+    marginHorizontal: 20,
     borderRadius: 20,
     padding: 24,
     ...SHADOWS.medium,
@@ -337,18 +338,18 @@ const styles = StyleSheet.create({
     borderRadius: 40,
     borderWidth: 3,
     borderColor: COLORS.primary.light,
-    padding: 0,
     overflow: 'hidden',
+    ...SHADOWS.small,
   },
   profileInfo: {
     flex: 1,
   },
   userName: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: '800',
     color: COLORS.text.primary,
     marginBottom: 4,
-    letterSpacing: -0.2,
+    letterSpacing: -0.3,
   },
   userEmail: {
     fontSize: 14,
@@ -359,28 +360,30 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
     paddingHorizontal: 20,
     paddingVertical: 8,
-    borderRadius: BORDER_RADIUS.full,
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: COLORS.neutral.grey200,
+    borderColor: COLORS.primary.main,
     backgroundColor: COLORS.neutral.white,
+    // @ts-ignore
+    transition: 'all 200ms ease',
+    cursor: 'pointer',
   },
   editProfileText: {
     fontSize: 13,
     fontWeight: '600',
-    color: COLORS.text.secondary,
+    color: COLORS.primary.main,
   },
 
   // 통계 카드
   statsCard: {
     flexDirection: 'row',
     backgroundColor: COLORS.neutral.white,
-    marginHorizontal: 16,
-    marginTop: 12,
-    borderRadius: 20,
-    paddingVertical: 24,
-    paddingHorizontal: 16,
+    marginHorizontal: 20,
+    marginTop: 16,
+    borderRadius: 16,
+    padding: 20,
     alignItems: 'center',
-    ...SHADOWS.medium,
+    ...SHADOWS.small,
   },
   statItem: {
     flex: 1,
@@ -389,18 +392,18 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 28,
     fontWeight: '800',
-    color: COLORS.primary.main,
-    marginBottom: 6,
+    color: COLORS.text.primary,
     letterSpacing: -0.3,
   },
   statLabel: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '500',
-    color: COLORS.text.secondary,
+    color: COLORS.text.tertiary,
+    marginTop: 4,
   },
   statDivider: {
     width: 1,
-    height: 40,
+    height: 32,
     backgroundColor: COLORS.neutral.grey100,
   },
 
@@ -410,11 +413,13 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     backgroundColor: COLORS.primary.light,
-    marginHorizontal: 16,
-    marginTop: 12,
+    marginHorizontal: 20,
+    marginTop: 16,
     borderRadius: 16,
-    paddingVertical: 18,
-    paddingHorizontal: 20,
+    padding: 20,
+    // @ts-ignore
+    cursor: 'pointer',
+    transition: 'all 200ms ease',
   },
   pointBannerLeft: {
     flexDirection: 'row',
@@ -440,89 +445,91 @@ const styles = StyleSheet.create({
 
   // 밥알지수 카드
   riceCard: {
-    backgroundColor: COLORS.neutral.white,
-    marginHorizontal: 16,
-    marginTop: 12,
-    borderRadius: 20,
-    padding: 24,
-    ...SHADOWS.medium,
+    backgroundColor: COLORS.primary.light,
+    marginHorizontal: 20,
+    marginTop: 16,
+    borderRadius: 16,
+    padding: 20,
   },
   riceHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 12,
   },
   riceLabel: {
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: 15,
+    fontWeight: '600',
     color: COLORS.text.primary,
   },
   riceScore: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '700',
     color: COLORS.primary.main,
   },
   riceProgressBg: {
-    height: 12,
-    backgroundColor: COLORS.neutral.grey100,
-    borderRadius: 6,
+    height: 8,
+    backgroundColor: COLORS.neutral.white,
+    borderRadius: 4,
     overflow: 'hidden',
-    marginBottom: 12,
+    marginBottom: 10,
   },
   riceProgressFill: {
     height: '100%',
-    borderRadius: 6,
+    borderRadius: 4,
     // @ts-ignore
-    backgroundImage: `linear-gradient(90deg, ${COLORS.primary.main} 0%, ${COLORS.primary.dark} 100%)`,
+    backgroundImage: `linear-gradient(90deg, ${COLORS.primary.light} 0%, ${COLORS.primary.main} 100%)`,
     backgroundColor: COLORS.primary.main,
   },
   riceGradeText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: COLORS.text.secondary,
+    fontSize: 14,
+    fontWeight: '700',
+    color: COLORS.primary.main,
   },
 
   // 빠른 메뉴
   quickMenuCard: {
-    backgroundColor: COLORS.neutral.white,
-    marginHorizontal: 16,
-    marginTop: 12,
-    borderRadius: 20,
-    padding: 20,
-    ...SHADOWS.medium,
+    marginHorizontal: 20,
+    marginTop: 16,
   },
   quickMenuGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'space-between',
+    gap: 12,
   },
   quickMenuItem: {
-    width: '30%',
+    width: '31%',
     alignItems: 'center',
-    paddingVertical: 12,
+    backgroundColor: COLORS.neutral.white,
+    borderRadius: 16,
+    paddingVertical: 16,
+    paddingHorizontal: 8,
+    ...SHADOWS.small,
+    // @ts-ignore
+    cursor: 'pointer',
+    transition: 'all 200ms ease',
   },
   quickMenuIconBox: {
-    width: 52,
-    height: 52,
-    borderRadius: 16,
-    backgroundColor: COLORS.primary.light,
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: COLORS.primary.accent,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 10,
   },
   quickMenuLabel: {
     fontSize: 13,
     fontWeight: '600',
     color: COLORS.text.primary,
     textAlign: 'center',
+    marginTop: 10,
   },
 
   // 고객지원
   supportCard: {
     backgroundColor: COLORS.neutral.white,
-    marginHorizontal: 16,
-    marginTop: 12,
+    marginHorizontal: 20,
+    marginTop: 16,
     borderRadius: 16,
     ...SHADOWS.small,
     overflow: 'hidden',
@@ -532,12 +539,15 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingVertical: 18,
+    paddingVertical: 16,
+    // @ts-ignore
+    cursor: 'pointer',
   },
   supportTitle: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '700',
-    color: COLORS.text.primary,
+    color: COLORS.text.secondary,
+    letterSpacing: 0.5,
   },
   supportList: {
     borderTopWidth: 1,
@@ -547,10 +557,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    height: 52,
     paddingHorizontal: 20,
-    paddingVertical: 16,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.neutral.grey100,
+    // @ts-ignore
+    cursor: 'pointer',
+    transition: 'background-color 150ms ease',
   },
   supportItemText: {
     fontSize: 15,
@@ -560,33 +573,39 @@ const styles = StyleSheet.create({
 
   // 하단 액션
   bottomActions: {
-    flexDirection: 'row',
-    justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 32,
-    gap: 24,
-    paddingHorizontal: 16,
+    marginTop: 24,
+    paddingHorizontal: 20,
+    paddingBottom: 40,
   },
   logoutButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.neutral.grey200,
+    width: '100%',
+    // @ts-ignore
+    cursor: 'pointer',
+    transition: 'all 200ms ease',
   },
   logoutText: {
-    fontSize: 14,
+    fontSize: 15,
+    fontWeight: '600',
     color: COLORS.text.secondary,
-    fontWeight: '500',
   },
   deleteButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 16,
+    marginTop: 16,
+    paddingVertical: 8,
+    // @ts-ignore
+    cursor: 'pointer',
   },
   deleteText: {
-    fontSize: 14,
-    color: COLORS.functional.error,
-    fontWeight: '500',
+    fontSize: 13,
+    color: COLORS.text.tertiary,
   },
 });
 
