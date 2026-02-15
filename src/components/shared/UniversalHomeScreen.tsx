@@ -726,7 +726,7 @@ const styles = StyleSheet.create({
   headerLogo: {
     fontSize: 22,
     fontWeight: FONT_WEIGHTS.extraBold as any,
-    letterSpacing: -0.5,
+    letterSpacing: -0.3,
     color: COLORS.primary.main,
     lineHeight: 30,
   },
@@ -766,7 +766,7 @@ const styles = StyleSheet.create({
 
   // ─── 검색 바 ─────────────────────────────────────────
   searchSection: {
-    paddingHorizontal: 20,
+    paddingHorizontal: SPACING.xl,
     paddingTop: SPACING.lg,
     paddingBottom: SPACING.xl,
     backgroundColor: COLORS.neutral.white,
@@ -849,7 +849,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.neutral.white,
     paddingTop: SPACING.lg,
     paddingBottom: SPACING.xxl,
-    paddingHorizontal: 20,
+    paddingHorizontal: SPACING.xl,
     marginBottom: SPACING.sm,
   },
   categoryGrid: {
@@ -890,7 +890,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: SPACING.xl,
     marginBottom: SPACING.lg,
   },
   sectionTitleRow: {
@@ -978,7 +978,7 @@ const styles = StyleSheet.create({
   },
   scrollTopText: {
     fontSize: 16,
-    color: COLORS.text.tertiary,
+    color: COLORS.text.secondary,
   },
 
   // ─── FAB (원형 모임 만들기 버튼) ───────────────────────

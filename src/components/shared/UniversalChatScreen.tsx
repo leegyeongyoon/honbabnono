@@ -955,6 +955,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 12,
     textAlign: 'center',
+    overflow: 'hidden',
     ...SHADOWS.small,
   },
 
@@ -977,6 +978,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
+    resizeMode: 'cover',
   },
   defaultProfileImage: {
     width: 36,
@@ -1014,7 +1016,7 @@ const styles = StyleSheet.create({
     padding: 28,
     margin: 20,
     maxWidth: 360,
-    width: '90%',
+    width: '85%',
     ...SHADOWS.large,
   },
   modalTitle: {

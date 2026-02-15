@@ -1,14 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Animated } from 'react-native';
 import { useNavigate } from 'react-router-dom';
-import { COLORS, SHADOWS, CARD_STYLE, CSS_SHADOWS, TRANSITIONS } from '../styles/colors';
-import { Icon } from '../components/Icon';
+import { COLORS, SHADOWS, CARD_STYLE, TRANSITIONS, withOpacity } from '../styles/colors';
 import { NotificationBell } from '../components/NotificationBell';
 import MeetupCard from '../components/MeetupCard';
 import EmptyState from '../components/EmptyState';
 import { useUserStore } from '../store/userStore';
 import userApiService, { JoinedMeetup, HostedMeetup } from '../services/userApiService';
-import { formatKoreanDateTime } from '../utils/dateUtils';
 import { FadeIn } from '../components/animated';
 
 // Web hover wrapper for tab buttons
@@ -32,7 +30,7 @@ const WebTabButton: React.FC<{
         {
           transition: `all ${TRANSITIONS.normal}`,
           cursor: 'pointer',
-          backgroundColor: hovered && !isActive ? COLORS.neutral.grey100 + '40' : 'transparent',
+          backgroundColor: hovered && !isActive ? withOpacity(COLORS.neutral.grey100, 0.25) : 'transparent',
         },
       ]}
       onPress={onPress}
@@ -252,34 +250,6 @@ const MyMeetupsScreen: React.FC<MyMeetupsScreenProps> = ({ user: propsUser }) =>
     const meetupId = typeof meetupOrId === 'string' ? meetupOrId : meetupOrId?.id;
     if (meetupId) {
       navigate(`/meetup/${meetupId}`);
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case '완료': return COLORS.functional.success;
-      case '종료': return COLORS.functional.success;
-      case '취소': return COLORS.text.error;
-      case '파토': return COLORS.text.error;
-      case '예정': return COLORS.functional.warning;
-      case '모집중': return COLORS.functional.success;
-      case '모집완료': return COLORS.primary.main;
-      case '진행중': return COLORS.secondary.main;
-      default: return COLORS.neutral.grey400;
-    }
-  };
-
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case '완료': return '정상 완료';
-      case '종료': return '정상 완료';
-      case '취소': return '취소됨';
-      case '파토': return '파토됨';
-      case '예정': return '예정';
-      case '모집중': return '모집중';
-      case '모집완료': return '모집완료';
-      case '진행중': return '진행중';
-      default: return status;
     }
   };
 

@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { COLORS, SHADOWS, CSS_SHADOWS, CARD_STYLE } from '../styles/colors';
-import { SPACING, BORDER_RADIUS } from '../styles/spacing';
+import { BORDER_RADIUS } from '../styles/spacing';
 import { Icon } from '../components/Icon';
 import WebKakaoMap, { MapMarker } from '../components/WebKakaoMap';
 import MeetupCard from '../components/MeetupCard';
@@ -232,6 +232,7 @@ const ExploreScreen: React.FC = () => {
             className={viewMode === 'map' ? 'explore-toggle-btn-active' : 'explore-toggle-btn'}
             style={[styles.toggleButton, viewMode === 'map' && styles.toggleButtonActive]}
             onPress={() => setViewMode('map')}
+            activeOpacity={0.7}
           >
             <Icon name="map" size={16} color={viewMode === 'map' ? COLORS.text.white : COLORS.text.secondary} />
             <Text style={[styles.toggleText, viewMode === 'map' && styles.toggleTextActive]}>지도</Text>
@@ -241,6 +242,7 @@ const ExploreScreen: React.FC = () => {
             className={viewMode === 'list' ? 'explore-toggle-btn-active' : 'explore-toggle-btn'}
             style={[styles.toggleButton, viewMode === 'list' && styles.toggleButtonActive]}
             onPress={() => setViewMode('list')}
+            activeOpacity={0.7}
           >
             <Icon name="list" size={16} color={viewMode === 'list' ? COLORS.text.white : COLORS.text.secondary} />
             <Text style={[styles.toggleText, viewMode === 'list' && styles.toggleTextActive]}>리스트</Text>

@@ -224,6 +224,7 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ user: propsUser }) => {
                   ]}
                   onPress={() => navigate('/mypage/edit')}
                   activeOpacity={0.7}
+                  accessibilityLabel="프로필 수정"
                   {...editProfileHover.bind}
                 >
                   <Text style={[
