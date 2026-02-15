@@ -71,16 +71,24 @@ module.exports = {
     },
   },
   plugins: [
+    new webpack.ProvidePlugin({
+      process: 'process/browser.js',
+    }),
     new HtmlWebpackPlugin({
       template: './web.html',
       inject: false,
     }),
     new webpack.DefinePlugin({
-      'process.env.REACT_APP_API_URL': JSON.stringify(env.REACT_APP_API_URL || 'http://localhost:3001/api'),
-      'process.env.REACT_APP_WS_URL': JSON.stringify(env.REACT_APP_WS_URL || 'http://localhost:3001'),
-      'process.env.REACT_APP_KAKAO_CLIENT_ID': JSON.stringify(env.REACT_APP_KAKAO_CLIENT_ID || '5a202bd90ab8dff01348f24cb1c37f3f'),
-      'process.env.REACT_APP_OPENAI_API_KEY': JSON.stringify(env.REACT_APP_OPENAI_API_KEY || ''),
-      'process.env.NODE_ENV': JSON.stringify(env.NODE_ENV || 'development'),
+      'process.env': JSON.stringify({
+        NODE_ENV: env.NODE_ENV || mode,
+        REACT_APP_API_URL: env.REACT_APP_API_URL || 'http://localhost:3001/api',
+        REACT_APP_WS_URL: env.REACT_APP_WS_URL || 'http://localhost:3001',
+        REACT_APP_KAKAO_CLIENT_ID: env.REACT_APP_KAKAO_CLIENT_ID || '5a202bd90ab8dff01348f24cb1c37f3f',
+        REACT_APP_KAKAO_JS_KEY: env.REACT_APP_KAKAO_JS_KEY || env.REACT_APP_KAKAO_CLIENT_ID || '5a202bd90ab8dff01348f24cb1c37f3f',
+        REACT_APP_KAKAO_MAP_API_KEY: env.REACT_APP_KAKAO_MAP_API_KEY || env.REACT_APP_KAKAO_CLIENT_ID || '5a202bd90ab8dff01348f24cb1c37f3f',
+        REACT_APP_OPENAI_API_KEY: env.REACT_APP_OPENAI_API_KEY || '',
+        REACT_APP_ENV: env.REACT_APP_ENV || mode,
+      }),
     }),
   ],
   devServer: {
