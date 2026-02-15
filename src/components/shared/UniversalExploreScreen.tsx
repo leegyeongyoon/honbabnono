@@ -10,15 +10,18 @@ import {
   RefreshControl,
   TextInput,
   SafeAreaView,
+  ScrollView,
 } from 'react-native';
 import { COLORS, SHADOWS, LAYOUT } from '../../styles/colors';
 import { Icon } from '../Icon';
 import MeetupCard from '../MeetupCard';
 import MeetupMapView from '../MeetupMapView';
 import MeetupMarkerPopup from '../MeetupMarkerPopup';
-import { NotificationBell } from '../NotificationBell';
+import EmptyState from '../EmptyState';
+import { MeetupCardSkeleton } from '../skeleton';
 import { useUserStore } from '../../store/userStore';
 import { API_HOSTS } from '../../services/apiClient';
+import { FOOD_CATEGORIES } from '../../constants/categories';
 
 const API_URL = Platform.OS === 'web'
   ? (process.env.REACT_APP_API_URL || 'http://localhost:3001')
@@ -26,6 +29,15 @@ const API_URL = Platform.OS === 'web'
 
 // 기본 검색 반경 (5km)
 const DEFAULT_RADIUS = 5000;
+
+const RADIUS_OPTIONS = [
+  { label: '1km', value: 1000 },
+  { label: '3km', value: 3000 },
+  { label: '5km', value: 5000 },
+  { label: '10km', value: 10000 },
+];
+
+const CATEGORY_NAMES = FOOD_CATEGORIES.map(c => c.name);
 
 interface Meetup {
   id: string;
@@ -56,6 +68,13 @@ interface UniversalExploreScreenProps {
   navigation: any;
 }
 
+const formatRadiusLabel = (radiusValue: number): string => {
+  if (radiusValue >= 1000) {
+    return `${radiusValue / 1000}km`;
+  }
+  return `${radiusValue}m`;
+};
+
 const UniversalExploreScreen: React.FC<UniversalExploreScreenProps> = ({ navigation }) => {
   // User store에서 neighborhood 설정 가져오기
   const { user } = useUserStore();
@@ -73,6 +92,8 @@ const UniversalExploreScreen: React.FC<UniversalExploreScreenProps> = ({ navigat
   const [showSearchButton, setShowSearchButton] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [radius, setRadius] = useState<number>(userRadius);
 
   // Default center (사용자 설정이 있으면 사용, 없으면 강남역)
   const [center, setCenter] = useState({
@@ -99,31 +120,35 @@ const UniversalExploreScreen: React.FC<UniversalExploreScreenProps> = ({ navigat
     );
   }, [meetups, searchQuery]);
 
+  // Apply category filter on top of search filter
+  const displayMeetups = useMemo(() => {
+    if (!selectedCategory) {return filteredMeetups;}
+    return filteredMeetups.filter(m => m.category === selectedCategory);
+  }, [filteredMeetups, selectedCategory]);
+
   // Fetch nearby meetups
-  const fetchNearbyMeetups = useCallback(async (lat: number, lng: number, radius?: number) => {
+  const fetchNearbyMeetups = useCallback(async (lat: number, lng: number, searchRadius?: number) => {
     try {
       setIsLoading(true);
-      const searchRadius = radius || userRadius;
+      const effectiveRadius = searchRadius || radius;
 
       const response = await fetch(
-        `${API_URL}/api/meetups/nearby?latitude=${lat}&longitude=${lng}&radius=${searchRadius}&status=모집중`
+        `${API_URL}/api/meetups/nearby?latitude=${lat}&longitude=${lng}&radius=${effectiveRadius}&status=모집중`
       );
       const data = await response.json();
 
       if (data.success) {
         setMeetups(data.meetups || []);
       } else {
-        console.error('Failed to fetch nearby meetups:', data.error);
         setMeetups([]);
       }
-    } catch (error) {
-      console.error('Error fetching nearby meetups:', error);
+    } catch (_error) {
       setMeetups([]);
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
     }
-  }, [userRadius]);
+  }, [radius]);
 
   // 사용자 neighborhood 설정이 변경되면 center 업데이트
   useEffect(() => {
@@ -139,10 +164,15 @@ const UniversalExploreScreen: React.FC<UniversalExploreScreenProps> = ({ navigat
     }
   }, [userNeighborhood?.latitude, userNeighborhood?.longitude]);
 
-  // Initial load & userRadius 변경시 재검색
+  // userRadius가 변경되면 radius state도 동기화
   useEffect(() => {
-    fetchNearbyMeetups(center.latitude, center.longitude, userRadius);
+    setRadius(userRadius);
   }, [userRadius]);
+
+  // Initial load & radius 변경시 재검색
+  useEffect(() => {
+    fetchNearbyMeetups(center.latitude, center.longitude, radius);
+  }, [radius]);
 
   // Handle marker click
   const handleMarkerClick = useCallback((meetupId: string) => {
@@ -165,8 +195,8 @@ const UniversalExploreScreen: React.FC<UniversalExploreScreenProps> = ({ navigat
     setCenter(searchCenter);
     setShowSearchButton(false);
     setSelectedMeetup(null);
-    fetchNearbyMeetups(searchCenter.latitude, searchCenter.longitude, userRadius);
-  }, [searchCenter, fetchNearbyMeetups, userRadius]);
+    fetchNearbyMeetups(searchCenter.latitude, searchCenter.longitude, radius);
+  }, [searchCenter, fetchNearbyMeetups, radius]);
 
   // Handle meetup detail
   const handleMeetupDetail = useCallback((meetupId: string) => {
@@ -182,8 +212,8 @@ const UniversalExploreScreen: React.FC<UniversalExploreScreenProps> = ({ navigat
   // Handle refresh
   const handleRefresh = useCallback(() => {
     setIsRefreshing(true);
-    fetchNearbyMeetups(center.latitude, center.longitude, userRadius);
-  }, [center, fetchNearbyMeetups, userRadius]);
+    fetchNearbyMeetups(center.latitude, center.longitude, radius);
+  }, [center, fetchNearbyMeetups, radius]);
 
   // Handle search icon press - navigate to full search screen
   const handleSearchPress = useCallback(() => {
@@ -203,6 +233,16 @@ const UniversalExploreScreen: React.FC<UniversalExploreScreenProps> = ({ navigat
     setSearchQuery('');
   }, []);
 
+  // Handle category change
+  const handleCategoryChange = useCallback((category: string | null) => {
+    setSelectedCategory(category);
+  }, []);
+
+  // Handle radius change
+  const handleRadiusChange = useCallback((newRadius: number) => {
+    setRadius(newRadius);
+  }, []);
+
   // Format distance for list view
   const formatDistance = (distance?: number) => {
     if (!distance) {return '';}
@@ -211,6 +251,16 @@ const UniversalExploreScreen: React.FC<UniversalExploreScreenProps> = ({ navigat
     }
     return `${(distance / 1000).toFixed(1)}km`;
   };
+
+  // Build list title
+  const listTitle = useMemo(() => {
+    const count = displayMeetups.length;
+    const countStr = count > 0 ? ` ${count}개` : '';
+    if (selectedCategory) {
+      return `${selectedCategory} 모임${countStr}`;
+    }
+    return `반경 ${formatRadiusLabel(radius)} 모임${countStr}`;
+  }, [selectedCategory, radius, displayMeetups.length]);
 
   // Render list item with distance
   const renderMeetupItem = ({ item }: { item: Meetup }) => (
@@ -225,14 +275,35 @@ const UniversalExploreScreen: React.FC<UniversalExploreScreenProps> = ({ navigat
     </View>
   );
 
-  // Empty list component
-  const renderEmptyList = () => (
-    <View style={styles.emptyContainer}>
-      <Icon name="map-pin" size={48} color={COLORS.text.tertiary} />
-      <Text style={styles.emptyTitle}>주변에 모임이 없습니다</Text>
-      <Text style={styles.emptySubtitle}>
-        다른 지역을 검색하거나{'\n'}새로운 모임을 만들어보세요
-      </Text>
+  // Empty list component with context-specific messages
+  const renderEmptyList = () => {
+    if (selectedCategory) {
+      return (
+        <EmptyState
+          compact
+          icon="map-pin"
+          title={`${selectedCategory} 모임이 없어요`}
+          description="다른 카테고리를 선택해보세요"
+        />
+      );
+    }
+    return (
+      <EmptyState
+        icon="map-pin"
+        title="주변에 모임이 없어요"
+        description="반경을 넓히거나 다른 위치를 검색해보세요"
+      />
+    );
+  };
+
+  // Loading skeleton list
+  const renderLoadingSkeletons = () => (
+    <View style={styles.skeletonContainer}>
+      {[1, 2, 3].map(i => (
+        <View key={i} style={styles.skeletonItem}>
+          <MeetupCardSkeleton />
+        </View>
+      ))}
     </View>
   );
 
@@ -241,15 +312,70 @@ const UniversalExploreScreen: React.FC<UniversalExploreScreenProps> = ({ navigat
       <View style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
-          <View style={styles.headerTop}>
-            <Text style={styles.headerTitle}>모임 탐색</Text>
-            <View style={styles.headerRight}>
-              <NotificationBell
-                onPress={() => navigation.navigate('Notifications')}
-                color={COLORS.text.white}
-              />
-            </View>
+          <Text style={styles.headerTitle}>탐색</Text>
+          <View style={styles.viewToggle}>
+            <TouchableOpacity
+              style={[styles.toggleButton, viewMode === 'map' && styles.toggleButtonActive]}
+              onPress={() => setViewMode('map')}
+            >
+              <Icon name="map" size={16} color={viewMode === 'map' ? 'white' : COLORS.text.secondary} />
+              <Text style={[styles.toggleText, viewMode === 'map' && styles.toggleTextActive]}>지도</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.toggleButton, viewMode === 'list' && styles.toggleButtonActive]}
+              onPress={() => setViewMode('list')}
+            >
+              <Icon name="list" size={16} color={viewMode === 'list' ? 'white' : COLORS.text.secondary} />
+              <Text style={[styles.toggleText, viewMode === 'list' && styles.toggleTextActive]}>리스트</Text>
+            </TouchableOpacity>
           </View>
+        </View>
+
+        {/* Category Tabs (배민 스타일 underline) */}
+        <View style={styles.categoryTabBar}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.categoryTabScroll}
+          >
+            <TouchableOpacity
+              style={[
+                styles.categoryTab,
+                !selectedCategory && styles.categoryTabActive,
+              ]}
+              onPress={() => handleCategoryChange(null)}
+              activeOpacity={0.7}
+            >
+              <Text
+                style={[
+                  styles.categoryTabText,
+                  !selectedCategory && styles.categoryTabTextActive,
+                ]}
+              >
+                전체
+              </Text>
+            </TouchableOpacity>
+            {CATEGORY_NAMES.map((name) => (
+              <TouchableOpacity
+                key={name}
+                style={[
+                  styles.categoryTab,
+                  selectedCategory === name && styles.categoryTabActive,
+                ]}
+                onPress={() => handleCategoryChange(name)}
+                activeOpacity={0.7}
+              >
+                <Text
+                  style={[
+                    styles.categoryTabText,
+                    selectedCategory === name && styles.categoryTabTextActive,
+                  ]}
+                >
+                  {name}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
         </View>
 
         {/* Search Section */}
@@ -285,11 +411,37 @@ const UniversalExploreScreen: React.FC<UniversalExploreScreenProps> = ({ navigat
             </TouchableOpacity>
           </View>
 
+          {/* Radius Filter Chips */}
+          <View style={styles.radiusRow}>
+            <Icon name="map-pin" size={14} color={COLORS.text.secondary} />
+            <Text style={styles.radiusLabel}>반경</Text>
+            {RADIUS_OPTIONS.map((opt) => (
+              <TouchableOpacity
+                key={opt.value}
+                style={[
+                  styles.radiusChip,
+                  radius === opt.value && styles.radiusChipActive,
+                ]}
+                onPress={() => handleRadiusChange(opt.value)}
+                activeOpacity={0.7}
+              >
+                <Text
+                  style={[
+                    styles.radiusChipText,
+                    radius === opt.value && styles.radiusChipTextActive,
+                  ]}
+                >
+                  {opt.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
           {/* Search Result Count */}
           {searchQuery.trim() && (
             <View style={styles.searchResultInfo}>
               <Text style={styles.searchResultText}>
-                검색 결과: {filteredMeetups.length}개 모임
+                검색 결과: {displayMeetups.length}개 모임
               </Text>
             </View>
           )}
@@ -301,7 +453,7 @@ const UniversalExploreScreen: React.FC<UniversalExploreScreenProps> = ({ navigat
             <>
               {/* Map View */}
               <MeetupMapView
-                meetups={filteredMeetups.map((m) => ({
+                meetups={displayMeetups.map((m) => ({
                   id: m.id,
                   title: m.title,
                   latitude: m.latitude,
@@ -340,14 +492,21 @@ const UniversalExploreScreen: React.FC<UniversalExploreScreenProps> = ({ navigat
           ) : (
             /* List View */
             <FlatList
-              data={filteredMeetups}
+              data={displayMeetups}
               keyExtractor={(item) => item.id}
               renderItem={renderMeetupItem}
               contentContainerStyle={[
                 styles.listContainer,
-                filteredMeetups.length === 0 && styles.emptyListContainer,
+                displayMeetups.length === 0 && !isLoading && styles.emptyListContainer,
               ]}
-              ListEmptyComponent={!isLoading ? renderEmptyList : null}
+              ListHeaderComponent={
+                <View style={styles.listHeaderContainer}>
+                  <Text style={styles.listHeaderTitle}>{listTitle}</Text>
+                </View>
+              }
+              ListEmptyComponent={
+                isLoading ? renderLoadingSkeletons() : renderEmptyList()
+              }
               refreshControl={
                 <RefreshControl
                   refreshing={isRefreshing}
@@ -361,54 +520,6 @@ const UniversalExploreScreen: React.FC<UniversalExploreScreenProps> = ({ navigat
           )}
         </View>
 
-        {/* View Mode Toggle */}
-        <View style={styles.viewToggleContainer}>
-          <View style={styles.viewToggle}>
-            <TouchableOpacity
-              style={[
-                styles.toggleButton,
-                viewMode === 'map' && styles.toggleButtonActive,
-              ]}
-              onPress={() => setViewMode('map')}
-            >
-              <Icon
-                name="map"
-                size={18}
-                color={viewMode === 'map' ? 'white' : COLORS.text.secondary}
-              />
-              <Text
-                style={[
-                  styles.toggleText,
-                  viewMode === 'map' && styles.toggleTextActive,
-                ]}
-              >
-                지도
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[
-                styles.toggleButton,
-                viewMode === 'list' && styles.toggleButtonActive,
-              ]}
-              onPress={() => setViewMode('list')}
-            >
-              <Icon
-                name="list"
-                size={18}
-                color={viewMode === 'list' ? 'white' : COLORS.text.secondary}
-              />
-              <Text
-                style={[
-                  styles.toggleText,
-                  viewMode === 'list' && styles.toggleTextActive,
-                ]}
-              >
-                리스트
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
       </View>
     </SafeAreaView>
   );
@@ -417,35 +528,61 @@ const UniversalExploreScreen: React.FC<UniversalExploreScreenProps> = ({ navigat
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: COLORS.primary.main,
+    backgroundColor: COLORS.neutral.white,
   },
   container: {
     flex: 1,
     backgroundColor: COLORS.neutral.background,
   },
   header: {
-    backgroundColor: COLORS.primary.main,
-    paddingHorizontal: LAYOUT.HEADER_PADDING_HORIZONTAL,
-    paddingVertical: LAYOUT.HEADER_PADDING_VERTICAL,
-    ...SHADOWS.small,
-  },
-  headerTop: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: COLORS.neutral.white,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    paddingTop: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.neutral.grey100,
+    ...SHADOWS.small,
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: COLORS.text.white,
+    fontWeight: '700',
+    color: COLORS.text.primary,
   },
-  headerRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+
+  // Category Tabs (배민 스타일 underline)
+  categoryTabBar: {
+    backgroundColor: COLORS.neutral.white,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.neutral.grey100,
   },
+  categoryTabScroll: {
+    paddingHorizontal: 16,
+  },
+  categoryTab: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+  },
+  categoryTabActive: {
+    borderBottomColor: COLORS.text.primary,
+  },
+  categoryTabText: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: COLORS.text.tertiary,
+  },
+  categoryTabTextActive: {
+    fontWeight: '700',
+    color: COLORS.text.primary,
+  },
+
+  // Search Section
   searchSection: {
-    backgroundColor: 'white',
+    backgroundColor: COLORS.neutral.white,
     paddingHorizontal: LAYOUT.HEADER_PADDING_HORIZONTAL,
     paddingVertical: 12,
     borderBottomWidth: 1,
@@ -480,6 +617,41 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 12,
   },
+
+  // Radius Filter Chips
+  radiusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 10,
+  },
+  radiusLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: COLORS.text.secondary,
+    marginRight: 2,
+  },
+  radiusChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    backgroundColor: COLORS.neutral.grey100,
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
+  radiusChipActive: {
+    backgroundColor: COLORS.primary.light,
+    borderColor: COLORS.primary.main,
+  },
+  radiusChipText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: COLORS.text.tertiary,
+  },
+  radiusChipTextActive: {
+    color: COLORS.primary.main,
+  },
+
   searchResultInfo: {
     marginTop: 8,
     paddingVertical: 4,
@@ -489,6 +661,8 @@ const styles = StyleSheet.create({
     color: COLORS.text.secondary,
     fontWeight: '500',
   },
+
+  // Content
   content: {
     flex: 1,
   },
@@ -503,6 +677,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     zIndex: 50,
   },
+
+  // List View
   listContainer: {
     padding: 16,
     paddingBottom: 100,
@@ -511,9 +687,18 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
   },
+  listHeaderContainer: {
+    marginBottom: 8,
+  },
+  listHeaderTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: COLORS.text.primary,
+    paddingBottom: 8,
+  },
   listItemContainer: {
     position: 'relative',
-    marginBottom: 12,
+    marginBottom: 16,
   },
   distanceBadge: {
     position: 'absolute',
@@ -533,50 +718,35 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: COLORS.primary.main,
   },
-  emptyContainer: {
-    alignItems: 'center',
-    padding: 40,
+
+  // Skeleton Loading
+  skeletonContainer: {
+    paddingVertical: 8,
   },
-  emptyTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: COLORS.text.primary,
-    marginTop: 16,
-    marginBottom: 8,
+  skeletonItem: {
+    marginBottom: 12,
   },
-  emptySubtitle: {
-    fontSize: 14,
-    color: COLORS.text.tertiary,
-    textAlign: 'center',
-    lineHeight: 20,
-  },
-  viewToggleContainer: {
-    position: 'absolute',
-    bottom: Platform.OS === 'ios' ? 30 : 20,
-    left: 0,
-    right: 0,
-    alignItems: 'center',
-  },
+
+  // View Toggle
   viewToggle: {
     flexDirection: 'row',
-    backgroundColor: 'white',
-    borderRadius: 25,
-    padding: 4,
-    ...SHADOWS.medium,
+    backgroundColor: COLORS.neutral.grey100,
+    borderRadius: 10,
+    padding: 3,
   },
   toggleButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 20,
-    gap: 6,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    gap: 4,
   },
   toggleButtonActive: {
     backgroundColor: COLORS.primary.main,
   },
   toggleText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
     color: COLORS.text.secondary,
   },

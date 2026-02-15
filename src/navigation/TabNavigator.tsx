@@ -2,11 +2,12 @@ import React from 'react';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import {RootTabParamList} from '../types/navigation';
 import {TAB_ROUTES} from './routes';
-import {COLORS} from '../styles/colors';
+import {COLORS, SHADOWS} from '../styles/colors';
 import {TYPOGRAPHY} from '../styles/typography';
 import {SPACING} from '../styles/spacing';
 import {SimpleIcon} from '../components/SimpleIcon';
 import HomeScreen from '../screens/HomeScreen';
+import MyMeetupsScreen from '../screens/MyMeetupsScreen';
 import ExploreScreen from '../screens/ExploreScreen';
 import ChatScreen from '../screens/ChatScreen';
 import MyPageScreen from '../screens/MyPageScreen';
@@ -17,6 +18,8 @@ const getScreenComponent = (routeName: string) => {
   switch (routeName) {
     case 'Home':
       return HomeScreen;
+    case 'MyMeetups':
+      return MyMeetupsScreen;
     case 'Search':
       return ExploreScreen; // 탐색 탭에 지도/리스트 뷰 사용
     case 'Chat':
@@ -68,7 +71,7 @@ const TabNavigator = () => {
               <TabIcon icon={route.icon} color={color} />
             ),
             headerTitle: route.headerTitle,
-            // Home, Search, MyPage는 자체 헤더 사용
+            // Home, MyMeetups, Search, MyPage는 자체 헤더 사용
             headerShown: route.name === 'Chat',
           }}
         />
@@ -87,6 +90,8 @@ const TabIcon: React.FC<TabIconProps> = ({icon, color}) => {
     switch (tabIcon) {
       case '🏠':
         return 'home';
+      case '📅':
+        return 'calendar';
       case '🔍':
         return 'compass'; // 탐색 아이콘 (지도 뷰에 더 적합)
       case '💬':

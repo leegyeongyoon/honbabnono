@@ -1,6 +1,7 @@
 export const ROUTES = {
   // Tab Routes
   HOME: 'Home' as const,
+  MY_MEETUPS: 'MyMeetups' as const,
   SEARCH: 'Search' as const,
   CHAT: 'Chat' as const,
   MY_PAGE: 'MyPage' as const,
@@ -22,6 +23,12 @@ export const TAB_ROUTES = [
     title: '홈',
     icon: '🏠',
     headerTitle: '혼밥시러',
+  },
+  {
+    name: ROUTES.MY_MEETUPS,
+    title: '내모임',
+    icon: '📅',
+    headerTitle: '내 모임',
   },
   {
     name: ROUTES.SEARCH,

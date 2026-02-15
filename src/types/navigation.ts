@@ -1,5 +1,6 @@
 export type RootTabParamList = {
   Home: undefined;
+  MyMeetups: undefined;
   Search: {
     category?: string;
     location?: string;

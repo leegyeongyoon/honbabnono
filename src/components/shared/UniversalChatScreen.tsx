@@ -10,14 +10,19 @@ import {
   Alert,
   Image,
   Modal,
+  SafeAreaView,
 } from 'react-native';
-import {COLORS, SHADOWS, LAYOUT} from '../../styles/colors';
+import { COLORS, SHADOWS, LAYOUT } from '../../styles/colors';
+import { BORDER_RADIUS } from '../../styles/spacing';
 import {Icon} from '../Icon';
 import chatService from '../../services/chatService';
 import chatApiService, {ChatRoom, ChatMessage} from '../../services/chatApiService';
 import {getDetailedDateFormat, getChatDateHeader, isSameDay} from '../../utils/timeUtils';
 import {useUserStore} from '../../store/userStore';
 import { useAuth } from '../../contexts/AuthContext';
+import { getAvatarColor, getInitials } from '../../utils/avatarColor';
+import { ChatListSkeleton } from '../skeleton';
+import EmptyState from '../EmptyState';
 
 interface NavigationAdapter {
   navigate: (screen: string, params?: any) => void;
@@ -32,17 +37,17 @@ interface UniversalChatScreenProps {
   ChatRoomModal?: React.ComponentType<any>;
 }
 
-const UniversalChatScreen: React.FC<UniversalChatScreenProps> = ({ 
-  navigation, 
+const UniversalChatScreen: React.FC<UniversalChatScreenProps> = ({
+  navigation,
   user,
   selectedChatId: propSelectedChatId,
   onChatSelect,
-  ChatRoomModal 
+  ChatRoomModal
 }) => {
   const { user: storeUser } = useUserStore();
   const { isAuthenticated } = useAuth();
   const currentUser = user || storeUser;
-  
+
   const [selectedTab, setSelectedTab] = useState('모임채팅');
   const [chatRooms, setChatRooms] = useState<ChatRoom[]>([]);
   const [selectedChatId, setSelectedChatId] = useState<number | null>(propSelectedChatId || null);
@@ -52,6 +57,7 @@ const UniversalChatScreen: React.FC<UniversalChatScreenProps> = ({
   const [currentChatRoom, setCurrentChatRoom] = useState<ChatRoom | null>(null);
   const [selectedUserForDM, setSelectedUserForDM] = useState<any>(null);
   const [showDMModal, setShowDMModal] = useState(false);
+  const [messageInputFocused, setMessageInputFocused] = useState(false);
 
   const tabs = ['모임채팅', '1:1채팅'];
   const userId = currentUser?.id || '';
@@ -117,10 +123,10 @@ const UniversalChatScreen: React.FC<UniversalChatScreenProps> = ({
   useEffect(() => {
     // 기존 리스너 제거
     chatService.offNewMessage();
-    
+
     // WebSocket 연결
     chatService.connect();
-    
+
     // 채팅방 목록 로드
     loadChatRooms();
 
@@ -143,7 +149,7 @@ const UniversalChatScreen: React.FC<UniversalChatScreenProps> = ({
       setChatRooms([]);
       return;
     }
-    
+
     try {
       setLoading(true);
       const rooms = await chatApiService.getChatRooms(userId);
@@ -204,13 +210,13 @@ const UniversalChatScreen: React.FC<UniversalChatScreenProps> = ({
     if (selectedChatId === newMessage.chatRoomId) {
       setMessages(prev => [...prev, newMessage]);
     }
-    
+
     // 채팅방 목록의 마지막 메시지 업데이트
-    setChatRooms(prev => prev.map(room => 
-      room.id === newMessage.chatRoomId 
-        ? { 
-            ...room, 
-            lastMessage: newMessage.message, 
+    setChatRooms(prev => prev.map(room =>
+      room.id === newMessage.chatRoomId
+        ? {
+            ...room,
+            lastMessage: newMessage.message,
             lastTime: newMessage.timestamp,
             unreadCount: selectedChatId === newMessage.chatRoomId ? room.unreadCount : room.unreadCount + 1
           }
@@ -240,10 +246,10 @@ const UniversalChatScreen: React.FC<UniversalChatScreenProps> = ({
     try {
       // API로 메시지 전송
       const sentMessage = await chatApiService.sendMessage(selectedChatId, messageData, userId);
-      
+
       // 로컬 상태에 메시지 추가
       setMessages(prev => [...prev, sentMessage]);
-      
+
       // WebSocket으로 실시간 전송
       chatService.sendMessage({
         roomId: selectedChatId,
@@ -253,8 +259,8 @@ const UniversalChatScreen: React.FC<UniversalChatScreenProps> = ({
       });
 
       // 채팅방 목록의 마지막 메시지 업데이트
-      setChatRooms(prev => prev.map(room => 
-        room.id === selectedChatId 
+      setChatRooms(prev => prev.map(room =>
+        room.id === selectedChatId
           ? { ...room, lastMessage: messageText.trim(), lastTime: sentMessage.timestamp }
           : room
       ));
@@ -267,17 +273,18 @@ const UniversalChatScreen: React.FC<UniversalChatScreenProps> = ({
   };
 
   const renderChatListItem = (item: ChatRoom) => {
-    const displayTitle = item.type === 'meetup' ? item.title : item.title;
+    const displayTitle = item.title;
     const participantCount = item.type === 'meetup' ? item.participants.length : undefined;
-    
+
     return (
-      <TouchableOpacity 
-        style={styles.chatItem} 
+      <TouchableOpacity
+        style={styles.chatItem}
         onPress={() => selectChatRoom(item.id)}
+        activeOpacity={0.7}
       >
-        <View style={styles.chatAvatar}>
+        <View style={[styles.chatAvatar, { backgroundColor: getAvatarColor(displayTitle) }]}>
           <Text style={styles.chatAvatarText}>
-            {displayTitle.charAt(0)}
+            {getInitials(displayTitle)}
           </Text>
         </View>
         <View style={styles.chatInfo}>
@@ -287,41 +294,45 @@ const UniversalChatScreen: React.FC<UniversalChatScreenProps> = ({
           <Text style={styles.lastMessage} numberOfLines={1}>
             {item.lastMessage || '아직 메시지가 없습니다'}
           </Text>
+        </View>
+        <View style={styles.chatMeta}>
           <Text style={styles.chatTime}>
             {getDetailedDateFormat(item.lastTime)}
-            {participantCount && item.lastTime ? ' • ' : ''}
+            {participantCount && item.lastTime ? ' \u2022 ' : ''}
             {participantCount ? `${participantCount}명` : ''}
           </Text>
+          {item.unreadCount > 0 && (
+            <View style={styles.unreadBadge}>
+              <Text style={styles.unreadCount}>{item.unreadCount}</Text>
+            </View>
+          )}
         </View>
-        {item.unreadCount > 0 && (
-          <View style={styles.unreadBadge}>
-            <Text style={styles.unreadCount}>{item.unreadCount}</Text>
-          </View>
-        )}
       </TouchableOpacity>
     );
   };
 
   const renderChatList = () => {
-    const filteredRooms = chatRooms.filter(room => 
+    const filteredRooms = chatRooms.filter(room =>
       selectedTab === '모임채팅' ? room.type === 'meetup' : room.type === 'direct'
     );
 
     if (loading) {
       return (
-        <View style={styles.loadingContainer}>
-          <Text style={styles.loadingText}>채팅방을 불러오는 중...</Text>
+        <View style={styles.chatListSkeletonContainer}>
+          {[1, 2, 3, 4].map((i) => (
+            <ChatListSkeleton key={i} />
+          ))}
         </View>
       );
     }
 
     if (filteredRooms.length === 0) {
       return (
-        <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>
-            {selectedTab === '모임채팅' ? '참여한 모임이 없습니다' : '1:1 채팅이 없습니다'}
-          </Text>
-        </View>
+        <EmptyState
+          icon="message-circle"
+          title={selectedTab === '모임채팅' ? '참여한 모임 채팅이 없어요' : '1:1 채팅이 없어요'}
+          description={selectedTab === '모임채팅' ? '모임에 참가하면 채팅방이 자동으로 생성됩니다' : undefined}
+        />
       );
     }
 
@@ -367,15 +378,15 @@ const UniversalChatScreen: React.FC<UniversalChatScreenProps> = ({
       </View>
 
       {/* 메시지 목록 */}
-      <ScrollView 
-        style={styles.messageList} 
+      <ScrollView
+        style={styles.messageList}
         contentContainerStyle={styles.messageListContainer}
         showsVerticalScrollIndicator={false}
       >
         {messages.map((message, index) => {
           // 이전 메시지와 날짜가 다르면 날짜 헤더 표시
           const showDateHeader = index === 0 || !isSameDay(messages[index - 1].timestamp, message.timestamp);
-          
+
           return (
             <View key={message.id}>
               {showDateHeader && (
@@ -390,13 +401,13 @@ const UniversalChatScreen: React.FC<UniversalChatScreenProps> = ({
               >
                 {!message.isMe && (
                   <View style={styles.messageWithProfile}>
-                    <TouchableOpacity 
+                    <TouchableOpacity
                       style={styles.profileImageContainer}
                       onPress={() => handleUserProfileClick(message)}
                     >
                       {message.profileImage ? (
-                        <Image 
-                          source={{ uri: message.profileImage }} 
+                        <Image
+                          source={{ uri: message.profileImage }}
                           style={styles.profileImage}
                         />
                       ) : (
@@ -424,10 +435,10 @@ const UniversalChatScreen: React.FC<UniversalChatScreenProps> = ({
                         </Text>
                       </View>
                       <Text style={[styles.messageTime]}>
-                        {new Date(message.timestamp).toLocaleTimeString('ko-KR', { 
-                          hour: '2-digit', 
+                        {new Date(message.timestamp).toLocaleTimeString('ko-KR', {
+                          hour: '2-digit',
                           minute: '2-digit',
-                          hour12: true 
+                          hour12: true
                         })}
                       </Text>
                     </View>
@@ -440,13 +451,16 @@ const UniversalChatScreen: React.FC<UniversalChatScreenProps> = ({
                         {message.message}
                       </Text>
                     </View>
-                    <Text style={[styles.messageTime, styles.myMessageTime]}>
-                      {new Date(message.timestamp).toLocaleTimeString('ko-KR', { 
-                        hour: '2-digit', 
-                        minute: '2-digit',
-                        hour12: true 
-                      })}
-                    </Text>
+                    <View style={styles.myMessageMeta}>
+                      <Text style={[styles.messageTime, styles.myMessageTime]}>
+                        {new Date(message.timestamp).toLocaleTimeString('ko-KR', {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          hour12: true
+                        })}
+                      </Text>
+                      <Text style={styles.readReceipt}>읽음</Text>
+                    </View>
                   </View>
                 )}
               </View>
@@ -457,7 +471,10 @@ const UniversalChatScreen: React.FC<UniversalChatScreenProps> = ({
 
       {/* 메시지 입력 */}
       <View style={styles.messageInput}>
-        <View style={styles.inputContainer}>
+        <View style={[
+          styles.inputContainer,
+          messageInputFocused && styles.inputContainerFocused,
+        ]}>
           <TextInput
             style={styles.textInput}
             placeholder="메시지를 입력하세요..."
@@ -466,16 +483,18 @@ const UniversalChatScreen: React.FC<UniversalChatScreenProps> = ({
             multiline
             maxLength={500}
             onSubmitEditing={sendMessage}
+            onFocus={() => setMessageInputFocused(true)}
+            onBlur={() => setMessageInputFocused(false)}
           />
           <TouchableOpacity
             style={[styles.sendButton, messageText.trim() && styles.sendButtonActive]}
             onPress={sendMessage}
             disabled={!messageText.trim()}
           >
-            <Icon 
-              name="send" 
-              size={18} 
-              color={messageText.trim() ? COLORS.text.white : COLORS.text.secondary} 
+            <Icon
+              name="send"
+              size={20}
+              color={messageText.trim() ? COLORS.text.white : COLORS.text.secondary}
             />
           </TouchableOpacity>
         </View>
@@ -538,14 +557,14 @@ const UniversalChatScreen: React.FC<UniversalChatScreenProps> = ({
               {selectedUserForDM?.name}님과 개인적인 대화를 나누시겠습니까?
             </Text>
             <View style={styles.modalButtons}>
-              <TouchableOpacity 
-                style={styles.modalButtonCancel} 
+              <TouchableOpacity
+                style={styles.modalButtonCancel}
                 onPress={() => setShowDMModal(false)}
               >
                 <Text style={styles.modalButtonCancelText}>취소</Text>
               </TouchableOpacity>
-              <TouchableOpacity 
-                style={styles.modalButtonConfirm} 
+              <TouchableOpacity
+                style={styles.modalButtonConfirm}
                 onPress={() => startDirectChat(selectedUserForDM)}
               >
                 <Text style={styles.modalButtonConfirmText}>채팅 시작</Text>
@@ -569,12 +588,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 16,
-    paddingTop: 52,
     backgroundColor: COLORS.neutral.white,
     ...SHADOWS.small,
   },
   headerTitle: {
-    fontSize: 17,
+    fontSize: 18,
     fontWeight: '700',
     color: COLORS.text.primary,
   },
@@ -589,7 +607,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     backgroundColor: COLORS.neutral.white,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.neutral.grey200,
+    borderBottomColor: COLORS.neutral.grey100,
   },
   tabButton: {
     flex: 1,
@@ -604,11 +622,11 @@ const styles = StyleSheet.create({
   tabButtonText: {
     fontSize: 14,
     fontWeight: '500',
-    color: COLORS.text.secondary,
+    color: COLORS.text.tertiary,
   },
   selectedTabButtonText: {
     color: COLORS.primary.main,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   chatList: {
     flex: 1,
@@ -617,110 +635,105 @@ const styles = StyleSheet.create({
   chatListContainer: {
     paddingBottom: 20,
   },
+  chatListSkeletonContainer: {
+    flex: 1,
+    backgroundColor: COLORS.neutral.white,
+    paddingTop: 8,
+  },
   chatItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
     paddingVertical: 16,
     backgroundColor: COLORS.neutral.white,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.neutral.grey100,
   },
   chatAvatar: {
-    width: 50,
-    height: 50,
-    borderRadius: 12,
-    backgroundColor: COLORS.neutral.grey200,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
   },
   chatAvatarText: {
     fontSize: 18,
-    fontWeight: '600',
-    color: COLORS.text.primary,
+    fontWeight: '700',
+    color: COLORS.text.white,
   },
   chatInfo: {
     flex: 1,
   },
   chatTitle: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
     color: COLORS.text.primary,
     marginBottom: 4,
   },
   lastMessage: {
-    fontSize: 14,
-    color: COLORS.text.secondary,
-    marginBottom: 4,
+    fontSize: 13,
+    color: COLORS.text.tertiary,
+  },
+  chatMeta: {
+    alignItems: 'flex-end',
+    justifyContent: 'flex-start',
+    gap: 6,
+    paddingTop: 2,
   },
   chatTime: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: COLORS.text.tertiary,
   },
   unreadBadge: {
     backgroundColor: COLORS.primary.main,
-    borderRadius: 8,
-    minWidth: 24,
-    height: 24,
+    borderRadius: 11,
+    minWidth: 22,
+    height: 22,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 6,
   },
   unreadCount: {
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: 11,
+    fontWeight: '700',
     color: COLORS.text.white,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 40,
-    backgroundColor: COLORS.neutral.white,
-  },
-  loadingText: {
-    fontSize: 16,
-    color: COLORS.text.secondary,
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 40,
-    backgroundColor: COLORS.neutral.white,
-  },
-  emptyText: {
-    fontSize: 16,
-    color: COLORS.text.secondary,
-    textAlign: 'center',
   },
   chatRoom: {
     flex: 1,
     backgroundColor: COLORS.neutral.background,
   },
   chatRoomHeader: {
-    height: 60,
+    height: 64,
     backgroundColor: COLORS.neutral.white,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.neutral.grey200,
+    borderBottomColor: COLORS.neutral.grey100,
+    ...SHADOWS.small,
   },
   backButton: {
     padding: 8,
+    minWidth: 44,
+    minHeight: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   chatRoomTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: '700',
     color: COLORS.text.primary,
     flex: 1,
     textAlign: 'center',
   },
   menuButton: {
     padding: 8,
+    minWidth: 44,
+    minHeight: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   messageList: {
     flex: 1,
@@ -731,13 +744,15 @@ const styles = StyleSheet.create({
   },
   messageItem: {
     marginBottom: 16,
-    maxWidth: '80%',
+    maxWidth: '75%',
   },
   myMessage: {
     alignSelf: 'flex-end',
     alignItems: 'flex-end',
   },
   messageHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: 4,
   },
   senderName: {
@@ -747,15 +762,22 @@ const styles = StyleSheet.create({
   },
   messageBubble: {
     backgroundColor: COLORS.neutral.white,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    borderBottomLeftRadius: 4,
+    borderBottomRightRadius: 20,
   },
   myMessageBubble: {
     backgroundColor: COLORS.primary.main,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 4,
   },
   messageText: {
-    fontSize: 14,
+    fontSize: 15,
     color: COLORS.text.primary,
     lineHeight: 20,
   },
@@ -763,40 +785,62 @@ const styles = StyleSheet.create({
     color: COLORS.text.white,
   },
   messageTime: {
-    fontSize: 10,
+    fontSize: 11,
     color: COLORS.text.secondary,
     marginTop: 4,
   },
   myMessageTime: {
     textAlign: 'right',
   },
+  myMessageMeta: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    marginTop: 4,
+    gap: 4,
+  },
+  readReceipt: {
+    fontSize: 10,
+    color: COLORS.primary.main,
+  },
   messageInput: {
     backgroundColor: COLORS.neutral.white,
     borderTopWidth: 1,
-    borderTopColor: COLORS.neutral.grey200,
-    padding: 16,
+    borderTopColor: COLORS.neutral.grey100,
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    height: 72,
+    justifyContent: 'center',
+    ...SHADOWS.large,
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'flex-end',
     backgroundColor: COLORS.neutral.background,
-    borderRadius: 12,
+    borderRadius: BORDER_RADIUS.xl,
     paddingHorizontal: 16,
     paddingVertical: 8,
     minHeight: 40,
+    borderWidth: 1,
+    borderColor: 'transparent',
+    width: '100%',
+  },
+  inputContainerFocused: {
+    borderColor: COLORS.primary.main,
+    ...SHADOWS.focused,
   },
   textInput: {
     flex: 1,
-    fontSize: 14,
+    fontSize: 15,
     color: COLORS.text.primary,
     maxHeight: 100,
     paddingVertical: 8,
   },
   sendButton: {
     marginLeft: 12,
-    width: 32,
-    height: 32,
-    borderRadius: 8,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: COLORS.neutral.grey200,
     justifyContent: 'center',
     alignItems: 'center',
@@ -809,14 +853,15 @@ const styles = StyleSheet.create({
     marginVertical: 20,
   },
   dateHeaderText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
     color: COLORS.text.secondary,
-    backgroundColor: 'rgba(0, 0, 0, 0.05)',
+    backgroundColor: COLORS.neutral.white,
     paddingHorizontal: 16,
-    paddingVertical: 6,
-    borderRadius: 8,
+    paddingVertical: 8,
+    borderRadius: 12,
     textAlign: 'center',
+    ...SHADOWS.small,
   },
   messageWithProfile: {
     flexDirection: 'row',
@@ -826,7 +871,7 @@ const styles = StyleSheet.create({
   profileImageContainer: {
     width: 40,
     height: 40,
-    borderRadius: 10,
+    borderRadius: 20,
     overflow: 'hidden',
     backgroundColor: COLORS.neutral.grey200,
     justifyContent: 'center',
@@ -835,13 +880,13 @@ const styles = StyleSheet.create({
   profileImage: {
     width: 40,
     height: 40,
-    borderRadius: 10,
+    borderRadius: 20,
     resizeMode: 'cover',
   },
   defaultProfileImage: {
     width: 40,
     height: 40,
-    borderRadius: 10,
+    borderRadius: 20,
     backgroundColor: COLORS.primary.main,
     justifyContent: 'center',
     alignItems: 'center',
@@ -868,7 +913,7 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     backgroundColor: COLORS.neutral.white,
-    borderRadius: 12,
+    borderRadius: 16,
     padding: 24,
     margin: 20,
     maxWidth: 400,
@@ -897,7 +942,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 12,
     paddingHorizontal: 16,
-    borderRadius: 8,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: COLORS.neutral.grey300,
     backgroundColor: COLORS.neutral.white,
@@ -912,7 +957,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 12,
     paddingHorizontal: 16,
-    borderRadius: 8,
+    borderRadius: 12,
     backgroundColor: COLORS.primary.main,
     alignItems: 'center',
   },

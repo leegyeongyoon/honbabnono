@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -9,11 +9,14 @@ import {
   SafeAreaView,
 } from 'react-native';
 import {COLORS, SHADOWS, LAYOUT} from '../../styles/colors';
+import {SPACING, BORDER_RADIUS} from '../../styles/spacing';
 import {Icon} from '../Icon';
 import { NotificationBell } from '../NotificationBell';
 import NeighborhoodSelector from '../NeighborhoodSelector';
 import NativeMapModal from '../NativeMapModal';
 import MeetupCard from '../MeetupCard';
+import MeetupCardSkeleton from '../skeleton/MeetupCardSkeleton';
+import EmptyState from '../EmptyState';
 import locationService from '../../services/locationService';
 import { useUserStore } from '../../store/userStore';
 import { useMeetupStore } from '../../store/meetupStore';
@@ -26,7 +29,6 @@ import { usePopup } from '../../hooks/usePopup';
 import { useNotificationBanner } from '../../hooks/useNotificationBanner';
 import NotificationBanner from '../NotificationBanner';
 import nativeBridge from '../../utils/nativeBridge';
-import { formatMeetupDateTime } from '../../utils/dateUtils';
 
 // 플랫폼별 네비게이션 인터페이스
 interface NavigationAdapter {
@@ -64,25 +66,27 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
   const { updateNeighborhood, user: storeUser } = useUserStore();
   const { meetups, fetchHomeMeetups } = useMeetupStore();
   const { searchMeetups, meetups: searchResults, loading: searchLoading } = useMeetups();
-  
+
   // 상태 관리
   const [showCreateMeetup, setShowCreateMeetup] = useState(false);
   const [showMapTest, setShowMapTest] = useState(false);
   const [showNeighborhoodSelector, setShowNeighborhoodSelector] = useState(false);
-  const [showNeighborhoodMapModal, setShowNeighborhoodMapModal] = useState(false);  // 지도 모달 상태 (부모에서 관리)
+  const [showNeighborhoodMapModal, setShowNeighborhoodMapModal] = useState(false);
   const [currentNeighborhood, setCurrentNeighborhood] = useState<{ district: string; neighborhood: string } | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearchSuggestions, setShowSearchSuggestions] = useState(false);
-  
-  const { 
-    popupState, 
-    hidePopup, 
-    showSuccess, 
-    showError, 
-    showWarning, 
-    showInfo, 
-    showConfirm, 
-    showAlert 
+  const [isLoading, setIsLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(false);
+
+  const {
+    popupState,
+    hidePopup,
+    showSuccess,
+    showError,
+    showWarning,
+    showInfo,
+    showConfirm,
+    showAlert
   } = usePopup();
 
   // 검색 제안 데이터
@@ -100,18 +104,19 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
   // 데이터 로딩 - 사용자 위치 기반
   useEffect(() => {
     const loadMeetups = () => {
+      setFetchError(false);
       const neighborhood = storeUser?.neighborhood;
-      if (neighborhood?.latitude && neighborhood?.longitude) {
-        // 위치 정보가 있으면 위치 기반 검색
-        fetchHomeMeetups({
-          latitude: neighborhood.latitude,
-          longitude: neighborhood.longitude,
-          radius: neighborhood.radius || 3000, // 기본 3km
-        });
-      } else {
-        // 위치 정보 없으면 기본 검색
-        fetchHomeMeetups();
-      }
+      const fetchPromise = (neighborhood?.latitude && neighborhood?.longitude)
+        ? fetchHomeMeetups({
+            latitude: neighborhood.latitude,
+            longitude: neighborhood.longitude,
+            radius: neighborhood.radius || 3000,
+          })
+        : fetchHomeMeetups();
+
+      fetchPromise
+        .catch(() => setFetchError(true))
+        .finally(() => setIsLoading(false));
     };
 
     loadMeetups();
@@ -119,13 +124,42 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
 
   // 위치 설정 - React Native에서는 기본값을 사용
   useEffect(() => {
-    // React Native에서는 네이티브 위치 권한이 필요하므로 기본값 사용
-    // TODO: React Native Geolocation API 통합 후 활성화
     setCurrentNeighborhood({
       district: '강남구',
       neighborhood: '역삼동'
     });
   }, []);
+
+  // ─── 섹션별 모임 데이터 분류 (useMemo로 최적화) ─────────
+  const soonMeetups = useMemo(() => {
+    const now = new Date();
+    return meetups
+      .filter((m: any) => {
+        if (!m.date) return false;
+        const meetupDate = new Date(m.date);
+        const diffMs = meetupDate.getTime() - now.getTime();
+        const diffHours = diffMs / (1000 * 60 * 60);
+        return diffHours > -2 && diffHours < 48 && m.status === 'recruiting';
+      })
+      .sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime())
+      .slice(0, 6);
+  }, [meetups]);
+
+  const newMeetups = useMemo(() => {
+    return [...meetups]
+      .sort((a: any, b: any) => {
+        const aTime = new Date(a.createdAt || a.updatedAt).getTime();
+        const bTime = new Date(b.createdAt || b.updatedAt).getTime();
+        return bTime - aTime;
+      })
+      .slice(0, 6);
+  }, [meetups]);
+
+  const recruitingMeetups = useMemo(() => {
+    return meetups
+      .filter((m: any) => m.status === 'recruiting')
+      .slice(0, 10);
+  }, [meetups]);
 
   // 이벤트 핸들러들
   const handleMeetupClick = (meetup: any) => {
@@ -135,7 +169,6 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
   const handleSearch = async () => {
     if (searchQuery.trim()) {
       setShowSearchSuggestions(false);
-      // AISearchResultScreen으로 이동하여 검색 실행
       navigation.navigate('AISearchResult', { query: searchQuery, autoSearch: true });
     }
   };
@@ -149,20 +182,17 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
   const handleLocationSelect = (district: string, neighborhood: string) => {
     updateNeighborhood(district, neighborhood);
     setCurrentNeighborhood({ district, neighborhood });
-    setShowNeighborhoodMapModal(false);  // 지도 모달 먼저 닫기
+    setShowNeighborhoodMapModal(false);
     setShowNeighborhoodSelector(false);
-    // 위치 기반 검색 (좌표 없으면 기본 검색)
     fetchHomeMeetups();
   };
 
   // NativeMapModal에서 위치 선택 처리 (lat, lng, address, radius 포함)
   const handleMapLocationSelect = (district: string, neighborhood: string, lat: number, lng: number, address: string, radius?: number) => {
-    // radius는 km 단위로 전달되므로 미터 단위로 변환하여 저장 (API는 미터 단위를 사용)
-    const radiusInMeters = radius ? radius * 1000 : 3000; // 기본 3km
+    const radiusInMeters = radius ? radius * 1000 : 3000;
     updateNeighborhood(district, neighborhood, lat, lng, radiusInMeters);
     setCurrentNeighborhood({ district, neighborhood });
     setShowNeighborhoodMapModal(false);
-    // 위치 기반 검색
     fetchHomeMeetups({
       latitude: lat,
       longitude: lng,
@@ -172,8 +202,7 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
 
   // NeighborhoodSelector에서 지도 모달 열기 요청 처리
   const handleOpenMapModal = () => {
-    setShowNeighborhoodSelector(false);  // 먼저 NeighborhoodSelector 닫기
-    // 약간의 딜레이 후 지도 모달 열기 (Modal 전환 애니메이션 대기)
+    setShowNeighborhoodSelector(false);
     setTimeout(() => {
       setShowNeighborhoodMapModal(true);
     }, 300);
@@ -192,32 +221,97 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
     try {
       if (nativeBridge.isNativeApp()) {
         nativeBridge.scheduleNotification(
-          '혼밥노노 알림', 
-          '5초 후 네이티브 알림입니다! 🍚', 
+          '혼밥노노 알림',
+          '5초 후 네이티브 알림입니다!',
           5,
           { type: 'scheduled', timestamp: new Date().toISOString() }
         );
         showInfo('5초 후 네이티브 알림이 표시됩니다...');
       } else {
-        // 웹 브라우저에서 실행 중
         setTimeout(() => {
-          alert('5초 후 웹 알림입니다! 새로운 밥친구가 근처에 있어요 🍚');
+          alert('5초 후 웹 알림입니다! 새로운 밥친구가 근처에 있어요');
         }, 5000);
         showInfo('5초 후 웹 알림이 표시됩니다...');
       }
     } catch (error) {
-      console.error('❌ [DEBUG] 알림 예약 실패:', error);
       showError('알림 예약에 실패했습니다.');
     }
   };
+
+  const handleRetry = () => {
+    setIsLoading(true);
+    setFetchError(false);
+    const neighborhood = storeUser?.neighborhood;
+    const fetchPromise = (neighborhood?.latitude && neighborhood?.longitude)
+      ? fetchHomeMeetups({
+          latitude: neighborhood.latitude,
+          longitude: neighborhood.longitude,
+          radius: neighborhood.radius || 3000,
+        })
+      : fetchHomeMeetups();
+
+    fetchPromise
+      .catch(() => setFetchError(true))
+      .finally(() => setIsLoading(false));
+  };
+
+  // ─── 섹션 헤더 렌더링 ─────────────────────────────
+  const renderSectionHeader = (emoji: string, title: string) => (
+    <View style={styles.sectionHeader}>
+      <View style={styles.sectionTitleRow}>
+        <Text style={styles.sectionEmoji}>{emoji}</Text>
+        <Text style={styles.sectionTitle}>{title}</Text>
+      </View>
+      <TouchableOpacity onPress={() => navigation.navigate('MeetupList')}>
+        <Text style={styles.seeAllText}>더보기</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
+  // ─── 가로 스크롤 스켈레톤 렌더링 ─────────────────
+  const renderHorizontalSkeletons = () => (
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={styles.horizontalCardList}
+    >
+      {[1, 2, 3].map((i) => (
+        <View key={i} style={styles.horizontalCardWrapper}>
+          <MeetupCardSkeleton variant="grid" />
+        </View>
+      ))}
+    </ScrollView>
+  );
+
+  // ─── 세로 리스트 스켈레톤 렌더링 ─────────────────
+  const renderVerticalSkeletons = () => (
+    <View style={styles.verticalList}>
+      {[1, 2, 3].map((i) => (
+        <View key={i} style={styles.verticalListItem}>
+          <MeetupCardSkeleton variant="list" />
+        </View>
+      ))}
+    </View>
+  );
+
+  // ─── 에러 상태 렌더링 ─────────────────────────────
+  const renderErrorState = () => (
+    <View style={styles.errorContainer}>
+      <Text style={styles.errorText}>데이터를 불러오지 못했어요</Text>
+      <TouchableOpacity style={styles.retryButton} onPress={handleRetry}>
+        <Text style={styles.retryButtonText}>다시 시도</Text>
+      </TouchableOpacity>
+    </View>
+  );
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
         {/* 상단 헤더 */}
         <View style={styles.header}>
+          <Text style={styles.headerLogo}>혼밥시러</Text>
           <TouchableOpacity style={styles.locationButton} onPress={openNeighborhoodSelector}>
-            <Icon name="map-pin" size={14} color={COLORS.text.white} style={{ marginRight: 4 }} />
+            <Icon name="map-pin" size={14} color={COLORS.primary.main} style={{ marginRight: 4 }} />
             <Text style={styles.locationText}>
               {currentNeighborhood ? `${currentNeighborhood.district} ${currentNeighborhood.neighborhood}` : '위치 설정'}
             </Text>
@@ -226,7 +320,7 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
                 · {formatRadius(storeUser.neighborhood.radius)}
               </Text>
             )}
-            <Icon name="chevron-down" size={14} color={COLORS.text.white} />
+            <Icon name="chevron-down" size={14} color={COLORS.text.tertiary} />
           </TouchableOpacity>
 
           <View style={styles.headerButtons}>
@@ -235,12 +329,16 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
               onPress={() => {
                 navigation.navigate('Notifications');
               }}
-              color={COLORS.text.white}
+              color={COLORS.text.primary}
             />
           </View>
         </View>
 
-      <ScrollView style={styles.scrollView}>
+      <ScrollView
+        style={styles.scrollView}
+        showsVerticalScrollIndicator={false}
+        onScrollBeginDrag={() => setShowSearchSuggestions(false)}
+      >
 
         {/* 검색 섹션 */}
         <View style={styles.searchSection}>
@@ -259,13 +357,13 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
               />
               {searchQuery.length > 0 && (
                 <>
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={styles.clearButton}
                     onPress={() => setSearchQuery('')}
                   >
                     <Icon name="x" size={16} color={COLORS.text.tertiary} />
                   </TouchableOpacity>
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={styles.searchButton}
                     onPress={handleSearch}
                   >
@@ -274,15 +372,15 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
                 </>
               )}
             </View>
-            
+
             {/* 검색 제안 */}
             {showSearchSuggestions && (
               <View style={styles.suggestionsContainer}>
-                <Text style={styles.suggestionsLabel}>🍚 AI 검색 제안</Text>
+                <Text style={styles.suggestionsLabel}>AI 검색 제안</Text>
                 <View style={styles.suggestionsList}>
                   {searchSuggestions
-                    .filter(suggestion => 
-                      searchQuery.length === 0 || 
+                    .filter(suggestion =>
+                      searchQuery.length === 0 ||
                       suggestion.toLowerCase().includes(searchQuery.toLowerCase())
                     )
                     .slice(0, 4)
@@ -324,71 +422,116 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
         {/* 광고 섹션 */}
         <AdvertisementBanner position="home_banner" navigation={navigation} />
 
-        {/* 바로 참여할 수 있는 번개 */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>
-            {storeUser?.neighborhood?.latitude
-              ? `🔥 내 주변 ${formatRadius(storeUser.neighborhood.radius || 3000)} 이내 번개`
-              : '바로 참여할 수 있는 번개'}
-          </Text>
-
-          {meetups.length > 0 && meetups.slice(0, 3).map((meetup, index) => {
-            if (!meetup.id) {
-              console.error('🚨 ERROR: Meetup has no ID!', meetup);
-              return null;
-            }
-            return (
-              <MeetupCard
-                key={meetup.id}
-                meetup={meetup}
-                onPress={handleMeetupClick}
-              />
-            );
-          })}
-
-          {/* 모임이 없을 때 안내 메시지 */}
-          {meetups.length === 0 && storeUser?.neighborhood?.latitude && (
-            <View style={styles.emptyStateContainer}>
-              <Text style={styles.emptyStateText}>
-                근처에 모임이 없어요 😢
-              </Text>
-              <TouchableOpacity
-                style={styles.expandRadiusButton}
-                onPress={openNeighborhoodSelector}
+        {/* 섹션 1: 곧 시작하는 밥약속 */}
+        {(isLoading || soonMeetups.length > 0) && (
+          <View style={styles.contentSection}>
+            {renderSectionHeader('\u23F0', '곧 시작하는 밥약속')}
+            {isLoading ? (
+              renderHorizontalSkeletons()
+            ) : fetchError ? (
+              renderErrorState()
+            ) : (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.horizontalCardList}
               >
-                <Text style={styles.expandRadiusText}>반경 넓혀보기</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-        </View>
+                {soonMeetups.map((meetup: any) => {
+                  if (!meetup.id) return null;
+                  return (
+                    <View key={meetup.id} style={styles.horizontalCardWrapper}>
+                      <MeetupCard
+                        meetup={meetup}
+                        onPress={handleMeetupClick}
+                        variant="grid"
+                      />
+                    </View>
+                  );
+                })}
+              </ScrollView>
+            )}
+          </View>
+        )}
 
-        {/* 오늘은 컵스밥! */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>오늘은 컵스밥!</Text>
-        
-          {meetups.length > 3 && meetups.slice(3, 6).map((meetup, index) => {
-            if (!meetup.id) {
-              console.error('🚨 ERROR: Meetup section 2 has no ID!', meetup);
-              return null;
-            }
-            return (
-              <MeetupCard 
-                key={meetup.id}
-                meetup={meetup}
-                onPress={handleMeetupClick}
-              />
-            );
-          })}
+        {/* 섹션 2: 새로 올라온 모임 */}
+        {(isLoading || newMeetups.length > 0) && (
+          <View style={styles.contentSection}>
+            {renderSectionHeader('\u2728', '새로 올라온 모임')}
+            {isLoading ? (
+              renderHorizontalSkeletons()
+            ) : fetchError ? (
+              renderErrorState()
+            ) : (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.horizontalCardList}
+              >
+                {newMeetups.map((meetup: any) => {
+                  if (!meetup.id) return null;
+                  return (
+                    <View key={meetup.id} style={styles.horizontalCardWrapper}>
+                      <MeetupCard
+                        meetup={meetup}
+                        onPress={handleMeetupClick}
+                        variant="grid"
+                      />
+                    </View>
+                  );
+                })}
+              </ScrollView>
+            )}
+          </View>
+        )}
 
-          {/* 더보기 버튼 */}
-          <TouchableOpacity 
-            style={styles.moreButton}
+        {/* 섹션 3: 모집중인 모임 (세로 리스트) */}
+        {(isLoading || recruitingMeetups.length > 0) && (
+          <View style={styles.contentSection}>
+            {renderSectionHeader('\uD83E\uDD1D', '모집중인 모임')}
+            {isLoading ? (
+              renderVerticalSkeletons()
+            ) : fetchError ? (
+              renderErrorState()
+            ) : (
+              <View style={styles.verticalList}>
+                {recruitingMeetups.map((meetup: any) => {
+                  if (!meetup.id) return null;
+                  return (
+                    <MeetupCard
+                      key={meetup.id}
+                      meetup={meetup}
+                      onPress={handleMeetupClick}
+                      variant="compact"
+                    />
+                  );
+                })}
+              </View>
+            )}
+          </View>
+        )}
+
+        {/* 모임이 전혀 없을 때 */}
+        {!isLoading && !fetchError && meetups.length === 0 && (
+          <EmptyState
+            icon="\uD83C\uDF7D\uFE0F"
+            title="아직 등록된 모임이 없어요"
+            description="첫 번째 모임을 만들어보세요!"
+            actionLabel="모임 만들기"
+            onAction={() => navigation.navigate('CreateMeetup')}
+          />
+        )}
+
+        {/* 모든 모임 보기 버튼 */}
+        {!isLoading && meetups.length > 0 && (
+          <TouchableOpacity
+            style={styles.allMeetupsButton}
             onPress={() => navigation.navigate('MeetupList')}
+            activeOpacity={0.7}
           >
-            <Text style={styles.moreButtonText}>더 많은 모임 보기</Text>
-            <Icon name="chevron-right" size={16} color={COLORS.text.secondary} />
+            <Text style={styles.allMeetupsText}>모든 모임 보기</Text>
+            <Icon name="chevron-right" size={16} color={COLORS.primary.main} />
           </TouchableOpacity>
-        </View>
+        )}
 
         {/* 지도 테스트 버튼 (디버그용 - 개발 환경에서만 표시) */}
         {__DEV__ && (
@@ -399,15 +542,19 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
             <Text style={styles.testButtonText}>지도테스트</Text>
           </TouchableOpacity>
         )}
+
+        {/* 하단 여백 */}
+        <View style={styles.bottomPadding} />
       </ScrollView>
 
-      {/* FAB 버튼 - 모임 생성 */}
-      <TouchableOpacity 
+      {/* FAB 버튼 - 모임 생성 (Enhanced) */}
+      <TouchableOpacity
         style={styles.fab}
         onPress={() => navigation.navigate('CreateMeetup')}
         activeOpacity={0.8}
       >
-        <Icon name="plus" size={28} color={COLORS.neutral.white} />
+        <Icon name="plus" size={24} color={COLORS.neutral.white} />
+        <Text style={styles.fabText}>모임 만들기</Text>
       </TouchableOpacity>
 
       {/* 모달들 */}
@@ -477,7 +624,7 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: COLORS.primary.main,
+    backgroundColor: COLORS.neutral.white,
   },
   container: {
     flex: 1,
@@ -492,26 +639,37 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: LAYOUT.HEADER_PADDING_HORIZONTAL,
     paddingVertical: LAYOUT.HEADER_PADDING_VERTICAL,
-    backgroundColor: COLORS.primary.main,
+    backgroundColor: COLORS.neutral.white,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.neutral.grey100,
+    gap: SPACING.md,
+  },
+  headerLogo: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: COLORS.primary.main,
+    letterSpacing: -0.5,
   },
   locationButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    backgroundColor: COLORS.neutral.background,
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 20,
+    borderWidth: 1,
+    borderColor: COLORS.neutral.grey100,
   },
   locationText: {
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.text.white,
+    color: COLORS.text.primary,
     marginRight: 2,
   },
   radiusText: {
     fontSize: 12,
     fontWeight: '500',
-    color: 'rgba(255,255,255,0.8)',
+    color: COLORS.text.tertiary,
     marginRight: 4,
   },
   headerButtons: {
@@ -547,6 +705,7 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     paddingHorizontal: 16,
     paddingVertical: 12,
+    height: 48,
     borderWidth: 2,
     borderColor: `${COLORS.primary.main}30`,
   },
@@ -585,7 +744,7 @@ const styles = StyleSheet.create({
   suggestionsLabel: {
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: COLORS.primary.main,
     marginBottom: 12,
   },
   suggestionsList: {
@@ -607,36 +766,37 @@ const styles = StyleSheet.create({
   },
   categorySection: {
     backgroundColor: COLORS.neutral.white,
-    paddingVertical: 24,
+    paddingVertical: 20,
     paddingHorizontal: 20,
-    marginBottom: 12,
+    marginBottom: SPACING.sm,
     ...SHADOWS.small,
   },
   categoryGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'space-around',
+    justifyContent: 'space-between',
     paddingHorizontal: 4,
-    gap: 8,
+    rowGap: 16,
   },
   categoryItem: {
-    width: '22.5%',
+    width: '23%',
     alignItems: 'center',
     marginBottom: 20,
   },
   categoryBox: {
-    width: 70,
-    height: 70,
-    borderRadius: 16,
+    width: 64,
+    height: 64,
+    borderRadius: 12,
     backgroundColor: COLORS.neutral.background,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 10,
     borderWidth: 1,
     borderColor: COLORS.neutral.grey200,
+    ...SHADOWS.small,
   },
   categoryEmoji: {
-    fontSize: 36,
+    fontSize: 32,
   },
   categoryName: {
     fontSize: 12,
@@ -644,81 +804,133 @@ const styles = StyleSheet.create({
     color: COLORS.text.primary,
     textAlign: 'center',
   },
-  section: {
-    backgroundColor: COLORS.neutral.white,
-    marginBottom: 12,
-    paddingVertical: 20,
-    borderRadius: 16,
-    marginHorizontal: 20,
-    ...SHADOWS.small,
+
+  // ─── 콘텐츠 섹션 (새로운 카드 섹션) ───────────────────
+  contentSection: {
+    paddingTop: SPACING.xl,
+    paddingBottom: SPACING.sm,
+    marginBottom: SPACING.sm,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: SPACING.xl,
+    marginBottom: SPACING.lg,
+  },
+  sectionTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+  },
+  sectionEmoji: {
+    fontSize: 18,
   },
   sectionTitle: {
-    fontSize: 20,
-    fontWeight: '800',
+    fontSize: 18,
+    fontWeight: '700',
     color: COLORS.text.primary,
-    paddingHorizontal: 20,
-    marginBottom: 16,
-    letterSpacing: -0.5,
+    letterSpacing: -0.3,
   },
-  moreButton: {
+  seeAllText: {
+    fontSize: 13,
+    color: COLORS.text.tertiary,
+    fontWeight: '500',
+  },
+
+  // ─── 가로 스크롤 카드 리스트 ──────────────────────────
+  horizontalCardList: {
+    paddingHorizontal: SPACING.xl,
+    gap: SPACING.md,
+  },
+  horizontalCardWrapper: {
+    width: 200,
+  },
+
+  // ─── 세로 리스트 ──────────────────────────────────────
+  verticalList: {
+    paddingHorizontal: 0,
+  },
+  verticalListItem: {
+    marginBottom: SPACING.sm,
+    paddingHorizontal: SPACING.xl,
+  },
+
+  // ─── 에러 상태 ────────────────────────────────────────
+  errorContainer: {
+    alignItems: 'center',
+    paddingVertical: SPACING.xxl,
+    paddingHorizontal: SPACING.xl,
+  },
+  errorText: {
+    fontSize: 14,
+    color: COLORS.text.secondary,
+    marginBottom: SPACING.md,
+  },
+  retryButton: {
+    backgroundColor: COLORS.primary.main,
+    paddingHorizontal: SPACING.xl,
+    paddingVertical: SPACING.sm,
+    borderRadius: BORDER_RADIUS.md,
+  },
+  retryButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.text.white,
+  },
+
+  // ─── 모든 모임 보기 버튼 ──────────────────────────────
+  allMeetupsButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    marginHorizontal: 20,
-    marginTop: 16,
-    backgroundColor: COLORS.neutral.background,
-    borderRadius: 12,
+    gap: SPACING.sm,
+    marginHorizontal: SPACING.xl,
+    marginVertical: SPACING.lg,
+    paddingVertical: SPACING.lg,
+    backgroundColor: COLORS.neutral.white,
+    borderRadius: BORDER_RADIUS.md,
     borderWidth: 1,
-    borderColor: COLORS.neutral.grey200,
+    borderColor: COLORS.neutral.grey100,
+    ...SHADOWS.small,
   },
-  moreButtonText: {
-    fontSize: 14,
+  allMeetupsText: {
+    fontSize: 15,
     fontWeight: '600',
-    color: COLORS.text.secondary,
-    marginRight: 4,
+    color: COLORS.primary.main,
   },
+
+  // ─── FAB (Enhanced) ───────────────────────────────────
   fab: {
     position: 'absolute',
     bottom: 90,
     right: 20,
-    width: 56,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
     height: 56,
+    paddingHorizontal: 20,
     borderRadius: 28,
     backgroundColor: COLORS.primary.main,
-    justifyContent: 'center',
-    alignItems: 'center',
-    elevation: 8,
+    elevation: 12,
     shadowColor: COLORS.neutral.black,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.35,
+    shadowRadius: 12,
     zIndex: 1000,
   },
-  emptyStateContainer: {
-    alignItems: 'center',
-    paddingVertical: 32,
-    paddingHorizontal: 20,
+  fabText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: COLORS.neutral.white,
   },
-  emptyStateText: {
-    fontSize: 16,
-    color: COLORS.text.secondary,
-    marginBottom: 16,
+
+  // ─── 하단 여백 ────────────────────────────────────────
+  bottomPadding: {
+    height: SPACING.xxxl,
   },
-  expandRadiusButton: {
-    backgroundColor: COLORS.primary.main + '20',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: COLORS.primary.main,
-  },
-  expandRadiusText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: COLORS.primary.main,
-  },
+
 });
 
 export default UniversalHomeScreen;
