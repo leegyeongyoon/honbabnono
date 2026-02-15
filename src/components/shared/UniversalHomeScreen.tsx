@@ -565,7 +565,7 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
         <TouchableOpacity
           style={styles.fab}
           onPress={() => navigation.navigate('CreateMeetup')}
-          activeOpacity={0.8}
+          activeOpacity={0.7}
         >
           <Text style={styles.fabIcon}>+</Text>
         </TouchableOpacity>
@@ -664,7 +664,7 @@ const styles = StyleSheet.create({
   locationButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: SPACING.sm,
     minHeight: 44,
     minWidth: 44,
     paddingHorizontal: SPACING.lg,
@@ -707,8 +707,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     height: 52,
     backgroundColor: COLORS.neutral.grey100,
-    borderRadius: 26,
-    paddingHorizontal: 20,
+    borderRadius: BORDER_RADIUS.full,
+    paddingHorizontal: SPACING.xl,
     gap: SPACING.md,
     borderWidth: 2,
     borderColor: 'transparent',
@@ -751,7 +751,7 @@ const styles = StyleSheet.create({
     borderColor: COLORS.neutral.grey100,
   },
   suggestionsLabel: {
-    fontSize: 12,
+    ...TYPOGRAPHY.label,
     color: COLORS.primary.main,
     fontWeight: FONT_WEIGHTS.semiBold as any,
     marginBottom: SPACING.sm,
@@ -761,14 +761,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: SPACING.md,
-    paddingVertical: 11,
+    paddingVertical: SPACING.md,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.neutral.grey100,
   },
   suggestionText: {
     ...TYPOGRAPHY.body.medium,
     color: COLORS.text.primary,
-    fontSize: 14,
   },
 
   // ─── 카테고리 그리드 ─────────────────────────────────
@@ -784,7 +783,7 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     justifyContent: 'space-between',
     rowGap: SPACING.xl,
-    gap: 16,
+    gap: SPACING.lg,
   },
   categoryItem: {
     width: '21%',
@@ -793,23 +792,24 @@ const styles = StyleSheet.create({
   categoryIconBox: {
     width: 68,
     height: 68,
-    borderRadius: 20,
+    borderRadius: BORDER_RADIUS.xl,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: SPACING.sm,
   },
   categoryName: {
     fontSize: 12,
-    fontWeight: FONT_WEIGHTS.semiBold as any,
+    fontWeight: FONT_WEIGHTS.medium as any,
     lineHeight: 16,
-    color: COLORS.text.secondary,
+    letterSpacing: 0.2,
+    color: COLORS.text.tertiary,
     textAlign: 'center',
   },
 
   // ─── 콘텐츠 섹션 ─────────────────────────────────────
   contentSection: {
     paddingTop: SPACING.xxxl,
-    paddingBottom: SPACING.md,
+    paddingBottom: SPACING.lg,
     marginBottom: SPACING.sm,
   },
   sectionHeader: {
@@ -828,21 +828,22 @@ const styles = StyleSheet.create({
     fontSize: 20,
   },
   sectionTitle: {
-    fontSize: 19,
-    fontWeight: FONT_WEIGHTS.extraBold as any,
+    fontSize: 18,
+    fontWeight: FONT_WEIGHTS.bold as any,
     lineHeight: 26,
     letterSpacing: -0.3,
     color: COLORS.text.primary,
   },
   seeAllText: {
     fontSize: 13,
-    fontWeight: FONT_WEIGHTS.semiBold as any,
+    fontWeight: FONT_WEIGHTS.medium as any,
+    letterSpacing: 0.2,
     color: COLORS.primary.main,
   },
   horizontalCardList: {
-    paddingLeft: 20,
-    paddingRight: 20,
-    gap: 14,
+    paddingLeft: SPACING.xl,
+    paddingRight: SPACING.xl,
+    gap: SPACING.lg,
   },
   horizontalCardWrapper: {
     width: 240,
@@ -896,7 +897,7 @@ const styles = StyleSheet.create({
   },
   scrollTopText: {
     fontSize: 16,
-    color: COLORS.text.secondary,
+    color: COLORS.text.tertiary,
   },
 
   // ─── FAB (원형 모임 만들기 버튼) ───────────────────────
@@ -930,12 +931,12 @@ const styles = StyleSheet.create({
   testButtonText: {
     fontSize: 12,
     fontWeight: FONT_WEIGHTS.semiBold as any,
-    color: 'white',
+    color: COLORS.text.white,
   },
 
   // ─── 하단 여백 ───────────────────────────────────────
   bottomPadding: {
-    height: 80,
+    height: 96,
   },
 });
 

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { useNavigate } from 'react-router-dom';
-import { COLORS, SHADOWS, CSS_SHADOWS } from '../styles/colors';
+import { COLORS, SHADOWS, CSS_SHADOWS, CARD_STYLE } from '../styles/colors';
 import { SPACING, BORDER_RADIUS } from '../styles/spacing';
 import { useUserStore } from '../store/userStore';
 import { Icon, IconName } from '../components/Icon';
@@ -148,6 +148,7 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ user: propsUser }) => {
                 <TouchableOpacity
                   style={styles.editProfileButton}
                   onPress={() => navigate('/mypage/edit')}
+                  activeOpacity={0.7}
                 >
                   <Text style={styles.editProfileText}>프로필 수정</Text>
                 </TouchableOpacity>
@@ -181,6 +182,7 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ user: propsUser }) => {
           <TouchableOpacity
             style={styles.pointBanner}
             onPress={() => navigate('/point-charge')}
+            activeOpacity={0.7}
           >
             <View style={styles.pointBannerLeft}>
               <Icon name="credit-card" size={20} color={COLORS.primary.main} />
@@ -241,6 +243,7 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ user: propsUser }) => {
             <TouchableOpacity
               style={styles.supportHeader}
               onPress={() => setSupportExpanded(!supportExpanded)}
+              activeOpacity={0.7}
             >
               <Text style={styles.supportTitle}>고객지원</Text>
               <Icon
@@ -259,6 +262,7 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ user: propsUser }) => {
                       idx === SUPPORT_MENUS.length - 1 && { borderBottomWidth: 0 },
                     ]}
                     onPress={() => navigate(menu.path)}
+                    activeOpacity={0.7}
                   >
                     <Text style={styles.supportItemText}>{menu.label}</Text>
                     <Icon name="chevron-right" size={16} color={COLORS.text.tertiary} />
@@ -272,11 +276,11 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ user: propsUser }) => {
         {/* 로그아웃 / 회원탈퇴 */}
         <FadeIn delay={250}>
           <View style={styles.bottomActions}>
-            <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+            <TouchableOpacity style={styles.logoutButton} onPress={handleLogout} activeOpacity={0.7}>
               <Icon name="log-out" size={18} color={COLORS.text.secondary} />
               <Text style={styles.logoutText}>로그아웃</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.deleteButton} onPress={handleDeleteAccount}>
+            <TouchableOpacity style={styles.deleteButton} onPress={handleDeleteAccount} activeOpacity={0.7}>
               <Text style={styles.deleteText}>회원탈퇴</Text>
             </TouchableOpacity>
           </View>
@@ -306,7 +310,7 @@ const styles = StyleSheet.create({
     ...SHADOWS.small,
   },
   headerTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: '800',
     color: COLORS.text.primary,
     letterSpacing: -0.3,
@@ -325,9 +329,10 @@ const styles = StyleSheet.create({
   profileCard: {
     backgroundColor: COLORS.neutral.white,
     marginHorizontal: 20,
-    borderRadius: 20,
     padding: 24,
     ...SHADOWS.medium,
+    ...CARD_STYLE,
+    borderRadius: 20,
   },
   profileRow: {
     flexDirection: 'row',
@@ -353,6 +358,7 @@ const styles = StyleSheet.create({
   },
   userEmail: {
     fontSize: 14,
+    fontWeight: '400',
     color: COLORS.text.tertiary,
     marginBottom: 14,
   },
@@ -380,10 +386,10 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.neutral.white,
     marginHorizontal: 20,
     marginTop: 16,
-    borderRadius: 16,
     padding: 20,
     alignItems: 'center',
     ...SHADOWS.small,
+    ...CARD_STYLE,
   },
   statItem: {
     flex: 1,
@@ -417,6 +423,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
     borderRadius: 16,
     padding: 20,
+    ...SHADOWS.small,
     // @ts-ignore
     cursor: 'pointer',
     transition: 'all 200ms ease',
@@ -427,8 +434,8 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   pointBannerLabel: {
-    fontSize: 15,
-    fontWeight: '600',
+    fontSize: 16,
+    fontWeight: '700',
     color: COLORS.text.primary,
   },
   pointBannerRight: {
@@ -437,8 +444,8 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   pointBannerValue: {
-    fontSize: 20,
-    fontWeight: '800',
+    fontSize: 16,
+    fontWeight: '700',
     color: COLORS.primary.main,
     letterSpacing: -0.2,
   },
@@ -458,12 +465,12 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   riceLabel: {
-    fontSize: 15,
-    fontWeight: '600',
+    fontSize: 16,
+    fontWeight: '700',
     color: COLORS.text.primary,
   },
   riceScore: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '700',
     color: COLORS.primary.main,
   },
@@ -501,10 +508,10 @@ const styles = StyleSheet.create({
     width: '31%',
     alignItems: 'center',
     backgroundColor: COLORS.neutral.white,
-    borderRadius: 16,
     paddingVertical: 16,
     paddingHorizontal: 8,
     ...SHADOWS.small,
+    ...CARD_STYLE,
     // @ts-ignore
     cursor: 'pointer',
     transition: 'all 200ms ease',
@@ -605,6 +612,7 @@ const styles = StyleSheet.create({
   },
   deleteText: {
     fontSize: 13,
+    fontWeight: '400',
     color: COLORS.text.tertiary,
   },
 });

@@ -498,7 +498,7 @@ const styles = StyleSheet.create({
     ...SHADOWS.small,
   },
   headerTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: '800',
     color: COLORS.text.primary,
     letterSpacing: -0.3,
@@ -565,7 +565,7 @@ const styles = StyleSheet.create({
     whiteSpace: 'nowrap',
   },
   categoryChipTextActive: {
-    fontWeight: '700',
+    fontWeight: '600',
     color: COLORS.text.white,
   },
 
@@ -593,7 +593,7 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    fontSize: 14,
+    fontSize: 15,
     color: COLORS.text.primary,
     border: 'none',
     backgroundColor: 'transparent',
@@ -605,7 +605,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginTop: 10,
+    marginTop: 12,
   },
   radiusLabel: {
     fontSize: 13,
@@ -654,19 +654,19 @@ const styles = StyleSheet.create({
     alignItems: 'baseline',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingTop: 20,
+    paddingTop: 16,
     paddingBottom: 8,
   },
   mapListTitle: {
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: '700',
     color: COLORS.text.primary,
-    letterSpacing: -0.1,
+    letterSpacing: -0.05,
   },
   listCount: {
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.text.secondary,
+    color: COLORS.text.tertiary,
   },
 
   // List View
@@ -680,8 +680,8 @@ const styles = StyleSheet.create({
 
   // Meetup List
   meetupList: {
-    paddingHorizontal: 16,
-    gap: 14,
+    paddingHorizontal: 20,
+    gap: 12,
   },
   meetupItemWrapper: {
     position: 'relative',
@@ -702,11 +702,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: 'rgba(255,255,255,0.95)',
+    backgroundColor: COLORS.primary.light,
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: BORDER_RADIUS.full,
-    ...SHADOWS.small,
   },
   distanceText: {
     fontSize: 12,
@@ -716,7 +715,7 @@ const styles = StyleSheet.create({
 
   // Skeleton Loading
   skeletonPadding: {
-    padding: 16,
+    padding: 20,
   },
 });
 

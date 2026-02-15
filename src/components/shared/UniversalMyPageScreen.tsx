@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView } from 'react-native';
-import { COLORS, SHADOWS } from '../../styles/colors';
+import { COLORS, SHADOWS, CARD_STYLE } from '../../styles/colors';
 import { BORDER_RADIUS } from '../../styles/spacing';
 import { useUserStore } from '../../store/userStore';
 import { useAuth } from '../../contexts/AuthContext';
@@ -378,7 +378,7 @@ const styles = StyleSheet.create({
     ...SHADOWS.small,
   },
   headerTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: '800',
     color: COLORS.text.primary,
     letterSpacing: -0.3,
@@ -397,9 +397,10 @@ const styles = StyleSheet.create({
   profileCard: {
     backgroundColor: COLORS.neutral.white,
     marginHorizontal: 20,
-    borderRadius: 20,
     padding: 24,
     ...SHADOWS.medium,
+    ...CARD_STYLE,
+    borderRadius: 20,
   },
   profileRow: {
     flexDirection: 'row',
@@ -425,6 +426,7 @@ const styles = StyleSheet.create({
   },
   userEmail: {
     fontSize: 14,
+    fontWeight: '400',
     color: COLORS.text.tertiary,
     marginBottom: 14,
   },
@@ -449,10 +451,10 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.neutral.white,
     marginHorizontal: 20,
     marginTop: 16,
-    borderRadius: 16,
     padding: 20,
     alignItems: 'center',
     ...SHADOWS.small,
+    ...CARD_STYLE,
   },
   statItem: {
     flex: 1,
@@ -486,6 +488,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
     borderRadius: 16,
     padding: 20,
+    ...SHADOWS.small,
   },
   pointBannerLeft: {
     flexDirection: 'row',
@@ -493,8 +496,8 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   pointBannerLabel: {
-    fontSize: 15,
-    fontWeight: '600',
+    fontSize: 16,
+    fontWeight: '700',
     color: COLORS.text.primary,
   },
   pointBannerRight: {
@@ -503,8 +506,8 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   pointBannerValue: {
-    fontSize: 20,
-    fontWeight: '800',
+    fontSize: 16,
+    fontWeight: '700',
     color: COLORS.primary.main,
     letterSpacing: -0.2,
   },
@@ -524,12 +527,12 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   riceLabel: {
-    fontSize: 15,
-    fontWeight: '600',
+    fontSize: 16,
+    fontWeight: '700',
     color: COLORS.text.primary,
   },
   riceScore: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '700',
     color: COLORS.primary.main,
   },
@@ -565,10 +568,10 @@ const styles = StyleSheet.create({
     width: '31%',
     alignItems: 'center',
     backgroundColor: COLORS.neutral.white,
-    borderRadius: 16,
     paddingVertical: 16,
     paddingHorizontal: 8,
     ...SHADOWS.small,
+    ...CARD_STYLE,
   },
   quickMenuIconBox: {
     width: 48,
@@ -656,6 +659,7 @@ const styles = StyleSheet.create({
   },
   deleteText: {
     fontSize: 13,
+    fontWeight: '400',
     color: COLORS.text.tertiary,
   },
 

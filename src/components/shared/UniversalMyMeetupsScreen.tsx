@@ -383,7 +383,7 @@ const styles = StyleSheet.create({
     ...SHADOWS.small,
   },
   headerTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: '800',
     color: COLORS.text.primary,
     letterSpacing: -0.3,

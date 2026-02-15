@@ -280,7 +280,7 @@ const UniversalChatScreen: React.FC<UniversalChatScreenProps> = ({
       <TouchableOpacity
         style={styles.chatItem}
         onPress={() => selectChatRoom(item.id)}
-        activeOpacity={0.6}
+        activeOpacity={0.7}
       >
         <View style={[styles.chatAvatar, { backgroundColor: getAvatarColor(displayTitle) }]}>
           <Text style={styles.chatAvatarText}>
@@ -372,13 +372,14 @@ const UniversalChatScreen: React.FC<UniversalChatScreenProps> = ({
               setMessages([]);
             }
           }}
+          activeOpacity={0.7}
         >
           <Icon name="chevron-left" size={20} color={COLORS.text.primary} />
         </TouchableOpacity>
         <Text style={styles.chatRoomTitle}>
           {currentChatRoom?.title || '채팅'}
         </Text>
-        <TouchableOpacity style={styles.menuButton}>
+        <TouchableOpacity style={styles.menuButton} activeOpacity={0.7}>
           <Icon name="more-vertical" size={20} color={COLORS.text.primary} />
         </TouchableOpacity>
       </View>
@@ -413,6 +414,7 @@ const UniversalChatScreen: React.FC<UniversalChatScreenProps> = ({
                     <TouchableOpacity
                       style={styles.profileImageContainer}
                       onPress={() => handleUserProfileClick(message)}
+                      activeOpacity={0.7}
                     >
                       {message.profileImage ? (
                         <Image
@@ -429,7 +431,7 @@ const UniversalChatScreen: React.FC<UniversalChatScreenProps> = ({
                     </TouchableOpacity>
                     <View style={styles.messageContentWrapper}>
                       <View style={styles.messageHeader}>
-                        <TouchableOpacity onPress={() => handleUserProfileClick(message)}>
+                        <TouchableOpacity onPress={() => handleUserProfileClick(message)} activeOpacity={0.7}>
                           <Text style={styles.senderName}>{message.senderName}</Text>
                         </TouchableOpacity>
                         {message.riceIndex && (
@@ -500,6 +502,7 @@ const UniversalChatScreen: React.FC<UniversalChatScreenProps> = ({
             style={[styles.sendButton, messageText.trim() && styles.sendButtonActive]}
             onPress={sendMessage}
             disabled={!messageText.trim()}
+            activeOpacity={0.7}
           >
             <Icon
               name="send"
@@ -523,7 +526,7 @@ const UniversalChatScreen: React.FC<UniversalChatScreenProps> = ({
       <View style={styles.header}>
         <Text style={styles.headerTitle}>채팅</Text>
         <View style={styles.headerIcons}>
-          <TouchableOpacity style={styles.headerIcon}>
+          <TouchableOpacity style={styles.headerIcon} activeOpacity={0.7}>
             <Icon name="bell" size={20} color={COLORS.text.primary} />
           </TouchableOpacity>
         </View>
@@ -539,6 +542,7 @@ const UniversalChatScreen: React.FC<UniversalChatScreenProps> = ({
               selectedTab === tab && styles.selectedTabButton
             ]}
             onPress={() => setSelectedTab(tab)}
+            activeOpacity={0.7}
           >
             <Text style={[
               styles.tabButtonText,
@@ -570,12 +574,14 @@ const UniversalChatScreen: React.FC<UniversalChatScreenProps> = ({
               <TouchableOpacity
                 style={styles.modalButtonCancel}
                 onPress={() => setShowDMModal(false)}
+                activeOpacity={0.7}
               >
                 <Text style={styles.modalButtonCancelText}>취소</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.modalButtonConfirm}
                 onPress={() => startDirectChat(selectedUserForDM)}
+                activeOpacity={0.7}
               >
                 <Text style={styles.modalButtonConfirmText}>채팅 시작</Text>
               </TouchableOpacity>
@@ -605,7 +611,7 @@ const styles = StyleSheet.create({
     ...SHADOWS.small,
   },
   headerTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: '800',
     color: COLORS.text.primary,
     letterSpacing: -0.3,
@@ -710,6 +716,7 @@ const styles = StyleSheet.create({
   },
   lastMessage: {
     fontSize: 14,
+    fontWeight: '400',
     color: COLORS.text.tertiary,
   },
   chatMeta: {
@@ -760,9 +767,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   chatRoomTitle: {
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: '700',
     color: COLORS.text.primary,
+    letterSpacing: -0.2,
     flex: 1,
     textAlign: 'center',
   },
@@ -780,7 +788,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.neutral.background,
   },
   messageListContainer: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
     paddingVertical: 12,
   },
   messageItem: {
@@ -818,6 +826,11 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 20,
     borderBottomLeftRadius: 20,
     borderBottomRightRadius: 6,
+    shadowColor: 'transparent',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    elevation: 0,
   },
   messageText: {
     fontSize: 15,
@@ -851,7 +864,11 @@ const styles = StyleSheet.create({
   // === 메시지 입력 바 ===
   messageInput: {
     backgroundColor: COLORS.neutral.white,
-    ...SHADOWS.small,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: -1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
     paddingHorizontal: 16,
     paddingVertical: 10,
     height: 64,
