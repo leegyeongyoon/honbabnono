@@ -1,6 +1,6 @@
 .datetime-input:focus {
-  border-color: #A88068 !important;
-  box-shadow: 0 0 0 2px rgba(168, 128, 104, 0.1) !important;
+  border-color: #8C7565 !important;
+  box-shadow: 0 0 0 2px rgba(140, 117, 101, 0.1) !important;
 }
 
 .datetime-input::-webkit-calendar-picker-indicator {
@@ -10,5 +10,5 @@
 }
 
 .datetime-input::-webkit-calendar-picker-indicator:hover {
-  background-color: rgba(168, 128, 104, 0.1);
+  background-color: rgba(140, 117, 101, 0.1);
 }

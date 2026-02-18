@@ -26,10 +26,10 @@
 }
 
 .birth-year-picker:focus {
-  border-color: #C4A08A !important;
+  border-color: #B8A090 !important;
   background: #FFFFFF !important;
   box-shadow:
-    0 0 0 4px rgba(196, 160, 138, 0.1),
+    0 0 0 4px rgba(184, 160, 144, 0.1),
     0 4px 12px rgba(17, 17, 17, 0.15) !important;
   transform: translateY(-1px) !important;
 }
@@ -69,13 +69,13 @@
 }
 
 .react-datepicker__year-option--selected {
-  background-color: #A88068 !important;
+  background-color: #8C7565 !important;
   color: #FFFFFF !important;
   font-weight: 600 !important;
 }
 
 .react-datepicker__navigation {
-  background: #C4A08A !important;
+  background: #B8A090 !important;
   border: none !important;
   border-radius: 50% !important;
   width: 32px !important;
@@ -86,7 +86,7 @@
 }
 
 .react-datepicker__navigation:hover {
-  background: #A88068 !important;
+  background: #8C7565 !important;
 }
 
 .react-datepicker__current-month {

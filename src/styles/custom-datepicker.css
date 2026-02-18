@@ -18,8 +18,8 @@
 }
 
 .custom-datepicker:focus {
-  border-color: #A88068 !important;
-  box-shadow: 0 0 0 4px rgba(168, 128, 104, 0.1), 0 8px 24px rgba(17, 17, 17, 0.15) !important;
+  border-color: #8C7565 !important;
+  box-shadow: 0 0 0 4px rgba(140, 117, 101, 0.1), 0 8px 24px rgba(17, 17, 17, 0.15) !important;
   transform: translateY(-2px) !important;
 }
 
@@ -48,7 +48,7 @@
 
 /* 헤더 (월/년도 선택) */
 .react-datepicker__header {
-  background-color: #A88068 !important;
+  background-color: #8C7565 !important;
   border-bottom: none !important;
   border-radius: 16px 16px 0 0 !important;
   padding: 20px !important;
@@ -156,16 +156,16 @@
 }
 
 .react-datepicker__day--selected {
-  background-color: #A88068 !important;
+  background-color: #8C7565 !important;
   color: #FFFFFF !important;
   font-weight: 700 !important;
   transform: scale(1.1) !important;
-  box-shadow: 0 4px 12px rgba(168, 128, 104, 0.3) !important;
+  box-shadow: 0 4px 12px rgba(140, 117, 101, 0.3) !important;
 }
 
 .react-datepicker__day--today {
   border-color: #9E9E9E !important;
-  background-color: #FAF6F3 !important;
+  background-color: #F7F4F2 !important;
   font-weight: 600 !important;
 }
 
@@ -219,14 +219,14 @@
 }
 
 .react-datepicker__time-list-item--selected {
-  background-color: #A88068 !important;
+  background-color: #8C7565 !important;
   color: #FFFFFF !important;
   font-weight: 600 !important;
 }
 
 /* Today 버튼 */
 .react-datepicker__today-button {
-  background-color: #C4A08A !important;
+  background-color: #B8A090 !important;
   border: none !important;
   color: #FFFFFF !important;
   padding: 12px 24px !important;
@@ -238,7 +238,7 @@
 }
 
 .react-datepicker__today-button:hover {
-  background-color: #A88068 !important;
+  background-color: #8C7565 !important;
   transform: translateY(-2px) !important;
 }
 
