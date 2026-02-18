@@ -35,14 +35,16 @@ resource "aws_security_group" "rds" {
 # EventBridge 규칙 - 새벽 DB 중지 (비용 절감)
 resource "aws_cloudwatch_event_rule" "stop_db_nightly" {
   name                = "stop-honbabnono-db-nightly"
-  description         = "Stop RDS instance at 4 AM KST"
+  description         = "Stop RDS instance (DISABLED - always on)"
   schedule_expression = "cron(0 19 * * ? *)" # UTC 19:00 = KST 04:00
+  state               = "DISABLED"
 }
 
 resource "aws_cloudwatch_event_rule" "start_db_morning" {
   name                = "start-honbabnono-db-morning"
-  description         = "Start RDS instance at 8 AM KST"
+  description         = "Start RDS instance (DISABLED - always on)"
   schedule_expression = "cron(0 23 * * ? *)" # UTC 23:00 = KST 08:00
+  state               = "DISABLED"
 }
 
 # Lambda 함수를 위한 IAM 역할

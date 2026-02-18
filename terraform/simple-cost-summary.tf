@@ -4,7 +4,7 @@
 output "cost_optimization_summary" {
   value = {
     applied_optimizations = {
-      rds_scheduling   = "새벽 4:00-8:00 자동 정지 (4시간) - 월 $4-5 절약"
+      rds_scheduling   = "자동 정지 비활성화 (24시간 상시 가동)"
       cloudwatch_logs  = "로그 보존기간 1-3일로 단축 - 월 $10-12 절약"
       ecr_scanning     = "이미지 스캔 비활성화 - 월 $2-3 절약"
       ecs_optimization = "Fargate Spot 인스턴스 및 최소 리소스 사용"
