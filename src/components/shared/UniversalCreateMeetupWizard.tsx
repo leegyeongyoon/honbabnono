@@ -107,6 +107,7 @@ const UniversalCreateMeetupWizard: React.FC<UniversalCreateMeetupWizardProps> = 
   const [showDateModal, setShowDateModal] = useState(false);
   const [showTimeModal, setShowTimeModal] = useState(false);
   const [showAlarmModal, setShowAlarmModal] = useState(false);
+  const [selectedAlarm, setSelectedAlarm] = useState('30분 전');
   const [isLoading, setIsLoading] = useState(false);
 
   const [meetupData, setMeetupData] = useState<MeetupData>({
@@ -126,7 +127,7 @@ const UniversalCreateMeetupWizard: React.FC<UniversalCreateMeetupWizardProps> = 
     description: '',
     image: null,
     priceRange: '',
-    deposit: 3000,
+    deposit: 0,
     eatingSpeed: '보통',
     conversationLevel: '적당히',
     talkativeness: '보통',
@@ -399,6 +400,20 @@ const UniversalCreateMeetupWizard: React.FC<UniversalCreateMeetupWizardProps> = 
         </TouchableOpacity>
       </View>
 
+      <View style={styles.dateTimeSection}>
+        <Text style={styles.sectionLabel}>약속 전 나에게 알림</Text>
+        <TouchableOpacity
+          style={styles.selectButton}
+          onPress={() => setShowAlarmModal(true)}
+        >
+          <Icon name="bell" size={20} color={COLORS.primary.main} />
+          <Text style={styles.selectButtonText}>
+            {selectedAlarm}
+          </Text>
+          <Icon name="chevron-right" size={20} color={COLORS.text.tertiary} />
+        </TouchableOpacity>
+      </View>
+
       {meetupData.datetime && (
         <View style={styles.selectedInfoBox}>
           <Text style={styles.selectedInfoIcon}>✨</Text>
@@ -423,25 +438,33 @@ const UniversalCreateMeetupWizard: React.FC<UniversalCreateMeetupWizardProps> = 
           <Text style={styles.cardTitle}>최대 참가자 수</Text>
         </View>
         <View style={styles.numberGrid}>
-          {[2, 3, 4, 5, 6, 7, 8].map(num => (
+          {[
+            { value: 1, label: '1명' },
+            { value: 2, label: '2명' },
+            { value: 3, label: '3명' },
+            { value: 4, label: '4명' },
+            { value: 5, label: '5명+' },
+          ].map(option => (
             <TouchableOpacity
-              key={num}
+              key={option.value}
               style={[
                 styles.numberBtn,
-                meetupData.maxParticipants === num && styles.numberBtnSelected
+                (meetupData.maxParticipants === option.value ||
+                 (option.value === 5 && meetupData.maxParticipants >= 5)) && styles.numberBtnSelected
               ]}
-              onPress={() => setMeetupData(prev => ({ ...prev, maxParticipants: num }))}
+              onPress={() => setMeetupData(prev => ({ ...prev, maxParticipants: option.value }))}
             >
               <Text style={[
                 styles.numberBtnText,
-                meetupData.maxParticipants === num && styles.numberBtnTextSelected
+                (meetupData.maxParticipants === option.value ||
+                 (option.value === 5 && meetupData.maxParticipants >= 5)) && styles.numberBtnTextSelected
               ]}>
-                {num}명
+                {option.label}
               </Text>
             </TouchableOpacity>
           ))}
         </View>
-        <Text style={styles.hintText}>본인 포함 {meetupData.maxParticipants}명이 함께합니다</Text>
+        <Text style={styles.hintText}>본인 포함 {meetupData.maxParticipants}명{meetupData.maxParticipants >= 5 ? ' 이상' : ''}이 함께합니다</Text>
       </View>
     </View>
   );
@@ -680,6 +703,79 @@ const UniversalCreateMeetupWizard: React.FC<UniversalCreateMeetupWizardProps> = 
       </View>
 
       <View style={styles.inputSection}>
+        <Text style={styles.sectionLabel}>모임 사진 (선택사항)</Text>
+        <TouchableOpacity
+          style={styles.imageUploadArea}
+          onPress={() => {
+            if (Platform.OS === 'web') {
+              // Web: use file input
+              const input = document.createElement('input');
+              input.type = 'file';
+              input.accept = 'image/*';
+              input.onchange = (e: any) => {
+                const file = e.target.files[0];
+                if (file) {
+                  setMeetupData(prev => ({ ...prev, image: file }));
+                }
+              };
+              input.click();
+            } else {
+              // Native: use react-native-image-picker
+              try {
+                const ImagePicker = require('react-native-image-picker');
+                ImagePicker.launchImageLibrary(
+                  {
+                    mediaType: 'photo',
+                    quality: 0.8,
+                    maxWidth: 1024,
+                    maxHeight: 1024,
+                  },
+                  (response: any) => {
+                    if (response.didCancel || response.errorCode) return;
+                    const asset = response.assets?.[0];
+                    if (asset) {
+                      setMeetupData(prev => ({
+                        ...prev,
+                        image: {
+                          uri: asset.uri,
+                          type: asset.type || 'image/jpeg',
+                          fileName: asset.fileName || 'meetup_image.jpg',
+                        },
+                      }));
+                    }
+                  }
+                );
+              } catch (_e) {
+                showToast('이미지 선택 기능을 사용할 수 없습니다', 'error');
+              }
+            }
+          }}
+        >
+          {meetupData.image ? (
+            <View style={styles.imagePreviewRow}>
+              <Text style={styles.imagePreviewText}>
+                {Platform.OS === 'web' && meetupData.image instanceof File
+                  ? `📸 ${meetupData.image.name}`
+                  : '📸 이미지가 선택되었습니다'}
+              </Text>
+              <TouchableOpacity
+                style={styles.imageRemoveButton}
+                onPress={() => setMeetupData(prev => ({ ...prev, image: null }))}
+              >
+                <Text style={styles.imageRemoveText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={styles.imageUploadPlaceholder}>
+              <Text style={styles.imageUploadIcon}>📷</Text>
+              <Text style={styles.imageUploadText}>사진 추가하기</Text>
+              <Text style={styles.imageUploadSubText}>모임을 더 잘 표현할 수 있는 사진을 업로드하세요</Text>
+            </View>
+          )}
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.inputSection}>
         <Text style={styles.sectionLabel}>가격대</Text>
         <View style={styles.chipGroup}>
           {PRICE_RANGES.map(range => (
@@ -837,7 +933,7 @@ const UniversalCreateMeetupWizard: React.FC<UniversalCreateMeetupWizardProps> = 
 
     const periods = ['오전', '오후'];
     const hours = [...Array(12)].map((_, i) => i + 1);
-    const minutes = [0, 10, 20, 30, 40, 50];
+    const minutes = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55];
 
     const ITEM_HEIGHT = 50;
 
@@ -1112,17 +1208,31 @@ const UniversalCreateMeetupWizard: React.FC<UniversalCreateMeetupWizardProps> = 
     </View>
   );
 
-  // 약속금 설정 화면
+  // 약속금 설정 화면 (결제수단 포함)
   const renderDepositStep = () => (
     <View style={styles.stepContent}>
-      <View style={styles.depositDisplay}>
-        <Text style={styles.depositAmountText}>{meetupData.deposit.toLocaleString()}원</Text>
-        <Text style={styles.depositHint}>노쇼 방지를 위한 보증금입니다</Text>
-        <Text style={styles.depositSubHint}>모임 참여 후 100% 환불됩니다</Text>
+      <Text style={styles.depositStepSubtitle}>약속금은 모임 참여의 신뢰성을 높여줍니다</Text>
+
+      <View style={styles.depositInputSection}>
+        <Text style={styles.sectionLabel}>약속금 금액</Text>
+        <View style={styles.depositInputRow}>
+          <TextInput
+            style={styles.depositTextInput}
+            placeholder="0"
+            value={meetupData.deposit > 0 ? meetupData.deposit.toString() : ''}
+            onChangeText={(text) => {
+              const amount = parseInt(text.replace(/[^0-9]/g, '')) || 0;
+              setMeetupData(prev => ({ ...prev, deposit: amount }));
+            }}
+            keyboardType="numeric"
+            placeholderTextColor={COLORS.text.tertiary}
+          />
+          <Text style={styles.depositCurrencyText}>원</Text>
+        </View>
       </View>
 
       <View style={styles.chipGroup}>
-        {[3000, 5000, 10000, 20000].map(amount => (
+        {[0, 5000, 10000, 15000, 20000].map(amount => (
           <TouchableOpacity
             key={amount}
             style={[
@@ -1135,7 +1245,7 @@ const UniversalCreateMeetupWizard: React.FC<UniversalCreateMeetupWizardProps> = 
               styles.depositChipText,
               meetupData.deposit === amount && styles.depositChipTextSelected
             ]}>
-              {amount.toLocaleString()}원
+              {amount === 0 ? '없음' : `${amount.toLocaleString()}원`}
             </Text>
           </TouchableOpacity>
         ))}
@@ -1144,10 +1254,83 @@ const UniversalCreateMeetupWizard: React.FC<UniversalCreateMeetupWizardProps> = 
       <View style={styles.infoBox}>
         <Icon name="info" size={16} color={COLORS.text.secondary} />
         <Text style={styles.infoBoxText}>
-          보증금은 모임 완료 후 자동으로 환불됩니다.{'\n'}
-          노쇼 시 보증금이 차감될 수 있습니다.
+          약속금은 모임 참여 후 자동으로 환불됩니다.{'\n'}
+          노쇼 시 약속금이 차감될 수 있습니다.
         </Text>
       </View>
+
+      {meetupData.deposit > 0 && (
+        <View style={styles.depositPaymentSection}>
+          <Text style={styles.sectionLabel}>결제 방법</Text>
+          <View style={styles.depositPaymentOptions}>
+            <TouchableOpacity
+              style={[
+                styles.depositPaymentOption,
+                paymentMethod === 'points' && styles.depositPaymentOptionSelected
+              ]}
+              onPress={() => setPaymentMethod('points')}
+            >
+              <Icon name="dollar-sign" size={20} color={paymentMethod === 'points' ? COLORS.primary.main : COLORS.text.secondary} />
+              <View style={styles.depositPaymentOptionInfo}>
+                <Text style={[
+                  styles.depositPaymentOptionTitle,
+                  paymentMethod === 'points' && styles.depositPaymentOptionTitleSelected
+                ]}>포인트 결제</Text>
+                {userPoints > 0 && (
+                  <Text style={styles.depositPaymentOptionSub}>보유: {userPoints.toLocaleString()}P</Text>
+                )}
+              </View>
+              <Icon
+                name={paymentMethod === 'points' ? "check-circle" : "circle"}
+                size={20}
+                color={paymentMethod === 'points' ? COLORS.primary.main : COLORS.text.tertiary}
+              />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.depositPaymentOption,
+                paymentMethod === 'card' && styles.depositPaymentOptionSelected
+              ]}
+              onPress={() => setPaymentMethod('card')}
+            >
+              <Icon name="credit-card" size={20} color={paymentMethod === 'card' ? COLORS.primary.main : COLORS.text.secondary} />
+              <View style={styles.depositPaymentOptionInfo}>
+                <Text style={[
+                  styles.depositPaymentOptionTitle,
+                  paymentMethod === 'card' && styles.depositPaymentOptionTitleSelected
+                ]}>토스페이</Text>
+              </View>
+              <Icon
+                name={paymentMethod === 'card' ? "check-circle" : "circle"}
+                size={20}
+                color={paymentMethod === 'card' ? COLORS.primary.main : COLORS.text.tertiary}
+              />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.depositPaymentOption,
+                paymentMethod === 'kakao' && styles.depositPaymentOptionSelected
+              ]}
+              onPress={() => setPaymentMethod('kakao')}
+            >
+              <Icon name="message-circle" size={20} color={paymentMethod === 'kakao' ? '#FEE500' : COLORS.text.secondary} />
+              <View style={styles.depositPaymentOptionInfo}>
+                <Text style={[
+                  styles.depositPaymentOptionTitle,
+                  paymentMethod === 'kakao' && styles.depositPaymentOptionTitleSelected
+                ]}>카카오페이</Text>
+              </View>
+              <Icon
+                name={paymentMethod === 'kakao' ? "check-circle" : "circle"}
+                size={20}
+                color={paymentMethod === 'kakao' ? COLORS.primary.main : COLORS.text.tertiary}
+              />
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
     </View>
   );
 
@@ -1275,9 +1458,9 @@ const UniversalCreateMeetupWizard: React.FC<UniversalCreateMeetupWizardProps> = 
       case 6:
         return meetupData.title.trim() !== '';
       case 7:
-        return meetupData.deposit > 0;
+        return meetupData.deposit >= 0; // 0원(없음)도 유효
       case 8:
-        return paymentMethod === 'card' || (paymentMethod === 'points' && userPoints >= meetupData.deposit);
+        return paymentMethod === 'card' || paymentMethod === 'kakao' || (paymentMethod === 'points' && userPoints >= meetupData.deposit);
       default:
         return false;
     }
@@ -1378,6 +1561,44 @@ const UniversalCreateMeetupWizard: React.FC<UniversalCreateMeetupWizardProps> = 
 
       <Modal visible={showAgeModal} transparent animationType="fade">
         {renderAgeModal()}
+      </Modal>
+
+      <Modal visible={showAlarmModal} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <TouchableOpacity onPress={() => setShowAlarmModal(false)}>
+                <Text style={styles.modalCloseButton}>✕</Text>
+              </TouchableOpacity>
+              <Text style={styles.modalTitle}>알림 설정</Text>
+              <TouchableOpacity onPress={() => setShowAlarmModal(false)}>
+                <Text style={styles.modalConfirmButton}>확인</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={styles.alarmOptionsContainer}>
+              {['알림 없음', '정시', '10분 전', '30분 전', '1시간 전', '3시간 전', '1일 전'].map((option) => (
+                <TouchableOpacity
+                  key={option}
+                  style={[
+                    styles.alarmOption,
+                    selectedAlarm === option && styles.alarmOptionSelected
+                  ]}
+                  onPress={() => setSelectedAlarm(option)}
+                >
+                  <Text style={[
+                    styles.alarmOptionText,
+                    selectedAlarm === option && styles.alarmOptionTextSelected
+                  ]}>
+                    {option}
+                  </Text>
+                  {selectedAlarm === option && (
+                    <Icon name="check" size={18} color={COLORS.primary.main} />
+                  )}
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        </View>
       </Modal>
     </View>
   );
@@ -2883,6 +3104,161 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '600',
     color: COLORS.primary.main,
+  },
+
+  // ===== 알림 모달 스타일 =====
+  alarmOptionsContainer: {
+    padding: 8,
+  },
+  alarmOption: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+  },
+  alarmOptionSelected: {
+    backgroundColor: `${COLORS.primary.main}10`,
+  },
+  alarmOptionText: {
+    fontSize: 15,
+    color: COLORS.text.primary,
+  },
+  alarmOptionTextSelected: {
+    color: COLORS.primary.main,
+    fontWeight: '600',
+  },
+
+  // ===== 이미지 업로드 스타일 =====
+  imageUploadArea: {
+    borderWidth: 2,
+    borderColor: COLORS.neutral.grey200,
+    borderStyle: 'dashed',
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  imageUploadPlaceholder: {
+    alignItems: 'center',
+    paddingVertical: 28,
+    paddingHorizontal: 16,
+  },
+  imageUploadIcon: {
+    fontSize: 28,
+    marginBottom: 8,
+  },
+  imageUploadText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+    marginBottom: 4,
+  },
+  imageUploadSubText: {
+    fontSize: 12,
+    color: COLORS.text.tertiary,
+    textAlign: 'center',
+  },
+  imagePreviewRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    backgroundColor: `${COLORS.primary.main}08`,
+  },
+  imagePreviewText: {
+    fontSize: 14,
+    color: COLORS.text.primary,
+    flex: 1,
+  },
+  imageRemoveButton: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: COLORS.neutral.grey200,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 12,
+  },
+  imageRemoveText: {
+    fontSize: 14,
+    color: COLORS.text.secondary,
+    fontWeight: '600',
+  },
+
+  // ===== 보증금 입력 스타일 =====
+  depositStepSubtitle: {
+    fontSize: 14,
+    color: COLORS.text.secondary,
+    marginBottom: 20,
+  },
+  depositInputSection: {
+    marginBottom: 16,
+  },
+  depositInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  depositTextInput: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: COLORS.neutral.grey200,
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontSize: 18,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+    backgroundColor: COLORS.neutral.white,
+  },
+  depositCurrencyText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+    marginLeft: 10,
+  },
+
+  // ===== 보증금 내 결제수단 스타일 =====
+  depositPaymentSection: {
+    marginTop: 24,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.neutral.grey200,
+    paddingTop: 20,
+  },
+  depositPaymentOptions: {
+    gap: 10,
+  },
+  depositPaymentOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    backgroundColor: COLORS.neutral.grey50,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  depositPaymentOptionSelected: {
+    borderColor: COLORS.primary.accent,
+    backgroundColor: `${COLORS.primary.accent}08`,
+  },
+  depositPaymentOptionInfo: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  depositPaymentOptionTitle: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: COLORS.text.primary,
+  },
+  depositPaymentOptionTitleSelected: {
+    fontWeight: '600',
+    color: COLORS.primary.main,
+  },
+  depositPaymentOptionSub: {
+    fontSize: 12,
+    color: COLORS.text.secondary,
+    marginTop: 2,
   },
 });
 

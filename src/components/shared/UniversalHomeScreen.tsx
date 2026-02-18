@@ -10,6 +10,7 @@ import {
   RefreshControl,
   Platform,
 } from 'react-native';
+import LinearGradient from 'react-native-linear-gradient';
 import {COLORS, SHADOWS, LAYOUT, CARD_STYLE, CTA_STYLE} from '../../styles/colors';
 import {SPACING, BORDER_RADIUS} from '../../styles/spacing';
 import {TYPOGRAPHY, FONT_WEIGHTS} from '../../styles/typography';
@@ -19,6 +20,7 @@ import NeighborhoodSelector from '../NeighborhoodSelector';
 import NativeMapModal from '../NativeMapModal';
 import MeetupCard from '../MeetupCard';
 import CategoryIcon from '../CategoryIcon';
+import FadeIn from '../animated/FadeIn';
 import MeetupCardSkeleton from '../skeleton/MeetupCardSkeleton';
 import EmptyState from '../EmptyState';
 import ErrorState from '../ErrorState';
@@ -46,6 +48,17 @@ interface UniversalHomeScreenProps {
   NeighborhoodModal?: React.ComponentType<any>;
   NotificationBanner?: React.ComponentType<any>;
 }
+
+// 시간대별 인사말
+const getGreeting = (): { greeting: string; subtitle: string } => {
+  const hour = new Date().getHours();
+  if (hour < 7) return { greeting: '좋은 새벽이에요!', subtitle: '일찍 일어나셨네요' };
+  if (hour < 11) return { greeting: '좋은 아침이에요!', subtitle: '오늘도 맛있는 하루 시작해요' };
+  if (hour < 14) return { greeting: '점심 시간이에요!', subtitle: '함께 맛있는 점심 어때요?' };
+  if (hour < 17) return { greeting: '좋은 오후에요!', subtitle: '간식 타임 같이 할까요?' };
+  if (hour < 21) return { greeting: '저녁이 왔어요!', subtitle: '오늘 같이 밥 먹을까요?' };
+  return { greeting: '좋은 밤이에요!', subtitle: '야식 메이트를 찾아볼까요?' };
+};
 
 // 반경 포맷팅 함수
 const formatRadius = (radiusInMeters: number | undefined): string => {
@@ -81,6 +94,8 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
   const [searchFocused, setSearchFocused] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+
+  const { greeting, subtitle: greetingSubtitle } = getGreeting();
 
   const handleRefresh = useCallback(() => {
     setRefreshing(true);
@@ -346,7 +361,23 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
             />
           }
         >
-          {/* 검색 바 — 클린 에디토리얼 */}
+          {/* 히어로 배너 — 그라데이션 인사말 */}
+          <FadeIn delay={0}>
+            <LinearGradient
+              colors={['#8C7565', '#A28B7B', '#B8A090']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.heroBanner}
+            >
+              {/* 장식 — 미니멀 기하학적 요소 */}
+              <View style={styles.heroDecorCircle1} />
+              <View style={styles.heroDecorCircle2} />
+              <Text style={styles.heroGreeting}>{greeting}</Text>
+              <Text style={styles.heroSubtitle}>{greetingSubtitle}</Text>
+            </LinearGradient>
+          </FadeIn>
+
+          {/* 검색 바 — 히어로 아래 겹쳐서 배치 */}
           <View style={styles.searchSection}>
             <View
               style={[
@@ -424,6 +455,7 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
           </View>
 
           {/* 카테고리 그리드 (4x2) with CategoryIcon */}
+          <FadeIn delay={100}>
           <View style={styles.categorySection}>
             <View style={styles.categoryGrid}>
               {FOOD_CATEGORIES.map((category) => (
@@ -449,17 +481,22 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
               ))}
             </View>
           </View>
+          </FadeIn>
 
           {/* 광고 배너 */}
           <AdvertisementBanner position="home_banner" navigation={navigation} />
 
           {/* 섹션 1: 곧 시작하는 밥약속 */}
           {(isLoading || soonMeetups.length > 0) && (
+            <FadeIn delay={200}>
             <View style={[styles.contentSection, { backgroundColor: COLORS.neutral.white }]}>
               <View style={styles.sectionHeader}>
-                <View style={styles.sectionTitleRow}>
-                  <View style={styles.sectionAccentBar} />
-                  <Text style={styles.sectionTitle}>곧 시작하는 밥약속</Text>
+                <View>
+                  <View style={styles.sectionTitleRow}>
+                    <View style={styles.sectionAccentBar} />
+                    <Text style={styles.sectionTitle}>곧 시작하는 밥약속</Text>
+                  </View>
+                  <Text style={styles.sectionSubtitle}>2시간 이내 시작</Text>
                 </View>
                 <TouchableOpacity
                   onPress={() => navigation.navigate('MeetupList')}
@@ -467,7 +504,10 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
                   accessibilityLabel="곧 시작하는 밥약속 더보기"
                   style={styles.seeAllButton as any}
                 >
-                  <Text style={styles.seeAllText}>더보기</Text>
+                  <View style={styles.seeAllRow}>
+                    <Text style={styles.seeAllText}>더보기</Text>
+                    <Icon name="chevron-right" size={14} color={COLORS.text.tertiary} />
+                  </View>
                 </TouchableOpacity>
               </View>
               {isLoading ? (
@@ -495,15 +535,20 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
                 </ScrollView>
               )}
             </View>
+            </FadeIn>
           )}
 
           {/* 섹션 2: 새로 올라온 모임 */}
           {(isLoading || newMeetups.length > 0) && (
+            <FadeIn delay={300}>
             <View style={[styles.contentSection, { backgroundColor: COLORS.surface.secondary }]}>
               <View style={styles.sectionHeader}>
-                <View style={styles.sectionTitleRow}>
-                  <View style={styles.sectionAccentBar} />
-                  <Text style={styles.sectionTitle}>새로 올라온 모임</Text>
+                <View>
+                  <View style={styles.sectionTitleRow}>
+                    <View style={styles.sectionAccentBar} />
+                    <Text style={styles.sectionTitle}>새로 올라온 모임</Text>
+                  </View>
+                  <Text style={styles.sectionSubtitle}>방금 등록된 새 모임</Text>
                 </View>
                 <TouchableOpacity
                   onPress={() => navigation.navigate('MeetupList')}
@@ -511,7 +556,10 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
                   accessibilityLabel="새로 올라온 모임 더보기"
                   style={styles.seeAllButton as any}
                 >
-                  <Text style={styles.seeAllText}>더보기</Text>
+                  <View style={styles.seeAllRow}>
+                    <Text style={styles.seeAllText}>더보기</Text>
+                    <Icon name="chevron-right" size={14} color={COLORS.text.tertiary} />
+                  </View>
                 </TouchableOpacity>
               </View>
               {isLoading ? (
@@ -539,15 +587,20 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
                 </ScrollView>
               )}
             </View>
+            </FadeIn>
           )}
 
           {/* 섹션 3: 모집중인 모임 */}
           {(isLoading || recruitingMeetups.length > 0) && (
+            <FadeIn delay={400}>
             <View style={[styles.contentSection, { backgroundColor: COLORS.neutral.white }]}>
               <View style={styles.sectionHeader}>
-                <View style={styles.sectionTitleRow}>
-                  <View style={styles.sectionAccentBar} />
-                  <Text style={styles.sectionTitle}>모집중인 모임</Text>
+                <View>
+                  <View style={styles.sectionTitleRow}>
+                    <View style={styles.sectionAccentBar} />
+                    <Text style={styles.sectionTitle}>모집중인 모임</Text>
+                  </View>
+                  <Text style={styles.sectionSubtitle}>함께할 사람을 찾고 있어요</Text>
                 </View>
                 <TouchableOpacity
                   onPress={() => navigation.navigate('MeetupList')}
@@ -555,7 +608,10 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
                   accessibilityLabel="모집중인 모임 더보기"
                   style={styles.seeAllButton as any}
                 >
-                  <Text style={styles.seeAllText}>더보기</Text>
+                  <View style={styles.seeAllRow}>
+                    <Text style={styles.seeAllText}>더보기</Text>
+                    <Icon name="chevron-right" size={14} color={COLORS.text.tertiary} />
+                  </View>
                 </TouchableOpacity>
               </View>
               {isLoading ? (
@@ -578,6 +634,7 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
                 </View>
               )}
             </View>
+            </FadeIn>
           )}
 
           {/* 모임이 전혀 없을 때 */}
@@ -591,16 +648,23 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
             />
           )}
 
-          {/* 모든 모임 보기 버튼 — 테라코타 아웃라인 */}
+          {/* 모든 모임 보기 버튼 — 그라데이션 CTA */}
           <TouchableOpacity
-            style={styles.allMeetupsButton}
+            style={styles.allMeetupsButtonWrapper}
             onPress={() => navigation.navigate('MeetupList')}
             activeOpacity={0.7}
             accessibilityLabel="모든 모임 보기"
             accessibilityRole="button"
           >
-            <Text style={styles.allMeetupsText}>모든 모임 보기</Text>
-            <Icon name="chevron-right" size={16} color={COLORS.primary.accent} />
+            <LinearGradient
+              colors={['#B8A090', '#C8B8AC']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.allMeetupsButton}
+            >
+              <Text style={styles.allMeetupsText}>모든 모임 보기</Text>
+              <Text style={styles.allMeetupsChevron}>{'\u203A'}</Text>
+            </LinearGradient>
           </TouchableOpacity>
 
           {/* 지도 테스트 버튼 (디버그용 - 개발 환경에서만 표시) */}
@@ -630,15 +694,23 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
           </TouchableOpacity>
         )}
 
-        {/* FAB — 테라코타 악센트 */}
+        {/* FAB — 테라코타 악센트, 확장형 필 */}
         <TouchableOpacity
-          style={styles.fab}
+          style={styles.fabWrapper}
           onPress={() => navigation.navigate('CreateMeetup')}
           activeOpacity={0.7}
           accessibilityLabel="새 모임 만들기"
           accessibilityRole="button"
         >
-          <Text style={styles.fabIcon}>+</Text>
+          <LinearGradient
+            colors={['#B8A090', '#C8B8AC']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.fab}
+          >
+            <Text style={styles.fabIcon}>+</Text>
+            <Text style={styles.fabLabel}>모임 만들기</Text>
+          </LinearGradient>
         </TouchableOpacity>
 
         {/* 모달들 */}
@@ -766,24 +838,67 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 
-  // ─── 검색 바 (샤프, 에디토리얼) ───────────────────────
+  // ─── 히어로 배너 ───────────────────────────────────────
+  heroBanner: {
+    paddingTop: 40,
+    paddingBottom: 48,
+    paddingHorizontal: 24,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  heroDecorCircle1: {
+    position: 'absolute',
+    top: -30,
+    right: -20,
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    backgroundColor: 'rgba(196,154,112,0.12)',
+  },
+  heroDecorCircle2: {
+    position: 'absolute',
+    bottom: -20,
+    left: -30,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+  },
+  heroGreeting: {
+    fontSize: 28,
+    fontWeight: '700' as any,
+    lineHeight: 36,
+    letterSpacing: -0.5,
+    color: '#FFFFFF',
+  },
+  heroSubtitle: {
+    fontSize: 15,
+    fontWeight: '400' as any,
+    lineHeight: 22,
+    color: 'rgba(255,255,255,0.7)',
+    marginTop: 6,
+  },
+
+  // ─── 검색 바 (히어로 아래 겹쳐서 배치) ─────────────────
   searchSection: {
     paddingHorizontal: SPACING.xl,
-    paddingTop: SPACING.lg,
+    marginTop: -24,
     paddingBottom: SPACING.xl,
-    backgroundColor: COLORS.neutral.white,
+    position: 'relative',
+    zIndex: 5,
   },
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
     height: 48,
-    backgroundColor: COLORS.surface.secondary,
+    backgroundColor: COLORS.neutral.white,
     borderRadius: BORDER_RADIUS.lg,
     paddingHorizontal: SPACING.lg,
     gap: SPACING.md,
     borderWidth: 1.5,
     borderColor: COLORS.neutral.grey100,
     overflow: 'hidden',
+    ...SHADOWS.medium,
   },
   searchBarFocused: {
     borderColor: COLORS.primary.accent,
@@ -910,6 +1025,19 @@ const styles = StyleSheet.create({
     ...TYPOGRAPHY.sectionHeader.title,
     fontWeight: FONT_WEIGHTS.bold as any,
   },
+  sectionSubtitle: {
+    fontSize: 13,
+    fontWeight: '400' as any,
+    lineHeight: 18,
+    color: COLORS.text.tertiary,
+    marginTop: 4,
+    marginLeft: 13,
+  },
+  seeAllRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+  },
   seeAllButton: {
     minHeight: 44,
     minWidth: 44,
@@ -942,26 +1070,32 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.md,
   },
 
-  // ─── 모든 모임 보기 버튼 (테라코타 아웃라인) ─────────────
+  // ─── 모든 모임 보기 버튼 (그라데이션 CTA) ─────────────
+  allMeetupsButtonWrapper: {
+    marginHorizontal: SPACING.xl,
+    marginTop: SPACING.lg,
+    marginBottom: SPACING.xl,
+    borderRadius: BORDER_RADIUS.md,
+    overflow: 'hidden',
+    ...SHADOWS.small,
+  },
   allMeetupsButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: SPACING.sm,
-    marginHorizontal: SPACING.xl,
-    marginTop: SPACING.xl,
-    marginBottom: SPACING.xl,
     paddingVertical: 14,
-    backgroundColor: COLORS.neutral.white,
     borderRadius: BORDER_RADIUS.md,
-    borderWidth: 1.5,
-    borderColor: COLORS.primary.accent,
-    ...SHADOWS.small,
   },
   allMeetupsText: {
-    ...TYPOGRAPHY.button.medium,
-    color: COLORS.primary.accent,
-    fontWeight: FONT_WEIGHTS.semiBold as any,
+    fontSize: 14,
+    fontWeight: '600' as any,
+    letterSpacing: -0.03,
+    color: COLORS.neutral.white,
+  },
+  allMeetupsChevron: {
+    color: COLORS.neutral.white,
+    fontSize: 14,
   },
 
   // ─── Scroll to Top ────────────────────────────────────
@@ -985,25 +1119,36 @@ const styles = StyleSheet.create({
     color: COLORS.text.secondary,
   },
 
-  // ─── FAB (테라코타 악센트) ────────────────────────────
-  fab: {
+  // ─── FAB (테라코타 악센트, 확장형 필) ────────────────────
+  fabWrapper: {
     position: 'absolute',
     bottom: 100,
     right: 20,
-    width: 56,
-    height: 56,
-    borderRadius: BORDER_RADIUS.lg,
-    backgroundColor: COLORS.primary.accent,
+    zIndex: 1000,
+    borderRadius: BORDER_RADIUS.md,
+    overflow: 'hidden',
+    ...SHADOWS.cta,
+  },
+  fab: {
+    height: 48,
+    paddingLeft: 16,
+    paddingRight: 20,
+    borderRadius: BORDER_RADIUS.md,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    ...SHADOWS.cta,
-    zIndex: 1000,
+    gap: 6,
   },
   fabIcon: {
-    fontSize: 28,
+    fontSize: 20,
     color: COLORS.neutral.white,
     fontWeight: '300' as any,
-    lineHeight: 28,
+    lineHeight: 20,
+  },
+  fabLabel: {
+    fontSize: 14,
+    fontWeight: '600' as any,
+    color: COLORS.neutral.white,
   },
 
   // ─── 테스트 버튼 (디버그용) ───────────────────────────

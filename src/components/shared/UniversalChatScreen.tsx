@@ -282,42 +282,63 @@ const UniversalChatScreen: React.FC<UniversalChatScreenProps> = ({
   const renderChatListItem = (item: ChatRoom) => {
     const displayTitle = item.title;
     const participantCount = item.type === 'meetup' ? item.participants.length : undefined;
+    const hasUnread = item.unreadCount > 0;
 
     return (
-      <TouchableOpacity
-        style={styles.chatItem}
-        onPress={() => selectChatRoom(item.id)}
-        activeOpacity={0.7}
-      >
-        <View style={[styles.chatAvatar, { backgroundColor: getAvatarColor(displayTitle) }]}>
-          <Text style={styles.chatAvatarText}>
-            {getInitials(displayTitle)}
-          </Text>
-        </View>
-        <View style={styles.chatInfo}>
-          <View style={styles.chatTitleRow}>
-            <Text style={styles.chatTitle} numberOfLines={1}>
-              {displayTitle}
+      <View style={styles.chatItemWrapper}>
+        {/* 읽지 않은 메시지 좌측 액센트 라인 */}
+        {hasUnread && (
+          <View style={styles.unreadAccentLine} />
+        )}
+        <TouchableOpacity
+          style={styles.chatItem}
+          onPress={() => selectChatRoom(item.id)}
+          activeOpacity={0.7}
+        >
+          {/* 아바타 + 타입 뱃지 */}
+          <View style={styles.chatAvatarContainer}>
+            <View style={[styles.chatAvatar, { backgroundColor: getAvatarColor(displayTitle) }]}>
+              <Text style={styles.chatAvatarText}>
+                {getInitials(displayTitle)}
+              </Text>
+            </View>
+            {/* 채팅방 타입 뱃지 */}
+            <View style={[
+              styles.chatTypeBadge,
+              { backgroundColor: item.type === 'meetup' ? COLORS.primary.main : COLORS.neutral.grey400 },
+            ]}>
+              <Text style={styles.chatTypeBadgeText}>
+                {item.type === 'meetup' ? '\u{1F465}' : '\u{1F4AC}'}
+              </Text>
+            </View>
+          </View>
+          <View style={styles.chatInfo}>
+            <View style={styles.chatTitleRow}>
+              <Text style={[styles.chatTitle, hasUnread && { fontWeight: '800' }]} numberOfLines={1}>
+                {displayTitle}
+              </Text>
+              {participantCount && (
+                <Text style={styles.chatParticipantCount}>{participantCount}</Text>
+              )}
+            </View>
+            <Text style={[styles.lastMessage, hasUnread && { color: COLORS.text.secondary, fontWeight: '500' }]} numberOfLines={1}>
+              {item.lastMessage || '아직 메시지가 없습니다'}
             </Text>
-            {participantCount && (
-              <Text style={styles.chatParticipantCount}>{participantCount}</Text>
+          </View>
+          <View style={styles.chatMeta}>
+            <Text style={[styles.chatTime, hasUnread && { color: COLORS.primary.accent, fontWeight: '600' }]}>
+              {getDetailedDateFormat(item.lastTime)}
+            </Text>
+            {hasUnread && (
+              <View style={styles.unreadBadge}>
+                <Text style={styles.unreadCount}>
+                  {item.unreadCount > 99 ? '99+' : item.unreadCount}
+                </Text>
+              </View>
             )}
           </View>
-          <Text style={styles.lastMessage} numberOfLines={1}>
-            {item.lastMessage || '아직 메시지가 없습니다'}
-          </Text>
-        </View>
-        <View style={styles.chatMeta}>
-          <Text style={styles.chatTime}>
-            {getDetailedDateFormat(item.lastTime)}
-          </Text>
-          {item.unreadCount > 0 && (
-            <View style={styles.unreadBadge}>
-              <Text style={styles.unreadCount}>{item.unreadCount}</Text>
-            </View>
-          )}
-        </View>
-      </TouchableOpacity>
+        </TouchableOpacity>
+      </View>
     );
   };
 
@@ -502,39 +523,50 @@ const UniversalChatScreen: React.FC<UniversalChatScreenProps> = ({
 
       {/* 메시지 입력 */}
       <View style={styles.messageInput}>
-        <View style={[
-          styles.inputContainer,
-          messageInputFocused && styles.inputContainerFocused,
-        ]}>
-          <TextInput
-            style={styles.textInput}
-            placeholder="메시지를 입력하세요..."
-            placeholderTextColor={COLORS.neutral.grey400}
-            value={messageText}
-            onChangeText={setMessageText}
-            multiline
-            maxLength={500}
-            onSubmitEditing={sendMessage}
-            onFocus={() => setMessageInputFocused(true)}
-            onBlur={() => setMessageInputFocused(false)}
-          />
+        <View style={styles.inputRow}>
+          {/* 첨부 버튼 */}
           <TouchableOpacity
-            style={[
-              styles.sendButton,
-              messageText.trim() && !isSending && styles.sendButtonActive,
-            ]}
-            onPress={sendMessage}
-            disabled={!messageText.trim() || isSending}
+            style={styles.attachButton}
             activeOpacity={0.7}
             accessibilityRole="button"
-            accessibilityLabel="메시지 전송"
+            accessibilityLabel="파일 첨부"
           >
-            <Icon
-              name="send"
-              size={16}
-              color={messageText.trim() && !isSending ? COLORS.text.white : COLORS.neutral.grey400}
-            />
+            <Icon name="plus" size={20} color={COLORS.text.secondary} />
           </TouchableOpacity>
+          <View style={[
+            styles.inputContainer,
+            messageInputFocused && styles.inputContainerFocused,
+          ]}>
+            <TextInput
+              style={styles.textInput}
+              placeholder="메시지를 입력하세요..."
+              placeholderTextColor={COLORS.neutral.grey400}
+              value={messageText}
+              onChangeText={setMessageText}
+              multiline
+              maxLength={500}
+              onSubmitEditing={sendMessage}
+              onFocus={() => setMessageInputFocused(true)}
+              onBlur={() => setMessageInputFocused(false)}
+            />
+            <TouchableOpacity
+              style={[
+                styles.sendButton,
+                messageText.trim() && !isSending && styles.sendButtonActive,
+              ]}
+              onPress={sendMessage}
+              disabled={!messageText.trim() || isSending}
+              activeOpacity={0.7}
+              accessibilityRole="button"
+              accessibilityLabel="메시지 전송"
+            >
+              <Icon
+                name="send"
+                size={16}
+                color={messageText.trim() && !isSending ? COLORS.text.white : COLORS.neutral.grey400}
+              />
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
     </KeyboardAvoidingView>
@@ -559,24 +591,36 @@ const UniversalChatScreen: React.FC<UniversalChatScreenProps> = ({
 
       {/* 탭 네비게이션 */}
       <View style={styles.tabNavigation}>
-        {tabs.map((tab) => (
-          <TouchableOpacity
-            key={tab}
-            style={[
-              styles.tabButton,
-              selectedTab === tab && styles.selectedTabButton
-            ]}
-            onPress={() => setSelectedTab(tab)}
-            activeOpacity={0.7}
-          >
-            <Text style={[
-              styles.tabButtonText,
-              selectedTab === tab && styles.selectedTabButtonText
-            ]}>
-              {tab}
-            </Text>
-          </TouchableOpacity>
-        ))}
+        {tabs.map((tab) => {
+          const tabHasUnread = chatRooms.some(r => {
+            if (tab === '전체') return r.unreadCount > 0;
+            if (tab === '모임') return r.type === 'meetup' && r.unreadCount > 0;
+            return r.type === 'direct' && r.unreadCount > 0;
+          });
+
+          return (
+            <View key={tab} style={styles.tabButtonWrapper}>
+              <TouchableOpacity
+                style={[
+                  styles.tabButton,
+                  selectedTab === tab && styles.selectedTabButton
+                ]}
+                onPress={() => setSelectedTab(tab)}
+                activeOpacity={0.7}
+              >
+                <Text style={[
+                  styles.tabButtonText,
+                  selectedTab === tab && styles.selectedTabButtonText
+                ]}>
+                  {tab}
+                </Text>
+              </TouchableOpacity>
+              {tabHasUnread && selectedTab !== tab && (
+                <View style={styles.tabUnreadDot} />
+              )}
+            </View>
+          );
+        })}
       </View>
 
       {/* 채팅 목록 */}
@@ -662,6 +706,9 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     gap: 8,
   },
+  tabButtonWrapper: {
+    position: 'relative',
+  },
   tabButton: {
     paddingVertical: 7,
     paddingHorizontal: 16,
@@ -669,6 +716,17 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.neutral.light,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  tabUnreadDot: {
+    position: 'absolute',
+    top: -2,
+    right: -4,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: COLORS.primary.accent,
+    borderWidth: 2,
+    borderColor: COLORS.neutral.white,
   },
   selectedTabButton: {
     backgroundColor: COLORS.primary.main,
@@ -696,14 +754,31 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.neutral.white,
     paddingTop: 8,
   },
+  chatItemWrapper: {
+    position: 'relative',
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.neutral.grey100,
+  },
+  unreadAccentLine: {
+    position: 'absolute',
+    left: 0,
+    top: 8,
+    bottom: 8,
+    width: 3,
+    borderRadius: 2,
+    backgroundColor: COLORS.primary.accent,
+    zIndex: 1,
+  },
   chatItem: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: SPACING.xl,
     paddingVertical: 14,
     backgroundColor: COLORS.neutral.white,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.neutral.grey100,
+  },
+  chatAvatarContainer: {
+    position: 'relative',
+    marginRight: 14,
   },
   chatAvatar: {
     width: 48,
@@ -711,7 +786,21 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+  },
+  chatTypeBadge: {
+    position: 'absolute',
+    bottom: -2,
+    right: -2,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: COLORS.neutral.white,
+  },
+  chatTypeBadgeText: {
+    fontSize: 11,
   },
   chatAvatarText: {
     fontSize: 17,
@@ -844,7 +933,7 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: BORDER_RADIUS.md,
   },
   myMessageBubble: {
-    backgroundColor: '#9A7450',
+    backgroundColor: '#2D2926',
     borderTopLeftRadius: BORDER_RADIUS.md,
     borderTopRightRadius: BORDER_RADIUS.md,
     borderBottomLeftRadius: BORDER_RADIUS.md,
@@ -888,7 +977,20 @@ const styles = StyleSheet.create({
     height: 64,
     justifyContent: 'center',
   },
+  inputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  attachButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   inputContainer: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: COLORS.neutral.light,
@@ -898,7 +1000,6 @@ const styles = StyleSheet.create({
     height: 44,
     borderWidth: 1,
     borderColor: COLORS.neutral.grey100,
-    width: '100%',
   },
   inputContainerFocused: {
     backgroundColor: COLORS.neutral.white,

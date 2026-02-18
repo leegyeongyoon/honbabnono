@@ -8,10 +8,12 @@ import {
   Alert,
   Platform,
 } from 'react-native';
+import LinearGradient from 'react-native-linear-gradient';
 import { COLORS, SHADOWS, CTA_STYLE } from '../../styles/colors';
 import { SPACING, BORDER_RADIUS } from '../../styles/spacing';
 import { TYPOGRAPHY, FONT_WEIGHTS } from '../../styles/typography';
 import apiClient, { API_HOSTS } from '../../services/apiClient';
+import { Icon } from '../Icon';
 
 interface UniversalLoginScreenProps {
   navigation?: any; // For native
@@ -198,8 +200,24 @@ const UniversalLoginScreen: React.FC<UniversalLoginScreenProps> = ({
 
   return (
     <View style={styles.container}>
-      {/* 배경 — 딥 차콜 */}
-      <View style={styles.backgroundGradient} />
+      {/* 배경 — 그라데이션 */}
+      {Platform.OS === 'web' ? (
+        <div style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          height: '100%',
+          background: 'linear-gradient(135deg, #A88068 0%, #C4A08A 50%, #D8BCA8 100%)',
+        }} />
+      ) : (
+        <LinearGradient
+          colors={['#A88068', '#C4A08A', '#D8BCA8']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.backgroundGradient}
+        />
+      )}
 
       {/* 로고 섹션 */}
       <View style={styles.logoSection}>
@@ -328,32 +346,29 @@ const UniversalLoginScreen: React.FC<UniversalLoginScreenProps> = ({
             </View>
           )}
 
-          {/* 기능 소개 (Web enhanced) — 에디토리얼 넘버링 */}
-          {Platform.OS === 'web' && (
-            <View style={styles.featuresSection}>
-              <Text style={styles.featuresTitle}>잇테이블에서 할 수 있는 일</Text>
-              <View style={styles.featuresList}>
-                <View style={styles.featureItem}>
-                  <View style={styles.featureIconContainer}>
-                    <Text style={styles.featureIconText}>01</Text>
-                  </View>
-                  <Text style={styles.featureText}>내 주변 맛집 모임 찾기</Text>
+          {/* 기능 소개 — 3열 아이콘 그리드 */}
+          <View style={styles.featuresSection}>
+            <View style={styles.featuresList}>
+              <View style={styles.featureItem}>
+                <View style={styles.featureIconBox}>
+                  <Icon name="map-pin" size={20} color={COLORS.primary.accent} />
                 </View>
-                <View style={styles.featureItem}>
-                  <View style={styles.featureIconContainer}>
-                    <Text style={styles.featureIconText}>02</Text>
-                  </View>
-                  <Text style={styles.featureText}>새로운 사람들과 만남</Text>
+                <Text style={styles.featureLabel}>내 주변 모임</Text>
+              </View>
+              <View style={styles.featureItem}>
+                <View style={styles.featureIconBox}>
+                  <Icon name="users" size={20} color={COLORS.primary.accent} />
                 </View>
-                <View style={styles.featureItem}>
-                  <View style={styles.featureIconContainer}>
-                    <Text style={styles.featureIconText}>03</Text>
-                  </View>
-                  <Text style={styles.featureText}>취향 맞는 모임 추천</Text>
+                <Text style={styles.featureLabel}>새로운 인연</Text>
+              </View>
+              <View style={styles.featureItem}>
+                <View style={styles.featureIconBox}>
+                  <Icon name="star" size={20} color={COLORS.primary.accent} />
                 </View>
+                <Text style={styles.featureLabel}>맞춤 추천</Text>
               </View>
             </View>
-          )}
+          </View>
 
           {/* 개인정보 정책 */}
           <View style={styles.policyContainer}>
@@ -390,28 +405,22 @@ const styles = StyleSheet.create({
     ...(Platform.OS !== 'web' && { justifyContent: 'center', padding: 20 }),
   },
   backgroundGradient: {
-    ...(Platform.OS === 'web' && {
-      position: 'absolute',
-      top: 0,
-      left: 0,
-      right: 0,
-      height: '100%',
-      backgroundColor: COLORS.primary.main,
-      opacity: 0.95,
-    }),
-    ...(Platform.OS !== 'web' && {
-      display: 'none',
-    }),
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
   logoSection: {
     alignItems: 'center',
+    zIndex: 1,
     ...(Platform.OS === 'web' && {
       paddingTop: 80,
       paddingBottom: 40,
-      zIndex: 1,
     }),
     ...(Platform.OS !== 'web' && {
-      marginBottom: 40,
+      paddingTop: 60,
+      paddingBottom: 30,
     }),
   },
   logoContainer: {
@@ -437,19 +446,19 @@ const styles = StyleSheet.create({
   appName: {
     fontSize: Platform.OS === 'web' ? 40 : 28,
     fontWeight: FONT_WEIGHTS.bold as any,
-    color: Platform.OS === 'web' ? COLORS.text.white : COLORS.text.primary,
+    color: COLORS.text.white,
     letterSpacing: -0.8,
   },
   tagline: {
     fontSize: 18,
-    color: Platform.OS === 'web' ? 'rgba(255,255,255,0.85)' : COLORS.text.secondary,
+    color: 'rgba(255,255,255,0.85)',
     fontWeight: FONT_WEIGHTS.medium as any,
     marginBottom: 8,
     textAlign: 'center',
   },
   description: {
     fontSize: 15,
-    color: Platform.OS === 'web' ? 'rgba(255,255,255,0.65)' : COLORS.text.tertiary,
+    color: 'rgba(255,255,255,0.65)',
     textAlign: 'center',
     maxWidth: 300,
     lineHeight: 22,
@@ -457,9 +466,9 @@ const styles = StyleSheet.create({
   mainContainer: {
     flex: 1,
     paddingHorizontal: 20,
+    zIndex: 1,
     ...(Platform.OS === 'web' && {
       justifyContent: 'center',
-      zIndex: 1,
       marginTop: -20,
     }),
   },
@@ -613,44 +622,36 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: FONT_WEIGHTS.medium as any,
   },
-  // Web-specific features section
+  // 기능 소개 — 3열 아이콘 그리드
   featuresSection: {
     marginBottom: 24,
-  },
-  featuresTitle: {
-    ...TYPOGRAPHY.heading.h3,
-    marginBottom: 16,
-    textAlign: 'center',
+    paddingTop: 4,
   },
   featuresList: {
-    gap: 12,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 24,
   },
   featureItem: {
-    flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 6,
+    width: 80,
   },
-  featureIconContainer: {
-    width: 32,
-    height: 32,
-    borderRadius: BORDER_RADIUS.sm,
+  featureIconBox: {
+    width: 44,
+    height: 44,
+    borderRadius: BORDER_RADIUS.md,
     backgroundColor: COLORS.surface.secondary,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    marginBottom: 8,
     borderWidth: 1,
     borderColor: COLORS.neutral.grey100,
   },
-  featureIconText: {
-    fontSize: 11,
-    fontWeight: FONT_WEIGHTS.bold as any,
-    color: COLORS.primary.accent,
-    letterSpacing: 0.5,
-  },
-  featureText: {
-    fontSize: 14,
-    color: COLORS.text.secondary,
-    flex: 1,
+  featureLabel: {
+    fontSize: 12,
+    fontWeight: FONT_WEIGHTS.medium as any,
+    color: COLORS.text.tertiary,
+    textAlign: 'center',
   },
   policyContainer: {
     paddingHorizontal: Platform.OS === 'web' ? 8 : 10,
@@ -674,7 +675,7 @@ const styles = StyleSheet.create({
   },
   footerText: {
     fontSize: 12,
-    color: Platform.OS === 'web' ? 'rgba(255,255,255,0.4)' : COLORS.text.tertiary,
+    color: 'rgba(255,255,255,0.4)',
     textAlign: 'center',
   },
 });

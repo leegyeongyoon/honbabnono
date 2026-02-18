@@ -28,8 +28,8 @@ const API_URL = Platform.OS === 'web'
   ? (process.env.REACT_APP_API_URL || 'http://localhost:3001')
   : `http://${API_HOSTS[0]}:3001`;
 
-// 기본 검색 반경 (5km)
-const DEFAULT_RADIUS = 5000;
+// 기본 검색 반경 (3km)
+const DEFAULT_RADIUS = 3000;
 
 const RADIUS_OPTIONS = [
   { label: '1km', value: 1000 },
@@ -585,7 +585,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.neutral.grey100,
   },
   categoryChipActive: {
-    backgroundColor: COLORS.primary.main,
+    backgroundColor: COLORS.primary.dark,
   },
   categoryChipText: {
     fontSize: 14,
@@ -608,7 +608,7 @@ const styles = StyleSheet.create({
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    height: 48,
+    height: 56,
     backgroundColor: COLORS.neutral.grey100,
     borderRadius: 8,
     paddingHorizontal: 20,

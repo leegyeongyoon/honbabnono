@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, Animated, Platform } from 'react-native';
+import LinearGradient from 'react-native-linear-gradient';
 import { COLORS, SHADOWS, CARD_STYLE, LAYOUT } from '../../styles/colors';
 import { TYPOGRAPHY } from '../../styles/typography';
 import { SPACING, BORDER_RADIUS } from '../../styles/spacing';
@@ -146,6 +147,18 @@ const UniversalMyPageScreen: React.FC<UniversalMyPageScreenProps> = ({
 
   const riceGrade = getRiceGrade(userStats.riceIndex);
 
+  // 밥알지수 진행바 애니메이션
+  const progressAnim = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.timing(progressAnim, {
+      toValue: Math.min(userStats.riceIndex, 100),
+      duration: 800,
+      useNativeDriver: false,
+    }).start();
+  }, [userStats.riceIndex]);
+
+  const RICE_MILESTONES = [0, 30, 60, 85, 100];
+
   // 로그인하지 않은 경우 체크 (hooks 이후에)
   if (!user) {
     return (
@@ -189,34 +202,76 @@ const UniversalMyPageScreen: React.FC<UniversalMyPageScreenProps> = ({
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
           {/* 프로필 히어로 (딥 차콜 그라데이션) */}
           <FadeIn delay={0}>
-            <View style={styles.profileHero}>
-              <View style={styles.profileRow}>
-                <View
-                  style={styles.profileImageWrapper}
-                  accessibilityLabel="프로필 사진"
-                >
-                  <ProfileImage
-                    profileImage={userProfileImageUrl}
-                    name={user?.name || '사용자'}
-                    size={72}
-                  />
-                </View>
-                <View style={styles.profileInfo}>
-                  <Text style={styles.userName} numberOfLines={1}>{user?.name || '사용자'}</Text>
-                  <Text style={styles.userEmail} numberOfLines={1}>{user?.email || ''}</Text>
-                  <TouchableOpacity
-                    style={styles.editProfileButton}
-                    onPress={() => navigation.navigate('EditProfile')}
-                    activeOpacity={0.7}
-                    accessibilityLabel="프로필 수정"
-                    accessibilityRole="button"
+            {Platform.OS === 'web' ? (
+              <div style={{
+                background: `linear-gradient(135deg, #A88068 0%, #C4A08A 100%)`,
+                paddingLeft: 20,
+                paddingRight: 20,
+                paddingTop: 28,
+                paddingBottom: 28,
+              }}>
+                <View style={styles.profileRow}>
+                  <View
+                    style={styles.profileImageWrapper}
+                    accessibilityLabel="프로필 사진"
                   >
-                    <Text style={styles.editProfileText}>프로필 수정</Text>
-                    <Icon name="chevron-right" size={12} color={COLORS.neutral.white} />
-                  </TouchableOpacity>
+                    <ProfileImage
+                      profileImage={userProfileImageUrl}
+                      name={user?.name || '사용자'}
+                      size={72}
+                    />
+                  </View>
+                  <View style={styles.profileInfo}>
+                    <Text style={styles.userName} numberOfLines={1}>{user?.name || '사용자'}</Text>
+                    <Text style={styles.userEmail} numberOfLines={1}>{user?.email || ''}</Text>
+                    <TouchableOpacity
+                      style={styles.editProfileButton}
+                      onPress={() => navigation.navigate('EditProfile')}
+                      activeOpacity={0.7}
+                      accessibilityLabel="프로필 수정"
+                      accessibilityRole="button"
+                    >
+                      <Text style={styles.editProfileText}>프로필 수정</Text>
+                      <Icon name="chevron-right" size={12} color={COLORS.neutral.white} />
+                    </TouchableOpacity>
+                  </View>
                 </View>
-              </View>
-            </View>
+              </div>
+            ) : (
+              <LinearGradient
+                colors={['#A88068', '#C4A08A']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.profileHero}
+              >
+                <View style={styles.profileRow}>
+                  <View
+                    style={styles.profileImageWrapper}
+                    accessibilityLabel="프로필 사진"
+                  >
+                    <ProfileImage
+                      profileImage={userProfileImageUrl}
+                      name={user?.name || '사용자'}
+                      size={72}
+                    />
+                  </View>
+                  <View style={styles.profileInfo}>
+                    <Text style={styles.userName} numberOfLines={1}>{user?.name || '사용자'}</Text>
+                    <Text style={styles.userEmail} numberOfLines={1}>{user?.email || ''}</Text>
+                    <TouchableOpacity
+                      style={styles.editProfileButton}
+                      onPress={() => navigation.navigate('EditProfile')}
+                      activeOpacity={0.7}
+                      accessibilityLabel="프로필 수정"
+                      accessibilityRole="button"
+                    >
+                      <Text style={styles.editProfileText}>프로필 수정</Text>
+                      <Icon name="chevron-right" size={12} color={COLORS.neutral.white} />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </LinearGradient>
+            )}
           </FadeIn>
 
           {/* 통계 카드 (클린 화이트, 서틀 보더) */}
@@ -263,12 +318,31 @@ const UniversalMyPageScreen: React.FC<UniversalMyPageScreenProps> = ({
                 <Text style={styles.riceScore}>{userStats.riceIndex}점</Text>
               </View>
               <View style={styles.riceProgressBg}>
-                <View
+                <Animated.View
                   style={[
                     styles.riceProgressFill,
-                    { width: `${Math.min(userStats.riceIndex, 100)}%` as any },
+                    {
+                      width: progressAnim.interpolate({
+                        inputRange: [0, 100],
+                        outputRange: ['0%', '100%'],
+                      }),
+                    },
                   ]}
                 />
+              </View>
+              {/* 마일스톤 마커 */}
+              <View style={styles.milestoneRow}>
+                {RICE_MILESTONES.map((milestone) => (
+                  <Text
+                    key={milestone}
+                    style={[
+                      styles.milestoneText,
+                      userStats.riceIndex >= milestone && styles.milestoneTextActive,
+                    ]}
+                  >
+                    {milestone}
+                  </Text>
+                ))}
               </View>
               <Text style={styles.riceGradeText}>
                 {riceGrade.emoji} {riceGrade.label}
@@ -563,12 +637,27 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.neutral.grey100,
     borderRadius: 3,
     overflow: 'hidden',
-    marginBottom: 10,
   },
   riceProgressFill: {
     height: '100%',
     borderRadius: 3,
     backgroundColor: COLORS.primary.accent,
+  },
+  milestoneRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 2,
+    marginTop: 4,
+    marginBottom: 10,
+  },
+  milestoneText: {
+    fontSize: 9,
+    fontWeight: '400',
+    color: COLORS.text.tertiary,
+  },
+  milestoneTextActive: {
+    fontWeight: '500',
+    color: COLORS.text.secondary,
   },
   riceGradeText: {
     fontSize: 13,

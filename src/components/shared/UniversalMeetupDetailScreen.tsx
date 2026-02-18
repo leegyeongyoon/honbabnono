@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Modal as RNModal, Platform } from 'react-native';
-import { COLORS, SHADOWS, CARD_STYLE, BORDER_RADIUS, SPACING, TYPOGRAPHY } from '../../styles';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Modal as RNModal, Platform, Image } from 'react-native';
+import LinearGradient from 'react-native-linear-gradient';
+import { COLORS, SHADOWS, CARD_STYLE, CSS_SHADOWS, BORDER_RADIUS, SPACING, TYPOGRAPHY } from '../../styles';
 import { useUserStore } from '../../store/userStore';
 import { useMeetupStore } from '../../store/meetupStore';
 import apiClient from '../../services/apiClient';
@@ -427,6 +428,16 @@ const UniversalMeetupDetailScreen: React.FC<UniversalMeetupDetailScreenProps> = 
     }
   };
 
+  const participantRatio = (meetup.maxParticipants ?? 4) > 0
+    ? (meetup.currentParticipants ?? 0) / (meetup.maxParticipants ?? 4)
+    : 0;
+
+  const getProgressBarColor = () => {
+    if (participantRatio >= 0.8) return '#D32F2F';
+    if (participantRatio >= 0.5) return '#E69100';
+    return '#2E7D4F';
+  };
+
   const handleConfirmJoin = async () => {
     if (!user || !meetupId) {return;}
 
@@ -475,45 +486,223 @@ const UniversalMeetupDetailScreen: React.FC<UniversalMeetupDetailScreenProps> = 
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <View style={styles.headerPlaceholder} />
-        <View style={styles.headerIcons}>
-          <TouchableOpacity
-            style={styles.iconButton}
-            onPress={toggleWishlist}
-            disabled={wishlistLoading}
-          >
-            {Platform.OS === 'web' ? (
-              <Heart
-                size={20}
-                color={isWishlisted ? COLORS.functional.error : COLORS.text.tertiary}
-                fill={isWishlisted ? COLORS.functional.error : 'transparent'}
-              />
-            ) : (
-              <Text style={{ fontSize: 20 }}>{isWishlisted ? '❤️' : '🤍'}</Text>
-            )}
-          </TouchableOpacity>
-        </View>
-      </View>
-
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        <View style={styles.hostSection}>
-          <View style={styles.hostInfo}>
-            <ProfileImage
-              profileImage={meetup.host?.profileImage}
-              name={meetup.host?.name || meetup.hostName}
-              size={52}
-              style={styles.avatar}
+        {/* 히어로 커버 이미지 (280px) */}
+        {Platform.OS === 'web' ? (
+          <div style={{
+            position: 'relative',
+            width: '100%',
+            height: 280,
+            overflow: 'hidden',
+            backgroundColor: COLORS.neutral.grey200,
+          }}>
+            <img
+              src={processImageUrl(meetup.image, meetup.category)}
+              alt={meetup.title}
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+              }}
             />
-            <View>
-              <Text style={styles.hostName}>{meetup.hostName || '익명'}</Text>
-              <Text style={styles.hostLocation}>{meetup.location || '위치 미정'}</Text>
+            {/* 상단 그라데이션 오버레이 */}
+            <div style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              height: 100,
+              background: 'linear-gradient(180deg, rgba(17,17,17,0.4) 0%, transparent 100%)',
+              pointerEvents: 'none',
+            }} />
+            {/* 하단 그라데이션 오버레이 */}
+            <div style={{
+              position: 'absolute',
+              bottom: 0,
+              left: 0,
+              right: 0,
+              height: 120,
+              background: 'linear-gradient(0deg, rgba(17,17,17,0.5) 0%, transparent 100%)',
+              pointerEvents: 'none',
+            }} />
+            {/* 오버레이 헤더 버튼들 */}
+            <div style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              display: 'flex',
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              padding: '16px 16px',
+              paddingTop: 20,
+            }}>
+              <div style={{ width: 40, height: 40 }} />
+              <div
+                onClick={toggleWishlist}
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 20,
+                  backgroundColor: 'rgba(255,255,255,0.9)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  boxShadow: CSS_SHADOWS.small,
+                  backdropFilter: 'blur(8px)',
+                }}
+                role="button"
+                aria-label={isWishlisted ? '찜 해제' : '찜하기'}
+              >
+                <Heart
+                  size={20}
+                  color={isWishlisted ? COLORS.functional.error : COLORS.text.secondary}
+                  fill={isWishlisted ? COLORS.functional.error : 'transparent'}
+                />
+              </div>
+            </div>
+            {/* 상태 뱃지 */}
+            {meetup.status && (
+              <div style={{
+                position: 'absolute',
+                bottom: 16,
+                left: 16,
+                display: 'flex',
+                flexDirection: 'row',
+                gap: 8,
+                alignItems: 'center',
+              }}>
+                <div style={{
+                  paddingLeft: 10,
+                  paddingRight: 10,
+                  paddingTop: 5,
+                  paddingBottom: 5,
+                  borderRadius: BORDER_RADIUS.sm,
+                  backgroundColor: meetup.status === 'recruiting' || meetup.status === '모집중' ? '#2E7D4F'
+                    : meetup.status === 'confirmed' || meetup.status === '모집완료' ? COLORS.primary.main
+                    : meetup.status === '진행중' ? '#1976D2'
+                    : COLORS.neutral.grey500,
+                }}>
+                  <span style={{ fontSize: 12, fontWeight: '700', color: COLORS.neutral.white }}>
+                    {meetup.status === 'recruiting' ? '모집중' : meetup.status === 'confirmed' ? '모집완료' : meetup.status}
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+        ) : (
+          <View style={styles.heroContainer}>
+            <Image
+              source={{ uri: processImageUrl(meetup.image, meetup.category) }}
+              style={styles.heroImage}
+              resizeMode="cover"
+            />
+            {/* 상단 그라데이션 오버레이 */}
+            <LinearGradient
+              colors={['rgba(17,17,17,0.4)', 'transparent']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 0, y: 1 }}
+              style={styles.heroGradientTop}
+            />
+            {/* 하단 그라데이션 오버레이 */}
+            <LinearGradient
+              colors={['transparent', 'rgba(17,17,17,0.5)']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 0, y: 1 }}
+              style={styles.heroGradientBottom}
+            />
+            {/* 오버레이 헤더 버튼들 */}
+            <View style={styles.heroHeaderOverlay}>
+              <View style={{ width: 40, height: 40 }} />
+              <TouchableOpacity
+                style={styles.heroIconButton}
+                onPress={toggleWishlist}
+                disabled={wishlistLoading}
+              >
+                <Text style={{ fontSize: 20 }}>{isWishlisted ? '❤️' : '🤍'}</Text>
+              </TouchableOpacity>
+            </View>
+            {/* 상태 뱃지 */}
+            {meetup.status && (
+              <View style={styles.heroStatusBadgeContainer}>
+                <View style={[
+                  styles.heroStatusBadge,
+                  {
+                    backgroundColor: meetup.status === 'recruiting' || meetup.status === '모집중' ? '#2E7D4F'
+                      : meetup.status === 'confirmed' || meetup.status === '모집완료' ? COLORS.primary.main
+                      : meetup.status === '진행중' ? '#1976D2'
+                      : COLORS.neutral.grey500,
+                  }
+                ]}>
+                  <Text style={styles.heroStatusBadgeText}>
+                    {meetup.status === 'recruiting' ? '모집중' : meetup.status === 'confirmed' ? '모집완료' : meetup.status}
+                  </Text>
+                </View>
+              </View>
+            )}
+          </View>
+        )}
+
+        {/* 호스트 정보 카드 (히어로 이미지 겹침) */}
+        {Platform.OS === 'web' ? (
+          <div style={{
+            marginLeft: SPACING.xl,
+            marginRight: SPACING.xl,
+            marginTop: -32,
+            position: 'relative',
+            zIndex: 2,
+            backgroundColor: COLORS.neutral.white,
+            borderRadius: BORDER_RADIUS.lg,
+            padding: 16,
+            display: 'flex',
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            boxShadow: CSS_SHADOWS.card,
+            border: `1px solid ${CARD_STYLE.borderColor}`,
+          }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+              <ProfileImage
+                profileImage={meetup.host?.profileImage}
+                name={meetup.host?.name || meetup.hostName}
+                size={52}
+              />
+              <View>
+                <Text style={styles.hostName}>{meetup.hostName || '익명'}</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 }}>
+                  <Icon name="map-pin" size={12} color={COLORS.text.tertiary} />
+                  <Text style={styles.hostLocation}>{meetup.location || '위치 미정'}</Text>
+                </View>
+              </View>
+            </View>
+            <View style={styles.riceIndicator}>
+              <Text style={styles.riceText}>{meetup.hostBabAlScore || userRiceIndex} 밥알</Text>
+            </View>
+          </div>
+        ) : (
+          <View style={styles.hostSection}>
+            <View style={styles.hostInfo}>
+              <ProfileImage
+                profileImage={meetup.host?.profileImage}
+                name={meetup.host?.name || meetup.hostName}
+                size={52}
+                style={styles.avatar}
+              />
+              <View>
+                <Text style={styles.hostName}>{meetup.hostName || '익명'}</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 }}>
+                  <Icon name="map-pin" size={12} color={COLORS.text.tertiary} />
+                  <Text style={styles.hostLocation}>{meetup.location || '위치 미정'}</Text>
+                </View>
+              </View>
+            </View>
+            <View style={styles.riceIndicator}>
+              <Text style={styles.riceText}>{meetup.hostBabAlScore || userRiceIndex} 밥알</Text>
             </View>
           </View>
-          <View style={styles.riceIndicator}>
-            <Text style={styles.riceText}>{meetup.hostBabAlScore || userRiceIndex} 밥알 🍚</Text>
-          </View>
-        </View>
+        )}
 
         <View style={styles.mainCard}>
           <Text style={styles.meetupTitle}>{meetup.title || '급한 때실 시밥'}</Text>
@@ -590,9 +779,41 @@ const UniversalMeetupDetailScreen: React.FC<UniversalMeetupDetailScreenProps> = 
             </View>
 
             <View style={styles.infoRow}>
-              <Icon name="users" size={15} color={COLORS.text.tertiary} />
-              <Text style={styles.infoLabel}>{meetup.currentParticipants}/{meetup.maxParticipants}명</Text>
+              <Icon name="users" size={15} color={COLORS.primary.accent} />
+              <Text style={[styles.infoLabel, { color: COLORS.primary.accent, fontWeight: '700' }]}>
+                {meetup.currentParticipants ?? 0}/{meetup.maxParticipants ?? 4}명
+              </Text>
             </View>
+
+            {/* 참가자 프로그레스바 */}
+            {Platform.OS === 'web' ? (
+              <div style={{
+                height: 6,
+                backgroundColor: COLORS.neutral.grey100,
+                borderRadius: BORDER_RADIUS.sm,
+                overflow: 'hidden',
+                marginTop: -4,
+                marginBottom: 8,
+              }}>
+                <div style={{
+                  width: `${Math.min(participantRatio * 100, 100)}%`,
+                  height: '100%',
+                  borderRadius: BORDER_RADIUS.sm,
+                  backgroundColor: getProgressBarColor(),
+                  transition: 'width 600ms ease',
+                }} />
+              </div>
+            ) : (
+              <View style={styles.progressBarContainer}>
+                <View style={[
+                  styles.progressBarFill,
+                  {
+                    width: `${Math.min(participantRatio * 100, 100)}%`,
+                    backgroundColor: getProgressBarColor(),
+                  }
+                ]} />
+              </View>
+            )}
           </View>
 
           <Text style={styles.description}>
@@ -885,6 +1106,83 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
   },
+  // 히어로 이미지 스타일 (Native)
+  heroContainer: {
+    position: 'relative',
+    width: '100%',
+    height: 280,
+    overflow: 'hidden',
+    backgroundColor: COLORS.neutral.grey200,
+  },
+  heroImage: {
+    width: '100%',
+    height: '100%',
+  },
+  heroGradientTop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 100,
+  },
+  heroGradientBottom: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 120,
+  },
+  heroHeaderOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingTop: 50,
+  },
+  heroIconButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...SHADOWS.small,
+  },
+  heroStatusBadgeContainer: {
+    position: 'absolute',
+    bottom: 16,
+    left: 16,
+    flexDirection: 'row',
+    gap: 8,
+    alignItems: 'center',
+  },
+  heroStatusBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: BORDER_RADIUS.sm,
+  },
+  heroStatusBadgeText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: COLORS.neutral.white,
+  },
+  // 참가자 프로그레스바 (Native)
+  progressBarContainer: {
+    height: 6,
+    backgroundColor: COLORS.neutral.grey100,
+    borderRadius: BORDER_RADIUS.sm,
+    overflow: 'hidden',
+    marginTop: -4,
+    marginBottom: 8,
+  },
+  progressBarFill: {
+    height: '100%',
+    borderRadius: BORDER_RADIUS.sm,
+  },
   loadingContainer: {
     flex: 1,
     backgroundColor: COLORS.neutral.background,
@@ -953,14 +1251,15 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginHorizontal: SPACING.xl,
-    marginTop: SPACING.lg,
+    marginTop: -32,
     marginBottom: SPACING.lg,
     padding: SPACING.lg,
     borderRadius: BORDER_RADIUS.lg,
     backgroundColor: COLORS.neutral.white,
     borderWidth: 1,
     borderColor: CARD_STYLE.borderColor,
-    ...SHADOWS.small,
+    ...SHADOWS.medium,
+    zIndex: 2,
   },
   hostInfo: {
     flexDirection: 'row',
