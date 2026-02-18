@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { COLORS, SHADOWS } from '../../styles/colors';
 import { Icon } from '../Icon';
+import CategoryIcon from '../CategoryIcon';
 import { useToast } from '../../hooks/useToast';
 import { FOOD_CATEGORIES, PRICE_RANGES } from '../../constants/categories';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -328,21 +329,10 @@ const UniversalCreateMeetupWizard: React.FC<UniversalCreateMeetupWizardProps> = 
 
   // 카테고리 선택 화면
   const renderCategoryStep = () => {
-    const categories = [
-      { id: 1, name: '고기구이', icon: '🥩', color: '#FF6B6B' },
-      { id: 2, name: '전통/제철', icon: '🍲', color: '#4ECDC4' },
-      { id: 3, name: '뷔페/무한리필', icon: '🍽️', color: '#45B7D1' },
-      { id: 4, name: '퓨전/창작', icon: '👨‍🍳', color: '#96CEB4' },
-      { id: 5, name: '과자/차전', icon: '🍰', color: '#FFEAA7' },
-      { id: 6, name: '주점/술집', icon: '🍻', color: '#DDA0DD' },
-      { id: 7, name: '코스요리', icon: '⭐', color: '#FFB347' },
-      { id: 8, name: '카페', icon: '☕', color: '#D2B48C' }
-    ];
-
     return (
       <View style={styles.stepContent}>
         <View style={styles.categoryGrid}>
-          {categories.map((category) => (
+          {FOOD_CATEGORIES.map((category) => (
             <TouchableOpacity
               key={category.id}
               style={[
@@ -355,7 +345,13 @@ const UniversalCreateMeetupWizard: React.FC<UniversalCreateMeetupWizardProps> = 
                 styles.categoryIconWrapper,
                 meetupData.category === category.name && styles.categoryIconWrapperSelected
               ]}>
-                <Text style={styles.categoryEmoji}>{category.icon}</Text>
+                <CategoryIcon
+                  iconName={category.icon as any}
+                  image={category.image}
+                  size={48}
+                  color={meetupData.category === category.name ? COLORS.neutral.white : category.color}
+                  backgroundColor="transparent"
+                />
               </View>
               <Text style={[
                 styles.categoryName,

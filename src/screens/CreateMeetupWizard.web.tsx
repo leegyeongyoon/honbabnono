@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { COLORS, SHADOWS } from '../styles/colors';
 import { Icon } from '../components/Icon';
+import CategoryIcon from '../components/CategoryIcon';
 import { useToast } from '../hooks/useToast';
 import { useRouterNavigation } from '../components/RouterNavigation';
 import { FOOD_CATEGORIES, PRICE_RANGES } from '../constants/categories';
@@ -819,10 +820,12 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
                 styles.homeCategoryBox,
                 { backgroundColor: meetupData.category === category.name ? COLORS.neutral.grey700 : category.bgColor }
               ]}>
-                <Icon 
-                  name={category.icon as any} 
-                  size={40} 
-                  color={meetupData.category === category.name ? COLORS.neutral.white : category.color} 
+                <CategoryIcon
+                  iconName={category.icon as any}
+                  image={category.image}
+                  size={56}
+                  color={meetupData.category === category.name ? COLORS.neutral.white : category.color}
+                  backgroundColor="transparent"
                 />
               </View>
               <Text style={[
