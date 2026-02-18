@@ -502,6 +502,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
                   }}>
                     <CategoryIcon
                       iconName={category.icon}
+                      image={category.image}
                       size={48}
                       color={category.color}
                       backgroundColor={hoveredCategoryId === category.id ? COLORS.surface.secondary : category.bgColor}

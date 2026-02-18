@@ -438,6 +438,7 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
                   <View style={[styles.categoryIconBox, { backgroundColor: category.bgColor }]}>
                     <CategoryIcon
                       iconName={category.icon}
+                      image={category.image}
                       size={48}
                       color={category.color}
                       backgroundColor="transparent"

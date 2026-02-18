@@ -1,10 +1,23 @@
 import type { IconName } from '../components/SimpleIcon';
 
+// 카테고리 이미지 (DALL-E 생성 일러스트)
+export const CATEGORY_IMAGES: Record<string, any> = {
+  bbq: require('../assets/categories/bbq.png'),
+  hotpot: require('../assets/categories/hotpot.png'),
+  buffet: require('../assets/categories/buffet.png'),
+  seafood: require('../assets/categories/seafood.png'),
+  pizza: require('../assets/categories/pizza.png'),
+  bar: require('../assets/categories/bar.png'),
+  course: require('../assets/categories/course.png'),
+  party: require('../assets/categories/party.png'),
+};
+
 // 카테고리 관련 상수 (혼밥하기 어려운 카테고리 중심)
 export const FOOD_CATEGORIES: {
   id: string;
   name: string;
   icon: IconName;
+  image: any;
   desc: string;
   color: string;
   bgColor: string;
@@ -13,65 +26,73 @@ export const FOOD_CATEGORIES: {
     id: 'bbq',
     name: '고기/구이',
     icon: 'flame',
+    image: CATEGORY_IMAGES.bbq,
     desc: '삼겹살/갈비/곱창',
-    color: '#8B7355',
-    bgColor: '#F5F5F5'
+    color: '#8C7565',
+    bgColor: '#F7F4F2'
   },
   {
     id: 'hotpot',
     name: '전골/찌개',
     icon: 'soup',
+    image: CATEGORY_IMAGES.hotpot,
     desc: '부대찌개/김치찌개',
-    color: '#E8B84D',
-    bgColor: '#F5F5F5'
+    color: '#8C7565',
+    bgColor: '#F7F4F2'
   },
   {
     id: 'buffet',
     name: '뷔페/무한리필',
     icon: 'utensils',
+    image: CATEGORY_IMAGES.buffet,
     desc: '고기뷔페/샐러드바',
-    color: '#5B9A6F',
-    bgColor: '#E8F5E9'
+    color: '#8C7565',
+    bgColor: '#F7F4F2'
   },
   {
     id: 'seafood',
     name: '해산물/회',
     icon: 'fish',
+    image: CATEGORY_IMAGES.seafood,
     desc: '회/조개구이/랍스터',
-    color: '#6B8EAE',
-    bgColor: '#E3F2FD'
+    color: '#8C7565',
+    bgColor: '#F7F4F2'
   },
   {
     id: 'pizza',
     name: '피자/치킨',
     icon: 'pizza',
+    image: CATEGORY_IMAGES.pizza,
     desc: '피자/후라이드치킨',
-    color: '#6B4F0E',
-    bgColor: '#F5F5F5'
+    color: '#8C7565',
+    bgColor: '#F7F4F2'
   },
   {
     id: 'bar',
     name: '주점/술집',
     icon: 'wine',
+    image: CATEGORY_IMAGES.bar,
     desc: '호프집/이자카야',
-    color: '#9B6B9E',
-    bgColor: '#F3E5F5'
+    color: '#8C7565',
+    bgColor: '#F7F4F2'
   },
   {
     id: 'course',
     name: '코스요리',
     icon: 'award',
+    image: CATEGORY_IMAGES.course,
     desc: '오마카세/프렌치',
-    color: '#B8912E',
-    bgColor: '#F5F5F5'
+    color: '#8C7565',
+    bgColor: '#F7F4F2'
   },
   {
     id: 'party',
     name: '파티룸',
     icon: 'birthday-cake',
+    image: CATEGORY_IMAGES.party,
     desc: '생일파티/회식',
-    color: '#8B7355',
-    bgColor: '#FFF0F0'
+    color: '#8C7565',
+    bgColor: '#F7F4F2'
   },
 ];
 
