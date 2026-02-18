@@ -36,7 +36,6 @@ export const useRouterNavigation = () => {
           navigate(`/chat/${params?.meetupId}${title}`);
           break;
         default:
-          console.warn(`Unknown screen: ${screen}`);
       }
     },
     goBack: () => {

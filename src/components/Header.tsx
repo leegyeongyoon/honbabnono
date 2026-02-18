@@ -47,7 +47,7 @@ const Header: React.FC<HeaderProps> = ({
   const renderLeft = () => {
     if (mode === 'home') {
       return (
-        <Text style={styles.logoText} accessibilityRole="header">혼밥시러</Text>
+        <Text style={styles.logoText} accessibilityRole="header">잇테이블</Text>
       );
     }
     return (
@@ -58,7 +58,7 @@ const Header: React.FC<HeaderProps> = ({
         accessibilityLabel="뒤로 가기"
         accessibilityRole="button"
       >
-        <Icon name="arrow-left" size={24} color={COLORS.text.primary} />
+        <Icon name="arrow-left" size={22} color={COLORS.text.primary} />
       </TouchableOpacity>
     );
   };
@@ -75,7 +75,7 @@ const Header: React.FC<HeaderProps> = ({
             <Text style={styles.locationText} numberOfLines={1}>
               {locationText || '위치 선택'}
             </Text>
-            <Icon name="chevron-down" size={14} color={COLORS.text.primary} />
+            <Icon name="chevron-down" size={13} color={COLORS.text.secondary} />
           </TouchableOpacity>
         );
       }
@@ -100,7 +100,7 @@ const Header: React.FC<HeaderProps> = ({
             userId={userId}
             onPress={onNotificationPress || (() => {})}
             color={COLORS.text.primary}
-            size={24}
+            size={22}
           />
         )}
         {showSettings && (
@@ -109,7 +109,7 @@ const Header: React.FC<HeaderProps> = ({
             onPress={onSettingsPress}
             activeOpacity={0.7}
           >
-            <Icon name="settings" size={24} color={COLORS.text.primary} />
+            <Icon name="settings" size={22} color={COLORS.text.primary} />
           </TouchableOpacity>
         )}
       </View>
@@ -132,18 +132,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: LAYOUT.HEADER_PADDING_HORIZONTAL,
     paddingVertical: LAYOUT.HEADER_PADDING_VERTICAL,
-    backgroundColor: COLORS.neutral.background + 'F2',
-    ...SHADOWS.medium,
+    backgroundColor: COLORS.neutral.white,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.neutral.grey100,
     ...(Platform.OS === 'web' ? {
       // @ts-ignore - web-only property
-      backdropFilter: 'blur(10px)',
+      backdropFilter: 'blur(12px)',
       // @ts-ignore - web-only property
-      WebkitBackdropFilter: 'blur(10px)',
-      boxShadow: CSS_SHADOWS.medium,
-    } : {}),
+      WebkitBackdropFilter: 'blur(12px)',
+      boxShadow: CSS_SHADOWS.stickyHeader,
+    } : {
+      ...SHADOWS.sticky,
+    }),
   },
   leftContainer: {
-    minWidth: 60,
+    minWidth: 56,
     alignItems: 'flex-start',
   },
   centerContainer: {
@@ -153,40 +156,42 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.sm,
   },
   rightContainer: {
-    minWidth: 60,
+    minWidth: 56,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'flex-end',
-    gap: 4,
+    gap: 2,
   },
   logoText: {
-    ...TYPOGRAPHY.heading.h3,
+    fontSize: 17,
+    fontWeight: '700',
+    letterSpacing: -0.3,
     color: COLORS.primary.main,
   },
   titleText: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '600',
     color: COLORS.text.primary,
-    letterSpacing: -0.1,
+    letterSpacing: -0.2,
   },
   locationSelector: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 8,
+    gap: 3,
+    paddingHorizontal: 6,
     paddingVertical: 4,
   },
   locationText: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '500',
     color: COLORS.text.primary,
-    letterSpacing: -0.05,
+    letterSpacing: -0.1,
   },
   backButton: {
     padding: 4,
   },
   iconButton: {
-    padding: 8,
+    padding: 6,
   },
 });
 

@@ -467,7 +467,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: COLORS.neutral.white,
-    borderRadius: 16,
+    borderRadius: 10,
     padding: 16,
     borderWidth: CARD_STYLE.borderWidth,
     borderColor: CARD_STYLE.borderColor,

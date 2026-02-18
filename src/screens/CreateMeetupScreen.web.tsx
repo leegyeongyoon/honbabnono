@@ -1304,16 +1304,28 @@ const CreateMeetupScreen: React.FC<CreateMeetupScreenProps> = ({ user }) => {
         {/* 생성 버튼 */}
         <button
           style={{
-            backgroundColor: loading ? COLORS.neutral.grey400 : COLORS.functional.info,
-            color: COLORS.neutral.white,
+            background: loading ? COLORS.neutral.grey400 : COLORS.gradient.ctaCSS,
+            color: '#FFFFFF',
             fontSize: '18px',
             fontWeight: '700',
-            borderRadius: '16px',
+            borderRadius: '8px',
             padding: '20px',
             border: 'none',
             width: '100%',
             marginTop: '20px',
             cursor: loading ? 'not-allowed' : 'pointer',
+            boxShadow: loading ? 'none' : '0 4px 12px rgba(224,146,110,0.25)',
+            transition: 'all 200ms ease',
+          }}
+          onMouseEnter={(e) => {
+            if (!loading) {
+              e.currentTarget.style.transform = 'scale(1.01)';
+              e.currentTarget.style.boxShadow = '0 6px 20px rgba(224,146,110,0.35)';
+            }
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'scale(1)';
+            e.currentTarget.style.boxShadow = loading ? 'none' : '0 4px 12px rgba(224,146,110,0.25)';
           }}
           onClick={() => {
             handleCreateMeetup();
@@ -1360,15 +1372,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    borderBottomWidth: 0,
-    ...SHADOWS.medium,
-    shadowColor: 'rgba(0,0,0,0.05)',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 1,
-    shadowRadius: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.neutral.grey100,
+    ...SHADOWS.sticky,
+    zIndex: 10,
   },
   backButton: {
-    padding: 4,
+    padding: 10,
+    minWidth: 44,
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    cursor: 'pointer',
+    transition: 'all 200ms ease',
   },
   headerTitle: {
     fontSize: 20,
@@ -1383,13 +1399,13 @@ const styles = StyleSheet.create({
   },
   section: {
     backgroundColor: COLORS.neutral.white,
-    borderRadius: 20,
+    borderRadius: 10,
     padding: 20,
     marginBottom: 20,
     ...SHADOWS.medium,
-    shadowColor: 'rgba(0,0,0,0.05)',
+    shadowColor: '#111111',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 1,
+    shadowOpacity: 0.05,
     shadowRadius: 12,
   },
   sectionTitle: {
@@ -1433,7 +1449,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     backgroundColor: COLORS.neutral.white,
-    borderRadius: 20,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: COLORS.neutral.grey200,
   },
@@ -1451,12 +1467,12 @@ const styles = StyleSheet.create({
   },
   createButton: {
     backgroundColor: COLORS.functional.info,
-    borderRadius: 16,
+    borderRadius: 8,
     padding: 20,
     alignItems: 'center',
     marginTop: 20,
     ...SHADOWS.large,
-    shadowColor: 'rgba(102, 126, 234, 0.3)',
+    shadowColor: '#9A7450',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 1,
     shadowRadius: 16,
@@ -1482,7 +1498,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     backgroundColor: COLORS.neutral.white,
-    borderRadius: 16,
+    borderRadius: 8,
     borderWidth: 1,
     borderColor: COLORS.functional.info,
   },
@@ -1566,7 +1582,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#FFF3CD',
+    backgroundColor: COLORS.primary.light,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
@@ -1581,7 +1597,7 @@ const styles = StyleSheet.create({
   calendarContainer: {
     marginBottom: 20,
     backgroundColor: COLORS.neutral.white,
-    borderRadius: 16,
+    borderRadius: 8,
     overflow: 'hidden',
     shadowColor: COLORS.neutral.grey400,
     shadowOffset: { width: 0, height: 4 },
@@ -1593,7 +1609,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
     padding: 16,
     backgroundColor: COLORS.primary.light,
-    borderRadius: 16,
+    borderRadius: 8,
     borderWidth: 1,
     borderColor: COLORS.neutral.grey200,
   },
@@ -1783,7 +1799,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 8,
     right: 8,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    backgroundColor: 'rgba(17,17,17,0.6)',
     borderRadius: 15,
     width: 30,
     height: 30,
@@ -1793,11 +1809,11 @@ const styles = StyleSheet.create({
   removeImageText: {
     color: 'white',
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '700',
   },
   // 약속금 정책 안내 스타일 추가
   policyNote: {
-    backgroundColor: '#F0F8FF',
+    backgroundColor: COLORS.functional.infoLight,
     borderRadius: 8,
     padding: 16,
     marginTop: 16,
@@ -1806,7 +1822,7 @@ const styles = StyleSheet.create({
   },
   policyNoteText: {
     fontSize: 14,
-    color: '#2E5BBA',
+    color: COLORS.functional.info,
     lineHeight: 20,
     fontWeight: '500',
   },
@@ -1929,7 +1945,7 @@ const styles = StyleSheet.create({
     top: 20,
     left: '50%',
     transform: [{ translateX: -50 }],
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    backgroundColor: 'rgba(17,17,17,0.8)',
     borderRadius: 8,
     paddingHorizontal: 16,
     paddingVertical: 10,
@@ -1953,7 +1969,7 @@ const styles = StyleSheet.create({
     borderTopWidth: 6,
     borderLeftColor: 'transparent',
     borderRightColor: 'transparent',
-    borderTopColor: 'rgba(0, 0, 0, 0.8)',
+    borderTopColor: 'rgba(17,17,17,0.8)',
   },
   // 위치 확인 컨테이너
   locationConfirmContainer: {
@@ -2068,7 +2084,7 @@ const styles = StyleSheet.create({
     color: COLORS.text.primary,
   },
   searchButton: {
-    backgroundColor: COLORS.primary.main,
+    backgroundColor: COLORS.primary.dark,
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: 8,
@@ -2104,7 +2120,7 @@ const styles = StyleSheet.create({
   checkboxCheck: {
     color: COLORS.text.white,
     fontSize: 12,
-    fontWeight: 'bold',
+    fontWeight: '700',
   },
   checkboxLabel: {
     fontSize: 14,

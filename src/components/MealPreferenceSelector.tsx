@@ -191,7 +191,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: COLORS.text.primary,
     marginBottom: 16,
   },
@@ -237,7 +237,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: COLORS.neutral.grey100,
-    borderRadius: 20,
+    borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 8,
     marginBottom: 8,
@@ -287,7 +287,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: COLORS.secondary.light,
-    borderRadius: 16,
+    borderRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 4,
   },
@@ -299,7 +299,7 @@ const styles = StyleSheet.create({
   removeButton: {
     fontSize: 16,
     color: COLORS.text.secondary,
-    fontWeight: 'bold',
+    fontWeight: '700',
   },
   // 컴팩트 모드 스타일
   compactContainer: {

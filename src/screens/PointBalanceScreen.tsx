@@ -27,8 +27,6 @@ const PointBalanceScreen: React.FC = () => {
 
   const fetchPointData = async () => {
     try {
-      // console.log('💰 포인트 데이터 조회 시작');
-
       // 현재 포인트 잔액 가져오기
       const userStats = await userApiService.getUserStats();
       setCurrentPoints(userStats.availablePoints || 0);
@@ -40,14 +38,11 @@ const PointBalanceScreen: React.FC = () => {
 
       if (response.data.success && response.data.data) {
         setTransactions(response.data.data);
-        // console.log('✅ 포인트 내역 조회 성공:', response.data.data.length, '건');
       } else {
-        // console.error('❌ 포인트 내역 조회 실패:', response.data.message || 'Unknown error');
         // 에러시 빈 배열로 설정
         setTransactions([]);
       }
-    } catch (error) {
-      // console.error('❌ 포인트 데이터 조회 실패:', error);
+    } catch (_error) {
       // 에러시 빈 배열로 설정
       setTransactions([]);
     } finally {
@@ -161,8 +156,26 @@ const PointBalanceScreen: React.FC = () => {
 
   if (loading) {
     return (
-      <View style={[styles.container, styles.centerContent]}>
-        <Text style={styles.loadingText}>로딩 중...</Text>
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+            <Icon name="arrow-left" size={24} color={COLORS.text.primary} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>포인트</Text>
+          <View style={{ width: 44 }} />
+        </View>
+        <View style={{ padding: 20, gap: 16 }}>
+          <View style={{ height: 140, borderRadius: 8, backgroundColor: '#EFECEA' }} className="animate-shimmer" />
+          {[0, 1, 2, 3].map((i) => (
+            <View key={i} style={{ flexDirection: 'row', alignItems: 'center', padding: 16, backgroundColor: '#F7F5F3', borderRadius: 8, gap: 12 }}>
+              <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: '#EFECEA' }} />
+              <View style={{ flex: 1, gap: 8 }}>
+                <View style={{ width: '60%', height: 14, borderRadius: 7, backgroundColor: '#EFECEA' }} />
+                <View style={{ width: '40%', height: 10, borderRadius: 5, backgroundColor: '#EFECEA' }} />
+              </View>
+            </View>
+          ))}
+        </View>
       </View>
     );
   }
@@ -274,18 +287,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingTop: 20,
+    paddingBottom: 16,
     backgroundColor: COLORS.neutral.white,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.neutral.border,
+    ...SHADOWS.sticky,
+    zIndex: 10,
   },
   backButton: {
-    padding: 8,
+    padding: 10,
+    minWidth: 44,
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 20,
+    fontWeight: '700',
     color: COLORS.text.primary,
+    letterSpacing: -0.3,
   },
   placeholder: {
     width: 40,
@@ -300,7 +319,7 @@ const styles = StyleSheet.create({
   // 포인트 카드
   pointCard: {
     backgroundColor: COLORS.primary.main,
-    borderRadius: 16,
+    borderRadius: 8,
     padding: 24,
     marginTop: 20,
     alignItems: 'center',
@@ -313,9 +332,10 @@ const styles = StyleSheet.create({
   },
   pointAmount: {
     fontSize: 32,
-    fontWeight: 'bold',
+    fontWeight: '800',
     color: COLORS.neutral.white,
     marginBottom: 20,
+    letterSpacing: -0.5,
   },
   actionButtons: {
     flexDirection: 'row',
@@ -340,7 +360,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: '700',
     color: COLORS.text.primary,
     marginBottom: 16,
   },
@@ -348,8 +368,10 @@ const styles = StyleSheet.create({
   // 거래 내역
   transactionCard: {
     backgroundColor: COLORS.neutral.white,
-    borderRadius: 16,
+    borderRadius: 8,
     marginBottom: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(15,14,12,0.06)',
     ...SHADOWS.small,
   },
   transactionMain: {
@@ -402,7 +424,7 @@ const styles = StyleSheet.create({
   // 빈 상태
   emptyState: {
     backgroundColor: COLORS.neutral.white,
-    borderRadius: 16,
+    borderRadius: 8,
     padding: 40,
     alignItems: 'center',
     ...SHADOWS.small,

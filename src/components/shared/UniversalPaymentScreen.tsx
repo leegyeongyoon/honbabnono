@@ -17,18 +17,18 @@ interface PaymentMethod {
   available: boolean;
 }
 
-const UniversalPaymentScreen: React.FC<{navigation: NavigationAdapter, user?: any, route?: any}> = ({ 
-  navigation, user, route 
+const UniversalPaymentScreen: React.FC<{navigation: NavigationAdapter, user?: any, route?: any}> = ({
+  navigation, user, route
 }) => {
   const { amount, description, meetupId, type = 'general' } = route?.params || {};
-  
+
   const [paymentMethods] = useState<PaymentMethod[]>([
     { id: 'points', type: 'points', name: '포인트 결제', icon: 'coins', available: true },
     { id: 'card', type: 'card', name: '신용/체크카드', icon: 'credit-card', available: true },
     { id: 'kakao', type: 'kakao', name: '카카오페이', icon: 'message-circle', available: true },
     { id: 'bank', type: 'bank', name: '계좌이체', icon: 'dollar-sign', available: true },
   ]);
-  
+
   const [selectedMethod, setSelectedMethod] = useState<string>('points');
   const [userPoints, setUserPoints] = useState(0);
   const [processing, setProcessing] = useState(false);
@@ -47,8 +47,7 @@ const UniversalPaymentScreen: React.FC<{navigation: NavigationAdapter, user?: an
       });
       const data = await response.json();
       setUserPoints(data.points || 0);
-    } catch (error) {
-      console.error('포인트 조회 실패:', error);
+    } catch (_error) {
     }
   };
 
@@ -86,8 +85,7 @@ const UniversalPaymentScreen: React.FC<{navigation: NavigationAdapter, user?: an
       } else {
         Alert.alert('결제 실패', data.message || '결제에 실패했습니다.');
       }
-    } catch (error) {
-      console.error('결제 처리 실패:', error);
+    } catch (_error) {
       Alert.alert('오류', '결제 처리 중 오류가 발생했습니다.');
     } finally {
       setProcessing(false);
@@ -108,7 +106,7 @@ const UniversalPaymentScreen: React.FC<{navigation: NavigationAdapter, user?: an
       >
         <View style={styles.methodLeft}>
           <View style={[styles.methodIcon, !method.available && styles.disabledIcon]}>
-            <Icon name={method.icon} size={24} color={method.available ? COLORS.primary.main : COLORS.text.tertiary} />
+            <Icon name={method.icon} size={22} color={method.available ? COLORS.primary.accent : COLORS.text.tertiary} />
           </View>
           <View style={styles.methodInfo}>
             <Text style={[styles.methodName, !method.available && styles.disabledText]}>
@@ -121,10 +119,10 @@ const UniversalPaymentScreen: React.FC<{navigation: NavigationAdapter, user?: an
             )}
           </View>
         </View>
-        <Icon 
-          name={isSelected ? 'check-circle' : 'circle'} 
-          size={24} 
-          color={isSelected ? COLORS.primary.main : COLORS.text.tertiary} 
+        <Icon
+          name={isSelected ? 'check-circle' : 'circle'}
+          size={22}
+          color={isSelected ? COLORS.primary.accent : COLORS.neutral.grey300}
         />
       </TouchableOpacity>
     );
@@ -134,12 +132,13 @@ const UniversalPaymentScreen: React.FC<{navigation: NavigationAdapter, user?: an
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <View style={{ width: 24 }} />
+          <View style={styles.placeholder} />
           <Text style={styles.headerTitle}>결제</Text>
-          <View style={{ width: 24 }} />
+          <View style={styles.placeholder} />
         </View>
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-          <Text>결제 정보가 없습니다.</Text>
+        <View style={styles.emptyContainer}>
+          <Icon name="alert-circle" size={48} color={COLORS.text.tertiary} />
+          <Text style={styles.emptyText}>결제 정보가 없습니다.</Text>
         </View>
       </View>
     );
@@ -148,9 +147,9 @@ const UniversalPaymentScreen: React.FC<{navigation: NavigationAdapter, user?: an
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <View style={{ width: 24 }} />
+        <View style={styles.placeholder} />
         <Text style={styles.headerTitle}>결제</Text>
-        <View style={{ width: 24 }} />
+        <View style={styles.placeholder} />
       </View>
 
       <ScrollView style={styles.content}>
@@ -188,42 +187,155 @@ const UniversalPaymentScreen: React.FC<{navigation: NavigationAdapter, user?: an
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.neutral.background },
+  container: {
+    flex: 1,
+    backgroundColor: COLORS.neutral.background,
+  },
   header: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingHorizontal: 20, paddingTop: 20, paddingBottom: 16,
-    backgroundColor: COLORS.neutral.white, ...SHADOWS.small,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 16,
+    backgroundColor: COLORS.neutral.white,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(17,17,17,0.06)',
+    ...SHADOWS.sticky,
   },
-  headerTitle: { fontSize: 20, fontWeight: '700', color: COLORS.text.primary },
-  content: { flex: 1 },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: COLORS.text.primary,
+    letterSpacing: -0.3,
+  },
+  placeholder: {
+    width: 24,
+  },
+  content: {
+    flex: 1,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  emptyText: {
+    fontSize: 15,
+    color: COLORS.text.secondary,
+    marginTop: 12,
+  },
   amountCard: {
-    backgroundColor: COLORS.primary.main, margin: 16, padding: 24, borderRadius: 16, alignItems: 'center',
+    backgroundColor: COLORS.primary.main,
+    margin: 16,
+    padding: 24,
+    borderRadius: 8,
+    alignItems: 'center',
+    ...SHADOWS.medium,
   },
-  amountLabel: { fontSize: 14, color: COLORS.neutral.white, opacity: 0.8 },
-  amountValue: { fontSize: 32, fontWeight: '700', color: COLORS.neutral.white, marginVertical: 8 },
-  description: { fontSize: 14, color: COLORS.neutral.white, opacity: 0.9, textAlign: 'center' },
-  section: { margin: 16 },
-  sectionTitle: { fontSize: 18, fontWeight: '600', color: COLORS.text.primary, marginBottom: 12 },
-  paymentMethods: { backgroundColor: COLORS.neutral.white, borderRadius: 12, ...SHADOWS.small },
+  amountLabel: {
+    fontSize: 13,
+    color: COLORS.neutral.white,
+    opacity: 0.7,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
+  amountValue: {
+    fontSize: 34,
+    fontWeight: '700',
+    color: COLORS.neutral.white,
+    marginVertical: 8,
+    letterSpacing: -0.5,
+  },
+  description: {
+    fontSize: 14,
+    color: COLORS.neutral.white,
+    opacity: 0.8,
+    textAlign: 'center',
+  },
+  section: {
+    margin: 16,
+  },
+  sectionTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+    marginBottom: 10,
+    letterSpacing: -0.1,
+  },
+  paymentMethods: {
+    backgroundColor: COLORS.neutral.white,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(17,17,17,0.06)',
+    ...SHADOWS.small,
+  },
   paymentMethod: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    padding: 16, borderBottomWidth: 1, borderBottomColor: COLORS.neutral.grey200,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(17,17,17,0.06)',
   },
-  selectedMethod: { backgroundColor: COLORS.primary.main + '10' },
-  methodLeft: { flexDirection: 'row', alignItems: 'center', flex: 1 },
-  methodIcon: { marginRight: 12 },
-  disabledIcon: { opacity: 0.5 },
-  methodInfo: { flex: 1 },
-  methodName: { fontSize: 16, fontWeight: '600', color: COLORS.text.primary },
-  methodDetail: { fontSize: 12, color: COLORS.text.secondary, marginTop: 2 },
-  errorText: { color: COLORS.functional.error },
-  disabledText: { color: COLORS.text.tertiary },
-  footer: { padding: 16, backgroundColor: COLORS.neutral.white, ...SHADOWS.small },
+  selectedMethod: {
+    backgroundColor: COLORS.primary.accent + '06',
+  },
+  methodLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  methodIcon: {
+    marginRight: 12,
+  },
+  disabledIcon: {
+    opacity: 0.4,
+  },
+  methodInfo: {
+    flex: 1,
+  },
+  methodName: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+    letterSpacing: -0.1,
+  },
+  methodDetail: {
+    fontSize: 12,
+    color: COLORS.text.tertiary,
+    marginTop: 2,
+  },
+  errorText: {
+    color: COLORS.functional.error,
+  },
+  disabledText: {
+    color: COLORS.text.tertiary,
+  },
+  footer: {
+    padding: 16,
+    backgroundColor: COLORS.neutral.white,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(17,17,17,0.06)',
+    ...SHADOWS.sticky,
+  },
   payButton: {
-    backgroundColor: COLORS.primary.main, paddingVertical: 16, borderRadius: 12, alignItems: 'center',
+    backgroundColor: COLORS.primary.accent,
+    paddingVertical: 16,
+    borderRadius: 6,
+    alignItems: 'center',
+    ...SHADOWS.cta,
   },
-  disabledButton: { backgroundColor: COLORS.neutral.grey300 },
-  payButtonText: { fontSize: 16, fontWeight: '600', color: COLORS.neutral.white },
+  disabledButton: {
+    backgroundColor: COLORS.neutral.grey300,
+    shadowOpacity: 0,
+  },
+  payButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: COLORS.neutral.white,
+    letterSpacing: -0.2,
+  },
 });
 
 export default UniversalPaymentScreen;

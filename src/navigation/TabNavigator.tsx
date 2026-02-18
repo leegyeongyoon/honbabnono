@@ -39,24 +39,26 @@ const TabNavigator = () => {
         tabBarInactiveTintColor: COLORS.neutral.grey400,
         tabBarLabelStyle: {
           fontSize: TYPOGRAPHY.tab.fontSize,
-          fontWeight: TYPOGRAPHY.tab.fontWeight,
+          fontWeight: '700' as const,
         },
         tabBarStyle: {
           backgroundColor: COLORS.neutral.white,
           borderTopWidth: 1,
-          borderTopColor: COLORS.primary.accent,
+          borderTopColor: 'rgba(224,146,110,0.06)',
           height: SPACING.bottomNav.height,
           paddingBottom: 6,
           paddingTop: SPACING.tab.paddingVertical,
+          ...SHADOWS.sticky,
         },
         headerStyle: {
           backgroundColor: COLORS.primary.light,
-          ...SHADOWS.medium,
+          ...SHADOWS.sticky,
         },
         headerTitleStyle: {
           fontSize: 18,
-          fontWeight: '600',
+          fontWeight: '700',
           color: COLORS.text.primary,
+          letterSpacing: -0.3,
         },
         headerTintColor: COLORS.text.primary,
       }}>

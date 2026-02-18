@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Modal as RNModal, Platform } from 'react-native';
-import { COLORS, SHADOWS } from '../../styles/colors';
+import { COLORS, SHADOWS, CARD_STYLE, BORDER_RADIUS, SPACING, TYPOGRAPHY } from '../../styles';
 import { useUserStore } from '../../store/userStore';
 import { useMeetupStore } from '../../store/meetupStore';
 import apiClient from '../../services/apiClient';
@@ -35,9 +35,9 @@ const getCategoryColor = (categoryName: string) => {
   return category ? category.color : COLORS.primary.main;
 };
 
-const FilterAccordion: React.FC<{ 
-  diningPreferences?: any; 
-  promiseDepositRequired?: boolean; 
+const FilterAccordion: React.FC<{
+  diningPreferences?: any;
+  promiseDepositRequired?: boolean;
   promiseDepositAmount?: number;
 }> = ({ diningPreferences, promiseDepositRequired, promiseDepositAmount }) => {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -59,18 +59,18 @@ const FilterAccordion: React.FC<{
 
   return (
     <View style={styles.accordionContainer}>
-      <TouchableOpacity 
+      <TouchableOpacity
         style={styles.accordionHeader}
         onPress={() => setIsExpanded(!isExpanded)}
       >
         <Text style={styles.accordionTitle}>선택 성향 필터</Text>
-        <Icon 
-          name={isExpanded ? "chevron-up" : "chevron-down"} 
-          size={20} 
-          color={COLORS.text.secondary} 
+        <Icon
+          name={isExpanded ? "chevron-up" : "chevron-down"}
+          size={18}
+          color={COLORS.text.tertiary}
         />
       </TouchableOpacity>
-      
+
       {isExpanded && (
         <View style={styles.accordionContent}>
           {hasDepositInfo && (
@@ -150,7 +150,7 @@ const FilterAccordion: React.FC<{
   );
 };
 
-const UniversalMeetupDetailScreen: React.FC<UniversalMeetupDetailScreenProps> = ({ 
+const UniversalMeetupDetailScreen: React.FC<UniversalMeetupDetailScreenProps> = ({
   navigation,
   meetupId,
   ModalComponent = RNModal,
@@ -164,7 +164,7 @@ const UniversalMeetupDetailScreen: React.FC<UniversalMeetupDetailScreenProps> = 
   const leaveMeetup = useMeetupStore(state => state.leaveMeetup);
   const fetchMeetupById = useMeetupStore(state => state.fetchMeetupById);
   const setCurrentMeetup = useMeetupStore(state => state.setCurrentMeetup);
-  
+
   const [showPromiseModal, setShowPromiseModal] = useState(false);
   const [showLeaveModal, setShowLeaveModal] = useState(false);
   const [showDepositSelector, setShowDepositSelector] = useState(false);
@@ -179,12 +179,12 @@ const UniversalMeetupDetailScreen: React.FC<UniversalMeetupDetailScreenProps> = 
     if (meetupId) {
       setCurrentMeetup(null);
       fetchMeetupById(meetupId);
-      
+
       const recordRecentView = async () => {
         try {
           await apiClient.post('/meetups/' + meetupId + '/view');
-        } catch (error) {
-          console.error('❌ 최근 본 글 기록 실패:', error);
+        } catch (_error) {
+          // silent: non-critical view tracking
         }
       };
 
@@ -201,11 +201,11 @@ const UniversalMeetupDetailScreen: React.FC<UniversalMeetupDetailScreenProps> = 
         if (response.data && response.data.success) {
           setUserRiceIndex(response.data.riceIndex);
         }
-      } catch (error) {
-        console.error('밥알지수 로드 실패:', error);
+      } catch (_error) {
+        // silent: non-critical rice index
       }
     };
-    
+
     if (user) {
       loadUserRiceIndex();
     }
@@ -219,8 +219,8 @@ const UniversalMeetupDetailScreen: React.FC<UniversalMeetupDetailScreenProps> = 
           if (response.data && response.data.success) {
             setIsWishlisted(response.data.data.isWishlisted);
           }
-        } catch (error) {
-          console.error('찜 상태 확인 실패:', error);
+        } catch (_error) {
+          // silent: non-critical wishlist check
         }
       }
     };
@@ -244,8 +244,8 @@ const UniversalMeetupDetailScreen: React.FC<UniversalMeetupDetailScreenProps> = 
           setIsWishlisted(true);
         }
       }
-    } catch (error) {
-      console.error('찜 토글 실패:', error);
+    } catch (_error) {
+      // silent: wishlist toggle failed
     } finally {
       setWishlistLoading(false);
     }
@@ -254,7 +254,19 @@ const UniversalMeetupDetailScreen: React.FC<UniversalMeetupDetailScreenProps> = 
   if (loading || !currentMeetup) {
     return (
       <View style={styles.loadingContainer}>
-        <Text style={styles.loadingText}>로딩 중...</Text>
+        <View style={styles.skeletonHeader}>
+          <View style={styles.skeletonCircle} />
+          <View style={{ flex: 1, gap: 8 }}>
+            <View style={[styles.skeletonLine, { width: '40%' }]} />
+            <View style={[styles.skeletonLine, { width: '60%', height: 10 }]} />
+          </View>
+        </View>
+        <View style={styles.skeletonCard}>
+          <View style={[styles.skeletonLine, { width: '80%', height: 20, marginBottom: 16 }]} />
+          <View style={[styles.skeletonLine, { width: '100%' }]} />
+          <View style={[styles.skeletonLine, { width: '70%' }]} />
+          <View style={[styles.skeletonLine, { width: '90%' }]} />
+        </View>
       </View>
     );
   }
@@ -262,17 +274,17 @@ const UniversalMeetupDetailScreen: React.FC<UniversalMeetupDetailScreenProps> = 
   const meetup = currentMeetup;
   const participants = meetup.participants || [];
   const isHost = meetup.hostId === user?.id;
-  
-  const isPastMeetup = meetup.status === '완료' || meetup.status === '종료' || 
+
+  const isPastMeetup = meetup.status === '완료' || meetup.status === '종료' ||
                       meetup.status === '취소' || meetup.status === '파토';
-  
+
   const now = new Date();
   const meetupDateTime = new Date(meetup.date + ' ' + meetup.time);
   const isTimeExpired = now > meetupDateTime;
 
   const handleJoinMeetup = async () => {
     if (!user || !meetupId) {return;}
-    
+
     try {
       if (participants.some(p => p.id === user.id)) {
         setShowLeaveModal(true);
@@ -283,25 +295,25 @@ const UniversalMeetupDetailScreen: React.FC<UniversalMeetupDetailScreenProps> = 
           setShowPromiseModal(true);
         }
       }
-    } catch (error) {
-      console.error('모임 참여/탈퇴 실패:', error);
+    } catch (_error) {
+      // silent: join/leave error handled by UI
     }
   };
 
   const handleConfirmLeave = async () => {
     if (!user || !meetupId) {return;}
-    
+
     try {
       const result = await leaveMeetup(meetupId, user.id);
       setShowLeaveModal(false);
-      
+
       if (result?.isHostCancellation) {
         Alert.alert('알림', '모임이 취소되었습니다. 모든 참가자가 자동으로 나가게 됩니다.', [
           { text: '확인', onPress: () => navigation.navigate('Home') }
         ]);
       }
-    } catch (error) {
-      console.error('모임 탈퇴 실패:', error);
+    } catch (_error) {
+      Alert.alert('오류', '모임 탈퇴에 실패했습니다.');
       setShowLeaveModal(false);
     }
   };
@@ -315,24 +327,21 @@ const UniversalMeetupDetailScreen: React.FC<UniversalMeetupDetailScreenProps> = 
         return userPoints >= requiredPoints;
       }
       return false;
-    } catch (error) {
-      console.error('포인트 조회 실패:', error);
+    } catch (_error) {
       return false;
     }
   };
 
   const handleDepositPaid = async (depositId: string, amount: number) => {
     if (!user || !meetupId) {
-      console.error('❌ handleDepositPaid: user 또는 id가 없음:', { user: !!user, meetupId });
       return;
     }
-    
+
     try {
       await joinMeetup(meetupId, user.id);
-      
+
       Alert.alert('성공', '약속금 ' + amount.toLocaleString() + '원이 결제되었습니다! 모임에 참여되었습니다.');
-    } catch (error) {
-      console.error('모임 참여 실패:', error);
+    } catch (_error) {
       Alert.alert('오류', '모임 참여에 실패했습니다. 다시 시도해주세요.');
     }
   };
@@ -341,14 +350,14 @@ const UniversalMeetupDetailScreen: React.FC<UniversalMeetupDetailScreenProps> = 
     if (!user || !meetupId) {return;}
 
     try {
-      const apiUrl = Platform.OS === 'web' 
+      const apiUrl = Platform.OS === 'web'
         ? process.env.REACT_APP_API_URL || 'http://localhost:3001/api'
         : 'http://localhost:3001/api';
-      
+
       const response = await fetch(apiUrl + '/chat/rooms/by-meetup/' + meetupId, {
         method: 'GET',
         headers: {
-          'Authorization': 'Bearer ' + (Platform.OS === 'web' 
+          'Authorization': 'Bearer ' + (Platform.OS === 'web'
             ? localStorage.getItem('token')
             : ''), // Native에서는 다른 방식으로 토큰 관리 필요
           'Content-Type': 'application/json',
@@ -361,11 +370,9 @@ const UniversalMeetupDetailScreen: React.FC<UniversalMeetupDetailScreenProps> = 
         const chatRoomId = data.data.chatRoomId;
         navigation.navigate('Chat', { chatRoomId });
       } else {
-        console.error('❌ 채팅방 조회 실패:', data.error);
         Alert.alert('오류', '채팅방을 찾을 수 없습니다. 모임에 참여해주세요.');
       }
-    } catch (error) {
-      console.error('❌ 채팅방 이동 오류:', error);
+    } catch (_error) {
       Alert.alert('오류', '채팅방 이동 중 오류가 발생했습니다.');
     }
   };
@@ -388,8 +395,7 @@ const UniversalMeetupDetailScreen: React.FC<UniversalMeetupDetailScreenProps> = 
       } else {
         Alert.alert('오류', response.data.error || '처리 중 오류가 발생했습니다.');
       }
-    } catch (error) {
-      console.error('모임 확정/취소 실패:', error);
+    } catch (_error) {
       Alert.alert('오류', '처리 중 오류가 발생했습니다.');
     }
   };
@@ -423,10 +429,10 @@ const UniversalMeetupDetailScreen: React.FC<UniversalMeetupDetailScreenProps> = 
 
   const handleConfirmJoin = async () => {
     if (!user || !meetupId) {return;}
-    
+
     try {
       const hasEnoughPoints = await checkUserPoints();
-      
+
       if (!hasEnoughPoints) {
         const requiredPoints = meetup.deposit || 3000;
         Alert.alert(
@@ -434,8 +440,8 @@ const UniversalMeetupDetailScreen: React.FC<UniversalMeetupDetailScreenProps> = 
           '포인트가 부족합니다.\n필요한 포인트: ' + requiredPoints.toLocaleString() + '원\n충전 페이지로 이동하시겠습니까?',
           [
             { text: '취소', onPress: () => setShowPromiseModal(false) },
-            { 
-              text: '충전하기', 
+            {
+              text: '충전하기',
               onPress: () => {
                 setShowPromiseModal(false);
                 navigation.navigate('DepositPayment', { meetupId });
@@ -459,10 +465,9 @@ const UniversalMeetupDetailScreen: React.FC<UniversalMeetupDetailScreenProps> = 
 
       await joinMeetup(meetupId, user.id);
       setShowPromiseModal(false);
-      
+
       Alert.alert('성공', '모임 참여가 완료되었습니다!\n사용된 포인트: ' + (meetup.deposit || 3000).toLocaleString() + '원');
-    } catch (error) {
-      console.error('모임 참여 실패:', error);
+    } catch (_error) {
       Alert.alert('오류', '모임 참여 중 오류가 발생했습니다.');
       setShowPromiseModal(false);
     }
@@ -473,16 +478,16 @@ const UniversalMeetupDetailScreen: React.FC<UniversalMeetupDetailScreenProps> = 
       <View style={styles.header}>
         <View style={styles.headerPlaceholder} />
         <View style={styles.headerIcons}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.iconButton}
             onPress={toggleWishlist}
             disabled={wishlistLoading}
           >
             {Platform.OS === 'web' ? (
-              <Heart 
-                size={22} 
-                color={isWishlisted ? '#E74C3C' : COLORS.text.secondary} 
-                fill={isWishlisted ? '#E74C3C' : 'transparent'}
+              <Heart
+                size={20}
+                color={isWishlisted ? COLORS.functional.error : COLORS.text.tertiary}
+                fill={isWishlisted ? COLORS.functional.error : 'transparent'}
               />
             ) : (
               <Text style={{ fontSize: 20 }}>{isWishlisted ? '❤️' : '🤍'}</Text>
@@ -497,7 +502,7 @@ const UniversalMeetupDetailScreen: React.FC<UniversalMeetupDetailScreenProps> = 
             <ProfileImage
               profileImage={meetup.host?.profileImage}
               name={meetup.host?.name || meetup.hostName}
-              size={60}
+              size={52}
               style={styles.avatar}
             />
             <View>
@@ -512,36 +517,36 @@ const UniversalMeetupDetailScreen: React.FC<UniversalMeetupDetailScreenProps> = 
 
         <View style={styles.mainCard}>
           <Text style={styles.meetupTitle}>{meetup.title || '급한 때실 시밥'}</Text>
-          
+
           <View style={styles.filterBadgeContainer}>
             <Text style={styles.filterBadgeTitle}>필수 성향</Text>
             <View style={styles.filterBadges}>
               {meetup.category && (
-                <View style={[styles.filterBadge, { backgroundColor: getCategoryColor(meetup.category) + '20' }]}>
+                <View style={[styles.filterBadge, { backgroundColor: getCategoryColor(meetup.category) + '15' }]}>
                   <Text style={styles.categoryEmoji}>{getCategoryEmoji(meetup.category)}</Text>
                   <Text style={[styles.filterBadgeText, { color: getCategoryColor(meetup.category) }]}>
                     {meetup.category}
                   </Text>
                 </View>
               )}
-              
+
               {meetup.priceRange && (
                 <View style={styles.priceBadge}>
-                  <Icon name="dollar-sign" size={14} color={COLORS.functional.success} />
+                  <Icon name="dollar-sign" size={13} color={COLORS.functional.success} />
                   <Text style={styles.priceBadgeText}>{meetup.priceRange}</Text>
                 </View>
               )}
-              
+
               {meetup.ageRange && (
                 <View style={styles.ageBadge}>
-                  <Icon name="user" size={14} color={COLORS.text.secondary} />
+                  <Icon name="user" size={13} color={COLORS.text.secondary} />
                   <Text style={styles.ageBadgeText}>{meetup.ageRange}</Text>
                 </View>
               )}
-              
+
               {meetup.genderPreference && (
                 <View style={styles.genderBadge}>
-                  <Icon name="users" size={14} color={COLORS.primary.main} />
+                  <Icon name="users" size={13} color={COLORS.primary.main} />
                   <Text style={styles.genderBadgeText}>{meetup.genderPreference}</Text>
                 </View>
               )}
@@ -552,22 +557,22 @@ const UniversalMeetupDetailScreen: React.FC<UniversalMeetupDetailScreenProps> = 
             <Text style={styles.filterBadgeTitle}>선택 성향</Text>
             <View style={styles.filterBadges}>
               <View style={styles.optionalBadge}>
-                <Icon name="smile" size={14} color={COLORS.primary.main} />
+                <Icon name="smile" size={13} color={COLORS.text.secondary} />
                 <Text style={styles.optionalBadgeText}>분위기 좋은 곳</Text>
               </View>
-              
+
               <View style={styles.optionalBadge}>
-                <Icon name="map" size={14} color={COLORS.functional.warning} />
+                <Icon name="map" size={13} color={COLORS.text.secondary} />
                 <Text style={styles.optionalBadgeText}>역 근처</Text>
               </View>
-              
+
               <View style={styles.optionalBadge}>
-                <Icon name="clock" size={14} color={COLORS.text.secondary} />
+                <Icon name="clock" size={13} color={COLORS.text.secondary} />
                 <Text style={styles.optionalBadgeText}>1-2시간</Text>
               </View>
-              
+
               <View style={styles.optionalBadge}>
-                <Icon name="coffee" size={14} color="#8B4513" />
+                <Icon name="coffee" size={13} color={COLORS.text.secondary} />
                 <Text style={styles.optionalBadgeText}>무알코올</Text>
               </View>
             </View>
@@ -575,17 +580,17 @@ const UniversalMeetupDetailScreen: React.FC<UniversalMeetupDetailScreenProps> = 
 
           <View style={styles.infoGrid}>
             <View style={styles.infoRow}>
-              <Icon name="map-pin" size={16} color={COLORS.text.secondary} />
+              <Icon name="map-pin" size={15} color={COLORS.text.tertiary} />
               <Text style={styles.infoLabel}>{meetup.location}</Text>
             </View>
-            
+
             <View style={styles.infoRow}>
-              <Icon name="clock" size={16} color={COLORS.text.secondary} />
+              <Icon name="clock" size={15} color={COLORS.text.tertiary} />
               <Text style={styles.infoLabel}>{meetup.date} {meetup.time}</Text>
             </View>
-            
+
             <View style={styles.infoRow}>
-              <Icon name="users" size={16} color={COLORS.text.secondary} />
+              <Icon name="users" size={15} color={COLORS.text.tertiary} />
               <Text style={styles.infoLabel}>{meetup.currentParticipants}/{meetup.maxParticipants}명</Text>
             </View>
           </View>
@@ -621,8 +626,8 @@ const UniversalMeetupDetailScreen: React.FC<UniversalMeetupDetailScreenProps> = 
         )}
 
         {KakaoMapComponent && (
-          <KakaoMapComponent 
-            location={meetup.location} 
+          <KakaoMapComponent
+            location={meetup.location}
             address={meetup.address || meetup.location}
             latitude={meetup.latitude}
             longitude={meetup.longitude}
@@ -631,13 +636,13 @@ const UniversalMeetupDetailScreen: React.FC<UniversalMeetupDetailScreenProps> = 
 
         <View style={styles.participantSection}>
           <Text style={styles.participantTitle}>참여자 ({participants.filter(p => p.id !== meetup.hostId).length + 1}명)</Text>
-          
+
           <View style={styles.participantItem}>
             <View style={styles.hostAvatar}>
               <ProfileImage
                 profileImage={meetup.host?.profileImage}
                 name={meetup.host?.name || meetup.hostName}
-                size={48}
+                size={44}
               />
             </View>
             <View style={styles.participantInfo}>
@@ -652,20 +657,20 @@ const UniversalMeetupDetailScreen: React.FC<UniversalMeetupDetailScreenProps> = 
                 <ProfileImage
                   profileImage={participant.profileImage}
                   name={participant.name}
-                  size={48}
+                  size={44}
                 />
               </View>
               <View style={styles.participantInfo}>
                 <Text style={styles.participantName}>{participant.name}</Text>
                 <Text style={styles.participantRole}>
-                  {participant.status === 'approved' ? '참가승인' : 
-                   participant.status === 'pending' ? '참가신청' : 
+                  {participant.status === 'approved' ? '참가승인' :
+                   participant.status === 'pending' ? '참가신청' :
                    participant.status === 'rejected' ? '참가거절' : '참가취소'}
                 </Text>
               </View>
             </View>
           ))}
-          
+
           {participants.filter(p => p.id !== meetup.hostId).length === 0 && (
             <Text style={styles.noParticipants}>아직 참여자가 없습니다.</Text>
           )}
@@ -681,7 +686,7 @@ const UniversalMeetupDetailScreen: React.FC<UniversalMeetupDetailScreenProps> = 
               onPress={() => navigation.navigate('WriteReview', { meetupId, meetupTitle: meetup.title })}
               style={styles.reviewButton}
             >
-              <Icon name="star" size={20} color={COLORS.neutral.white} />
+              <Icon name="star" size={18} color={COLORS.neutral.white} />
               <Text style={styles.reviewButtonText}>리뷰 작성하기</Text>
             </TouchableOpacity>
           </View>
@@ -689,10 +694,10 @@ const UniversalMeetupDetailScreen: React.FC<UniversalMeetupDetailScreenProps> = 
           <View style={styles.pastMeetupContainer}>
             <Text style={styles.pastMeetupText}>
               {meetup.status === '완료' ?
-                '✅ 완료된 모임이에요' :
+                '완료된 모임이에요' :
                 meetup.status === '취소' ?
-                '❌ 취소된 모임이에요' :
-                '💥 파토된 모임이에요'
+                '취소된 모임이에요' :
+                '파토된 모임이에요'
               }
             </Text>
           </View>
@@ -704,9 +709,9 @@ const UniversalMeetupDetailScreen: React.FC<UniversalMeetupDetailScreenProps> = 
                   onPress={() => handleGoToChat()}
                   style={styles.chatButton}
                 >
-                  <Text style={styles.chatButtonText}>💬 채팅방</Text>
+                  <Text style={styles.chatButtonText}>채팅방</Text>
                 </TouchableOpacity>
-                
+
                 {isHost && (
                   <TouchableOpacity
                     onPress={() => {
@@ -731,7 +736,7 @@ const UniversalMeetupDetailScreen: React.FC<UniversalMeetupDetailScreenProps> = 
                     </Text>
                   </TouchableOpacity>
                 )}
-                
+
                 {!isHost && (
                   <TouchableOpacity
                     onPress={() => setShowLeaveModal(true)}
@@ -775,7 +780,7 @@ const UniversalMeetupDetailScreen: React.FC<UniversalMeetupDetailScreenProps> = 
               >
                 <Text style={styles.modalCancelText}>취소</Text>
               </TouchableOpacity>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.modalPayButton}
                 onPress={handleConfirmJoin}
               >
@@ -798,7 +803,7 @@ const UniversalMeetupDetailScreen: React.FC<UniversalMeetupDetailScreenProps> = 
               {isHost ? '모임을 취소하시겠어요?' : '모임에서 나가시겠어요?'}
             </Text>
             <Text style={styles.modalDescription}>
-              {isHost ? 
+              {isHost ?
                 '모임을 취소하면 모든 참가자가 나가게 되고,\n채팅방도 삭제됩니다. 취소하시겠어요?' :
                 '모임을 나가면 채팅방에서도 나가게 되며,\n다시 참여하려면 새로 신청해야 해요.'
               }
@@ -810,7 +815,7 @@ const UniversalMeetupDetailScreen: React.FC<UniversalMeetupDetailScreenProps> = 
               >
                 <Text style={styles.modalCancelText}>취소</Text>
               </TouchableOpacity>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={[styles.modalLeaveButton, isHost && styles.modalHostCancelButton]}
                 onPress={handleConfirmLeave}
               >
@@ -835,7 +840,7 @@ const UniversalMeetupDetailScreen: React.FC<UniversalMeetupDetailScreenProps> = 
               {meetup.status === 'confirmed' ? '모임을 취소하시겠어요?' : '모임을 확정하시겠어요?'}
             </Text>
             <Text style={styles.modalDescription}>
-              {meetup.status === 'confirmed' ? 
+              {meetup.status === 'confirmed' ?
                 '확정된 모임을 취소하면 취소 시점에 따라\n참가자들에게 부분 환불됩니다.' :
                 '현재 ' + participants.length + '명이 참여중입니다.\n모임을 확정하면 취소 시 패널티가 적용됩니다.'
               }
@@ -847,7 +852,7 @@ const UniversalMeetupDetailScreen: React.FC<UniversalMeetupDetailScreenProps> = 
               >
                 <Text style={styles.modalCancelText}>취소</Text>
               </TouchableOpacity>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={[styles.modalConfirmButton]}
                 onPress={handleMeetupAction}
               >
@@ -875,46 +880,87 @@ const UniversalMeetupDetailScreen: React.FC<UniversalMeetupDetailScreenProps> = 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.neutral.white,
+    backgroundColor: COLORS.neutral.background,
   },
   scrollView: {
     flex: 1,
   },
   loadingContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: COLORS.neutral.white,
+    backgroundColor: COLORS.neutral.background,
+    padding: SPACING.xl,
+    paddingTop: 60,
   },
-  loadingText: {
-    fontSize: 16,
-    color: COLORS.text.secondary,
+  skeletonHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: SPACING.xl,
+    borderRadius: BORDER_RADIUS.lg,
+    backgroundColor: COLORS.neutral.white,
+    borderWidth: 1,
+    borderColor: CARD_STYLE.borderColor,
+    marginBottom: SPACING.lg,
+    gap: 12,
+  },
+  skeletonCircle: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: COLORS.neutral.light,
+  },
+  skeletonCard: {
+    padding: SPACING.xl,
+    borderRadius: BORDER_RADIUS.lg,
+    backgroundColor: COLORS.neutral.white,
+    borderWidth: 1,
+    borderColor: CARD_STYLE.borderColor,
+    gap: 10,
+  },
+  skeletonLine: {
+    height: 14,
+    borderRadius: BORDER_RADIUS.sm,
+    backgroundColor: COLORS.neutral.light,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingHorizontal: SPACING.xl,
+    paddingVertical: 14,
     paddingTop: 50,
     backgroundColor: COLORS.neutral.white,
+    ...SHADOWS.sticky,
+    zIndex: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: CARD_STYLE.borderColor,
   },
   headerPlaceholder: {
     width: 40,
   },
   headerIcons: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 8,
   },
   iconButton: {
-    padding: 8,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   hostSection: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    marginHorizontal: SPACING.xl,
+    marginTop: SPACING.lg,
+    marginBottom: SPACING.lg,
+    padding: SPACING.lg,
+    borderRadius: BORDER_RADIUS.lg,
+    backgroundColor: COLORS.neutral.white,
+    borderWidth: 1,
+    borderColor: CARD_STYLE.borderColor,
+    ...SHADOWS.small,
   },
   hostInfo: {
     flexDirection: 'row',
@@ -922,54 +968,56 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   avatar: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    borderWidth: 1.5,
+    borderColor: COLORS.neutral.grey200,
   },
   hostName: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: COLORS.neutral.black,
+    ...TYPOGRAPHY.heading.h4,
+    color: COLORS.text.primary,
     marginBottom: 2,
   },
   hostLocation: {
-    fontSize: 14,
-    color: COLORS.text.secondary,
+    ...TYPOGRAPHY.body.small,
+    color: COLORS.text.tertiary,
   },
   riceIndicator: {
-    backgroundColor: COLORS.neutral.grey200,
+    backgroundColor: COLORS.neutral.light,
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 12,
+    borderRadius: BORDER_RADIUS.md,
+    borderWidth: 1,
+    borderColor: COLORS.neutral.grey100,
   },
   riceText: {
-    fontSize: 14,
-    color: COLORS.neutral.black,
+    fontSize: 13,
+    color: COLORS.text.secondary,
     fontWeight: '600',
   },
   mainCard: {
     backgroundColor: COLORS.neutral.white,
-    marginHorizontal: 20,
-    marginBottom: 16,
-    padding: 20,
-    borderRadius: 16,
+    marginHorizontal: SPACING.xl,
+    marginBottom: SPACING.lg,
+    padding: SPACING.xl,
+    borderRadius: BORDER_RADIUS.lg,
     borderWidth: 1,
-    borderColor: COLORS.neutral.grey200,
+    borderColor: CARD_STYLE.borderColor,
+    ...SHADOWS.medium,
   },
   meetupTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: COLORS.neutral.black,
-    marginBottom: 20,
+    ...TYPOGRAPHY.heading.h1,
+    color: COLORS.text.primary,
+    marginBottom: SPACING.xl,
   },
   filterBadgeContainer: {
-    marginBottom: 20,
+    marginBottom: SPACING.xl,
   },
   filterBadgeTitle: {
-    fontSize: 16,
-    fontWeight: '700',
+    ...TYPOGRAPHY.heading.h4,
     color: COLORS.text.primary,
-    marginBottom: 12,
+    marginBottom: SPACING.md,
   },
   filterBadges: {
     flexDirection: 'row',
@@ -979,26 +1027,26 @@ const styles = StyleSheet.create({
   filterBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: BORDER_RADIUS.sm,
+    gap: 5,
   },
   filterBadgeText: {
     fontSize: 12,
     fontWeight: '600',
   },
   categoryEmoji: {
-    fontSize: 14,
+    fontSize: 13,
   },
   priceBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    backgroundColor: COLORS.functional.success + '20',
-    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: BORDER_RADIUS.sm,
+    backgroundColor: COLORS.functional.successLight,
+    gap: 5,
   },
   priceBadgeText: {
     fontSize: 12,
@@ -1008,11 +1056,11 @@ const styles = StyleSheet.create({
   ageBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    backgroundColor: COLORS.text.secondary + '20',
-    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: BORDER_RADIUS.sm,
+    backgroundColor: COLORS.neutral.light,
+    gap: 5,
   },
   ageBadgeText: {
     fontSize: 12,
@@ -1022,11 +1070,11 @@ const styles = StyleSheet.create({
   genderBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    backgroundColor: COLORS.primary.main + '20',
-    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: BORDER_RADIUS.sm,
+    backgroundColor: COLORS.neutral.light,
+    gap: 5,
   },
   genderBadgeText: {
     fontSize: 12,
@@ -1036,164 +1084,168 @@ const styles = StyleSheet.create({
   optionalBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: BORDER_RADIUS.sm,
     backgroundColor: COLORS.neutral.background,
     borderWidth: 1,
-    borderColor: COLORS.neutral.grey200,
-    gap: 6,
+    borderColor: COLORS.neutral.grey100,
+    gap: 5,
   },
   optionalBadgeText: {
     fontSize: 12,
-    fontWeight: '600',
-    color: COLORS.text.secondary,
+    fontWeight: '500',
+    color: COLORS.text.tertiary,
   },
   infoGrid: {
-    marginBottom: 20,
+    marginBottom: SPACING.xl,
   },
   infoRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 10,
   },
   infoLabel: {
-    fontSize: 14,
+    ...TYPOGRAPHY.body.medium,
     color: COLORS.text.secondary,
-    fontWeight: '500',
     marginLeft: 8,
   },
   description: {
-    fontSize: 16,
+    ...TYPOGRAPHY.body.large,
     color: COLORS.text.primary,
-    lineHeight: 24,
-    marginBottom: 16,
+    lineHeight: 26,
+    marginBottom: SPACING.lg,
   },
   timeInfo: {
-    paddingTop: 16,
+    paddingTop: SPACING.lg,
     borderTopWidth: 1,
-    borderTopColor: COLORS.neutral.grey200,
+    borderTopColor: COLORS.neutral.grey100,
   },
   timeText: {
-    fontSize: 13,
+    ...TYPOGRAPHY.caption,
     color: COLORS.text.tertiary,
   },
   accordionContainer: {
-    marginHorizontal: 20,
-    marginBottom: 20,
+    marginHorizontal: SPACING.xl,
+    marginBottom: SPACING.xl,
     backgroundColor: COLORS.neutral.white,
-    borderRadius: 12,
+    borderRadius: BORDER_RADIUS.lg,
     borderWidth: 1,
-    borderColor: COLORS.neutral.grey200,
+    borderColor: CARD_STYLE.borderColor,
     overflow: 'hidden',
+    ...SHADOWS.small,
   },
   accordionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: 16,
-    backgroundColor: COLORS.neutral.background,
+    padding: SPACING.lg,
+    backgroundColor: COLORS.surface.secondary,
   },
   accordionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
+    ...TYPOGRAPHY.heading.h4,
     color: COLORS.text.primary,
   },
   accordionContent: {
-    padding: 16,
+    padding: SPACING.lg,
     backgroundColor: COLORS.neutral.white,
   },
   filterSection: {
-    marginBottom: 16,
+    marginBottom: SPACING.lg,
   },
   filterSectionTitle: {
-    fontSize: 14,
+    ...TYPOGRAPHY.body.medium,
     fontWeight: '600',
     color: COLORS.text.primary,
-    marginBottom: 8,
+    marginBottom: 6,
   },
   filterItem: {
     marginBottom: 4,
   },
   filterValue: {
-    fontSize: 14,
+    ...TYPOGRAPHY.body.medium,
     color: COLORS.text.secondary,
-    fontWeight: '500',
   },
   filterDescription: {
-    fontSize: 12,
+    ...TYPOGRAPHY.caption,
     color: COLORS.text.tertiary,
     marginTop: 2,
   },
   interestTags: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: 6,
   },
   interestTag: {
-    backgroundColor: COLORS.primary.main + '20',
+    backgroundColor: COLORS.neutral.light,
     paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingVertical: 3,
+    borderRadius: BORDER_RADIUS.sm,
+    borderWidth: 1,
+    borderColor: COLORS.neutral.grey100,
   },
   interestTagText: {
     fontSize: 12,
-    color: COLORS.primary.main,
+    color: COLORS.text.secondary,
     fontWeight: '500',
   },
   participantSection: {
     backgroundColor: COLORS.neutral.white,
-    marginHorizontal: 20,
-    marginBottom: 16,
-    padding: 20,
-    borderRadius: 16,
+    marginHorizontal: SPACING.xl,
+    marginBottom: SPACING.lg,
+    padding: SPACING.xl,
+    borderRadius: BORDER_RADIUS.lg,
     borderWidth: 1,
-    borderColor: COLORS.neutral.grey200,
+    borderColor: CARD_STYLE.borderColor,
+    ...SHADOWS.small,
   },
   participantTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: COLORS.neutral.black,
-    marginBottom: 16,
+    ...TYPOGRAPHY.sectionHeader.title,
+    color: COLORS.text.primary,
+    marginBottom: SPACING.lg,
   },
   participantItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 14,
+    paddingBottom: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.neutral.grey100,
   },
   hostAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#FFD54F',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     marginRight: 12,
+    borderWidth: 2,
+    borderColor: COLORS.primary.accent,
   },
   participantAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: COLORS.neutral.grey200,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     marginRight: 12,
+    borderWidth: 1,
+    borderColor: COLORS.neutral.grey100,
   },
   participantInfo: {
     flex: 1,
   },
   participantName: {
-    fontSize: 16,
+    ...TYPOGRAPHY.body.large,
     fontWeight: '600',
-    color: COLORS.neutral.black,
-    marginBottom: 4,
+    color: COLORS.text.primary,
+    marginBottom: 2,
   },
   participantRole: {
-    fontSize: 14,
-    color: COLORS.text.secondary,
+    ...TYPOGRAPHY.body.small,
+    color: COLORS.text.tertiary,
   },
   noParticipants: {
-    fontSize: 14,
+    ...TYPOGRAPHY.body.medium,
     color: COLORS.text.tertiary,
     textAlign: 'center',
-    marginTop: 20,
-    fontStyle: 'italic',
+    marginTop: SPACING.xl,
   },
   bottomPadding: {
     height: 100,
@@ -1204,97 +1256,100 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     backgroundColor: COLORS.neutral.white,
-    paddingHorizontal: 20,
-    paddingVertical: 20,
+    paddingHorizontal: SPACING.xl,
+    paddingVertical: SPACING.lg,
     paddingBottom: 34,
     borderTopWidth: 1,
-    borderTopColor: COLORS.neutral.grey200,
+    borderTopColor: CARD_STYLE.borderColor,
+    ...SHADOWS.sticky,
   },
   bottomButtonContainer: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 10,
   },
   chatButton: {
     flex: 2,
-    backgroundColor: '#4285F4',
-    paddingVertical: 15,
-    borderRadius: 12,
+    backgroundColor: COLORS.primary.main,
+    paddingVertical: 14,
+    borderRadius: BORDER_RADIUS.md,
     alignItems: 'center',
     justifyContent: 'center',
+    ...SHADOWS.small,
   },
   chatButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
+    ...TYPOGRAPHY.button.large,
     color: COLORS.neutral.white,
   },
   hostButton: {
     flex: 1,
-    backgroundColor: '#34C759',
-    paddingVertical: 15,
-    borderRadius: 12,
+    backgroundColor: COLORS.functional.success,
+    paddingVertical: 14,
+    borderRadius: BORDER_RADIUS.md,
     alignItems: 'center',
     justifyContent: 'center',
   },
   endButton: {
-    backgroundColor: '#FF6B6B',
+    backgroundColor: COLORS.functional.error,
   },
   hostButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
+    ...TYPOGRAPHY.button.medium,
     color: COLORS.neutral.white,
   },
   leaveButton: {
     flex: 1,
-    backgroundColor: '#FF3B30',
-    paddingVertical: 15,
-    borderRadius: 12,
+    backgroundColor: COLORS.neutral.white,
+    paddingVertical: 14,
+    borderRadius: BORDER_RADIUS.md,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.functional.error,
   },
   leaveButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: COLORS.neutral.white,
+    ...TYPOGRAPHY.button.medium,
+    color: COLORS.functional.error,
   },
   reviewButton: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FFD700',
-    paddingVertical: 15,
-    borderRadius: 12,
+    backgroundColor: COLORS.primary.accent,
+    paddingVertical: 14,
+    borderRadius: BORDER_RADIUS.md,
     gap: 8,
+    ...SHADOWS.cta,
   },
   reviewButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: COLORS.text.primary,
-  },
-  joinButton: {
-    backgroundColor: COLORS.neutral.grey600,
-    borderRadius: 12,
-    paddingVertical: 16,
-    alignItems: 'center',
-  },
-  joinButtonText: {
-    fontSize: 18,
-    fontWeight: '700',
+    ...TYPOGRAPHY.button.large,
     color: COLORS.neutral.white,
   },
-  pastMeetupContainer: {
-    backgroundColor: COLORS.neutral.background,
-    borderRadius: 12,
+  joinButton: {
+    backgroundColor: COLORS.primary.accent,
+    borderRadius: BORDER_RADIUS.md,
     paddingVertical: 16,
-    paddingHorizontal: 20,
+    alignItems: 'center',
+    ...SHADOWS.cta,
+  },
+  joinButtonText: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: COLORS.neutral.white,
+    letterSpacing: -0.2,
+  },
+  pastMeetupContainer: {
+    backgroundColor: COLORS.neutral.light,
+    borderRadius: BORDER_RADIUS.md,
+    paddingVertical: 16,
+    paddingHorizontal: SPACING.xl,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: COLORS.neutral.grey200,
+    borderColor: COLORS.neutral.grey100,
   },
   pastMeetupText: {
-    fontSize: 16,
+    ...TYPOGRAPHY.body.large,
     fontWeight: '600',
-    color: COLORS.text.secondary,
+    color: COLORS.text.tertiary,
     textAlign: 'center',
   },
   modalOverlay: {
@@ -1303,98 +1358,99 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: COLORS.surface.overlay,
     justifyContent: 'center',
     alignItems: 'center',
   },
   modalContainer: {
-    backgroundColor: 'white',
-    borderRadius: 16,
+    backgroundColor: COLORS.neutral.white,
+    borderRadius: BORDER_RADIUS.lg,
     padding: 24,
     width: '90%',
     maxWidth: 400,
     ...SHADOWS.large,
   },
   modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
+    ...TYPOGRAPHY.heading.h2,
     color: COLORS.text.primary,
     textAlign: 'center',
-    marginBottom: 16,
+    marginBottom: SPACING.lg,
   },
   modalDescription: {
-    fontSize: 14,
+    ...TYPOGRAPHY.body.medium,
     color: COLORS.text.secondary,
     textAlign: 'center',
-    lineHeight: 20,
-    marginBottom: 20,
+    lineHeight: 22,
+    marginBottom: SPACING.xl,
   },
   modalAmountContainer: {
-    backgroundColor: COLORS.neutral.background,
-    borderRadius: 12,
-    padding: 16,
+    backgroundColor: COLORS.neutral.light,
+    borderRadius: BORDER_RADIUS.md,
+    padding: SPACING.lg,
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: SPACING.xl,
+    borderWidth: 1,
+    borderColor: COLORS.neutral.grey100,
   },
   modalAmount: {
     fontSize: 24,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: COLORS.text.primary,
+    letterSpacing: -0.3,
   },
   modalButtonContainer: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 10,
   },
   modalCancelButton: {
     flex: 1,
-    backgroundColor: COLORS.neutral.grey200,
-    borderRadius: 12,
-    padding: 12,
+    backgroundColor: COLORS.neutral.light,
+    borderRadius: BORDER_RADIUS.md,
+    padding: 14,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.neutral.grey100,
   },
   modalCancelText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: COLORS.text.primary,
+    ...TYPOGRAPHY.button.medium,
+    color: COLORS.text.secondary,
   },
   modalPayButton: {
     flex: 1,
-    backgroundColor: '#007bff',
-    borderRadius: 12,
-    padding: 12,
+    backgroundColor: COLORS.primary.accent,
+    borderRadius: BORDER_RADIUS.md,
+    padding: 14,
     alignItems: 'center',
+    ...SHADOWS.cta,
   },
   modalPayText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: 'white',
+    ...TYPOGRAPHY.button.medium,
+    color: COLORS.neutral.white,
   },
   modalLeaveButton: {
     flex: 1,
-    backgroundColor: '#dc3545',
-    borderRadius: 12,
-    padding: 12,
+    backgroundColor: COLORS.functional.error,
+    borderRadius: BORDER_RADIUS.md,
+    padding: 14,
     alignItems: 'center',
   },
   modalLeaveText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: 'white',
+    ...TYPOGRAPHY.button.medium,
+    color: COLORS.neutral.white,
   },
   modalHostCancelButton: {
-    backgroundColor: '#dc2626',
+    backgroundColor: COLORS.functional.error,
   },
   modalConfirmButton: {
     flex: 1,
-    backgroundColor: '#34C759',
-    borderRadius: 12,
-    padding: 12,
+    backgroundColor: COLORS.functional.success,
+    borderRadius: BORDER_RADIUS.md,
+    padding: 14,
     alignItems: 'center',
   },
   modalConfirmText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: 'white',
+    ...TYPOGRAPHY.button.medium,
+    color: COLORS.neutral.white,
   },
 });
 

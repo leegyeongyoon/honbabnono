@@ -202,11 +202,11 @@ const WebKakaoMap: React.FC<WebKakaoMapProps> = ({
             backgroundColor: COLORS.primary.main,
             color: COLORS.text.white,
             padding: '8px 16px',
-            borderRadius: 20,
+            borderRadius: 8,
             fontSize: 13,
             fontWeight: '600',
             cursor: 'pointer',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+            boxShadow: '0 2px 8px rgba(13,13,12,0.15)',
             zIndex: 10,
             whiteSpace: 'nowrap',
           }}

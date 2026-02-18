@@ -199,7 +199,7 @@ exports.getCompletedMeetups = async (req, res) => {
     const { page = 1, limit = 10 } = req.query;
     const currentUserId = extractUserId(req);
 
-    const whereConditions = ["m.status = '완료'"];
+    const whereConditions = ["m.status = '종료'"];
     const queryParams = [];
     let paramIndex = 1;
 

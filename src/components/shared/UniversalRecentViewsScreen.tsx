@@ -21,8 +21,7 @@ const UniversalRecentViewsScreen: React.FC<{navigation: NavigationAdapter, user?
       setError(null);
       const response = await userApiService.getRecentViews();
       setRecentMeetups(response.data || response.meetups || []);
-    } catch (error) {
-      console.error('최근 본 모임 조회 실패:', error);
+    } catch (_error) {
       setError('최근 본 모임을 불러오는데 실패했습니다');
     } finally {
       setLoading(false);
@@ -45,8 +44,7 @@ const UniversalRecentViewsScreen: React.FC<{navigation: NavigationAdapter, user?
             try {
               await userApiService.clearRecentViews();
               setRecentMeetups([]);
-            } catch (error) {
-              console.error('전체 삭제 실패:', error);
+            } catch (_error) {
             }
           },
         },
@@ -58,12 +56,12 @@ const UniversalRecentViewsScreen: React.FC<{navigation: NavigationAdapter, user?
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <View style={{ width: 24 }} />
+          <View style={styles.placeholder} />
           <Text style={styles.headerTitle}>최근 본 모임</Text>
-          <View style={{ width: 24 }} />
+          <View style={styles.placeholder} />
         </View>
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-          <ActivityIndicator size="large" color={COLORS.primary.main} />
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={COLORS.primary.accent} />
         </View>
       </View>
     );
@@ -72,19 +70,19 @@ const UniversalRecentViewsScreen: React.FC<{navigation: NavigationAdapter, user?
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <View style={{ width: 24 }} />
+        <View style={styles.placeholder} />
         <Text style={styles.headerTitle}>최근 본 모임</Text>
         {recentMeetups.length > 0 ? (
           <TouchableOpacity onPress={clearAll}>
             <Text style={styles.clearButton}>전체 삭제</Text>
           </TouchableOpacity>
         ) : (
-          <View style={{ width: 60 }} />
+          <View style={styles.placeholderWide} />
         )}
       </View>
 
       <ScrollView
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => {setRefreshing(true); fetchRecentViews();}} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => {setRefreshing(true); fetchRecentViews();}} tintColor={COLORS.primary.accent} colors={[COLORS.primary.accent]} />}
       >
         {error ? (
           <View style={styles.errorContainer}>
@@ -107,7 +105,7 @@ const UniversalRecentViewsScreen: React.FC<{navigation: NavigationAdapter, user?
             </TouchableOpacity>
           </View>
         ) : (
-          <View style={{ padding: 16 }}>
+          <View style={styles.listContainer}>
             {recentMeetups.map(meetup => (
               <MeetupCard
                 key={meetup.id}
@@ -123,42 +121,106 @@ const UniversalRecentViewsScreen: React.FC<{navigation: NavigationAdapter, user?
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.neutral.background },
-  header: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingHorizontal: 20, paddingTop: 20, paddingBottom: 16,
-    backgroundColor: COLORS.neutral.white, ...SHADOWS.small,
+  container: {
+    flex: 1,
+    backgroundColor: COLORS.neutral.background,
   },
-  headerTitle: { fontSize: 20, fontWeight: '700', color: COLORS.text.primary },
-  clearButton: { fontSize: 14, color: COLORS.functional.error, fontWeight: '500' },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 16,
+    backgroundColor: COLORS.neutral.white,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(17,17,17,0.06)',
+    ...SHADOWS.sticky,
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: COLORS.text.primary,
+    letterSpacing: -0.3,
+  },
+  placeholder: {
+    width: 24,
+  },
+  placeholderWide: {
+    width: 60,
+  },
+  clearButton: {
+    fontSize: 14,
+    color: COLORS.primary.accent,
+    fontWeight: '500',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  listContainer: {
+    padding: 16,
+  },
   emptyContainer: {
-    flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 80,
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 80,
+    paddingHorizontal: 40,
   },
   emptyText: {
-    fontSize: 18, fontWeight: '600', color: COLORS.text.primary, marginTop: 16,
+    fontSize: 17,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+    marginTop: 16,
+    letterSpacing: -0.2,
   },
   emptySubtext: {
-    fontSize: 14, color: COLORS.text.secondary, marginTop: 8, textAlign: 'center',
+    fontSize: 14,
+    color: COLORS.text.secondary,
+    marginTop: 8,
+    textAlign: 'center',
+    lineHeight: 20,
   },
   findButton: {
-    marginTop: 20, backgroundColor: COLORS.primary.main, paddingHorizontal: 24,
-    paddingVertical: 12, borderRadius: 8,
+    marginTop: 20,
+    backgroundColor: COLORS.primary.accent,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 6,
+    ...SHADOWS.cta,
   },
   findButtonText: {
-    fontSize: 14, fontWeight: '600', color: COLORS.neutral.white,
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.neutral.white,
   },
   errorContainer: {
-    flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 80,
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 80,
+    paddingHorizontal: 40,
   },
   errorText: {
-    fontSize: 16, color: COLORS.text.secondary, marginTop: 16, textAlign: 'center',
+    fontSize: 15,
+    color: COLORS.text.secondary,
+    marginTop: 16,
+    textAlign: 'center',
+    lineHeight: 22,
   },
   retryButton: {
-    marginTop: 16, backgroundColor: COLORS.primary.main, paddingHorizontal: 20,
-    paddingVertical: 10, borderRadius: 8,
+    marginTop: 16,
+    backgroundColor: COLORS.primary.main,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 6,
   },
   retryButtonText: {
-    fontSize: 14, fontWeight: '600', color: COLORS.neutral.white,
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.neutral.white,
   },
 });
 

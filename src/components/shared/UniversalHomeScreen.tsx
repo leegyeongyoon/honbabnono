@@ -10,7 +10,7 @@ import {
   RefreshControl,
   Platform,
 } from 'react-native';
-import {COLORS, SHADOWS, LAYOUT} from '../../styles/colors';
+import {COLORS, SHADOWS, LAYOUT, CARD_STYLE, CTA_STYLE} from '../../styles/colors';
 import {SPACING, BORDER_RADIUS} from '../../styles/spacing';
 import {TYPOGRAPHY, FONT_WEIGHTS} from '../../styles/typography';
 import {Icon} from '../Icon';
@@ -28,7 +28,7 @@ import { FOOD_CATEGORIES } from '../../constants/categories';
 import AdvertisementBanner from '../AdvertisementBanner';
 import Popup from '../Popup';
 import { usePopup } from '../../hooks/usePopup';
-import NotificationBanner from '../NotificationBanner';
+// NotificationBanner는 props로 전달받음 (import 불필요)
 
 // 플랫폼별 네비게이션 인터페이스
 interface NavigationAdapter {
@@ -44,6 +44,7 @@ interface UniversalHomeScreenProps {
   CreateMeetupModal?: React.ComponentType<any>;
   MapTestModal?: React.ComponentType<any>;
   NeighborhoodModal?: React.ComponentType<any>;
+  NotificationBanner?: React.ComponentType<any>;
 }
 
 // 반경 포맷팅 함수
@@ -293,9 +294,9 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
-        {/* 고정 헤더 (72px) — 웹과 동일 */}
+        {/* 고정 헤더 — 미니멀 에디토리얼 */}
         <View style={styles.header}>
-          <Text style={styles.headerLogo}>혼밥시러</Text>
+          <Text style={styles.headerLogo}>잇테이블</Text>
 
           <TouchableOpacity
             style={styles.locationButton}
@@ -304,7 +305,7 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
             accessibilityLabel="동네 변경"
             accessibilityRole="button"
           >
-            <Icon name="map-pin" size={14} color={COLORS.primary.main} />
+            <Icon name="map-pin" size={14} color={COLORS.primary.accent} />
             <Text style={styles.locationText} numberOfLines={1}>
               {currentNeighborhood ? `${currentNeighborhood.neighborhood}` : '역삼동'}
             </Text>
@@ -340,12 +341,12 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
             <RefreshControl
               refreshing={refreshing}
               onRefresh={handleRefresh}
-              tintColor={COLORS.primary.main}
-              colors={[COLORS.primary.main]}
+              tintColor={COLORS.primary.accent}
+              colors={[COLORS.primary.accent]}
             />
           }
         >
-          {/* 검색 바 */}
+          {/* 검색 바 — 클린 에디토리얼 */}
           <View style={styles.searchSection}>
             <View
               style={[
@@ -353,11 +354,11 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
                 searchFocused && styles.searchBarFocused,
               ]}
             >
-              <Icon name="search" size={20} color={searchFocused ? COLORS.primary.main : COLORS.text.tertiary} />
+              <Icon name="search" size={20} color={searchFocused ? COLORS.primary.accent : COLORS.text.tertiary} />
               <TextInput
                 style={styles.searchInput}
                 placeholder="오늘 같이 밥 먹을 사람 찾기"
-                placeholderTextColor={COLORS.text.tertiary}
+                placeholderTextColor={COLORS.neutral.grey400}
                 value={searchQuery}
                 onChangeText={handleSearchInput}
                 onFocus={() => {
@@ -439,7 +440,7 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
                       iconName={category.icon}
                       size={48}
                       color={category.color}
-                      backgroundColor={category.bgColor}
+                      backgroundColor="transparent"
                     />
                   </View>
                   <Text style={styles.categoryName} numberOfLines={1} ellipsizeMode="tail">{category.name}</Text>
@@ -453,10 +454,10 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
 
           {/* 섹션 1: 곧 시작하는 밥약속 */}
           {(isLoading || soonMeetups.length > 0) && (
-            <View style={styles.contentSection}>
+            <View style={[styles.contentSection, { backgroundColor: COLORS.neutral.white }]}>
               <View style={styles.sectionHeader}>
                 <View style={styles.sectionTitleRow}>
-                  <Text style={styles.sectionEmoji}>{'\u23F0'}</Text>
+                  <View style={styles.sectionAccentBar} />
                   <Text style={styles.sectionTitle}>곧 시작하는 밥약속</Text>
                 </View>
                 <TouchableOpacity
@@ -497,10 +498,10 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
 
           {/* 섹션 2: 새로 올라온 모임 */}
           {(isLoading || newMeetups.length > 0) && (
-            <View style={styles.contentSection}>
+            <View style={[styles.contentSection, { backgroundColor: COLORS.surface.secondary }]}>
               <View style={styles.sectionHeader}>
                 <View style={styles.sectionTitleRow}>
-                  <Text style={styles.sectionEmoji}>{'\u2728'}</Text>
+                  <View style={styles.sectionAccentBar} />
                   <Text style={styles.sectionTitle}>새로 올라온 모임</Text>
                 </View>
                 <TouchableOpacity
@@ -539,12 +540,12 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
             </View>
           )}
 
-          {/* 섹션 3: 모집중인 모임 (세로 리스트) */}
+          {/* 섹션 3: 모집중인 모임 */}
           {(isLoading || recruitingMeetups.length > 0) && (
-            <View style={styles.contentSection}>
+            <View style={[styles.contentSection, { backgroundColor: COLORS.neutral.white }]}>
               <View style={styles.sectionHeader}>
                 <View style={styles.sectionTitleRow}>
-                  <Text style={styles.sectionEmoji}>{'\uD83E\uDD1D'}</Text>
+                  <View style={styles.sectionAccentBar} />
                   <Text style={styles.sectionTitle}>모집중인 모임</Text>
                 </View>
                 <TouchableOpacity
@@ -589,7 +590,7 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
             />
           )}
 
-          {/* 모든 모임 보기 버튼 */}
+          {/* 모든 모임 보기 버튼 — 테라코타 아웃라인 */}
           <TouchableOpacity
             style={styles.allMeetupsButton}
             onPress={() => navigation.navigate('MeetupList')}
@@ -598,7 +599,7 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
             accessibilityRole="button"
           >
             <Text style={styles.allMeetupsText}>모든 모임 보기</Text>
-            <Icon name="chevron-right" size={16} color={COLORS.primary.main} />
+            <Icon name="chevron-right" size={16} color={COLORS.primary.accent} />
           </TouchableOpacity>
 
           {/* 지도 테스트 버튼 (디버그용 - 개발 환경에서만 표시) */}
@@ -628,7 +629,7 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
           </TouchableOpacity>
         )}
 
-        {/* FAB - 원형 모임 만들기 버튼 */}
+        {/* FAB — 테라코타 악센트 */}
         <TouchableOpacity
           style={styles.fab}
           onPress={() => navigation.navigate('CreateMeetup')}
@@ -680,19 +681,14 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
 
         <Popup
           visible={popupState.visible}
+          onClose={hidePopup}
           type={popupState.type}
           title={popupState.title}
           message={popupState.message}
-          onConfirm={() => {
-            if (popupState.onConfirm) {popupState.onConfirm();}
-            hidePopup();
-          }}
-          onCancel={() => {
-            if (popupState.onCancel) {popupState.onCancel();}
-            hidePopup();
-          }}
-          confirmText={popupState.confirmText}
-          cancelText={popupState.cancelText}
+          buttons={popupState.buttons}
+          showCloseButton={popupState.showCloseButton}
+          backdrop={popupState.backdrop}
+          animation={popupState.animation}
         />
 
         {NotificationBanner && (
@@ -707,26 +703,31 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: COLORS.neutral.white,
+    overflow: 'hidden',
   },
   container: {
     flex: 1,
     backgroundColor: COLORS.neutral.background,
+    overflow: 'hidden',
   },
 
-  // ─── 헤더 ─────────────────────────────────────────
+  // ─── 헤더 (미니멀 에디토리얼) ──────────────────────────
   header: {
     height: LAYOUT.HEADER_HEIGHT,
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: SPACING.xl,
     backgroundColor: COLORS.neutral.white,
-    ...SHADOWS.small,
+    ...SHADOWS.sticky,
     gap: SPACING.md,
+    zIndex: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(17,17,17,0.06)',
   },
   headerLogo: {
     fontSize: 22,
-    fontWeight: FONT_WEIGHTS.extraBold as any,
-    letterSpacing: -0.3,
+    fontWeight: FONT_WEIGHTS.bold as any,
+    letterSpacing: -0.5,
     color: COLORS.primary.main,
     lineHeight: 30,
   },
@@ -738,14 +739,14 @@ const styles = StyleSheet.create({
     minWidth: 44,
     paddingHorizontal: SPACING.lg,
     paddingVertical: SPACING.sm,
-    backgroundColor: COLORS.neutral.background,
-    borderRadius: BORDER_RADIUS.full,
+    backgroundColor: COLORS.surface.secondary,
+    borderRadius: BORDER_RADIUS.md,
     borderWidth: 1,
     borderColor: COLORS.neutral.grey100,
   },
   locationText: {
     ...TYPOGRAPHY.location.primary,
-    fontWeight: FONT_WEIGHTS.bold as any,
+    fontWeight: FONT_WEIGHTS.semiBold as any,
   },
   radiusText: {
     fontSize: 12,
@@ -764,7 +765,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 
-  // ─── 검색 바 ─────────────────────────────────────────
+  // ─── 검색 바 (샤프, 에디토리얼) ───────────────────────
   searchSection: {
     paddingHorizontal: SPACING.xl,
     paddingTop: SPACING.lg,
@@ -774,26 +775,23 @@ const styles = StyleSheet.create({
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    height: 52,
-    backgroundColor: COLORS.neutral.grey100,
-    borderRadius: BORDER_RADIUS.full,
-    paddingHorizontal: SPACING.xl,
+    height: 48,
+    backgroundColor: COLORS.surface.secondary,
+    borderRadius: BORDER_RADIUS.lg,
+    paddingHorizontal: SPACING.lg,
     gap: SPACING.md,
-    borderWidth: 2,
-    borderColor: 'transparent',
+    borderWidth: 1.5,
+    borderColor: COLORS.neutral.grey100,
+    overflow: 'hidden',
   },
   searchBarFocused: {
-    borderColor: COLORS.primary.main,
+    borderColor: COLORS.primary.accent,
     backgroundColor: COLORS.neutral.white,
     ...SHADOWS.focused,
   },
   searchInput: {
     flex: 1,
-    fontSize: 15,
-    fontWeight: FONT_WEIGHTS.regular as any,
-    lineHeight: 20,
-    letterSpacing: 0,
-    color: COLORS.text.primary,
+    ...TYPOGRAPHY.input,
     backgroundColor: 'transparent',
   },
   clearButton: {
@@ -806,10 +804,11 @@ const styles = StyleSheet.create({
   searchSubmitButton: {
     width: 34,
     height: 34,
-    borderRadius: BORDER_RADIUS.full,
-    backgroundColor: COLORS.primary.main,
+    borderRadius: BORDER_RADIUS.md,
+    backgroundColor: COLORS.primary.accent,
     justifyContent: 'center',
     alignItems: 'center',
+    ...SHADOWS.cta,
   },
 
   // ─── 검색 제안 ─────────────────────────────────────
@@ -825,7 +824,7 @@ const styles = StyleSheet.create({
   },
   suggestionsLabel: {
     ...TYPOGRAPHY.label,
-    color: COLORS.primary.main,
+    color: COLORS.primary.accent,
     fontWeight: FONT_WEIGHTS.semiBold as any,
     marginBottom: SPACING.sm,
     marginTop: SPACING.xs,
@@ -844,13 +843,13 @@ const styles = StyleSheet.create({
     color: COLORS.text.primary,
   },
 
-  // ─── 카테고리 그리드 ─────────────────────────────────
+  // ─── 카테고리 그리드 (정제된 그리드) ────────────────────
   categorySection: {
     backgroundColor: COLORS.neutral.white,
-    paddingTop: SPACING.lg,
+    paddingTop: SPACING.md,
     paddingBottom: SPACING.xxl,
     paddingHorizontal: SPACING.xl,
-    marginBottom: SPACING.sm,
+    marginBottom: 0,
   },
   categoryGrid: {
     flexDirection: 'row',
@@ -864,27 +863,29 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   categoryIconBox: {
-    width: 68,
-    height: 68,
-    borderRadius: BORDER_RADIUS.xl,
+    width: 64,
+    height: 64,
+    borderRadius: BORDER_RADIUS.lg,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: SPACING.sm,
+    borderWidth: 1,
+    borderColor: 'rgba(17,17,17,0.06)',
   },
   categoryName: {
     fontSize: 12,
     fontWeight: FONT_WEIGHTS.medium as any,
     lineHeight: 16,
-    letterSpacing: 0.2,
-    color: COLORS.text.tertiary,
+    letterSpacing: 0.1,
+    color: COLORS.text.secondary,
     textAlign: 'center',
   },
 
-  // ─── 콘텐츠 섹션 ─────────────────────────────────────
+  // ─── 콘텐츠 섹션 (에디토리얼 깔끔한 구분) ──────────────
   contentSection: {
-    paddingTop: SPACING.xxxl,
+    paddingTop: SPACING.xxl,
     paddingBottom: SPACING.lg,
-    marginBottom: SPACING.sm,
+    overflow: 'hidden',
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -896,38 +897,39 @@ const styles = StyleSheet.create({
   sectionTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: SPACING.sm,
+    gap: SPACING.md,
   },
-  sectionEmoji: {
-    fontSize: 20,
+  sectionAccentBar: {
+    width: 3,
+    height: 18,
+    backgroundColor: COLORS.primary.accent,
+    borderRadius: 2,
   },
   sectionTitle: {
-    fontSize: 18,
+    ...TYPOGRAPHY.sectionHeader.title,
     fontWeight: FONT_WEIGHTS.bold as any,
-    lineHeight: 26,
-    letterSpacing: -0.3,
-    color: COLORS.text.primary,
   },
   seeAllButton: {
     minHeight: 44,
     minWidth: 44,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: SPACING.sm,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.xs,
   },
   seeAllText: {
     fontSize: 13,
     fontWeight: FONT_WEIGHTS.medium as any,
-    letterSpacing: 0.2,
-    color: COLORS.primary.main,
+    letterSpacing: 0,
+    color: COLORS.text.tertiary,
   },
   horizontalCardList: {
     paddingLeft: SPACING.xl,
     paddingRight: SPACING.xl,
-    gap: SPACING.lg,
+    gap: SPACING.md,
   },
   horizontalCardWrapper: {
-    width: 240,
+    width: 250,
   },
 
   // ─── 세로 리스트 ─────────────────────────────────────
@@ -939,25 +941,26 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.md,
   },
 
-  // ─── 모든 모임 보기 버튼 ─────────────────────────────
+  // ─── 모든 모임 보기 버튼 (테라코타 아웃라인) ─────────────
   allMeetupsButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: SPACING.sm,
     marginHorizontal: SPACING.xl,
-    marginTop: SPACING.lg,
+    marginTop: SPACING.xl,
     marginBottom: SPACING.xl,
-    paddingVertical: SPACING.lg,
+    paddingVertical: 14,
     backgroundColor: COLORS.neutral.white,
-    borderRadius: BORDER_RADIUS.lg,
-    borderWidth: 1,
-    borderColor: COLORS.neutral.grey100,
+    borderRadius: BORDER_RADIUS.md,
+    borderWidth: 1.5,
+    borderColor: COLORS.primary.accent,
     ...SHADOWS.small,
   },
   allMeetupsText: {
     ...TYPOGRAPHY.button.medium,
-    color: COLORS.primary.main,
+    color: COLORS.primary.accent,
+    fontWeight: FONT_WEIGHTS.semiBold as any,
   },
 
   // ─── Scroll to Top ────────────────────────────────────
@@ -967,7 +970,7 @@ const styles = StyleSheet.create({
     right: 20,
     width: 44,
     height: 44,
-    borderRadius: 22,
+    borderRadius: BORDER_RADIUS.lg,
     backgroundColor: COLORS.neutral.white,
     alignItems: 'center',
     justifyContent: 'center',
@@ -981,33 +984,33 @@ const styles = StyleSheet.create({
     color: COLORS.text.secondary,
   },
 
-  // ─── FAB (원형 모임 만들기 버튼) ───────────────────────
+  // ─── FAB (테라코타 악센트) ────────────────────────────
   fab: {
     position: 'absolute',
     bottom: 100,
     right: 20,
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: COLORS.primary.main,
+    width: 56,
+    height: 56,
+    borderRadius: BORDER_RADIUS.lg,
+    backgroundColor: COLORS.primary.accent,
     alignItems: 'center',
     justifyContent: 'center',
-    ...SHADOWS.hover,
+    ...SHADOWS.cta,
     zIndex: 1000,
   },
   fabIcon: {
     fontSize: 28,
     color: COLORS.neutral.white,
-    fontWeight: FONT_WEIGHTS.light as any,
+    fontWeight: '300' as any,
     lineHeight: 28,
   },
 
   // ─── 테스트 버튼 (디버그용) ───────────────────────────
   testButton: {
-    backgroundColor: COLORS.functional.warning,
+    backgroundColor: COLORS.primary.main,
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 16,
+    borderRadius: BORDER_RADIUS.sm,
   },
   testButtonText: {
     fontSize: 12,

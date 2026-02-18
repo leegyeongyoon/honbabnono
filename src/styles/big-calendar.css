@@ -40,7 +40,7 @@
 
 .rbc-btn-group button {
   background: transparent !important;
-  color: #C9B59C !important;
+  color: #C4A08A !important;
   border: none !important;
   padding: 8px !important;
   border-radius: 12px !important;
@@ -55,11 +55,11 @@
 }
 
 .rbc-btn-group button:hover {
-  background: rgba(201, 181, 156, 0.1) !important;
+  background: rgba(196, 160, 138, 0.1) !important;
 }
 
 .rbc-btn-group button:active {
-  background: rgba(201, 181, 156, 0.2) !important;
+  background: rgba(196, 160, 138, 0.2) !important;
 }
 
 /* 오늘 버튼 숨김 - 당근마켓 스타일 */
@@ -106,7 +106,7 @@
 }
 
 .rbc-date-cell:hover {
-  background: rgba(201, 181, 156, 0.05) !important;
+  background: rgba(17, 17, 17, 0.05) !important;
 }
 
 /* 날짜 번호 - 네이티브 타이포그래피 */
@@ -127,7 +127,7 @@
 }
 
 .rbc-date-cell > a:hover {
-  background: rgba(201, 181, 156, 0.1) !important;
+  background: rgba(17, 17, 17, 0.1) !important;
   color: #000000 !important;
 }
 
@@ -137,7 +137,7 @@
 }
 
 .rbc-date-cell.rbc-selected > a {
-  background: #766653 !important;
+  background: #A88068 !important;
   color: #FFFFFF !important;
   font-weight: 700 !important;
   transform: none !important;
@@ -150,7 +150,7 @@
 }
 
 .rbc-today > a {
-  background: #4C422C !important;
+  background: #A88068 !important;
   color: #FFFFFF !important;
   font-weight: 700 !important;
 }
@@ -171,7 +171,7 @@
 
 /* 이벤트 (선택된 날짜 표시) - 우아한 스타일 */
 .rbc-event {
-  background: linear-gradient(135deg, #766653 0%, #61543F 100%) !important;
+  background: linear-gradient(135deg, #A88068 0%, #9A7060 100%) !important;
   color: #FFFFFF !important;
   border: none !important;
   border-radius: 8px !important;
@@ -179,7 +179,7 @@
   font-size: 11px !important;
   font-weight: 600 !important;
   margin: 1px 0 !important;
-  box-shadow: 0 1px 4px rgba(76, 66, 44, 0.2) !important;
+  box-shadow: 0 1px 4px rgba(168, 128, 104, 0.2) !important;
   letter-spacing: -0.01em !important;
 }
 
@@ -191,29 +191,29 @@
 
 /* 그리드 선 - 부드러운 경계 */
 .rbc-date-cell + .rbc-date-cell {
-  border-left: 1px solid rgba(239, 233, 227, 0.6) !important;
+  border-left: 1px solid rgba(232, 232, 232, 0.6) !important;
 }
 
 .rbc-month-row + .rbc-month-row .rbc-date-cell {
-  border-top: 1px solid rgba(239, 233, 227, 0.6) !important;
+  border-top: 1px solid rgba(232, 232, 232, 0.6) !important;
 }
 
 /* 시간 선택 컨테이너 - 모던한 박스 */
 .time-picker-container {
   margin-top: 12px !important;
   padding: 16px !important;
-  background: linear-gradient(135deg, #F9F8F6 0%, #EFE9E3 100%) !important;
+  background: linear-gradient(135deg, #FAFAFA 0%, #F5F5F5 100%) !important;
   border-radius: 16px !important;
-  border: 1px solid rgba(201, 181, 156, 0.2) !important;
+  border: 1px solid rgba(17, 17, 17, 0.2) !important;
   box-shadow: 
     inset 0 1px 0 rgba(255, 255, 255, 0.8),
-    0 2px 8px rgba(161, 139, 122, 0.1) !important;
+    0 2px 8px rgba(17, 17, 17, 0.1) !important;
 }
 
 .time-picker-label {
   font-size: 17px !important;
   font-weight: 700 !important;
-  color: #4C422C !important;
+  color: #212121 !important;
   margin-bottom: 16px !important;
   text-align: center !important;
   letter-spacing: -0.01em !important;
@@ -224,25 +224,25 @@
   padding: 16px 20px !important;
   font-size: 16px !important;
   font-weight: 600 !important;
-  border: 2px solid #EFE9E3 !important;
+  border: 2px solid #E8E8E8 !important;
   border-radius: 16px !important;
   background: #FFFFFF !important;
-  color: #4C422C !important;
+  color: #212121 !important;
   text-align: center !important;
   outline: none !important;
   transition: all 0.3s ease !important;
   box-shadow: 
-    0 1px 3px rgba(161, 139, 122, 0.1),
+    0 1px 3px rgba(17, 17, 17, 0.1),
     inset 0 1px 0 rgba(255, 255, 255, 0.8) !important;
   letter-spacing: 0.02em !important;
 }
 
 .time-picker-input:focus {
-  border-color: #C9B59C !important;
+  border-color: #C4A08A !important;
   background: #FFFFFF !important;
-  box-shadow: 
-    0 0 0 4px rgba(201, 181, 156, 0.1),
-    0 4px 12px rgba(161, 139, 122, 0.15) !important;
+  box-shadow:
+    0 0 0 4px rgba(196, 160, 138, 0.1),
+    0 4px 12px rgba(17, 17, 17, 0.15) !important;
   transform: translateY(-1px) !important;
 }
 

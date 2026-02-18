@@ -212,9 +212,8 @@ const UniversalCreateMeetupWizard: React.FC<UniversalCreateMeetupWizardProps> = 
       } else {
         return { success: false, error: data.message || '모임 생성에 실패했습니다' };
       }
-    } catch (error) {
-      console.error('모임 생성 오류:', error);
-      return { success: false, error: error instanceof Error ? error.message : '네트워크 오류가 발생했습니다' };
+    } catch (_error) {
+      return { success: false, error: _error instanceof Error ? _error.message : '네트워크 오류가 발생했습니다' };
     }
   };
 
@@ -242,8 +241,7 @@ const UniversalCreateMeetupWizard: React.FC<UniversalCreateMeetupWizardProps> = 
 
       const data = await response.json();
       return data.success;
-    } catch (error) {
-      console.error('결제 처리 오류:', error);
+    } catch (_error) {
       return false;
     } finally {
       setIsPaymentLoading(false);
@@ -263,8 +261,7 @@ const UniversalCreateMeetupWizard: React.FC<UniversalCreateMeetupWizardProps> = 
       if (data.success) {
         setUserPoints(data.points || 0);
       }
-    } catch (error) {
-      console.error('포인트 조회 오류:', error);
+    } catch (_error) {
     }
   }, []);
 
@@ -305,8 +302,7 @@ const UniversalCreateMeetupWizard: React.FC<UniversalCreateMeetupWizardProps> = 
       // 2. 다음 단계 (결제)로 이동
       nextStep();
       
-    } catch (error) {
-      console.error('모임 생성 오류:', error);
+    } catch (_error) {
       showToast('모임 생성 중 오류가 발생했습니다', 'error');
     } finally {
       setIsLoading(false);
@@ -1484,7 +1480,7 @@ const styles = StyleSheet.create({
   // ===== 스텝 컨텐트 (각 스텝의 메인 컨테이너) =====
   stepContent: {
     backgroundColor: COLORS.neutral.white,
-    borderRadius: 16,
+    borderRadius: 8,
     padding: 20,
     marginTop: 8,
   },
@@ -1500,19 +1496,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 16,
     padding: 16,
-    borderRadius: 12,
+    borderRadius: 8,
     borderWidth: 2,
     borderColor: COLORS.neutral.grey200,
     backgroundColor: COLORS.neutral.white,
   },
   categoryItemSelected: {
-    borderColor: COLORS.primary.main,
-    backgroundColor: `${COLORS.primary.main}10`,
+    borderColor: COLORS.primary.accent,
+    backgroundColor: `${COLORS.primary.accent}10`,
   },
   categoryIconWrapper: {
     width: 56,
     height: 56,
-    borderRadius: 16,
+    borderRadius: 8,
     backgroundColor: COLORS.neutral.grey100,
     justifyContent: 'center',
     alignItems: 'center',
@@ -1562,7 +1558,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 16,
     backgroundColor: COLORS.neutral.grey50,
-    borderRadius: 12,
+    borderRadius: 8,
     borderWidth: 1,
     borderColor: COLORS.neutral.grey200,
   },
@@ -1579,10 +1575,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 16,
     padding: 14,
-    backgroundColor: `${COLORS.primary.main}10`,
-    borderRadius: 12,
+    backgroundColor: `${COLORS.primary.accent}10`,
+    borderRadius: 8,
     borderWidth: 1,
-    borderColor: COLORS.primary.main,
+    borderColor: COLORS.primary.accent,
   },
   selectedInfoIcon: {
     fontSize: 16,
@@ -1603,7 +1599,7 @@ const styles = StyleSheet.create({
   chip: {
     paddingHorizontal: 18,
     paddingVertical: 12,
-    borderRadius: 24,
+    borderRadius: 8,
     backgroundColor: COLORS.neutral.grey100,
   },
   chipSelected: {
@@ -1622,7 +1618,7 @@ const styles = StyleSheet.create({
   textInput: {
     borderWidth: 1,
     borderColor: COLORS.neutral.grey200,
-    borderRadius: 12,
+    borderRadius: 8,
     paddingHorizontal: 16,
     paddingVertical: 14,
     fontSize: 15,
@@ -1685,7 +1681,7 @@ const styles = StyleSheet.create({
   // ===== 웹 맵 컨테이너 =====
   webMapContainer: {
     height: 250,
-    borderRadius: 12,
+    borderRadius: 8,
     overflow: 'hidden',
   },
 
@@ -1714,7 +1710,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     backgroundColor: COLORS.neutral.grey50,
     padding: 14,
-    borderRadius: 10,
+    borderRadius: 8,
     marginTop: 20,
     gap: 10,
   },
@@ -1727,7 +1723,7 @@ const styles = StyleSheet.create({
   depositChip: {
     flex: 1,
     paddingVertical: 14,
-    borderRadius: 12,
+    borderRadius: 8,
     backgroundColor: COLORS.neutral.grey100,
     alignItems: 'center',
   },
@@ -1748,7 +1744,7 @@ const styles = StyleSheet.create({
     marginTop: 24,
     padding: 16,
     backgroundColor: COLORS.neutral.grey50,
-    borderRadius: 12,
+    borderRadius: 8,
   },
   costCardTitle: {
     fontSize: 16,
@@ -1795,13 +1791,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 16,
     backgroundColor: COLORS.neutral.grey50,
-    borderRadius: 12,
+    borderRadius: 8,
     borderWidth: 2,
     borderColor: 'transparent',
   },
   paymentOptionSelected: {
-    borderColor: COLORS.primary.main,
-    backgroundColor: `${COLORS.primary.main}08`,
+    borderColor: COLORS.primary.accent,
+    backgroundColor: `${COLORS.primary.accent}08`,
   },
   paymentOptionIcon: {
     width: 44,
@@ -1840,7 +1836,7 @@ const styles = StyleSheet.create({
   secondaryButton: {
     flex: 1,
     paddingVertical: 16,
-    borderRadius: 12,
+    borderRadius: 6,
     borderWidth: 1,
     borderColor: COLORS.neutral.grey300,
     alignItems: 'center',
@@ -1854,8 +1850,8 @@ const styles = StyleSheet.create({
   primaryButton: {
     flex: 2,
     paddingVertical: 16,
-    borderRadius: 12,
-    backgroundColor: COLORS.primary.main,
+    borderRadius: 6,
+    backgroundColor: COLORS.primary.accent,
     alignItems: 'center',
   },
   primaryButtonFull: {
@@ -1873,7 +1869,7 @@ const styles = StyleSheet.create({
   // ===== 모달 스타일 =====
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(17,17,17,0.6)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
@@ -1882,7 +1878,7 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 400,
     backgroundColor: COLORS.neutral.white,
-    borderRadius: 20,
+    borderRadius: 8,
     overflow: 'hidden',
     maxHeight: '85%',
   },
@@ -2111,7 +2107,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     paddingHorizontal: 16,
     backgroundColor: COLORS.neutral.background,
-    borderRadius: 12,
+    borderRadius: 8,
     marginBottom: 12,
     borderWidth: 1,
     borderColor: COLORS.neutral.grey200,
@@ -2217,7 +2213,7 @@ const styles = StyleSheet.create({
   newCategoryIconContainer: {
     width: 60,
     height: 60,
-    borderRadius: 16,
+    borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 8,
@@ -2314,7 +2310,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(17,17,17,0.6)',
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 1000,
@@ -2323,7 +2319,7 @@ const styles = StyleSheet.create({
     width: width - 40,
     maxWidth: 400,
     backgroundColor: COLORS.neutral.white,
-    borderRadius: 16,
+    borderRadius: 10,
     overflow: 'hidden',
     maxHeight: '80%',
   },
@@ -2535,7 +2531,7 @@ const styles = StyleSheet.create({
   filterButton: {
     paddingHorizontal: 16,
     paddingVertical: 10,
-    borderRadius: 20,
+    borderRadius: 10,
     backgroundColor: COLORS.neutral.grey100,
   },
   filterButtonSelected: {
@@ -2693,7 +2689,7 @@ const styles = StyleSheet.create({
   ageQuickButton: {
     paddingHorizontal: 20,
     paddingVertical: 10,
-    borderRadius: 20,
+    borderRadius: 10,
     backgroundColor: COLORS.neutral.grey100,
   },
   ageQuickButtonSelected: {

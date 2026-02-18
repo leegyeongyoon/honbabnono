@@ -205,16 +205,38 @@ const RouterApp: React.FC = () => {
       <div style={{
         display: 'flex',
         flex: 1,
+        flexDirection: 'column',
         justifyContent: 'center',
         alignItems: 'center',
         height: '100vh',
-        backgroundColor: COLORS.neutral.white
+        backgroundColor: COLORS.neutral.white,
+        gap: '12px',
       }}>
         <div style={{
-          fontSize: '16px',
-          color: COLORS.text.primary
+          width: 48,
+          height: 48,
+          borderRadius: 24,
+          background: 'linear-gradient(135deg, #C4A08A 0%, #D8BCA8 100%)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          fontSize: '24px',
         }}>
-          로딩 중...
+          🍚
+        </div>
+        <div style={{
+          width: 120,
+          height: 8,
+          borderRadius: 4,
+          backgroundColor: '#F5F5F5',
+          overflow: 'hidden',
+          position: 'relative' as const,
+        }}>
+          <div className="animate-shimmer" style={{
+            width: '100%',
+            height: '100%',
+            borderRadius: 4,
+          }} />
         </div>
       </div>
     );

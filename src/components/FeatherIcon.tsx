@@ -104,7 +104,6 @@ const FeatherIcon: React.FC<IconProps> = ({
   const path = iconPaths[name];
   
   if (!path) {
-    console.warn(`Icon "${name}" not found`);
     return null;
   }
 

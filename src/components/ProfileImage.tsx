@@ -26,7 +26,7 @@ const DefaultProfileImage: React.FC<{ size?: number; name?: string }> = ({ size 
           height: size,
           borderRadius: size / 2,
           backgroundColor: bgColor,
-          shadowColor: '#000000',
+          shadowColor: '#111111',
           shadowOffset: { width: 0, height: 1 },
           shadowOpacity: 0.1,
           shadowRadius: 4,

@@ -153,14 +153,27 @@ const RecentViewsScreen: React.FC = () => {
   };
 
   const renderRecentViewItem = (item: RecentViewItem) => (
-    <TouchableOpacity
+    <div
       key={item.id}
-      style={[
-        styles.recentViewCard,
-        item.is_ended && styles.endedCard
-      ]}
-      onPress={() => navigate(`/meetup/${item.meetup_id}`)}
+      onMouseEnter={(e) => {
+        if (!item.is_ended) {
+          e.currentTarget.style.transform = 'translateY(-3px)';
+          e.currentTarget.style.boxShadow = '0 6px 20px rgba(17,17,17,0.1)';
+        }
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.transform = 'translateY(0)';
+        e.currentTarget.style.boxShadow = '';
+      }}
+      style={{ cursor: 'pointer', transition: 'all 200ms ease' }}
     >
+      <TouchableOpacity
+        style={[
+          styles.recentViewCard,
+          item.is_ended && styles.endedCard
+        ]}
+        onPress={() => navigate(`/meetup/${item.meetup_id}`)}
+      >
       {/* 모임 이미지 */}
       <View style={styles.imageContainer}>
         {item.image ? (
@@ -261,12 +274,31 @@ const RecentViewsScreen: React.FC = () => {
         </View>
       </View>
     </TouchableOpacity>
+    </div>
   );
 
   if (loading) {
     return (
-      <View style={[styles.container, styles.centerContent]}>
-        <Text style={styles.loadingText}>최근 본 글을 불러오는 중...</Text>
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.backButton} onPress={() => navigate(-1)}>
+            <ArrowLeft size={24} color={COLORS.text.primary} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>최근 본 글</Text>
+          <View style={{ width: 44 }} />
+        </View>
+        <View style={{ padding: 20, gap: 12 }}>
+          {[0, 1, 2, 3, 4].map((i) => (
+            <View key={i} className="animate-shimmer" style={{ flexDirection: 'row', padding: 16, backgroundColor: '#FAFAF8', borderRadius: 8, gap: 12 }}>
+              <View style={{ width: 80, height: 80, borderRadius: 12, backgroundColor: '#EFECEA' }} />
+              <View style={{ flex: 1, gap: 8, justifyContent: 'center' }}>
+                <View style={{ width: '70%', height: 14, borderRadius: 7, backgroundColor: '#EFECEA' }} />
+                <View style={{ width: '50%', height: 10, borderRadius: 5, backgroundColor: '#EFECEA' }} />
+                <View style={{ width: '40%', height: 10, borderRadius: 5, backgroundColor: '#EFECEA' }} />
+              </View>
+            </View>
+          ))}
+        </View>
       </View>
     );
   }
@@ -352,11 +384,14 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
     backgroundColor: COLORS.neutral.white,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0,0,0,0.06)',
-    ...SHADOWS.small,
+    borderBottomColor: 'rgba(17,17,17,0.06)',
+    ...SHADOWS.sticky,
+    zIndex: 10,
   },
   backButton: {
     padding: 8,
+    cursor: 'pointer',
+    transition: 'all 200ms ease',
   },
   headerTitle: {
     fontSize: 20,
@@ -368,6 +403,8 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 8,
     backgroundColor: 'rgba(212, 84, 78, 0.08)',
+    cursor: 'pointer',
+    transition: 'all 200ms ease',
   },
   clearAllText: {
     fontSize: 14,
@@ -386,16 +423,18 @@ const styles = StyleSheet.create({
   statCard: {
     flex: 1,
     backgroundColor: COLORS.neutral.background,
-    borderRadius: 16,
+    borderRadius: 8,
     padding: 16,
     alignItems: 'center',
     ...CARD_STYLE,
     ...SHADOWS.small,
+    borderWidth: 1,
+    borderColor: 'rgba(17,17,17,0.06)',
   },
   statNumber: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: COLORS.primary.main,
+    fontSize: 28,
+    fontWeight: '800',
+    color: COLORS.primary.dark,
     marginBottom: 4,
   },
   statLabel: {
@@ -424,7 +463,7 @@ const styles = StyleSheet.create({
   // 최근 본 글 카드
   recentViewCard: {
     backgroundColor: COLORS.neutral.white,
-    borderRadius: 16,
+    borderRadius: 8,
     marginBottom: 16,
     overflow: 'hidden',
     ...CARD_STYLE,
@@ -454,7 +493,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    backgroundColor: 'rgba(17,17,17,0.6)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -486,6 +525,8 @@ const styles = StyleSheet.create({
   },
   removeButton: {
     padding: 4,
+    cursor: 'pointer',
+    transition: 'all 200ms ease',
   },
   cardCategory: {
     fontSize: 14,

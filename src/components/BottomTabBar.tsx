@@ -113,14 +113,11 @@ const BottomTabBar: React.FC = () => {
             accessibilityState={{ selected: isActive }}
             accessibilityLabel={`${tab.title} 탭`}
           >
-            {isActive && (
-              <View style={styles.activeIndicator} />
-            )}
             <View style={styles.tabIconContainer}>
               <Icon
                 name={tab.icon}
-                size={22}
-                color={isActive ? COLORS.primary.main : COLORS.text.tertiary}
+                size={21}
+                color={isActive ? COLORS.primary.accent : COLORS.neutral.grey400}
               />
               {showChatBadge && (
                 <View style={styles.chatBadge}>
@@ -136,6 +133,7 @@ const BottomTabBar: React.FC = () => {
             ]}>
               {tab.title}
             </Text>
+            {isActive && <View style={styles.activeIndicator} />}
           </TouchableOpacity>
         );
       })}
@@ -146,13 +144,13 @@ const BottomTabBar: React.FC = () => {
 const styles = StyleSheet.create({
   tabBar: {
     flexDirection: 'row',
-    height: 64,
+    height: SPACING.bottomNav.height,
     backgroundColor: COLORS.neutral.white,
     borderTopWidth: 1,
     borderTopColor: COLORS.neutral.grey100,
     ...(Platform.OS === 'web' ? {
       // @ts-ignore: web-only boxShadow
-      boxShadow: '0 -2px 8px rgba(0,0,0,0.04)',
+      boxShadow: '0 -1px 0 rgba(13,13,12,0.04)',
     } : {}),
   },
   tabItem: {
@@ -160,50 +158,55 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: SPACING.tab.paddingVertical,
-    paddingBottom: 8,
+    paddingBottom: 6,
     minHeight: 44,
-  },
-  activeIndicator: {
-    width: 16,
-    height: 2,
-    borderRadius: 1,
-    backgroundColor: COLORS.primary.main,
-    marginBottom: 2,
+    position: 'relative',
   },
   tabIconContainer: {
     position: 'relative',
-    width: 22,
-    height: 22,
+    width: 28,
+    height: 28,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 3,
+    marginBottom: 1,
+  },
+  activeIndicator: {
+    position: 'absolute',
+    top: 0,
+    width: 20,
+    height: 2,
+    backgroundColor: COLORS.primary.accent,
+    borderRadius: 1,
   },
   chatBadge: {
     position: 'absolute',
-    top: -5,
+    top: -4,
     right: -10,
     backgroundColor: COLORS.functional.error,
-    borderRadius: 9,
-    minWidth: 18,
-    height: 18,
+    borderRadius: 8,
+    minWidth: 16,
+    height: 16,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 4,
+    borderWidth: 1.5,
+    borderColor: COLORS.neutral.white,
   },
   chatBadgeText: {
     color: COLORS.text.white,
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '700',
-    lineHeight: 12,
+    lineHeight: 11,
   },
   tabLabel: {
     fontSize: 10,
     fontWeight: '500',
-    color: COLORS.text.tertiary,
+    color: COLORS.neutral.grey400,
+    letterSpacing: 0.2,
   },
   activeTabLabel: {
-    color: COLORS.primary.main,
-    fontWeight: '700',
+    color: COLORS.primary.accent,
+    fontWeight: '600',
   },
 });
 

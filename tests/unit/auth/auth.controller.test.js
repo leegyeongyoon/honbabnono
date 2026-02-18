@@ -24,6 +24,9 @@ jest.mock('axios');
 jest.mock('jsonwebtoken');
 jest.mock('../../../server/middleware/auth', () => ({
   generateJWT: jest.fn().mockReturnValue('generated-jwt-token'),
+  generateRefreshToken: jest.fn().mockReturnValue('generated-refresh-token'),
+  verifyRefreshToken: jest.fn().mockReturnValue({ userId: 1, email: 'test@test.com' }),
+  revokeRefreshToken: jest.fn(),
 }));
 
 const authController = require('../../../server/modules/auth/controller');

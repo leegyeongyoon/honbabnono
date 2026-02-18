@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
-import { COLORS, SHADOWS, CARD_STYLE, CSS_SHADOWS } from '../styles/colors';
+import { COLORS, SHADOWS, CARD_STYLE, CSS_SHADOWS, LAYOUT, TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../styles';
 import { getAvatarColor, getInitials } from '../utils/avatarColor';
 import { useUserStore } from '../store/userStore';
 import { useMeetupStore } from '../store/meetupStore';
@@ -34,9 +34,9 @@ const getCategoryColor = (categoryName: string) => {
 };
 
 // 필터 정보 아코디언 컴포넌트
-const FilterAccordion: React.FC<{ 
-  diningPreferences?: any; 
-  promiseDepositRequired?: boolean; 
+const FilterAccordion: React.FC<{
+  diningPreferences?: any;
+  promiseDepositRequired?: boolean;
   promiseDepositAmount?: number;
 }> = ({ diningPreferences, promiseDepositRequired, promiseDepositAmount }) => {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -59,18 +59,18 @@ const FilterAccordion: React.FC<{
 
   return (
     <View style={styles.accordionContainer}>
-      <TouchableOpacity 
+      <TouchableOpacity
         style={styles.accordionHeader}
         onPress={() => setIsExpanded(!isExpanded)}
       >
         <Text style={styles.accordionTitle}>선택 성향 필터</Text>
-        <Icon 
-          name={isExpanded ? "chevron-up" : "chevron-down"} 
-          size={20} 
-          color={COLORS.text.secondary} 
+        <Icon
+          name={isExpanded ? "chevron-up" : "chevron-down"}
+          size={20}
+          color={COLORS.text.secondary}
         />
       </TouchableOpacity>
-      
+
       {isExpanded && (
         <View style={styles.accordionContent}>
           {/* 약속금 정보 */}
@@ -196,8 +196,8 @@ interface MeetupDetailScreenProps {
 }
 
 // 카카오맵 컴포넌트
-const KakaoMap: React.FC<{ 
-  location: string; 
+const KakaoMap: React.FC<{
+  location: string;
   address: string;
   latitude?: number;
   longitude?: number;
@@ -213,7 +213,7 @@ const KakaoMap: React.FC<{
           // 좌표 우선 사용, 없으면 서울 시청 기본 좌표
           const lat = latitude || 37.5665;
           const lng = longitude || 126.9780;
-          
+
           const coords = new window.kakao.maps.LatLng(lat, lng);
           const options = {
             center: coords,
@@ -221,13 +221,13 @@ const KakaoMap: React.FC<{
           };
 
           const map = new window.kakao.maps.Map(mapRef.current, options);
-          
+
           // 마커 생성 및 표시
           const marker = new window.kakao.maps.Marker({
             map: map,
             position: coords
           });
-          
+
           // 인포윈도우 생성 및 표시
           const infowindow = new window.kakao.maps.InfoWindow({
             content: `<div style="width:150px;text-align:center;padding:6px 0; font-size: 12px;">${location}</div>`
@@ -264,14 +264,14 @@ const KakaoMap: React.FC<{
   return (
     <View style={styles.mapSection}>
       <Text style={styles.mapLabel}>지도</Text>
-      <div 
+      <div
         ref={mapRef}
         style={{
           width: '100%',
           height: '200px',
           backgroundColor: COLORS.neutral.background,
-          borderRadius: '12px',
-          marginBottom: '12px',
+          borderRadius: BORDER_RADIUS.lg,
+          marginBottom: 12,
           display: mapError ? 'flex' : 'block',
           alignItems: 'center',
           justifyContent: 'center',
@@ -316,7 +316,7 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
       // 캐시된 데이터를 클리어하고 새로운 데이터를 가져옴
       setCurrentMeetup(null);
       fetchMeetupById(id);
-      
+
       // 최근 본 글 기록 추가
       const recordRecentView = async () => {
         try {
@@ -345,7 +345,7 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
         // 밥알지수 로드 실패 - 무시
       }
     };
-    
+
     if (user) {
       loadUserRiceIndex();
     }
@@ -410,11 +410,11 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
   const meetup = currentMeetup;
   const participants = meetup.participants || [];
   const isHost = meetup.hostId === user?.id;
-  
+
   // 모임 상태 확인 (지난 모임인지)
-  const isPastMeetup = meetup.status === '완료' || meetup.status === '종료' || 
+  const isPastMeetup = meetup.status === '완료' || meetup.status === '종료' ||
                       meetup.status === '취소' || meetup.status === '파토';
-  
+
   // 현재 시간이 모임 시간을 지났는지 확인
   const now = new Date();
   const meetupDateTime = new Date(`${meetup.date} ${meetup.time}`);
@@ -423,7 +423,7 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
   // 모임 참여하기
   const handleJoinMeetup = async () => {
     if (!user || !id) {return;}
-    
+
     try {
       if (participants.some(p => p.id === user.id)) {
         // 이미 참여중이면 탈퇴 확인 모달 표시
@@ -440,11 +440,11 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
   // 모임 탈퇴 확인
   const handleConfirmLeave = async () => {
     if (!user || !id) {return;}
-    
+
     try {
       const result = await leaveMeetup(id, user.id);
       setShowLeaveModal(false);
-      
+
       // 호스트가 모임을 취소한 경우 홈으로 리다이렉트
       if (result?.isHostCancellation) {
         showInfo('모임이 취소되었습니다. 모든 참가자가 자동으로 나가게 됩니다.');
@@ -475,11 +475,11 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
     if (!user || !id) {
       return;
     }
-    
+
     try {
       // 실제 모임 참여 처리
       await joinMeetup(id, user.id);
-      
+
       showSuccess('약속금 ' + amount.toLocaleString() + '원이 결제되었습니다! 모임에 참여되었습니다.');
     } catch (error) {
       showError('모임 참여에 실패했습니다. 다시 시도해주세요.');
@@ -528,7 +528,7 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
         // 모임 정보 새로고침
         await fetchMeetupById(id);
         setShowHostModal(false);
-        
+
         const message = action === 'confirm' ? '모임이 확정되었습니다!' : '모임이 취소되었습니다.';
         showSuccess(message);
       } else {
@@ -542,11 +542,11 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
   // 보증금 결제 후 실제 참여 (기존 함수 유지)
   const handleConfirmJoin = async () => {
     if (!user || !id) {return;}
-    
+
     try {
       // 포인트 확인
       const hasEnoughPoints = await checkUserPoints();
-      
+
       if (!hasEnoughPoints) {
         const requiredPoints = meetup.deposit || 3000;
         const confirmed = await confirm(
@@ -579,7 +579,7 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
       // 모임 참여
       await joinMeetup(id, user.id);
       setShowPromiseModal(false);
-      
+
       showSuccess('모임 참여가 완료되었습니다! 사용된 포인트: ' + (meetup.deposit || 3000).toLocaleString() + '원');
     } catch (error) {
       showError('모임 참여 중 오류가 발생했습니다.');
@@ -587,53 +587,197 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
     }
   };
 
+  const participantRatio = (meetup.maxParticipants ?? 4) > 0
+    ? (meetup.currentParticipants ?? 0) / (meetup.maxParticipants ?? 4)
+    : 0;
+
   return (
     <View style={styles.container}>
-      {/* 상단 헤더 */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Icon name="chevron-left" size={24} color={COLORS.text.primary} />
-        </TouchableOpacity>
-        <View style={styles.headerIcons}>
-          <TouchableOpacity 
-            style={styles.iconButton}
-            onPress={toggleWishlist}
-            disabled={wishlistLoading}
-          >
-            <Heart
-              size={22}
-              color={isWishlisted ? COLORS.functional.error : COLORS.text.secondary}
-              fill={isWishlisted ? COLORS.functional.error : 'transparent'}
-            />
-          </TouchableOpacity>
-        </View>
-      </View>
-
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <FadeIn>
-        {/* 호스트 정보 */}
-        <View style={styles.hostSection}>
-          <View style={styles.hostInfo}>
+        {/* 히어로 이미지 섹션 */}
+        <div style={{
+          position: 'relative',
+          width: '100%',
+          height: 280,
+          overflow: 'hidden',
+          backgroundColor: COLORS.neutral.grey200,
+        }}>
+          <img
+            src={processImageUrl(meetup.image, meetup.category)}
+            alt={meetup.title}
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+            }}
+          />
+          {/* 그라데이션 오버레이 */}
+          <div style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            height: 100,
+            background: 'linear-gradient(180deg, rgba(17,17,17,0.4) 0%, transparent 100%)',
+            pointerEvents: 'none',
+          }} />
+          <div style={{
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            height: 120,
+            background: 'linear-gradient(0deg, rgba(17,17,17,0.5) 0%, transparent 100%)',
+            pointerEvents: 'none',
+          }} />
+          {/* 오버레이 헤더 버튼들 */}
+          <div style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            display: 'flex',
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            padding: '16px 16px',
+            paddingTop: 20,
+          }}>
+            <div
+              onClick={() => navigation.goBack()}
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 20,
+                backgroundColor: 'rgba(255,255,255,0.9)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                boxShadow: CSS_SHADOWS.small,
+                backdropFilter: 'blur(8px)',
+              }}
+              role="button"
+              aria-label="뒤로가기"
+            >
+              <Icon name="chevron-left" size={20} color={COLORS.text.primary} />
+            </div>
+            <div
+              onClick={toggleWishlist}
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 20,
+                backgroundColor: 'rgba(255,255,255,0.9)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                boxShadow: CSS_SHADOWS.small,
+                backdropFilter: 'blur(8px)',
+              }}
+              role="button"
+              aria-label={isWishlisted ? '찜 해제' : '찜하기'}
+            >
+              <Heart
+                size={20}
+                color={isWishlisted ? COLORS.functional.error : COLORS.text.secondary}
+                fill={isWishlisted ? COLORS.functional.error : 'transparent'}
+              />
+            </div>
+          </div>
+          {/* 이미지 위 상태 뱃지 */}
+          {meetup.status && (
+            <div style={{
+              position: 'absolute',
+              bottom: 16,
+              left: 16,
+              display: 'flex',
+              flexDirection: 'row',
+              gap: 8,
+              alignItems: 'center',
+            }}>
+              <div style={{
+                paddingLeft: 10,
+                paddingRight: 10,
+                paddingTop: 5,
+                paddingBottom: 5,
+                borderRadius: BORDER_RADIUS.sm,
+                backgroundColor: meetup.status === 'recruiting' ? COLORS.functional.success
+                  : meetup.status === 'confirmed' ? COLORS.primary.main
+                  : COLORS.neutral.grey500,
+              }}>
+                <span style={{ fontSize: 12, fontWeight: '700', color: COLORS.neutral.white }}>
+                  {meetup.status === 'recruiting' ? '모집중' : meetup.status === 'confirmed' ? '모집완료' : meetup.status}
+                </span>
+              </div>
+              {meetup.promiseDepositAmount ? (
+                <div style={{
+                  paddingLeft: 10,
+                  paddingRight: 10,
+                  paddingTop: 5,
+                  paddingBottom: 5,
+                  borderRadius: BORDER_RADIUS.sm,
+                  backgroundColor: 'rgba(61,139,94,0.9)',
+                }}>
+                  <span style={{ fontSize: 12, fontWeight: '700', color: COLORS.neutral.white }}>
+                    보증금 {meetup.promiseDepositAmount.toLocaleString()}원
+                  </span>
+                </div>
+              ) : null}
+            </div>
+          )}
+        </div>
+
+        {/* 호스트 정보 카드 */}
+        <div style={{
+          marginLeft: SPACING.xl,
+          marginRight: SPACING.xl,
+          marginTop: -32,
+          position: 'relative',
+          zIndex: 2,
+          backgroundColor: COLORS.neutral.white,
+          borderRadius: BORDER_RADIUS.lg,
+          padding: 16,
+          display: 'flex',
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          boxShadow: CSS_SHADOWS.card,
+          border: `1px solid ${CARD_STYLE.borderColor}`,
+        }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
             <ProfileImage
               profileImage={meetup.host?.profileImage}
               name={meetup.host?.name || meetup.hostName}
-              size={60}
-              style={styles.avatar}
+              size={52}
             />
             <View>
               <Text style={styles.hostName}>{meetup.hostName || '익명'}</Text>
-              <Text style={styles.hostLocation}>{meetup.location || '위치 미정'}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 }}>
+                <Icon name="map-pin" size={12} color={COLORS.text.tertiary} />
+                <Text style={styles.hostLocation}>{meetup.location || '위치 미정'}</Text>
+              </View>
             </View>
           </View>
-          <View style={styles.riceIndicator}>
-            <Text style={styles.riceText}>{meetup.hostBabAlScore || userRiceIndex} 밥알 🍚</Text>
-          </View>
-        </View>
+          <div style={{
+            background: COLORS.gradient.subtleGold,
+            paddingLeft: 12,
+            paddingRight: 12,
+            paddingTop: 6,
+            paddingBottom: 6,
+            borderRadius: BORDER_RADIUS.md,
+            border: `1px solid ${CARD_STYLE.borderColor}`,
+          }}>
+            <Text style={styles.riceText}>{meetup.hostBabAlScore || userRiceIndex} 밥알</Text>
+          </div>
+        </div>
 
         {/* 메인 카드 */}
         <View style={styles.mainCard}>
           <Text style={styles.meetupTitle}>{meetup.title || '제목 없음'}</Text>
-          
+
           {/* 필수 성향 필터 뱃지 */}
           <View style={styles.filterBadgeContainer}>
             <Text style={styles.filterBadgeTitle}>필수 성향</Text>
@@ -647,7 +791,7 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
                   </Text>
                 </View>
               )}
-              
+
               {/* 가격대 뱃지 */}
               {meetup.priceRange && (
                 <View style={styles.priceBadge}>
@@ -655,7 +799,7 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
                   <Text style={styles.priceBadgeText}>{meetup.priceRange}</Text>
                 </View>
               )}
-              
+
               {/* 연령대 필터 - API 데이터가 있을 때만 표시 */}
               {meetup.ageRange && (
                 <View style={styles.ageBadge}>
@@ -663,11 +807,11 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
                   <Text style={styles.ageBadgeText}>{meetup.ageRange}</Text>
                 </View>
               )}
-              
+
               {/* 성별 필터 - API 데이터가 있을 때만 표시 */}
               {meetup.genderPreference && (
                 <View style={styles.genderBadge}>
-                  <Icon name="users" size={14} color={COLORS.primary.main} />
+                  <Icon name="users" size={14} color={COLORS.primary.accent} />
                   <Text style={styles.genderBadgeText}>{meetup.genderPreference}</Text>
                 </View>
               )}
@@ -680,25 +824,25 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
             <View style={styles.filterBadges}>
               {/* 기분 조건 */}
               <View style={styles.optionalBadge}>
-                <Icon name="smile" size={14} color={COLORS.primary.main} />
+                <Icon name="smile" size={14} color={COLORS.primary.accent} />
                 <Text style={styles.optionalBadgeText}>분위기 좋은 곳</Text>
               </View>
-              
+
               {/* 위치 조건 */}
               <View style={styles.optionalBadge}>
                 <Icon name="map" size={14} color={COLORS.functional.warning} />
                 <Text style={styles.optionalBadgeText}>역 근처</Text>
               </View>
-              
+
               {/* 시간 조건 */}
               <View style={styles.optionalBadge}>
                 <Icon name="clock" size={14} color={COLORS.text.secondary} />
                 <Text style={styles.optionalBadgeText}>1-2시간</Text>
               </View>
-              
+
               {/* 음료 조건 */}
               <View style={styles.optionalBadge}>
-                <Icon name="coffee" size={14} color={COLORS.primary.dark} />
+                <Icon name="coffee" size={14} color={COLORS.primary.main} />
                 <Text style={styles.optionalBadgeText}>무알코올</Text>
               </View>
             </View>
@@ -709,16 +853,39 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
               <Icon name="map-pin" size={16} color={COLORS.text.secondary} />
               <Text style={styles.infoLabel}>{meetup.location}</Text>
             </View>
-            
+
             <View style={styles.infoRow}>
               <Icon name="clock" size={16} color={COLORS.text.secondary} />
               <Text style={styles.infoLabel}>{meetup.date || '날짜 미정'} {meetup.time || ''}</Text>
             </View>
-            
+
             <View style={styles.infoRow}>
-              <Icon name="users" size={16} color={COLORS.text.secondary} />
-              <Text style={styles.infoLabel}>{meetup.currentParticipants ?? 0}/{meetup.maxParticipants ?? 4}명</Text>
+              <Icon name="users" size={16} color={COLORS.primary.accent} />
+              <Text style={[styles.infoLabel, { color: COLORS.primary.accent, fontWeight: '700' }]}>
+                {meetup.currentParticipants ?? 0}/{meetup.maxParticipants ?? 4}명
+              </Text>
             </View>
+            {/* 참가자 프로그레스 바 */}
+            <div style={{
+              height: 6,
+              backgroundColor: COLORS.neutral.grey100,
+              borderRadius: BORDER_RADIUS.sm,
+              overflow: 'hidden',
+              marginTop: -4,
+              marginBottom: 8,
+            }}>
+              <div style={{
+                width: `${Math.min(participantRatio * 100, 100)}%`,
+                height: '100%',
+                borderRadius: BORDER_RADIUS.sm,
+                background: participantRatio >= 1
+                  ? COLORS.functional.error
+                  : participantRatio > 0.7
+                    ? COLORS.functional.warning
+                    : COLORS.gradient.ctaCSS,
+                transition: 'width 600ms ease',
+              }} />
+            </div>
           </View>
 
           <Text style={styles.description}>
@@ -733,7 +900,7 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
         </View>
 
         {/* 필터 정보 아코디언 */}
-        <FilterAccordion 
+        <FilterAccordion
           diningPreferences={meetup.diningPreferences}
           promiseDepositRequired={meetup.promiseDepositRequired}
           promiseDepositAmount={meetup.promiseDepositAmount}
@@ -756,9 +923,9 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
               gap: 8,
               padding: 16,
               backgroundColor: COLORS.neutral.background,
-              borderRadius: 12,
+              borderRadius: BORDER_RADIUS.lg,
             }}>
-              <Icon name="map-pin" size={18} color={COLORS.primary.main} />
+              <Icon name="map-pin" size={18} color={COLORS.primary.accent} />
               <Text style={{ fontSize: 15, color: COLORS.text.primary, flex: 1 }}>
                 {meetup.address || meetup.location || '위치 미정'}
               </Text>
@@ -768,8 +935,23 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
 
         {/* 참여자 섹션 */}
         <View style={styles.participantSection}>
-          <Text style={styles.participantTitle}>참여자 ({participants.filter(p => p.id !== meetup.hostId).length + 1}명)</Text>
-          
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            <Text style={styles.participantTitle}>참여자</Text>
+            <div style={{
+              paddingLeft: 10,
+              paddingRight: 10,
+              paddingTop: 4,
+              paddingBottom: 4,
+              borderRadius: BORDER_RADIUS.md,
+              backgroundColor: COLORS.primary.light,
+              border: `1px solid ${CARD_STYLE.borderColor}`,
+            }}>
+              <span style={{ fontSize: 13, fontWeight: '700', color: COLORS.primary.main }}>
+                {participants.filter(p => p.id !== meetup.hostId).length + 1}/{meetup.maxParticipants ?? 4}명
+              </span>
+            </div>
+          </View>
+
           {/* 호스트 */}
           <View style={styles.participantItem}>
             <View style={styles.hostAvatar}>
@@ -798,14 +980,14 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
               <View style={styles.participantInfo}>
                 <Text style={styles.participantName}>{participant.name}</Text>
                 <Text style={styles.participantRole}>
-                  {participant.status === 'approved' ? '참가승인' : 
-                   participant.status === 'pending' ? '참가신청' : 
+                  {participant.status === 'approved' ? '참가승인' :
+                   participant.status === 'pending' ? '참가신청' :
                    participant.status === 'rejected' ? '참가거절' : '참가취소'}
                 </Text>
               </View>
             </View>
           ))}
-          
+
           {participants.filter(p => p.id !== meetup.hostId).length === 0 && (
             <Text style={styles.noParticipants}>아직 참여자가 없습니다.</Text>
           )}
@@ -822,11 +1004,11 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
           /* 지난 모임인 경우 - 상태만 표시 */
           <View style={styles.pastMeetupContainer}>
             <Text style={styles.pastMeetupText}>
-              {meetup.status === '완료' || meetup.status === '종료' ? 
-                '✅ 완료된 모임이에요' :
-                meetup.status === '취소' ? 
-                '❌ 취소된 모임이에요' :
-                '💥 파토된 모임이에요'
+              {meetup.status === '완료' || meetup.status === '종료' ?
+                '완료된 모임이에요' :
+                meetup.status === '취소' ?
+                '취소된 모임이에요' :
+                '파토된 모임이에요'
               }
             </Text>
           </View>
@@ -840,9 +1022,9 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
                   onPress={() => handleGoToChat()}
                   style={styles.chatButton}
                 >
-                  <Text style={styles.chatButtonText}>💬 채팅방</Text>
+                  <Text style={styles.chatButtonText}>채팅방</Text>
                 </TouchableOpacity>
-                
+
                 {/* 호스트 전용 버튼들 */}
                 {isHost && (
                   <TouchableOpacity
@@ -854,8 +1036,8 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
                     </Text>
                   </TouchableOpacity>
                 )}
-                
-                {/* 참가자 탈퇴 버튼 */}
+
+                {/* 참가자 탈퇴 버튼 — outlined style */}
                 {!isHost && (
                   <TouchableOpacity
                     onPress={() => setShowLeaveModal(true)}
@@ -866,13 +1048,39 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
                 )}
               </View>
             ) : (
-              /* 미참여자 - 참여하기 버튼 */
-              <TouchableOpacity
-                onPress={() => handleJoinMeetup()}
-                style={styles.joinButton}
+              /* 미참여자 - 참여하기 버튼 (테라코타 CTA) */
+              <div
+                onClick={() => handleJoinMeetup()}
+                onMouseEnter={(e) => {
+                  (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)';
+                  (e.currentTarget as HTMLElement).style.boxShadow = CSS_SHADOWS.hover;
+                }}
+                onMouseLeave={(e) => {
+                  (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
+                  (e.currentTarget as HTMLElement).style.boxShadow = CSS_SHADOWS.cta;
+                }}
+                style={{
+                  background: COLORS.gradient.ctaCSS,
+                  borderRadius: BORDER_RADIUS.md,
+                  paddingTop: 16,
+                  paddingBottom: 16,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  boxShadow: CSS_SHADOWS.cta,
+                  transition: 'all 200ms ease',
+                }}
+                role="button"
+                aria-label="같이먹기"
               >
-                <Text style={styles.joinButtonText}>같이먹기</Text>
-              </TouchableOpacity>
+                <span style={{
+                  fontSize: 18,
+                  fontWeight: '700',
+                  color: COLORS.neutral.white,
+                  letterSpacing: 0.5,
+                }}>같이먹기</span>
+              </div>
             )}
           </>
         )}
@@ -896,7 +1104,7 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
               >
                 <Text style={styles.modalCancelText}>취소</Text>
               </TouchableOpacity>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.modalPayButton}
                 onPress={handleConfirmJoin}
               >
@@ -915,7 +1123,7 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
               {isHost ? '모임을 취소하시겠어요?' : '모임에서 나가시겠어요?'}
             </Text>
             <Text style={styles.modalDescription}>
-              {isHost ? 
+              {isHost ?
                 '모임을 취소하면 모든 참가자가 나가게 되고,\n채팅방도 삭제됩니다. 취소하시겠어요?' :
                 '모임을 나가면 채팅방에서도 나가게 되며,\n다시 참여하려면 새로 신청해야 해요.'
               }
@@ -927,7 +1135,7 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
               >
                 <Text style={styles.modalCancelText}>취소</Text>
               </TouchableOpacity>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={[styles.modalLeaveButton, isHost && styles.modalHostCancelButton]}
                 onPress={handleConfirmLeave}
               >
@@ -948,7 +1156,7 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
               {meetup.status === 'confirmed' ? '모임을 취소하시겠어요?' : '모임을 확정하시겠어요?'}
             </Text>
             <Text style={styles.modalDescription}>
-              {meetup.status === 'confirmed' ? 
+              {meetup.status === 'confirmed' ?
                 '확정된 모임을 취소하면 취소 시점에 따라\n참가자들에게 부분 환불됩니다.' :
                 `현재 ${participants.length}명이 참여중입니다.\n모임을 확정하면 취소 시 패널티가 적용됩니다.`
               }
@@ -960,7 +1168,7 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
               >
                 <Text style={styles.modalCancelText}>취소</Text>
               </TouchableOpacity>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={[styles.modalConfirmButton]}
                 onPress={handleMeetupAction}
               >
@@ -990,7 +1198,7 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.neutral.white,
+    backgroundColor: COLORS.neutral.background,
   },
   scrollView: {
     flex: 1,
@@ -999,29 +1207,37 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: COLORS.neutral.white,
+    backgroundColor: COLORS.neutral.background,
   },
   loadingText: {
-    fontSize: 16,
+    ...TYPOGRAPHY.body.medium,
     color: COLORS.text.secondary,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    paddingTop: 20,
-    backgroundColor: COLORS.neutral.white,
+    paddingHorizontal: SPACING.xl,
+    paddingVertical: SPACING.lg,
+    paddingTop: SPACING.xl,
+    backgroundColor: COLORS.surface.primary,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.neutral.grey100,
+    borderBottomColor: CARD_STYLE.borderColor,
+    ...SHADOWS.sticky,
+    // @ts-ignore — web CSS shadow
+    boxShadow: CSS_SHADOWS.stickyHeader,
+    zIndex: 10,
   },
   backButton: {
-    padding: 8,
+    padding: 10,
+    minWidth: 44,
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   backButtonText: {
     fontSize: 24,
-    color: COLORS.neutral.black,
+    color: COLORS.text.primary,
   },
   headerIcons: {
     flexDirection: 'row',
@@ -1037,8 +1253,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingHorizontal: SPACING.xl,
+    paddingVertical: SPACING.lg,
   },
   hostInfo: {
     flexDirection: 'row',
@@ -1046,48 +1262,47 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   hostName: {
-    fontSize: 16,
+    ...TYPOGRAPHY.heading.h3,
     fontWeight: '700',
-    color: COLORS.neutral.black,
-    marginBottom: 2,
   },
   hostLocation: {
-    fontSize: 14,
-    color: COLORS.text.secondary,
+    ...TYPOGRAPHY.body.small,
+    color: COLORS.text.tertiary,
   },
   riceIndicator: {
     backgroundColor: COLORS.primary.light,
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 12,
+    borderRadius: BORDER_RADIUS.md,
   },
   riceText: {
-    fontSize: 14,
-    color: COLORS.primary.dark,
+    ...TYPOGRAPHY.body.medium,
+    color: COLORS.primary.main,
     fontWeight: '700',
   },
   mainCard: {
-    backgroundColor: COLORS.neutral.white,
-    marginHorizontal: 20,
-    marginBottom: 16,
-    padding: 20,
-    ...CARD_STYLE,
+    backgroundColor: COLORS.surface.primary,
+    marginHorizontal: SPACING.xl,
+    marginTop: SPACING.lg,
+    marginBottom: SPACING.lg,
+    padding: SPACING.xl,
+    borderRadius: BORDER_RADIUS.lg,
+    borderWidth: 1,
+    borderColor: CARD_STYLE.borderColor,
     ...SHADOWS.medium,
   },
   meetupTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: COLORS.neutral.black,
-    marginBottom: 20,
+    ...TYPOGRAPHY.heading.h1,
+    marginBottom: SPACING.xl,
   },
   infoGrid: {
-    marginBottom: 20,
+    marginBottom: SPACING.xl,
   },
   infoItem: {
     marginBottom: 12,
   },
   infoLabel: {
-    fontSize: 14,
+    ...TYPOGRAPHY.body.medium,
     color: COLORS.text.secondary,
     fontWeight: '500',
   },
@@ -1098,40 +1313,36 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   infoDetails: {
-    fontSize: 14,
+    ...TYPOGRAPHY.body.medium,
     color: COLORS.text.tertiary,
   },
   description: {
-    fontSize: 16,
-    color: COLORS.text.primary,
-    lineHeight: 24,
-    marginBottom: 16,
+    ...TYPOGRAPHY.body.large,
+    marginBottom: SPACING.lg,
   },
   timeInfo: {
-    paddingTop: 16,
+    paddingTop: SPACING.lg,
     borderTopWidth: 1,
-    borderTopColor: COLORS.neutral.grey200,
+    borderTopColor: COLORS.neutral.grey100,
   },
   timeText: {
-    fontSize: 13,
+    ...TYPOGRAPHY.body.small,
     color: COLORS.text.tertiary,
   },
   mapSection: {
-    marginHorizontal: 20,
-    marginBottom: 16,
+    marginHorizontal: SPACING.xl,
+    marginBottom: SPACING.lg,
   },
   mapLabel: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: COLORS.neutral.black,
+    ...TYPOGRAPHY.sectionHeader.title,
     marginBottom: 12,
   },
   locationCard: {
-    backgroundColor: COLORS.neutral.white,
-    borderRadius: 12,
+    backgroundColor: COLORS.surface.primary,
+    borderRadius: BORDER_RADIUS.lg,
     padding: 16,
     borderWidth: 1,
-    borderColor: COLORS.neutral.grey200,
+    borderColor: CARD_STYLE.borderColor,
     flexDirection: 'row',
     alignItems: 'center',
   },
@@ -1153,8 +1364,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   locationText: {
-    fontSize: 16,
-    color: COLORS.neutral.black,
+    ...TYPOGRAPHY.body.large,
     fontWeight: '500',
     marginBottom: 8,
   },
@@ -1163,23 +1373,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     backgroundColor: COLORS.functional.info,
-    borderRadius: 12,
+    borderRadius: BORDER_RADIUS.md,
   },
   openMapText: {
-    fontSize: 14,
+    ...TYPOGRAPHY.button.small,
     color: COLORS.neutral.white,
-    fontWeight: '500',
   },
   mapLocationText: {
-    fontSize: 14,
+    ...TYPOGRAPHY.body.medium,
     color: COLORS.text.primary,
     fontWeight: '500',
     textAlign: 'center',
   },
   mapTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: COLORS.neutral.black,
+    ...TYPOGRAPHY.sectionHeader.title,
     marginBottom: 16,
     textAlign: 'center',
   },
@@ -1187,8 +1394,7 @@ const styles = StyleSheet.create({
 
   },
   mapLocationLabel: {
-    fontSize: 14,
-    color: COLORS.neutral.black,
+    ...TYPOGRAPHY.body.medium,
     fontWeight: '600',
     marginBottom: 8,
   },
@@ -1215,32 +1421,31 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.functional.success,
   },
   subwayText: {
-    fontSize: 12,
+    ...TYPOGRAPHY.caption,
     color: COLORS.text.secondary,
     marginLeft: 4,
   },
   statusText: {
-    fontSize: 12,
+    ...TYPOGRAPHY.caption,
     color: COLORS.text.secondary,
   },
   participantSection: {
-    backgroundColor: COLORS.neutral.white,
-    marginHorizontal: 20,
-    marginBottom: 16,
-    padding: 20,
-    ...CARD_STYLE,
+    backgroundColor: COLORS.surface.primary,
+    marginHorizontal: SPACING.xl,
+    marginBottom: SPACING.lg,
+    padding: SPACING.xl,
+    borderRadius: BORDER_RADIUS.lg,
+    borderWidth: 1,
+    borderColor: CARD_STYLE.borderColor,
     ...SHADOWS.medium,
   },
   participantTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: COLORS.neutral.black,
-    marginBottom: 16,
+    ...TYPOGRAPHY.sectionHeader.title,
   },
   participantItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: SPACING.lg,
   },
   avatar: {
     width: 48,
@@ -1258,13 +1463,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   participantName: {
-    fontSize: 16,
+    ...TYPOGRAPHY.body.large,
     fontWeight: '600',
-    color: COLORS.neutral.black,
-    marginBottom: 4,
+    marginBottom: SPACING.xs,
   },
   participantRole: {
-    fontSize: 14,
+    ...TYPOGRAPHY.body.medium,
     color: COLORS.text.secondary,
   },
   bottomPadding: {
@@ -1275,23 +1479,28 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: COLORS.neutral.white,
-    paddingHorizontal: 20,
-    paddingVertical: 20,
+    backgroundColor: COLORS.surface.primary,
+    paddingHorizontal: SPACING.xl,
+    paddingVertical: SPACING.lg,
     paddingBottom: 34,
-    ...SHADOWS.medium,
+    borderTopWidth: 1,
+    borderTopColor: CARD_STYLE.borderColor,
+    ...SHADOWS.sticky,
+    // @ts-ignore — web CSS shadow
+    boxShadow: CSS_SHADOWS.bottomSheet,
   },
   joinButton: {
-    backgroundColor: COLORS.primary.main,
-    borderRadius: 12,
+    backgroundColor: COLORS.primary.accent,
+    borderRadius: BORDER_RADIUS.md,
     paddingVertical: 16,
     alignItems: 'center',
-    ...SHADOWS.small,
+    ...SHADOWS.cta,
   },
   joinButtonText: {
+    ...TYPOGRAPHY.button.large,
+    color: COLORS.neutral.white,
     fontSize: 18,
     fontWeight: '700',
-    color: COLORS.neutral.white,
   },
   modalOverlay: {
     position: 'absolute',
@@ -1299,43 +1508,40 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: COLORS.surface.overlay,
     justifyContent: 'center',
     alignItems: 'center',
   },
   modalContainer: {
-    backgroundColor: COLORS.neutral.white,
-    borderRadius: 16,
+    backgroundColor: COLORS.surface.primary,
+    borderRadius: BORDER_RADIUS.lg,
     padding: 24,
     width: '90%',
     maxWidth: 400,
     ...SHADOWS.large,
+    // @ts-ignore — web CSS shadow
+    boxShadow: CSS_SHADOWS.large,
   },
   modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: COLORS.text.primary,
+    ...TYPOGRAPHY.heading.h2,
     textAlign: 'center',
-    marginBottom: 16,
+    marginBottom: SPACING.lg,
   },
   modalDescription: {
-    fontSize: 14,
+    ...TYPOGRAPHY.body.medium,
     color: COLORS.text.secondary,
     textAlign: 'center',
-    lineHeight: 20,
-    marginBottom: 20,
+    marginBottom: SPACING.xl,
   },
   modalAmountContainer: {
     backgroundColor: COLORS.neutral.background,
-    borderRadius: 12,
+    borderRadius: BORDER_RADIUS.lg,
     padding: 16,
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: SPACING.xl,
   },
   modalAmount: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: COLORS.text.primary,
+    ...TYPOGRAPHY.heading.h1,
   },
   modalButtonContainer: {
     flexDirection: 'row',
@@ -1344,44 +1550,41 @@ const styles = StyleSheet.create({
   modalCancelButton: {
     flex: 1,
     backgroundColor: COLORS.neutral.grey100,
-    borderRadius: 12,
+    borderRadius: BORDER_RADIUS.md,
     paddingVertical: 16,
     alignItems: 'center',
   },
   modalCancelText: {
-    fontSize: 16,
-    fontWeight: '600',
+    ...TYPOGRAPHY.button.large,
     color: COLORS.text.primary,
   },
   modalPayButton: {
     flex: 1,
-    backgroundColor: COLORS.primary.main,
-    borderRadius: 12,
+    backgroundColor: COLORS.primary.accent,
+    borderRadius: BORDER_RADIUS.md,
     paddingVertical: 16,
     alignItems: 'center',
   },
   modalPayText: {
-    fontSize: 16,
-    fontWeight: '600',
+    ...TYPOGRAPHY.button.large,
     color: COLORS.neutral.white,
   },
   noParticipants: {
-    fontSize: 14,
+    ...TYPOGRAPHY.body.medium,
     color: COLORS.text.tertiary,
     textAlign: 'center',
-    marginTop: 20,
+    marginTop: SPACING.xl,
     fontStyle: 'italic',
   },
   modalLeaveButton: {
     flex: 1,
     backgroundColor: COLORS.functional.error,
-    borderRadius: 12,
+    borderRadius: BORDER_RADIUS.md,
     paddingVertical: 16,
     alignItems: 'center',
   },
   modalLeaveText: {
-    fontSize: 16,
-    fontWeight: '600',
+    ...TYPOGRAPHY.button.large,
     color: COLORS.neutral.white,
   },
   modalHostCancelButton: {
@@ -1394,61 +1597,58 @@ const styles = StyleSheet.create({
   },
   chatButton: {
     flex: 2,
-    backgroundColor: COLORS.functional.info,
+    backgroundColor: COLORS.primary.main,
     paddingVertical: 16,
-    borderRadius: 12,
+    borderRadius: BORDER_RADIUS.md,
     alignItems: 'center',
     justifyContent: 'center',
     ...SHADOWS.small,
   },
   chatButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
+    ...TYPOGRAPHY.button.large,
     color: COLORS.neutral.white,
   },
   hostButton: {
     flex: 1,
     backgroundColor: COLORS.functional.success,
     paddingVertical: 16,
-    borderRadius: 12,
+    borderRadius: BORDER_RADIUS.md,
     alignItems: 'center',
     justifyContent: 'center',
     ...SHADOWS.small,
   },
   hostButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
+    ...TYPOGRAPHY.button.medium,
     color: COLORS.neutral.white,
   },
   leaveButton: {
     flex: 1,
-    backgroundColor: COLORS.functional.error,
+    backgroundColor: COLORS.surface.primary,
     paddingVertical: 16,
-    borderRadius: 12,
+    borderRadius: BORDER_RADIUS.md,
     alignItems: 'center',
     justifyContent: 'center',
-    ...SHADOWS.small,
+    borderWidth: 1,
+    borderColor: COLORS.functional.error,
   },
   leaveButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: COLORS.neutral.white,
+    ...TYPOGRAPHY.button.medium,
+    color: COLORS.functional.error,
   },
   modalConfirmButton: {
     flex: 1,
     backgroundColor: COLORS.functional.success,
-    borderRadius: 12,
+    borderRadius: BORDER_RADIUS.md,
     paddingVertical: 16,
     alignItems: 'center',
   },
   modalConfirmText: {
-    fontSize: 16,
-    fontWeight: '600',
+    ...TYPOGRAPHY.button.large,
     color: COLORS.text.white,
   },
   pastMeetupContainer: {
     backgroundColor: COLORS.neutral.background,
-    borderRadius: 12,
+    borderRadius: BORDER_RADIUS.lg,
     paddingVertical: 16,
     paddingHorizontal: 20,
     alignItems: 'center',
@@ -1456,19 +1656,17 @@ const styles = StyleSheet.create({
     borderColor: COLORS.neutral.grey200,
   },
   pastMeetupText: {
-    fontSize: 16,
+    ...TYPOGRAPHY.body.large,
     fontWeight: '600',
     color: COLORS.text.secondary,
     textAlign: 'center',
   },
   // 필터 뱃지 스타일
   filterBadgeContainer: {
-    marginBottom: 20,
+    marginBottom: SPACING.xl,
   },
   filterBadgeTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: COLORS.text.primary,
+    ...TYPOGRAPHY.sectionHeader.title,
     marginBottom: 12,
   },
   filterBadges: {
@@ -1481,11 +1679,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 12,
+    borderRadius: BORDER_RADIUS.sm,
     gap: 6,
   },
   filterBadgeText: {
-    fontSize: 13,
+    ...TYPOGRAPHY.body.small,
     fontWeight: '700',
   },
   categoryEmoji: {
@@ -1496,12 +1694,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 12,
+    borderRadius: BORDER_RADIUS.sm,
     backgroundColor: COLORS.functional.success + '20',
     gap: 6,
   },
   priceBadgeText: {
-    fontSize: 13,
+    ...TYPOGRAPHY.body.small,
     fontWeight: '700',
     color: COLORS.functional.success,
   },
@@ -1510,12 +1708,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 12,
+    borderRadius: BORDER_RADIUS.sm,
     backgroundColor: COLORS.text.secondary + '20',
     gap: 6,
   },
   ageBadgeText: {
-    fontSize: 13,
+    ...TYPOGRAPHY.body.small,
     fontWeight: '700',
     color: COLORS.text.secondary,
   },
@@ -1524,38 +1722,39 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 12,
-    backgroundColor: COLORS.primary.main + '20',
+    borderRadius: BORDER_RADIUS.sm,
+    backgroundColor: COLORS.primary.accent + '20',
     gap: 6,
   },
   genderBadgeText: {
-    fontSize: 13,
+    ...TYPOGRAPHY.body.small,
     fontWeight: '700',
-    color: COLORS.primary.main,
+    color: COLORS.primary.accent,
   },
   optionalBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 12,
+    borderRadius: BORDER_RADIUS.sm,
     backgroundColor: COLORS.neutral.background,
     borderWidth: 1,
     borderColor: COLORS.neutral.grey200,
     gap: 6,
   },
   optionalBadgeText: {
-    fontSize: 13,
+    ...TYPOGRAPHY.body.small,
     fontWeight: '700',
     color: COLORS.text.secondary,
   },
   // 아코디언 스타일
   accordionContainer: {
-    marginHorizontal: 20,
-    marginBottom: 20,
-    backgroundColor: COLORS.neutral.white,
-    borderRadius: 16,
-    ...CARD_STYLE,
+    marginHorizontal: SPACING.xl,
+    marginBottom: SPACING.xl,
+    backgroundColor: COLORS.surface.primary,
+    borderRadius: BORDER_RADIUS.lg,
+    borderWidth: 1,
+    borderColor: CARD_STYLE.borderColor,
     ...SHADOWS.small,
     overflow: 'hidden',
   },
@@ -1567,33 +1766,31 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.neutral.background,
   },
   accordionTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: COLORS.text.primary,
+    ...TYPOGRAPHY.heading.h3,
   },
   accordionContent: {
     padding: 16,
-    backgroundColor: COLORS.neutral.white,
+    backgroundColor: COLORS.surface.primary,
   },
   filterSection: {
-    marginBottom: 16,
+    marginBottom: SPACING.lg,
   },
   filterSectionTitle: {
-    fontSize: 14,
+    ...TYPOGRAPHY.body.medium,
     fontWeight: '600',
     color: COLORS.text.primary,
     marginBottom: 8,
   },
   filterItem: {
-    marginBottom: 4,
+    marginBottom: SPACING.xs,
   },
   filterValue: {
-    fontSize: 14,
+    ...TYPOGRAPHY.body.medium,
     color: COLORS.text.secondary,
     fontWeight: '500',
   },
   filterDescription: {
-    fontSize: 12,
+    ...TYPOGRAPHY.caption,
     color: COLORS.text.tertiary,
     marginTop: 2,
   },
@@ -1603,14 +1800,14 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   interestTag: {
-    backgroundColor: COLORS.primary.main + '20',
+    backgroundColor: COLORS.primary.accent + '20',
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 12,
+    borderRadius: BORDER_RADIUS.sm,
   },
   interestTagText: {
-    fontSize: 12,
-    color: COLORS.primary.main,
+    ...TYPOGRAPHY.caption,
+    color: COLORS.primary.accent,
     fontWeight: '500',
   },
 });

@@ -146,7 +146,7 @@ const styles = StyleSheet.create({
     left: 16,
     right: 16,
     backgroundColor: 'white',
-    borderRadius: 16,
+    borderRadius: 8,
     ...SHADOWS.large,
     overflow: 'hidden',
   },

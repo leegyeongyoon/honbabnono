@@ -189,7 +189,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 28,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: COLORS.text.primary,
     marginBottom: 8,
   },
@@ -272,7 +272,7 @@ const styles = StyleSheet.create({
   buttonIconText: {
     color: COLORS.neutral.white,
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '700',
   },
   warningSection: {
     backgroundColor: COLORS.functional.warningLight,

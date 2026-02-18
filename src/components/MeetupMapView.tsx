@@ -132,11 +132,11 @@ const MeetupMapView: React.FC<MeetupMapViewProps> = ({
       background: white;
       padding: 10px 20px;
       border-radius: 20px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+      box-shadow: 0 2px 6px rgba(13,13,12,0.15);
       border: none;
       font-size: 14px;
       font-weight: 600;
-      color: #333;
+      color: #1A1714;
       cursor: pointer;
       z-index: 100;
       display: none;
@@ -157,10 +157,10 @@ const MeetupMapView: React.FC<MeetupMapViewProps> = ({
       background: white;
       border: none;
       border-radius: 8px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+      box-shadow: 0 2px 6px rgba(13,13,12,0.15);
       font-size: 20px;
       font-weight: bold;
-      color: #333;
+      color: #1A1714;
       cursor: pointer;
       display: flex;
       align-items: center;

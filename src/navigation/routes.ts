@@ -22,7 +22,7 @@ export const TAB_ROUTES = [
     name: ROUTES.HOME,
     title: '홈',
     icon: '🏠',
-    headerTitle: '혼밥시러',
+    headerTitle: '잇테이블',
   },
   {
     name: ROUTES.MY_MEETUPS,

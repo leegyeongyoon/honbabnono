@@ -2104,11 +2104,11 @@ exports.progressCheck = async (req, res) => {
 
     if (notifications.length > 0) {
       const placeholders = notifications.map((_, i) =>
-        `($${i * 7 + 1}, $${i * 7 + 2}, $${i * 7 + 3}, $${i * 7 + 4}, $${i * 7 + 5}, $${i * 7 + 6}, $${i * 7 + 7})`
+        `($${i * 7 + 1}, $${i * 7 + 2}, $${i * 7 + 3}, $${i * 7 + 4}, $${i * 7 + 5}, $${i * 7 + 6}, $${i * 7 + 7}, false, NOW())`
       ).join(', ');
 
       await pool.query(`
-        INSERT INTO notifications (user_id, type, title, message, meetup_id, related_user_id, data)
+        INSERT INTO notifications (user_id, type, title, message, meetup_id, related_user_id, data, is_read, created_at)
         VALUES ${placeholders}
       `, notifications.flat());
     }

@@ -35,13 +35,12 @@ export const DepositSelector: React.FC<DepositSelectorProps> = ({
         try {
           const points = await depositService.getUserPoints(user.id);
           setUserPoints(points.availablePoints);
-        } catch (error) {
-          console.error('포인트 조회 실패:', error);
+        } catch (_error) {
           setUserPoints(0);
         }
       }
     };
-    
+
     fetchUserPoints();
   }, [user, visible]);
 
@@ -91,25 +90,23 @@ export const DepositSelector: React.FC<DepositSelectorProps> = ({
         paymentMethod: selectedPaymentMethod,
       };
 
-      console.log('💳 약속금 결제 요청:', paymentRequest);
       const response = await depositService.processPayment(paymentRequest);
-      console.log('💳 약속금 결제 응답:', response);
 
       if (response.success) {
         // 실제로는 DB에서 생성된 약속금 ID를 받아와야 함
         const depositId = response.paymentId || `temp_${Date.now()}`;
-        
+
         // 결제 완료 상태 설정
         setCompletedPaymentId(depositId);
         setIsPaymentComplete(true);
-        
+
         // 카카오페이의 경우 외부 브라우저 열기
         if (selectedPaymentMethod === 'kakaopay' && response.redirectUrl) {
           if (typeof window !== 'undefined') {
             window.open(response.redirectUrl, '_blank');
           }
         }
-        
+
         // 3초 후 자동으로 모달 닫기
         setTimeout(() => {
           onDepositPaid(depositId, defaultPolicy.amount);
@@ -121,8 +118,7 @@ export const DepositSelector: React.FC<DepositSelectorProps> = ({
       } else {
         Alert.alert('결제 실패', response.errorMessage || '결제 처리 중 오류가 발생했습니다.');
       }
-    } catch (error) {
-      console.error('결제 오류:', error);
+    } catch (_error) {
       Alert.alert('결제 실패', '결제 처리 중 오류가 발생했습니다.');
     } finally {
       setIsProcessing(false);
@@ -175,19 +171,19 @@ export const DepositSelector: React.FC<DepositSelectorProps> = ({
             <Text style={styles.depositDescription}>
               {defaultPolicy.description}
             </Text>
-            
+
             <View style={styles.policyInfo}>
               <Text style={styles.policyTitle}>환불 정책</Text>
               <View style={styles.policyItem}>
-                <Text style={styles.policyLabel}>• 정상 참석 + 후기 작성</Text>
+                <Text style={styles.policyLabel}>정상 참석 + 후기 작성</Text>
                 <Text style={styles.policyValue}>100% 환불</Text>
               </View>
               <View style={styles.policyItem}>
-                <Text style={styles.policyLabel}>• 정상 참석 (후기 미작성)</Text>
+                <Text style={styles.policyLabel}>정상 참석 (후기 미작성)</Text>
                 <Text style={styles.policyValue}>포인트 전환</Text>
               </View>
               <View style={styles.policyItem}>
-                <Text style={styles.policyLabel}>• 노쇼</Text>
+                <Text style={styles.policyLabel}>노쇼</Text>
                 <Text style={styles.policyValue}>약속금 몰수</Text>
               </View>
             </View>
@@ -281,8 +277,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   depositInfoCard: {
-    backgroundColor: COLORS.neutral.background,
-    borderRadius: 12,
+    backgroundColor: COLORS.neutral.light,
+    borderRadius: 8,
     padding: 20,
     marginVertical: 16,
   },
@@ -300,7 +296,7 @@ const styles = StyleSheet.create({
   depositAmount: {
     fontSize: 20,
     fontWeight: '700',
-    color: COLORS.primary.main,
+    color: COLORS.primary.accent,
   },
   depositDescription: {
     fontSize: 14,
@@ -351,12 +347,12 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.neutral.white,
     borderWidth: 1,
     borderColor: COLORS.neutral.grey200,
-    borderRadius: 12,
+    borderRadius: 8,
     marginBottom: 12,
   },
   selectedPaymentMethod: {
-    borderColor: COLORS.primary.main,
-    backgroundColor: COLORS.secondary.light,
+    borderColor: COLORS.primary.accent,
+    backgroundColor: COLORS.primary.light,
   },
   paymentMethodDisabled: {
     opacity: 0.5,
@@ -401,13 +397,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   radioButtonSelected: {
-    borderColor: COLORS.primary.main,
+    borderColor: COLORS.primary.accent,
   },
   radioButtonInner: {
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: COLORS.primary.main,
+    backgroundColor: COLORS.primary.accent,
   },
   footer: {
     padding: 16,
@@ -415,8 +411,8 @@ const styles = StyleSheet.create({
     borderTopColor: COLORS.neutral.grey200,
   },
   payButton: {
-    backgroundColor: COLORS.primary.main,
-    borderRadius: 12,
+    backgroundColor: COLORS.primary.accent,
+    borderRadius: 6,
     paddingVertical: 16,
     alignItems: 'center',
   },
@@ -440,7 +436,7 @@ const styles = StyleSheet.create({
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: COLORS.secondary.warm,
+    backgroundColor: COLORS.functional.successLight,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 32,
@@ -463,7 +459,7 @@ const styles = StyleSheet.create({
   successAmount: {
     fontSize: 32,
     fontWeight: '700',
-    color: COLORS.primary.main,
+    color: COLORS.primary.accent,
     marginBottom: 24,
     textAlign: 'center',
   },

@@ -8,7 +8,7 @@ import {
   RefreshControl,
   ActivityIndicator,
 } from 'react-native';
-import { COLORS, SHADOWS } from '../../styles/colors';
+import { COLORS, SHADOWS, CARD_STYLE } from '../../styles/colors';
 import { Icon } from '../Icon';
 import MeetupCard from '../MeetupCard';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -63,7 +63,7 @@ const UniversalJoinedMeetupsScreen: React.FC<UniversalJoinedMeetupsScreenProps> 
     try {
       setError(null);
       const token = await AsyncStorage.getItem('authToken');
-      
+
       if (!token) {
         throw new Error('로그인이 필요합니다');
       }
@@ -84,7 +84,6 @@ const UniversalJoinedMeetupsScreen: React.FC<UniversalJoinedMeetupsScreenProps> 
         throw new Error(data.message || '참여한 모임을 불러오는데 실패했습니다');
       }
     } catch (error) {
-      console.error('참여한 모임 조회 실패:', error);
       setError(error instanceof Error ? error.message : '참여한 모임을 불러오는데 실패했습니다');
     } finally {
       setLoading(false);
@@ -131,7 +130,7 @@ const UniversalJoinedMeetupsScreen: React.FC<UniversalJoinedMeetupsScreenProps> 
   const filteredMeetups = joinedMeetups.filter(meetup => {
     const now = new Date();
     const meetupDate = new Date(`${meetup.date}T${meetup.time}`);
-    
+
     if (activeTab === 'upcoming') {
       return meetupDate >= now && meetup.meetup_status !== 'completed';
     } else {
@@ -164,7 +163,7 @@ const UniversalJoinedMeetupsScreen: React.FC<UniversalJoinedMeetupsScreenProps> 
   // Render meetup item
   const renderMeetupItem = (meetup: JoinedMeetup) => {
     const status = getStatusText(meetup.participation_status);
-    
+
     return (
       <TouchableOpacity
         key={meetup.id}
@@ -182,7 +181,7 @@ const UniversalJoinedMeetupsScreen: React.FC<UniversalJoinedMeetupsScreenProps> 
           </View>
           <Icon name="chevron-right" size={20} color={COLORS.text.tertiary} />
         </View>
-        
+
         <Text style={styles.meetupTitle}>{meetup.title}</Text>
         <Text style={styles.meetupDate}>
           {new Date(`${meetup.date}T${meetup.time}`).toLocaleDateString('ko-KR', {
@@ -194,16 +193,16 @@ const UniversalJoinedMeetupsScreen: React.FC<UniversalJoinedMeetupsScreenProps> 
           })}
         </Text>
         <Text style={styles.meetupLocation}>{meetup.location}</Text>
-        
+
         <View style={styles.meetupFooter}>
           <Text style={styles.hostName}>호스트: {meetup.host_name}</Text>
           <Text style={styles.participants}>
             {meetup.current_participants}/{meetup.max_participants}명
           </Text>
         </View>
-        
+
         {activeTab === 'completed' && !meetup.has_reviewed && (
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.reviewButton}
             onPress={() => navigation.navigate('WriteReview', { meetupId: meetup.id })}
           >
@@ -225,7 +224,7 @@ const UniversalJoinedMeetupsScreen: React.FC<UniversalJoinedMeetupsScreenProps> 
         </View>
 
         <View style={[styles.centerContent, styles.loadingContainer]}>
-          <ActivityIndicator size="large" color={COLORS.primary.main} />
+          <ActivityIndicator size="large" color={COLORS.primary.accent} />
           <Text style={styles.loadingText}>참여한 모임을 불러오는 중...</Text>
         </View>
       </View>
@@ -250,8 +249,8 @@ const UniversalJoinedMeetupsScreen: React.FC<UniversalJoinedMeetupsScreenProps> 
           <RefreshControl
             refreshing={refreshing}
             onRefresh={handleRefresh}
-            colors={[COLORS.primary.main]}
-            tintColor={COLORS.primary.main}
+            colors={[COLORS.primary.accent]}
+            tintColor={COLORS.primary.accent}
           />
         }
       >
@@ -271,8 +270,8 @@ const UniversalJoinedMeetupsScreen: React.FC<UniversalJoinedMeetupsScreenProps> 
               {activeTab === 'upcoming' ? '다가오는 모임이 없습니다' : '지난 모임이 없습니다'}
             </Text>
             <Text style={styles.emptySubtitle}>
-              {activeTab === 'upcoming' 
-                ? '새로운 모임에 참여해보세요!' 
+              {activeTab === 'upcoming'
+                ? '새로운 모임에 참여해보세요!'
                 : '아직 참여 완료된 모임이 없습니다'
               }
             </Text>
@@ -306,7 +305,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  
+
   // Header
   header: {
     flexDirection: 'row',
@@ -316,12 +315,15 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     paddingBottom: 16,
     backgroundColor: COLORS.neutral.white,
-    ...SHADOWS.small,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(17,17,17,0.06)',
+    ...SHADOWS.sticky,
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: '700',
     color: COLORS.text.primary,
+    letterSpacing: -0.3,
   },
   placeholder: {
     width: 24,
@@ -332,7 +334,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 40,
   },
   loadingText: {
-    fontSize: 16,
+    fontSize: 15,
     color: COLORS.text.secondary,
     marginTop: 12,
   },
@@ -343,14 +345,16 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.neutral.white,
     marginHorizontal: 16,
     marginTop: 16,
-    borderRadius: 12,
+    borderRadius: 8,
     padding: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(17,17,17,0.06)',
     ...SHADOWS.small,
   },
   tab: {
     flex: 1,
-    paddingVertical: 12,
-    borderRadius: 8,
+    paddingVertical: 10,
+    borderRadius: 6,
     alignItems: 'center',
   },
   activeTab: {
@@ -374,9 +378,11 @@ const styles = StyleSheet.create({
   },
   meetupItem: {
     backgroundColor: COLORS.neutral.white,
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 12,
+    borderRadius: 8,
+    padding: 18,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(17,17,17,0.06)',
     ...SHADOWS.small,
   },
   meetupHeader: {
@@ -392,38 +398,43 @@ const styles = StyleSheet.create({
   },
   statusBadge: {
     paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingVertical: 3,
+    borderRadius: 4,
   },
   statusText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
     color: COLORS.neutral.white,
+    letterSpacing: 0.2,
   },
   joinedDate: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: COLORS.text.tertiary,
   },
   meetupTitle: {
     fontSize: 16,
     fontWeight: '600',
     color: COLORS.text.primary,
-    marginBottom: 8,
+    marginBottom: 6,
+    letterSpacing: -0.2,
   },
   meetupDate: {
-    fontSize: 14,
+    fontSize: 13,
     color: COLORS.text.secondary,
     marginBottom: 4,
   },
   meetupLocation: {
-    fontSize: 14,
-    color: COLORS.text.secondary,
+    fontSize: 13,
+    color: COLORS.text.tertiary,
     marginBottom: 12,
   },
   meetupFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(17,17,17,0.06)',
   },
   hostName: {
     fontSize: 12,
@@ -432,13 +443,15 @@ const styles = StyleSheet.create({
   participants: {
     fontSize: 12,
     color: COLORS.text.tertiary,
+    fontWeight: '500',
   },
   reviewButton: {
-    backgroundColor: COLORS.primary.main,
-    paddingVertical: 8,
-    borderRadius: 8,
+    backgroundColor: COLORS.primary.accent,
+    paddingVertical: 10,
+    borderRadius: 6,
     marginTop: 12,
     alignItems: 'center',
+    ...SHADOWS.cta,
   },
   reviewButtonText: {
     fontSize: 14,
@@ -455,12 +468,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 40,
   },
   emptyTitle: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '600',
     color: COLORS.text.primary,
     marginTop: 16,
     marginBottom: 8,
     textAlign: 'center',
+    letterSpacing: -0.2,
   },
   emptySubtitle: {
     fontSize: 14,
@@ -470,10 +484,11 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   findMeetupButton: {
-    backgroundColor: COLORS.primary.main,
-    paddingHorizontal: 20,
+    backgroundColor: COLORS.primary.accent,
+    paddingHorizontal: 24,
     paddingVertical: 12,
-    borderRadius: 8,
+    borderRadius: 6,
+    ...SHADOWS.cta,
   },
   findMeetupButtonText: {
     fontSize: 14,
@@ -490,11 +505,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 40,
   },
   errorTitle: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '600',
     color: COLORS.text.primary,
     marginTop: 16,
     marginBottom: 8,
+    letterSpacing: -0.2,
   },
   errorMessage: {
     fontSize: 14,
@@ -507,7 +523,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary.main,
     paddingHorizontal: 20,
     paddingVertical: 12,
-    borderRadius: 8,
+    borderRadius: 6,
   },
   retryButtonText: {
     fontSize: 14,

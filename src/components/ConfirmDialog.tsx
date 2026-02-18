@@ -100,7 +100,7 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    backgroundColor: 'rgba(17,17,17,0.5)',
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: Z_INDEX.modal,
@@ -114,7 +114,7 @@ const styles = StyleSheet.create({
   },
   dialog: {
     backgroundColor: COLORS.neutral.white,
-    borderRadius: 20,
+    borderRadius: 10,
     padding: 28,
     width: '85%',
     maxWidth: 360,
@@ -151,7 +151,7 @@ const styles = StyleSheet.create({
   cancelButton: {
     flex: 1,
     paddingVertical: 14,
-    borderRadius: 12,
+    borderRadius: 8,
     backgroundColor: COLORS.neutral.grey100,
     alignItems: 'center',
   },
@@ -163,7 +163,7 @@ const styles = StyleSheet.create({
   confirmButton: {
     flex: 1,
     paddingVertical: 14,
-    borderRadius: 12,
+    borderRadius: 8,
     alignItems: 'center',
   },
   confirmText: {

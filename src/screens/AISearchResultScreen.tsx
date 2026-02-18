@@ -67,9 +67,8 @@ const AISearchResultScreen: React.FC<AISearchResultScreenProps> = ({
   const initialQuery = route?.params?.query || route?.params?.q || '';
   const autoSearch = route?.params?.autoSearch || false;
 
-  const handleSearchResult = (results: any) => {
+  const handleSearchResult = (_results: any) => {
     // Handle search results if needed (analytics, etc.)
-    console.log('AI 검색 결과:', results);
   };
 
   return (

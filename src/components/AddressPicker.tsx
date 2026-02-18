@@ -64,8 +64,7 @@ const AddressPicker: React.FC<AddressPickerProps> = ({
       const data = await response.json();
       setSearchResults(data.documents || []);
       setShowResults((data.documents || []).length > 0);
-    } catch (error) {
-      console.error('주소 검색 실패:', error);
+    } catch (_error) {
       setSearchResults([]);
       setShowResults(false);
     } finally {
@@ -178,7 +177,7 @@ const styles = StyleSheet.create({
   input: {
     borderWidth: 1,
     borderColor: COLORS.primary.light,
-    borderRadius: 12,
+    borderRadius: 8,
     padding: 16,
     fontSize: 16,
     backgroundColor: COLORS.neutral.white,
@@ -197,7 +196,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     backgroundColor: COLORS.neutral.white,
-    borderRadius: 12,
+    borderRadius: 8,
     borderWidth: 1,
     borderColor: COLORS.neutral.grey200,
     maxHeight: 200,
@@ -224,7 +223,7 @@ const styles = StyleSheet.create({
   },
   resultCategory: {
     fontSize: 12,
-    color: COLORS.primary.main,
+    color: COLORS.primary.accent,
     marginBottom: 2,
     fontWeight: '500',
   },

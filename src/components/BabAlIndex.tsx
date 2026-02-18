@@ -127,7 +127,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: COLORS.text.primary,
   },
   levelBadge: {
@@ -135,7 +135,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 16,
+    borderRadius: 8,
   },
   levelEmoji: {
     fontSize: 14,
@@ -143,7 +143,7 @@ const styles = StyleSheet.create({
   },
   levelText: {
     fontSize: 12,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: COLORS.text.primary,
   },
   scoreContainer: {
@@ -153,7 +153,7 @@ const styles = StyleSheet.create({
   },
   score: {
     fontSize: 36,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: COLORS.primary.main,
   },
   scoreSmall: {
@@ -200,7 +200,7 @@ const styles = StyleSheet.create({
   },
   detailsTitle: {
     fontSize: 14,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: COLORS.text.primary,
     marginBottom: 8,
   },

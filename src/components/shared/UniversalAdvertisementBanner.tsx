@@ -45,7 +45,7 @@ const UniversalAdvertisementBanner: React.FC<UniversalAdvertisementBannerProps> 
     try {
       setLoading(true);
       const token = await AsyncStorage.getItem('authToken');
-      
+
       const response = await fetch(`${getApiUrl()}/advertisements?position=${position}`, {
         method: 'GET',
         headers: {
@@ -59,13 +59,12 @@ const UniversalAdvertisementBanner: React.FC<UniversalAdvertisementBannerProps> 
       if (response.ok && data.success) {
         const activeAds = (data.ads || data.data || []).filter((ad: Advertisement) => ad.is_active);
         setAds(activeAds);
-        
+
         if (onAdLoad) {
           onAdLoad(activeAds);
         }
       }
-    } catch (error) {
-      console.error('광고 로드 실패:', error);
+    } catch (_error) {
     } finally {
       setLoading(false);
     }
@@ -109,7 +108,7 @@ const UniversalAdvertisementBanner: React.FC<UniversalAdvertisementBannerProps> 
   const trackAdClick = async (ad: Advertisement) => {
     try {
       const token = await AsyncStorage.getItem('authToken');
-      
+
       await fetch(`${getApiUrl()}/advertisements/${ad.id}/click`, {
         method: 'POST',
         headers: {
@@ -117,8 +116,7 @@ const UniversalAdvertisementBanner: React.FC<UniversalAdvertisementBannerProps> 
           'Content-Type': 'application/json',
         },
       });
-    } catch (error) {
-      console.error('광고 클릭 추적 실패:', error);
+    } catch (_error) {
     }
   };
 
@@ -126,7 +124,7 @@ const UniversalAdvertisementBanner: React.FC<UniversalAdvertisementBannerProps> 
   const trackAdImpression = async (ad: Advertisement) => {
     try {
       const token = await AsyncStorage.getItem('authToken');
-      
+
       await fetch(`${getApiUrl()}/advertisements/${ad.id}/impression`, {
         method: 'POST',
         headers: {
@@ -134,8 +132,7 @@ const UniversalAdvertisementBanner: React.FC<UniversalAdvertisementBannerProps> 
           'Content-Type': 'application/json',
         },
       });
-    } catch (error) {
-      console.error('광고 노출 추적 실패:', error);
+    } catch (_error) {
     }
   };
 
@@ -172,7 +169,7 @@ const UniversalAdvertisementBanner: React.FC<UniversalAdvertisementBannerProps> 
             <Icon name="image" size={24} color={COLORS.text.tertiary} />
           </View>
         )}
-        
+
         <View style={styles.adText}>
           <Text style={styles.adTitle} numberOfLines={1}>
             {currentAd.title}
@@ -213,7 +210,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.neutral.white,
     marginHorizontal: 16,
     marginVertical: 8,
-    borderRadius: 12,
+    borderRadius: 8,
     overflow: 'hidden',
     ...SHADOWS.small,
   },
@@ -225,13 +222,13 @@ const styles = StyleSheet.create({
   adImage: {
     width: 60,
     height: 60,
-    borderRadius: 8,
+    borderRadius: 6,
     marginRight: 12,
   },
   adPlaceholder: {
     width: 60,
     height: 60,
-    borderRadius: 8,
+    borderRadius: 6,
     backgroundColor: COLORS.neutral.background,
     justifyContent: 'center',
     alignItems: 'center',
@@ -280,7 +277,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.neutral.grey300,
   },
   activeDot: {
-    backgroundColor: COLORS.primary.main,
+    backgroundColor: COLORS.primary.accent,
   },
 });
 

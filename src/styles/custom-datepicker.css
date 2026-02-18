@@ -6,25 +6,25 @@
   padding: 20px 24px !important;
   font-size: 18px !important;
   font-weight: 600 !important;
-  border: 2px solid #E5DDD5 !important;
+  border: 2px solid #E8E8E8 !important;
   border-radius: 16px !important;
   background-color: #FFFFFF !important;
-  color: #4C422C !important;
+  color: #212121 !important;
   text-align: center !important;
-  box-shadow: 0 4px 12px rgba(181, 160, 141, 0.1) !important;
+  box-shadow: 0 4px 12px rgba(17, 17, 17, 0.1) !important;
   transition: all 0.3s ease !important;
   outline: none !important;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
 }
 
 .custom-datepicker:focus {
-  border-color: #4C422C !important;
-  box-shadow: 0 0 0 4px rgba(76, 66, 44, 0.1), 0 8px 24px rgba(181, 160, 141, 0.15) !important;
+  border-color: #A88068 !important;
+  box-shadow: 0 0 0 4px rgba(168, 128, 104, 0.1), 0 8px 24px rgba(17, 17, 17, 0.15) !important;
   transform: translateY(-2px) !important;
 }
 
 .custom-datepicker::placeholder {
-  color: #B5A08D !important;
+  color: #9E9E9E !important;
   font-size: 16px !important;
 }
 
@@ -38,7 +38,7 @@
 .custom-calendar {
   border: none !important;
   border-radius: 24px !important;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15), 0 8px 24px rgba(0, 0, 0, 0.1) !important;
+  box-shadow: 0 20px 60px rgba(17, 17, 17, 0.12), 0 8px 24px rgba(17, 17, 17, 0.08) !important;
   background: #FFFFFF !important;
   padding: 24px !important;
   font-family: inherit !important;
@@ -48,7 +48,7 @@
 
 /* 헤더 (월/년도 선택) */
 .react-datepicker__header {
-  background-color: #4C422C !important;
+  background-color: #A88068 !important;
   border-bottom: none !important;
   border-radius: 16px 16px 0 0 !important;
   padding: 20px !important;
@@ -134,7 +134,7 @@
 
 /* 날짜 */
 .react-datepicker__day {
-  color: #4C422C !important;
+  color: #212121 !important;
   font-size: 16px !important;
   font-weight: 500 !important;
   width: 44px !important;
@@ -150,27 +150,27 @@
 }
 
 .react-datepicker__day:hover {
-  background-color: #F5F3F0 !important;
+  background-color: #F5F5F5 !important;
   transform: scale(1.05) !important;
-  border-color: #E5DDD5 !important;
+  border-color: #E8E8E8 !important;
 }
 
 .react-datepicker__day--selected {
-  background-color: #4C422C !important;
+  background-color: #A88068 !important;
   color: #FFFFFF !important;
   font-weight: 700 !important;
   transform: scale(1.1) !important;
-  box-shadow: 0 4px 12px rgba(76, 66, 44, 0.3) !important;
+  box-shadow: 0 4px 12px rgba(168, 128, 104, 0.3) !important;
 }
 
 .react-datepicker__day--today {
-  border-color: #B5A08D !important;
-  background-color: #FFF8F3 !important;
+  border-color: #9E9E9E !important;
+  background-color: #FAF6F3 !important;
   font-weight: 600 !important;
 }
 
 .react-datepicker__day--disabled {
-  color: #D1C7BC !important;
+  color: #BDBDBD !important;
   cursor: not-allowed !important;
   background-color: transparent !important;
 }
@@ -184,11 +184,11 @@
 /* 시간 선택 부분 */
 .react-datepicker__time-container {
   width: 120px !important;
-  border-left: 2px solid #E5DDD5 !important;
+  border-left: 2px solid #E8E8E8 !important;
 }
 
 .react-datepicker__header--time {
-  background-color: #F5F3F0 !important;
+  background-color: #F5F5F5 !important;
   padding: 16px !important;
   border-radius: 0 !important;
 }
@@ -207,7 +207,7 @@
 .react-datepicker__time-list-item {
   padding: 12px 16px !important;
   font-size: 14px !important;
-  color: #4C422C !important;
+  color: #212121 !important;
   cursor: pointer !important;
   transition: all 0.2s ease !important;
   border-radius: 8px !important;
@@ -215,18 +215,18 @@
 }
 
 .react-datepicker__time-list-item:hover {
-  background-color: #F5F3F0 !important;
+  background-color: #F5F5F5 !important;
 }
 
 .react-datepicker__time-list-item--selected {
-  background-color: #4C422C !important;
+  background-color: #A88068 !important;
   color: #FFFFFF !important;
   font-weight: 600 !important;
 }
 
 /* Today 버튼 */
 .react-datepicker__today-button {
-  background-color: #B5A08D !important;
+  background-color: #C4A08A !important;
   border: none !important;
   color: #FFFFFF !important;
   padding: 12px 24px !important;
@@ -238,13 +238,13 @@
 }
 
 .react-datepicker__today-button:hover {
-  background-color: #4C422C !important;
+  background-color: #A88068 !important;
   transform: translateY(-2px) !important;
 }
 
 /* Clear 버튼 */
 .react-datepicker__close-icon {
-  background-color: #E5DDD5 !important;
+  background-color: #E8E8E8 !important;
   border-radius: 50% !important;
   right: 16px !important;
   top: 50% !important;
@@ -259,12 +259,12 @@
 }
 
 .react-datepicker__close-icon:hover {
-  background-color: #B5A08D !important;
+  background-color: #9E9E9E !important;
   transform: translateY(-50%) scale(1.1) !important;
 }
 
 .react-datepicker__close-icon::after {
-  color: #4C422C !important;
+  color: #212121 !important;
   font-size: 14px !important;
   font-weight: bold !important;
 }

@@ -190,7 +190,7 @@ exports.getReviewableParticipants = async (req, res) => {
     const meetup = meetupResult.rows[0];
 
     // 모임이 완료되었는지 확인
-    if (meetup.status !== '완료' && new Date(meetup.date) > new Date()) {
+    if (meetup.status !== '종료' && new Date(meetup.date) > new Date()) {
       return res.status(400).json({
         success: false,
         error: '완료된 모임에만 리뷰를 작성할 수 있습니다.',
@@ -281,7 +281,7 @@ exports.createUserReview = async (req, res) => {
 
     const meetup = meetupResult.rows[0];
 
-    if (meetup.status !== '완료' && new Date(meetup.date) > new Date()) {
+    if (meetup.status !== '종료' && new Date(meetup.date) > new Date()) {
       return res.status(400).json({ error: '완료된 모임에만 리뷰를 작성할 수 있습니다' });
     }
 

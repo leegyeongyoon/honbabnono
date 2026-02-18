@@ -67,7 +67,7 @@ const NotificationSettingsScreen: React.FC = () => {
 
   const handleSettingChange = async (key: keyof NotificationSettings, value: boolean) => {
     if (!settings) {return;} // settings가 null이면 아무것도 하지 않음
-    
+
     const newSettings = { ...settings, [key]: value };
     setSettings(newSettings);
 
@@ -102,11 +102,11 @@ const NotificationSettingsScreen: React.FC = () => {
   ) => {
     // settings가 undefined이거나 null인 경우를 안전하게 처리
     const settingValue = settings && typeof settings[key] === 'boolean' ? settings[key] : false;
-    
+
     return (
       <View key={key} style={styles.settingItem}>
         <View style={styles.settingIconContainer}>
-          <Icon name={icon} size={20} color={COLORS.primary.main} />
+          <Icon name={icon} size={20} color="#C49A70" />
         </View>
         <View style={styles.settingInfo}>
           <Text style={styles.settingTitle}>{title}</Text>
@@ -115,26 +115,39 @@ const NotificationSettingsScreen: React.FC = () => {
         <Switch
           value={settingValue}
           onValueChange={(value) => handleSettingChange(key, value)}
-          trackColor={{ false: COLORS.neutral.grey200, true: COLORS.primary.light }}
-          thumbColor={settingValue ? COLORS.primary.main : COLORS.neutral.grey300}
+          trackColor={{ false: '#DAD5CF', true: 'rgba(196,154,112,0.3)' }}
+          thumbColor={settingValue ? '#C49A70' : '#B0A89E'}
         />
       </View>
     );
   };
 
-  if (loading) {
+  if (loading || !settings) {
     return (
-      <View style={[styles.container, styles.centerContent]}>
-        <Text style={styles.loadingText}>알림 설정을 불러오는 중...</Text>
-      </View>
-    );
-  }
-
-  // settings가 null이면 로딩 상태로 처리
-  if (!settings) {
-    return (
-      <View style={[styles.container, styles.centerContent]}>
-        <Text style={styles.loadingText}>알림 설정을 불러오는 중...</Text>
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.backButton} onPress={() => navigate('/mypage')}>
+            <Icon name="arrow-left" size={24} color="#1A1714" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>알림 설정</Text>
+          <View style={styles.placeholder} />
+        </View>
+        <View style={{ padding: 20, gap: 16 }}>
+          {[0, 1, 2].map((section) => (
+            <View key={section} className="animate-shimmer" style={{ backgroundColor: '#FAFAF8', borderRadius: 8, padding: 20, gap: 16 }}>
+              <View style={{ width: '30%', height: 14, borderRadius: 7, backgroundColor: '#EFECEA' }} />
+              {[0, 1, 2].map((row) => (
+                <View key={row} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <View style={{ gap: 6, flex: 1 }}>
+                    <View style={{ width: '60%', height: 14, borderRadius: 7, backgroundColor: '#EFECEA' }} />
+                    <View style={{ width: '80%', height: 10, borderRadius: 5, backgroundColor: '#EFECEA' }} />
+                  </View>
+                  <View style={{ width: 48, height: 28, borderRadius: 14, backgroundColor: '#EFECEA' }} />
+                </View>
+              ))}
+            </View>
+          ))}
+        </View>
       </View>
     );
   }
@@ -147,7 +160,7 @@ const NotificationSettingsScreen: React.FC = () => {
           style={styles.backButton}
           onPress={() => navigate('/mypage')}
         >
-          <Icon name="arrow-left" size={24} color={COLORS.text.primary} />
+          <Icon name="arrow-left" size={24} color="#1A1714" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>알림 설정</Text>
         <View style={styles.placeholder} />
@@ -215,7 +228,7 @@ const NotificationSettingsScreen: React.FC = () => {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>알림 시간 설정</Text>
           <View style={styles.infoCard}>
-            <Icon name="info" size={20} color={COLORS.primary.main} />
+            <Icon name="info" size={20} color="#C49A70" />
             <Text style={styles.infoText}>
               모임 리마인더는 모임 시작 30분 전, 10분 전에 발송됩니다.
             </Text>
@@ -229,7 +242,7 @@ const NotificationSettingsScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.neutral.background,
+    backgroundColor: '#EFECEA',
   },
   centerContent: {
     justifyContent: 'center',
@@ -237,7 +250,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 16,
-    color: COLORS.text.secondary,
+    color: '#5C4F42',
   },
   header: {
     flexDirection: 'row',
@@ -248,16 +261,27 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
     backgroundColor: COLORS.neutral.white,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0,0,0,0.06)',
-    ...SHADOWS.small,
+    borderBottomColor: 'rgba(17,17,17,0.06)',
+    shadowColor: '#111111',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 3,
+    zIndex: 10,
   },
   backButton: {
-    padding: 4,
+    padding: 10,
+    minWidth: 44,
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    cursor: 'pointer',
+    transition: 'all 200ms ease',
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: COLORS.text.primary,
+    color: '#1A1714',
   },
   placeholder: {
     width: 32,
@@ -271,16 +295,22 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: COLORS.text.primary,
+    color: '#1A1714',
     paddingHorizontal: 20,
     paddingVertical: 16,
-    backgroundColor: COLORS.neutral.background,
+    backgroundColor: '#EFECEA',
   },
   settingsContainer: {
     backgroundColor: COLORS.neutral.white,
     marginHorizontal: 16,
-    ...CARD_STYLE,
-    ...SHADOWS.small,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(17,17,17,0.06)',
+    shadowColor: '#111111',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 1,
   },
   settingItem: {
     flexDirection: 'row',
@@ -288,13 +318,15 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingHorizontal: 20,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0,0,0,0.06)',
+    borderBottomColor: 'rgba(17,17,17,0.06)',
+    cursor: 'pointer',
+    transition: 'all 200ms ease',
   },
   settingIconContainer: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: COLORS.neutral.background,
+    backgroundColor: '#F7F5F3',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -305,28 +337,28 @@ const styles = StyleSheet.create({
   settingTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: '#1A1714',
     marginBottom: 2,
   },
   settingDescription: {
     fontSize: 13,
-    color: COLORS.text.secondary,
+    color: '#5C4F42',
   },
   infoCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.primary.light,
+    backgroundColor: 'rgba(196,154,112,0.06)',
     marginHorizontal: 16,
     padding: 16,
-    borderRadius: 16,
+    borderRadius: 8,
     borderWidth: 1,
-    borderColor: 'rgba(139, 105, 20, 0.12)',
+    borderColor: 'rgba(196,154,112,0.10)',
   },
   infoText: {
     flex: 1,
     marginLeft: 12,
     fontSize: 14,
-    color: COLORS.primary.dark,
+    color: '#5C4F42',
     lineHeight: 20,
   },
 });

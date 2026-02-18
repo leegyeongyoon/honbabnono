@@ -122,7 +122,7 @@ const styles = StyleSheet.create({
   },
   mapPlaceholderText: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: COLORS.text.primary,
     marginBottom: 8,
   },
@@ -133,7 +133,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   selectLocationButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#9A7450',
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 8,
@@ -141,7 +141,7 @@ const styles = StyleSheet.create({
   selectLocationButtonText: {
     color: COLORS.text.white,
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '700',
   },
   datePickerPlaceholder: {
     position: 'absolute',
@@ -149,14 +149,14 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(13,13,12,0.6)',
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 1000,
   },
   datePickerText: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: COLORS.text.primary,
     marginBottom: 8,
   },
@@ -171,18 +171,18 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   datePickerButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#9A7450',
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 8,
   },
   cancelButton: {
-    backgroundColor: '#FF3B30',
+    backgroundColor: '#C45050',
   },
   datePickerButtonText: {
     color: COLORS.text.white,
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '700',
   },
   // 지도 컨테이너 스타일
   mapContainer: {

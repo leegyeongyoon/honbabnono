@@ -11,6 +11,8 @@ import {
   RefreshControl,
 } from 'react-native';
 import { COLORS, SHADOWS, LAYOUT } from '../../styles/colors';
+import { TYPOGRAPHY } from '../../styles/typography';
+import { SPACING, BORDER_RADIUS } from '../../styles/spacing';
 import { Icon } from '../Icon';
 import { NotificationList } from '../NotificationList';
 import { Notification } from '../../types/notification';
@@ -44,7 +46,7 @@ const UniversalNotificationScreen: React.FC<UniversalNotificationScreenProps> = 
   const [showUnreadOnly, setShowUnreadOnly] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
-  
+
   // Mock data - in real app this would come from API/store
   const [notifications, setNotifications] = useState<NotificationItem[]>([
     {
@@ -104,8 +106,7 @@ const UniversalNotificationScreen: React.FC<UniversalNotificationScreenProps> = 
       // In a real app, load notifications from API
       // const notifications = await notificationApiService.getNotifications();
       // setNotifications(notifications);
-    } catch (error) {
-      console.error('Failed to load notifications:', error);
+    } catch (_error) {
     } finally {
       setLoading(false);
     }
@@ -137,8 +138,8 @@ const UniversalNotificationScreen: React.FC<UniversalNotificationScreenProps> = 
 
   const handleNotificationPress = (notification: NotificationItem) => {
     // Mark as read
-    setNotifications(prev => 
-      prev.map(n => 
+    setNotifications(prev =>
+      prev.map(n =>
         n.id === notification.id ? { ...n, isRead: true } : n
       )
     );
@@ -146,17 +147,17 @@ const UniversalNotificationScreen: React.FC<UniversalNotificationScreenProps> = 
     // Navigation logic based on notification type
     switch (notification.type) {
       case 'chat_message':
-        handleNavigate('ChatRoom', { 
+        handleNavigate('ChatRoom', {
           meetupId: notification.data?.meetupId,
-          meetupTitle: notification.data?.meetupTitle 
+          meetupTitle: notification.data?.meetupTitle
         });
         break;
       case 'meetup_join_request':
       case 'meetup_join_approved':
       case 'meetup_join_rejected':
       case 'meetup_approved':
-        handleNavigate('MeetupDetail', { 
-          meetupId: notification.data?.meetupId 
+        handleNavigate('MeetupDetail', {
+          meetupId: notification.data?.meetupId
         });
         break;
       case 'direct_chat_request':
@@ -172,11 +173,11 @@ const UniversalNotificationScreen: React.FC<UniversalNotificationScreenProps> = 
             notification.message + '\n참여하시겠습니까?',
             [
               { text: '거절', style: 'cancel' },
-              { 
+              {
                 text: '수락',
                 onPress: () => {
-                  handleNavigate('MeetupDetail', { 
-                    meetupId: notification.data?.meetupId 
+                  handleNavigate('MeetupDetail', {
+                    meetupId: notification.data?.meetupId
                   });
                 }
               },
@@ -194,68 +195,68 @@ const UniversalNotificationScreen: React.FC<UniversalNotificationScreenProps> = 
       if (Platform.OS === 'web') {
         await notificationApiService.markAllAsRead();
       }
-      
-      setNotifications(prev => 
+
+      setNotifications(prev =>
         prev.map(n => ({ ...n, isRead: true }))
       );
-      
+
       Alert.alert('알림', '모든 알림을 읽음으로 표시했습니다.');
     } catch (error) {
       Alert.alert('오류', '알림 읽음 처리에 실패했습니다.');
     }
   };
 
-  const getNotificationIcon = (type: string) => {
+  const getNotificationIcon = (type: string): { name: string; color: string } => {
     switch (type) {
       case 'meetup_invite':
-        return '🎉';
+        return { name: 'mail', color: COLORS.primary.accent };
       case 'meetup_approved':
-        return '✅';
+        return { name: 'check-circle', color: COLORS.functional.success };
       case 'meetup_cancelled':
-        return '❌';
+        return { name: 'x-circle', color: COLORS.functional.error };
       case 'chat':
       case 'chat_message':
-        return '💬';
+        return { name: 'message-circle', color: COLORS.functional.info };
       case 'system':
-        return '🔔';
+        return { name: 'bell', color: COLORS.text.tertiary };
       case 'meetup_join_request':
-        return '👋';
+        return { name: 'user-plus', color: COLORS.primary.accent };
       case 'meetup_join_approved':
-        return '🎊';
+        return { name: 'check-circle', color: COLORS.functional.success };
       case 'meetup_join_rejected':
-        return '😔';
+        return { name: 'x-circle', color: COLORS.functional.error };
       case 'direct_chat_request':
-        return '💬';
+        return { name: 'message-circle', color: COLORS.functional.info };
       default:
-        return '📢';
+        return { name: 'bell', color: COLORS.text.tertiary };
     }
   };
 
   const unreadCount = notifications.filter(n => !n.isRead).length;
-  const filteredNotifications = showUnreadOnly 
-    ? notifications.filter(n => !n.isRead) 
+  const filteredNotifications = showUnreadOnly
+    ? notifications.filter(n => !n.isRead)
     : notifications;
 
   return (
     <SafeAreaView style={styles.container}>
       {/* 헤더 */}
       <View style={styles.header}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.backButton}
           onPress={handleGoBackPress}
         >
-          <Icon name="chevron-left" size={24} color={COLORS.text.primary} />
+          <Icon name="chevron-left" size={22} color={COLORS.text.primary} />
         </TouchableOpacity>
-        
-        <View style={styles.headerContent}>
+
+        <View style={styles.headerCenter}>
           <Text style={styles.title}>알림</Text>
           {unreadCount > 0 && (
             <View style={styles.unreadBadge}>
-              <Text style={styles.unreadText}>{unreadCount}</Text>
+              <Text style={styles.unreadBadgeText}>{unreadCount}</Text>
             </View>
           )}
         </View>
-        
+
         <View style={styles.headerActions}>
           <TouchableOpacity
             style={[
@@ -264,30 +265,20 @@ const UniversalNotificationScreen: React.FC<UniversalNotificationScreenProps> = 
             ]}
             onPress={() => setShowUnreadOnly(!showUnreadOnly)}
           >
-            <Icon 
-              name="filter" 
-              size={18} 
-              color={showUnreadOnly ? COLORS.primary.main : COLORS.text.secondary} 
-            />
-            {Platform.OS === 'web' && (
-              <Text style={[
-                styles.filterButtonText,
-                showUnreadOnly && styles.filterButtonTextActive
-              ]}>
-                읽지 않음
-              </Text>
-            )}
+            <Text style={[
+              styles.filterButtonText,
+              showUnreadOnly && styles.filterButtonTextActive
+            ]}>
+              읽지 않음
+            </Text>
           </TouchableOpacity>
-          
+
           {unreadCount > 0 && (
             <TouchableOpacity
               style={styles.markAllButton}
               onPress={handleMarkAllAsRead}
             >
-              <Icon name="check-circle" size={18} color={COLORS.text.secondary} />
-              {Platform.OS === 'web' && (
-                <Text style={styles.markAllText}>모두 읽음</Text>
-              )}
+              <Text style={styles.markAllText}>모두 읽음</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -302,72 +293,79 @@ const UniversalNotificationScreen: React.FC<UniversalNotificationScreenProps> = 
         />
       ) : (
         // Fallback to custom implementation
-        <ScrollView 
+        <ScrollView
           style={styles.notificationList}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
+          showsVerticalScrollIndicator={false}
         >
           {filteredNotifications.length === 0 ? (
             <View style={styles.emptyState}>
-              <Text style={styles.emptyIcon}>🔔</Text>
+              <Icon name="bell-off" size={48} color={COLORS.neutral.grey300} />
               <Text style={styles.emptyTitle}>
                 {showUnreadOnly ? '읽지 않은 알림이 없습니다' : '알림이 없습니다'}
               </Text>
               <Text style={styles.emptySubtitle}>
-                {showUnreadOnly 
-                  ? '모든 알림을 확인했습니다' 
+                {showUnreadOnly
+                  ? '모든 알림을 확인했습니다'
                   : '새로운 알림이 오면 여기에 표시됩니다'
                 }
               </Text>
             </View>
           ) : (
-            filteredNotifications.map((notification) => (
-              <TouchableOpacity
-                key={notification.id}
-                style={[
-                  styles.notificationItem,
-                  !notification.isRead && styles.unreadNotification,
-                  notification.actionRequired && styles.actionRequiredNotification,
-                ]}
-                onPress={() => handleNotificationPress(notification)}
-              >
-                <View style={styles.notificationContent}>
-                  <View style={styles.notificationHeader}>
-                    <View style={styles.iconContainer}>
-                      <Text style={styles.notificationIcon}>
-                        {getNotificationIcon(notification.type)}
-                      </Text>
-                    </View>
-                    <View style={styles.notificationMain}>
-                      <View style={styles.notificationTitleRow}>
-                        <Text style={[
-                          styles.notificationTitle,
-                          !notification.isRead && styles.unreadTitle
-                        ]}>
-                          {notification.title}
-                        </Text>
-                        {notification.actionRequired && (
-                          <View style={styles.actionBadge}>
-                            <Text style={styles.actionText}>답변필요</Text>
-                          </View>
-                        )}
-                      </View>
-                      <Text style={styles.notificationMessage}>
-                        {notification.message}
-                      </Text>
-                      <Text style={styles.notificationTime}>
-                        {notification.time}
-                      </Text>
-                    </View>
+            filteredNotifications.map((notification, index) => {
+              const iconInfo = getNotificationIcon(notification.type);
+              return (
+                <TouchableOpacity
+                  key={notification.id}
+                  style={[
+                    styles.notificationItem,
+                    index < filteredNotifications.length - 1 && styles.notificationItemBorder,
+                  ]}
+                  onPress={() => handleNotificationPress(notification)}
+                  activeOpacity={0.6}
+                >
+                  {/* 아이콘 */}
+                  <View style={[
+                    styles.iconContainer,
+                    { backgroundColor: `${iconInfo.color}10` },
+                  ]}>
+                    <Icon name={iconInfo.name as any} size={18} color={iconInfo.color} />
                   </View>
+
+                  {/* 콘텐츠 */}
+                  <View style={styles.notificationContent}>
+                    <View style={styles.notificationTitleRow}>
+                      <Text style={[
+                        styles.notificationTitle,
+                        !notification.isRead && styles.unreadTitle
+                      ]} numberOfLines={1}>
+                        {notification.title}
+                      </Text>
+                      {notification.actionRequired && (
+                        <View style={styles.actionBadge}>
+                          <Text style={styles.actionBadgeText}>답변필요</Text>
+                        </View>
+                      )}
+                    </View>
+                    <Text style={styles.notificationMessage} numberOfLines={2}>
+                      {notification.message}
+                    </Text>
+                    <Text style={styles.notificationTime}>
+                      {notification.time}
+                    </Text>
+                  </View>
+
+                  {/* 읽지 않음 도트 (테라코타) */}
                   {!notification.isRead && (
                     <View style={styles.unreadDot} />
                   )}
-                </View>
-              </TouchableOpacity>
-            ))
+                </TouchableOpacity>
+              );
+            })
           )}
+          <View style={{ height: 40 }} />
         </ScrollView>
       )}
     </SafeAreaView>
@@ -377,46 +375,44 @@ const UniversalNotificationScreen: React.FC<UniversalNotificationScreenProps> = 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.neutral.background,
+    backgroundColor: COLORS.surface.primary,
   },
   header: {
     height: LAYOUT.HEADER_HEIGHT,
-    backgroundColor: COLORS.neutral.white,
+    backgroundColor: COLORS.surface.primary,
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: SPACING.xl,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.neutral.grey200,
-    ...SHADOWS.small,
+    borderBottomColor: COLORS.neutral.grey100,
   },
   backButton: {
-    padding: 8,
+    padding: 4,
+    marginRight: 8,
   },
-  headerContent: {
+  headerCenter: {
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
-    marginHorizontal: 16,
   },
   title: {
-    fontSize: 20,
-    fontWeight: '700',
+    ...TYPOGRAPHY.heading.h3,
     color: COLORS.text.primary,
     marginRight: 8,
   },
   unreadBadge: {
-    backgroundColor: COLORS.functional.error,
-    borderRadius: 10,
+    backgroundColor: COLORS.primary.accent,
+    borderRadius: BORDER_RADIUS.full,
     minWidth: 20,
     height: 20,
     justifyContent: 'center',
     alignItems: 'center',
+    paddingHorizontal: 6,
   },
-  unreadText: {
+  unreadBadgeText: {
     color: COLORS.text.white,
-    fontSize: 12,
-    fontWeight: '700',
+    fontSize: 11,
+    fontWeight: '600',
   },
   headerActions: {
     flexDirection: 'row',
@@ -424,152 +420,130 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   filterButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: COLORS.neutral.background,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: BORDER_RADIUS.sm,
+    borderWidth: 1,
+    borderColor: COLORS.neutral.grey200,
+    backgroundColor: COLORS.surface.primary,
   },
   filterButtonActive: {
-    backgroundColor: COLORS.primary.light,
+    backgroundColor: COLORS.primary.main,
+    borderColor: COLORS.primary.main,
   },
   filterButtonText: {
-    marginLeft: 4,
-    fontSize: 14,
+    fontSize: 12,
     color: COLORS.text.secondary,
     fontWeight: '500',
   },
   filterButtonTextActive: {
-    color: COLORS.primary.main,
+    color: COLORS.text.white,
     fontWeight: '600',
   },
   markAllButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 8,
-    borderRadius: 20,
-    backgroundColor: COLORS.neutral.background,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
   },
   markAllText: {
-    marginLeft: 4,
-    fontSize: 14,
-    color: COLORS.text.secondary,
+    fontSize: 12,
+    color: COLORS.text.tertiary,
     fontWeight: '500',
   },
   notificationList: {
     flex: 1,
-    padding: 16,
   },
+
+  // 알림 아이템 (클린 레이아웃, 서틀 디바이더)
   notificationItem: {
-    backgroundColor: COLORS.neutral.white,
-    marginBottom: 12,
-    borderRadius: 16,
-    padding: 16,
-    ...SHADOWS.small,
-    shadowColor: 'rgba(0,0,0,0.05)',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 1,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  unreadNotification: {
-    backgroundColor: COLORS.primary.light,
-    borderLeftWidth: 4,
-    borderLeftColor: COLORS.primary.main,
-  },
-  actionRequiredNotification: {
-    borderWidth: 1,
-    borderColor: COLORS.primary.main,
-  },
-  notificationContent: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'flex-start',
+    paddingHorizontal: SPACING.xl,
+    paddingVertical: 14,
   },
-  notificationHeader: {
-    flexDirection: 'row',
-    flex: 1,
+  notificationItemBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.neutral.grey100,
   },
   iconContainer: {
-    marginRight: 12,
+    width: 36,
+    height: 36,
+    borderRadius: BORDER_RADIUS.lg,
     alignItems: 'center',
     justifyContent: 'center',
-    width: 40,
+    marginRight: 12,
+    marginTop: 2,
   },
-  notificationIcon: {
-    fontSize: 24,
-  },
-  notificationMain: {
+  notificationContent: {
     flex: 1,
   },
   notificationTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 4,
+    marginBottom: 3,
   },
   notificationTitle: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 14,
+    fontWeight: '500',
     color: COLORS.text.primary,
     flex: 1,
   },
   unreadTitle: {
-    fontWeight: '700',
+    fontWeight: '600',
+    color: COLORS.text.primary,
   },
   actionBadge: {
-    backgroundColor: COLORS.functional.warning,
-    borderRadius: 12,
-    paddingHorizontal: 8,
+    backgroundColor: COLORS.primary.accent,
+    borderRadius: BORDER_RADIUS.sm,
+    paddingHorizontal: 6,
     paddingVertical: 2,
     marginLeft: 8,
   },
-  actionText: {
+  actionBadgeText: {
     fontSize: 10,
-    fontWeight: '700',
-    color: COLORS.text.primary,
+    fontWeight: '600',
+    color: COLORS.text.white,
   },
   notificationMessage: {
-    fontSize: 14,
+    fontSize: 13,
     color: COLORS.text.secondary,
-    lineHeight: 20,
+    lineHeight: 18,
     marginBottom: 4,
   },
   notificationTime: {
-    fontSize: 12,
-    color: COLORS.text.tertiary || COLORS.text.secondary,
+    fontSize: 11,
+    color: COLORS.text.tertiary,
   },
+  // 테라코타 언리드 도트
   unreadDot: {
-    width: 8,
-    height: 8,
+    width: 7,
+    height: 7,
     borderRadius: 4,
-    backgroundColor: COLORS.primary.main,
+    backgroundColor: COLORS.primary.accent,
     marginLeft: 8,
+    marginTop: 6,
   },
+
+  // 빈 상태
   emptyState: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 40,
-    marginTop: 100,
-  },
-  emptyIcon: {
-    fontSize: 60,
-    marginBottom: 20,
+    paddingHorizontal: 40,
+    paddingTop: 100,
   },
   emptyTitle: {
-    fontSize: 18,
-    fontWeight: '700',
+    fontSize: 16,
+    fontWeight: '600',
     color: COLORS.text.primary,
-    marginBottom: 10,
+    marginTop: 16,
+    marginBottom: 6,
     textAlign: 'center',
   },
   emptySubtitle: {
-    fontSize: 14,
-    color: COLORS.text.secondary,
+    fontSize: 13,
+    color: COLORS.text.tertiary,
     textAlign: 'center',
-    lineHeight: 20,
+    lineHeight: 18,
   },
 });
 

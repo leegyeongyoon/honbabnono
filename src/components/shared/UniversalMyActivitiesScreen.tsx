@@ -49,7 +49,6 @@ const UniversalMyActivitiesScreen: React.FC<UniversalMyActivitiesScreenProps> = 
       const response = await userApiService.getActivities();
       setActivities(response.data || response.activities || []);
     } catch (error) {
-      console.error('활동 내역 조회 실패:', error);
       setError(error instanceof Error ? error.message : '활동 내역을 불러오는데 실패했습니다');
     } finally {
       setLoading(false);
@@ -71,15 +70,15 @@ const UniversalMyActivitiesScreen: React.FC<UniversalMyActivitiesScreenProps> = 
   const getActivityStyle = (type: Activity['type']) => {
     switch (type) {
       case 'meetup_joined':
-        return { icon: 'user-plus', color: COLORS.functional.success, bgColor: COLORS.functional.success + '20' };
+        return { icon: 'user-plus', color: COLORS.functional.success, bgColor: COLORS.functional.success + '12' };
       case 'meetup_created':
-        return { icon: 'plus-circle', color: COLORS.primary.main, bgColor: COLORS.primary.main + '20' };
+        return { icon: 'plus-circle', color: COLORS.primary.accent, bgColor: COLORS.primary.accent + '12' };
       case 'review_posted':
-        return { icon: 'star', color: COLORS.functional.warning, bgColor: COLORS.functional.warning + '20' };
+        return { icon: 'star', color: COLORS.functional.warning, bgColor: COLORS.functional.warning + '12' };
       case 'chat_message':
-        return { icon: 'message-circle', color: COLORS.neutral.grey500, bgColor: COLORS.neutral.grey500 + '20' };
+        return { icon: 'message-circle', color: COLORS.text.tertiary, bgColor: COLORS.neutral.grey100 };
       default:
-        return { icon: 'activity', color: COLORS.text.secondary, bgColor: COLORS.text.secondary + '20' };
+        return { icon: 'activity', color: COLORS.text.secondary, bgColor: COLORS.text.secondary + '12' };
     }
   };
 
@@ -104,7 +103,7 @@ const UniversalMyActivitiesScreen: React.FC<UniversalMyActivitiesScreenProps> = 
   // Render activity item
   const renderActivityItem = (activity: Activity) => {
     const style = getActivityStyle(activity.type);
-    
+
     return (
       <TouchableOpacity
         key={activity.id}
@@ -117,27 +116,27 @@ const UniversalMyActivitiesScreen: React.FC<UniversalMyActivitiesScreenProps> = 
         disabled={!activity.meetup_id}
       >
         <View style={[styles.activityIcon, { backgroundColor: style.bgColor }]}>
-          <Icon name={style.icon} size={20} color={style.color} />
+          <Icon name={style.icon} size={18} color={style.color} />
         </View>
-        
+
         <View style={styles.activityContent}>
           <View style={styles.activityHeader}>
             <Text style={styles.activityTitle}>{activity.title}</Text>
             <Text style={styles.activityDate}>{formatDate(activity.date)}</Text>
           </View>
-          
+
           <Text style={styles.activityDescription} numberOfLines={2}>
             {activity.description}
           </Text>
-          
+
           {activity.points_earned && (
             <View style={styles.pointsBadge}>
-              <Icon name="coins" size={14} color={COLORS.functional.success} />
+              <Icon name="coins" size={12} color={COLORS.functional.success} />
               <Text style={styles.pointsText}>+{activity.points_earned}P</Text>
             </View>
           )}
         </View>
-        
+
         {activity.meetup_id && (
           <Icon name="chevron-right" size={16} color={COLORS.text.tertiary} />
         )}
@@ -156,7 +155,7 @@ const UniversalMyActivitiesScreen: React.FC<UniversalMyActivitiesScreenProps> = 
         </View>
 
         <View style={[styles.centerContent, styles.loadingContainer]}>
-          <ActivityIndicator size="large" color={COLORS.primary.main} />
+          <ActivityIndicator size="large" color={COLORS.primary.accent} />
           <Text style={styles.loadingText}>활동 내역을 불러오는 중...</Text>
         </View>
       </View>
@@ -179,8 +178,8 @@ const UniversalMyActivitiesScreen: React.FC<UniversalMyActivitiesScreenProps> = 
           <RefreshControl
             refreshing={refreshing}
             onRefresh={handleRefresh}
-            colors={[COLORS.primary.main]}
-            tintColor={COLORS.primary.main}
+            colors={[COLORS.primary.accent]}
+            tintColor={COLORS.primary.accent}
           />
         }
       >
@@ -228,7 +227,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  
+
   // Header
   header: {
     flexDirection: 'row',
@@ -238,12 +237,15 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     paddingBottom: 16,
     backgroundColor: COLORS.neutral.white,
-    ...SHADOWS.small,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(17,17,17,0.06)',
+    ...SHADOWS.sticky,
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: '700',
     color: COLORS.text.primary,
+    letterSpacing: -0.3,
   },
   placeholder: {
     width: 24,
@@ -254,7 +256,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 40,
   },
   loadingText: {
-    fontSize: 16,
+    fontSize: 15,
     color: COLORS.text.secondary,
     marginTop: 12,
   },
@@ -270,15 +272,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: COLORS.neutral.white,
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
+    borderRadius: 8,
+    padding: 14,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(17,17,17,0.06)',
     ...SHADOWS.small,
   },
   activityIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 38,
+    height: 38,
+    borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -290,24 +294,25 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 4,
+    marginBottom: 3,
   },
   activityTitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
     color: COLORS.text.primary,
     flex: 1,
     marginRight: 8,
+    letterSpacing: -0.1,
   },
   activityDate: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: COLORS.text.tertiary,
   },
   activityDescription: {
-    fontSize: 14,
-    color: COLORS.text.secondary,
-    lineHeight: 20,
-    marginBottom: 8,
+    fontSize: 13,
+    color: COLORS.text.tertiary,
+    lineHeight: 18,
+    marginBottom: 6,
   },
   pointsBadge: {
     flexDirection: 'row',
@@ -329,12 +334,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 40,
   },
   emptyTitle: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '600',
     color: COLORS.text.primary,
     marginTop: 16,
     marginBottom: 8,
     textAlign: 'center',
+    letterSpacing: -0.2,
   },
   emptySubtitle: {
     fontSize: 14,
@@ -344,10 +350,11 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   findMeetupButton: {
-    backgroundColor: COLORS.primary.main,
-    paddingHorizontal: 20,
+    backgroundColor: COLORS.primary.accent,
+    paddingHorizontal: 24,
     paddingVertical: 12,
-    borderRadius: 8,
+    borderRadius: 6,
+    ...SHADOWS.cta,
   },
   findMeetupButtonText: {
     fontSize: 14,
@@ -364,11 +371,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 40,
   },
   errorTitle: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '600',
     color: COLORS.text.primary,
     marginTop: 16,
     marginBottom: 8,
+    letterSpacing: -0.2,
   },
   errorMessage: {
     fontSize: 14,
@@ -381,7 +389,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary.main,
     paddingHorizontal: 20,
     paddingVertical: 12,
-    borderRadius: 8,
+    borderRadius: 6,
   },
   retryButtonText: {
     fontSize: 14,

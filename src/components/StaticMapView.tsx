@@ -192,7 +192,7 @@ const StaticMapView: React.FC<StaticMapViewProps> = ({
 const styles = StyleSheet.create({
   container: {
     backgroundColor: COLORS.neutral.white,
-    borderRadius: 16,
+    borderRadius: 8,
     marginVertical: 12,
     overflow: 'hidden',
     ...SHADOWS.medium,

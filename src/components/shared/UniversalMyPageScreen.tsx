@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView } from 'react-native';
-import { COLORS, SHADOWS, CARD_STYLE } from '../../styles/colors';
-import { BORDER_RADIUS } from '../../styles/spacing';
+import { COLORS, SHADOWS, CARD_STYLE, LAYOUT } from '../../styles/colors';
+import { TYPOGRAPHY } from '../../styles/typography';
+import { SPACING, BORDER_RADIUS } from '../../styles/spacing';
 import { useUserStore } from '../../store/userStore';
 import { useAuth } from '../../contexts/AuthContext';
 import { Icon, IconName } from '../Icon';
@@ -149,7 +150,8 @@ const UniversalMyPageScreen: React.FC<UniversalMyPageScreenProps> = ({
   if (!user) {
     return (
       <View style={[styles.container, styles.centerContent]}>
-        <Text style={styles.loadingText}>로그인이 필요합니다</Text>
+        <Icon name="user" size={48} color={COLORS.neutral.grey300} />
+        <Text style={styles.loginPromptText}>로그인이 필요합니다</Text>
         <TouchableOpacity
           style={styles.loginButton}
           onPress={() => navigation.navigate('Login')}
@@ -185,18 +187,18 @@ const UniversalMyPageScreen: React.FC<UniversalMyPageScreenProps> = ({
         </View>
 
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-          {/* 프로필 카드 */}
+          {/* 프로필 히어로 (딥 차콜 그라데이션) */}
           <FadeIn delay={0}>
-            <View style={styles.profileCard}>
+            <View style={styles.profileHero}>
               <View style={styles.profileRow}>
                 <View
-                style={styles.profileImageWrapper}
-                accessibilityLabel="프로필 사진"
-              >
+                  style={styles.profileImageWrapper}
+                  accessibilityLabel="프로필 사진"
+                >
                   <ProfileImage
                     profileImage={userProfileImageUrl}
                     name={user?.name || '사용자'}
-                    size={80}
+                    size={72}
                   />
                 </View>
                 <View style={styles.profileInfo}>
@@ -210,26 +212,25 @@ const UniversalMyPageScreen: React.FC<UniversalMyPageScreenProps> = ({
                     accessibilityRole="button"
                   >
                     <Text style={styles.editProfileText}>프로필 수정</Text>
+                    <Icon name="chevron-right" size={12} color={COLORS.neutral.white} />
                   </TouchableOpacity>
                 </View>
               </View>
             </View>
           </FadeIn>
 
-          {/* 통계 카드 */}
+          {/* 통계 카드 (클린 화이트, 서틀 보더) */}
           <FadeIn delay={50}>
-            <View style={styles.statsCard}>
-              <View style={styles.statItem}>
+            <View style={styles.statsRow}>
+              <View style={styles.statCard}>
                 <Text style={styles.statValue}>{userStats.totalMeetups}</Text>
                 <Text style={styles.statLabel}>참여</Text>
               </View>
-              <View style={styles.statDivider} />
-              <View style={styles.statItem}>
+              <View style={styles.statCard}>
                 <Text style={styles.statValue}>{userStats.hostedMeetups}</Text>
                 <Text style={styles.statLabel}>주최</Text>
               </View>
-              <View style={styles.statDivider} />
-              <View style={styles.statItem}>
+              <View style={styles.statCard}>
                 <Text style={styles.statValue}>{userStats.reviewCount}</Text>
                 <Text style={styles.statLabel}>리뷰</Text>
               </View>
@@ -244,12 +245,12 @@ const UniversalMyPageScreen: React.FC<UniversalMyPageScreenProps> = ({
               activeOpacity={0.7}
             >
               <View style={styles.pointBannerLeft}>
-                <Icon name="credit-card" size={20} color={COLORS.primary.main} />
+                <Icon name="credit-card" size={18} color={COLORS.primary.accent} />
                 <Text style={styles.pointBannerLabel}>보유 포인트</Text>
               </View>
               <View style={styles.pointBannerRight}>
                 <Text style={styles.pointBannerValue}>{userStats.availablePoints.toLocaleString()}P</Text>
-                <Icon name="chevron-right" size={16} color={COLORS.text.tertiary} />
+                <Icon name="chevron-right" size={14} color={COLORS.text.tertiary} />
               </View>
             </TouchableOpacity>
           </FadeIn>
@@ -277,7 +278,7 @@ const UniversalMyPageScreen: React.FC<UniversalMyPageScreenProps> = ({
 
           {/* 빠른 메뉴 (3x2 그리드) */}
           <FadeIn delay={150}>
-            <View style={styles.quickMenuCard}>
+            <View style={styles.quickMenuSection}>
               <View style={styles.quickMenuGrid}>
                 {QUICK_MENUS.map((menu) => (
                   <TouchableOpacity
@@ -287,7 +288,7 @@ const UniversalMyPageScreen: React.FC<UniversalMyPageScreenProps> = ({
                     activeOpacity={0.7}
                   >
                     <View style={styles.quickMenuIconBox}>
-                      <Icon name={menu.icon} size={24} color={COLORS.primary.main} />
+                      <Icon name={menu.icon} size={20} color={COLORS.primary.accent} />
                     </View>
                     <Text style={styles.quickMenuLabel} numberOfLines={1}>{menu.label}</Text>
                   </TouchableOpacity>
@@ -296,9 +297,12 @@ const UniversalMyPageScreen: React.FC<UniversalMyPageScreenProps> = ({
             </View>
           </FadeIn>
 
+          {/* 구분선 */}
+          <View style={styles.sectionDivider} />
+
           {/* 고객지원 (접힌 목록) */}
           <FadeIn delay={200}>
-            <View style={styles.supportCard}>
+            <View style={styles.supportSection}>
               <TouchableOpacity
                 style={styles.supportHeader}
                 onPress={() => setSupportExpanded(!supportExpanded)}
@@ -307,8 +311,8 @@ const UniversalMyPageScreen: React.FC<UniversalMyPageScreenProps> = ({
                 <Text style={styles.supportTitle}>고객지원</Text>
                 <Icon
                   name={supportExpanded ? 'chevron-up' : 'chevron-down'}
-                  size={18}
-                  color={COLORS.text.secondary}
+                  size={16}
+                  color={COLORS.text.tertiary}
                 />
               </TouchableOpacity>
               {supportExpanded && (
@@ -324,7 +328,7 @@ const UniversalMyPageScreen: React.FC<UniversalMyPageScreenProps> = ({
                       activeOpacity={0.7}
                     >
                       <Text style={styles.supportItemText}>{menu.label}</Text>
-                      <Icon name="chevron-right" size={16} color={COLORS.text.tertiary} />
+                      <Icon name="chevron-right" size={14} color={COLORS.text.tertiary} />
                     </TouchableOpacity>
                   ))}
                 </View>
@@ -342,7 +346,7 @@ const UniversalMyPageScreen: React.FC<UniversalMyPageScreenProps> = ({
                 accessibilityLabel="로그아웃"
                 accessibilityRole="button"
               >
-                <Icon name="log-out" size={18} color={COLORS.text.secondary} />
+                <Icon name="log-out" size={16} color={COLORS.text.tertiary} />
                 <Text style={styles.logoutText}>로그아웃</Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -370,7 +374,7 @@ const UniversalMyPageScreen: React.FC<UniversalMyPageScreenProps> = ({
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: COLORS.neutral.white,
+    backgroundColor: COLORS.surface.primary,
   },
   container: {
     flex: 1,
@@ -379,120 +383,117 @@ const styles = StyleSheet.create({
   centerContent: {
     justifyContent: 'center',
     alignItems: 'center',
+    paddingHorizontal: SPACING.xl,
   },
-  loadingText: {
+  loginPromptText: {
     fontSize: 16,
+    fontWeight: '500',
     color: COLORS.text.secondary,
+    marginTop: SPACING.lg,
+    marginBottom: SPACING.xl,
   },
   header: {
+    height: LAYOUT.HEADER_HEIGHT,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    paddingTop: 20,
-    backgroundColor: COLORS.neutral.white,
-    ...SHADOWS.small,
+    paddingHorizontal: SPACING.xl,
+    backgroundColor: COLORS.surface.primary,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.neutral.grey100,
   },
   headerTitle: {
-    fontSize: 22,
-    fontWeight: '800',
+    ...TYPOGRAPHY.heading.h2,
     color: COLORS.text.primary,
-    letterSpacing: -0.3,
   },
   content: {
     flex: 1,
-    paddingTop: 16,
-    paddingBottom: 40,
   },
   skeletonWrapper: {
-    padding: 20,
-    backgroundColor: COLORS.neutral.white,
+    padding: SPACING.xl,
+    backgroundColor: COLORS.surface.primary,
   },
 
-  // 프로필 카드
-  profileCard: {
-    backgroundColor: COLORS.neutral.white,
-    marginHorizontal: 20,
-    padding: 24,
-    ...SHADOWS.medium,
-    ...CARD_STYLE,
-    borderRadius: 20,
+  // 프로필 히어로 (딥 차콜)
+  profileHero: {
+    backgroundColor: COLORS.primary.main,
+    paddingHorizontal: SPACING.xl,
+    paddingTop: 28,
+    paddingBottom: 28,
   },
   profileRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 20,
+    gap: 16,
   },
   profileImageWrapper: {
-    borderRadius: 40,
-    borderWidth: 3,
-    borderColor: COLORS.primary.light,
+    borderRadius: 36,
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.2)',
     overflow: 'hidden',
-    ...SHADOWS.small,
   },
   profileInfo: {
     flex: 1,
   },
   userName: {
     fontSize: 20,
-    fontWeight: '800',
-    color: COLORS.text.primary,
-    marginBottom: 4,
+    fontWeight: '700',
+    color: COLORS.text.white,
+    marginBottom: 2,
     letterSpacing: -0.3,
   },
   userEmail: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '400',
-    color: COLORS.text.tertiary,
-    marginBottom: 14,
+    color: 'rgba(255,255,255,0.6)',
+    marginBottom: 12,
   },
   editProfileButton: {
     alignSelf: 'flex-start',
-    paddingHorizontal: 20,
-    paddingVertical: 8,
-    borderRadius: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: BORDER_RADIUS.md,
     borderWidth: 1,
-    borderColor: COLORS.primary.main,
-    backgroundColor: COLORS.neutral.white,
+    borderColor: 'rgba(255,255,255,0.25)',
+    backgroundColor: 'rgba(255,255,255,0.1)',
   },
   editProfileText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: COLORS.primary.main,
+    fontSize: 12,
+    fontWeight: '500',
+    color: COLORS.text.white,
   },
 
-  // 통계 카드
-  statsCard: {
+  // 통계 카드 (화이트 카드, 서틀 보더)
+  statsRow: {
     flexDirection: 'row',
-    backgroundColor: COLORS.neutral.white,
-    marginHorizontal: 20,
-    marginTop: 16,
-    padding: 20,
-    alignItems: 'center',
-    ...SHADOWS.small,
-    ...CARD_STYLE,
+    paddingHorizontal: SPACING.xl,
+    paddingTop: 16,
+    gap: 10,
   },
-  statItem: {
+  statCard: {
     flex: 1,
     alignItems: 'center',
+    backgroundColor: COLORS.surface.primary,
+    paddingVertical: 16,
+    borderRadius: BORDER_RADIUS.lg,
+    borderWidth: 1,
+    borderColor: COLORS.neutral.grey100,
   },
   statValue: {
-    fontSize: 28,
-    fontWeight: '800',
+    fontSize: 22,
+    fontWeight: '700',
     color: COLORS.text.primary,
     letterSpacing: -0.3,
   },
   statLabel: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '500',
     color: COLORS.text.tertiary,
     marginTop: 4,
-  },
-  statDivider: {
-    width: 1,
-    height: 32,
-    backgroundColor: COLORS.neutral.grey100,
+    letterSpacing: 0.2,
   },
 
   // 포인트 배너
@@ -500,12 +501,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: COLORS.primary.light,
-    marginHorizontal: 20,
-    marginTop: 16,
-    borderRadius: 16,
-    padding: 20,
-    ...SHADOWS.small,
+    backgroundColor: COLORS.surface.primary,
+    marginHorizontal: SPACING.xl,
+    marginTop: 12,
+    borderRadius: BORDER_RADIUS.lg,
+    borderWidth: 1,
+    borderColor: COLORS.neutral.grey100,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
   },
   pointBannerLeft: {
     flexDirection: 'row',
@@ -513,8 +516,8 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   pointBannerLabel: {
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: 14,
+    fontWeight: '600',
     color: COLORS.text.primary,
   },
   pointBannerRight: {
@@ -525,17 +528,19 @@ const styles = StyleSheet.create({
   pointBannerValue: {
     fontSize: 16,
     fontWeight: '700',
-    color: COLORS.primary.main,
+    color: COLORS.primary.accent,
     letterSpacing: -0.2,
   },
 
   // 밥알지수 카드
   riceCard: {
-    backgroundColor: COLORS.primary.light,
-    marginHorizontal: 20,
-    marginTop: 16,
-    borderRadius: 16,
-    padding: 20,
+    backgroundColor: COLORS.surface.primary,
+    marginHorizontal: SPACING.xl,
+    marginTop: 12,
+    borderRadius: BORDER_RADIUS.lg,
+    borderWidth: 1,
+    borderColor: COLORS.neutral.grey100,
+    padding: 16,
   },
   riceHeader: {
     flexDirection: 'row',
@@ -544,89 +549,94 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   riceLabel: {
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: 14,
+    fontWeight: '600',
     color: COLORS.text.primary,
   },
   riceScore: {
     fontSize: 16,
     fontWeight: '700',
-    color: COLORS.primary.main,
+    color: COLORS.primary.accent,
   },
   riceProgressBg: {
-    height: 8,
-    backgroundColor: COLORS.neutral.white,
-    borderRadius: 4,
+    height: 6,
+    backgroundColor: COLORS.neutral.grey100,
+    borderRadius: 3,
     overflow: 'hidden',
     marginBottom: 10,
   },
   riceProgressFill: {
     height: '100%',
-    borderRadius: 4,
-    backgroundColor: COLORS.primary.main,
+    borderRadius: 3,
+    backgroundColor: COLORS.primary.accent,
   },
   riceGradeText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: COLORS.primary.main,
+    fontSize: 13,
+    fontWeight: '500',
+    color: COLORS.text.secondary,
   },
 
   // 빠른 메뉴
-  quickMenuCard: {
-    marginHorizontal: 20,
-    marginTop: 16,
+  quickMenuSection: {
+    paddingHorizontal: SPACING.xl,
+    marginTop: 20,
   },
   quickMenuGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12,
+    gap: 10,
   },
   quickMenuItem: {
     width: '31%',
     alignItems: 'center',
-    backgroundColor: COLORS.neutral.white,
     paddingVertical: 16,
     paddingHorizontal: 8,
-    ...SHADOWS.small,
-    ...CARD_STYLE,
+    backgroundColor: COLORS.surface.primary,
+    borderRadius: BORDER_RADIUS.lg,
+    borderWidth: 1,
+    borderColor: COLORS.neutral.grey100,
   },
   quickMenuIconBox: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
-    backgroundColor: COLORS.primary.accent,
+    width: 40,
+    height: 40,
+    borderRadius: BORDER_RADIUS.lg,
+    backgroundColor: COLORS.neutral.background,
     justifyContent: 'center',
     alignItems: 'center',
   },
   quickMenuLabel: {
-    fontSize: 13,
-    fontWeight: '600',
+    fontSize: 12,
+    fontWeight: '500',
     color: COLORS.text.primary,
     textAlign: 'center',
-    marginTop: 10,
+    marginTop: 8,
+  },
+
+  // 구분선
+  sectionDivider: {
+    height: 1,
+    backgroundColor: COLORS.neutral.grey100,
+    marginHorizontal: SPACING.xl,
+    marginTop: 20,
   },
 
   // 고객지원
-  supportCard: {
-    backgroundColor: COLORS.neutral.white,
-    marginHorizontal: 20,
+  supportSection: {
+    marginHorizontal: SPACING.xl,
     marginTop: 16,
-    borderRadius: 16,
-    ...SHADOWS.small,
-    overflow: 'hidden',
   },
   supportHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingVertical: 14,
   },
   supportTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: COLORS.text.secondary,
-    letterSpacing: 0.5,
+    fontSize: 13,
+    fontWeight: '600',
+    color: COLORS.text.tertiary,
+    letterSpacing: 0.3,
+    textTransform: 'uppercase',
   },
   supportList: {
     borderTopWidth: 1,
@@ -636,14 +646,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    height: 52,
-    paddingHorizontal: 20,
+    height: 48,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.neutral.grey100,
   },
   supportItemText: {
-    fontSize: 15,
-    fontWeight: '500',
+    fontSize: 14,
+    fontWeight: '400',
     color: COLORS.text.primary,
   },
 
@@ -651,50 +660,50 @@ const styles = StyleSheet.create({
   bottomActions: {
     alignItems: 'center',
     marginTop: 24,
-    paddingHorizontal: 20,
-    paddingBottom: 40,
+    paddingHorizontal: SPACING.xl,
+    paddingBottom: 20,
   },
   logoutButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 14,
-    borderRadius: 12,
+    gap: 6,
+    paddingVertical: 12,
+    borderRadius: BORDER_RADIUS.md,
     borderWidth: 1,
     borderColor: COLORS.neutral.grey200,
     width: '100%',
   },
   logoutText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: COLORS.text.secondary,
+    fontSize: 14,
+    fontWeight: '500',
+    color: COLORS.text.tertiary,
   },
   deleteButton: {
-    marginTop: 16,
+    marginTop: 12,
     paddingVertical: 8,
     minHeight: 44,
     justifyContent: 'center',
   },
   deleteText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '400',
-    color: COLORS.functional.error,
+    color: COLORS.text.tertiary,
+    textDecorationLine: 'underline',
   },
 
   bottomSpacing: {
     height: 40,
   },
   loginButton: {
-    marginTop: 20,
-    paddingHorizontal: 32,
+    paddingHorizontal: 28,
     paddingVertical: 12,
-    backgroundColor: COLORS.primary.main,
-    borderRadius: 8,
+    backgroundColor: COLORS.primary.accent,
+    borderRadius: BORDER_RADIUS.md,
   },
   loginButtonText: {
     color: COLORS.neutral.white,
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
   },
 });

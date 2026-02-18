@@ -64,7 +64,7 @@ const UserVerificationScreen = () => {
     Alert.alert(
       '인증 신청 완료',
       '회원 인증 신청이 완료되었습니다.\n검토 후 24시간 내에 결과를 알려드립니다.',
-      [{ text: '확인', onPress: () => console.log('인증 완료') }]
+      [{ text: '확인' }]
     );
   };
 
@@ -208,7 +208,7 @@ const UserVerificationScreen = () => {
       <View style={styles.termsNotice}>
         <Text style={styles.termsTitle}>⚖️ 이용 약관 동의</Text>
         <Text style={styles.termsText}>
-          • 혼밥시러 서비스 이용약관{'\n'}
+          • 잇테이블 서비스 이용약관{'\n'}
           • 개인정보처리방침{'\n'}
           • 위치기반서비스 이용약관
         </Text>
@@ -278,7 +278,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 24,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: COLORS.text.primary,
     marginBottom: 16,
   },
@@ -310,7 +310,7 @@ const styles = StyleSheet.create({
   },
   stepTitle: {
     fontSize: 20,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: COLORS.text.primary,
     marginBottom: 8,
   },
@@ -332,7 +332,7 @@ const styles = StyleSheet.create({
   input: {
     borderWidth: 1,
     borderColor: COLORS.primary.light,
-    borderRadius: 12,
+    borderRadius: 8,
     padding: 16,
     fontSize: 16,
     backgroundColor: COLORS.neutral.white,
@@ -352,13 +352,13 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.neutral.white,
     borderWidth: 2,
     borderColor: COLORS.neutral.grey300,
-    borderRadius: 20,
+    borderRadius: 8,
     paddingHorizontal: 16,
     paddingVertical: 8,
     ...SHADOWS.small,
   },
   selectedInterest: {
-    borderColor: COLORS.primary.main,
+    borderColor: COLORS.primary.accent,
     backgroundColor: COLORS.primary.light,
   },
   interestText: {
@@ -368,7 +368,7 @@ const styles = StyleSheet.create({
   },
   selectedInterestText: {
     color: COLORS.primary.dark,
-    fontWeight: 'bold',
+    fontWeight: '700',
   },
   selectedCount: {
     fontSize: 14,
@@ -376,8 +376,8 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   verifyButton: {
-    backgroundColor: COLORS.secondary.main,
-    borderRadius: 12,
+    backgroundColor: COLORS.primary.accent,
+    borderRadius: 6,
     padding: 16,
     alignItems: 'center',
     marginTop: 16,
@@ -387,18 +387,18 @@ const styles = StyleSheet.create({
   verifyButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: COLORS.neutral.white,
   },
   safetyNotice: {
     backgroundColor: COLORS.secondary.light,
-    borderRadius: 12,
+    borderRadius: 8,
     padding: 16,
     borderLeftWidth: 4,
-    borderLeftColor: COLORS.primary.main,
+    borderLeftColor: COLORS.primary.accent,
   },
   safetyTitle: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: COLORS.text.primary,
     marginBottom: 8,
   },
@@ -409,14 +409,14 @@ const styles = StyleSheet.create({
   },
   summaryCard: {
     backgroundColor: COLORS.neutral.white,
-    borderRadius: 12,
+    borderRadius: 8,
     padding: 16,
     marginBottom: 20,
     ...SHADOWS.small,
   },
   summaryTitle: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: COLORS.text.primary,
     marginBottom: 12,
   },
@@ -439,14 +439,14 @@ const styles = StyleSheet.create({
   },
   termsNotice: {
     backgroundColor: COLORS.secondary.light,
-    borderRadius: 12,
+    borderRadius: 8,
     padding: 16,
     borderLeftWidth: 4,
-    borderLeftColor: COLORS.primary.main,
+    borderLeftColor: COLORS.primary.accent,
   },
   termsTitle: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: COLORS.text.primary,
     marginBottom: 8,
   },
@@ -463,7 +463,7 @@ const styles = StyleSheet.create({
   backButton: {
     flex: 1,
     backgroundColor: COLORS.neutral.grey200,
-    borderRadius: 12,
+    borderRadius: 6,
     padding: 16,
     alignItems: 'center',
   },
@@ -474,8 +474,8 @@ const styles = StyleSheet.create({
   },
   nextButton: {
     flex: 1,
-    backgroundColor: COLORS.primary.main,
-    borderRadius: 12,
+    backgroundColor: COLORS.primary.accent,
+    borderRadius: 6,
     padding: 16,
     alignItems: 'center',
     ...SHADOWS.medium,
@@ -485,7 +485,7 @@ const styles = StyleSheet.create({
   },
   nextButtonText: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: COLORS.text.white,
   },
 });

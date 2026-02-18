@@ -1,5 +1,9 @@
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 const pool = require('../config/database');
+
+// 리프레시 토큰 만료 시간 (7일)
+const REFRESH_TOKEN_EXPIRY_DAYS = 7;
 
 // JWT 토큰 검증 미들웨어
 const authenticateToken = (req, res, next) => {
@@ -131,7 +135,7 @@ const authenticateAdminNew = async (req, res, next) => {
   }
 };
 
-// JWT 토큰 생성
+// JWT 액세스 토큰 생성 (짧은 만료 시간)
 const generateJWT = (user) => {
   return jwt.sign(
     {
@@ -140,13 +144,71 @@ const generateJWT = (user) => {
       name: user.name
     },
     process.env.JWT_SECRET,
-    { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
+    { expiresIn: process.env.JWT_EXPIRES_IN || '1h' }
   );
 };
+
+// 리프레시 토큰 생성 (DB 저장)
+const generateRefreshToken = async (user) => {
+  const refreshToken = crypto.randomBytes(64).toString('hex');
+
+  // 같은 사용자의 기존 토큰 제거 (1인 1토큰 정책)
+  await pool.query('DELETE FROM user_refresh_tokens WHERE user_id = $1', [user.id]);
+
+  // 새 토큰 저장
+  const expiresAt = new Date(Date.now() + REFRESH_TOKEN_EXPIRY_DAYS * 24 * 60 * 60 * 1000);
+  await pool.query(`
+    INSERT INTO user_refresh_tokens (user_id, token, email, name, expires_at)
+    VALUES ($1, $2, $3, $4, $5)
+  `, [user.id, refreshToken, user.email, user.name, expiresAt]);
+
+  return refreshToken;
+};
+
+// 리프레시 토큰 검증 (DB 조회)
+const verifyRefreshToken = async (refreshToken) => {
+  const result = await pool.query(
+    'SELECT user_id AS "userId", email, name, created_at AS "createdAt" FROM user_refresh_tokens WHERE token = $1 AND expires_at > NOW()',
+    [refreshToken]
+  );
+
+  if (result.rows.length === 0) {
+    // 만료됐거나 없는 토큰이면 삭제
+    await pool.query('DELETE FROM user_refresh_tokens WHERE token = $1', [refreshToken]);
+    return null;
+  }
+
+  return result.rows[0];
+};
+
+// 리프레시 토큰 삭제 (로그아웃 시)
+const revokeRefreshToken = async (refreshToken) => {
+  const result = await pool.query('DELETE FROM user_refresh_tokens WHERE token = $1', [refreshToken]);
+  return result.rowCount > 0;
+};
+
+// 만료된 리프레시 토큰 정리 (주기적 호출용)
+const cleanupExpiredRefreshTokens = async () => {
+  try {
+    const result = await pool.query('DELETE FROM user_refresh_tokens WHERE expires_at < NOW()');
+    if (result.rowCount > 0) {
+      console.log(`🔑 만료된 리프레시 토큰 ${result.rowCount}개 정리 완료`);
+    }
+  } catch (error) {
+    console.error('리프레시 토큰 정리 오류:', error.message);
+  }
+};
+
+// 1시간마다 만료된 리프레시 토큰 정리
+const cleanupInterval = setInterval(cleanupExpiredRefreshTokens, 60 * 60 * 1000);
+cleanupInterval.unref();
 
 module.exports = {
   authenticateToken,
   authenticateAdmin,
   authenticateAdminNew,
-  generateJWT
+  generateJWT,
+  generateRefreshToken,
+  verifyRefreshToken,
+  revokeRefreshToken,
 };

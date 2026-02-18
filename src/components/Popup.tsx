@@ -284,14 +284,14 @@ const Popup: React.FC<PopupProps> = ({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(17,17,17,0.6)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
   },
   popup: {
     backgroundColor: COLORS.neutral.white,
-    borderRadius: 16,
+    borderRadius: 10,
     width: '100%',
     maxWidth: 320,
     ...SHADOWS.large,
@@ -324,7 +324,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 20,
-    fontWeight: 'bold',
+    fontWeight: '700',
     textAlign: 'center',
     marginBottom: 12,
   },
@@ -343,7 +343,7 @@ const styles = StyleSheet.create({
   button: {
     flex: 1,
     paddingVertical: 14,
-    borderRadius: 12,
+    borderRadius: 8,
     alignItems: 'center',
   },
   singleButton: {

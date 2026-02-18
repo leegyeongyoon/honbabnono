@@ -10,8 +10,8 @@ interface AdvertisementBannerProps {
   navigation?: any;
 }
 
-const AdvertisementBanner: React.FC<AdvertisementBannerProps> = ({ 
-  position = 'home_banner', 
+const AdvertisementBanner: React.FC<AdvertisementBannerProps> = ({
+  position = 'home_banner',
   style,
   navigation
 }) => {
@@ -38,11 +38,9 @@ const AdvertisementBanner: React.FC<AdvertisementBannerProps> = ({
     try {
       setLoading(true);
       const ads = await advertisementApiService.getActiveAdvertisements(position);
-      console.log('📢 로딩된 광고들:', ads);
       setAdvertisements(ads);
       setCurrentAdIndex(0);
-    } catch (error) {
-      console.error('광고 로딩 실패:', error);
+    } catch (_error) {
       setAdvertisements([]);
     } finally {
       setLoading(false);
@@ -51,42 +49,27 @@ const AdvertisementBanner: React.FC<AdvertisementBannerProps> = ({
 
   const handleAdvertisementClick = async (advertisement: Advertisement) => {
     try {
-      console.log('🔔 광고 클릭:', advertisement);
-      console.log('🔔 useDetailPage:', advertisement.useDetailPage);
-      console.log('🔔 linkUrl:', advertisement.linkUrl);
-      console.log('🔔 navigation:', navigation);
-      
       // 클릭 수 기록
       await advertisementApiService.recordClick(advertisement.id);
-      
+
       // 디테일 페이지 사용 여부에 따라 분기
       if (advertisement.useDetailPage) {
-        console.log('✅ 디테일 페이지로 이동');
-        // 디테일 페이지로 이동
         if (navigation) {
           navigation.navigate('AdvertisementDetail', { advertisementId: advertisement.id });
-        } else {
-          console.warn('네비게이션 객체가 없어서 디테일 페이지로 이동할 수 없습니다.');
         }
       } else if (advertisement.linkUrl) {
-        console.log('🌐 외부 링크로 이동');
-        // 외부 링크로 이동
         if (advertisement.linkUrl.startsWith('http')) {
           Linking.openURL(advertisement.linkUrl);
-        } else {
-          console.log('내부 링크:', advertisement.linkUrl);
         }
-      } else {
-        console.log('❓ 아무 동작도 없음');
       }
-    } catch (error) {
-      console.error('광고 클릭 처리 실패:', error);
+    } catch (_error) {
+      // 광고 클릭 처리 실패 - 무시
     }
   };
 
   const renderAdvertisement = (advertisement: Advertisement) => {
-    const imageUrl = advertisement.imageUrl?.startsWith('http') 
-      ? advertisement.imageUrl 
+    const imageUrl = advertisement.imageUrl?.startsWith('http')
+      ? advertisement.imageUrl
       : `${process.env.REACT_APP_API_URL || 'http://localhost:3001'}${advertisement.imageUrl}`;
 
     return (
@@ -102,7 +85,7 @@ const AdvertisementBanner: React.FC<AdvertisementBannerProps> = ({
             style={styles.image}
             resizeMode="cover"
           />
-          
+
           {/* 오버레이 텍스트 */}
           <View style={styles.overlay}>
             <Text style={styles.title} numberOfLines={1}>
@@ -147,7 +130,10 @@ const AdvertisementBanner: React.FC<AdvertisementBannerProps> = ({
   if (loading) {
     return (
       <View style={[styles.container, styles.loadingContainer, style]}>
-        <Text style={styles.loadingText}>광고 로딩 중...</Text>
+        <View style={styles.shimmerContainer}>
+          <View style={styles.shimmerLine} />
+          <View style={[styles.shimmerLine, { width: '60%', marginTop: 8 }]} />
+        </View>
       </View>
     );
   }
@@ -163,7 +149,7 @@ const styles = StyleSheet.create({
   container: {
     marginHorizontal: 20,
     marginVertical: 16,
-    borderRadius: 16,
+    borderRadius: 8,
     overflow: 'hidden',
     position: 'relative',
     height: 180,
@@ -182,7 +168,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(15, 14, 12, 0.55)',
     paddingHorizontal: 16,
     paddingVertical: 12,
   },
@@ -204,7 +190,7 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(15, 14, 12, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -212,7 +198,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 8,
     left: 8,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    backgroundColor: 'rgba(15, 14, 12, 0.7)',
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
@@ -239,13 +225,20 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.neutral.white,
   },
   loadingContainer: {
-    backgroundColor: COLORS.neutral.gray100,
+    backgroundColor: COLORS.neutral.light,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  loadingText: {
-    fontSize: 14,
-    color: COLORS.text.secondary,
+  shimmerContainer: {
+    alignItems: 'center',
+    padding: 20,
+  },
+  shimmerLine: {
+    width: '80%',
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: COLORS.neutral.grey200,
+    opacity: 0.5,
   },
 });
 

@@ -117,7 +117,7 @@ const BlockedUsersScreen: React.FC = () => {
 
           {user.reason && (
             <View style={styles.reasonContainer}>
-              <AlertTriangle size={14} color={COLORS.text.secondary} />
+              <AlertTriangle size={14} color="#5C4F42" />
               <Text style={styles.reasonText}>{user.reason}</Text>
             </View>
           )}
@@ -132,7 +132,7 @@ const BlockedUsersScreen: React.FC = () => {
         style={styles.unblockButton}
         onPress={() => unblockUser(user.id, user.name)}
       >
-        <UserX size={20} color={COLORS.neutral.white} />
+        <UserX size={20} color="#FFFFFF" />
         <Text style={styles.unblockButtonText}>차단 해제</Text>
       </TouchableOpacity>
     </View>
@@ -140,8 +140,26 @@ const BlockedUsersScreen: React.FC = () => {
 
   if (loading) {
     return (
-      <View style={[styles.container, styles.centerContent]}>
-        <Text style={styles.loadingText}>차단 회원 목록을 불러오는 중...</Text>
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.backButton} onPress={() => navigate(-1)}>
+            <ArrowLeft size={24} color="#1A1714" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>차단 회원 관리</Text>
+          <View style={{ width: 44 }} />
+        </View>
+        <View style={{ padding: 20, gap: 12 }}>
+          {[0, 1, 2, 3].map((i) => (
+            <View key={i} className="animate-shimmer" style={{ flexDirection: 'row', alignItems: 'center', padding: 16, backgroundColor: '#FAFAF8', borderRadius: 8, gap: 12 }}>
+              <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: '#EFECEA' }} />
+              <View style={{ flex: 1, gap: 8 }}>
+                <View style={{ width: '50%', height: 14, borderRadius: 7, backgroundColor: '#EFECEA' }} />
+                <View style={{ width: '30%', height: 10, borderRadius: 5, backgroundColor: '#EFECEA' }} />
+              </View>
+              <View style={{ width: 72, height: 32, borderRadius: 6, backgroundColor: '#EFECEA' }} />
+            </View>
+          ))}
+        </View>
       </View>
     );
   }
@@ -154,7 +172,7 @@ const BlockedUsersScreen: React.FC = () => {
           style={styles.backButton}
           onPress={() => navigate(-1)}
         >
-          <ArrowLeft size={24} color={COLORS.text.primary} />
+          <ArrowLeft size={24} color="#1A1714" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>차단 회원 관리</Text>
         <View style={styles.placeholder} />
@@ -164,7 +182,7 @@ const BlockedUsersScreen: React.FC = () => {
       {blockedUsers.length > 0 && (
         <View style={styles.statsContainer}>
           <View style={styles.statCard}>
-            <Shield size={24} color={COLORS.text.error} />
+            <Shield size={24} color="#D32F2F" />
             <Text style={styles.statNumber}>{blockedUsers.length}</Text>
             <Text style={styles.statLabel}>차단한 회원</Text>
           </View>
@@ -207,7 +225,7 @@ const BlockedUsersScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.neutral.background,
+    backgroundColor: '#EFECEA',
   },
   centerContent: {
     justifyContent: 'center',
@@ -215,7 +233,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 16,
-    color: COLORS.text.secondary,
+    color: '#5C4F42',
   },
 
   // 헤더
@@ -228,16 +246,27 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
     backgroundColor: COLORS.neutral.white,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0,0,0,0.06)',
-    ...SHADOWS.small,
+    borderBottomColor: 'rgba(17,17,17,0.06)',
+    shadowColor: '#111111',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 3,
+    zIndex: 10,
   },
   backButton: {
-    padding: 8,
+    padding: 10,
+    minWidth: 44,
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    cursor: 'pointer',
+    transition: 'all 200ms ease',
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: COLORS.text.primary,
+    color: '#1A1714',
   },
   placeholder: {
     width: 40,
@@ -250,23 +279,28 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.neutral.white,
   },
   statCard: {
-    backgroundColor: COLORS.neutral.background,
-    borderRadius: 16,
+    backgroundColor: '#FAFAF8',
+    borderRadius: 8,
     padding: 20,
     alignItems: 'center',
-    ...CARD_STYLE,
-    ...SHADOWS.small,
+    borderWidth: 1,
+    borderColor: 'rgba(17,17,17,0.06)',
+    shadowColor: '#111111',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 1,
   },
   statNumber: {
     fontSize: 24,
     fontWeight: '700',
-    color: COLORS.text.error,
+    color: '#D32F2F',
     marginTop: 8,
     marginBottom: 4,
   },
   statLabel: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: '#5C4F42',
     textAlign: 'center',
   },
 
@@ -286,12 +320,12 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: COLORS.text.primary,
+    color: '#1A1714',
     marginBottom: 4,
   },
   sectionSubtitle: {
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: '#5C4F42',
     lineHeight: 18,
   },
 
@@ -303,8 +337,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    ...CARD_STYLE,
-    ...SHADOWS.small,
+    cursor: 'pointer',
+    transition: 'all 200ms ease',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(17,17,17,0.06)',
+    shadowColor: '#111111',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 1,
   },
   userInfo: {
     flex: 1,
@@ -320,12 +362,12 @@ const styles = StyleSheet.create({
   userName: {
     fontSize: 16,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: '#1A1714',
     marginBottom: 2,
   },
   userEmail: {
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: '#5C4F42',
     marginBottom: 6,
   },
   reasonContainer: {
@@ -335,25 +377,27 @@ const styles = StyleSheet.create({
   },
   reasonText: {
     fontSize: 13,
-    color: COLORS.text.secondary,
+    color: '#5C4F42',
     marginLeft: 4,
     fontStyle: 'italic',
   },
   blockedDate: {
     fontSize: 13,
-    color: COLORS.text.tertiary,
+    color: '#8B7E72',
   },
   unblockButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.text.error,
+    backgroundColor: '#D32F2F',
     paddingHorizontal: 16,
     paddingVertical: 10,
-    borderRadius: 10,
+    borderRadius: 6,
     gap: 6,
+    cursor: 'pointer',
+    transition: 'all 200ms ease',
   },
   unblockButtonText: {
-    color: COLORS.neutral.white,
+    color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '600',
   },

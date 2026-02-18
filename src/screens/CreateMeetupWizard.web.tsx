@@ -698,20 +698,109 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
     }
   }, [currentStep]);
 
+  const stepLabels = ['카테고리', '일시', '인원', '성향', '위치', '상세정보', '약속금', '결제'];
   const renderStepIndicator = () => {
+    // Determine total visible steps based on current progress
+    // Show all 8 steps if we're at step 7 or 8, otherwise show first 6
+    const visibleSteps = currentStep >= 7 ? 8 : 6;
+    const stepsToShow = Array.from({ length: visibleSteps }, (_, i) => i + 1);
+
     return (
-      <View style={styles.stepIndicator}>
-        {[1, 2, 3, 4, 5, 6].map((step) => (
-          <View
-            key={step}
-            style={[
-              styles.stepDot,
-              step <= currentStep ? styles.stepDotActive : null,
-              step === currentStep ? styles.stepDotCurrent : null
-            ]}
-          />
-        ))}
-      </View>
+      <div style={{
+        display: 'flex',
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        justifyContent: 'center',
+        marginBottom: 32,
+        paddingTop: 8,
+        paddingBottom: 8,
+        paddingLeft: 16,
+        paddingRight: 16,
+        gap: 0,
+      }}>
+        {stepsToShow.map((step, idx) => {
+          const isCompleted = step < currentStep;
+          const isActive = step === currentStep;
+          const isPending = step > currentStep;
+
+          return (
+            <React.Fragment key={step}>
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: 8,
+                flex: '0 0 auto',
+                minWidth: visibleSteps === 8 ? '52px' : '64px',
+              }}>
+                {/* Step Circle */}
+                <div style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 18,
+                  background: isCompleted
+                    ? COLORS.primary.dark
+                    : isActive
+                      ? COLORS.gradient.ctaCSS
+                      : 'transparent',
+                  border: isPending ? `2px solid ${COLORS.neutral.grey300}` : 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: 14,
+                  fontWeight: '700',
+                  color: (isCompleted || isActive) ? COLORS.text.white : COLORS.text.tertiary,
+                  transition: 'all 300ms cubic-bezier(0.4, 0, 0.2, 1)',
+                  boxShadow: isActive
+                    ? `0 4px 12px rgba(196,154,112,0.25), 0 2px 4px rgba(196,154,112,0.15)`
+                    : isCompleted
+                      ? `0 2px 6px rgba(196,154,112,0.2)`
+                      : 'none',
+                  transform: isActive ? 'scale(1.05)' : 'scale(1)',
+                }}>
+                  {isCompleted ? (
+                    <Icon name="check" size={20} color={COLORS.text.white} />
+                  ) : (
+                    step
+                  )}
+                </div>
+
+                {/* Step Label */}
+                <span style={{
+                  fontSize: visibleSteps === 8 ? 9 : 11,
+                  fontWeight: isActive ? 700 : isCompleted ? 600 : 400,
+                  color: isCompleted || isActive ? COLORS.primary.dark : COLORS.text.tertiary,
+                  whiteSpace: 'nowrap',
+                  textAlign: 'center',
+                  transition: 'all 250ms ease',
+                  letterSpacing: '-0.3px',
+                }}>
+                  {stepLabels[idx]}
+                </span>
+              </div>
+
+              {/* Connecting Line */}
+              {idx < stepsToShow.length - 1 && (
+                <div style={{
+                  flex: '1 1 auto',
+                  height: 3,
+                  background: step < currentStep
+                    ? COLORS.primary.dark
+                    : COLORS.neutral.grey200,
+                  alignSelf: 'flex-start',
+                  marginTop: 17,
+                  marginLeft: visibleSteps === 8 ? 2 : 4,
+                  marginRight: visibleSteps === 8 ? 2 : 4,
+                  borderRadius: 1.5,
+                  transition: 'background 300ms cubic-bezier(0.4, 0, 0.2, 1)',
+                  position: 'relative' as const,
+                  overflow: 'hidden',
+                }} />
+              )}
+            </React.Fragment>
+          );
+        })}
+      </div>
     );
   };
 
@@ -1278,7 +1367,7 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
                   styles.detailAddressInput,
                   focusedInput === 'detailAddress' && {
                     borderColor: COLORS.primary.main,
-                    boxShadow: '0 0 0 3px rgba(139, 105, 20, 0.15)',
+                    boxShadow: '0 0 0 3px rgba(224, 146, 110, 0.15)',
                   } as any,
                 ]}
                 placeholder="건물명, 층수, 호수 등을 입력하세요"
@@ -1312,7 +1401,7 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
                   styles.locationSearchInput,
                   focusedInput === 'locationSearch' && {
                     borderColor: COLORS.primary.main,
-                    boxShadow: '0 0 0 3px rgba(139, 105, 20, 0.15)',
+                    boxShadow: '0 0 0 3px rgba(224, 146, 110, 0.15)',
                   } as any,
                 ]}
                 placeholder="주소나 장소명을 검색하세요"
@@ -1428,7 +1517,7 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
             styles.titleInput,
             focusedInput === 'title' && {
               borderColor: COLORS.primary.main,
-              boxShadow: '0 0 0 3px rgba(139, 105, 20, 0.15)',
+              boxShadow: '0 0 0 3px rgba(224, 146, 110, 0.15)',
             } as any,
           ]}
           placeholder="모임 제목을 입력하세요"
@@ -1446,7 +1535,7 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
             styles.descriptionInput,
             focusedInput === 'description' && {
               borderColor: COLORS.primary.main,
-              boxShadow: '0 0 0 3px rgba(139, 105, 20, 0.15)',
+              boxShadow: '0 0 0 3px rgba(224, 146, 110, 0.15)',
             } as any,
           ]}
           placeholder="모임에 대해 자유롭게 소개해주세요"
@@ -1533,7 +1622,7 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
               styles.depositInput,
               focusedInput === 'deposit' && {
                 borderColor: COLORS.primary.main,
-                boxShadow: '0 0 0 3px rgba(139, 105, 20, 0.15)',
+                boxShadow: '0 0 0 3px rgba(224, 146, 110, 0.15)',
               } as any,
             ]}
             placeholder="10,000"
@@ -1771,10 +1860,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
     backgroundColor: COLORS.neutral.white,
-    ...SHADOWS.small,
+    ...SHADOWS.sticky,
+    zIndex: 10,
   },
   backButton: {
-    padding: 4,
+    padding: 10,
+    minWidth: 44,
+    minHeight: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   placeholder: {
     width: 32,
@@ -1799,7 +1893,7 @@ const styles = StyleSheet.create({
   stepDotCurrent: {
     backgroundColor: COLORS.primary.main,
     width: 28,
-    borderRadius: 14,
+    borderRadius: 6,
   },
   content: {
     flex: 1,
@@ -1810,10 +1904,11 @@ const styles = StyleSheet.create({
   },
   stepTitle: {
     fontSize: 24,
-    fontWeight: '700',
+    fontWeight: '800',
     color: COLORS.text.primary,
     marginBottom: 32,
     textAlign: 'center',
+    letterSpacing: -0.5,
   },
   
   // Step 1 - 홈과 동일한 카테고리 디자인
@@ -1823,7 +1918,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     marginBottom: 12,
     ...SHADOWS.small,
-    borderRadius: 16,
+    borderRadius: 8,
     marginHorizontal: 16,
   },
   homeCategoryGrid: {
@@ -1839,9 +1934,9 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   homeCategoryBox: {
-    width: 70,
-    height: 70,
-    borderRadius: 16,
+    width: 80,
+    height: 80,
+    borderRadius: 12,
     backgroundColor: COLORS.neutral.background,
     justifyContent: 'center',
     alignItems: 'center',
@@ -1878,7 +1973,7 @@ const styles = StyleSheet.create({
   calendarContainer: {
     width: '100%',
     backgroundColor: COLORS.neutral.white,
-    borderRadius: 16,
+    borderRadius: 8,
     marginBottom: 12,
     overflow: 'hidden',
     ...SHADOWS.medium,
@@ -1921,7 +2016,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   selectedTimeToggleButton: {
-    backgroundColor: COLORS.primary.main,
+    backgroundColor: COLORS.primary.dark,
     ...SHADOWS.small,
   },
   timeToggleText: {
@@ -1971,7 +2066,7 @@ const styles = StyleSheet.create({
   datePickerWrapper: {
     width: '100%',
     backgroundColor: COLORS.neutral.white,
-    borderRadius: 16,
+    borderRadius: 8,
     padding: 24,
     marginBottom: 20,
     ...SHADOWS.small,
@@ -1979,7 +2074,7 @@ const styles = StyleSheet.create({
   },
   selectedDateTimeDisplay: {
     backgroundColor: COLORS.primary.light,
-    borderRadius: 16,
+    borderRadius: 8,
     padding: 20,
     width: '100%',
     alignItems: 'center',
@@ -1999,15 +2094,15 @@ const styles = StyleSheet.create({
   },
   participantCard: {
     backgroundColor: COLORS.neutral.grey100,
-    borderRadius: 16,
+    borderRadius: 8,
     paddingVertical: 24,
     alignItems: 'center',
     borderWidth: 2,
     borderColor: COLORS.neutral.grey200,
   },
   participantCardSelected: {
-    backgroundColor: COLORS.primary.main,
-    borderColor: COLORS.primary.main,
+    backgroundColor: COLORS.primary.dark,
+    borderColor: COLORS.primary.dark,
   },
   participantCardText: {
     fontSize: 18,
@@ -2035,14 +2130,14 @@ const styles = StyleSheet.create({
   preferenceOption: {
     flex: 1,
     paddingVertical: 14,
-    borderRadius: 12,
+    borderRadius: 6,
     borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.08)',
+    borderColor: 'rgba(17,17,17,0.06)',
     backgroundColor: COLORS.neutral.white,
   },
   preferenceSelected: {
-    backgroundColor: COLORS.primary.main,
-    borderColor: COLORS.primary.main,
+    backgroundColor: COLORS.primary.dark,
+    borderColor: COLORS.primary.dark,
   },
   preferenceText: {
     fontSize: 14,
@@ -2061,15 +2156,15 @@ const styles = StyleSheet.create({
   ageOption: {
     paddingHorizontal: 16,
     paddingVertical: 12,
-    borderRadius: 12,
+    borderRadius: 6,
     borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.08)',
+    borderColor: 'rgba(17,17,17,0.06)',
     backgroundColor: COLORS.neutral.white,
     minWidth: 70,
   },
   ageSelected: {
-    backgroundColor: COLORS.primary.main,
-    borderColor: COLORS.primary.main,
+    backgroundColor: COLORS.primary.dark,
+    borderColor: COLORS.primary.dark,
   },
   ageText: {
     fontSize: 14,
@@ -2087,11 +2182,11 @@ const styles = StyleSheet.create({
   },
   locationInput: {
     backgroundColor: COLORS.neutral.white,
-    borderRadius: 12,
+    borderRadius: 6,
     padding: 16,
     fontSize: 16,
     borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.08)',
+    borderColor: 'rgba(17,17,17,0.06)',
     ...SHADOWS.small,
   },
   currentLocationButton: {
@@ -2176,21 +2271,21 @@ const styles = StyleSheet.create({
   },
   titleInput: {
     backgroundColor: COLORS.neutral.white,
-    borderRadius: 12,
+    borderRadius: 6,
     padding: 16,
     fontSize: 16,
     borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.08)',
+    borderColor: 'rgba(17,17,17,0.06)',
     transition: 'border-color 150ms ease, box-shadow 150ms ease',
     ...SHADOWS.small,
   },
   descriptionInput: {
     backgroundColor: COLORS.neutral.white,
-    borderRadius: 12,
+    borderRadius: 6,
     padding: 16,
     fontSize: 16,
     borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.08)',
+    borderColor: 'rgba(17,17,17,0.06)',
     minHeight: 120,
     textAlignVertical: 'top',
     transition: 'border-color 150ms ease, box-shadow 150ms ease',
@@ -2204,14 +2299,14 @@ const styles = StyleSheet.create({
   priceOption: {
     paddingHorizontal: 16,
     paddingVertical: 10,
-    borderRadius: 12,
+    borderRadius: 6,
     borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.08)',
+    borderColor: 'rgba(17,17,17,0.06)',
     backgroundColor: COLORS.neutral.white,
   },
   priceSelected: {
-    backgroundColor: COLORS.primary.main,
-    borderColor: COLORS.primary.main,
+    backgroundColor: COLORS.primary.dark,
+    borderColor: COLORS.primary.dark,
   },
   priceText: {
     fontSize: 14,
@@ -2229,21 +2324,26 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.neutral.white,
   },
   nextButton: {
-    backgroundColor: COLORS.primary.main,
-    borderRadius: 12,
-    paddingVertical: 16,
+    backgroundColor: COLORS.primary.dark,
+    borderRadius: 8,
+    paddingVertical: 18,
     alignItems: 'center',
     marginHorizontal: 20,
-    ...SHADOWS.small,
+    // @ts-ignore
+    backgroundImage: `linear-gradient(135deg, ${COLORS.primary.dark} 0%, ${COLORS.primary.main} 100%)`,
+    ...SHADOWS.cta,
   },
   nextButtonDisabled: {
     backgroundColor: COLORS.neutral.grey300,
+    // @ts-ignore
+    backgroundImage: 'none',
     ...SHADOWS.small,
   },
   nextButtonText: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: '800',
     color: COLORS.text.white,
+    letterSpacing: -0.3,
   },
   nextButtonTextDisabled: {
     color: COLORS.text.secondary,
@@ -2294,19 +2394,20 @@ const styles = StyleSheet.create({
     bottom: 0,
     width: '100%' as any,
     height: '100%' as any,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(17,17,17,0.5)',
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 9999,
   },
   modalContainer: {
     backgroundColor: COLORS.neutral.white,
-    borderRadius: 20,
+    borderRadius: 10,
     width: '90%',
     maxWidth: 400,
     maxHeight: '80%' as any,
     overflow: 'hidden',
     margin: 20,
+    ...SHADOWS.large,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -2375,7 +2476,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 4,
   },
   timeScrollItemSelected: {
-    backgroundColor: COLORS.neutral.grey700,
+    backgroundColor: COLORS.primary.dark,
   },
   timeScrollText: {
     fontSize: 16,
@@ -2422,7 +2523,7 @@ const styles = StyleSheet.create({
   // 사용자 정의 달력 스타일
   customCalendar: {
     backgroundColor: COLORS.neutral.white,
-    borderRadius: 16,
+    borderRadius: 8,
     padding: 16,
     margin: 16,
   },
@@ -2470,7 +2571,7 @@ const styles = StyleSheet.create({
   },
   selectedDateButton: {
     backgroundColor: COLORS.neutral.grey700,
-    borderRadius: 20,
+    borderRadius: 10,
   },
   otherMonthDate: {
     opacity: 0.3,
@@ -2598,8 +2699,8 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   paymentMethodStep7Selected: {
-    backgroundColor: COLORS.primary.main,
-    borderColor: COLORS.primary.main,
+    backgroundColor: COLORS.primary.dark,
+    borderColor: COLORS.primary.dark,
   },
   paymentMethodSubText: {
     fontSize: 12,
@@ -2686,7 +2787,7 @@ const styles = StyleSheet.create({
   // 위치 모달 스타일
   locationModalContainer: {
     backgroundColor: COLORS.neutral.white,
-    borderRadius: 20,
+    borderRadius: 10,
     width: '95%',
     maxWidth: 500,
     maxHeight: '85%' as any,
@@ -2753,7 +2854,7 @@ const styles = StyleSheet.create({
   },
   popularLocationItem: {
     backgroundColor: COLORS.neutral.white,
-    borderRadius: 20,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: COLORS.neutral.grey200,
     paddingVertical: 8,
@@ -2815,7 +2916,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.neutral.grey200,
+    borderBottomColor: 'rgba(17,17,17,0.06)',
     backgroundColor: COLORS.primary.light,
   },
   searchResultsList: {
@@ -2826,7 +2927,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.neutral.grey100,
+    borderBottomColor: 'rgba(17,17,17,0.04)',
   },
   searchResultName: {
     fontSize: 16,
@@ -2897,8 +2998,8 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 4,
     borderRadius: 2,
-    background: `linear-gradient(to right, ${COLORS.neutral.grey200} 0%, ${COLORS.primary.main} 50%, ${COLORS.neutral.grey200} 100%)`,
-    outline: 'none',
+    backgroundImage: `linear-gradient(to right, ${COLORS.neutral.grey200} 0%, ${COLORS.primary.main} 50%, ${COLORS.neutral.grey200} 100%)`,
+    outlineStyle: 'none',
     appearance: 'none',
     cursor: 'pointer',
   },
@@ -2931,13 +3032,13 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 16,
     backgroundColor: COLORS.neutral.white,
-    borderRadius: 16,
+    borderRadius: 8,
     borderWidth: 1,
     borderColor: COLORS.neutral.grey200,
   },
   ageQuickButtonSelected: {
-    backgroundColor: COLORS.primary.main,
-    borderColor: COLORS.primary.main,
+    backgroundColor: COLORS.primary.dark,
+    borderColor: COLORS.primary.dark,
   },
   ageQuickButtonText: {
     fontSize: 14,

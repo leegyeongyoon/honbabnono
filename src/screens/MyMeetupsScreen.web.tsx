@@ -432,7 +432,10 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     paddingTop: 20,
     backgroundColor: COLORS.neutral.white,
-    ...SHADOWS.small,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.neutral.grey100,
+    ...SHADOWS.sticky,
+    zIndex: 10,
   },
   headerTitle: {
     fontSize: 22,
@@ -445,7 +448,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     backgroundColor: COLORS.neutral.white,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.neutral.grey100,
+    borderBottomColor: 'rgba(224,146,110,0.08)',
     paddingHorizontal: 4,
   },
   tabButton: {
@@ -481,7 +484,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
   },
   activeTabCountBadge: {
-    backgroundColor: COLORS.primary.main,
+    backgroundColor: COLORS.primary.dark,
   },
   tabCountText: {
     fontSize: 12,
@@ -514,7 +517,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: COLORS.neutral.white,
-    borderRadius: 16,
+    borderRadius: 8,
     padding: 16,
     borderWidth: CARD_STYLE.borderWidth,
     borderColor: CARD_STYLE.borderColor,

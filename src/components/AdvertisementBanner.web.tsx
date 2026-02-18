@@ -9,9 +9,9 @@ interface AdvertisementBannerProps {
   style?: any;
 }
 
-const AdvertisementBannerWeb: React.FC<AdvertisementBannerProps> = ({ 
-  position = 'home_banner', 
-  style 
+const AdvertisementBannerWeb: React.FC<AdvertisementBannerProps> = ({
+  position = 'home_banner',
+  style
 }) => {
   const [advertisements, setAdvertisements] = useState<Advertisement[]>([]);
   const [currentAdIndex, setCurrentAdIndex] = useState(0);
@@ -67,8 +67,8 @@ const AdvertisementBannerWeb: React.FC<AdvertisementBannerProps> = ({
   };
 
   const renderAdvertisement = (advertisement: Advertisement) => {
-    const imageUrl = advertisement.imageUrl.startsWith('http') 
-      ? advertisement.imageUrl 
+    const imageUrl = advertisement.imageUrl.startsWith('http')
+      ? advertisement.imageUrl
       : `${process.env.REACT_APP_API_URL || 'http://localhost:3001'}${advertisement.imageUrl}`;
 
     return (
@@ -86,7 +86,7 @@ const AdvertisementBannerWeb: React.FC<AdvertisementBannerProps> = ({
             backgroundSize: 'cover',
             backgroundPosition: 'center',
             backgroundRepeat: 'no-repeat',
-            borderRadius: 16,
+            borderRadius: 8,
             position: 'relative',
             transition: 'opacity 0.4s ease-in-out',
           }}>
@@ -135,7 +135,10 @@ const AdvertisementBannerWeb: React.FC<AdvertisementBannerProps> = ({
   if (loading) {
     return (
       <View style={[styles.container, styles.loadingContainer, style]}>
-        <Text style={styles.loadingText}>광고 로딩 중...</Text>
+        <View style={styles.shimmerContainer}>
+          <View style={styles.shimmerLine} />
+          <View style={[styles.shimmerLine, { width: '60%', marginTop: 8 }]} />
+        </View>
       </View>
     );
   }
@@ -151,10 +154,10 @@ const styles = StyleSheet.create({
   container: {
     marginHorizontal: 20,
     marginVertical: 16,
-    borderRadius: 16,
+    borderRadius: 8,
     overflow: 'hidden',
     position: 'relative',
-    height: 180, // 높이 증가 (글씨보다 더 크게)
+    height: 180,
     ...SHADOWS.medium,
   },
   content: {
@@ -166,7 +169,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(15, 14, 12, 0.55)',
     paddingHorizontal: 16,
     paddingVertical: 12,
   },
@@ -188,7 +191,7 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(15, 14, 12, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -196,7 +199,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 8,
     left: 8,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    backgroundColor: 'rgba(15, 14, 12, 0.7)',
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
@@ -224,13 +227,19 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.neutral.white,
   },
   loadingContainer: {
-    backgroundColor: COLORS.neutral.grey100,
+    backgroundColor: COLORS.neutral.light,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  loadingText: {
-    fontSize: 14,
-    color: COLORS.text.secondary,
+  shimmerContainer: {
+    width: '60%',
+    alignItems: 'center',
+  },
+  shimmerLine: {
+    width: '100%',
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: COLORS.neutral.grey200,
   },
 });
 

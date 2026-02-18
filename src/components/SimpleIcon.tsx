@@ -10,6 +10,7 @@ import {
   Building2, Flame, Fish, Wine, Cake, Navigation, List, Compass,
   CheckCircle, XCircle, AlertTriangle, AlertCircle, Zap, ArrowUpLeft,
   ArrowRight, Smartphone, BellOff, Pizza, Beef, CookingPot, GlassWater,
+  Eye, LogOut, PlusCircle,
   type LucideIcon,
 } from 'lucide-react';
 import { COLORS } from '../styles/colors';
@@ -118,6 +119,9 @@ const iconMap: Record<IconName, LucideIcon> = {
   'times': X,
   'smartphone': Smartphone,
   'notifications-none': BellOff,
+  'eye': Eye,
+  'log-out': LogOut,
+  'plus-circle': PlusCircle,
 };
 
 const SimpleIcon: React.FC<IconProps> = ({
@@ -141,7 +145,7 @@ const SimpleIcon: React.FC<IconProps> = ({
           justifyContent: 'center',
           fontSize: Math.round(size * 0.6),
           color: color,
-          fontWeight: 500,
+          fontWeight: '500',
           flexShrink: 0,
           ...(style as React.CSSProperties),
         }}

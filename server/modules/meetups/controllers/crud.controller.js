@@ -248,7 +248,7 @@ exports.updateMeetupStatus = async (req, res) => {
       return res.status(status).json({ success: false, error });
     }
 
-    const validStatuses = ['모집중', '모집완료', '진행중', '완료', '취소'];
+    const validStatuses = ['모집중', '모집완료', '진행중', '종료', '취소'];
     if (!validStatuses.includes(status)) {
       return res.status(400).json({
         success: false,

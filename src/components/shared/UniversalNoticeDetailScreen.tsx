@@ -72,7 +72,6 @@ const UniversalNoticeDetailScreen: React.FC<UniversalNoticeDetailScreenProps> = 
         onViewIncrement(noticeData.id);
       }
     } catch (error) {
-      console.error('공지사항 상세 조회 실패:', error);
       setError(error instanceof Error ? error.message : '공지사항을 불러오는데 실패했습니다');
     } finally {
       setLoading(false);
@@ -89,7 +88,7 @@ const UniversalNoticeDetailScreen: React.FC<UniversalNoticeDetailScreenProps> = 
       case 'important':
         return { backgroundColor: COLORS.functional.error, label: '중요' };
       case 'maintenance':
-        return { backgroundColor: '#FF9800', label: '점검' };
+        return { backgroundColor: COLORS.functional.warning, label: '점검' };
       case 'event':
         return { backgroundColor: COLORS.functional.success, label: '이벤트' };
       default:
@@ -124,7 +123,7 @@ const UniversalNoticeDetailScreen: React.FC<UniversalNoticeDetailScreenProps> = 
     } else {
       // Default simple renderer
       return (
-        <Text style={styles.content}>
+        <Text style={styles.contentText}>
           {content.replace(/<[^>]*>/g, '')} {/* Strip HTML tags */}
         </Text>
       );
@@ -142,7 +141,7 @@ const UniversalNoticeDetailScreen: React.FC<UniversalNoticeDetailScreenProps> = 
         </View>
 
         <View style={[styles.centerContent, styles.loadingContainer]}>
-          <ActivityIndicator size="large" color={COLORS.primary.main} />
+          <ActivityIndicator size="large" color={COLORS.primary.accent} />
           <Text style={styles.loadingText}>공지사항을 불러오는 중...</Text>
         </View>
       </View>
@@ -187,7 +186,7 @@ const UniversalNoticeDetailScreen: React.FC<UniversalNoticeDetailScreenProps> = 
         <View style={styles.placeholder} />
       </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView style={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* Notice Header */}
         <View style={[styles.noticeHeader, notice.is_pinned && styles.pinnedHeader]}>
           <View style={styles.noticeMeta}>
@@ -196,12 +195,12 @@ const UniversalNoticeDetailScreen: React.FC<UniversalNoticeDetailScreenProps> = 
             </View>
             {notice.is_pinned && (
               <View style={styles.pinnedTag}>
-                <Icon name="pin" size={14} color={COLORS.functional.warning} />
+                <Icon name="pin" size={12} color={COLORS.primary.accent} />
                 <Text style={styles.pinnedText}>고정됨</Text>
               </View>
             )}
           </View>
-          
+
           <View style={styles.noticeInfo}>
             <Text style={styles.noticeDate}>{formatDate(notice.created_at)}</Text>
             {notice.views !== undefined && (
@@ -240,7 +239,7 @@ const UniversalNoticeDetailScreen: React.FC<UniversalNoticeDetailScreenProps> = 
             style={styles.actionButton}
             onPress={() => navigation.navigate('Notices')}
           >
-            <Icon name="list" size={20} color={COLORS.primary.main} />
+            <Icon name="list" size={18} color={COLORS.primary.accent} />
             <Text style={styles.actionButtonText}>전체 공지사항 보기</Text>
           </TouchableOpacity>
         </View>
@@ -261,7 +260,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  
+
   // Header
   header: {
     flexDirection: 'row',
@@ -271,7 +270,9 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     paddingBottom: 16,
     backgroundColor: COLORS.neutral.white,
-    ...SHADOWS.small,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(17,17,17,0.06)',
+    ...SHADOWS.sticky,
   },
   backButton: {
     padding: 4,
@@ -280,6 +281,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '700',
     color: COLORS.text.primary,
+    letterSpacing: -0.3,
   },
   placeholder: {
     width: 32,
@@ -290,7 +292,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 40,
   },
   loadingText: {
-    fontSize: 16,
+    fontSize: 15,
     color: COLORS.text.secondary,
     marginTop: 12,
   },
@@ -300,11 +302,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 40,
   },
   errorTitle: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '600',
     color: COLORS.text.primary,
     marginTop: 16,
     marginBottom: 8,
+    letterSpacing: -0.2,
   },
   errorMessage: {
     fontSize: 14,
@@ -317,7 +320,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary.main,
     paddingHorizontal: 20,
     paddingVertical: 12,
-    borderRadius: 8,
+    borderRadius: 6,
   },
   retryButtonText: {
     fontSize: 14,
@@ -325,26 +328,26 @@ const styles = StyleSheet.create({
     color: COLORS.neutral.white,
   },
 
-  // Content
-  content: {
+  // Scroll Content
+  scrollContent: {
     flex: 1,
   },
-  
+
   // Notice Header
   noticeHeader: {
     backgroundColor: COLORS.neutral.white,
     marginHorizontal: 16,
     marginTop: 16,
-    padding: 20,
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
+    padding: 18,
+    borderTopLeftRadius: 8,
+    borderTopRightRadius: 8,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.neutral.grey200,
+    borderBottomColor: 'rgba(17,17,17,0.06)',
   },
   pinnedHeader: {
-    backgroundColor: COLORS.functional.warning + '08',
-    borderColor: COLORS.functional.warning + '30',
+    backgroundColor: COLORS.primary.accent + '04',
     borderWidth: 1,
+    borderColor: COLORS.primary.accent + '20',
     borderBottomWidth: 1,
   },
   noticeMeta: {
@@ -355,27 +358,29 @@ const styles = StyleSheet.create({
   },
   typeTag: {
     paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingVertical: 3,
+    borderRadius: 4,
   },
   typeTagText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
     color: COLORS.neutral.white,
+    letterSpacing: 0.2,
   },
   pinnedTag: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.functional.warning + '20',
+    backgroundColor: COLORS.primary.accent + '12',
     paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingVertical: 3,
+    borderRadius: 4,
     gap: 4,
   },
   pinnedText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
-    color: COLORS.functional.warning,
+    color: COLORS.primary.accent,
+    letterSpacing: 0.2,
   },
   noticeInfo: {
     flexDirection: 'row',
@@ -383,8 +388,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   noticeDate: {
-    fontSize: 14,
-    color: COLORS.text.secondary,
+    fontSize: 13,
+    color: COLORS.text.tertiary,
   },
   viewCount: {
     flexDirection: 'row',
@@ -400,31 +405,32 @@ const styles = StyleSheet.create({
   titleContainer: {
     backgroundColor: COLORS.neutral.white,
     marginHorizontal: 16,
-    paddingHorizontal: 20,
-    paddingBottom: 20,
+    paddingHorizontal: 18,
+    paddingBottom: 18,
   },
   title: {
     fontSize: 22,
     fontWeight: '700',
     color: COLORS.text.primary,
     lineHeight: 30,
+    letterSpacing: -0.3,
   },
   pinnedTitle: {
-    color: COLORS.functional.warning,
+    color: COLORS.primary.accent,
   },
 
   // Content
   contentContainer: {
     backgroundColor: COLORS.neutral.white,
     marginHorizontal: 16,
-    paddingHorizontal: 20,
+    paddingHorizontal: 18,
     paddingVertical: 20,
-    borderBottomLeftRadius: 16,
-    borderBottomRightRadius: 16,
-    ...SHADOWS.medium,
+    borderBottomLeftRadius: 8,
+    borderBottomRightRadius: 8,
+    ...SHADOWS.small,
   },
-  content: {
-    fontSize: 16,
+  contentText: {
+    fontSize: 15,
     color: COLORS.text.primary,
     lineHeight: 24,
   },
@@ -433,7 +439,7 @@ const styles = StyleSheet.create({
   updateInfo: {
     marginHorizontal: 16,
     marginTop: 8,
-    paddingHorizontal: 20,
+    paddingHorizontal: 18,
   },
   updateText: {
     fontSize: 12,
@@ -451,15 +457,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: COLORS.neutral.white,
-    paddingVertical: 16,
-    borderRadius: 12,
+    paddingVertical: 14,
+    borderRadius: 8,
     gap: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(17,17,17,0.06)',
     ...SHADOWS.small,
   },
   actionButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.primary.main,
+    color: COLORS.primary.accent,
   },
 
   bottomSpacer: {

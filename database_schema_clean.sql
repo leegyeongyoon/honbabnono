@@ -156,15 +156,20 @@ CREATE TABLE wishlists (
 
 -- 알림 테이블
 CREATE TABLE notifications (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id SERIAL PRIMARY KEY,
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    type VARCHAR(50) NOT NULL,
     title VARCHAR(255) NOT NULL,
     message TEXT NOT NULL,
-    type VARCHAR(50) NOT NULL,
-    related_id UUID,
+    meetup_id UUID,
+    related_user_id UUID,
+    data JSONB DEFAULT '{}',
     is_read BOOLEAN DEFAULT false,
+    is_sent BOOLEAN DEFAULT false,
+    scheduled_at TIMESTAMP WITH TIME ZONE,
+    sent_at TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-    read_at TIMESTAMP WITH TIME ZONE
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- 신고 테이블
@@ -533,6 +538,32 @@ CREATE TRIGGER update_support_tickets_updated_at
 CREATE TRIGGER update_meetup_participants_count_trigger 
     AFTER INSERT OR DELETE ON meetup_participants 
     FOR EACH ROW EXECUTE FUNCTION update_meetup_participants_count();
+
+-- 디바이스 FCM 토큰 테이블
+CREATE TABLE device_tokens (
+    id SERIAL PRIMARY KEY,
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    token TEXT NOT NULL,
+    platform VARCHAR(10) NOT NULL DEFAULT 'ios',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    UNIQUE(user_id, token)
+);
+CREATE INDEX idx_device_tokens_user_id ON device_tokens(user_id);
+
+-- 리프레시 토큰 테이블
+CREATE TABLE user_refresh_tokens (
+    id SERIAL PRIMARY KEY,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    token VARCHAR(256) NOT NULL UNIQUE,
+    email VARCHAR(255),
+    name VARCHAR(100),
+    expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+CREATE INDEX idx_refresh_tokens_user_id ON user_refresh_tokens(user_id);
+CREATE INDEX idx_refresh_tokens_token ON user_refresh_tokens(token);
+CREATE INDEX idx_refresh_tokens_expires_at ON user_refresh_tokens(expires_at);
 
 -- =====================================
 -- 6. 기본 데이터 삽입 (선택사항)

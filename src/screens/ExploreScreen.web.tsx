@@ -69,7 +69,7 @@ const injectHoverStyles = () => {
       background-color: ${COLORS.neutral.grey200} !important;
     }
     .explore-category-chip-active:hover {
-      background-color: ${COLORS.primary.main} !important;
+      background-color: ${COLORS.primary.dark} !important;
     }
     .explore-radius-chip:hover {
       border-color: ${COLORS.primary.main} !important;
@@ -224,7 +224,23 @@ const ExploreScreen: React.FC = () => {
     <View style={styles.container}>
       {/* 헤더 */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>탐색</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <Text style={styles.headerTitle}>탐색</Text>
+          {!loading && displayMeetups.length > 0 && (
+            <View style={{
+              backgroundColor: COLORS.primary.light,
+              borderRadius: 10,
+              paddingHorizontal: 8,
+              paddingVertical: 2,
+              borderWidth: 1,
+              borderColor: 'rgba(17,17,17,0.08)',
+            }}>
+              <Text style={{ fontSize: 12, fontWeight: '700' as any, color: COLORS.primary.main }}>
+                {displayMeetups.length}
+              </Text>
+            </View>
+          )}
+        </View>
         {/* 뷰 모드 토글 */}
         <View style={styles.viewToggle}>
           {/* @ts-ignore className for web */}
@@ -359,7 +375,7 @@ const ExploreScreen: React.FC = () => {
                 left: 16,
                 right: 16,
                 backgroundColor: COLORS.neutral.white,
-                borderRadius: 16,
+                borderRadius: 10,
                 padding: 16,
                 boxShadow: CSS_SHADOWS.large,
                 zIndex: 20,
@@ -429,19 +445,24 @@ const ExploreScreen: React.FC = () => {
                   onClick={() => setSelectedMeetup(null)}
                   style={{
                     cursor: 'pointer',
-                    padding: 6,
+                    padding: 8,
                     color: COLORS.text.tertiary,
-                    fontSize: 16,
-                    lineHeight: '16px',
+                    fontSize: 14,
+                    lineHeight: '14px',
                     borderRadius: 8,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    width: 28,
-                    height: 28,
-                    backgroundColor: COLORS.neutral.background,
-                    transition: 'background-color 150ms ease',
+                    width: 36,
+                    height: 36,
+                    backgroundColor: COLORS.neutral.grey100,
+                    transition: 'all 150ms ease',
+                    flexShrink: 0,
                   }}
+                  onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = COLORS.neutral.grey200; }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = COLORS.neutral.grey100; }}
+                  role="button"
+                  aria-label="닫기"
                 >
                   ✕
                 </div>
@@ -451,17 +472,20 @@ const ExploreScreen: React.FC = () => {
                 onClick={() => handleMeetupClick(selectedMeetup)}
                 style={{
                   marginTop: 14,
-                  padding: '11px 0',
+                  padding: '13px 0',
                   textAlign: 'center',
-                  backgroundColor: COLORS.primary.main,
+                  background: 'linear-gradient(135deg, #C49A70 0%, #E4C8A4 100%)',
                   color: COLORS.text.white,
-                  borderRadius: 12,
-                  fontSize: 14,
-                  fontWeight: '600',
+                  borderRadius: 6,
+                  fontSize: 15,
+                  fontWeight: '700',
                   cursor: 'pointer',
-                  letterSpacing: '-0.03em',
-                  transition: 'background-color 200ms ease',
+                  letterSpacing: '0.3px',
+                  transition: 'all 200ms ease',
+                  boxShadow: '0 4px 12px rgba(196,154,112,0.25)',
                 }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.transform = 'scale(1.02)'; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.transform = 'scale(1)'; }}
               >
                 상세보기
               </div>
@@ -585,7 +609,10 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingTop: 20,
     backgroundColor: COLORS.neutral.white,
-    ...SHADOWS.small,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.neutral.grey100,
+    ...SHADOWS.sticky,
+    zIndex: 10,
   },
   headerTitle: {
     fontSize: 22,
@@ -612,7 +639,7 @@ const styles = StyleSheet.create({
     transition: 'all 200ms ease',
   },
   toggleButtonActive: {
-    backgroundColor: COLORS.primary.main,
+    backgroundColor: COLORS.primary.dark,
     ...SHADOWS.small,
   },
   toggleText: {
@@ -630,7 +657,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.neutral.white,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.neutral.grey100,
+    borderBottomColor: 'rgba(17,17,17,0.06)',
   },
   categoryTabScroll: {
     paddingLeft: 20,
@@ -638,17 +665,18 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   categoryChip: {
-    height: 36,
+    height: 40,
     minHeight: 44,
     justifyContent: 'center',
     paddingHorizontal: 18,
-    borderRadius: 18,
+    borderRadius: 10,
     backgroundColor: COLORS.neutral.grey100,
     transition: 'all 200ms ease',
     cursor: 'pointer',
   },
   categoryChipActive: {
-    backgroundColor: COLORS.primary.main,
+    backgroundColor: COLORS.primary.dark,
+    ...SHADOWS.small,
   },
   categoryChipText: {
     fontSize: 14,
@@ -667,14 +695,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     backgroundColor: COLORS.neutral.white,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.neutral.grey100,
+    borderBottomColor: 'rgba(17,17,17,0.06)',
   },
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    height: 48,
+    height: 56,
     backgroundColor: COLORS.neutral.grey100,
-    borderRadius: 24,
+    borderRadius: 6,
     paddingHorizontal: 20,
     gap: 10,
     transition: 'background-color 200ms ease, box-shadow 200ms ease',
@@ -687,15 +715,15 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 15,
     color: COLORS.text.primary,
-    border: 'none',
+    borderWidth: 0,
     backgroundColor: 'transparent',
-    outline: 'none',
+    outlineStyle: 'none',
   },
   searchClearButton: {
     cursor: 'pointer',
-    padding: 6,
-    minWidth: 28,
-    minHeight: 28,
+    padding: 10,
+    minWidth: 44,
+    minHeight: 44,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -718,7 +746,7 @@ const styles = StyleSheet.create({
     minHeight: 44,
     justifyContent: 'center',
     paddingHorizontal: 14,
-    borderRadius: 16,
+    borderRadius: 8,
     backgroundColor: 'transparent',
     borderWidth: 1.5,
     borderColor: COLORS.neutral.grey300,
@@ -787,7 +815,7 @@ const styles = StyleSheet.create({
   meetupItemWrapper: {
     position: 'relative',
     backgroundColor: COLORS.neutral.white,
-    borderRadius: 16,
+    borderRadius: 8,
     overflow: 'hidden',
     ...CARD_STYLE,
     ...SHADOWS.small,

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
 import notificationApiService from '../services/notificationApiService';
 
@@ -85,13 +85,13 @@ const useNotifications = (userId?: string) => {
   }, [userId]);
 
   // 읽지 않은 알림 개수 조회
-  const fetchUnreadCount = async () => {
+  const fetchUnreadCount = useCallback(async () => {
     // 인증되지 않은 사용자는 알림 개수 조회하지 않음
     if (!userId) {
       setUnreadCount(0);
       return;
     }
-    
+
     try {
       const response = await notificationApiService.getUnreadCount();
       setUnreadCount(response.unreadCount);
@@ -106,10 +106,10 @@ const useNotifications = (userId?: string) => {
       }
       // silently handle error
     }
-  };
+  }, [userId]);
 
   // 브라우저 알림 권한 요청
-  const requestNotificationPermission = async () => {
+  const requestNotificationPermission = useCallback(async () => {
     try {
       if ('Notification' in window) {
         if (typeof Notification.requestPermission === 'function') {
@@ -124,7 +124,7 @@ const useNotifications = (userId?: string) => {
       // silently handle error
     }
     return false;
-  };
+  }, []);
 
   // 알림을 읽음으로 표시
   const markAsRead = async (notificationId: number) => {

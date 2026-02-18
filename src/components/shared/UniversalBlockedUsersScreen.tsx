@@ -29,8 +29,7 @@ const UniversalBlockedUsersScreen: React.FC<{navigation: NavigationAdapter, user
       setError(null);
       const response = await userApiService.getBlockedUsers();
       setBlockedUsers(response.data || response.users || []);
-    } catch (error) {
-      console.error('차단 목록 조회 실패:', error);
+    } catch (_error) {
       setError('차단 목록을 불러오는데 실패했습니다');
     } finally {
       setLoading(false);
@@ -53,8 +52,7 @@ const UniversalBlockedUsersScreen: React.FC<{navigation: NavigationAdapter, user
             try {
               await userApiService.unblockUser(userId);
               setBlockedUsers(prev => prev.filter(u => u.id !== userId));
-            } catch (error) {
-              console.error('차단 해제 실패:', error);
+            } catch (_error) {
               Alert.alert('오류', '차단 해제에 실패했습니다');
             }
           },
@@ -67,12 +65,12 @@ const UniversalBlockedUsersScreen: React.FC<{navigation: NavigationAdapter, user
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <View style={{ width: 24 }} />
+          <View style={styles.placeholder} />
           <Text style={styles.headerTitle}>차단한 사용자</Text>
-          <View style={{ width: 24 }} />
+          <View style={styles.placeholder} />
         </View>
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-          <ActivityIndicator size="large" color={COLORS.primary.main} />
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={COLORS.primary.accent} />
         </View>
       </View>
     );
@@ -81,13 +79,13 @@ const UniversalBlockedUsersScreen: React.FC<{navigation: NavigationAdapter, user
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <View style={{ width: 24 }} />
+        <View style={styles.placeholder} />
         <Text style={styles.headerTitle}>차단한 사용자</Text>
-        <View style={{ width: 24 }} />
+        <View style={styles.placeholder} />
       </View>
 
       <ScrollView
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => {setRefreshing(true); fetchBlockedUsers();}} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => {setRefreshing(true); fetchBlockedUsers();}} tintColor={COLORS.primary.accent} colors={[COLORS.primary.accent]} />}
       >
         {error ? (
           <View style={styles.errorContainer}>
@@ -104,11 +102,11 @@ const UniversalBlockedUsersScreen: React.FC<{navigation: NavigationAdapter, user
             <Text style={styles.emptySubtext}>불편한 사용자가 있다면 차단할 수 있어요</Text>
           </View>
         ) : (
-          <View style={{ padding: 16 }}>
+          <View style={styles.listContainer}>
             {blockedUsers.map(blockedUser => (
               <View key={blockedUser.id} style={styles.userItem}>
                 <View style={styles.userAvatar}>
-                  <Icon name="user" size={24} color={COLORS.text.secondary} />
+                  <Icon name="user" size={22} color={COLORS.text.tertiary} />
                 </View>
                 <View style={styles.userInfo}>
                   <Text style={styles.username}>{blockedUser.username || blockedUser.name}</Text>
@@ -135,50 +133,137 @@ const UniversalBlockedUsersScreen: React.FC<{navigation: NavigationAdapter, user
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.neutral.background },
-  header: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingHorizontal: 20, paddingTop: 20, paddingBottom: 16,
-    backgroundColor: COLORS.neutral.white, ...SHADOWS.small,
+  container: {
+    flex: 1,
+    backgroundColor: COLORS.neutral.background,
   },
-  headerTitle: { fontSize: 20, fontWeight: '700', color: COLORS.text.primary },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 16,
+    backgroundColor: COLORS.neutral.white,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(17,17,17,0.06)',
+    ...SHADOWS.sticky,
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: COLORS.text.primary,
+    letterSpacing: -0.3,
+  },
+  placeholder: {
+    width: 24,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  listContainer: {
+    padding: 16,
+  },
   userItem: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.neutral.white,
-    borderRadius: 12, padding: 16, marginBottom: 8, ...SHADOWS.small,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.neutral.white,
+    borderRadius: 8,
+    padding: 14,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(17,17,17,0.06)',
+    ...SHADOWS.small,
   },
   userAvatar: {
-    width: 48, height: 48, borderRadius: 24, backgroundColor: COLORS.neutral.background,
-    justifyContent: 'center', alignItems: 'center', marginRight: 12,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: COLORS.neutral.background,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(17,17,17,0.06)',
   },
-  userInfo: { flex: 1 },
-  username: { fontSize: 16, fontWeight: '600', color: COLORS.text.primary },
-  blockedDate: { fontSize: 12, color: COLORS.text.secondary, marginTop: 4 },
-  blockedReason: { fontSize: 12, color: COLORS.functional.error, marginTop: 4 },
+  userInfo: {
+    flex: 1,
+  },
+  username: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+    letterSpacing: -0.1,
+  },
+  blockedDate: {
+    fontSize: 12,
+    color: COLORS.text.tertiary,
+    marginTop: 3,
+  },
+  blockedReason: {
+    fontSize: 12,
+    color: COLORS.functional.error,
+    marginTop: 3,
+  },
   unblockButton: {
-    backgroundColor: COLORS.functional.error, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8,
+    backgroundColor: COLORS.functional.error,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 6,
   },
-  unblockButtonText: { fontSize: 12, fontWeight: '600', color: COLORS.neutral.white },
+  unblockButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: COLORS.neutral.white,
+  },
   emptyContainer: {
-    flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 80,
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 80,
+    paddingHorizontal: 40,
   },
   emptyText: {
-    fontSize: 18, fontWeight: '600', color: COLORS.text.primary, marginTop: 16,
+    fontSize: 17,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+    marginTop: 16,
+    letterSpacing: -0.2,
   },
   emptySubtext: {
-    fontSize: 14, color: COLORS.text.secondary, marginTop: 8, textAlign: 'center',
+    fontSize: 14,
+    color: COLORS.text.secondary,
+    marginTop: 8,
+    textAlign: 'center',
+    lineHeight: 20,
   },
   errorContainer: {
-    flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 80,
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 80,
+    paddingHorizontal: 40,
   },
   errorText: {
-    fontSize: 16, color: COLORS.text.secondary, marginTop: 16, textAlign: 'center',
+    fontSize: 15,
+    color: COLORS.text.secondary,
+    marginTop: 16,
+    textAlign: 'center',
+    lineHeight: 22,
   },
   retryButton: {
-    marginTop: 16, backgroundColor: COLORS.primary.main, paddingHorizontal: 20,
-    paddingVertical: 10, borderRadius: 8,
+    marginTop: 16,
+    backgroundColor: COLORS.primary.main,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 6,
   },
   retryButtonText: {
-    fontSize: 14, fontWeight: '600', color: COLORS.neutral.white,
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.neutral.white,
   },
 });
 

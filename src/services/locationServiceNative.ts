@@ -33,7 +33,7 @@ class LocationServiceNative {
         PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
         {
           title: '위치 권한',
-          message: '혼밥시러 앱이 현재 위치에 접근하려고 합니다.',
+          message: '잇테이블 앱이 현재 위치에 접근하려고 합니다.',
           buttonNeutral: '나중에',
           buttonNegative: '거부',
           buttonPositive: '허용',

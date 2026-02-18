@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { Animated, View, StyleSheet, Platform, ViewStyle, StyleProp } from 'react-native';
+import { Animated, View, StyleSheet, Platform, ViewStyle, StyleProp, Easing } from 'react-native';
 import { COLORS } from '../../styles/colors';
 import { BORDER_RADIUS } from '../../styles/spacing';
 import { ANIMATION } from '../../utils/animations';
@@ -15,20 +15,8 @@ interface SkeletonLoaderProps {
   animated?: boolean;
 }
 
-const shimmerInjected = { current: false };
-
-const injectShimmerKeyframes = () => {
-  if (shimmerInjected.current) return;
-  shimmerInjected.current = true;
-  const styleEl = document.createElement('style');
-  styleEl.textContent = `
-    @keyframes shimmer {
-      0% { background-position: 200% 0; }
-      100% { background-position: -200% 0; }
-    }
-  `;
-  document.head.appendChild(styleEl);
-};
+// shimmer @keyframes is now defined globally in dist/index.html
+// No need to inject inline styles
 
 const SkeletonLoader: React.FC<SkeletonLoaderProps> = ({
   width = '100%',
@@ -51,7 +39,7 @@ const SkeletonLoader: React.FC<SkeletonLoaderProps> = ({
     resolvedHeight = height === 16 ? 14 : height;
     resolvedBorderRadius = resolvedBorderRadius ?? BORDER_RADIUS.xs;
   } else {
-    resolvedBorderRadius = resolvedBorderRadius ?? BORDER_RADIUS.md;
+    resolvedBorderRadius = resolvedBorderRadius ?? BORDER_RADIUS.sm;
   }
 
   useEffect(() => {
@@ -60,13 +48,15 @@ const SkeletonLoader: React.FC<SkeletonLoaderProps> = ({
     const animation = Animated.loop(
       Animated.sequence([
         Animated.timing(opacity, {
-          toValue: 0.3,
-          duration: 500,
+          toValue: 0.35,
+          duration: 700,
+          easing: Easing.bezier(0.42, 0, 0.58, 1),
           useNativeDriver: true,
         }),
         Animated.timing(opacity, {
-          toValue: 0.8,
-          duration: 500,
+          toValue: 0.9,
+          duration: 700,
+          easing: Easing.bezier(0.42, 0, 0.58, 1),
           useNativeDriver: true,
         }),
       ])
@@ -77,7 +67,6 @@ const SkeletonLoader: React.FC<SkeletonLoaderProps> = ({
   }, [opacity, animated]);
 
   if (Platform.OS === 'web') {
-    injectShimmerKeyframes();
 
     const webStyle: Record<string, unknown> = {
       width: resolvedWidth,

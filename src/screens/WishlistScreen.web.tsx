@@ -123,8 +123,26 @@ const WishlistScreen: React.FC = () => {
   };
 
   const renderWishlistItem = (item: WishlistItem) => (
-    <TouchableOpacity
+    <div
       key={item.wishlist_id}
+      style={{
+        transition: 'all 200ms ease',
+        borderRadius: 8,
+        cursor: 'pointer',
+        marginBottom: 16,
+      }}
+      onMouseEnter={(e) => {
+        if (!item.is_ended) {
+          (e.currentTarget as HTMLElement).style.transform = 'translateY(-3px)';
+          (e.currentTarget as HTMLElement).style.boxShadow = '0 8px 24px rgba(17,17,17,0.08), 0 4px 12px rgba(17,17,17,0.05)';
+        }
+      }}
+      onMouseLeave={(e) => {
+        (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
+        (e.currentTarget as HTMLElement).style.boxShadow = 'none';
+      }}
+    >
+    <TouchableOpacity
       style={[
         styles.wishlistCard,
         item.is_ended && styles.endedCard
@@ -171,8 +189,8 @@ const WishlistScreen: React.FC = () => {
           >
             <Heart
               size={18}
-              color="#E74C3C"
-              fill="#E74C3C"
+              color={COLORS.functional.error}
+              fill={COLORS.functional.error}
             />
           </TouchableOpacity>
         </View>
@@ -240,6 +258,7 @@ const WishlistScreen: React.FC = () => {
         </View>
       </View>
     </TouchableOpacity>
+    </div>
   );
 
   if (loading) {
@@ -355,16 +374,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
     backgroundColor: COLORS.neutral.white,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.neutral.grey100,
+    ...SHADOWS.sticky,
+    zIndex: 10,
+    paddingTop: 20,
   },
   backButton: {
-    padding: 8,
+    padding: 10,
+    minWidth: 44,
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 20,
+    fontWeight: '700',
     color: COLORS.text.primary,
+    letterSpacing: -0.3,
   },
   placeholder: {
     width: 40,
@@ -380,17 +405,22 @@ const styles = StyleSheet.create({
   },
   statCard: {
     flex: 1,
-    backgroundColor: COLORS.neutral.background,
-    borderRadius: 12,
+    backgroundColor: COLORS.neutral.white,
+    borderRadius: 8,
     padding: 16,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(17,17,17,0.08)',
     ...SHADOWS.small,
+    // @ts-ignore
+    backgroundImage: `linear-gradient(145deg, ${COLORS.primary.light} 0%, ${COLORS.neutral.white} 100%)`,
   },
   statNumber: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: COLORS.primary.main,
+    fontSize: 28,
+    fontWeight: '800',
+    color: COLORS.primary.dark,
     marginBottom: 4,
+    letterSpacing: -0.5,
   },
   statLabel: {
     fontSize: 12,
@@ -424,7 +454,7 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   exploreButton: {
-    backgroundColor: COLORS.primary.main,
+    backgroundColor: COLORS.primary.dark,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,
@@ -450,9 +480,10 @@ const styles = StyleSheet.create({
   // 찜 카드
   wishlistCard: {
     backgroundColor: COLORS.neutral.white,
-    borderRadius: 12,
-    marginBottom: 16,
+    borderRadius: 8,
     overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(17,17,17,0.06)',
     ...SHADOWS.medium,
   },
   endedCard: {
@@ -479,7 +510,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    backgroundColor: 'rgba(17,17,17,0.6)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -502,20 +533,32 @@ const styles = StyleSheet.create({
   cardTitle: {
     flex: 1,
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
     color: COLORS.text.primary,
     marginRight: 12,
+    letterSpacing: -0.2,
   },
   endedTitle: {
     color: COLORS.text.tertiary,
   },
   heartButton: {
-    padding: 4,
+    padding: 10,
+    minWidth: 44,
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   cardCategory: {
-    fontSize: 14,
-    color: COLORS.text.secondary,
+    fontSize: 12,
+    fontWeight: '600',
+    color: COLORS.primary.main,
+    backgroundColor: COLORS.primary.light,
+    alignSelf: 'flex-start',
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 10,
     marginBottom: 12,
+    overflow: 'hidden',
   },
 
   // 메타 정보
@@ -546,7 +589,7 @@ const styles = StyleSheet.create({
   },
   statusText: {
     fontSize: 12,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   depositText: {
     fontSize: 13,

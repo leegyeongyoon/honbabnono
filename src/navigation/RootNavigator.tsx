@@ -81,11 +81,14 @@ const RootNavigator = () => {
         },
         headerTitleStyle: {
           fontSize: 18,
-          fontWeight: '600',
+          fontWeight: '700',
           color: COLORS.text.primary,
+          letterSpacing: -0.3,
         },
         headerTintColor: COLORS.text.primary,
         headerShadowVisible: true,
+        animation: 'slide_from_right',
+        animationDuration: 280,
       }}>
       <Stack.Screen
         name="Main"

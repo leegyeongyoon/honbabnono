@@ -2,7 +2,7 @@ const axios = require('axios');
 const jwt = require('jsonwebtoken');
 const pool = require('../../config/database');
 const logger = require('../../config/logger');
-const { generateJWT } = require('../../middleware/auth');
+const { generateJWT, generateRefreshToken, verifyRefreshToken, revokeRefreshToken } = require('../../middleware/auth');
 
 // 카카오 OAuth 헬퍼 함수들
 const getKakaoToken = async (code) => {
@@ -117,12 +117,13 @@ exports.kakaoCallback = async (req, res) => {
       logger.info('기존 사용자 로그인:', user.email);
     }
 
-    // 4. JWT 토큰 생성
+    // 4. JWT 토큰 및 리프레시 토큰 생성
     const jwtToken = generateJWT(user);
+    const refreshToken = await generateRefreshToken(user);
 
     // 5. 프론트엔드로 토큰과 함께 리다이렉트
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-    res.redirect(`${frontendUrl}/login?success=true&token=${jwtToken}&user=${encodeURIComponent(JSON.stringify({
+    res.redirect(`${frontendUrl}/login?success=true&token=${jwtToken}&refreshToken=${refreshToken}&user=${encodeURIComponent(JSON.stringify({
       id: user.id,
       name: user.name,
       email: user.email,
@@ -189,8 +190,9 @@ exports.kakaoLogin = async (req, res) => {
       logger.info('기존 사용자 로그인:', user.email);
     }
 
-    // JWT 토큰 생성
+    // JWT 토큰 및 리프레시 토큰 생성
     const jwtToken = generateJWT(user);
+    const refreshToken = await generateRefreshToken(user);
 
     // 응답 반환
     res.json({
@@ -198,6 +200,7 @@ exports.kakaoLogin = async (req, res) => {
       message: '카카오 로그인 성공',
       data: {
         token: jwtToken,
+        refreshToken: refreshToken,
         user: {
           id: user.id,
           name: user.name,
@@ -307,6 +310,14 @@ exports.verifyToken = async (req, res) => {
 exports.logout = async (req, res) => {
   try {
     console.log('🚪 로그아웃 요청:', { userId: req.user.userId, email: req.user.email });
+
+    // 리프레시 토큰이 있으면 삭제
+    const { refreshToken } = req.body;
+    if (refreshToken) {
+      await revokeRefreshToken(refreshToken);
+      console.log('🔑 리프레시 토큰 삭제 완료');
+    }
+
     res.json({
       success: true,
       message: '로그아웃 되었습니다.'
@@ -349,15 +360,8 @@ exports.testLogin = async (req, res) => {
 
     const user = userResult.rows[0];
 
-    const token = jwt.sign(
-      {
-        id: user.id,
-        email: user.email,
-        name: user.name
-      },
-      process.env.JWT_SECRET,
-      { expiresIn: '7d' }
-    );
+    const token = generateJWT(user);
+    const refreshToken = await generateRefreshToken(user);
 
     console.log('✅ 테스트 로그인 성공:', {
       userId: user.id,
@@ -369,6 +373,7 @@ exports.testLogin = async (req, res) => {
       success: true,
       message: '테스트 로그인이 성공했습니다.',
       token,
+      refreshToken,
       user: {
         id: user.id,
         name: user.name,
@@ -475,11 +480,8 @@ exports.register = async (req, res) => {
 
     const newUser = result.rows[0];
 
-    const token = jwt.sign(
-      { userId: newUser.id, email: newUser.email },
-      process.env.JWT_SECRET,
-      { expiresIn: '24h' }
-    );
+    const token = generateJWT(newUser);
+    const refreshToken = await generateRefreshToken(newUser);
 
     res.status(201).json({
       success: true,
@@ -490,7 +492,8 @@ exports.register = async (req, res) => {
         name: newUser.name,
         provider: newUser.provider
       },
-      token
+      token,
+      refreshToken
     });
   } catch (error) {
     console.error('회원가입 오류:', error);
@@ -536,11 +539,8 @@ exports.login = async (req, res) => {
       });
     }
 
-    const token = jwt.sign(
-      { userId: user.id, email: user.email },
-      process.env.JWT_SECRET,
-      { expiresIn: '24h' }
-    );
+    const token = generateJWT(user);
+    const refreshToken = await generateRefreshToken(user);
 
     res.json({
       success: true,
@@ -553,10 +553,73 @@ exports.login = async (req, res) => {
         provider: user.provider,
         isVerified: user.is_verified
       },
-      token
+      token,
+      refreshToken
     });
   } catch (error) {
     console.error('로그인 오류:', error);
     res.status(500).json({ success: false, error: '로그인 중 오류가 발생했습니다.' });
+  }
+};
+
+// 리프레시 토큰으로 새 액세스 토큰 발급
+exports.refreshToken = async (req, res) => {
+  try {
+    const { refreshToken } = req.body;
+
+    if (!refreshToken) {
+      return res.status(400).json({
+        success: false,
+        error: '리프레시 토큰이 필요합니다.'
+      });
+    }
+
+    // 리프레시 토큰 검증
+    const tokenData = await verifyRefreshToken(refreshToken);
+
+    if (!tokenData) {
+      return res.status(401).json({
+        success: false,
+        error: '유효하지 않거나 만료된 리프레시 토큰입니다.'
+      });
+    }
+
+    // 사용자 정보 조회 (계정이 아직 유효한지 확인)
+    const userResult = await pool.query(
+      'SELECT id, email, name FROM users WHERE id = $1',
+      [tokenData.userId]
+    );
+
+    if (userResult.rows.length === 0) {
+      await revokeRefreshToken(refreshToken);
+      return res.status(404).json({
+        success: false,
+        error: '사용자를 찾을 수 없습니다.'
+      });
+    }
+
+    const user = userResult.rows[0];
+
+    // 새 액세스 토큰 발급
+    const newAccessToken = generateJWT(user);
+
+    // 새 리프레시 토큰 발급 (토큰 로테이션)
+    await revokeRefreshToken(refreshToken);
+    const newRefreshToken = await generateRefreshToken(user);
+
+    console.log('🔄 토큰 갱신 성공:', { userId: user.id, email: user.email });
+
+    res.json({
+      success: true,
+      message: '토큰이 갱신되었습니다.',
+      token: newAccessToken,
+      refreshToken: newRefreshToken
+    });
+  } catch (error) {
+    console.error('토큰 갱신 오류:', error);
+    res.status(500).json({
+      success: false,
+      error: '토큰 갱신 중 오류가 발생했습니다.'
+    });
   }
 };

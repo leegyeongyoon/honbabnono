@@ -113,7 +113,7 @@ const UniversalKakaoMap: React.FC<UniversalKakaoMapProps> = ({
             right: 0;
             background: white;
             padding: 15px;
-            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+            box-shadow: 0 -2px 10px rgba(13,13,12,0.08);
             z-index: 1000;
         }
         .address-display {
@@ -122,7 +122,7 @@ const UniversalKakaoMap: React.FC<UniversalKakaoMapProps> = ({
             background: #f8f8f8;
             border-radius: 8px;
             font-size: 14px;
-            color: #333;
+            color: #1A1714;
             min-height: 45px;
             display: flex;
             align-items: center;
@@ -146,7 +146,7 @@ const UniversalKakaoMap: React.FC<UniversalKakaoMapProps> = ({
         }
         .btn-secondary {
             background: #f0f0f0;
-            color: #333;
+            color: #1A1714;
         }
         .loading {
             position: absolute;
@@ -160,7 +160,7 @@ const UniversalKakaoMap: React.FC<UniversalKakaoMapProps> = ({
 <body>
     <div id="loading" class="loading">
         <div style="font-size: 48px;">🗺️</div>
-        <p style="margin-top: 10px; color: #666;">지도를 불러오는 중...</p>
+        <p style="margin-top: 10px; color: #5C4F42;">지도를 불러오는 중...</p>
     </div>
     
     <div id="map"></div>

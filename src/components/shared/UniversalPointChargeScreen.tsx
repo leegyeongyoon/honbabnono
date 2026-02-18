@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  TouchableOpacity, 
-  TextInput, 
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  TextInput,
   Alert,
   Platform,
-  SafeAreaView 
+  SafeAreaView
 } from 'react-native';
 import { COLORS, SHADOWS, LAYOUT } from '../../styles/colors';
 import { Icon } from '../Icon';
@@ -65,7 +65,7 @@ const UniversalPointChargeScreen: React.FC<UniversalPointChargeScreenProps> = ({
 
   const handleCharge = async () => {
     const chargeAmount = parseInt(amount);
-    
+
     if (!chargeAmount || chargeAmount < 1000) {
       Alert.alert('알림', '최소 충전 금액은 1,000원입니다.');
       return;
@@ -97,8 +97,7 @@ const UniversalPointChargeScreen: React.FC<UniversalPointChargeScreenProps> = ({
       } else {
         Alert.alert('오류', response.data.message || '포인트 충전에 실패했습니다.');
       }
-    } catch (error: any) {
-      console.error('포인트 충전 오류:', error);
+    } catch (_error: any) {
       Alert.alert('오류', '포인트 충전 중 오류가 발생했습니다.');
     } finally {
       setLoading(false);
@@ -128,7 +127,7 @@ const UniversalPointChargeScreen: React.FC<UniversalPointChargeScreenProps> = ({
       <View style={styles.content}>
         {/* 충전 안내 */}
         <View style={styles.infoCard}>
-          <Icon name="info" size={24} color={COLORS.primary.main} />
+          <Icon name="info" size={20} color={COLORS.primary.accent} />
           <Text style={styles.infoText}>
             충전된 포인트는 모임 참가비로 사용할 수 있습니다.{'\n'}
             모임 완료 후 자동으로 환불처리 됩니다.
@@ -138,7 +137,7 @@ const UniversalPointChargeScreen: React.FC<UniversalPointChargeScreenProps> = ({
         {/* 현재 보유 포인트 */}
         <View style={styles.currentPointsCard}>
           <View style={styles.pointsHeader}>
-            <Icon name="star" size={20} color={COLORS.functional.warning} />
+            <Icon name="star" size={18} color={COLORS.primary.accent} />
             <Text style={styles.currentPointsLabel}>현재 보유 포인트</Text>
           </View>
           <Text style={styles.currentPointsValue}>
@@ -153,6 +152,7 @@ const UniversalPointChargeScreen: React.FC<UniversalPointChargeScreenProps> = ({
             <TextInput
               style={styles.amountInput}
               placeholder="충전할 금액을 입력하세요"
+              placeholderTextColor={COLORS.neutral.grey400}
               value={formatAmount(amount)}
               onChangeText={handleAmountChange}
               keyboardType="number-pad"
@@ -191,7 +191,7 @@ const UniversalPointChargeScreen: React.FC<UniversalPointChargeScreenProps> = ({
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>결제 방법</Text>
           <View style={styles.paymentMethodCard}>
-            <Icon name="credit-card" size={24} color={COLORS.functional.warning} />
+            <Icon name="credit-card" size={22} color={COLORS.functional.warning} />
             <View style={styles.paymentMethodInfo}>
               <Text style={styles.paymentMethodTitle}>카카오페이</Text>
               <Text style={styles.paymentMethodDescription}>
@@ -202,17 +202,17 @@ const UniversalPointChargeScreen: React.FC<UniversalPointChargeScreenProps> = ({
               <Text style={styles.paymentMethodBadgeText}>기본</Text>
             </View>
           </View>
-          
-          <View style={[styles.paymentMethodCard, { marginTop: 8 }]}>
-            <Icon name="credit-card" size={24} color={COLORS.primary.main} />
+
+          <View style={styles.paymentMethodCardSecondary}>
+            <Icon name="credit-card" size={22} color={COLORS.text.tertiary} />
             <View style={styles.paymentMethodInfo}>
               <Text style={styles.paymentMethodTitle}>신용/체크카드</Text>
               <Text style={styles.paymentMethodDescription}>
                 카드로 직접 결제
               </Text>
             </View>
-            <View style={[styles.paymentMethodBadge, { backgroundColor: COLORS.primary.light }]}>
-              <Text style={[styles.paymentMethodBadgeText, { color: COLORS.primary.main }]}>지원예정</Text>
+            <View style={styles.paymentMethodBadgeSecondary}>
+              <Text style={styles.paymentMethodBadgeTextSecondary}>지원예정</Text>
             </View>
           </View>
         </View>
@@ -260,7 +260,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     backgroundColor: COLORS.neutral.white,
-    ...SHADOWS.small,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(17,17,17,0.06)',
+    ...SHADOWS.sticky,
   },
   backButton: {
     width: 40,
@@ -272,6 +274,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '700',
     color: COLORS.text.primary,
+    letterSpacing: -0.3,
   },
   content: {
     flex: 1,
@@ -280,30 +283,28 @@ const styles = StyleSheet.create({
   infoCard: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    backgroundColor: COLORS.primary.light,
+    backgroundColor: COLORS.primary.accent + '08',
     padding: 16,
-    borderRadius: 16,
+    borderRadius: 8,
     marginBottom: 20,
-    borderLeftWidth: 4,
-    borderLeftColor: COLORS.primary.main,
+    borderLeftWidth: 3,
+    borderLeftColor: COLORS.primary.accent,
   },
   infoText: {
     flex: 1,
     marginLeft: 12,
     fontSize: 14,
-    color: COLORS.primary.dark,
+    color: COLORS.text.secondary,
     lineHeight: 20,
   },
   currentPointsCard: {
     backgroundColor: COLORS.neutral.white,
     padding: 20,
-    borderRadius: 16,
+    borderRadius: 8,
     marginBottom: 24,
-    ...SHADOWS.medium,
-    shadowColor: 'rgba(0,0,0,0.05)',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 1,
-    shadowRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(17,17,17,0.06)',
+    ...SHADOWS.small,
   },
   pointsHeader: {
     flexDirection: 'row',
@@ -311,75 +312,79 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   currentPointsLabel: {
-    fontSize: 14,
-    color: COLORS.text.secondary,
+    fontSize: 13,
+    color: COLORS.text.tertiary,
     marginLeft: 8,
     fontWeight: '500',
+    letterSpacing: 0.2,
   },
   currentPointsValue: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: '700',
     color: COLORS.text.primary,
     textAlign: 'center',
+    letterSpacing: -0.5,
   },
   section: {
-    marginBottom: 32,
+    marginBottom: 28,
   },
   sectionTitle: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
     color: COLORS.text.primary,
-    marginBottom: 12,
+    marginBottom: 10,
+    letterSpacing: -0.1,
   },
   amountInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: COLORS.neutral.white,
     borderWidth: 1,
-    borderColor: COLORS.neutral.grey200,
-    borderRadius: 16,
+    borderColor: 'rgba(17,17,17,0.06)',
+    borderRadius: 8,
     paddingHorizontal: 16,
     ...SHADOWS.small,
   },
   amountInput: {
     flex: 1,
-    paddingVertical: 16,
+    paddingVertical: 14,
     fontSize: 20,
     fontWeight: '600',
     color: COLORS.text.primary,
     textAlign: 'center',
+    letterSpacing: -0.3,
   },
   amountUnit: {
     fontSize: 16,
     fontWeight: '500',
-    color: COLORS.text.secondary,
+    color: COLORS.text.tertiary,
     marginLeft: 8,
   },
   amountHint: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: COLORS.text.tertiary,
     textAlign: 'center',
     marginTop: 8,
   },
   presetContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12,
+    gap: 10,
   },
   presetButton: {
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 20,
+    paddingVertical: 10,
+    paddingHorizontal: 18,
+    borderRadius: 6,
     borderWidth: 1,
-    borderColor: COLORS.neutral.grey200,
+    borderColor: 'rgba(17,17,17,0.06)',
     backgroundColor: COLORS.neutral.white,
     minWidth: 90,
     alignItems: 'center',
     ...SHADOWS.small,
   },
   presetButtonSelected: {
-    borderColor: COLORS.primary.main,
-    backgroundColor: COLORS.primary.light,
+    borderColor: COLORS.primary.accent,
+    backgroundColor: COLORS.primary.accent + '08',
   },
   presetButtonText: {
     fontSize: 14,
@@ -387,17 +392,28 @@ const styles = StyleSheet.create({
     color: COLORS.text.secondary,
   },
   presetButtonTextSelected: {
-    color: COLORS.primary.main,
+    color: COLORS.primary.accent,
     fontWeight: '600',
   },
   paymentMethodCard: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: COLORS.neutral.white,
-    padding: 16,
-    borderRadius: 16,
+    padding: 14,
+    borderRadius: 8,
     borderWidth: 1,
-    borderColor: COLORS.neutral.grey200,
+    borderColor: 'rgba(17,17,17,0.06)',
+    ...SHADOWS.small,
+  },
+  paymentMethodCardSecondary: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.neutral.white,
+    padding: 14,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(17,17,17,0.06)',
+    marginTop: 8,
     ...SHADOWS.small,
   },
   paymentMethodInfo: {
@@ -405,58 +421,71 @@ const styles = StyleSheet.create({
     marginLeft: 12,
   },
   paymentMethodTitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
     color: COLORS.text.primary,
-    marginBottom: 4,
+    marginBottom: 2,
+    letterSpacing: -0.1,
   },
   paymentMethodDescription: {
     fontSize: 13,
-    color: COLORS.text.secondary,
+    color: COLORS.text.tertiary,
   },
   paymentMethodBadge: {
-    backgroundColor: COLORS.functional.warning,
-    borderRadius: 12,
+    backgroundColor: COLORS.primary.accent,
+    borderRadius: 4,
     paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingVertical: 3,
   },
   paymentMethodBadgeText: {
     fontSize: 10,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: COLORS.neutral.white,
+    letterSpacing: 0.3,
+  },
+  paymentMethodBadgeSecondary: {
+    backgroundColor: COLORS.neutral.grey100,
+    borderRadius: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  paymentMethodBadgeTextSecondary: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: COLORS.text.tertiary,
+    letterSpacing: 0.3,
   },
   noticeSection: {
-    backgroundColor: COLORS.neutral.background,
+    backgroundColor: COLORS.neutral.light,
     padding: 16,
-    borderRadius: 12,
-    marginTop: 8,
+    borderRadius: 8,
+    marginTop: 4,
   },
   noticeTitle: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
     color: COLORS.text.primary,
     marginBottom: 8,
+    letterSpacing: 0.2,
   },
   noticeText: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: COLORS.text.tertiary,
     lineHeight: 18,
   },
   bottomContainer: {
     padding: 20,
     backgroundColor: COLORS.neutral.white,
-    ...SHADOWS.medium,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(17,17,17,0.06)',
+    ...SHADOWS.sticky,
   },
   chargeButton: {
-    backgroundColor: COLORS.primary.main,
+    backgroundColor: COLORS.primary.accent,
     paddingVertical: 16,
-    borderRadius: 16,
+    borderRadius: 6,
     alignItems: 'center',
-    ...SHADOWS.medium,
-    shadowColor: 'rgba(102, 126, 234, 0.3)',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 1,
-    shadowRadius: 16,
+    ...SHADOWS.cta,
   },
   chargeButtonDisabled: {
     backgroundColor: COLORS.neutral.grey300,
@@ -466,6 +495,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     color: COLORS.text.white,
+    letterSpacing: -0.2,
   },
 });
 

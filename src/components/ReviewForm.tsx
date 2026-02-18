@@ -64,7 +64,6 @@ const ReviewForm: React.FC<ReviewFormProps> = ({
         }
       ]);
     } catch (error: any) {
-      console.error('리뷰 작성 실패:', error);
       Alert.alert('오류', error.response?.data?.error || '리뷰 작성에 실패했습니다.');
     } finally {
       setIsSubmitting(false);
@@ -224,14 +223,14 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: COLORS.text.primary,
   },
   submitButton: {
     paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: 8,
-    backgroundColor: COLORS.primary.main,
+    borderRadius: 6,
+    backgroundColor: COLORS.primary.accent,
   },
   submitButtonDisabled: {
     backgroundColor: COLORS.neutral.grey300,
@@ -254,7 +253,7 @@ const styles = StyleSheet.create({
   },
   meetupTitle: {
     fontSize: 20,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: COLORS.text.primary,
     textAlign: 'center',
     marginBottom: 8,
@@ -298,7 +297,7 @@ const styles = StyleSheet.create({
   commentInput: {
     borderWidth: 1,
     borderColor: COLORS.neutral.grey300,
-    borderRadius: 12,
+    borderRadius: 8,
     padding: 16,
     fontSize: 14,
     color: COLORS.text.primary,
@@ -328,13 +327,13 @@ const styles = StyleSheet.create({
   tagButton: {
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 16,
+    borderRadius: 8,
     borderWidth: 1,
     borderColor: COLORS.neutral.grey300,
     backgroundColor: COLORS.neutral.white,
   },
   selectedTagButton: {
-    borderColor: COLORS.primary.main,
+    borderColor: COLORS.primary.accent,
     backgroundColor: COLORS.primary.light,
   },
   tagText: {
@@ -342,7 +341,7 @@ const styles = StyleSheet.create({
     color: COLORS.text.secondary,
   },
   selectedTagText: {
-    color: COLORS.primary.main,
+    color: COLORS.primary.accent,
     fontWeight: '500',
   },
 });

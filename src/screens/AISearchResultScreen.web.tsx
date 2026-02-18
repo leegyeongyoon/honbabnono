@@ -724,7 +724,7 @@ const AISearchResultScreen: React.FC<{ user: any; navigation: any }> = ({ user, 
         response += `• "야식", "심야 모임", "24시"\n`;
       }
 
-      response += `\n💡 Tip: 혼밥시러는 사용자가 만드는 모임 플랫폼이에요.\n`;
+      response += `\n💡 Tip: 잇테이블는 사용자가 만드는 모임 플랫폼이에요.\n`;
       response += `원하는 모임이 없다면 직접 만들어서 호스트가 되어보세요! 🚀`;
     }
 
@@ -1380,8 +1380,8 @@ return (
     <div style={{
       background: `linear-gradient(135deg, ${COLORS.primary.main} 0%, ${COLORS.primary.dark} 100%)`,
       padding: '16px 20px',
-      paddingTop: '52px',
-      borderBottom: '1px solid rgba(0,0,0,0.06)',
+      paddingTop: '20px',
+      borderBottom: '1px solid rgba(17,17,17,0.06)',
       color: 'white'
     }}>
       {/* 헤더 상단 - AI 검색 타이틀 */}
@@ -1437,7 +1437,7 @@ return (
                 fontSize: '20px', 
                 fontWeight: '700', 
                 margin: 0,
-                background: 'linear-gradient(45deg, #fff, #f0f9ff)',
+                background: 'linear-gradient(45deg, #FFFFFF, #EEF4F8)',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent'
               }}>
@@ -1462,14 +1462,14 @@ return (
           gap: '6px',
           padding: '6px 12px',
           backgroundColor: 'rgba(255,255,255,0.15)',
-          borderRadius: '20px',
+          borderRadius: '8px',
           fontSize: '11px',
           fontWeight: '600'
         }}>
           <div style={{
             width: '6px',
             height: '6px',
-            backgroundColor: '#4ade80',
+            backgroundColor: COLORS.functional.success,
             borderRadius: '50%',
             animation: 'pulse 2s infinite'
           }} />
@@ -1488,10 +1488,10 @@ return (
           display: 'flex',
           alignItems: 'center',
           backgroundColor: 'rgba(255,255,255,0.95)',
-          borderRadius: '24px',
+          borderRadius: '8px',
           padding: '12px 16px',
           gap: '10px',
-          boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+          boxShadow: '0 4px 20px rgba(17,17,17,0.1)',
           backdropFilter: 'blur(10px)',
           border: '1px solid rgba(255,255,255,0.2)'
         }}>
@@ -1528,24 +1528,24 @@ return (
         <button
           onClick={handleNewSearch}
           style={{
-            background: `linear-gradient(45deg, ${COLORS.primary.main}, ${COLORS.neutral.grey500})`,
+            background: COLORS.gradient.ctaCSS,
             padding: '12px 24px',
-            borderRadius: '24px',
+            borderRadius: '6px',
             border: 'none',
             color: 'white',
             fontSize: '14px',
             fontWeight: '600',
             cursor: 'pointer',
-            boxShadow: `0 4px 15px ${COLORS.primary.main}40`,
+            boxShadow: '0 4px 12px rgba(196,154,112,0.3)',
             transition: 'all 0.2s'
           }}
           onMouseEnter={(e) => {
             (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(-1px)';
-            (e.currentTarget as HTMLButtonElement).style.boxShadow = `0 6px 20px ${COLORS.primary.main}60`;
+            (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 6px 20px rgba(196,154,112,0.35)';
           }}
           onMouseLeave={(e) => {
             (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(0)';
-            (e.currentTarget as HTMLButtonElement).style.boxShadow = `0 4px 15px ${COLORS.primary.main}40`;
+            (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 4px 12px rgba(196,154,112,0.3)';
           }}
         >
           🔍 AI 검색
@@ -1558,11 +1558,11 @@ return (
       {isAnalyzing && (
         <div style={{
           background: `linear-gradient(135deg, ${COLORS.primary.light} 0%, ${COLORS.primary.accent} 100%)`,
-          borderRadius: '16px',
+          borderRadius: '8px',
           padding: '28px',
           marginBottom: '20px',
           boxShadow: CSS_SHADOWS.medium,
-          border: '1px solid rgba(0,0,0,0.04)',
+          border: '1px solid rgba(17,17,17,0.04)',
           position: 'relative',
           overflow: 'hidden'
         }}>
@@ -1573,7 +1573,7 @@ return (
             left: 0,
             right: 0,
             bottom: 0,
-            background: 'linear-gradient(45deg, transparent 30%, rgba(102, 126, 234, 0.02) 50%, transparent 70%)',
+            background: 'linear-gradient(45deg, transparent 30%, rgba(184,107,74,0.02) 50%, transparent 70%)',
             animation: 'shimmer 2s infinite'
           }} />
           
@@ -1581,13 +1581,13 @@ return (
             <div style={{
               width: '60px',
               height: '60px',
-              background: `linear-gradient(45deg, ${COLORS.primary.main}, ${COLORS.neutral.grey500})`,
+              background: COLORS.gradient.ctaCSS,
               borderRadius: '50%',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               animation: 'aiPulse 2s ease-in-out infinite',
-              boxShadow: `0 4px 20px ${COLORS.primary.main}50`
+              boxShadow: '0 4px 20px rgba(196,154,112,0.25)'
             }}>
               <img 
                 src={riceCharacterImage} 
@@ -1627,13 +1627,13 @@ return (
               <div style={{
                 width: '100%',
                 height: '6px',
-                backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                backgroundColor: 'rgba(196,154,112,0.08)',
                 borderRadius: '10px',
                 overflow: 'hidden'
               }}>
                 <div style={{
                   height: '100%',
-                  background: `linear-gradient(45deg, ${COLORS.primary.main}, ${COLORS.neutral.grey500})`,
+                  background: COLORS.gradient.ctaCSS,
                   borderRadius: '10px',
                   animation: 'progressBar 2s ease-in-out infinite'
                 }} />
@@ -1660,11 +1660,11 @@ return (
       {(displayedResponse || isTyping) && !isAnalyzing && (
         <div style={{
           background: `linear-gradient(135deg, ${COLORS.primary.light} 0%, ${COLORS.neutral.white} 100%)`,
-          borderRadius: '16px',
+          borderRadius: '8px',
           padding: '24px',
           marginBottom: '20px',
           boxShadow: CSS_SHADOWS.medium,
-          border: '1px solid rgba(0,0,0,0.04)',
+          border: '1px solid rgba(17,17,17,0.04)',
           position: 'relative'
         }}>
           {/* AI 레이블 */}
@@ -1672,13 +1672,13 @@ return (
             position: 'absolute',
             top: '-12px',
             left: '24px',
-            background: `linear-gradient(45deg, ${COLORS.primary.main}, ${COLORS.neutral.grey500})`,
+            background: COLORS.gradient.ctaCSS,
             color: 'white',
             padding: '4px 12px',
-            borderRadius: '12px',
+            borderRadius: '8px',
             fontSize: '11px',
             fontWeight: '600',
-            boxShadow: `0 4px 12px ${COLORS.primary.main}50`
+            boxShadow: '0 4px 12px rgba(196,154,112,0.25)'
           }}>
             🍚 AI 분석 결과
           </div>
@@ -1687,13 +1687,13 @@ return (
             <div style={{
               width: '48px',
               height: '48px',
-              background: `linear-gradient(45deg, ${COLORS.primary.main}, ${COLORS.neutral.grey500})`,
+              background: COLORS.gradient.ctaCSS,
               borderRadius: '50%',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               flexShrink: 0,
-              boxShadow: `0 4px 16px ${COLORS.primary.main}50`
+              boxShadow: '0 4px 16px rgba(196,154,112,0.25)'
             }}>
               <img 
                 src={riceCharacterImage} 
@@ -1725,7 +1725,7 @@ return (
                     display: 'inline-block',
                     width: '3px',
                     height: '18px',
-                    background: `linear-gradient(45deg, ${COLORS.primary.main}, ${COLORS.neutral.grey500})`,
+                    background: COLORS.gradient.ctaCSS,
                     marginLeft: '3px',
                     animation: 'aiTyping 1s infinite',
                     borderRadius: '2px'
@@ -1741,13 +1741,13 @@ return (
                   gap: '8px',
                   marginTop: '16px',
                   padding: '10px 14px',
-                  backgroundColor: 'rgba(139, 105, 20, 0.06)',
-                  borderRadius: '12px',
+                  backgroundColor: 'rgba(15, 13, 11, 0.06)',
+                  borderRadius: '8px',
                   fontSize: '12px',
                   color: COLORS.text.secondary
                 }}>
                   <span style={{ fontWeight: '600' }}>AI 신뢰도</span>
-                  <div style={{ flex: 1, height: '4px', backgroundColor: 'rgba(139, 105, 20, 0.15)', borderRadius: '2px' }}>
+                  <div style={{ flex: 1, height: '4px', backgroundColor: 'rgba(15, 13, 11, 0.15)', borderRadius: '2px' }}>
                     <div style={{ width: '92%', height: '100%', background: `linear-gradient(45deg, ${COLORS.primary.main}, ${COLORS.functional.warning})`, borderRadius: '2px' }} />
                   </div>
                   <span style={{ fontWeight: '700', color: COLORS.primary.main }}>92%</span>
@@ -1774,8 +1774,8 @@ return (
                 }}
                 style={{
                   padding: '10px 18px',
-                  borderRadius: '12px',
-                  border: '1px solid rgba(0,0,0,0.06)',
+                  borderRadius: '8px',
+                  border: '1px solid rgba(17,17,17,0.06)',
                   backgroundColor: COLORS.neutral.white,
                   color: COLORS.text.primary,
                   fontSize: '14px',
@@ -1790,7 +1790,7 @@ return (
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.backgroundColor = COLORS.neutral.white;
-                  e.currentTarget.style.borderColor = 'rgba(0,0,0,0.06)';
+                  e.currentTarget.style.borderColor = 'rgba(17,17,17,0.06)';
                 }}
               >
                 {suggestion}
@@ -1820,8 +1820,8 @@ return (
                     marginBottom: '8px',
                     padding: '10px 14px',
                     backgroundColor: COLORS.primary.accent,
-                    borderRadius: '12px',
-                    border: '1px solid rgba(139, 105, 20, 0.12)',
+                    borderRadius: '8px',
+                    border: '1px solid rgba(15, 13, 11, 0.08)',
                   }}>
                     <div style={{
                       display: 'flex',
@@ -1913,8 +1913,8 @@ return (
           marginTop: '48px',
           padding: '32px',
           backgroundColor: COLORS.neutral.white,
-          borderRadius: '16px',
-          border: '1px solid rgba(0,0,0,0.04)',
+          borderRadius: '8px',
+          border: '1px solid rgba(17,17,17,0.04)',
           boxShadow: CSS_SHADOWS.small,
         }}>
           <div style={{
@@ -1947,17 +1947,25 @@ return (
           </p>
           <button
             onClick={() => navigate('/create-meetup')}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'scale(1.03)';
+              e.currentTarget.style.boxShadow = CSS_SHADOWS.cta;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'scale(1)';
+              e.currentTarget.style.boxShadow = '0 4px 12px rgba(196,154,112,0.25)';
+            }}
             style={{
               padding: '12px 32px',
-              backgroundColor: COLORS.primary.main,
-              color: COLORS.neutral.white,
+              background: COLORS.gradient.ctaCSS,
+              color: '#FFFFFF',
               border: 'none',
-              borderRadius: '12px',
+              borderRadius: '6px',
               fontSize: '15px',
               fontWeight: '600',
               cursor: 'pointer',
-              boxShadow: `0 4px 12px rgba(139, 105, 20, 0.3)`,
-              transition: 'all 0.2s',
+              boxShadow: '0 4px 12px rgba(196,154,112,0.25)',
+              transition: 'all 200ms ease',
             }}
           >
             새 모임 만들기
@@ -2008,7 +2016,7 @@ return (
         }
 
         .ai-gradient-text {
-          background: linear-gradient(-45deg, ${COLORS.primary.main}, ${COLORS.neutral.grey500}, ${COLORS.primary.main}, ${COLORS.neutral.grey500});
+          background: linear-gradient(-45deg, ${COLORS.primary.main}, ${COLORS.primary.dark}, ${COLORS.primary.main}, ${COLORS.primary.dark});
           background-size: 400% 400%;
           animation: gradientShift 3s ease infinite;
           -webkit-background-clip: text;

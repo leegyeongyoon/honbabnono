@@ -1528,7 +1528,7 @@ exports.getReviewableMeetups = async (req, res) => {
       JOIN meetup_participants mp ON m.id = mp.meetup_id
       JOIN users u ON m.host_id = u.id
       WHERE mp.user_id = $1
-        AND m.status = '완료'
+        AND m.status = '종료'
         AND NOT EXISTS (
           SELECT 1 FROM reviews r
           WHERE r.meetup_id = m.id AND r.reviewer_id = $1

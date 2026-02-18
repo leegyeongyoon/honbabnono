@@ -140,7 +140,7 @@ const WriteReviewScreen = () => {
             <Icon
               name="star"
               size={32}
-              color={star <= rating ? '#D4A574' : COLORS.neutral.grey200}
+              color={star <= rating ? '#C49A70' : COLORS.neutral.grey200}
             />
           </TouchableOpacity>
         ))}
@@ -518,7 +518,7 @@ const styles = StyleSheet.create({
   tag: {
     paddingHorizontal: 14,
     paddingVertical: 8,
-    borderRadius: 20,
+    borderRadius: 8,
     backgroundColor: COLORS.neutral.grey100,
     borderWidth: 1,
     borderColor: COLORS.neutral.grey200,

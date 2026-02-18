@@ -5,9 +5,8 @@ import {
   StyleSheet,
   TouchableOpacity,
   Alert,
-  SafeAreaView,
 } from 'react-native';
-import { COLORS, SHADOWS, CARD_STYLE, CSS_SHADOWS } from '../styles/colors';
+import { COLORS, SHADOWS, LAYOUT, CSS_SHADOWS } from '../styles/colors';
 import { TYPOGRAPHY } from '../styles/typography';
 import { SPACING, BORDER_RADIUS } from '../styles/spacing';
 import Header from '../components/Header';
@@ -115,7 +114,7 @@ const NotificationScreen: React.FC<NotificationScreenProps> = ({ navigation, use
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.neutral.background,
+    backgroundColor: COLORS.surface.primary,
   },
   headerActions: {
     flexDirection: 'row',
@@ -123,28 +122,37 @@ const styles = StyleSheet.create({
     gap: SPACING.sm,
   },
   filterButton: {
-    paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.xs,
-    borderRadius: 12,
-    backgroundColor: COLORS.neutral.grey100,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: BORDER_RADIUS.sm,
+    borderWidth: 1,
+    borderColor: COLORS.neutral.grey200,
+    backgroundColor: COLORS.surface.primary,
+    // @ts-ignore
+    cursor: 'pointer',
+    transition: 'all 150ms ease',
   },
   filterButtonActive: {
     backgroundColor: COLORS.primary.main,
+    borderColor: COLORS.primary.main,
   },
   filterButtonText: {
-    fontSize: 13,
-    fontWeight: '600',
+    fontSize: 12,
+    fontWeight: '500',
     color: COLORS.text.secondary,
   },
   filterButtonTextActive: {
     color: COLORS.text.white,
+    fontWeight: '600',
   },
   markAllButton: {
     paddingHorizontal: SPACING.sm,
     paddingVertical: SPACING.xs,
+    // @ts-ignore
+    cursor: 'pointer',
   },
   markAllText: {
-    fontSize: 13,
+    fontSize: 12,
     color: COLORS.text.tertiary,
     fontWeight: '500',
   },

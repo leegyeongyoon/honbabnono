@@ -19,12 +19,8 @@ const NotificationSettingsScreen: React.FC<NotificationSettingsScreenProps> = ({
   navigation, 
   user 
 }) => {
-  const handleSettingsChange = (settings: NotificationSettings) => {
+  const handleSettingsChange = (_settings: NotificationSettings) => {
     // Handle settings change for analytics or other native-specific logic
-    console.log('알림 설정이 변경되었습니다:', settings);
-    
-    // Could trigger native notifications permission requests here if needed
-    // Could update local storage or send analytics events
   };
 
   return (

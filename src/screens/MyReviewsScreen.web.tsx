@@ -46,7 +46,7 @@ const MyReviewsScreen: React.FC = () => {
           key={i}
           name="star"
           size={16}
-          color={i <= rating ? "#FFD700" : COLORS.neutral.grey200}
+          color={i <= rating ? "#C49A70" : COLORS.neutral.grey200}
         />
       );
     }
@@ -60,7 +60,7 @@ const MyReviewsScreen: React.FC = () => {
     >
       <View style={styles.profileImage}>
         <View style={styles.avatarCircle}>
-          <Icon name="star" size={20} color="#FFD700" />
+          <Icon name="star" size={20} color="#C49A70" />
         </View>
       </View>
 
@@ -81,8 +81,37 @@ const MyReviewsScreen: React.FC = () => {
 
   if (loading) {
     return (
-      <View style={[styles.container, styles.centerContent]}>
-        <Text style={styles.loadingText}>내 리뷰를 불러오는 중...</Text>
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.backButton} onPress={() => navigate('/mypage')}>
+            <Icon name="arrow-left" size={24} color={COLORS.text.primary} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>내 리뷰</Text>
+          <View style={{ width: 44 }} />
+        </View>
+        <View style={{ padding: 20, gap: 16 }}>
+          <View style={{ padding: 20, borderRadius: 8, backgroundColor: '#FAFAF8', gap: 12 }}>
+            <View style={{ width: '50%', height: 14, borderRadius: 7, backgroundColor: '#EFECEA' }} />
+            <View style={{ flexDirection: 'row', gap: 16 }}>
+              {[0, 1, 2].map((i) => (
+                <View key={i} style={{ flex: 1, alignItems: 'center', gap: 6 }}>
+                  <View style={{ width: 32, height: 20, borderRadius: 10, backgroundColor: '#EFECEA' }} />
+                  <View style={{ width: 40, height: 10, borderRadius: 5, backgroundColor: '#EFECEA' }} />
+                </View>
+              ))}
+            </View>
+          </View>
+          {[0, 1, 2].map((i) => (
+            <View key={i} style={{ flexDirection: 'row', padding: 16, backgroundColor: '#FAFAF8', borderRadius: 8, gap: 12 }}>
+              <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: '#EFECEA' }} />
+              <View style={{ flex: 1, gap: 8 }}>
+                <View style={{ width: '70%', height: 14, borderRadius: 7, backgroundColor: '#EFECEA' }} />
+                <View style={{ width: '90%', height: 10, borderRadius: 5, backgroundColor: '#EFECEA' }} />
+                <View style={{ width: '40%', height: 10, borderRadius: 5, backgroundColor: '#EFECEA' }} />
+              </View>
+            </View>
+          ))}
+        </View>
       </View>
     );
   }
@@ -165,15 +194,21 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     paddingBottom: 16,
     backgroundColor: COLORS.neutral.white,
-    ...SHADOWS.small,
+    ...SHADOWS.sticky,
+    zIndex: 10,
   },
   backButton: {
-    padding: 4,
+    padding: 10,
+    minWidth: 44,
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: '700',
     color: COLORS.text.primary,
+    letterSpacing: -0.3,
   },
   placeholder: {
     width: 32,
@@ -202,7 +237,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   exploreButton: {
-    backgroundColor: COLORS.primary.main,
+    backgroundColor: COLORS.primary.dark,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,
@@ -226,11 +261,13 @@ const styles = StyleSheet.create({
   },
   summaryCard: {
     backgroundColor: COLORS.neutral.white,
-    borderRadius: 16,
+    borderRadius: 8,
     padding: 20,
     flexDirection: 'row',
     justifyContent: 'space-around',
     ...SHADOWS.small,
+    borderWidth: 1,
+    borderColor: 'rgba(17,17,17,0.06)',
   },
   summaryItem: {
     alignItems: 'center',
@@ -252,8 +289,10 @@ const styles = StyleSheet.create({
   },
   reviewsListContainer: {
     backgroundColor: COLORS.neutral.white,
-    borderRadius: 16,
+    borderRadius: 8,
     ...SHADOWS.small,
+    borderWidth: 1,
+    borderColor: 'rgba(17,17,17,0.06)',
   },
   listSectionTitle: {
     fontSize: 18,
@@ -268,7 +307,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     paddingHorizontal: 20,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.neutral.grey200,
+    borderBottomColor: 'rgba(17,17,17,0.06)',
   },
   profileImage: {
     marginRight: 16,
@@ -277,7 +316,7 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: '#FFE0B2',
+    backgroundColor: COLORS.primary.light,
     justifyContent: 'center',
     alignItems: 'center',
   },

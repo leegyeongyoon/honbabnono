@@ -94,13 +94,13 @@ const PrivacySettingsScreen: React.FC = () => {
       onPress={onPress}
     >
       <View style={styles.menuIconContainer}>
-        <Icon name={iconName} size={18} color={danger ? COLORS.text.error : COLORS.primary.main} />
+        <Icon name={iconName} size={18} color={danger ? '#D32F2F' : '#C49A70'} />
       </View>
       <View style={styles.menuInfo}>
         <Text style={[styles.menuTitle, danger && styles.dangerText]}>{title}</Text>
         <Text style={styles.menuDescription}>{description}</Text>
       </View>
-      <Icon name="chevron-right" size={16} color={COLORS.text.secondary} />
+      <Icon name="chevron-right" size={16} color="#5C4F42" />
     </TouchableOpacity>
   );
 
@@ -112,7 +112,7 @@ const PrivacySettingsScreen: React.FC = () => {
           style={styles.backButton}
           onPress={() => navigate('/mypage')}
         >
-          <Icon name="arrow-left" size={24} color={COLORS.text.primary} />
+          <Icon name="arrow-left" size={24} color="#1A1714" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>개인정보 설정</Text>
         <View style={styles.placeholder} />
@@ -198,10 +198,10 @@ const PrivacySettingsScreen: React.FC = () => {
           <View style={styles.passwordModal}>
             <View style={styles.modalHeader}>
               <TouchableOpacity onPress={() => setShowPasswordChange(false)}>
-                <Icon name="x" size={24} color={COLORS.text.primary} />
+                <Icon name="x" size={24} color="#1A1714" />
               </TouchableOpacity>
               <Text style={styles.modalTitle}>비밀번호 변경</Text>
-              <TouchableOpacity 
+              <TouchableOpacity
                 onPress={handlePasswordChange}
                 disabled={loading}
               >
@@ -258,7 +258,7 @@ const PrivacySettingsScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.neutral.background,
+    backgroundColor: '#EFECEA',
   },
   header: {
     flexDirection: 'row',
@@ -268,15 +268,28 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     paddingBottom: 16,
     backgroundColor: COLORS.neutral.white,
-    ...SHADOWS.small,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(17,17,17,0.06)',
+    shadowColor: '#111111',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 3,
+    zIndex: 10,
   },
   backButton: {
-    padding: 4,
+    padding: 10,
+    minWidth: 44,
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    cursor: 'pointer',
+    transition: 'all 200ms ease',
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: COLORS.text.primary,
+    color: '#1A1714',
   },
   placeholder: {
     width: 32,
@@ -290,17 +303,23 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: COLORS.text.primary,
+    color: '#1A1714',
     paddingHorizontal: 20,
     paddingVertical: 16,
-    backgroundColor: COLORS.neutral.background,
+    backgroundColor: '#EFECEA',
   },
   accountCard: {
     backgroundColor: COLORS.neutral.white,
     marginHorizontal: 16,
-    borderRadius: 16,
+    borderRadius: 8,
     padding: 20,
-    ...SHADOWS.small,
+    borderWidth: 1,
+    borderColor: 'rgba(17,17,17,0.06)',
+    shadowColor: '#111111',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 1,
   },
   accountInfo: {
     alignItems: 'center',
@@ -308,24 +327,30 @@ const styles = StyleSheet.create({
   accountName: {
     fontSize: 20,
     fontWeight: '700',
-    color: COLORS.text.primary,
+    color: '#1A1714',
     marginBottom: 4,
   },
   accountEmail: {
     fontSize: 16,
-    color: COLORS.text.secondary,
+    color: '#5C4F42',
     marginBottom: 8,
   },
   accountProvider: {
     fontSize: 14,
-    color: COLORS.primary.main,
+    color: '#C49A70',
     fontWeight: '500',
   },
   menuContainer: {
     backgroundColor: COLORS.neutral.white,
     marginHorizontal: 16,
-    borderRadius: 16,
-    ...SHADOWS.small,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(17,17,17,0.06)',
+    shadowColor: '#111111',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 1,
   },
   menuItem: {
     flexDirection: 'row',
@@ -333,13 +358,15 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     paddingHorizontal: 20,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.neutral.grey200,
+    borderBottomColor: 'rgba(17,17,17,0.06)',
+    cursor: 'pointer',
+    transition: 'all 200ms ease',
   },
   menuIconContainer: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: COLORS.neutral.background,
+    backgroundColor: '#F7F5F3',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -353,15 +380,15 @@ const styles = StyleSheet.create({
   menuTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: '#1A1714',
     marginBottom: 2,
   },
   menuDescription: {
     fontSize: 13,
-    color: COLORS.text.secondary,
+    color: '#5C4F42',
   },
   dangerText: {
-    color: COLORS.text.error,
+    color: '#D32F2F',
   },
   modalOverlay: {
     position: 'absolute',
@@ -369,17 +396,21 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(17,17,17,0.5)',
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 1000,
   },
   passwordModal: {
     backgroundColor: COLORS.neutral.white,
-    borderRadius: 20,
+    borderRadius: 12,
     width: '90%',
     maxWidth: 400,
-    ...SHADOWS.large,
+    shadowColor: '#111111',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 24,
+    elevation: 10,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -387,20 +418,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 20,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.neutral.grey200,
+    borderBottomColor: 'rgba(17,17,17,0.06)',
   },
   modalTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: COLORS.text.primary,
+    color: '#1A1714',
   },
   saveText: {
     fontSize: 16,
     fontWeight: '600',
-    color: COLORS.primary.main,
+    color: '#C49A70',
   },
   disabledText: {
-    color: COLORS.text.secondary,
+    color: '#8B7E72',
   },
   modalContent: {
     padding: 20,
@@ -411,18 +442,19 @@ const styles = StyleSheet.create({
   inputLabel: {
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: '#1A1714',
     marginBottom: 8,
   },
   passwordInput: {
     borderWidth: 1,
-    borderColor: COLORS.neutral.grey200,
-    borderRadius: 12,
+    borderColor: 'rgba(17,17,17,0.10)',
+    borderRadius: 6,
     paddingHorizontal: 16,
     paddingVertical: 12,
     fontSize: 16,
-    color: COLORS.text.primary,
-    backgroundColor: COLORS.neutral.white,
+    color: '#1A1714',
+    backgroundColor: '#FAFAF8',
+    transition: 'all 200ms ease',
   },
 });
 

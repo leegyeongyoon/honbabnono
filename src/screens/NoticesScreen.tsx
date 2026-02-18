@@ -25,13 +25,8 @@ const NoticesScreen: React.FC<NoticesScreenProps> = ({ navigation, user }) => {
     });
   };
 
-  const handleNoticesLoad = (notices: Notice[]) => {
+  const handleNoticesLoad = (_notices: Notice[]) => {
     // Handle notices load for analytics or caching
-    console.log('공지사항 로드됨:', notices.length, '개');
-    
-    // Could cache notices locally for offline viewing
-    // Could send analytics events
-    // Could update notification badges
   };
 
   return (

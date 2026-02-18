@@ -186,11 +186,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    borderRadius: 16,
+    borderRadius: 8,
     zIndex: 9999,
     ...SHADOWS.medium,
     ...(Platform.OS === 'web' ? {
-      boxShadow: '0 4px 12px rgba(0,0,0,0.1), 0 8px 24px rgba(0,0,0,0.08)',
+      boxShadow: '0 4px 12px rgba(17,17,17,0.08), 0 8px 24px rgba(17,17,17,0.06)',
     } as any : {}),
   },
   message: {

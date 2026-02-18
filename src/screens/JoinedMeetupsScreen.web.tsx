@@ -98,51 +98,57 @@ const JoinedMeetupsScreen: React.FC = () => {
   };
 
   const renderMeetupItem = (meetup: JoinedMeetup) => (
-    <TouchableOpacity
+    <div
       key={meetup.id}
-      style={styles.meetupItem}
-      onPress={() => navigate(`/meetup/${meetup.id}`)}
+      onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'rgba(17,17,17,0.03)'; }}
+      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+      style={{ cursor: 'pointer', transition: 'background-color 200ms ease' }}
     >
-      <View style={styles.profileImage}>
-        <View style={styles.avatarCircle}>
-          <Icon name="utensils" size={20} color={COLORS.primary.main} />
-        </View>
-      </View>
-
-      <View style={styles.meetupInfo}>
-        <Text style={styles.meetupTitle}>{meetup.title}</Text>
-        <Text style={styles.meetupCategory}>{meetup.category}</Text>
-        <View style={styles.meetupMeta}>
-          <Text style={styles.metaText}>
-            {meetup.location} • {new Date(meetup.date).toLocaleDateString()} •
-            <Text style={[styles.statusText, { color: getStatusColor(meetup.participation_status) }]}>
-              {' '}{getStatusText(meetup.participation_status)}
-            </Text>
-          </Text>
-        </View>
-      </View>
-
-      <View style={styles.actionContainer}>
-        {activeTab === 'completed' && !meetup.has_reviewed && (
-          <TouchableOpacity
-            style={styles.reviewButton}
-            onPress={(e) => {
-              e.stopPropagation();
-              handleReviewWrite(meetup.id);
-            }}
-          >
-            <Icon name="edit" size={16} color={COLORS.primary.main} />
-            <Text style={styles.reviewButtonText}>리뷰</Text>
-          </TouchableOpacity>
-        )}
-        {activeTab === 'completed' && meetup.has_reviewed && (
-          <View style={styles.reviewedBadge}>
-            <Icon name="check" size={16} color={COLORS.secondary.main} />
-            <Text style={styles.reviewedText}>완료</Text>
+      <TouchableOpacity
+        style={styles.meetupItem}
+        onPress={() => navigate(`/meetup/${meetup.id}`)}
+      >
+        <View style={styles.profileImage}>
+          <View style={styles.avatarCircle}>
+            <Icon name="utensils" size={20} color={COLORS.primary.main} />
           </View>
-        )}
-      </View>
-    </TouchableOpacity>
+        </View>
+
+        <View style={styles.meetupInfo}>
+          <Text style={styles.meetupTitle}>{meetup.title}</Text>
+          <Text style={styles.meetupCategory}>{meetup.category}</Text>
+          <View style={styles.meetupMeta}>
+            <Text style={styles.metaText}>
+              {meetup.location} • {new Date(meetup.date).toLocaleDateString()} •
+              <Text style={[styles.statusText, { color: getStatusColor(meetup.participation_status) }]}>
+                {' '}{getStatusText(meetup.participation_status)}
+              </Text>
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.actionContainer}>
+          {activeTab === 'completed' && !meetup.has_reviewed && (
+            <TouchableOpacity
+              style={styles.reviewButton}
+              onPress={(e) => {
+                e.stopPropagation();
+                handleReviewWrite(meetup.id);
+              }}
+            >
+              <Icon name="edit" size={16} color={COLORS.primary.main} />
+              <Text style={styles.reviewButtonText}>리뷰</Text>
+            </TouchableOpacity>
+          )}
+          {activeTab === 'completed' && meetup.has_reviewed && (
+            <View style={styles.reviewedBadge}>
+              <Icon name="check" size={16} color={COLORS.secondary.main} />
+              <Text style={styles.reviewedText}>완료</Text>
+            </View>
+          )}
+        </View>
+      </TouchableOpacity>
+    </div>
   );
 
   if (loading) {
@@ -245,23 +251,33 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 16,
-    paddingTop: 52,
+    paddingTop: 20,
     backgroundColor: COLORS.neutral.white,
-    ...SHADOWS.small,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(17,17,17,0.06)',
+    ...SHADOWS.sticky,
+    zIndex: 10,
   },
   backButton: {
-    padding: 4,
+    padding: 10,
+    minWidth: 44,
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    cursor: 'pointer',
+    transition: 'all 200ms ease',
   },
   headerTitle: {
-    fontSize: 17,
+    fontSize: 20,
     fontWeight: '700',
     color: COLORS.text.primary,
+    letterSpacing: -0.3,
   },
   tabContainer: {
     flexDirection: 'row',
     backgroundColor: COLORS.neutral.white,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.neutral.grey200,
+    borderBottomColor: 'rgba(17,17,17,0.06)',
   },
   tab: {
     flex: 1,
@@ -269,6 +285,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderBottomWidth: 2,
     borderBottomColor: 'transparent',
+    cursor: 'pointer',
   },
   activeTab: {
     borderBottomColor: COLORS.primary.main,
@@ -279,7 +296,7 @@ const styles = StyleSheet.create({
   },
   activeTabText: {
     color: COLORS.primary.main,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   content: {
     flex: 1,
@@ -305,7 +322,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   exploreButton: {
-    backgroundColor: COLORS.primary.main,
+    backgroundColor: COLORS.primary.dark,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,
@@ -332,7 +349,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     paddingHorizontal: 20,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.neutral.grey200,
+    borderBottomColor: 'rgba(17,17,17,0.06)',
   },
   profileImage: {
     marginRight: 16,
@@ -341,7 +358,7 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: '#FFE0B2',
+    backgroundColor: COLORS.primary.light,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -382,6 +399,8 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 12,
     gap: 4,
+    cursor: 'pointer',
+    transition: 'all 200ms ease',
   },
   reviewButtonText: {
     fontSize: 12,

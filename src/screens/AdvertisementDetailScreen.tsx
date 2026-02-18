@@ -29,8 +29,7 @@ const AdvertisementDetailScreen: React.FC<AdvertisementDetailScreenProps> = ({
       setLoading(true);
       const detail = await advertisementApiService.getAdvertisementDetail(advertisementId);
       setAdvertisement(detail);
-    } catch (error) {
-      console.error('광고 디테일 로딩 실패:', error);
+    } catch (_error) {
       Alert.alert('오류', '광고 정보를 불러오는데 실패했습니다.');
       window.history.back();
     } finally {
@@ -203,7 +202,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     backgroundColor: COLORS.neutral.white,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.neutral.gray200,
+    borderBottomColor: COLORS.neutral.grey200,
   },
   backButton: {
     padding: 8,
@@ -239,9 +238,9 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   businessInfo: {
-    backgroundColor: COLORS.neutral.gray50,
+    backgroundColor: COLORS.neutral.grey50,
     padding: 16,
-    borderRadius: 12,
+    borderRadius: 8,
     marginBottom: 24,
   },
   businessInfoTitle: {
@@ -282,13 +281,13 @@ const styles = StyleSheet.create({
     paddingVertical: 20,
   },
   externalLinkButton: {
-    backgroundColor: COLORS.primary.main,
+    backgroundColor: COLORS.primary.accent,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 16,
     paddingHorizontal: 24,
-    borderRadius: 12,
+    borderRadius: 6,
     marginTop: 20,
     ...SHADOWS.medium,
   },

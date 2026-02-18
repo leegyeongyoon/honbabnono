@@ -32,12 +32,7 @@ const NoticeDetailScreen: React.FC<NoticeDetailScreenProps> = ({
   // Extract notice ID from route params
   const noticeId = route?.params?.noticeId || route?.params?.id;
 
-  const handleViewIncrement = (noticeId: number) => {
-    // Handle view count increment for analytics
-    console.log('공지사항 조회됨:', noticeId);
-    
-    // Could send analytics events
-    // Could update local view tracking
+  const handleViewIncrement = (_noticeId: number) => {
   };
 
   return (

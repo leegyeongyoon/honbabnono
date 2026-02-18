@@ -212,7 +212,7 @@ const styles = StyleSheet.create({
   },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    backgroundColor: 'rgba(17,17,17,0.5)',
   },
   contentContainer: {
     position: 'absolute',

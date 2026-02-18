@@ -8,7 +8,9 @@ import {
   Alert,
   Platform,
 } from 'react-native';
-import { COLORS, SHADOWS } from '../../styles/colors';
+import { COLORS, SHADOWS, CTA_STYLE } from '../../styles/colors';
+import { SPACING, BORDER_RADIUS } from '../../styles/spacing';
+import { TYPOGRAPHY, FONT_WEIGHTS } from '../../styles/typography';
 import apiClient, { API_HOSTS } from '../../services/apiClient';
 
 interface UniversalLoginScreenProps {
@@ -41,17 +43,17 @@ const UniversalLoginScreen: React.FC<UniversalLoginScreenProps> = ({
         if (userParam) {
           localStorage.setItem('user', decodeURIComponent(userParam));
         }
-        Alert.alert('환영합니다! 🎉', '카카오 로그인이 완료되었습니다.');
-        
+        Alert.alert('환영합니다!', '카카오 로그인이 완료되었습니다.');
+
         if (onLogin && userParam) {
           try {
             const userData = JSON.parse(decodeURIComponent(userParam));
             onLogin(userData);
-          } catch (e) {
-            console.error('Failed to parse user data:', e);
+          } catch (_e) {
+            // Failed to parse user data
           }
         }
-        
+
         // Navigate to home or callback
         if (onNavigate) {
           onNavigate('Home');
@@ -85,7 +87,7 @@ const UniversalLoginScreen: React.FC<UniversalLoginScreenProps> = ({
 
       if (response.data) {
         const { token, user } = response.data;
-        
+
         // Store credentials (universal storage)
         if (Platform.OS === 'web') {
           localStorage.setItem('token', token);
@@ -93,18 +95,17 @@ const UniversalLoginScreen: React.FC<UniversalLoginScreenProps> = ({
         } else {
           // React Native - storage는 이미 userStore에서 처리됨
         }
-        
+
         Alert.alert('성공', '로그인되었습니다.');
-        
+
         if (onLogin) {
           onLogin(user, token);
         }
 
         // AuthNavigator가 자동으로 리다이렉트하므로 여기서는 따로 navigate하지 않음
       }
-    } catch (error) {
+    } catch (_error) {
       Alert.alert('오류', '로그인에 실패했습니다.');
-      console.error('Login error:', error);
     } finally {
       setLoading(false);
     }
@@ -113,7 +114,7 @@ const UniversalLoginScreen: React.FC<UniversalLoginScreenProps> = ({
   const handleKakaoLogin = () => {
     setLoading(true);
     const kakaoAuthUrl = `${process.env.REACT_APP_API_URL || 'http://localhost:3001/api'}/auth/kakao`;
-    
+
     if (Platform.OS === 'web') {
       window.location.href = kakaoAuthUrl;
     } else {
@@ -144,22 +145,20 @@ const UniversalLoginScreen: React.FC<UniversalLoginScreenProps> = ({
 
       if (response.ok) {
         const data = await response.json();
-        
+
         if (Platform.OS === 'web') {
           localStorage.setItem('token', data.token);
           localStorage.setItem('user', JSON.stringify(data.user));
         }
-        
-        Alert.alert('빠른 로그인 성공! 🚀', `${data.user.name}으로 로그인되었습니다.`);
-        
+
+        Alert.alert('빠른 로그인 성공!', `${data.user.name}으로 로그인되었습니다.`);
+
         if (onLogin) {
           onLogin(data.user, data.token);
         }
 
         // AuthNavigator가 자동으로 리다이렉트하므로 여기서는 따로 navigate하지 않음
       } else {
-        const errorText = await response.text();
-        console.error('🚀 [UniversalLoginScreen] 로그인 실패:', response.status, errorText);
         Alert.alert('로그인 실패', '빠른 테스트 로그인에 실패했습니다.');
       }
     } catch (error) {
@@ -173,15 +172,15 @@ const UniversalLoginScreen: React.FC<UniversalLoginScreenProps> = ({
     setLoading(true);
     try {
       const response = await apiClient.post('/auth/test-login', { email });
-      
+
       if (response.data) {
         if (Platform.OS === 'web') {
           localStorage.setItem('token', response.data.token);
           localStorage.setItem('user', JSON.stringify(response.data.user));
         }
-        
-        Alert.alert('테스트 로그인 성공! 🎉', `${name}으로 로그인되었습니다.`);
-        
+
+        Alert.alert('테스트 로그인 성공!', `${name}으로 로그인되었습니다.`);
+
         if (onLogin) {
           onLogin(response.data.user, response.data.token);
         }
@@ -190,8 +189,7 @@ const UniversalLoginScreen: React.FC<UniversalLoginScreenProps> = ({
       } else {
         Alert.alert('로그인 실패', '테스트 로그인에 실패했습니다.');
       }
-    } catch (error) {
-      console.error('테스트 로그인 오류:', error);
+    } catch (_error) {
       Alert.alert('로그인 실패', '서버 연결에 실패했습니다.');
     } finally {
       setLoading(false);
@@ -200,14 +198,16 @@ const UniversalLoginScreen: React.FC<UniversalLoginScreenProps> = ({
 
   return (
     <View style={styles.container}>
-      {/* 배경 그라데이션 (Web enhanced design) */}
+      {/* 배경 — 딥 차콜 */}
       <View style={styles.backgroundGradient} />
-      
+
       {/* 로고 섹션 */}
       <View style={styles.logoSection}>
         <View style={styles.logoContainer}>
-          <Text style={styles.logoEmoji}>🍽️</Text>
-          <Text style={styles.appName}>혼밥시러</Text>
+          <View style={styles.logoMark}>
+            <Text style={styles.logoMarkText}>E</Text>
+          </View>
+          <Text style={styles.appName}>잇테이블</Text>
         </View>
         <Text style={styles.tagline}>혼자 먹는 밥은 이제 그만!</Text>
         <Text style={styles.description}>
@@ -219,11 +219,11 @@ const UniversalLoginScreen: React.FC<UniversalLoginScreenProps> = ({
       <View style={styles.mainContainer}>
         <View style={styles.loginCard}>
           <View style={styles.cardHeader}>
-            <Text style={styles.welcomeText}>환영합니다! 👋</Text>
+            <Text style={styles.welcomeText}>환영합니다</Text>
             <Text style={styles.loginSubtitle}>카카오 계정으로 간편하게 시작하세요</Text>
           </View>
 
-          {/* 카카오 로그인 버튼 */}
+          {/* 카카오 로그인 버튼 — 샤프 코너 */}
           <TouchableOpacity
             style={[styles.kakaoButton, loading && styles.disabledButton]}
             onPress={handleKakaoLogin}
@@ -231,7 +231,7 @@ const UniversalLoginScreen: React.FC<UniversalLoginScreenProps> = ({
           >
             <View style={styles.kakaoButtonContent}>
               <View style={styles.kakaoLogo}>
-                <Text style={styles.kakaoLogoText}>카</Text>
+                <Text style={styles.kakaoLogoText}>K</Text>
               </View>
               <Text style={styles.kakaoButtonText}>
                 {loading ? '로그인 중...' : '카카오로 시작하기'}
@@ -253,6 +253,7 @@ const UniversalLoginScreen: React.FC<UniversalLoginScreenProps> = ({
                 <TextInput
                   style={styles.input}
                   placeholder="이메일"
+                  placeholderTextColor={COLORS.neutral.grey400}
                   value={email}
                   onChangeText={setEmail}
                   keyboardType="email-address"
@@ -265,6 +266,7 @@ const UniversalLoginScreen: React.FC<UniversalLoginScreenProps> = ({
                 <TextInput
                   style={styles.input}
                   placeholder="비밀번호"
+                  placeholderTextColor={COLORS.neutral.grey400}
                   value={password}
                   onChangeText={setPassword}
                   secureTextEntry
@@ -304,43 +306,49 @@ const UniversalLoginScreen: React.FC<UniversalLoginScreenProps> = ({
                   onPress={handleQuickLogin}
                   disabled={loading}
                 >
-                  <Text style={styles.testButtonText}>🚀 빠른 로그인</Text>
+                  <Text style={styles.testButtonText}>빠른 로그인</Text>
                 </TouchableOpacity>
-                
+
                 <TouchableOpacity
                   style={[styles.testButton, loading && styles.disabledButton]}
                   onPress={() => handleTestLogin('test2@test.com', '테스트유저2')}
                   disabled={loading}
                 >
-                  <Text style={styles.testButtonText}>👤 테스트유저2</Text>
+                  <Text style={styles.testButtonText}>테스트유저2</Text>
                 </TouchableOpacity>
-                
+
                 <TouchableOpacity
                   style={[styles.testButton, loading && styles.disabledButton]}
                   onPress={() => handleTestLogin('test3@test.com', '테스트유저3')}
                   disabled={loading}
                 >
-                  <Text style={styles.testButtonText}>👤 테스트유저3</Text>
+                  <Text style={styles.testButtonText}>테스트유저3</Text>
                 </TouchableOpacity>
               </View>
             </View>
           )}
 
-          {/* 기능 소개 (Web enhanced) */}
+          {/* 기능 소개 (Web enhanced) — 에디토리얼 넘버링 */}
           {Platform.OS === 'web' && (
             <View style={styles.featuresSection}>
-              <Text style={styles.featuresTitle}>혼밥시러에서 할 수 있는 일</Text>
+              <Text style={styles.featuresTitle}>잇테이블에서 할 수 있는 일</Text>
               <View style={styles.featuresList}>
                 <View style={styles.featureItem}>
-                  <Text style={styles.featureIcon}>🔍</Text>
+                  <View style={styles.featureIconContainer}>
+                    <Text style={styles.featureIconText}>01</Text>
+                  </View>
                   <Text style={styles.featureText}>내 주변 맛집 모임 찾기</Text>
                 </View>
                 <View style={styles.featureItem}>
-                  <Text style={styles.featureIcon}>👥</Text>
+                  <View style={styles.featureIconContainer}>
+                    <Text style={styles.featureIconText}>02</Text>
+                  </View>
                   <Text style={styles.featureText}>새로운 사람들과 만남</Text>
                 </View>
                 <View style={styles.featureItem}>
-                  <Text style={styles.featureIcon}>✨</Text>
+                  <View style={styles.featureIconContainer}>
+                    <Text style={styles.featureIconText}>03</Text>
+                  </View>
                   <Text style={styles.featureText}>취향 맞는 모임 추천</Text>
                 </View>
               </View>
@@ -367,7 +375,7 @@ const UniversalLoginScreen: React.FC<UniversalLoginScreenProps> = ({
       {/* 푸터 (Web enhanced) */}
       {Platform.OS === 'web' && (
         <View style={styles.footer}>
-          <Text style={styles.footerText}>© 2024 혼밥시러. Made with ❤️</Text>
+          <Text style={styles.footerText}>© 2025 잇테이블</Text>
         </View>
       )}
     </View>
@@ -389,7 +397,7 @@ const styles = StyleSheet.create({
       right: 0,
       height: '100%',
       backgroundColor: COLORS.primary.main,
-      opacity: 0.9,
+      opacity: 0.95,
     }),
     ...(Platform.OS !== 'web' && {
       display: 'none',
@@ -410,39 +418,41 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 20,
   },
-  logoEmoji: {
-    fontSize: Platform.OS === 'web' ? 80 : 60,
-    marginBottom: 20,
-    ...(Platform.OS === 'web' && {
-      textShadowColor: 'rgba(0,0,0,0.1)',
-      textShadowOffset: { width: 0, height: 4 },
-      textShadowRadius: 8,
-    }),
+  logoMark: {
+    width: Platform.OS === 'web' ? 72 : 56,
+    height: Platform.OS === 'web' ? 72 : 56,
+    borderRadius: BORDER_RADIUS.lg,
+    backgroundColor: COLORS.primary.accent,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+    ...SHADOWS.cta,
+  },
+  logoMarkText: {
+    fontSize: Platform.OS === 'web' ? 32 : 24,
+    fontWeight: FONT_WEIGHTS.bold as any,
+    color: COLORS.neutral.white,
+    letterSpacing: -1,
   },
   appName: {
-    fontSize: Platform.OS === 'web' ? 48 : 32,
-    fontWeight: '800',
-    color: Platform.OS === 'web' ? COLORS.text.white : COLORS.primary.main,
-    ...(Platform.OS === 'web' && {
-      textShadowColor: 'rgba(0,0,0,0.2)',
-      textShadowOffset: { width: 0, height: 4 },
-      textShadowRadius: 12,
-      letterSpacing: -1,
-    }),
+    fontSize: Platform.OS === 'web' ? 40 : 28,
+    fontWeight: FONT_WEIGHTS.bold as any,
+    color: Platform.OS === 'web' ? COLORS.text.white : COLORS.text.primary,
+    letterSpacing: -0.8,
   },
   tagline: {
-    fontSize: 22,
-    color: Platform.OS === 'web' ? COLORS.text.white : COLORS.text.secondary,
-    fontWeight: '600',
+    fontSize: 18,
+    color: Platform.OS === 'web' ? 'rgba(255,255,255,0.85)' : COLORS.text.secondary,
+    fontWeight: FONT_WEIGHTS.medium as any,
     marginBottom: 8,
     textAlign: 'center',
   },
   description: {
-    fontSize: 16,
-    color: Platform.OS === 'web' ? 'rgba(255,255,255,0.9)' : COLORS.text.secondary,
+    fontSize: 15,
+    color: Platform.OS === 'web' ? 'rgba(255,255,255,0.65)' : COLORS.text.tertiary,
     textAlign: 'center',
     maxWidth: 300,
-    lineHeight: 24,
+    lineHeight: 22,
   },
   mainContainer: {
     flex: 1,
@@ -454,57 +464,43 @@ const styles = StyleSheet.create({
     }),
   },
   loginCard: {
-    maxWidth: Platform.OS === 'web' ? 460 : 400,
+    maxWidth: Platform.OS === 'web' ? 420 : 400,
     alignSelf: 'center',
     width: '100%',
-    backgroundColor: Platform.OS === 'web' ? 'rgba(255, 255, 255, 0.95)' : COLORS.neutral.white,
-    ...(Platform.OS === 'web' && {
-      backdropFilter: 'blur(20px)',
-      WebkitBackdropFilter: 'blur(20px)',
-      border: '1px solid rgba(255, 255, 255, 0.2)',
-    }),
-    borderRadius: Platform.OS === 'web' ? 32 : 16,
-    padding: Platform.OS === 'web' ? 40 : 30,
+    backgroundColor: COLORS.neutral.white,
+    borderRadius: BORDER_RADIUS.lg,
+    padding: Platform.OS === 'web' ? 36 : 28,
     ...SHADOWS.large,
     ...(Platform.OS === 'web' && {
-      shadowColor: 'rgba(0,0,0,0.1)',
-      shadowOffset: { width: 0, height: 20 },
-      shadowOpacity: 1,
-      shadowRadius: 40,
-      elevation: 20,
+      borderWidth: 1,
+      borderColor: 'rgba(17,17,17,0.06)',
     }),
   },
   cardHeader: {
     alignItems: 'center',
-    marginBottom: 32,
+    marginBottom: 28,
   },
   welcomeText: {
-    fontSize: Platform.OS === 'web' ? 32 : 24,
-    fontWeight: '800',
+    fontSize: Platform.OS === 'web' ? 26 : 22,
+    fontWeight: FONT_WEIGHTS.bold as any,
     color: COLORS.text.primary,
-    marginBottom: 12,
+    marginBottom: 8,
     textAlign: 'center',
-    ...(Platform.OS === 'web' && { letterSpacing: -0.5 }),
+    letterSpacing: -0.5,
   },
   loginSubtitle: {
-    fontSize: 16,
-    color: COLORS.text.secondary,
+    fontSize: 14,
+    color: COLORS.text.tertiary,
     textAlign: 'center',
-    lineHeight: 22,
+    lineHeight: 20,
   },
   kakaoButton: {
-    backgroundColor: COLORS.functional.warning,
-    borderRadius: 20,
-    padding: 20,
-    marginBottom: 32,
-    ...SHADOWS.medium,
-    ...(Platform.OS === 'web' && {
-      shadowColor: 'rgba(254, 229, 0, 0.3)',
-      shadowOffset: { width: 0, height: 8 },
-      shadowOpacity: 1,
-      shadowRadius: 16,
-      elevation: 12,
-    }),
+    backgroundColor: COLORS.special.kakao,
+    borderRadius: BORDER_RADIUS.md,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    marginBottom: 24,
+    ...SHADOWS.small,
   },
   kakaoButtonContent: {
     flexDirection: 'row',
@@ -512,128 +508,119 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   kakaoLogo: {
-    width: 24,
-    height: 24,
-    backgroundColor: COLORS.neutral.black,
-    borderRadius: 12,
+    width: 22,
+    height: 22,
+    backgroundColor: COLORS.special.kakaoBrown,
+    borderRadius: BORDER_RADIUS.sm,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    marginRight: 10,
   },
   kakaoLogoText: {
-    color: COLORS.functional.warning,
-    fontSize: 14,
-    fontWeight: 'bold',
+    color: COLORS.special.kakao,
+    fontSize: 12,
+    fontWeight: FONT_WEIGHTS.bold as any,
   },
   kakaoButtonText: {
-    color: COLORS.neutral.black,
-    fontSize: Platform.OS === 'web' ? 19 : 16,
-    fontWeight: '800',
-    ...(Platform.OS === 'web' && { letterSpacing: -0.5 }),
+    color: COLORS.special.kakaoBrown,
+    fontSize: Platform.OS === 'web' ? 16 : 15,
+    fontWeight: FONT_WEIGHTS.semiBold as any,
+    letterSpacing: -0.3,
   },
   disabledButton: {
-    opacity: 0.6,
+    opacity: 0.5,
   },
   dividerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 24,
+    marginVertical: 20,
   },
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: COLORS.neutral.border || COLORS.neutral.grey300,
+    backgroundColor: COLORS.neutral.grey100,
   },
   dividerText: {
     marginHorizontal: 16,
-    fontSize: 14,
-    color: COLORS.text.secondary,
-    fontWeight: '500',
+    fontSize: 13,
+    color: COLORS.text.tertiary,
+    fontWeight: FONT_WEIGHTS.regular as any,
   },
   // Email/Password inputs for native
   inputContainer: {
-    marginBottom: 16,
+    marginBottom: 14,
   },
   input: {
     borderWidth: 1,
-    borderColor: COLORS.primary.light,
-    borderRadius: 12,
-    padding: 16,
-    fontSize: 16,
-    backgroundColor: COLORS.secondary.light,
+    borderColor: COLORS.neutral.grey100,
+    borderRadius: BORDER_RADIUS.md,
+    padding: 14,
+    fontSize: 15,
+    backgroundColor: COLORS.surface.secondary,
     color: COLORS.text.primary,
   },
   loginButton: {
-    backgroundColor: COLORS.primary.main,
-    borderRadius: 12,
-    padding: 16,
+    ...CTA_STYLE.primary,
     alignItems: 'center',
     marginBottom: 20,
-    ...SHADOWS.medium,
+    ...SHADOWS.cta,
   },
   loginButtonText: {
     color: COLORS.text.white,
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 15,
+    fontWeight: FONT_WEIGHTS.semiBold as any,
   },
   linkContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 20,
-    marginBottom: 20,
+    marginTop: 16,
+    marginBottom: 16,
   },
   linkText: {
-    color: COLORS.primary.dark,
-    fontSize: 14,
+    color: COLORS.text.tertiary,
+    fontSize: 13,
+    fontWeight: FONT_WEIGHTS.medium as any,
   },
   separator: {
     marginHorizontal: 16,
-    color: COLORS.text.secondary,
-    fontSize: 14,
+    color: COLORS.neutral.grey300,
+    fontSize: 13,
   },
   // Web-specific test login section
   testLoginSection: {
-    marginBottom: 32,
+    marginBottom: 24,
   },
   testLoginTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: COLORS.text.primary,
-    marginBottom: 16,
+    ...TYPOGRAPHY.label,
+    color: COLORS.text.tertiary,
+    marginBottom: 12,
     textAlign: 'center',
   },
   testButtonsContainer: {
     gap: 8,
   },
   testButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.8)',
-    borderWidth: 0,
-    borderRadius: 16,
-    padding: 16,
+    backgroundColor: COLORS.surface.secondary,
+    borderWidth: 1,
+    borderColor: COLORS.neutral.grey100,
+    borderRadius: BORDER_RADIUS.md,
+    padding: 14,
     alignItems: 'center',
-    ...SHADOWS.small,
-    shadowColor: 'rgba(0,0,0,0.05)',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 1,
-    shadowRadius: 8,
   },
   testButtonText: {
-    color: COLORS.text.primary,
-    fontSize: 15,
-    fontWeight: '600',
+    color: COLORS.text.secondary,
+    fontSize: 14,
+    fontWeight: FONT_WEIGHTS.medium as any,
   },
   // Web-specific features section
   featuresSection: {
-    marginBottom: 28,
+    marginBottom: 24,
   },
   featuresTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: COLORS.text.primary,
-    marginBottom: 20,
+    ...TYPOGRAPHY.heading.h3,
+    marginBottom: 16,
     textAlign: 'center',
-    letterSpacing: -0.3,
   },
   featuresList: {
     gap: 12,
@@ -641,32 +628,43 @@ const styles = StyleSheet.create({
   featureItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 8,
+    paddingVertical: 6,
   },
-  featureIcon: {
-    fontSize: 20,
-    marginRight: 12,
+  featureIconContainer: {
     width: 32,
-    textAlign: 'center',
+    height: 32,
+    borderRadius: BORDER_RADIUS.sm,
+    backgroundColor: COLORS.surface.secondary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+    borderWidth: 1,
+    borderColor: COLORS.neutral.grey100,
+  },
+  featureIconText: {
+    fontSize: 11,
+    fontWeight: FONT_WEIGHTS.bold as any,
+    color: COLORS.primary.accent,
+    letterSpacing: 0.5,
   },
   featureText: {
-    fontSize: 15,
+    fontSize: 14,
     color: COLORS.text.secondary,
     flex: 1,
   },
   policyContainer: {
     paddingHorizontal: Platform.OS === 'web' ? 8 : 10,
-    ...(Platform.OS !== 'web' && { marginTop: 30 }),
+    ...(Platform.OS !== 'web' && { marginTop: 24 }),
   },
   policyText: {
-    fontSize: 12,
-    color: COLORS.text.secondary,
+    fontSize: 11,
+    color: COLORS.text.tertiary,
     textAlign: 'center',
     lineHeight: 18,
   },
   policyLink: {
-    color: Platform.OS === 'web' ? COLORS.primary.main : COLORS.primary.dark,
-    fontWeight: '600',
+    color: COLORS.primary.accent,
+    fontWeight: FONT_WEIGHTS.medium as any,
     ...(Platform.OS !== 'web' && { textDecorationLine: 'underline' }),
   },
   // Web-specific footer
@@ -675,8 +673,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   footerText: {
-    fontSize: 14,
-    color: COLORS.text.secondary,
+    fontSize: 12,
+    color: Platform.OS === 'web' ? 'rgba(255,255,255,0.4)' : COLORS.text.tertiary,
     textAlign: 'center',
   },
 });

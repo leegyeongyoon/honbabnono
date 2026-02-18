@@ -164,7 +164,7 @@ const styles = StyleSheet.create({
   },
   statsTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: COLORS.text.primary,
   },
   overallRating: {
@@ -174,7 +174,7 @@ const styles = StyleSheet.create({
   },
   averageRating: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: COLORS.text.primary,
   },
   reviewCount: {
@@ -225,7 +225,7 @@ const styles = StyleSheet.create({
   },
   reviewerInitial: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: COLORS.primary.main,
   },
   reviewerDetails: {
@@ -268,7 +268,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary.light,
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 12,
+    borderRadius: 8,
   },
   tagText: {
     fontSize: 11,

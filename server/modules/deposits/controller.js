@@ -1,4 +1,425 @@
 const pool = require('../../config/database');
+const portone = require('../../config/portone');
+
+// ============================================
+// PortOne 결제 연동 API
+// ============================================
+
+// 결제 준비 (merchant_uid 생성 및 pending 레코드 생성)
+exports.preparePayment = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { amount, meetupId, paymentMethod } = req.body;
+
+    console.log('💳 PortOne 결제 준비 요청:', { userId, amount, meetupId, paymentMethod });
+
+    if (!amount || !meetupId) {
+      return res.status(400).json({
+        success: false,
+        error: '결제 금액과 모임 정보가 필요합니다.'
+      });
+    }
+
+    // 이용 제한 여부 확인
+    const restrictionCheck = await pool.query(`
+      SELECT * FROM user_restrictions
+      WHERE user_id = $1
+        AND restriction_type IN ('participation', 'permanent')
+        AND restricted_until > NOW()
+    `, [userId]);
+
+    if (restrictionCheck.rows.length > 0) {
+      const restriction = restrictionCheck.rows[0];
+      return res.status(403).json({
+        success: false,
+        error: '현재 이용 제한 중입니다.',
+        restrictedUntil: restriction.restricted_until,
+        reason: restriction.reason
+      });
+    }
+
+    // 이미 결제한 약속금이 있는지 확인 (임시 meetupId가 아닌 경우)
+    const isTemporaryMeetupId = typeof meetupId === 'string' && meetupId.startsWith('temp-');
+    if (!isTemporaryMeetupId) {
+      const existingDeposit = await pool.query(
+        'SELECT id FROM promise_deposits WHERE meetup_id = $1 AND user_id = $2 AND status IN (\'pending\', \'paid\')',
+        [meetupId, userId]
+      );
+
+      if (existingDeposit.rows.length > 0) {
+        return res.status(400).json({
+          success: false,
+          error: '이미 해당 모임의 약속금이 존재합니다.'
+        });
+      }
+    }
+
+    // merchant_uid 생성 (고유한 주문번호)
+    const merchantUid = `deposit_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+
+    // 실제 meetupId가 아닌 임시 ID인 경우 임시 meetup 생성
+    let actualMeetupId = meetupId;
+    if (isTemporaryMeetupId) {
+      const tempMeetupResult = await pool.query(`
+        INSERT INTO meetups (
+          id, title, description, location, date, time,
+          max_participants, category, host_id, status,
+          created_at, updated_at
+        ) VALUES (
+          gen_random_uuid(), '임시 모임 (결제 진행 중)', '모임 생성 진행 중', '미정',
+          CURRENT_DATE + INTERVAL '1 day', '12:00:00',
+          2, '기타', $1, '모집중',
+          NOW(), NOW()
+        ) RETURNING id
+      `, [userId]);
+
+      actualMeetupId = tempMeetupResult.rows[0].id;
+    }
+
+    // pending 상태의 약속금 레코드 생성
+    const depositResult = await pool.query(`
+      INSERT INTO promise_deposits (
+        meetup_id, user_id, amount, status, payment_method, payment_id, created_at, updated_at
+      ) VALUES ($1, $2, $3, 'pending', $4, $5, NOW(), NOW())
+      RETURNING id
+    `, [actualMeetupId, userId, amount, paymentMethod || 'card', merchantUid]);
+
+    const depositId = depositResult.rows[0].id;
+
+    console.log('✅ 결제 준비 완료:', { depositId, merchantUid, actualMeetupId });
+
+    // 클라이언트 SDK에 필요한 데이터 반환
+    res.json({
+      success: true,
+      paymentData: {
+        depositId,
+        merchantUid,
+        meetupId: actualMeetupId,
+        amount,
+        storeId: portone.config.storeId,
+        name: '혼밥시러 모임 약속금',
+        buyerName: req.user.name || '사용자',
+        buyerEmail: req.user.email || '',
+      }
+    });
+  } catch (error) {
+    console.error('❌ 결제 준비 실패:', error);
+    res.status(500).json({
+      success: false,
+      error: '결제 준비 중 오류가 발생했습니다.'
+    });
+  }
+};
+
+// 결제 검증 (클라이언트에서 결제 완료 후 호출)
+exports.verifyPayment = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { impUid, merchantUid, depositId } = req.body;
+
+    console.log('🔍 PortOne 결제 검증 요청:', { userId, impUid, merchantUid, depositId });
+
+    if (!impUid || !merchantUid) {
+      return res.status(400).json({
+        success: false,
+        error: '결제 검증에 필요한 정보가 누락되었습니다.'
+      });
+    }
+
+    // DB에서 해당 결제 레코드 조회
+    const depositResult = await pool.query(`
+      SELECT * FROM promise_deposits
+      WHERE payment_id = $1 AND user_id = $2 AND status = 'pending'
+    `, [merchantUid, userId]);
+
+    if (depositResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: '결제 정보를 찾을 수 없습니다.'
+      });
+    }
+
+    const deposit = depositResult.rows[0];
+
+    // PortOne API로 실제 결제 정보 조회
+    const paymentData = await portone.verifyPayment(impUid);
+
+    // 금액 검증: DB에 저장된 금액과 실제 결제 금액이 일치하는지 확인
+    if (paymentData.amount !== deposit.amount) {
+      console.error('❌ 결제 금액 불일치:', {
+        expected: deposit.amount,
+        actual: paymentData.amount,
+        impUid,
+        merchantUid
+      });
+
+      // 결제 금액이 맞지 않으면 결제 취소 처리
+      try {
+        await portone.cancelPayment(impUid, '결제 금액 불일치로 인한 자동 취소');
+      } catch (cancelError) {
+        console.error('❌ 자동 취소 실패:', cancelError);
+      }
+
+      return res.status(400).json({
+        success: false,
+        error: '결제 금액이 일치하지 않습니다. 결제가 취소되었습니다.'
+      });
+    }
+
+    // 결제 상태 확인
+    if (paymentData.status !== 'paid') {
+      return res.status(400).json({
+        success: false,
+        error: `결제가 완료되지 않았습니다. (상태: ${paymentData.status})`
+      });
+    }
+
+    // 결제 성공 - DB 업데이트
+    await pool.query(`
+      UPDATE promise_deposits
+      SET status = 'paid',
+          payment_id = $1,
+          payment_method = $2,
+          paid_at = NOW(),
+          updated_at = NOW()
+      WHERE id = $3
+    `, [impUid, paymentData.pay_method || 'card', deposit.id]);
+
+    console.log('✅ 결제 검증 완료:', { depositId: deposit.id, impUid, amount: deposit.amount });
+
+    res.json({
+      success: true,
+      message: '결제가 성공적으로 검증되었습니다.',
+      deposit: {
+        id: deposit.id,
+        meetupId: deposit.meetup_id,
+        amount: deposit.amount,
+        status: 'paid',
+        impUid: impUid,
+      }
+    });
+  } catch (error) {
+    console.error('❌ 결제 검증 실패:', error);
+    res.status(500).json({
+      success: false,
+      error: '결제 검증 중 오류가 발생했습니다.'
+    });
+  }
+};
+
+// PortOne 웹훅 핸들러 (결제 상태 변경 알림)
+exports.handleWebhook = async (req, res) => {
+  try {
+    const { imp_uid, merchant_uid, status } = req.body;
+
+    console.log('🔔 PortOne 웹훅 수신:', { imp_uid, merchant_uid, status });
+
+    if (!imp_uid) {
+      return res.status(400).json({
+        success: false,
+        error: '웹훅 데이터가 올바르지 않습니다.'
+      });
+    }
+
+    // PortOne API로 실제 결제 정보 조회하여 검증
+    const paymentData = await portone.verifyPayment(imp_uid);
+
+    // merchant_uid로 DB 레코드 조회
+    const depositResult = await pool.query(`
+      SELECT * FROM promise_deposits
+      WHERE payment_id = $1 OR payment_id = $2
+    `, [merchant_uid, imp_uid]);
+
+    if (depositResult.rows.length === 0) {
+      console.warn('⚠️ 웹훅: 매칭되는 결제 레코드 없음:', { imp_uid, merchant_uid });
+      // 웹훅은 200을 반환해야 재시도를 멈춤
+      return res.status(200).json({
+        success: false,
+        error: '매칭되는 결제 레코드를 찾을 수 없습니다.'
+      });
+    }
+
+    const deposit = depositResult.rows[0];
+
+    // 결제 상태에 따른 처리
+    switch (paymentData.status) {
+      case 'paid':
+        // 결제 완료 확인 - 금액 검증
+        if (paymentData.amount === deposit.amount) {
+          await pool.query(`
+            UPDATE promise_deposits
+            SET status = 'paid',
+                payment_id = $1,
+                paid_at = NOW(),
+                updated_at = NOW()
+            WHERE id = $2 AND status = 'pending'
+          `, [imp_uid, deposit.id]);
+          console.log('✅ 웹훅: 결제 확정:', { depositId: deposit.id, imp_uid });
+        } else {
+          // 금액 불일치 - 결제 취소
+          console.error('❌ 웹훅: 금액 불일치, 결제 취소 시도:', {
+            expected: deposit.amount,
+            actual: paymentData.amount
+          });
+          try {
+            await portone.cancelPayment(imp_uid, '결제 금액 불일치');
+          } catch (cancelError) {
+            console.error('❌ 웹훅: 자동 취소 실패:', cancelError);
+          }
+        }
+        break;
+
+      case 'cancelled':
+        // 결제 취소됨
+        await pool.query(`
+          UPDATE promise_deposits
+          SET status = 'refunded',
+              refund_amount = $1,
+              refund_reason = '결제 취소 (PortOne 웹훅)',
+              cancelled_at = NOW(),
+              updated_at = NOW()
+          WHERE id = $2
+        `, [paymentData.cancel_amount || deposit.amount, deposit.id]);
+        console.log('✅ 웹훅: 결제 취소 반영:', { depositId: deposit.id, imp_uid });
+        break;
+
+      case 'failed':
+        // 결제 실패
+        await pool.query(`
+          UPDATE promise_deposits
+          SET status = 'pending',
+              updated_at = NOW()
+          WHERE id = $1 AND status = 'pending'
+        `, [deposit.id]);
+        console.log('⚠️ 웹훅: 결제 실패:', { depositId: deposit.id, imp_uid });
+        break;
+
+      default:
+        console.log('ℹ️ 웹훅: 처리하지 않는 상태:', paymentData.status);
+    }
+
+    // 웹훅은 항상 200 응답
+    res.status(200).json({
+      success: true,
+      message: '웹훅 처리 완료'
+    });
+  } catch (error) {
+    console.error('❌ 웹훅 처리 실패:', error);
+    // 웹훅은 200을 반환해야 재시도를 멈춤
+    res.status(200).json({
+      success: false,
+      error: '웹훅 처리 중 오류가 발생했습니다.'
+    });
+  }
+};
+
+// PortOne을 통한 약속금 환불
+exports.refundDepositViaPortone = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { depositId, reason } = req.body;
+
+    console.log('💰 PortOne 환불 요청:', { depositId, reason, userId });
+
+    if (!depositId) {
+      return res.status(400).json({
+        success: false,
+        error: '환불할 약속금 정보가 필요합니다.'
+      });
+    }
+
+    // 약속금 정보 조회
+    const depositResult = await pool.query(`
+      SELECT * FROM promise_deposits
+      WHERE id = $1 AND user_id = $2 AND status = 'paid'
+    `, [depositId, userId]);
+
+    if (depositResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: '환불 가능한 약속금을 찾을 수 없습니다.'
+      });
+    }
+
+    const deposit = depositResult.rows[0];
+    const impUid = deposit.payment_id;
+
+    // payment_id가 포인트 결제인 경우 (imp_uid가 아닌 경우) 기존 환불 로직 사용
+    if (!impUid || impUid.startsWith('points_') || impUid.startsWith('kakao_') || impUid.startsWith('card_')) {
+      // 기존 포인트 환불 로직으로 폴백
+      const refundAmount = deposit.amount;
+
+      await pool.query(`
+        UPDATE promise_deposits
+        SET status = 'refunded',
+            refund_amount = $1,
+            refund_reason = $2,
+            cancelled_at = NOW(),
+            updated_at = NOW()
+        WHERE id = $3
+      `, [refundAmount, reason || '사용자 요청', depositId]);
+
+      // 포인트로 환불
+      await pool.query(`
+        INSERT INTO user_points (user_id, total_points, available_points, used_points, expired_points)
+        VALUES ($1, $2, $2, 0, 0)
+        ON CONFLICT (user_id)
+        DO UPDATE SET
+          available_points = user_points.available_points + $2,
+          updated_at = NOW()
+      `, [userId, refundAmount]);
+
+      await pool.query(`
+        INSERT INTO point_transactions (user_id, transaction_type, amount, description, created_at)
+        VALUES ($1, 'earned', $2, $3, NOW())
+      `, [userId, refundAmount, `약속금 환불 (보증금 ID: ${depositId})`]);
+
+      return res.json({
+        success: true,
+        message: '약속금이 포인트로 환불되었습니다.',
+        refundAmount,
+        refundMethod: 'points'
+      });
+    }
+
+    // PortOne API를 통한 실제 결제 취소
+    const cancelResult = await portone.cancelPayment(
+      impUid,
+      reason || '사용자 요청에 의한 약속금 환불',
+      deposit.amount
+    );
+
+    // DB 업데이트
+    await pool.query(`
+      UPDATE promise_deposits
+      SET status = 'refunded',
+          refund_amount = $1,
+          refund_reason = $2,
+          cancelled_at = NOW(),
+          updated_at = NOW()
+      WHERE id = $3
+    `, [cancelResult.cancel_amount || deposit.amount, reason || '사용자 요청', depositId]);
+
+    console.log('✅ PortOne 환불 완료:', {
+      depositId,
+      impUid,
+      cancelAmount: cancelResult.cancel_amount
+    });
+
+    res.json({
+      success: true,
+      message: '약속금이 환불되었습니다.',
+      refundAmount: cancelResult.cancel_amount || deposit.amount,
+      refundMethod: 'portone'
+    });
+  } catch (error) {
+    console.error('❌ PortOne 환불 실패:', error);
+    res.status(500).json({
+      success: false,
+      error: '환불 처리 중 오류가 발생했습니다.'
+    });
+  }
+};
 
 // 약속금 결제
 exports.createPayment = async (req, res) => {
@@ -718,7 +1139,7 @@ exports.getNoShowStatus = async (req, res) => {
       success: true,
       participants: statusResult.rows.map(p => ({
         userId: p.user_id,
-        nickname: p.nickname,
+        name: p.name,
         attended: p.attended,
         noShow: p.no_show,
         noShowConfirmed: p.no_show_confirmed,

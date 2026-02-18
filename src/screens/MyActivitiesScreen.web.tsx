@@ -67,21 +67,21 @@ const MyActivitiesScreen: React.FC = () => {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case '참가승인': return COLORS.functional.success;
-      case '참가신청': return COLORS.primary.main;
-      case '참가거절': return COLORS.functional.error;
-      case '참가취소': return COLORS.text.tertiary;
-      default: return COLORS.text.secondary;
+      case '참가승인': return '#2E7D4F';
+      case '참가신청': return '#C49A70';
+      case '참가거절': return '#D32F2F';
+      case '참가취소': return '#8B7E72';
+      default: return '#5C4F42';
     }
   };
 
   const getStatusBg = (status: string) => {
     switch (status) {
-      case '참가승인': return 'rgba(91, 154, 111, 0.1)';
-      case '참가신청': return COLORS.primary.light;
-      case '참가거절': return 'rgba(212, 84, 78, 0.1)';
-      case '참가취소': return 'rgba(168, 152, 136, 0.1)';
-      default: return COLORS.neutral.grey100;
+      case '참가승인': return 'rgba(61, 122, 79, 0.08)';
+      case '참가신청': return 'rgba(224,146,110,0.08)';
+      case '참가거절': return 'rgba(196, 60, 60, 0.08)';
+      case '참가취소': return 'rgba(139, 126, 114, 0.08)';
+      default: return '#F7F5F3';
     }
   };
 
@@ -95,41 +95,53 @@ const MyActivitiesScreen: React.FC = () => {
   });
 
   const renderActivity = (activity: Activity, index: number) => (
-    <TouchableOpacity
+    <div
       key={activity.id}
-      style={styles.activityCard}
-      onPress={() => navigate(`/meetup/${activity.id}`)}
-      activeOpacity={0.7}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.transform = 'translateY(-2px)';
+        e.currentTarget.style.boxShadow = '0 4px 16px rgba(17,17,17,0.10)';
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.transform = 'translateY(0)';
+        e.currentTarget.style.boxShadow = '';
+      }}
+      style={{ cursor: 'pointer', transition: 'all 200ms ease' }}
     >
-      <View style={styles.cardIconWrap}>
-        <View style={styles.avatarCircle}>
-          <Icon name="utensils" size={20} color={COLORS.primary.main} />
-        </View>
-      </View>
-
-      <View style={styles.activityInfo}>
-        <Text style={styles.activityTitle} numberOfLines={1}>{activity.title}</Text>
-        <Text style={styles.activityCategory}>{activity.category}</Text>
-        <View style={styles.activityMeta}>
-          <View style={styles.metaItem}>
-            <Icon name="map-pin" size={12} color={COLORS.text.tertiary} />
-            <Text style={styles.metaText}>{activity.location}</Text>
-          </View>
-          <View style={styles.metaItem}>
-            <Icon name="users" size={12} color={COLORS.text.tertiary} />
-            <Text style={styles.metaText}>
-              {activity.current_participants ?? 0}/{activity.max_participants ?? 4}명
-            </Text>
+      <TouchableOpacity
+        style={styles.activityCard}
+        onPress={() => navigate(`/meetup/${activity.id}`)}
+        activeOpacity={0.7}
+      >
+        <View style={styles.cardIconWrap}>
+          <View style={styles.avatarCircle}>
+            <Icon name="utensils" size={20} color="#C49A70" />
           </View>
         </View>
-      </View>
 
-      <View style={[styles.statusBadge, { backgroundColor: getStatusBg(activity.participation_status) }]}>
-        <Text style={[styles.statusText, { color: getStatusColor(activity.participation_status) }]}>
-          {getStatusText(activity.participation_status)}
-        </Text>
-      </View>
-    </TouchableOpacity>
+        <View style={styles.activityInfo}>
+          <Text style={styles.activityTitle} numberOfLines={1}>{activity.title}</Text>
+          <Text style={styles.activityCategory}>{activity.category}</Text>
+          <View style={styles.activityMeta}>
+            <View style={styles.metaItem}>
+              <Icon name="map-pin" size={12} color="#8B7E72" />
+              <Text style={styles.metaText}>{activity.location}</Text>
+            </View>
+            <View style={styles.metaItem}>
+              <Icon name="users" size={12} color="#8B7E72" />
+              <Text style={styles.metaText}>
+                {activity.current_participants ?? 0}/{activity.max_participants ?? 4}명
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        <View style={[styles.statusBadge, { backgroundColor: getStatusBg(activity.participation_status) }]}>
+          <Text style={[styles.statusText, { color: getStatusColor(activity.participation_status) }]}>
+            {getStatusText(activity.participation_status)}
+          </Text>
+        </View>
+      </TouchableOpacity>
+    </div>
   );
 
   if (loading) {
@@ -137,7 +149,7 @@ const MyActivitiesScreen: React.FC = () => {
       <View style={styles.container}>
         <View style={styles.header}>
           <TouchableOpacity style={styles.backButton} onPress={() => navigate('/mypage')}>
-            <Icon name="arrow-left" size={24} color={COLORS.text.primary} />
+            <Icon name="arrow-left" size={24} color="#1A1714" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>내 활동</Text>
           <View style={styles.placeholder} />
@@ -159,7 +171,7 @@ const MyActivitiesScreen: React.FC = () => {
           style={styles.backButton}
           onPress={() => navigate('/mypage')}
         >
-          <Icon name="arrow-left" size={24} color={COLORS.text.primary} />
+          <Icon name="arrow-left" size={24} color="#1A1714" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>내 활동</Text>
         <View style={styles.placeholder} />
@@ -212,7 +224,7 @@ const MyActivitiesScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.neutral.background,
+    backgroundColor: '#EFECEA',
   },
   header: {
     flexDirection: 'row',
@@ -223,15 +235,28 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
     backgroundColor: COLORS.neutral.white,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0,0,0,0.06)',
+    borderBottomColor: 'rgba(17,17,17,0.06)',
+    shadowColor: '#111111',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 3,
+    zIndex: 10,
   },
   backButton: {
-    padding: 4,
+    padding: 10,
+    minWidth: 44,
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    cursor: 'pointer',
+    transition: 'all 200ms ease',
   },
   headerTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '700',
-    color: COLORS.text.primary,
+    color: '#1A1714',
+    letterSpacing: -0.3,
   },
   placeholder: {
     width: 32,
@@ -241,25 +266,26 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.neutral.white,
     paddingHorizontal: 20,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0,0,0,0.06)',
+    borderBottomColor: 'rgba(17,17,17,0.06)',
   },
   tab: {
     paddingVertical: 14,
     marginRight: 24,
     borderBottomWidth: 2,
     borderBottomColor: 'transparent',
+    cursor: 'pointer',
   },
   tabActive: {
-    borderBottomColor: COLORS.primary.main,
+    borderBottomColor: '#9A7450',
   },
   tabText: {
     fontSize: 14,
     fontWeight: '500',
-    color: COLORS.text.tertiary,
+    color: '#8B7E72',
   },
   tabTextActive: {
     fontWeight: '600',
-    color: COLORS.primary.main,
+    color: '#9A7450',
   },
   content: {
     flex: 1,
@@ -272,7 +298,7 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     backgroundColor: COLORS.neutral.white,
     marginTop: 8,
-    borderRadius: 16,
+    borderRadius: 8,
     marginHorizontal: 16,
   },
   activitiesList: {
@@ -283,10 +309,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 16,
     backgroundColor: COLORS.neutral.white,
-    borderRadius: 16,
+    borderRadius: 8,
     borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.04)',
-    ...SHADOWS.small,
+    borderColor: 'rgba(17,17,17,0.06)',
+    shadowColor: '#111111',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 1,
   },
   cardIconWrap: {
     marginRight: 14,
@@ -295,7 +325,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: COLORS.primary.light,
+    backgroundColor: 'rgba(224,146,110,0.08)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -306,12 +336,12 @@ const styles = StyleSheet.create({
   activityTitle: {
     fontSize: 15,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: '#1A1714',
     marginBottom: 3,
   },
   activityCategory: {
     fontSize: 13,
-    color: COLORS.text.tertiary,
+    color: '#8B7E72',
     marginBottom: 6,
   },
   activityMeta: {
@@ -326,12 +356,12 @@ const styles = StyleSheet.create({
   },
   metaText: {
     fontSize: 12,
-    color: COLORS.text.tertiary,
+    color: '#8B7E72',
   },
   statusBadge: {
     paddingHorizontal: 10,
     paddingVertical: 5,
-    borderRadius: 8,
+    borderRadius: 6,
   },
   statusText: {
     fontSize: 12,

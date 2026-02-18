@@ -57,11 +57,11 @@ const PointHistoryScreen: React.FC = () => {
 
   const getTransactionColor = (type: string) => {
     switch (type) {
-      case 'charge': return COLORS.functional.success;
-      case 'use': return COLORS.text.error;
-      case 'refund': return COLORS.functional.success;
-      case 'reward': return COLORS.functional.success;
-      default: return COLORS.text.secondary;
+      case 'charge': return '#2E7D4F';
+      case 'use': return '#D32F2F';
+      case 'refund': return '#2E7D4F';
+      case 'reward': return '#2E7D4F';
+      default: return '#5C4F42';
     }
   };
 
@@ -76,42 +76,49 @@ const PointHistoryScreen: React.FC = () => {
   };
 
   const renderTransactionItem = (transaction: PointTransaction) => (
-    <View key={transaction.id} style={styles.transactionItem}>
-      <View style={styles.profileImage}>
-        <View style={styles.avatarCircle}>
-          <Icon name={getTransactionIconName(transaction.type)} size={20} color={getTransactionColor(transaction.type)} />
+    <div
+      key={transaction.id}
+      onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'rgba(17,17,17,0.02)'; }}
+      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+      style={{ cursor: 'pointer', transition: 'background-color 200ms ease' }}
+    >
+      <View style={styles.transactionItem}>
+        <View style={styles.profileImage}>
+          <View style={styles.avatarCircle}>
+            <Icon name={getTransactionIconName(transaction.type)} size={20} color={getTransactionColor(transaction.type)} />
+          </View>
+        </View>
+
+        <View style={styles.transactionInfo}>
+          <Text style={styles.transactionDescription}>{transaction.description}</Text>
+          {transaction.meetup_title && (
+            <Text style={styles.meetupTitle}>{transaction.meetup_title}</Text>
+          )}
+          <Text style={styles.transactionDate}>
+            {new Date(transaction.created_at).toLocaleDateString('ko-KR', {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit'
+            })}
+          </Text>
+        </View>
+
+        <View style={styles.amountContainer}>
+          <Text style={[
+            styles.transactionAmount,
+            { color: getTransactionColor(transaction.type) }
+          ]}>
+            {transaction.type === 'use' ? '-' : '+'}
+            {(transaction.amount ?? 0).toLocaleString()}원
+          </Text>
+          <Text style={styles.transactionType}>
+            {getTransactionTypeText(transaction.type)}
+          </Text>
         </View>
       </View>
-
-      <View style={styles.transactionInfo}>
-        <Text style={styles.transactionDescription}>{transaction.description}</Text>
-        {transaction.meetup_title && (
-          <Text style={styles.meetupTitle}>{transaction.meetup_title}</Text>
-        )}
-        <Text style={styles.transactionDate}>
-          {new Date(transaction.created_at).toLocaleDateString('ko-KR', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-          })}
-        </Text>
-      </View>
-
-      <View style={styles.amountContainer}>
-        <Text style={[
-          styles.transactionAmount,
-          { color: getTransactionColor(transaction.type) }
-        ]}>
-          {transaction.type === 'use' ? '-' : '+'}
-          {(transaction.amount ?? 0).toLocaleString()}원
-        </Text>
-        <Text style={styles.transactionType}>
-          {getTransactionTypeText(transaction.type)}
-        </Text>
-      </View>
-    </View>
+    </div>
   );
 
   if (loading) {
@@ -122,7 +129,7 @@ const PointHistoryScreen: React.FC = () => {
             style={styles.backButton}
             onPress={() => navigate('/mypage')}
           >
-            <Icon name="arrow-left" size={24} color={COLORS.text.primary} />
+            <Icon name="arrow-left" size={24} color="#1A1714" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>포인트 내역</Text>
           <View style={{ width: 28 }} />
@@ -144,7 +151,7 @@ const PointHistoryScreen: React.FC = () => {
             style={styles.backButton}
             onPress={() => navigate('/mypage')}
           >
-            <Icon name="arrow-left" size={24} color={COLORS.text.primary} />
+            <Icon name="arrow-left" size={24} color="#1A1714" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>포인트 내역</Text>
           <View style={{ width: 28 }} />
@@ -166,30 +173,52 @@ const PointHistoryScreen: React.FC = () => {
           style={styles.backButton}
           onPress={() => navigate('/mypage')}
         >
-          <Icon name="arrow-left" size={24} color={COLORS.text.primary} />
+          <Icon name="arrow-left" size={24} color="#1A1714" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>포인트 내역</Text>
         <TouchableOpacity
           style={styles.chargeButton}
           onPress={() => navigate('/point-charge')}
         >
-          <Icon name="plus" size={20} color={COLORS.primary.main} />
+          <Icon name="plus" size={20} color="#C49A70" />
         </TouchableOpacity>
       </View>
 
       {/* 현재 보유 포인트 */}
       <View style={styles.currentPointsContainer}>
-        <View style={styles.pointsCard}>
+        <div style={{
+          background: 'linear-gradient(135deg, #9A7450 0%, #C49A70 100%)',
+          borderRadius: 8,
+          padding: 28,
+          alignItems: 'center',
+          textAlign: 'center',
+          boxShadow: '0 4px 16px rgba(184,107,74,0.20)',
+        }}>
           <Text style={styles.pointsLabel}>현재 보유 포인트</Text>
           <Text style={styles.pointsAmount}>{currentPoints.toLocaleString()}원</Text>
-          <TouchableOpacity
-            style={styles.chargeButtonFull}
-            onPress={() => navigate('/point-charge')}
+          <div
+            onClick={() => navigate('/point-charge')}
+            onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.30)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.15)'; }}
+            style={{
+              display: 'flex',
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 8,
+              paddingLeft: 20,
+              paddingRight: 20,
+              paddingTop: 12,
+              paddingBottom: 12,
+              backgroundColor: 'rgba(255,255,255,0.15)',
+              borderRadius: 6,
+              cursor: 'pointer',
+              transition: 'all 200ms ease',
+            }}
           >
-            <Icon name="plus" size={16} color={COLORS.text.white} />
+            <Icon name="plus" size={16} color="#FFFFFF" />
             <Text style={styles.chargeButtonText}>포인트 충전</Text>
-          </TouchableOpacity>
-        </View>
+          </div>
+        </div>
       </View>
 
       <ScrollView style={styles.content}>
@@ -215,13 +244,13 @@ const PointHistoryScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.neutral.background,
+    backgroundColor: '#EFECEA',
   },
   skeletonWrap: {
     paddingTop: 8,
     backgroundColor: COLORS.neutral.white,
     marginTop: 8,
-    borderRadius: 16,
+    borderRadius: 8,
     marginHorizontal: 16,
   },
   header: {
@@ -233,53 +262,65 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
     backgroundColor: COLORS.neutral.white,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0,0,0,0.06)',
-    ...SHADOWS.small,
+    borderBottomColor: 'rgba(17,17,17,0.06)',
+    shadowColor: '#111111',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 3,
+    zIndex: 10,
   },
   backButton: {
-    padding: 4,
+    padding: 10,
+    minWidth: 44,
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    cursor: 'pointer',
+    transition: 'all 200ms ease',
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: COLORS.text.primary,
+    color: '#1A1714',
   },
   chargeButton: {
     padding: 4,
+    cursor: 'pointer',
+    transition: 'all 200ms ease',
   },
   currentPointsContainer: {
     padding: 20,
     paddingBottom: 8,
   },
   pointsCard: {
-    backgroundColor: COLORS.primary.main,
-    borderRadius: 16,
+    backgroundColor: '#9A7450',
+    borderRadius: 8,
     padding: 24,
     alignItems: 'center',
-    ...SHADOWS.small,
   },
   pointsLabel: {
     fontSize: 14,
-    color: COLORS.text.white,
+    color: '#FFFFFF',
     marginBottom: 8,
   },
   pointsAmount: {
-    fontSize: 32,
-    fontWeight: '700',
-    color: COLORS.text.white,
+    fontSize: 36,
+    fontWeight: '800',
+    color: '#FFFFFF',
     marginBottom: 16,
   },
   chargeButtonFull: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 10,
-    borderRadius: 12,
+    borderRadius: 6,
     gap: 8,
   },
   chargeButtonText: {
-    color: COLORS.text.white,
+    color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '600',
   },
@@ -291,14 +332,19 @@ const styles = StyleSheet.create({
     marginTop: 8,
     marginHorizontal: 16,
     marginBottom: 16,
-    borderRadius: 16,
-    ...CARD_STYLE,
-    ...SHADOWS.small,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(17,17,17,0.06)',
+    shadowColor: '#111111',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 1,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: COLORS.text.primary,
+    color: '#1A1714',
     padding: 20,
     paddingBottom: 0,
   },
@@ -308,7 +354,7 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingHorizontal: 20,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0,0,0,0.06)',
+    borderBottomColor: 'rgba(17,17,17,0.06)',
   },
   profileImage: {
     marginRight: 16,
@@ -317,7 +363,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: COLORS.primary.light,
+    backgroundColor: '#F7F5F3',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -327,17 +373,17 @@ const styles = StyleSheet.create({
   transactionDescription: {
     fontSize: 16,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: '#1A1714',
     marginBottom: 4,
   },
   meetupTitle: {
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: '#5C4F42',
     marginBottom: 4,
   },
   transactionDate: {
     fontSize: 13,
-    color: COLORS.text.tertiary,
+    color: '#8B7E72',
   },
   amountContainer: {
     alignItems: 'flex-end',
@@ -349,7 +395,7 @@ const styles = StyleSheet.create({
   },
   transactionType: {
     fontSize: 12,
-    color: COLORS.text.secondary,
+    color: '#5C4F42',
   },
 });
 

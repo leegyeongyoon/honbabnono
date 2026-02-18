@@ -1,14 +1,14 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Animated } from 'react-native';
-import { COLORS } from '../styles/colors';
+import { COLORS, SHADOWS, CTA_STYLE } from '../styles/colors';
 import { TYPOGRAPHY } from '../styles/typography';
 import { SPACING, BORDER_RADIUS } from '../styles/spacing';
 import { Icon } from './Icon';
 import type { IconName } from './SimpleIcon';
 
 const VARIANT_DEFAULTS: Record<string, { icon: IconName; title: string }> = {
-  'no-data': { icon: 'mail-open', title: '아직 데이터가 없어요' },
-  'no-results': { icon: 'search', title: '검색 결과가 없어요' },
+  'no-data': { icon: 'mail-open', title: '데이터가 없습니다' },
+  'no-results': { icon: 'search', title: '검색 결과가 없습니다' },
   'error': { icon: 'alert-triangle', title: '문제가 발생했습니다' },
   'offline': { icon: 'smartphone', title: '인터넷 연결을 확인해주세요' },
 };
@@ -44,7 +44,7 @@ const EmptyState: React.FC<EmptyStateProps> = ({
   onSecondaryAction,
 }) => {
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(20)).current;
+  const slideAnim = useRef(new Animated.Value(12)).current;
 
   const defaults = variant ? VARIANT_DEFAULTS[variant] : undefined;
   const resolvedIcon = icon ?? defaults?.icon ?? 'mail-open';
@@ -54,12 +54,12 @@ const EmptyState: React.FC<EmptyStateProps> = ({
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
-        duration: 400,
+        duration: 300,
         useNativeDriver: true,
       }),
       Animated.timing(slideAnim, {
         toValue: 0,
-        duration: 400,
+        duration: 300,
         useNativeDriver: true,
       }),
     ]).start();
@@ -68,11 +68,11 @@ const EmptyState: React.FC<EmptyStateProps> = ({
   const renderIcon = () => {
     if (isIconName(resolvedIcon)) {
       return (
-        <View style={[styles.iconCircle, compact && styles.iconCircleCompact]}>
+        <View style={[styles.iconContainer, compact && styles.iconContainerCompact]}>
           <Icon
             name={resolvedIcon as IconName}
-            size={compact ? 28 : 48}
-            color={COLORS.primary.main}
+            size={compact ? 24 : 36}
+            color={COLORS.neutral.grey400}
           />
         </View>
       );
@@ -117,69 +117,79 @@ const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: SPACING.xxl,
-    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.xxxl,
+    paddingHorizontal: SPACING.xl,
   },
   compact: {
-    paddingVertical: SPACING.lg,
+    paddingVertical: SPACING.xl,
   },
-  iconCircle: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
-    backgroundColor: COLORS.primary.accent,
+  iconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: BORDER_RADIUS.lg,
+    backgroundColor: COLORS.neutral.light,
+    borderWidth: 1,
+    borderColor: COLORS.neutral.grey100,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 20,
   },
-  iconCircleCompact: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+  iconContainerCompact: {
+    width: 56,
+    height: 56,
+    borderRadius: BORDER_RADIUS.md,
+    marginBottom: 14,
   },
   emojiIcon: {
-    marginBottom: 20,
+    marginBottom: 16,
   },
   title: {
-    fontSize: 18,
-    fontWeight: '700',
+    fontSize: 17,
+    fontWeight: '600',
     color: COLORS.text.primary,
     textAlign: 'center',
     marginBottom: SPACING.xs,
+    letterSpacing: -0.2,
   },
   description: {
-    fontSize: 15,
-    color: COLORS.text.secondary,
+    fontSize: 14,
+    color: COLORS.text.tertiary,
     textAlign: 'center',
-    lineHeight: 22,
-    maxWidth: 280,
+    lineHeight: 21,
+    maxWidth: 260,
+    letterSpacing: 0,
   },
   actionButton: {
-    marginTop: SPACING.md,
+    marginTop: SPACING.xl,
     paddingHorizontal: 24,
-    paddingVertical: 14,
-    minHeight: 48,
+    paddingVertical: 12,
+    minHeight: 44,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: COLORS.primary.main,
-    borderRadius: 24,
+    backgroundColor: COLORS.primary.accent,
+    borderRadius: BORDER_RADIUS.md,
+    ...SHADOWS.cta,
   },
   actionText: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: COLORS.text.white,
-  },
-  secondaryButton: {
-    marginTop: SPACING.sm,
-    paddingHorizontal: SPACING.lg,
-    paddingVertical: SPACING.sm,
-    backgroundColor: COLORS.neutral.grey100,
-    borderRadius: BORDER_RADIUS.full,
-  },
-  secondaryText: {
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: COLORS.text.white,
+    letterSpacing: -0.05,
+  },
+  secondaryButton: {
+    marginTop: SPACING.md,
+    paddingHorizontal: SPACING.xl,
+    paddingVertical: SPACING.md,
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: COLORS.neutral.grey200,
+    borderRadius: BORDER_RADIUS.md,
+  },
+  secondaryText: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: COLORS.text.secondary,
+    letterSpacing: 0,
   },
 });
 

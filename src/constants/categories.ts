@@ -14,16 +14,16 @@ export const FOOD_CATEGORIES: {
     name: '고기/구이',
     icon: 'flame',
     desc: '삼겹살/갈비/곱창',
-    color: '#8B6914',
-    bgColor: '#FFF8E7'
+    color: '#8B7355',
+    bgColor: '#F5F5F5'
   },
   {
     id: 'hotpot',
     name: '전골/찌개',
     icon: 'soup',
     desc: '부대찌개/김치찌개',
-    color: '#D4A54A',
-    bgColor: '#FFF8E7'
+    color: '#E8B84D',
+    bgColor: '#F5F5F5'
   },
   {
     id: 'buffet',
@@ -47,7 +47,7 @@ export const FOOD_CATEGORIES: {
     icon: 'pizza',
     desc: '피자/후라이드치킨',
     color: '#6B4F0E',
-    bgColor: '#FFF8E7'
+    bgColor: '#F5F5F5'
   },
   {
     id: 'bar',
@@ -63,15 +63,15 @@ export const FOOD_CATEGORIES: {
     icon: 'award',
     desc: '오마카세/프렌치',
     color: '#B8912E',
-    bgColor: '#FFF8E7'
+    bgColor: '#F5F5F5'
   },
   {
     id: 'party',
     name: '파티룸',
     icon: 'birthday-cake',
     desc: '생일파티/회식',
-    color: '#8B6914',
-    bgColor: '#FCE4EC'
+    color: '#8B7355',
+    bgColor: '#FFF0F0'
   },
 ];
 

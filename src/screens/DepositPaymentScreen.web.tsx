@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView } from 'react-native';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Icon } from '../components/Icon';
 import { COLORS, SHADOWS, CARD_STYLE } from '../styles/colors';
@@ -7,10 +7,22 @@ import { useToast } from '../hooks/useToast';
 import Toast from '../components/Toast';
 import { FadeIn } from '../components/animated';
 
+// PortOne (iamport) SDK 타입 선언
+declare global {
+  interface Window {
+    IMP?: {
+      init: (storeId: string) => void;
+      request_pay: (params: any, callback: (response: any) => void) => void;
+    };
+  }
+}
+
 interface UserPoints {
   availablePoints: number;
   totalPoints: number;
 }
+
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
 
 const DepositPaymentScreen: React.FC = () => {
   const navigate = useNavigate();
@@ -20,15 +32,47 @@ const DepositPaymentScreen: React.FC = () => {
   const [selectedMethod, setSelectedMethod] = useState<'points' | 'card'>('points');
   const [loading, setLoading] = useState(false);
   const [showInsufficientModal, setShowInsufficientModal] = useState(false);
-  
+  const [impReady, setImpReady] = useState(false);
+  const [payButtonHovered, setPayButtonHovered] = useState(false);
+
   const depositAmount = 3000; // 약속금 금액
+
+  // PortOne SDK 스크립트 로드
+  useEffect(() => {
+    // 이미 로드된 경우 스킵
+    if (window.IMP) {
+      setImpReady(true);
+      return;
+    }
+
+    const existingScript = document.querySelector('script[src="https://cdn.iamport.kr/v1/iamport.js"]');
+    if (existingScript) {
+      existingScript.addEventListener('load', () => setImpReady(true));
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.src = 'https://cdn.iamport.kr/v1/iamport.js';
+    script.async = true;
+    script.onload = () => {
+      setImpReady(true);
+    };
+    script.onerror = () => {
+      // PortOne SDK 로드 실패
+    };
+    document.head.appendChild(script);
+
+    return () => {
+      // 컴포넌트 언마운트 시 스크립트 제거하지 않음 (캐싱)
+    };
+  }, []);
 
   // 사용자 포인트 조회
   useEffect(() => {
     const fetchUserPoints = async () => {
       try {
         const token = localStorage.getItem('token');
-        const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:3001/api'}/users/points`, {
+        const response = await fetch(`${API_URL}/users/points`, {
           headers: {
             'Authorization': token ? `Bearer ${token}` : '',
           },
@@ -40,7 +84,7 @@ const DepositPaymentScreen: React.FC = () => {
             availablePoints: data.data.points || 0,
             totalPoints: data.data.points || 0
           });
-          
+
           // 포인트가 충분하면 포인트 결제를 기본값으로
           if (data.data.points >= depositAmount) {
             setSelectedMethod('points');
@@ -56,59 +100,166 @@ const DepositPaymentScreen: React.FC = () => {
     fetchUserPoints();
   }, [depositAmount]);
 
+  // PortOne 카드 결제 처리
+  const handlePortonePayment = useCallback(async () => {
+    if (!impReady || !window.IMP) {
+      showError('결제 모듈을 불러오는 중입니다. 잠시 후 다시 시도해주세요.');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const token = localStorage.getItem('token');
+
+      // 1. 서버에 결제 준비 요청
+      const prepareResponse = await fetch(`${API_URL}/deposits/prepare`, {
+        method: 'POST',
+        headers: {
+          'Authorization': token ? `Bearer ${token}` : '',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          amount: depositAmount,
+          meetupId: id,
+          paymentMethod: 'card',
+        }),
+      });
+
+      const prepareData = await prepareResponse.json();
+      if (!prepareData.success) {
+        showError(prepareData.error || '결제 준비에 실패했습니다.');
+        setLoading(false);
+        return;
+      }
+
+      const { paymentData } = prepareData;
+
+      // 2. PortOne SDK 초기화 및 결제 요청
+      window.IMP!.init(paymentData.storeId);
+
+      window.IMP!.request_pay(
+        {
+          pg: 'html5_inicis', // PG사 (이니시스)
+          pay_method: 'card',
+          merchant_uid: paymentData.merchantUid,
+          name: paymentData.name,
+          amount: paymentData.amount,
+          buyer_name: paymentData.buyerName,
+          buyer_email: paymentData.buyerEmail,
+          m_redirect_url: `${window.location.origin}/meetup/${id}/deposit-payment/complete`,
+        },
+        async (response: any) => {
+          if (response.success) {
+            // 3. 결제 성공 - 서버에 검증 요청
+            try {
+              const verifyResponse = await fetch(`${API_URL}/deposits/verify`, {
+                method: 'POST',
+                headers: {
+                  'Authorization': token ? `Bearer ${token}` : '',
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  impUid: response.imp_uid,
+                  merchantUid: response.merchant_uid,
+                  depositId: paymentData.depositId,
+                }),
+              });
+
+              const verifyData = await verifyResponse.json();
+
+              if (verifyData.success) {
+                // 모임 참여 API 호출
+                const joinResponse = await fetch(`${API_URL}/meetups/${id}/join`, {
+                  method: 'POST',
+                  headers: {
+                    'Authorization': token ? `Bearer ${token}` : '',
+                    'Content-Type': 'application/json',
+                  },
+                });
+
+                const joinData = await joinResponse.json();
+                if (joinData.success) {
+                  showSuccess(`약속금 ${depositAmount.toLocaleString()}원이 결제되어 모임에 참여했습니다.`);
+                  setTimeout(() => navigate(`/meetup/${id}`), 1500);
+                } else {
+                  showSuccess(`약속금 결제가 완료되었습니다. 모임 참여를 다시 시도해주세요.`);
+                  setTimeout(() => navigate(`/meetup/${id}`), 1500);
+                }
+              } else {
+                showError(verifyData.error || '결제 검증에 실패했습니다. 고객센터에 문의해주세요.');
+              }
+            } catch (_verifyError) {
+              showError('결제 검증 중 오류가 발생했습니다. 고객센터에 문의해주세요.');
+            }
+          } else {
+            // 결제 실패 또는 사용자 취소
+            const errorMsg = response.error_msg || '결제가 취소되었습니다.';
+            showError(errorMsg);
+          }
+
+          setLoading(false);
+        }
+      );
+    } catch (_error) {
+      showError('결제 처리 중 오류가 발생했습니다.');
+      setLoading(false);
+    }
+  }, [impReady, id, depositAmount, navigate, showSuccess, showError]);
+
   const handlePayment = async () => {
     if (selectedMethod === 'points' && userPoints.availablePoints < depositAmount) {
       setShowInsufficientModal(true);
       return;
     }
 
+    if (selectedMethod === 'card') {
+      // PortOne 카드 결제
+      await handlePortonePayment();
+      return;
+    }
+
+    // 포인트 결제
     setLoading(true);
     try {
-      if (selectedMethod === 'points') {
-        // 포인트 결제
-        const token = localStorage.getItem('token');
-        const usePointsResponse = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:3001/api'}/users/use-points`, {
-          method: 'POST',
-          headers: {
-            'Authorization': token ? `Bearer ${token}` : '',
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            amount: depositAmount,
-            description: `모임 약속금 결제`
-          }),
-        });
+      const token = localStorage.getItem('token');
+      const usePointsResponse = await fetch(`${API_URL}/users/use-points`, {
+        method: 'POST',
+        headers: {
+          'Authorization': token ? `Bearer ${token}` : '',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          amount: depositAmount,
+          description: `모임 약속금 결제`
+        }),
+      });
 
-        const pointsData = await usePointsResponse.json();
-        if (!pointsData.success) {
-          showError(pointsData.message || '포인트 사용 중 오류가 발생했습니다.');
-          setLoading(false);
-          return;
-        }
-
-        // 모임 참여 API 호출
-        const joinResponse = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:3001/api'}/meetups/${id}/join`, {
-          method: 'POST',
-          headers: {
-            'Authorization': token ? `Bearer ${token}` : '',
-            'Content-Type': 'application/json',
-          },
-        });
-
-        const joinData = await joinResponse.json();
-        if (!joinData.success) {
-          showError(joinData.message || '모임 참여 중 오류가 발생했습니다.');
-          setLoading(false);
-          return;
-        }
-
-        showSuccess(`약속금 ${depositAmount.toLocaleString()}원이 결제되어 모임에 참여했습니다.`);
-        setTimeout(() => navigate(`/meetup/${id}`), 1000);
-      } else {
-        // 카드 결제 (추후 구현)
-        showInfo('카드 결제는 준비중입니다.');
+      const pointsData = await usePointsResponse.json();
+      if (!pointsData.success) {
+        showError(pointsData.message || '포인트 사용 중 오류가 발생했습니다.');
         setLoading(false);
+        return;
       }
+
+      // 모임 참여 API 호출
+      const joinResponse = await fetch(`${API_URL}/meetups/${id}/join`, {
+        method: 'POST',
+        headers: {
+          'Authorization': token ? `Bearer ${token}` : '',
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const joinData = await joinResponse.json();
+      if (!joinData.success) {
+        showError(joinData.message || '모임 참여 중 오류가 발생했습니다.');
+        setLoading(false);
+        return;
+      }
+
+      showSuccess(`약속금 ${depositAmount.toLocaleString()}원이 결제되어 모임에 참여했습니다.`);
+      setTimeout(() => navigate(`/meetup/${id}`), 1000);
     } catch (error) {
       showError('결제 중 오류가 발생했습니다.');
     } finally {
@@ -150,7 +301,7 @@ const DepositPaymentScreen: React.FC = () => {
       {/* 결제 방식 선택 */}
       <View style={styles.paymentSection}>
         <Text style={styles.sectionTitle}>결제 방식</Text>
-        
+
         {/* 포인트 결제 */}
         <TouchableOpacity
           style={[
@@ -178,7 +329,7 @@ const DepositPaymentScreen: React.FC = () => {
           </View>
         </TouchableOpacity>
 
-        {/* 카드 결제 */}
+        {/* 카드 결제 (PortOne) */}
         <TouchableOpacity
           style={[
             styles.paymentOption,
@@ -192,20 +343,37 @@ const DepositPaymentScreen: React.FC = () => {
             </View>
             <Text style={styles.paymentOptionText}>카드 결제</Text>
           </View>
+          {selectedMethod === 'card' && !impReady && (
+            <Text style={styles.loadingText}>로딩중...</Text>
+          )}
         </TouchableOpacity>
       </View>
 
       {/* 결제 버튼 */}
       <View style={styles.bottomSection}>
-        <TouchableOpacity
-          style={[styles.paymentButton, loading && styles.disabledButton]}
-          onPress={handlePayment}
-          disabled={loading}
+        <div
+          style={{
+            background: loading ? COLORS.neutral.grey300 : 'linear-gradient(135deg, #9A7450 0%, #C49A70 100%)',
+            borderRadius: 8,
+            boxShadow: loading ? 'none' : '0 4px 12px rgba(224,146,110,0.3), 0 8px 24px rgba(224,146,110,0.15)',
+            cursor: loading ? 'not-allowed' : 'pointer',
+            transition: 'all 200ms ease',
+            transform: payButtonHovered && !loading ? 'scale(1.02)' : 'scale(1)',
+            opacity: loading ? 0.7 : 1,
+          }}
+          onMouseEnter={() => !loading && setPayButtonHovered(true)}
+          onMouseLeave={() => setPayButtonHovered(false)}
         >
-          <Text style={styles.paymentButtonText}>
-            {loading ? '결제 중...' : `${depositAmount.toLocaleString()}원 결제하기`}
-          </Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.paymentButton}
+            onPress={handlePayment}
+            disabled={loading}
+          >
+            <Text style={styles.paymentButtonText}>
+              {loading ? '결제 중...' : `${depositAmount.toLocaleString()}원 결제하기`}
+            </Text>
+          </TouchableOpacity>
+        </div>
       </View>
       </FadeIn>
 
@@ -218,15 +386,15 @@ const DepositPaymentScreen: React.FC = () => {
             <Text style={styles.modalDescription}>
               노쇼 방지 목적이며, 1일 이내에 다시 입금됩니다.
             </Text>
-            
+
             <View style={styles.modalButtons}>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.modalCancelButton}
                 onPress={() => setShowInsufficientModal(false)}
               >
                 <Text style={styles.modalCancelText}>취소</Text>
               </TouchableOpacity>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.modalConfirmButton}
                 onPress={handleInsufficientPoints}
               >
@@ -252,12 +420,18 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingTop: 20,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0,0,0,0.06)',
+    borderBottomColor: 'rgba(224,146,110,0.08)',
     backgroundColor: COLORS.neutral.white,
+    ...SHADOWS.sticky,
+    zIndex: 10,
   },
   backButton: {
-    padding: 4,
-    marginRight: 12,
+    padding: 10,
+    marginRight: 8,
+    minWidth: 44,
+    minHeight: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   headerTitle: {
     fontSize: 18,
@@ -271,7 +445,7 @@ const styles = StyleSheet.create({
     marginVertical: 16,
     marginHorizontal: 20,
     backgroundColor: COLORS.neutral.white,
-    borderRadius: 16,
+    borderRadius: 8,
     ...CARD_STYLE,
     ...SHADOWS.small,
   },
@@ -282,8 +456,8 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   amountValue: {
-    fontSize: 36,
-    fontWeight: '700',
+    fontSize: 40,
+    fontWeight: '800',
     color: COLORS.primary.main,
     marginBottom: 16,
   },
@@ -292,7 +466,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
     backgroundColor: COLORS.primary.light,
-    borderRadius: 12,
+    borderRadius: 8,
     paddingHorizontal: 14,
     paddingVertical: 10,
   },
@@ -317,15 +491,17 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     padding: 16,
     backgroundColor: COLORS.neutral.white,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.06)',
+    borderRadius: 8,
+    borderWidth: 1.5,
+    borderColor: 'rgba(224,146,110,0.08)',
     marginBottom: 12,
+    ...SHADOWS.small,
   },
   selectedOption: {
-    borderColor: COLORS.primary.main,
+    borderColor: COLORS.primary.accent,
     borderWidth: 2,
     backgroundColor: COLORS.primary.light,
+    ...SHADOWS.cta,
   },
   paymentOptionLeft: {
     flexDirection: 'row',
@@ -342,13 +518,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   radioSelected: {
-    borderColor: COLORS.primary.main,
+    borderColor: COLORS.primary.accent,
   },
   radioInner: {
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: COLORS.primary.main,
+    backgroundColor: COLORS.primary.accent,
   },
   paymentOptionText: {
     fontSize: 16,
@@ -370,21 +546,19 @@ const styles = StyleSheet.create({
     color: COLORS.functional.error,
     marginTop: 2,
   },
+  loadingText: {
+    fontSize: 12,
+    color: COLORS.text.tertiary,
+  },
   bottomSection: {
     flex: 1,
     justifyContent: 'flex-end',
     padding: 20,
   },
   paymentButton: {
-    backgroundColor: COLORS.primary.main,
-    borderRadius: 12,
-    paddingVertical: 16,
+    paddingVertical: 18,
     paddingHorizontal: 24,
     alignItems: 'center',
-  },
-  disabledButton: {
-    backgroundColor: COLORS.neutral.grey300,
-    opacity: 0.7,
   },
   paymentButtonText: {
     color: COLORS.neutral.white,
@@ -397,14 +571,14 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(15, 13, 11, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
   },
   modal: {
     backgroundColor: COLORS.neutral.white,
-    borderRadius: 20,
+    borderRadius: 8,
     padding: 28,
     width: '100%',
     maxWidth: 320,
@@ -439,11 +613,11 @@ const styles = StyleSheet.create({
   modalCancelButton: {
     flex: 1,
     paddingVertical: 14,
-    borderRadius: 12,
+    borderRadius: 6,
     borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.06)',
+    borderColor: 'rgba(224,146,110,0.08)',
     alignItems: 'center',
-    backgroundColor: COLORS.neutral.background,
+    backgroundColor: COLORS.neutral.grey100,
   },
   modalCancelText: {
     color: COLORS.text.secondary,
@@ -453,9 +627,10 @@ const styles = StyleSheet.create({
   modalConfirmButton: {
     flex: 1,
     paddingVertical: 14,
-    borderRadius: 12,
-    backgroundColor: COLORS.primary.main,
+    borderRadius: 6,
+    backgroundColor: COLORS.primary.dark,
     alignItems: 'center',
+    ...SHADOWS.cta,
   },
   modalConfirmText: {
     color: COLORS.neutral.white,

@@ -7,6 +7,8 @@ import {
   Platform,
 } from 'react-native';
 import {COLORS, SHADOWS, CSS_SHADOWS} from '../styles/colors';
+import {TYPOGRAPHY, FONT_WEIGHTS} from '../styles/typography';
+import {SPACING, BORDER_RADIUS} from '../styles/spacing';
 import apiClient from '../services/apiClient';
 import { Icon } from '../components/Icon';
 import { FeatureFlags } from '../utils/featureFlags';
@@ -110,20 +112,49 @@ const LoginScreen = () => {
 
   return (
     <View style={styles.container}>
-      {/* 배경 그라데이션 */}
+      {/* 배경 — 딥 차콜 to 다크 브라운 그라데이션 */}
       <View style={styles.backgroundGradient} />
+      {/* 장식 — 미니멀 기하학적 요소 */}
+      <div style={{
+        position: 'absolute', top: -40, right: -30,
+        width: 180, height: 180, borderRadius: 90,
+        background: 'radial-gradient(circle, rgba(224,146,110,0.08) 0%, transparent 70%)',
+        pointerEvents: 'none',
+      }} />
+      <div style={{
+        position: 'absolute', bottom: 60, left: -50,
+        width: 140, height: 140, borderRadius: 70,
+        background: 'radial-gradient(circle, rgba(255,255,255,0.03) 0%, transparent 70%)',
+        pointerEvents: 'none',
+      }} />
 
       {/* 로고 섹션 */}
       <FadeIn delay={0}>
         <View style={styles.logoSection}>
           <View style={styles.logoContainer}>
-            <Icon name="utensils" size={48} color={COLORS.primary.main} />
-            <Text style={styles.appName}>혼밥시러</Text>
+            {/* 브랜드 마크 — 테라코타 악센트 */}
+            <div style={{
+              width: 72,
+              height: 72,
+              borderRadius: BORDER_RADIUS.lg,
+              background: COLORS.gradient.ctaCSS,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: CSS_SHADOWS.cta,
+              marginBottom: 16,
+            }}>
+              <span style={{
+                fontSize: 32,
+                fontWeight: '700',
+                color: '#FFFFFF',
+                letterSpacing: -1,
+                lineHeight: '32px',
+              }}>E</span>
+            </div>
+            <Text style={styles.appName}>잇테이블</Text>
           </View>
-          <Text style={styles.tagline}>혼자 먹는 밥은 이제 그만!</Text>
-          <Text style={styles.description}>
-            따뜻한 사람들과 함께하는 맛있는 식사를 시작해보세요
-          </Text>
+          <Text style={styles.tagline}>함께 먹으면 더 맛있으니까</Text>
         </View>
       </FadeIn>
 
@@ -132,41 +163,41 @@ const LoginScreen = () => {
         <View style={styles.mainContainer}>
           <View style={styles.loginCard}>
             <View style={styles.cardHeader}>
-              <Text style={styles.welcomeText}>환영합니다!</Text>
+              <Text style={styles.welcomeText}>환영합니다</Text>
               <Text style={styles.loginSubtitle}>카카오 계정으로 간편하게 시작하세요</Text>
             </View>
 
-          {/* 카카오 로그인 버튼 */}
+          {/* 카카오 로그인 버튼 — 샤프 코너 (borderRadius 6) */}
           {Platform.OS === 'web' ? (
             <div
               onClick={loading ? undefined : handleKakaoLogin}
               style={{
-                background: 'linear-gradient(135deg, #FEE500 0%, #FFD700 100%)',
-                borderRadius: 12,
+                backgroundColor: COLORS.special.kakao,
+                borderRadius: BORDER_RADIUS.md,
                 paddingTop: 16,
                 paddingBottom: 16,
                 paddingLeft: 20,
                 paddingRight: 20,
                 marginBottom: 16,
                 cursor: loading ? 'default' : 'pointer',
-                opacity: loading ? 0.6 : 1,
-                boxShadow: '0 4px 16px rgba(254, 229, 0, 0.3)',
+                opacity: loading ? 0.5 : 1,
+                boxShadow: CSS_SHADOWS.small,
                 transition: 'transform 150ms ease, box-shadow 150ms ease',
               }}
               onMouseEnter={(e) => {
                 if (!loading) {
-                  e.currentTarget.style.transform = 'scale(1.02)';
-                  e.currentTarget.style.boxShadow = '0 8px 24px rgba(254, 229, 0, 0.45)';
+                  e.currentTarget.style.transform = 'translateY(-1px)';
+                  e.currentTarget.style.boxShadow = CSS_SHADOWS.medium;
                 }
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'scale(1)';
-                e.currentTarget.style.boxShadow = '0 4px 16px rgba(254, 229, 0, 0.3)';
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = CSS_SHADOWS.small;
               }}
             >
               <View style={styles.kakaoButtonContent}>
                 <View style={styles.kakaoLogo}>
-                  <Text style={styles.kakaoLogoText}>카</Text>
+                  <Text style={styles.kakaoLogoText}>K</Text>
                 </View>
                 <Text style={styles.kakaoButtonText}>
                   {loading ? '로그인 중...' : '카카오로 시작하기'}
@@ -181,7 +212,7 @@ const LoginScreen = () => {
             >
               <View style={styles.kakaoButtonContent}>
                 <View style={styles.kakaoLogo}>
-                  <Text style={styles.kakaoLogoText}>카</Text>
+                  <Text style={styles.kakaoLogoText}>K</Text>
                 </View>
                 <Text style={styles.kakaoButtonText}>
                   {loading ? '로그인 중...' : '카카오로 시작하기'}
@@ -231,28 +262,57 @@ const LoginScreen = () => {
             </>
           )}
 
-          {/* 기능 소개 */}
+          {/* 기능 소개 — 에디토리얼 넘버링 */}
           <FadeIn delay={200}>
             <View style={styles.featuresSection}>
-              <Text style={styles.featuresTitle}>혼밥시러에서 할 수 있는 일</Text>
               <View style={styles.featuresList}>
                 <View style={styles.featureItem}>
-                  <View style={styles.featureIcon}>
-                    <Icon name="search" size={20} color={COLORS.primary.main} />
-                  </View>
-                  <Text style={styles.featureText}>내 주변 맛집 모임 찾기</Text>
+                  <div style={{
+                    width: 44,
+                    height: 44,
+                    borderRadius: BORDER_RADIUS.md,
+                    backgroundColor: COLORS.surface.secondary,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginBottom: 8,
+                    border: `1px solid ${COLORS.neutral.grey100}`,
+                  }}>
+                    <Icon name="map-pin" size={20} color={COLORS.primary.accent} />
+                  </div>
+                  <Text style={styles.featureLabel}>내 주변 모임</Text>
                 </View>
                 <View style={styles.featureItem}>
-                  <View style={styles.featureIcon}>
-                    <Icon name="users" size={20} color={COLORS.primary.main} />
-                  </View>
-                  <Text style={styles.featureText}>새로운 사람들과 만남</Text>
+                  <div style={{
+                    width: 44,
+                    height: 44,
+                    borderRadius: BORDER_RADIUS.md,
+                    backgroundColor: COLORS.surface.secondary,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginBottom: 8,
+                    border: `1px solid ${COLORS.neutral.grey100}`,
+                  }}>
+                    <Icon name="users" size={20} color={COLORS.primary.accent} />
+                  </div>
+                  <Text style={styles.featureLabel}>새로운 인연</Text>
                 </View>
                 <View style={styles.featureItem}>
-                  <View style={styles.featureIcon}>
-                    <Icon name="star" size={20} color={COLORS.primary.main} />
-                  </View>
-                  <Text style={styles.featureText}>취향 맞는 모임 추천</Text>
+                  <div style={{
+                    width: 44,
+                    height: 44,
+                    borderRadius: BORDER_RADIUS.md,
+                    backgroundColor: COLORS.surface.secondary,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginBottom: 8,
+                    border: `1px solid ${COLORS.neutral.grey100}`,
+                  }}>
+                    <Icon name="star" size={20} color={COLORS.primary.accent} />
+                  </div>
+                  <Text style={styles.featureLabel}>맞춤 추천</Text>
                 </View>
               </View>
             </View>
@@ -278,7 +338,7 @@ const LoginScreen = () => {
 
       {/* 푸터 */}
       <View style={styles.footer}>
-        <Text style={styles.footerText}>© 2024 혼밥시러. Made with love</Text>
+        <Text style={styles.footerText}>© 2025 잇테이블</Text>
       </View>
 
       <Toast message={toast.message} type={toast.type} visible={toast.visible} onHide={hideToast} />
@@ -299,92 +359,77 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: '100%',
-    background: `linear-gradient(135deg, ${COLORS.neutral.background} 0%, ${COLORS.primary.light} 50%, ${COLORS.primary.light} 100%)`,
+    backgroundImage: COLORS.gradient.heroCSS,
   },
   logoSection: {
     alignItems: 'center',
-    paddingTop: 80,
-    paddingBottom: 40,
+    paddingTop: 72,
+    paddingBottom: 28,
     zIndex: 1,
   },
   logoContainer: {
     alignItems: 'center',
-    marginBottom: 20,
-  },
-  logoEmoji: {
-    fontSize: 48,
-    marginBottom: 20,
-    textShadowColor: 'rgba(0,0,0,0.1)',
-    textShadowOffset: { width: 0, height: 4 },
-    textShadowRadius: 8,
+    marginBottom: 12,
   },
   appName: {
-    fontSize: 44,
-    fontWeight: '800',
-    color: COLORS.neutral.grey600,
-    letterSpacing: -1,
-    borderBottomWidth: 3,
-    borderBottomColor: 'rgba(139, 105, 20, 0.3)',
-    paddingBottom: 4,
+    fontSize: 32,
+    fontWeight: FONT_WEIGHTS.bold as any,
+    color: COLORS.text.white,
+    letterSpacing: -0.5,
   },
   tagline: {
     fontSize: 15,
-    color: COLORS.text.secondary,
-    fontWeight: '500',
-    marginBottom: 8,
+    color: 'rgba(255,255,255,0.6)',
+    fontWeight: FONT_WEIGHTS.regular as any,
     textAlign: 'center',
-  },
-  description: {
-    fontSize: 16,
-    color: COLORS.text.secondary,
-    textAlign: 'center',
-    maxWidth: 300,
-    lineHeight: 24,
   },
   mainContainer: {
     flex: 1,
     paddingHorizontal: 16,
     justifyContent: 'center',
     zIndex: 1,
-    marginTop: -20,
+    marginTop: -8,
   },
   loginCard: {
-    maxWidth: 420,
+    maxWidth: 400,
     alignSelf: 'center',
     width: '100%',
     backgroundColor: COLORS.neutral.white,
-    borderRadius: 16,
-    padding: 16,
-    border: `1px solid ${COLORS.neutral.grey100}`,
+    borderRadius: BORDER_RADIUS.lg,
+    padding: 28,
+    paddingTop: 32,
+    paddingBottom: 28,
+    border: `1px solid rgba(17,17,17,0.06)`,
     boxSizing: 'border-box',
-    ...SHADOWS.medium,
+    ...SHADOWS.large,
+    // @ts-ignore — web CSS shadow
+    boxShadow: CSS_SHADOWS.large,
   },
   cardHeader: {
     alignItems: 'center',
-    marginBottom: 32,
+    marginBottom: 24,
   },
   welcomeText: {
-    fontSize: 28,
-    fontWeight: '800',
+    fontSize: 22,
+    fontWeight: FONT_WEIGHTS.bold as any,
     color: COLORS.text.primary,
-    marginBottom: 12,
+    marginBottom: 6,
     textAlign: 'center',
     letterSpacing: -0.5,
   },
   loginSubtitle: {
-    fontSize: 16,
-    color: COLORS.text.secondary,
+    fontSize: 14,
+    color: COLORS.text.tertiary,
     textAlign: 'center',
-    lineHeight: 22,
+    lineHeight: 20,
   },
   kakaoButton: {
     backgroundColor: COLORS.special.kakao,
-    borderRadius: 12,
+    borderRadius: BORDER_RADIUS.md,
     paddingVertical: 16,
     paddingHorizontal: 20,
     marginBottom: 16,
-    ...SHADOWS.medium,
-    transform: [{ scale: 1 }],
+    ...SHADOWS.small,
   },
   kakaoButtonContent: {
     flexDirection: 'row',
@@ -392,32 +437,32 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   kakaoLogo: {
-    width: 24,
-    height: 24,
-    backgroundColor: COLORS.neutral.black,
-    borderRadius: 12,
+    width: 22,
+    height: 22,
+    backgroundColor: COLORS.special.kakaoBrown,
+    borderRadius: BORDER_RADIUS.sm,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
   },
   kakaoLogoText: {
-    color: COLORS.functional.warning,
-    fontSize: 14,
-    fontWeight: 'bold',
+    color: COLORS.special.kakao,
+    fontSize: 12,
+    fontWeight: FONT_WEIGHTS.bold as any,
   },
   kakaoButtonText: {
-    color: COLORS.neutral.black,
+    color: COLORS.special.kakaoBrown,
     fontSize: 16,
-    fontWeight: '600',
-    letterSpacing: -0.5,
+    fontWeight: FONT_WEIGHTS.semiBold as any,
+    letterSpacing: -0.3,
   },
   disabledButton: {
-    opacity: 0.6,
+    opacity: 0.5,
   },
   dividerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 24,
+    marginVertical: 16,
   },
   dividerLine: {
     flex: 1,
@@ -426,99 +471,75 @@ const styles = StyleSheet.create({
   },
   dividerText: {
     marginHorizontal: 16,
-    fontSize: 14,
-    color: COLORS.text.secondary,
-    fontWeight: '500',
+    fontSize: 13,
+    color: COLORS.text.tertiary,
+    fontWeight: FONT_WEIGHTS.regular as any,
   },
   testLoginSection: {
-    marginBottom: 32,
+    marginBottom: 20,
   },
   testLoginTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: COLORS.text.primary,
-    marginBottom: 16,
+    ...TYPOGRAPHY.label,
+    color: COLORS.text.tertiary,
+    marginBottom: 10,
     textAlign: 'center',
   },
   testButtonsContainer: {
-    gap: 8,
+    gap: 6,
   },
   testButton: {
-    backgroundColor: COLORS.neutral.white,
+    backgroundColor: COLORS.surface.secondary,
     borderWidth: 1,
-    borderColor: COLORS.secondary.main,
-    borderRadius: 12,
-    padding: 16,
+    borderColor: COLORS.neutral.grey100,
+    borderRadius: BORDER_RADIUS.md,
+    padding: 12,
     alignItems: 'center',
-    ...SHADOWS.small,
   },
   testButtonText: {
-    color: COLORS.text.primary,
-    fontSize: 16,
-    fontWeight: '500',
+    color: COLORS.text.secondary,
+    fontSize: 13,
+    fontWeight: FONT_WEIGHTS.medium as any,
   },
   featuresSection: {
-    marginBottom: 28,
-  },
-  featuresTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: COLORS.text.primary,
     marginBottom: 20,
-    textAlign: 'center',
-    letterSpacing: -0.3,
+    paddingTop: 4,
   },
   featuresList: {
-    gap: 12,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 24,
   },
   featureItem: {
-    flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    backgroundColor: COLORS.primary.accent,
-    borderRadius: 12,
+    width: 80,
   },
-  featureIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: COLORS.primary.light,
-    marginRight: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(139, 105, 20, 0.15)',
-    ...SHADOWS.small,
-  },
-  featureText: {
-    fontSize: 15,
-    color: COLORS.text.secondary,
-    flex: 1,
+  featureLabel: {
+    fontSize: 12,
+    fontWeight: FONT_WEIGHTS.medium as any,
+    color: COLORS.text.tertiary,
+    textAlign: 'center',
   },
   policyContainer: {
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    backgroundColor: 'rgba(240, 230, 221, 0.3)',
-    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 8,
   },
   policyText: {
-    fontSize: 13,
-    color: COLORS.text.secondary,
+    fontSize: 11,
+    color: COLORS.text.tertiary,
     textAlign: 'center',
-    lineHeight: 20,
+    lineHeight: 18,
   },
   policyLink: {
-    color: COLORS.primary.main,
-    fontWeight: '600',
+    color: COLORS.primary.accent,
+    fontWeight: FONT_WEIGHTS.medium as any,
   },
   footer: {
-    paddingVertical: 20,
+    paddingVertical: 16,
     alignItems: 'center',
   },
   footerText: {
-    fontSize: 14,
-    color: COLORS.text.secondary,
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.35)',
     textAlign: 'center',
   },
 });

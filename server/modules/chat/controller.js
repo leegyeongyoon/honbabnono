@@ -335,9 +335,36 @@ exports.sendMessage = async (req, res) => {
       WHERE id = $2
     `, [message, id]);
 
+    const savedMessage = result.rows[0];
+
+    // Socket.IO 실시간 메시지 브로드캐스트
+    const io = req.app.get('io');
+    if (io) {
+      const newMessagePayload = {
+        id: savedMessage.id,
+        chatRoomId: savedMessage.chatRoomId,
+        senderId: savedMessage.senderId,
+        senderName: savedMessage.senderName,
+        message: savedMessage.message,
+        messageType: savedMessage.messageType || 'text',
+        timestamp: savedMessage.createdAt,
+        createdAt: savedMessage.createdAt
+      };
+
+      // 채팅방의 모든 참가자에게 실시간 전송
+      io.to(`room:${id}`).emit('new_message', newMessagePayload);
+
+      // 채팅방 참가자들에게 읽지 않은 수 업데이트 알림
+      io.to(`room:${id}`).emit('chat_room_updated', {
+        roomId: id,
+        lastMessage: message,
+        lastMessageTime: savedMessage.createdAt
+      });
+    }
+
     res.json({
       success: true,
-      message: result.rows[0]
+      message: savedMessage
     });
 
   } catch (error) {
@@ -352,11 +379,23 @@ exports.markAsRead = async (req, res) => {
     const { id } = req.params;
     const userId = req.user.userId;
 
+    const readAt = new Date().toISOString();
+
     await pool.query(`
       UPDATE chat_participants
       SET "lastReadAt" = NOW()
       WHERE "chatRoomId" = $1 AND "userId" = $2
     `, [id, userId]);
+
+    // Socket.IO 실시간 읽음 상태 브로드캐스트
+    const io = req.app.get('io');
+    if (io) {
+      io.to(`room:${id}`).emit('messages_read', {
+        userId,
+        roomId: id,
+        readAt
+      });
+    }
 
     res.json({
       success: true,
@@ -380,6 +419,16 @@ exports.leaveChatRoom = async (req, res) => {
       WHERE "chatRoomId" = $1 AND "userId" = $2
     `, [id, userId]);
 
+    // Socket.IO 실시간 퇴장 알림
+    const io = req.app.get('io');
+    if (io) {
+      io.to(`room:${id}`).emit('participant_left', {
+        userId,
+        roomId: id,
+        timestamp: new Date().toISOString()
+      });
+    }
+
     res.json({
       success: true,
       message: '채팅방에서 나갔습니다.'
@@ -401,7 +450,21 @@ exports.markAllAsRead = async (req, res) => {
       UPDATE chat_participants
       SET "lastReadAt" = $1
       WHERE "userId" = $2
+      RETURNING "chatRoomId"
     `, [now, userId]);
+
+    // Socket.IO 실시간 읽음 상태 브로드캐스트 (모든 채팅방)
+    const io = req.app.get('io');
+    if (io && updateResult.rows.length > 0) {
+      const readAt = now.toISOString();
+      updateResult.rows.forEach(row => {
+        io.to(`room:${row.chatRoomId}`).emit('messages_read', {
+          userId,
+          roomId: row.chatRoomId,
+          readAt
+        });
+      });
+    }
 
     res.json({
       success: true,

@@ -285,7 +285,7 @@ const styles = StyleSheet.create({
     minHeight: 72,
     backgroundColor: COLORS.neutral.white,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0,0,0,0.06)',
+    borderBottomColor: 'rgba(13,13,12,0.06)',
   },
   unreadItem: {
     backgroundColor: COLORS.primary.light,

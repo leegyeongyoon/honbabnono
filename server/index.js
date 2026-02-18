@@ -28,12 +28,16 @@
 
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
 const dotenv = require('dotenv');
 const path = require('path');
 const http = require('http');
 const { Server } = require('socket.io');
 const fs = require('fs');
 const multer = require('multer');
+const jwt = require('jsonwebtoken');
+const { loginLimiter, apiLimiter } = require('./middleware/rateLimiter');
+const { startScheduler } = require('./scheduler');
 
 // 환경변수 로드
 const mode = process.env.NODE_ENV;
@@ -134,6 +138,10 @@ const upload = multer({
 });
 
 // 미들웨어 설정
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
+  contentSecurityPolicy: false // CSP는 프론트엔드 리소스 로딩과 충돌할 수 있으므로 비활성화
+}));
 app.use(cors({
   origin: ['http://localhost:3000', 'https://honbabnono.com', 'https://admin.honbabnono.com', 'http://localhost:3002', 'http://localhost:3003'],
   credentials: true
@@ -154,6 +162,9 @@ app.use((req, res, next) => {
 // API 라우터 설정
 const apiRouter = express.Router();
 
+// 일반 API Rate Limiting (분당 100회)
+apiRouter.use(apiLimiter);
+
 // Health check
 apiRouter.get('/health', (req, res) => {
   res.json({
@@ -166,6 +177,12 @@ apiRouter.get('/health', (req, res) => {
 
 // 공지사항 및 FAQ (공개 API) - supportController 사용
 // (아래 standalone routes에서 처리됨)
+
+// 로그인 관련 라우트에 Rate Limiting 적용 (분당 5회)
+apiRouter.use('/auth/login', loginLimiter);
+apiRouter.use('/auth/register', loginLimiter);
+apiRouter.use('/auth/kakao', loginLimiter);
+apiRouter.use('/auth/test-login', loginLimiter);
 
 // 모듈 라우트 연결
 apiRouter.use('/auth', authRoutes);
@@ -503,6 +520,10 @@ apiRouter.get('/geocode/reverse', async (req, res) => {
   }
 });
 
+// PortOne 결제 웹훅 (인증 불필요 - PortOne 서버에서 직접 호출)
+const depositsController = require('./modules/deposits/controller');
+app.post('/api/payments/webhook', depositsController.handleWebhook);
+
 // API 라우터를 /api 경로에 마운트
 app.use('/api', apiRouter);
 
@@ -519,26 +540,209 @@ app.use('/chat', (req, res) => {
   res.redirect(301, `/api${req.originalUrl}`);
 });
 
+// io 객체를 Express app에 저장 (컨트롤러에서 접근 가능)
+app.set('io', io);
+
+// 온라인 사용자 추적: userId -> Set<socketId>
+const onlineUsers = new Map();
+
+// Socket.IO JWT 인증 미들웨어
+io.use((socket, next) => {
+  const token = socket.handshake.auth?.token || socket.handshake.query?.token;
+
+  if (!token) {
+    // 인증 없이도 연결 허용 (하위 호환성), 단 userId 없음
+    socket.user = null;
+    return next();
+  }
+
+  jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
+    if (err) {
+      logger.warn('🔌 Socket 인증 실패:', err.message);
+      // 인증 실패해도 연결은 허용 (하위 호환성)
+      socket.user = null;
+      return next();
+    }
+
+    socket.user = {
+      userId: decoded.userId || decoded.id,
+      email: decoded.email,
+      name: decoded.name
+    };
+    next();
+  });
+});
+
 // Socket.IO 설정
 io.on('connection', (socket) => {
-  console.log('🔌 Socket connected:', socket.id);
+  const user = socket.user;
+  console.log('🔌 Socket connected:', socket.id, user ? `(user: ${user.userId})` : '(anonymous)');
+
+  // 인증된 사용자 온라인 상태 등록
+  if (user) {
+    if (!onlineUsers.has(user.userId)) {
+      onlineUsers.set(user.userId, new Set());
+    }
+    onlineUsers.get(user.userId).add(socket.id);
+
+    // 첫 번째 소켓 연결이면 온라인 알림 브로드캐스트
+    if (onlineUsers.get(user.userId).size === 1) {
+      socket.broadcast.emit('user_online', {
+        userId: user.userId,
+        timestamp: new Date().toISOString()
+      });
+    }
+  }
+
+  // 레거시 authenticate 이벤트 지원 (하위 호환성)
+  socket.on('authenticate', (token) => {
+    if (socket.user) return; // 이미 인증됨
+
+    jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
+      if (err) {
+        socket.emit('auth_error', { message: '인증 실패' });
+        return;
+      }
+
+      socket.user = {
+        userId: decoded.userId || decoded.id,
+        email: decoded.email,
+        name: decoded.name
+      };
+
+      if (!onlineUsers.has(socket.user.userId)) {
+        onlineUsers.set(socket.user.userId, new Set());
+      }
+      onlineUsers.get(socket.user.userId).add(socket.id);
+
+      if (onlineUsers.get(socket.user.userId).size === 1) {
+        socket.broadcast.emit('user_online', {
+          userId: socket.user.userId,
+          timestamp: new Date().toISOString()
+        });
+      }
+
+      socket.emit('authenticated', { userId: socket.user.userId });
+    });
+  });
 
   socket.on('join_room', (roomId) => {
-    socket.join(roomId);
-    console.log(`User joined room: ${roomId}`);
+    socket.join(`room:${roomId}`);
+    console.log(`User joined room: ${roomId} (socket: ${socket.id})`);
+
+    // 입장 알림 (인증된 사용자만)
+    if (socket.user) {
+      socket.to(`room:${roomId}`).emit('user_joined_room', {
+        userId: socket.user.userId,
+        userName: socket.user.name,
+        roomId,
+        timestamp: new Date().toISOString()
+      });
+    }
   });
 
   socket.on('leave_room', (roomId) => {
-    socket.leave(roomId);
-    console.log(`User left room: ${roomId}`);
+    socket.leave(`room:${roomId}`);
+    console.log(`User left room: ${roomId} (socket: ${socket.id})`);
+
+    if (socket.user) {
+      socket.to(`room:${roomId}`).emit('user_left_room', {
+        userId: socket.user.userId,
+        userName: socket.user.name,
+        roomId,
+        timestamp: new Date().toISOString()
+      });
+    }
   });
 
+  // 레거시 send_message 이벤트 (하위 호환성)
   socket.on('send_message', (data) => {
-    io.to(data.roomId).emit('receive_message', data);
+    io.to(`room:${data.roomId}`).emit('receive_message', data);
+  });
+
+  // 타이핑 인디케이터
+  socket.on('typing_start', (data) => {
+    if (!socket.user) return;
+    const { roomId } = data;
+    socket.to(`room:${roomId}`).emit('user_typing', {
+      userId: socket.user.userId,
+      userName: socket.user.name,
+      roomId,
+      isTyping: true,
+      timestamp: new Date().toISOString()
+    });
+  });
+
+  socket.on('typing_stop', (data) => {
+    if (!socket.user) return;
+    const { roomId } = data;
+    socket.to(`room:${roomId}`).emit('user_typing', {
+      userId: socket.user.userId,
+      userName: socket.user.name,
+      roomId,
+      isTyping: false,
+      timestamp: new Date().toISOString()
+    });
+  });
+
+  // 레거시 typing 이벤트 (하위 호환성)
+  socket.on('typing', (data) => {
+    const roomId = data.roomId;
+    socket.to(`room:${roomId}`).emit('user_typing', {
+      userId: data.userId || socket.user?.userId,
+      userName: data.userName || socket.user?.name,
+      roomId,
+      isTyping: data.isTyping,
+      timestamp: new Date().toISOString()
+    });
+  });
+
+  // 읽음 상태 실시간 동기화
+  socket.on('mark_read', (data) => {
+    if (!socket.user) return;
+    const { roomId } = data;
+    socket.to(`room:${roomId}`).emit('messages_read', {
+      userId: socket.user.userId,
+      roomId,
+      readAt: new Date().toISOString()
+    });
+  });
+
+  // 온라인 사용자 목록 요청
+  socket.on('get_online_users', (data) => {
+    const { userIds } = data || {};
+    if (Array.isArray(userIds)) {
+      const statuses = userIds.map(uid => ({
+        userId: uid,
+        isOnline: onlineUsers.has(uid) && onlineUsers.get(uid).size > 0
+      }));
+      socket.emit('online_users', { users: statuses });
+    } else {
+      // 모든 온라인 사용자 ID 반환
+      const allOnline = [];
+      onlineUsers.forEach((sockets, uid) => {
+        if (sockets.size > 0) allOnline.push(uid);
+      });
+      socket.emit('online_users', { users: allOnline.map(uid => ({ userId: uid, isOnline: true })) });
+    }
   });
 
   socket.on('disconnect', () => {
-    console.log('🔌 Socket disconnected:', socket.id);
+    console.log('🔌 Socket disconnected:', socket.id, user ? `(user: ${user.userId})` : '(anonymous)');
+
+    // 온라인 상태 제거
+    if (user && onlineUsers.has(user.userId)) {
+      onlineUsers.get(user.userId).delete(socket.id);
+
+      // 마지막 소켓이 끊어지면 오프라인 알림 브로드캐스트
+      if (onlineUsers.get(user.userId).size === 0) {
+        onlineUsers.delete(user.userId);
+        socket.broadcast.emit('user_offline', {
+          userId: user.userId,
+          timestamp: new Date().toISOString()
+        });
+      }
+    }
   });
 });
 
@@ -574,6 +778,13 @@ if (mode !== 'test') {
     console.log(`      - admin, ai`);
     console.log('═══════════════════════════════════════════════════');
     console.log('');
+
+    // 스케줄러 시작
+    try {
+      startScheduler();
+    } catch (error) {
+      console.error('❌ 스케줄러 시작 실패:', error);
+    }
   });
 }
 

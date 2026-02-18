@@ -1,68 +1,101 @@
-// "따뜻한 신뢰" 브랜드 컬러 팔레트 — 밥+신뢰, 따뜻하지만 가볍지 않은
+// 잇테이블 디자인 시스템 v10 — "소프트 라떼"
+// 벤치마크: 캐치테이블(프리미엄) + 에어비앤비(따뜻함) + 토스(깔끔함)
+// 키워드: 부드러움, 따뜻함, 순백 화이트 베이스, 미니멀 프리미엄
+// 팔레트: 연한 테라코타/라떼 브라운 + 클린 화이트 — 여백이 만드는 프리미엄
+
 export const COLORS = {
-  // 메인 컬러 (깊은 황금갈색 — 쌀/밥의 따뜻함+신뢰)
+  // 메인 컬러 (소프트 라떼 — 엄청 연한 테라코타/웜 브라운)
   primary: {
-    main: '#8B6914',      // 깊은 황금갈색 (메인 액센트)
-    light: '#FFF8E7',     // 크림골드 (배경 하이라이트)
-    dark: '#6B4F0E',      // 에스프레소 (강조/호버)
-    accent: '#FFFCF5',    // 아이보리 (표면)
+    main: '#C4A08A',      // 소프트 라떼 — 연한 웜 브라운, 부드럽고 따뜻한
+    light: '#FAF6F3',     // 라떼 틴트 (표면)
+    dark: '#A88068',      // 뮤트 테라코타 (CTA, 강조)
+    accent: '#C4A08A',    // 활성 상태 (=main)
+    gradient: '#D8BCA8',  // 라이트 샌드 (그라데이션 끝)
   },
 
   // 보조 컬러
   secondary: {
-    main: '#D4A54A',      // 골든앰버 (포인트)
-    light: '#FFFCF5',     // 아이보리 배경
-    dark: '#B8912E',      // 다크 골든
-    warm: '#FFF8E7',      // 따뜻한 표면
+    main: '#888888',      // 뉴트럴 그레이
+    light: '#F5F5F5',     // 소프트 배경
+    dark: '#666666',      // 딥 그레이
+    warm: '#EBEBEB',      // 라이트 보더
   },
 
-  // 중성 컬러 (미세한 웜화이트 기반)
+  // 중성 컬러 (클린 뉴트럴 — 웜 틴트 제거)
   neutral: {
-    white: '#FFFFFF',     // 깨끗한 화이트 카드
-    light: '#FAFAF8',     // 미세한 웜화이트
-    background: '#FAFAF8', // 미세한 웜화이트 (메인 배경)
-    grey100: '#F0EBE3',   // 부드러운 베이지 보더
-    grey200: '#D9D1C7',   // 미디엄 베이지
-    grey300: '#C4B8A8',   // 소피스티케이트 베이지
-    grey400: '#A89888',   // 연한 브라운
-    grey500: '#7A6B5D',   // 중간 브라운
-    grey600: '#4C422C',   // 다크 브라운
-    grey700: '#3D3523',   // 매우 진한 브라운
-    grey800: '#2E281A',   // 최다크 브라운
-    grey900: '#1F1B11',   // 거의 블랙
-    black: '#1A1610',     // 딥 블랙
+    white: '#FFFFFF',
+    grey50: '#FAFAFA',    // 카드 배경
+    light: '#F5F5F5',     // 섹션 배경
+    background: '#FFFFFF', // 메인 배경 (순백)
+    grey100: '#E8E8E8',   // 보더
+    grey200: '#D9D9D9',   // 디바이더
+    grey300: '#BDBDBD',   // 비활성
+    grey400: '#9E9E9E',   // 플레이스홀더
+    grey500: '#757575',   // 서브텍스트
+    grey600: '#616161',   // 세컨더리 텍스트
+    grey700: '#424242',   // 강조 텍스트
+    grey800: '#212121',   // 프라이머리 텍스트
+    grey900: '#171717',   // 헤딩
+    black: '#111111',     // 퓨어 다크
   },
 
   // 기능적 컬러
   functional: {
-    success: '#5B9A6F',   // 자연스러운 그린
-    warning: '#E5A84B',   // 따뜻한 앰버
-    error: '#D4544E',     // 차분한 레드
-    info: '#6B8EAE',      // 차분한 블루
+    success: '#2E7D4F',
+    successLight: '#EDF7F0',
+    warning: '#E69100',
+    warningLight: '#FFF8E6',
+    error: '#D32F2F',
+    errorLight: '#FDECEA',
+    info: '#1976D2',
+    infoLight: '#E8F0FE',
   },
 
   // 텍스트 컬러
   text: {
-    primary: '#1E1810',   // 딥브라운블랙 (가독성 강화)
-    secondary: '#7A6B5D', // 중간 브라운
-    tertiary: '#8A7B6B',  // 연한 브라운 (WCAG AA ~4.5:1 on white)
-    white: '#FFFFFF',     // 순수한 화이트
-    light: '#F0EBE3',     // 따뜻한 베이지
-    error: '#D4544E',     // 에러 텍스트용
+    primary: '#171717',   // 다크 (높은 대비)
+    secondary: '#616161', // 그레이
+    tertiary: '#9E9E9E',  // 뮤트
+    white: '#FFFFFF',
+    light: '#E8E8E8',
+    error: '#D32F2F',
   },
 
   // 특수 컬러
   special: {
-    kakao: '#FEE500',    // 카카오 로그인
+    kakao: '#FEE500',
+    kakaoBrown: '#191919',
+    naver: '#03C75A',
+    google: '#4285F4',
+    new: '#C4A08A',       // 브랜드 라떼 (일관성)
+    hot: '#D32F2F',
+    premium: '#7B5EA7',
+    deposit: '#2E7D4F',
+  },
+
+  // 표면(surface) 컬러
+  surface: {
+    primary: '#FFFFFF',
+    secondary: '#FAFAFA',
+    elevated: '#FFFFFF',
+    overlay: 'rgba(17,17,17,0.6)',
+    dimmed: 'rgba(17,17,17,0.35)',
   },
 
   // 그라데이션
   gradient: {
-    primary: ['#8B6914', '#FFF8E7'],           // 골드-크림 그라데이션
-    secondary: ['#D4A54A', '#FFF8E7'],         // 앰버-크림 그라데이션
-    warm: ['#8B6914', '#D4A54A'],              // 골드-앰버 그라데이션
-    sunset: ['#FAFAF8', '#FFF8E7', '#8B6914', '#6B4F0E'], // 4단계 그라데이션
-    accent: ['#1E1810', '#8B6914'],            // 강조용 다크-골드 그라데이션
+    primary: ['#A88068', '#C4A08A'],
+    secondary: ['#C4A08A', '#D8BCA8'],
+    warm: ['#A88068', '#C4A08A'],
+    sunset: ['#FAFAFA', '#F5F5F5', '#FFFFFF'],
+    accent: ['#A88068', '#C4A08A'],
+    cta: ['#C4A08A', '#D8BCA8'],
+    hero: ['rgba(168,128,104,0.95)', 'rgba(168,128,104,0.6)', 'transparent'],
+    heroCSS: 'linear-gradient(135deg, #A88068 0%, #B69079 50%, #C4A08A 100%)',
+    heroBg: 'linear-gradient(135deg, #A88068 0%, #B69079 50%, #C4A08A 100%)',
+    cardOverlay: ['transparent', 'rgba(17,17,17,0.65)'],
+    ctaCSS: 'linear-gradient(135deg, #C4A08A 0%, #D8BCA8 100%)',
+    subtleGold: 'linear-gradient(180deg, #FAF6F3 0%, #FFFFFF 100%)',
   },
 } as const;
 
@@ -73,15 +106,15 @@ export const withOpacity = (color: string, opacity: number) => {
 
 // 레이아웃 상수
 export const LAYOUT = {
-  HEADER_HEIGHT: 72,
-  HEADER_PADDING_VERTICAL: 12,
+  HEADER_HEIGHT: 56,
+  HEADER_PADDING_VERTICAL: 10,
   HEADER_PADDING_HORIZONTAL: 20,
-  CONTENT_TOP_MARGIN: 20,
-  BOTTOM_NAV_HEIGHT: 64,
+  CONTENT_TOP_MARGIN: 16,
+  BOTTOM_NAV_HEIGHT: 60,
   CONTENT_PADDING_HORIZONTAL: 20,
   CONTENT_PADDING_VERTICAL: 16,
-  CARD_RADIUS: 16,
-  TAB_HEIGHT: 56,
+  CARD_RADIUS: 10,       // 8 → 10 (모던 라운딩)
+  TAB_HEIGHT: 48,
 } as const;
 
 // Z-Index 레이어 시스템
@@ -97,10 +130,10 @@ export const Z_INDEX = {
 
 // 트랜지션 토큰
 export const TRANSITIONS = {
-  fast: '150ms ease',
-  normal: '200ms ease',
-  slow: '300ms ease',
-  spring: '300ms cubic-bezier(0.34, 1.56, 0.64, 1)',
+  fast: '120ms ease-out',
+  normal: '200ms ease-out',
+  slow: '320ms ease-out',
+  spring: '400ms cubic-bezier(0.22, 1, 0.36, 1)',
 } as const;
 
 // 반응형 Breakpoints
@@ -111,59 +144,147 @@ export const BREAKPOINTS = {
   wide: 1280,
 } as const;
 
-// 그림자 스타일 (중립 블랙 — 깨끗한 그림자)
-const SHADOW_COLOR = '#000000';
-
+// 그림자 스타일 (뉴트럴, 플랫+모던)
 export const SHADOWS = {
   small: {
-    shadowColor: SHADOW_COLOR,
+    shadowColor: '#111111',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
     elevation: 2,
   },
   medium: {
-    shadowColor: SHADOW_COLOR,
+    shadowColor: '#111111',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
-    shadowRadius: 16,
+    shadowRadius: 12,
     elevation: 4,
   },
   large: {
-    shadowColor: SHADOW_COLOR,
+    shadowColor: '#111111',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08,
     shadowRadius: 24,
     elevation: 8,
   },
   hover: {
-    shadowColor: SHADOW_COLOR,
+    shadowColor: '#111111',
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.12,
+    shadowOpacity: 0.1,
     shadowRadius: 32,
     elevation: 12,
   },
   focused: {
-    shadowColor: '#8B6914',
+    shadowColor: '#C4A08A',
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.2,
     shadowRadius: 8,
-    elevation: 4,
+    elevation: 6,
+  },
+  cta: {
+    shadowColor: '#A88068',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.18,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  fab: {
+    shadowColor: '#111111',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.12,
+    shadowRadius: 16,
+    elevation: 10,
+  },
+  sticky: {
+    shadowColor: '#111111',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03,
+    shadowRadius: 4,
+    elevation: 2,
   },
 };
 
-// CSS 그림자 (웹 전용 — 듀얼 레이어)
+// CSS 그림자 (플랫+모던)
 export const CSS_SHADOWS = {
-  small: '0 1px 3px rgba(0,0,0,0.06), 0 4px 8px rgba(0,0,0,0.06)',
-  medium: '0 2px 6px rgba(0,0,0,0.06), 0 8px 20px rgba(0,0,0,0.08)',
-  large: '0 4px 8px rgba(0,0,0,0.04), 0 16px 32px rgba(0,0,0,0.08)',
-  hover: '0 4px 12px rgba(0,0,0,0.08), 0 12px 28px rgba(0,0,0,0.12)',
-  focused: '0 0 0 3px rgba(139, 105, 20, 0.3)',
+  small: '0 1px 2px rgba(17,17,17,0.04), 0 1px 4px rgba(17,17,17,0.03)',
+  medium: '0 2px 4px rgba(17,17,17,0.04), 0 4px 16px rgba(17,17,17,0.05)',
+  large: '0 4px 8px rgba(17,17,17,0.04), 0 12px 32px rgba(17,17,17,0.06)',
+  hover: '0 8px 16px rgba(17,17,17,0.05), 0 16px 40px rgba(17,17,17,0.08)',
+  focused: '0 0 0 2px rgba(196,160,138,0.2)',
+  cta: '0 4px 12px rgba(168,128,104,0.18), 0 8px 20px rgba(168,128,104,0.08)',
+  fab: '0 4px 12px rgba(17,17,17,0.08), 0 8px 24px rgba(17,17,17,0.06)',
+  sticky: '0 1px 0 rgba(17,17,17,0.03), 0 1px 6px rgba(17,17,17,0.02)',
+  card: '0 1px 2px rgba(17,17,17,0.03), 0 2px 12px rgba(17,17,17,0.04)',
+  cardHover: '0 4px 8px rgba(17,17,17,0.05), 0 8px 28px rgba(17,17,17,0.06)',
+  stickyHeader: '0 1px 0 rgba(17,17,17,0.04)',
+  bottomSheet: '0 -2px 8px rgba(17,17,17,0.03), 0 -4px 20px rgba(17,17,17,0.05)',
+  inset: 'inset 0 1px 2px rgba(17,17,17,0.03)',
 } as const;
 
-// 카드 스타일 상수 (shadow + subtle border 결합)
+// 애니메이션 토큰
+export const ANIMATION_TOKENS = {
+  duration: {
+    instant: 80,
+    fast: 120,
+    normal: 200,
+    slow: 320,
+    slower: 480,
+    slowest: 700,
+  },
+  easing: {
+    default: 'cubic-bezier(0.22, 1, 0.36, 1)',
+    easeIn: 'cubic-bezier(0.55, 0, 1, 0.45)',
+    easeOut: 'cubic-bezier(0, 0.55, 0.45, 1)',
+    spring: 'cubic-bezier(0.22, 1, 0.36, 1)',
+    bounce: 'cubic-bezier(0.34, 1.56, 0.64, 1)',
+  },
+} as const;
+
+// 카드 스타일
 export const CARD_STYLE = {
   borderWidth: 1,
-  borderColor: 'rgba(0,0,0,0.04)',
-  borderRadius: 16,
+  borderColor: 'rgba(17,17,17,0.06)',
+  borderRadius: 10,
+} as const;
+
+// CTA 버튼 스타일 — 뮤트 테라코타
+export const CTA_STYLE = {
+  primary: {
+    backgroundColor: '#A88068',
+    borderRadius: 8,
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    minHeight: 48,
+  },
+  primaryLarge: {
+    backgroundColor: '#A88068',
+    borderRadius: 10,
+    paddingVertical: 16,
+    paddingHorizontal: 32,
+    minHeight: 52,
+  },
+} as const;
+
+// 뱃지 스타일
+export const BADGE_STYLES = {
+  recruiting: {
+    backgroundColor: '#2E7D4F',
+    color: '#FFFFFF',
+  },
+  hot: {
+    backgroundColor: '#D32F2F',
+    color: '#FFFFFF',
+  },
+  new: {
+    backgroundColor: '#C4A08A',
+    color: '#FFFFFF',
+  },
+  deposit: {
+    backgroundColor: '#2E7D4F',
+    color: '#FFFFFF',
+  },
+  premium: {
+    backgroundColor: '#7B5EA7',
+    color: '#FFFFFF',
+  },
 } as const;

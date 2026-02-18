@@ -172,8 +172,7 @@ const UniversalAISearchResultScreen: React.FC<UniversalAISearchResultScreenProps
       } else {
         throw new Error('검색 결과가 없습니다');
       }
-    } catch (error) {
-      console.error('AI 검색 오류:', error);
+    } catch (_error) {
       setAiResponse('검색 중 오류가 발생했습니다. 다시 시도해주세요.');
       
       // Try fallback search
@@ -223,8 +222,7 @@ const UniversalAISearchResultScreen: React.FC<UniversalAISearchResultScreenProps
       });
       
       setSearchResults(meetups);
-    } catch (error) {
-      console.error('Fallback search error:', error);
+    } catch (_error) {
     }
   };
 
@@ -456,7 +454,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: COLORS.neutral.background,
-    borderRadius: 12,
+    borderRadius: 8,
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderWidth: 1,
@@ -470,10 +468,10 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   searchButton: {
-    backgroundColor: COLORS.primary.main,
+    backgroundColor: COLORS.primary.accent,
     paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: 8,
+    borderRadius: 6,
   },
   searchButtonText: {
     fontSize: 14,
@@ -490,7 +488,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.neutral.white,
     margin: 16,
     padding: 20,
-    borderRadius: 16,
+    borderRadius: 10,
     ...SHADOWS.medium,
   },
   aiHeader: {
@@ -532,7 +530,7 @@ const styles = StyleSheet.create({
   cursor: {
     fontSize: 16,
     color: COLORS.primary.main,
-    fontWeight: 'bold',
+    fontWeight: '700',
   },
 
   // Suggestions section
@@ -541,7 +539,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginBottom: 16,
     padding: 20,
-    borderRadius: 16,
+    borderRadius: 10,
     ...SHADOWS.small,
   },
   suggestionsTitle: {
@@ -559,7 +557,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.neutral.background,
     paddingHorizontal: 12,
     paddingVertical: 8,
-    borderRadius: 20,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: COLORS.neutral.grey200,
   },
@@ -574,7 +572,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginBottom: 16,
     padding: 20,
-    borderRadius: 16,
+    borderRadius: 10,
     ...SHADOWS.small,
   },
   resultsTitle: {
@@ -590,7 +588,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginBottom: 16,
     padding: 40,
-    borderRadius: 16,
+    borderRadius: 10,
     alignItems: 'center',
     ...SHADOWS.small,
   },
@@ -615,11 +613,11 @@ const styles = StyleSheet.create({
   // AI Reasons styles
   aiReasonsContainer: {
     backgroundColor: COLORS.primary.light + '20',
-    borderRadius: 12,
+    borderRadius: 8,
     padding: 12,
     marginBottom: 8,
     borderLeftWidth: 3,
-    borderLeftColor: COLORS.primary.main,
+    borderLeftColor: COLORS.primary.accent,
   },
   aiReasonsHeader: {
     flexDirection: 'row',
@@ -634,10 +632,10 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   aiScoreBadge: {
-    backgroundColor: COLORS.primary.main,
+    backgroundColor: COLORS.primary.accent,
     paddingHorizontal: 8,
     paddingVertical: 3,
-    borderRadius: 12,
+    borderRadius: 8,
   },
   aiScoreText: {
     fontSize: 11,

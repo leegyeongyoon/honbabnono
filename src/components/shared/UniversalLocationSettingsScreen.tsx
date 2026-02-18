@@ -62,7 +62,6 @@ const UniversalLocationSettingsScreen: React.FC<UniversalLocationSettingsScreenP
               });
             },
             (error) => {
-              console.error('웹 GPS 오류:', error);
               reject(error);
             },
             { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
@@ -80,7 +79,6 @@ const UniversalLocationSettingsScreen: React.FC<UniversalLocationSettingsScreenP
             });
           },
           (error) => {
-            console.error('Native GPS 오류:', error);
             reject(error);
           },
           { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
@@ -120,8 +118,7 @@ const UniversalLocationSettingsScreen: React.FC<UniversalLocationSettingsScreenP
       }
 
       return null;
-    } catch (error) {
-      console.error('역지오코딩 실패:', error);
+    } catch (_error) {
       return null;
     }
   };
@@ -138,8 +135,7 @@ const UniversalLocationSettingsScreen: React.FC<UniversalLocationSettingsScreenP
         setCurrentLocation(locationData);
         updateNeighborhood(locationData.district, locationData.neighborhood);
       }
-    } catch (error) {
-      console.error('현재 위치 가져오기 실패:', error);
+    } catch (_error) {
       // GPS 실패 시 알림 (선택사항)
       if (Platform.OS !== 'web') {
         Alert.alert(
@@ -206,8 +202,7 @@ const UniversalLocationSettingsScreen: React.FC<UniversalLocationSettingsScreenP
         }
       }
 
-    } catch (error) {
-      console.error('지역 설정 조회 실패:', error);
+    } catch (_error) {
       setCurrentLocation({
         district: '강남구',
         neighborhood: '역삼동',
@@ -251,8 +246,7 @@ const UniversalLocationSettingsScreen: React.FC<UniversalLocationSettingsScreenP
         preferredNeighborhood: neighborhood,
       });
       // 지역 설정 저장 완료
-    } catch (error) {
-      console.error('지역 설정 저장 실패:', error);
+    } catch (_error) {
     } finally {
       setSaving(false);
     }
@@ -278,7 +272,7 @@ const UniversalLocationSettingsScreen: React.FC<UniversalLocationSettingsScreenP
           <View style={styles.placeholder} />
         </View>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={COLORS.primary.main} />
+          <ActivityIndicator size="large" color={COLORS.primary.accent} />
           <Text style={styles.loadingText}>지역 설정을 불러오는 중...</Text>
         </View>
       </View>
@@ -292,7 +286,7 @@ const UniversalLocationSettingsScreen: React.FC<UniversalLocationSettingsScreenP
         <View style={styles.placeholder} />
         <Text style={styles.headerTitle}>지역 설정</Text>
         <View style={styles.placeholder}>
-          {saving && <ActivityIndicator size="small" color={COLORS.primary.main} />}
+          {saving && <ActivityIndicator size="small" color={COLORS.primary.accent} />}
         </View>
       </View>
 
@@ -302,7 +296,7 @@ const UniversalLocationSettingsScreen: React.FC<UniversalLocationSettingsScreenP
           <Text style={styles.sectionTitle}>현재 설정된 지역</Text>
           <View style={styles.currentLocationCard}>
             <View style={styles.locationIconContainer}>
-              <Icon name="map-pin" size={24} color={COLORS.primary.main} />
+              <Icon name="map-pin" size={22} color={COLORS.primary.accent} />
             </View>
             <View style={styles.locationInfo}>
               {currentLocation ? (
@@ -333,9 +327,9 @@ const UniversalLocationSettingsScreen: React.FC<UniversalLocationSettingsScreenP
           >
             <View style={styles.myLocationIconContainer}>
               {gpsLoading ? (
-                <ActivityIndicator size="small" color={COLORS.primary.main} />
+                <ActivityIndicator size="small" color={COLORS.primary.accent} />
               ) : (
-                <Icon name="navigation" size={24} color={COLORS.primary.main} />
+                <Icon name="navigation" size={22} color={COLORS.primary.accent} />
               )}
             </View>
             <View style={styles.buttonTextContainer}>
@@ -344,13 +338,13 @@ const UniversalLocationSettingsScreen: React.FC<UniversalLocationSettingsScreenP
                 GPS로 현재 위치를 자동으로 가져옵니다
               </Text>
             </View>
-            <Icon name="chevron-right" size={20} color={COLORS.primary.main} />
+            <Icon name="chevron-right" size={20} color={COLORS.text.tertiary} />
           </TouchableOpacity>
 
           {/* 지도에서 위치 선택 버튼 */}
           <TouchableOpacity style={styles.changeLocationButton} onPress={handleOpenMap}>
             <View style={styles.buttonIconContainer}>
-              <Icon name="map" size={24} color={COLORS.neutral.white} />
+              <Icon name="map" size={22} color={COLORS.neutral.white} />
             </View>
             <View style={styles.buttonTextContainer}>
               <Text style={styles.buttonTitle}>지도에서 위치 선택</Text>
@@ -367,19 +361,19 @@ const UniversalLocationSettingsScreen: React.FC<UniversalLocationSettingsScreenP
           <Text style={styles.sectionTitle}>지역 설정 안내</Text>
           <View style={styles.infoCard}>
             <View style={styles.infoItem}>
-              <Icon name="info" size={20} color={COLORS.primary.main} />
+              <Icon name="info" size={18} color={COLORS.primary.accent} />
               <Text style={styles.infoText}>
                 설정한 지역을 기준으로 주변 모임이 추천됩니다.
               </Text>
             </View>
             <View style={styles.infoItem}>
-              <Icon name="users" size={20} color={COLORS.primary.main} />
+              <Icon name="users" size={18} color={COLORS.primary.accent} />
               <Text style={styles.infoText}>
                 같은 지역의 사용자들과 더 쉽게 만날 수 있어요.
               </Text>
             </View>
             <View style={styles.infoItem}>
-              <Icon name="bell" size={20} color={COLORS.primary.main} />
+              <Icon name="bell" size={18} color={COLORS.primary.accent} />
               <Text style={styles.infoText}>
                 설정 지역에 새로운 모임이 생기면 알림을 받을 수 있습니다.
               </Text>
@@ -452,7 +446,10 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     paddingBottom: 16,
     backgroundColor: COLORS.neutral.white,
-    ...SHADOWS.small,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(17,17,17,0.06)',
+    ...SHADOWS.sticky,
+    zIndex: 10,
   },
   backButton: {
     padding: 4,
@@ -461,6 +458,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '700',
     color: COLORS.text.primary,
+    letterSpacing: -0.3,
   },
   placeholder: {
     width: 32,
@@ -474,7 +472,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loadingText: {
-    fontSize: 16,
+    fontSize: 15,
     color: COLORS.text.secondary,
     marginTop: 12,
   },
@@ -485,46 +483,51 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: COLORS.text.primary,
+    fontSize: 13,
+    fontWeight: '600',
+    color: COLORS.text.tertiary,
     paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: COLORS.neutral.background,
+    paddingTop: 20,
+    paddingBottom: 10,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
   },
   currentLocationCard: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: COLORS.neutral.white,
     marginHorizontal: 16,
-    padding: 20,
-    borderRadius: 16,
+    padding: 18,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(17,17,17,0.06)',
     ...SHADOWS.small,
   },
   locationIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: COLORS.primary.light,
+    width: 44,
+    height: 44,
+    borderRadius: 8,
+    backgroundColor: COLORS.primary.accent + '10',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 16,
+    marginRight: 14,
   },
   locationInfo: {
     flex: 1,
   },
   locationMain: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '600',
     color: COLORS.text.primary,
-    marginBottom: 4,
+    marginBottom: 3,
+    letterSpacing: -0.2,
   },
   locationAddress: {
-    fontSize: 14,
-    color: COLORS.text.secondary,
+    fontSize: 13,
+    color: COLORS.text.tertiary,
   },
   locationPlaceholder: {
-    fontSize: 16,
+    fontSize: 15,
     color: COLORS.text.tertiary,
   },
   myLocationButton: {
@@ -532,31 +535,32 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: COLORS.neutral.white,
     marginHorizontal: 16,
-    marginBottom: 12,
-    padding: 20,
-    borderRadius: 16,
-    borderWidth: 2,
-    borderColor: COLORS.primary.main,
+    marginBottom: 10,
+    padding: 18,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: COLORS.primary.accent,
     ...SHADOWS.small,
   },
   myLocationIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: COLORS.primary.light,
+    width: 44,
+    height: 44,
+    borderRadius: 8,
+    backgroundColor: COLORS.primary.accent + '10',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 16,
+    marginRight: 14,
   },
   myLocationTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '600',
-    color: COLORS.primary.main,
-    marginBottom: 4,
+    color: COLORS.primary.accent,
+    marginBottom: 3,
+    letterSpacing: -0.2,
   },
   myLocationSubtitle: {
     fontSize: 13,
-    color: COLORS.text.secondary,
+    color: COLORS.text.tertiary,
     lineHeight: 18,
   },
   changeLocationButton: {
@@ -564,44 +568,47 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: COLORS.primary.main,
     marginHorizontal: 16,
-    padding: 20,
-    borderRadius: 16,
+    padding: 18,
+    borderRadius: 8,
     ...SHADOWS.medium,
   },
   buttonIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    width: 44,
+    height: 44,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 16,
+    marginRight: 14,
   },
   buttonTextContainer: {
     flex: 1,
   },
   buttonTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '600',
     color: COLORS.neutral.white,
-    marginBottom: 4,
+    marginBottom: 3,
+    letterSpacing: -0.2,
   },
   buttonSubtitle: {
     fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.8)',
+    color: 'rgba(255, 255, 255, 0.7)',
     lineHeight: 18,
   },
   infoCard: {
     backgroundColor: COLORS.neutral.white,
     marginHorizontal: 16,
-    padding: 20,
-    borderRadius: 16,
+    padding: 18,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(17,17,17,0.06)',
     ...SHADOWS.small,
   },
   infoItem: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    marginBottom: 16,
+    marginBottom: 14,
   },
   infoText: {
     flex: 1,
@@ -620,21 +627,24 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: COLORS.neutral.white,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 6,
     marginHorizontal: 4,
     marginBottom: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(17,17,17,0.06)',
     ...SHADOWS.small,
   },
   popularLocationEmoji: {
-    fontSize: 20,
+    fontSize: 18,
     marginRight: 8,
   },
   popularLocationText: {
     fontSize: 14,
     fontWeight: '500',
     color: COLORS.text.primary,
+    letterSpacing: -0.1,
   },
   bottomSpacer: {
     height: 40,

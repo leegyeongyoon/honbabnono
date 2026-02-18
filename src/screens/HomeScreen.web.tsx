@@ -35,6 +35,17 @@ interface HomeScreenProps {
   user?: any;
 }
 
+// 시간대별 인사말
+const getGreeting = (): { greeting: string; subtitle: string } => {
+  const hour = new Date().getHours();
+  if (hour < 7) return { greeting: '좋은 새벽이에요!', subtitle: '일찍 일어나셨네요' };
+  if (hour < 11) return { greeting: '좋은 아침이에요!', subtitle: '오늘도 맛있는 하루 시작해요' };
+  if (hour < 14) return { greeting: '점심 시간이에요!', subtitle: '함께 맛있는 점심 어때요?' };
+  if (hour < 17) return { greeting: '좋은 오후에요!', subtitle: '간식 타임 같이 할까요?' };
+  if (hour < 21) return { greeting: '저녁이 왔어요!', subtitle: '오늘 같이 밥 먹을까요?' };
+  return { greeting: '좋은 밤이에요!', subtitle: '야식 메이트를 찾아볼까요?' };
+};
+
 const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, user: propUser }) => {
   const navigate = useNavigate();
   const { updateNeighborhood, user } = useUserStore();
@@ -150,7 +161,6 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
   // ─── 섹션별 모임 데이터 분류 ─────────────────────────────
   const now = new Date();
 
-  // 곧 시작하는 밥약속: 오늘/내일 모임, 시간 임박 순
   const soonMeetups = meetups
     .filter((m) => {
       if (!m.date) return false;
@@ -162,7 +172,6 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
     .slice(0, 6);
 
-  // 새로 올라온 모임: createdAt 최신 순
   const newMeetups = [...meetups]
     .sort((a, b) => {
       const aTime = new Date(a.createdAt || a.updatedAt).getTime();
@@ -171,24 +180,104 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
     })
     .slice(0, 6);
 
-  // 모집중인 모임: status === 'recruiting'
   const recruitingMeetups = meetups
     .filter((m) => m.status === 'recruiting')
     .slice(0, 10);
 
+  const { greeting, subtitle } = getGreeting();
+
+  // ─── 섹션 헤더 컴포넌트 (에디토리얼 — 클린 타이포그래피) ────
+  const SectionHeader = ({ title, subtitle: sub, onSeeAll, seeAllKey }: {
+    emoji?: string; title: string; subtitle?: string; onSeeAll: () => void; seeAllKey: string;
+  }) => (
+    <div style={{
+      display: 'flex',
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: `0 ${SPACING.xl}px`,
+      marginBottom: SPACING.md,
+    }}>
+      <div>
+        <div style={{
+          display: 'flex',
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 10,
+        }}>
+          <div style={{
+            width: 3,
+            height: 18,
+            backgroundColor: COLORS.primary.accent,
+            borderRadius: 2,
+          }} />
+          <div style={{
+            fontSize: 18,
+            fontWeight: '700',
+            lineHeight: '26px',
+            letterSpacing: -0.3,
+            color: COLORS.text.primary,
+          }}>
+            {title}
+          </div>
+        </div>
+        {sub && (
+          <div style={{
+            fontSize: 13,
+            fontWeight: '400',
+            lineHeight: '18px',
+            color: COLORS.text.tertiary,
+            marginTop: 4,
+            marginLeft: 13,
+          }}>
+            {sub}
+          </div>
+        )}
+      </div>
+      <div
+        onClick={onSeeAll}
+        onMouseEnter={() => setHoveredSeeAll(seeAllKey)}
+        onMouseLeave={() => setHoveredSeeAll(null)}
+        style={{
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 2,
+          minHeight: 44,
+          paddingLeft: 8,
+        }}
+        role="link"
+        aria-label={`${title} 더보기`}
+      >
+        <span style={{
+          fontSize: 13,
+          fontWeight: '500',
+          color: hoveredSeeAll === seeAllKey ? COLORS.primary.accent : COLORS.text.tertiary,
+          transition: 'color 150ms ease',
+        }}>더보기</span>
+        <Icon name="chevron-right" size={14} color={hoveredSeeAll === seeAllKey ? COLORS.primary.accent : COLORS.text.tertiary} />
+      </div>
+    </div>
+  );
+
   return (
     <View style={styles.container}>
-      {/* 고정 헤더 (72px) - SHADOWS.small 부드러운 구분 */}
-      <div style={{ boxShadow: CSS_SHADOWS.small }}>
+      {/* 고정 헤더 — 미니멀 에디토리얼 */}
+      <div style={{
+        boxShadow: CSS_SHADOWS.stickyHeader,
+        zIndex: 10,
+        position: 'relative',
+        borderBottom: `1px solid rgba(17,17,17,0.06)`,
+      }}>
         <View style={styles.header}>
-          <Text style={styles.headerLogo}>혼밥시러</Text>
+          <Text style={styles.headerLogo}>잇테이블</Text>
 
           <TouchableOpacity
             style={[styles.locationButton, { cursor: 'pointer' } as any]}
             onPress={openNeighborhoodSelector}
             accessibilityLabel="동네 변경"
           >
-            <Icon name="map-pin" size={14} color={COLORS.primary.main} />
+            <Icon name="map-pin" size={14} color={COLORS.primary.accent} />
             <Text style={styles.locationText}>
               {currentNeighborhood ? `${currentNeighborhood.neighborhood}` : '역삼동'}
             </Text>
@@ -219,24 +308,95 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
         onScroll={handleScroll}
         scrollEventThrottle={100}
       >
-        {/* 검색 바 */}
-        <View style={styles.searchSection}>
-          <div
-            style={{
-              ...StyleSheet.flatten([
-                styles.searchBar,
-                searchFocused && styles.searchBarFocused,
-              ]),
-              transition: 'box-shadow 200ms ease, border-color 200ms ease',
-              boxShadow: searchFocused ? CSS_SHADOWS.focused : 'none',
-              cursor: 'text',
-            }}
-          >
-            <Icon name="search" size={20} color={searchFocused ? COLORS.primary.main : COLORS.text.tertiary} />
+        {/* ─── 히어로 섹션 — 딥 차콜 그라데이션 ─── */}
+        <div
+          className="animate-fadeIn"
+          style={{
+            background: COLORS.gradient.heroCSS,
+            paddingTop: 40,
+            paddingBottom: 48,
+            paddingLeft: 24,
+            paddingRight: 24,
+            position: 'relative',
+            overflow: 'hidden',
+          }}
+        >
+          {/* 장식 — 미니멀 기하학적 요소 */}
+          <div style={{
+            position: 'absolute',
+            top: -30,
+            right: -20,
+            width: 140,
+            height: 140,
+            borderRadius: 70,
+            background: 'radial-gradient(circle, rgba(196,154,112,0.12) 0%, transparent 70%)',
+            pointerEvents: 'none',
+          }} />
+          <div style={{
+            position: 'absolute',
+            bottom: -20,
+            left: -30,
+            width: 100,
+            height: 100,
+            borderRadius: 50,
+            background: 'radial-gradient(circle, rgba(255,255,255,0.06) 0%, transparent 70%)',
+            pointerEvents: 'none',
+          }} />
+
+          {/* 인사 텍스트 */}
+          <div style={{ marginBottom: 6 }}>
+            <div style={{
+              fontSize: 28,
+              fontWeight: '700',
+              lineHeight: '36px',
+              letterSpacing: -0.5,
+              color: '#FFFFFF',
+            }}>
+              {greeting}
+            </div>
+            <div style={{
+              fontSize: 15,
+              fontWeight: '400',
+              lineHeight: '22px',
+              color: 'rgba(255,255,255,0.7)',
+              marginTop: 6,
+            }}>
+              {subtitle}
+            </div>
+          </div>
+        </div>
+
+        {/* 검색바 (히어로 아래 겹쳐서 배치) */}
+        <div style={{
+          padding: `0 ${SPACING.xl}px`,
+          marginTop: -24,
+          marginBottom: SPACING.lg,
+          position: 'relative',
+          zIndex: 5,
+        }}>
+          <div style={{
+            display: 'flex',
+            flexDirection: 'row',
+            alignItems: 'center',
+            height: 48,
+            backgroundColor: COLORS.neutral.white,
+            borderRadius: BORDER_RADIUS.lg,
+            paddingLeft: SPACING.lg,
+            paddingRight: SPACING.lg,
+            gap: SPACING.md,
+            border: searchFocused
+              ? `1.5px solid ${COLORS.primary.accent}`
+              : `1.5px solid ${COLORS.neutral.grey100}`,
+            boxShadow: searchFocused
+              ? `${CSS_SHADOWS.medium}, ${CSS_SHADOWS.focused}`
+              : CSS_SHADOWS.medium,
+            transition: 'border-color 200ms ease, box-shadow 200ms ease',
+          }}>
+            <Icon name="search" size={18} color={searchFocused ? COLORS.primary.accent : COLORS.text.tertiary} />
             <TextInput
               style={styles.searchInput}
               placeholder="오늘 같이 밥 먹을 사람 찾기"
-              placeholderTextColor={COLORS.text.tertiary}
+              placeholderTextColor={COLORS.neutral.grey400}
               value={searchQuery}
               onChangeText={handleSearchInput}
               onKeyPress={handleKeyPress}
@@ -287,12 +447,29 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
                 ))}
             </View>
           )}
-        </View>
+        </div>
 
         {/* 카테고리 그리드 (4x2) with CategoryIcon */}
         <FadeIn delay={100}>
-          <View style={styles.categorySection}>
-            <View style={styles.categoryGrid}>
+          <div
+            className="animate-fadeInUp stagger-1"
+            style={{
+              backgroundColor: COLORS.neutral.white,
+              paddingTop: SPACING.md,
+              paddingBottom: SPACING.xxl,
+              paddingLeft: SPACING.xl,
+              paddingRight: SPACING.xl,
+              marginBottom: SPACING.sm,
+            }}
+          >
+            <div style={{
+              display: 'flex',
+              flexDirection: 'row',
+              flexWrap: 'wrap',
+              justifyContent: 'space-between',
+              rowGap: SPACING.xl,
+              gap: SPACING.lg,
+            }}>
               {FOOD_CATEGORIES.map((category) => (
                 <div
                   key={category.id}
@@ -300,31 +477,52 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
                   onMouseEnter={() => setHoveredCategoryId(category.id)}
                   onMouseLeave={() => setHoveredCategoryId(null)}
                   style={{
-                    ...StyleSheet.flatten(styles.categoryItem),
+                    width: '21%',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
                     cursor: 'pointer',
                   }}
                   role="button"
                   aria-label={category.name}
                 >
-                  <View style={[
-                    styles.categoryIconBox,
-                    {
-                      backgroundColor: hoveredCategoryId === category.id ? COLORS.primary.light : category.bgColor,
-                      transition: 'background-color 200ms ease',
-                    } as any,
-                  ]}>
+                  <div style={{
+                    width: 64,
+                    height: 64,
+                    borderRadius: BORDER_RADIUS.lg,
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    marginBottom: SPACING.sm,
+                    backgroundColor: hoveredCategoryId === category.id ? COLORS.surface.secondary : category.bgColor,
+                    border: `1px solid ${hoveredCategoryId === category.id ? COLORS.neutral.grey200 : 'rgba(17,17,17,0.06)'}`,
+                    transition: 'all 200ms ease',
+                    boxShadow: hoveredCategoryId === category.id ? CSS_SHADOWS.small : 'none',
+                    transform: hoveredCategoryId === category.id ? 'translateY(-2px)' : 'translateY(0)',
+                  }}>
                     <CategoryIcon
                       iconName={category.icon}
                       size={48}
                       color={category.color}
-                      backgroundColor={hoveredCategoryId === category.id ? COLORS.primary.light : category.bgColor}
+                      backgroundColor={hoveredCategoryId === category.id ? COLORS.surface.secondary : category.bgColor}
                     />
-                  </View>
-                  <Text style={styles.categoryName} numberOfLines={1}>{category.name}</Text>
+                  </div>
+                  <span style={{
+                    fontSize: 12,
+                    fontWeight: '500',
+                    lineHeight: '16px',
+                    letterSpacing: 0.1,
+                    color: COLORS.text.secondary,
+                    textAlign: 'center',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                    maxWidth: '100%',
+                  }}>{category.name}</span>
                 </div>
               ))}
-            </View>
-          </View>
+            </div>
+          </div>
         </FadeIn>
 
         {/* 광고 배너 */}
@@ -333,23 +531,21 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
         {/* 섹션 1: 곧 시작하는 밥약속 */}
         {(isLoading || soonMeetups.length > 0) && (
           <FadeIn delay={200}>
-            <View style={styles.contentSection}>
-              <View style={styles.sectionHeader}>
-                <View style={styles.sectionTitleRow}>
-                  <Text style={styles.sectionEmoji}>&#x23F0;</Text>
-                  <Text style={styles.sectionTitle}>곧 시작하는 밥약속</Text>
-                </View>
-                <div
-                  onClick={() => navigate('/explore')}
-                  onMouseEnter={() => setHoveredSeeAll('soon')}
-                  onMouseLeave={() => setHoveredSeeAll(null)}
-                  style={{ cursor: 'pointer' }}
-                  role="link"
-                  aria-label="곧 시작하는 밥약속 더보기"
-                >
-                  <Text style={[styles.seeAllText, hoveredSeeAll === 'soon' && { textDecorationLine: 'underline' as any }]}>더보기</Text>
-                </div>
-              </View>
+            <div
+              className="animate-fadeInUp stagger-2"
+              style={{
+                paddingTop: SPACING.section?.paddingTop || 28,
+                paddingBottom: SPACING.lg,
+                marginBottom: SPACING.sm,
+                backgroundColor: COLORS.neutral.white,
+              }}
+            >
+              <SectionHeader
+                title="곧 시작하는 밥약속"
+                subtitle="2시간 이내 시작"
+                onSeeAll={() => navigate('/explore')}
+                seeAllKey="soon"
+              />
               {isLoading ? (
                 <ScrollView
                   horizontal
@@ -378,11 +574,11 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
                         onMouseEnter={() => setHoveredCardId(`soon-${meetup.id}`)}
                         onMouseLeave={() => setHoveredCardId(null)}
                         style={{
-                          ...StyleSheet.flatten(styles.horizontalCardWrapper),
+                          width: 240,
                           transition: 'all 200ms ease',
-                          transform: hoveredCardId === `soon-${meetup.id}` ? 'translateY(-2px)' : 'none',
-                          boxShadow: hoveredCardId === `soon-${meetup.id}` ? CSS_SHADOWS.medium : 'none',
-                          borderRadius: 16,
+                          transform: hoveredCardId === `soon-${meetup.id}` ? 'translateY(-3px)' : 'none',
+                          boxShadow: hoveredCardId === `soon-${meetup.id}` ? CSS_SHADOWS.cardHover : 'none',
+                          borderRadius: BORDER_RADIUS.lg,
                         }}
                       >
                         <MeetupCard
@@ -395,30 +591,28 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
                   })}
                 </ScrollView>
               )}
-            </View>
+            </div>
           </FadeIn>
         )}
 
         {/* 섹션 2: 새로 올라온 모임 */}
         {(isLoading || newMeetups.length > 0) && (
           <FadeIn delay={300}>
-            <View style={styles.contentSection}>
-              <View style={styles.sectionHeader}>
-                <View style={styles.sectionTitleRow}>
-                  <Text style={styles.sectionEmoji}>&#x2728;</Text>
-                  <Text style={styles.sectionTitle}>새로 올라온 모임</Text>
-                </View>
-                <div
-                  onClick={() => navigate('/explore')}
-                  onMouseEnter={() => setHoveredSeeAll('new')}
-                  onMouseLeave={() => setHoveredSeeAll(null)}
-                  style={{ cursor: 'pointer' }}
-                  role="link"
-                  aria-label="새로 올라온 모임 더보기"
-                >
-                  <Text style={[styles.seeAllText, hoveredSeeAll === 'new' && { textDecorationLine: 'underline' as any }]}>더보기</Text>
-                </div>
-              </View>
+            <div
+              className="animate-fadeInUp stagger-3"
+              style={{
+                paddingTop: SPACING.section?.paddingTop || 28,
+                paddingBottom: SPACING.lg,
+                marginBottom: SPACING.sm,
+                backgroundColor: COLORS.surface.secondary,
+              }}
+            >
+              <SectionHeader
+                title="새로 올라온 모임"
+                subtitle="방금 등록된 새 모임"
+                onSeeAll={() => navigate('/explore')}
+                seeAllKey="new"
+              />
               {isLoading ? (
                 <ScrollView
                   horizontal
@@ -447,11 +641,11 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
                         onMouseEnter={() => setHoveredCardId(`new-${meetup.id}`)}
                         onMouseLeave={() => setHoveredCardId(null)}
                         style={{
-                          ...StyleSheet.flatten(styles.horizontalCardWrapper),
+                          width: 240,
                           transition: 'all 200ms ease',
-                          transform: hoveredCardId === `new-${meetup.id}` ? 'translateY(-2px)' : 'none',
-                          boxShadow: hoveredCardId === `new-${meetup.id}` ? CSS_SHADOWS.medium : 'none',
-                          borderRadius: 16,
+                          transform: hoveredCardId === `new-${meetup.id}` ? 'translateY(-3px)' : 'none',
+                          boxShadow: hoveredCardId === `new-${meetup.id}` ? CSS_SHADOWS.cardHover : 'none',
+                          borderRadius: BORDER_RADIUS.lg,
                         }}
                       >
                         <MeetupCard
@@ -464,30 +658,28 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
                   })}
                 </ScrollView>
               )}
-            </View>
+            </div>
           </FadeIn>
         )}
 
         {/* 섹션 3: 모집중인 모임 (세로 리스트) */}
         {(isLoading || recruitingMeetups.length > 0) && (
           <FadeIn delay={400}>
-            <View style={styles.contentSection}>
-              <View style={styles.sectionHeader}>
-                <View style={styles.sectionTitleRow}>
-                  <Text style={styles.sectionEmoji}>&#x1F91D;</Text>
-                  <Text style={styles.sectionTitle}>모집중인 모임</Text>
-                </View>
-                <div
-                  onClick={() => navigate('/explore')}
-                  onMouseEnter={() => setHoveredSeeAll('recruiting')}
-                  onMouseLeave={() => setHoveredSeeAll(null)}
-                  style={{ cursor: 'pointer' }}
-                  role="link"
-                  aria-label="모집중인 모임 더보기"
-                >
-                  <Text style={[styles.seeAllText, hoveredSeeAll === 'recruiting' && { textDecorationLine: 'underline' as any }]}>더보기</Text>
-                </div>
-              </View>
+            <div
+              className="animate-fadeInUp stagger-4"
+              style={{
+                paddingTop: SPACING.section?.paddingTop || 28,
+                paddingBottom: SPACING.lg,
+                marginBottom: SPACING.sm,
+                backgroundColor: COLORS.neutral.white,
+              }}
+            >
+              <SectionHeader
+                title="모집중인 모임"
+                subtitle="함께할 사람을 찾고 있어요"
+                onSeeAll={() => navigate('/explore')}
+                seeAllKey="recruiting"
+              />
               {isLoading ? (
                 <View style={styles.verticalList}>
                   {[1, 2, 3].map((i) => (
@@ -510,8 +702,8 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
                         style={{
                           transition: 'all 200ms ease',
                           transform: hoveredCardId === `rec-${meetup.id}` ? 'translateY(-2px)' : 'none',
-                          boxShadow: hoveredCardId === `rec-${meetup.id}` ? CSS_SHADOWS.medium : 'none',
-                          borderRadius: 16,
+                          boxShadow: hoveredCardId === `rec-${meetup.id}` ? CSS_SHADOWS.cardHover : 'none',
+                          borderRadius: BORDER_RADIUS.lg,
                         }}
                       >
                         <MeetupCard
@@ -524,7 +716,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
                   })}
                 </View>
               )}
-            </View>
+            </div>
           </FadeIn>
         )}
 
@@ -539,23 +731,40 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
           />
         )}
 
-        {/* 모든 모임 보기 버튼 */}
+        {/* 모든 모임 보기 버튼 — 테라코타 CTA */}
         <div
           onClick={() => navigate('/explore')}
           onMouseEnter={() => setHoveredAllMeetups(true)}
           onMouseLeave={() => setHoveredAllMeetups(false)}
           style={{
-            ...StyleSheet.flatten(styles.allMeetupsButton),
+            display: 'flex',
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: SPACING.sm,
+            marginLeft: SPACING.xl,
+            marginRight: SPACING.xl,
+            marginTop: SPACING.lg,
+            marginBottom: SPACING.xl,
+            paddingTop: 14,
+            paddingBottom: 14,
+            background: COLORS.gradient.ctaCSS,
+            borderRadius: BORDER_RADIUS.md,
             cursor: 'pointer',
             transition: 'all 200ms ease',
             transform: hoveredAllMeetups ? 'translateY(-2px)' : 'none',
-            boxShadow: hoveredAllMeetups ? CSS_SHADOWS.medium : CSS_SHADOWS.small,
+            boxShadow: hoveredAllMeetups ? CSS_SHADOWS.cta : CSS_SHADOWS.card,
           }}
           role="button"
           aria-label="모든 모임 보기"
         >
-          <Text style={styles.allMeetupsText}>모든 모임 보기</Text>
-          <Icon name="chevron-right" size={16} color={COLORS.primary.main} />
+          <span style={{
+            fontSize: 14,
+            fontWeight: '600',
+            letterSpacing: -0.03,
+            color: COLORS.neutral.white,
+          }}>모든 모임 보기</span>
+          <span style={{ color: COLORS.neutral.white, fontSize: 14 }}>&#x203A;</span>
         </div>
 
         {/* 하단 여백 */}
@@ -566,13 +775,14 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
       {showScrollTop && (
         <div
           onClick={scrollToTop}
+          className="animate-scaleIn"
           style={{
             position: 'fixed',
             bottom: 170,
             right: 20,
             width: 40,
             height: 40,
-            borderRadius: 20,
+            borderRadius: BORDER_RADIUS.lg,
             backgroundColor: COLORS.neutral.white,
             display: 'flex',
             alignItems: 'center',
@@ -589,34 +799,42 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
         </div>
       )}
 
-      {/* FAB - 원형 모임 만들기 버튼 */}
+      {/* FAB — 테라코타 악센트, 확장형 */}
       <div
         onClick={() => setShowCreateMeetup(true)}
         onMouseEnter={() => setFabHovered(true)}
         onMouseLeave={() => { setFabHovered(false); setFabPressed(false); }}
         onMouseDown={() => setFabPressed(true)}
         onMouseUp={() => setFabPressed(false)}
+        className="animate-scaleIn"
         style={{
           position: 'fixed',
           bottom: 100,
           right: 20,
-          width: 60,
-          height: 60,
-          borderRadius: 30,
-          backgroundColor: fabPressed ? COLORS.primary.dark : COLORS.primary.main,
+          height: 48,
+          paddingLeft: 16,
+          paddingRight: 20,
+          borderRadius: BORDER_RADIUS.md,
+          background: fabPressed
+            ? COLORS.primary.main
+            : COLORS.gradient.ctaCSS,
           display: 'flex',
+          flexDirection: 'row',
           alignItems: 'center',
           justifyContent: 'center',
-          boxShadow: fabHovered ? CSS_SHADOWS.hover : CSS_SHADOWS.large,
+          gap: 6,
+          boxShadow: fabHovered ? CSS_SHADOWS.hover : CSS_SHADOWS.cta,
           cursor: 'pointer',
           zIndex: 1000,
           transition: 'all 200ms ease',
-          transform: fabPressed ? 'scale(0.95)' : fabHovered ? 'scale(1.05)' : 'scale(1)',
+          transform: fabPressed ? 'scale(0.97)' : fabHovered ? 'translateY(-2px)' : 'none',
+          animationDelay: '800ms',
         }}
         role="button"
         aria-label="새 모임 만들기"
       >
-        <span style={{ fontSize: 28, color: COLORS.neutral.white, fontWeight: '300', lineHeight: '28px' }}>+</span>
+        <span style={{ fontSize: 20, color: COLORS.neutral.white, fontWeight: '300', lineHeight: '20px' }}>+</span>
+        <span style={{ fontSize: 14, fontWeight: '600', color: COLORS.neutral.white, whiteSpace: 'nowrap' }}>모임 만들기</span>
       </div>
 
       {/* 모달들 */}
@@ -647,7 +865,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.neutral.background,
   },
 
-  // ─── 헤더 ─────────────────────────────────────────
+  // ─── 헤더 — 미니멀 에디토리얼 ──────────────────────────
   header: {
     height: LAYOUT.HEADER_HEIGHT,
     flexDirection: 'row',
@@ -658,8 +876,8 @@ const styles = StyleSheet.create({
   },
   headerLogo: {
     fontSize: 22,
-    fontWeight: FONT_WEIGHTS.extraBold as any,
-    letterSpacing: -0.3,
+    fontWeight: FONT_WEIGHTS.bold as any,
+    letterSpacing: -0.5,
     color: COLORS.primary.main,
     lineHeight: 30,
   },
@@ -671,14 +889,14 @@ const styles = StyleSheet.create({
     minWidth: 44,
     paddingHorizontal: SPACING.lg,
     paddingVertical: SPACING.sm,
-    backgroundColor: COLORS.neutral.background,
-    borderRadius: BORDER_RADIUS.full,
+    backgroundColor: COLORS.surface.secondary,
+    borderRadius: BORDER_RADIUS.md,
     borderWidth: 1,
     borderColor: COLORS.neutral.grey100,
   },
   locationText: {
     ...TYPOGRAPHY.location.primary,
-    fontWeight: FONT_WEIGHTS.bold as any,
+    fontWeight: FONT_WEIGHTS.semiBold as any,
   },
   headerRight: {
     marginLeft: 'auto',
@@ -693,37 +911,16 @@ const styles = StyleSheet.create({
   },
 
   // ─── 검색 바 ─────────────────────────────────────────
-  searchSection: {
-    paddingHorizontal: SPACING.xl,
-    paddingTop: SPACING.lg,
-    paddingBottom: SPACING.xl,
-    backgroundColor: COLORS.neutral.white,
-  },
-  searchBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    height: 52,
-    backgroundColor: COLORS.neutral.grey100,
-    borderRadius: BORDER_RADIUS.full,
-    paddingHorizontal: SPACING.xl,
-    gap: SPACING.md,
-    borderWidth: 2,
-    borderColor: 'transparent',
-  },
-  searchBarFocused: {
-    borderColor: COLORS.primary.main,
-    backgroundColor: COLORS.neutral.white,
-    ...SHADOWS.focused,
-  },
   searchInput: {
     flex: 1,
     fontSize: 15,
     fontWeight: FONT_WEIGHTS.regular as any,
     lineHeight: 20,
-    letterSpacing: 0,
+    letterSpacing: -0.05,
     color: COLORS.text.primary,
-    border: 'none',
+    borderWidth: 0,
     backgroundColor: 'transparent',
+    outlineStyle: 'none',
   },
   clearButton: {
     padding: SPACING.xs,
@@ -735,8 +932,8 @@ const styles = StyleSheet.create({
   searchSubmitButton: {
     width: 34,
     height: 34,
-    borderRadius: BORDER_RADIUS.full,
-    backgroundColor: COLORS.primary.main,
+    borderRadius: BORDER_RADIUS.md,
+    backgroundColor: COLORS.primary.accent,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -754,7 +951,7 @@ const styles = StyleSheet.create({
   },
   suggestionsLabel: {
     ...TYPOGRAPHY.label,
-    color: COLORS.primary.main,
+    color: COLORS.primary.accent,
     fontWeight: FONT_WEIGHTS.semiBold as any,
     marginBottom: SPACING.sm,
     marginTop: SPACING.xs,
@@ -773,79 +970,7 @@ const styles = StyleSheet.create({
     color: COLORS.text.primary,
   },
 
-  // ─── 카테고리 그리드 ─────────────────────────────────
-  categorySection: {
-    backgroundColor: COLORS.neutral.white,
-    paddingTop: SPACING.lg,
-    paddingBottom: SPACING.xxl,
-    paddingHorizontal: SPACING.xl,
-    marginBottom: SPACING.sm,
-  },
-  categoryGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    rowGap: SPACING.xl,
-    gap: SPACING.lg,
-  },
-  categoryItem: {
-    width: '21%',
-    alignItems: 'center',
-  },
-  categoryIconBox: {
-    width: 68,
-    height: 68,
-    borderRadius: BORDER_RADIUS.xl,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: SPACING.sm,
-  },
-  categoryName: {
-    fontSize: 12,
-    fontWeight: FONT_WEIGHTS.medium as any,
-    lineHeight: 16,
-    letterSpacing: 0.2,
-    color: COLORS.text.tertiary,
-    textAlign: 'center',
-    overflow: 'hidden',
-  },
-
-  // ─── 콘텐츠 섹션 ─────────────────────────────────────
-  contentSection: {
-    paddingTop: SPACING.xxxl,
-    paddingBottom: SPACING.lg,
-    marginBottom: SPACING.sm,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: SPACING.xl,
-    marginBottom: SPACING.lg,
-  },
-  sectionTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.sm,
-  },
-  sectionEmoji: {
-    fontSize: 20,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: FONT_WEIGHTS.bold as any,
-    lineHeight: 26,
-    letterSpacing: -0.3,
-    color: COLORS.text.primary,
-  },
-  seeAllText: {
-    fontSize: 13,
-    fontWeight: FONT_WEIGHTS.medium as any,
-    letterSpacing: 0.2,
-    color: COLORS.primary.main,
-    minHeight: 44,
-    lineHeight: 44,
-  },
+  // ─── 카드 리스트 ───────────────────────────────────────
   horizontalCardList: {
     paddingLeft: SPACING.xl,
     paddingRight: SPACING.xl,
@@ -862,27 +987,6 @@ const styles = StyleSheet.create({
   },
   verticalListItem: {
     marginBottom: SPACING.md,
-  },
-
-  // ─── 모든 모임 보기 버튼 ─────────────────────────────
-  allMeetupsButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: SPACING.sm,
-    marginHorizontal: SPACING.xl,
-    marginTop: SPACING.lg,
-    marginBottom: SPACING.xl,
-    paddingVertical: SPACING.lg,
-    backgroundColor: COLORS.neutral.white,
-    borderRadius: BORDER_RADIUS.lg,
-    borderWidth: 1,
-    borderColor: COLORS.neutral.grey100,
-    ...SHADOWS.small,
-  },
-  allMeetupsText: {
-    ...TYPOGRAPHY.button.medium,
-    color: COLORS.primary.main,
   },
 
   // ─── 하단 여백 ───────────────────────────────────────

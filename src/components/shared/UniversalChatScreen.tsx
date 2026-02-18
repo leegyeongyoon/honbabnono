@@ -14,8 +14,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import { COLORS, SHADOWS, LAYOUT } from '../../styles/colors';
-import { SPACING } from '../../styles/spacing';
+import { COLORS, SHADOWS, CARD_STYLE, BORDER_RADIUS, SPACING, TYPOGRAPHY } from '../../styles';
 import {Icon} from '../Icon';
 import chatService from '../../services/chatService';
 import chatApiService, {ChatRoom, ChatMessage} from '../../services/chatApiService';
@@ -73,8 +72,7 @@ const UniversalChatScreen: React.FC<UniversalChatScreenProps> = ({
       const response = await fetch(`${chatApiService.baseURL}/check-direct-chat-permission?currentUserId=${userId}&targetUserId=${targetUserId}&meetupId=${meetupId || ''}`);
       const data = await response.json();
       return data.data || { allowed: false };
-    } catch (error) {
-      console.error('1대1 채팅 권한 체크 실패:', error);
+    } catch (_error) {
       return { allowed: false };
     }
   };
@@ -103,8 +101,7 @@ const UniversalChatScreen: React.FC<UniversalChatScreenProps> = ({
       } else {
         Alert.alert('오류', response.message || '1대1 채팅방을 생성할 수 없습니다.');
       }
-    } catch (error) {
-      console.error('1대1 채팅 시작 실패:', error);
+    } catch (_error) {
       Alert.alert('오류', '1대1 채팅을 시작할 수 없습니다.');
     }
   };
@@ -158,8 +155,7 @@ const UniversalChatScreen: React.FC<UniversalChatScreenProps> = ({
       setLoading(true);
       const rooms = await chatApiService.getChatRooms(userId);
       setChatRooms(rooms);
-    } catch (error) {
-      console.error('채팅방 목록 로드 실패:', error);
+    } catch (_error) {
       // 로그인이 필요한 경우 안내
       if (!currentUser) {
         Alert.alert('로그인 필요', '채팅 기능을 사용하려면 로그인이 필요합니다.', [
@@ -201,8 +197,7 @@ const UniversalChatScreen: React.FC<UniversalChatScreenProps> = ({
         room.id === roomId ? { ...room, unreadCount: 0 } : room
       ));
 
-    } catch (error) {
-      console.error('메시지 로드 실패:', error);
+    } catch (_error) {
       Alert.alert('오류', '메시지를 불러올 수 없습니다.');
     } finally {
       setLoading(false);
@@ -420,7 +415,7 @@ const UniversalChatScreen: React.FC<UniversalChatScreenProps> = ({
           const showDateHeader = index === 0 || !isSameDay(messages[index - 1].timestamp, message.timestamp);
           const prevMessage = index > 0 ? messages[index - 1] : null;
           const isSameSender = prevMessage && prevMessage.senderId === message.senderId && !showDateHeader;
-          const messageSpacing = isSameSender ? 4 : 12;
+          const messageSpacing = isSameSender ? 3 : 10;
 
           return (
             <View key={message.id}>
@@ -514,7 +509,7 @@ const UniversalChatScreen: React.FC<UniversalChatScreenProps> = ({
           <TextInput
             style={styles.textInput}
             placeholder="메시지를 입력하세요..."
-            placeholderTextColor={COLORS.text.tertiary}
+            placeholderTextColor={COLORS.neutral.grey400}
             value={messageText}
             onChangeText={setMessageText}
             multiline
@@ -536,8 +531,8 @@ const UniversalChatScreen: React.FC<UniversalChatScreenProps> = ({
           >
             <Icon
               name="send"
-              size={18}
-              color={messageText.trim() && !isSending ? COLORS.text.white : COLORS.text.tertiary}
+              size={16}
+              color={messageText.trim() && !isSending ? COLORS.text.white : COLORS.neutral.grey400}
             />
           </TouchableOpacity>
         </View>
@@ -635,16 +630,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingHorizontal: SPACING.xl,
+    paddingVertical: 14,
     backgroundColor: COLORS.neutral.white,
-    ...SHADOWS.small,
+    ...SHADOWS.sticky,
+    zIndex: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: CARD_STYLE.borderColor,
   },
   headerTitle: {
-    fontSize: 22,
-    fontWeight: '800',
+    ...TYPOGRAPHY.heading.h1,
     color: COLORS.text.primary,
-    letterSpacing: -0.3,
   },
   headerIcons: {
     flexDirection: 'row',
@@ -658,19 +654,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
 
-  // === 탭 네비게이션 (pill 칩 스타일) ===
+  // === 탭 네비게이션 ===
   tabNavigation: {
     flexDirection: 'row',
     backgroundColor: COLORS.neutral.white,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
+    paddingHorizontal: SPACING.xl,
+    paddingVertical: 10,
     gap: 8,
   },
   tabButton: {
-    paddingVertical: 8,
+    paddingVertical: 7,
     paddingHorizontal: 16,
-    borderRadius: 20,
-    backgroundColor: COLORS.neutral.grey100,
+    borderRadius: BORDER_RADIUS.md,
+    backgroundColor: COLORS.neutral.light,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -679,12 +675,12 @@ const styles = StyleSheet.create({
   },
   tabButtonText: {
     fontSize: 13,
-    fontWeight: '600',
-    color: COLORS.text.secondary,
+    fontWeight: '500',
+    color: COLORS.text.tertiary,
   },
   selectedTabButtonText: {
     color: COLORS.text.white,
-    fontWeight: '700',
+    fontWeight: '600',
   },
 
   // === 채팅방 목록 ===
@@ -703,23 +699,23 @@ const styles = StyleSheet.create({
   chatItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: SPACING.xl,
     paddingVertical: 14,
     backgroundColor: COLORS.neutral.white,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.neutral.grey100,
   },
   chatAvatar: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 14,
-    borderWidth: 2,
-    borderColor: COLORS.neutral.grey100,
+    marginRight: 12,
   },
   chatAvatarText: {
-    fontSize: 19,
-    fontWeight: '700',
+    fontSize: 17,
+    fontWeight: '600',
     color: COLORS.text.white,
   },
   chatInfo: {
@@ -729,48 +725,45 @@ const styles = StyleSheet.create({
   chatTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 4,
+    marginBottom: 3,
     gap: 6,
   },
   chatTitle: {
-    fontSize: 16,
-    fontWeight: '700',
+    ...TYPOGRAPHY.body.large,
+    fontWeight: '600',
     color: COLORS.text.primary,
-    letterSpacing: -0.2,
     flexShrink: 1,
   },
   chatParticipantCount: {
     fontSize: 12,
-    fontWeight: '500',
+    fontWeight: '400',
     color: COLORS.text.tertiary,
   },
   lastMessage: {
-    fontSize: 14,
-    fontWeight: '400',
+    ...TYPOGRAPHY.body.small,
     color: COLORS.text.tertiary,
   },
   chatMeta: {
     alignItems: 'flex-end',
     justifyContent: 'flex-start',
-    gap: 8,
+    gap: 6,
     paddingTop: 2,
   },
   chatTime: {
-    fontSize: 12,
+    ...TYPOGRAPHY.caption,
     color: COLORS.text.tertiary,
-    fontWeight: '400',
   },
   unreadBadge: {
-    backgroundColor: COLORS.functional.error,
-    borderRadius: 11,
-    minWidth: 22,
-    height: 22,
+    backgroundColor: COLORS.primary.accent,
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 7,
+    paddingHorizontal: 6,
   },
   unreadCount: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '700',
     color: COLORS.text.white,
   },
@@ -778,16 +771,19 @@ const styles = StyleSheet.create({
   // === 채팅방 내부 ===
   chatRoom: {
     flex: 1,
-    backgroundColor: COLORS.neutral.background,
+    backgroundColor: COLORS.surface.secondary,
   },
   chatRoomHeader: {
-    height: 60,
+    height: 56,
     backgroundColor: COLORS.neutral.white,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 8,
-    ...SHADOWS.small,
+    borderBottomWidth: 1,
+    borderBottomColor: CARD_STYLE.borderColor,
+    ...SHADOWS.sticky,
+    zIndex: 10,
   },
   backButton: {
     width: 44,
@@ -797,10 +793,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   chatRoomTitle: {
-    fontSize: 16,
-    fontWeight: '700',
+    ...TYPOGRAPHY.heading.h3,
     color: COLORS.text.primary,
-    letterSpacing: -0.2,
     flex: 1,
     textAlign: 'center',
   },
@@ -815,15 +809,15 @@ const styles = StyleSheet.create({
   // === 메시지 목록 ===
   messageList: {
     flex: 1,
-    backgroundColor: COLORS.neutral.background,
+    backgroundColor: COLORS.surface.secondary,
   },
   messageListContainer: {
-    paddingHorizontal: 20,
+    paddingHorizontal: SPACING.xl,
     paddingVertical: 12,
   },
   messageItem: {
-    marginBottom: 12,
-    maxWidth: '75%',
+    marginBottom: 10,
+    maxWidth: '78%',
   },
   myMessage: {
     alignSelf: 'flex-end',
@@ -832,38 +826,32 @@ const styles = StyleSheet.create({
   messageHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 4,
+    marginBottom: 3,
   },
   senderName: {
-    fontSize: 13,
-    color: COLORS.text.secondary,
+    ...TYPOGRAPHY.caption,
     fontWeight: '600',
+    color: COLORS.text.secondary,
   },
 
   // === 말풍선 ===
   messageBubble: {
-    backgroundColor: COLORS.neutral.white,
-    padding: 14,
-    borderTopLeftRadius: 6,
-    borderTopRightRadius: 20,
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
-    ...SHADOWS.small,
+    backgroundColor: '#F5F3F0',
+    padding: 12,
+    borderTopLeftRadius: BORDER_RADIUS.md,
+    borderTopRightRadius: BORDER_RADIUS.md,
+    borderBottomLeftRadius: BORDER_RADIUS.md,
+    borderBottomRightRadius: BORDER_RADIUS.md,
   },
   myMessageBubble: {
-    backgroundColor: COLORS.primary.main,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 6,
-    shadowColor: 'transparent',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0,
-    shadowRadius: 0,
-    elevation: 0,
+    backgroundColor: '#9A7450',
+    borderTopLeftRadius: BORDER_RADIUS.md,
+    borderTopRightRadius: BORDER_RADIUS.md,
+    borderBottomLeftRadius: BORDER_RADIUS.md,
+    borderBottomRightRadius: BORDER_RADIUS.xs,
   },
   messageText: {
-    fontSize: 15,
+    ...TYPOGRAPHY.body.large,
     color: COLORS.text.primary,
     lineHeight: 22,
   },
@@ -871,9 +859,9 @@ const styles = StyleSheet.create({
     color: COLORS.text.white,
   },
   messageTime: {
-    fontSize: 11,
+    ...TYPOGRAPHY.caption,
     color: COLORS.text.tertiary,
-    marginTop: 4,
+    marginTop: 3,
   },
   myMessageTime: {
     textAlign: 'right',
@@ -882,24 +870,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'flex-end',
     alignItems: 'center',
-    marginTop: 4,
+    marginTop: 3,
     gap: 4,
   },
   readReceipt: {
-    fontSize: 11,
+    ...TYPOGRAPHY.caption,
     color: COLORS.text.tertiary,
-    fontWeight: '400',
   },
 
   // === 메시지 입력 바 ===
   messageInput: {
     backgroundColor: COLORS.neutral.white,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: -1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 2,
-    paddingHorizontal: 16,
+    borderTopWidth: 1,
+    borderTopColor: CARD_STYLE.borderColor,
+    paddingHorizontal: 14,
     paddingVertical: 10,
     height: 64,
     justifyContent: 'center',
@@ -907,13 +891,13 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.neutral.background,
-    borderRadius: 22,
-    paddingLeft: 18,
+    backgroundColor: COLORS.neutral.light,
+    borderRadius: BORDER_RADIUS.lg,
+    paddingLeft: 16,
     paddingRight: 4,
     height: 44,
     borderWidth: 1,
-    borderColor: 'transparent',
+    borderColor: COLORS.neutral.grey100,
     width: '100%',
   },
   inputContainerFocused: {
@@ -923,22 +907,23 @@ const styles = StyleSheet.create({
   },
   textInput: {
     flex: 1,
-    fontSize: 15,
+    ...TYPOGRAPHY.input,
     color: COLORS.text.primary,
     maxHeight: 100,
     paddingVertical: 0,
   },
   sendButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: COLORS.neutral.grey200,
     justifyContent: 'center',
     alignItems: 'center',
     marginLeft: 8,
   },
   sendButtonActive: {
-    backgroundColor: COLORS.primary.main,
+    backgroundColor: COLORS.primary.accent,
+    ...SHADOWS.cta,
   },
 
   // === 날짜 구분선 ===
@@ -947,23 +932,24 @@ const styles = StyleSheet.create({
     marginVertical: 16,
   },
   dateHeaderText: {
-    fontSize: 12,
+    ...TYPOGRAPHY.caption,
     fontWeight: '600',
-    color: COLORS.text.secondary,
+    color: COLORS.text.tertiary,
     backgroundColor: COLORS.neutral.white,
     paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 12,
+    paddingVertical: 5,
+    borderRadius: BORDER_RADIUS.sm,
     textAlign: 'center',
     overflow: 'hidden',
-    ...SHADOWS.small,
+    borderWidth: 1,
+    borderColor: COLORS.neutral.grey100,
   },
 
   // === 메시지 프로필 ===
   messageWithProfile: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 10,
+    gap: 8,
   },
   profileImageContainer: {
     width: 36,
@@ -998,69 +984,69 @@ const styles = StyleSheet.create({
   },
   riceIndex: {
     fontSize: 11,
-    color: COLORS.primary.main,
-    marginLeft: 8,
-    fontWeight: '600',
+    color: COLORS.text.tertiary,
+    marginLeft: 6,
+    fontWeight: '500',
   },
 
   // === DM 모달 ===
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+    backgroundColor: COLORS.surface.overlay,
     justifyContent: 'center',
     alignItems: 'center',
   },
   modalContent: {
     backgroundColor: COLORS.neutral.white,
-    borderRadius: 20,
-    padding: 28,
+    borderRadius: BORDER_RADIUS.lg,
+    padding: 24,
     margin: 20,
     maxWidth: 360,
     width: '85%',
     ...SHADOWS.large,
   },
   modalTitle: {
-    fontSize: 18,
-    fontWeight: '700',
+    ...TYPOGRAPHY.heading.h3,
     color: COLORS.text.primary,
     marginBottom: 8,
     textAlign: 'center',
   },
   modalDescription: {
-    fontSize: 14,
+    ...TYPOGRAPHY.body.medium,
     color: COLORS.text.secondary,
     textAlign: 'center',
     marginBottom: 24,
-    lineHeight: 20,
+    lineHeight: 22,
   },
   modalButtons: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 10,
   },
   modalButtonCancel: {
     flex: 1,
-    paddingVertical: 14,
+    paddingVertical: 12,
     paddingHorizontal: 16,
-    borderRadius: 14,
-    backgroundColor: COLORS.neutral.grey100,
+    borderRadius: BORDER_RADIUS.md,
+    backgroundColor: COLORS.neutral.light,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.neutral.grey100,
   },
   modalButtonCancelText: {
-    fontSize: 15,
-    fontWeight: '600',
+    ...TYPOGRAPHY.button.medium,
     color: COLORS.text.secondary,
   },
   modalButtonConfirm: {
     flex: 1,
-    paddingVertical: 14,
+    paddingVertical: 12,
     paddingHorizontal: 16,
-    borderRadius: 14,
-    backgroundColor: COLORS.primary.main,
+    borderRadius: BORDER_RADIUS.md,
+    backgroundColor: COLORS.primary.accent,
     alignItems: 'center',
+    ...SHADOWS.cta,
   },
   modalButtonConfirmText: {
-    fontSize: 15,
-    fontWeight: '600',
+    ...TYPOGRAPHY.button.medium,
     color: COLORS.text.white,
   },
 });

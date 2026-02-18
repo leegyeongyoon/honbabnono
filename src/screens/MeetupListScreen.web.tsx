@@ -176,12 +176,35 @@ const MeetupListScreen = () => {
       </ScrollView>
 
       {/* 새 모임 만들기 버튼 */}
-      <TouchableOpacity
-        style={styles.fab}
-        onPress={() => navigation.navigate('CreateMeetup')}
+      <div
+        onClick={() => navigation.navigate('CreateMeetup')}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.transform = 'scale(1.08)';
+          e.currentTarget.style.boxShadow = '0 6px 20px rgba(196,154,112,0.35)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.transform = 'scale(1)';
+          e.currentTarget.style.boxShadow = '0 4px 12px rgba(196,154,112,0.25)';
+        }}
+        style={{
+          position: 'absolute',
+          bottom: 24,
+          right: 24,
+          width: 56,
+          height: 56,
+          borderRadius: 28,
+          background: 'linear-gradient(135deg, #C49A70 0%, #E4C8A4 100%)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          cursor: 'pointer',
+          transition: 'all 200ms ease',
+          boxShadow: '0 4px 12px rgba(196,154,112,0.25)',
+          zIndex: 10,
+        }}
       >
-        <Icon name="plus" size={24} color={COLORS.text.white} />
-      </TouchableOpacity>
+        <Icon name="plus" size={24} color="#FFFFFF" />
+      </div>
     </View>
   );
 };
@@ -202,16 +225,26 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.neutral.white,
     paddingHorizontal: 20,
     paddingVertical: 16,
-    paddingTop: 52,
-    ...SHADOWS.small,
+    paddingTop: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(17,17,17,0.06)',
+    ...SHADOWS.sticky,
+    zIndex: 10,
   },
   backButton: {
-    padding: 8,
+    padding: 10,
+    minWidth: 44,
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    cursor: 'pointer',
+    transition: 'all 200ms ease',
   },
   headerTitle: {
-    fontSize: 17,
+    fontSize: 20,
     fontWeight: '700',
     color: COLORS.text.primary,
+    letterSpacing: -0.3,
   },
   filterContainer: {
     flexDirection: 'row',
@@ -225,12 +258,13 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 12,
     marginHorizontal: 4,
-    borderRadius: 20,
+    borderRadius: 10,
     backgroundColor: COLORS.neutral.grey100,
     alignItems: 'center',
+    cursor: 'pointer',
   },
   activeFilter: {
-    backgroundColor: COLORS.primary.main,
+    backgroundColor: COLORS.primary.dark,
   },
   filterText: {
     fontSize: 14,
@@ -264,11 +298,11 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 12,
-    backgroundColor: '#FFF8E1',
+    backgroundColor: COLORS.primary.light,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#FFE0B2',
+    borderColor: 'rgba(17,17,17,0.06)',
   },
   foodEmoji: {
     fontSize: 32,
@@ -410,18 +444,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: COLORS.text.secondary,
     textAlign: 'center',
-  },
-  fab: {
-    position: 'absolute',
-    bottom: 24,
-    right: 24,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: COLORS.primary.main,
-    justifyContent: 'center',
-    alignItems: 'center',
-    ...SHADOWS.large,
   },
 });
 

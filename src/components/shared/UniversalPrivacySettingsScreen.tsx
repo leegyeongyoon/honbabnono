@@ -19,8 +19,8 @@ interface PrivacySettings {
   marketingEmails: boolean;
 }
 
-const UniversalPrivacySettingsScreen: React.FC<{navigation: NavigationAdapter, user?: any}> = ({ 
-  navigation, user 
+const UniversalPrivacySettingsScreen: React.FC<{navigation: NavigationAdapter, user?: any}> = ({
+  navigation, user
 }) => {
   const [settings, setSettings] = useState<PrivacySettings | null>(null);
   const [loading, setLoading] = useState(true);
@@ -42,8 +42,7 @@ const UniversalPrivacySettingsScreen: React.FC<{navigation: NavigationAdapter, u
         dataCollection: true,
         marketingEmails: false,
       });
-    } catch (error) {
-      console.error('개인정보 설정 조회 실패:', error);
+    } catch (_error) {
       setSettings({
         profileVisibility: 'public',
         showActivityStatus: true,
@@ -69,8 +68,7 @@ const UniversalPrivacySettingsScreen: React.FC<{navigation: NavigationAdapter, u
     try {
       setSaving(true);
       await userApiService.updatePrivacySettings({ [key]: value });
-    } catch (error) {
-      console.error('설정 업데이트 실패:', error);
+    } catch (_error) {
       setSettings(settings);
     } finally {
       setSaving(false);
@@ -79,7 +77,7 @@ const UniversalPrivacySettingsScreen: React.FC<{navigation: NavigationAdapter, u
 
   const renderSwitch = (key: keyof PrivacySettings, title: string, description: string) => {
     if (!settings || typeof settings[key] !== 'boolean') {return null;}
-    
+
     return (
       <View style={styles.settingItem}>
         <View style={styles.settingInfo}>
@@ -90,8 +88,8 @@ const UniversalPrivacySettingsScreen: React.FC<{navigation: NavigationAdapter, u
           value={settings[key] as boolean}
           onValueChange={(value) => updateSetting(key, value)}
           disabled={saving}
-          trackColor={{ false: COLORS.neutral.grey200, true: COLORS.primary.light }}
-          thumbColor={settings[key] ? COLORS.primary.main : COLORS.neutral.grey300}
+          trackColor={{ false: COLORS.neutral.grey200, true: COLORS.primary.accent + '40' }}
+          thumbColor={settings[key] ? COLORS.primary.accent : COLORS.neutral.grey300}
         />
       </View>
     );
@@ -101,12 +99,12 @@ const UniversalPrivacySettingsScreen: React.FC<{navigation: NavigationAdapter, u
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <View style={{ width: 24 }} />
+          <View style={styles.placeholder} />
           <Text style={styles.headerTitle}>개인정보 설정</Text>
-          <View style={{ width: 24 }} />
+          <View style={styles.placeholder} />
         </View>
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-          <ActivityIndicator size="large" color={COLORS.primary.main} />
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={COLORS.primary.accent} />
         </View>
       </View>
     );
@@ -115,10 +113,10 @@ const UniversalPrivacySettingsScreen: React.FC<{navigation: NavigationAdapter, u
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <View style={{ width: 24 }} />
+        <View style={styles.placeholder} />
         <Text style={styles.headerTitle}>개인정보 설정</Text>
-        <View style={{ width: 24 }}>
-          {saving && <ActivityIndicator size="small" color={COLORS.primary.main} />}
+        <View style={styles.placeholder}>
+          {saving && <ActivityIndicator size="small" color={COLORS.primary.accent} />}
         </View>
       </View>
 
@@ -139,9 +137,12 @@ const UniversalPrivacySettingsScreen: React.FC<{navigation: NavigationAdapter, u
                   styles.optionText,
                   settings?.profileVisibility === visibility && styles.selectedOptionText,
                 ]}>
-                  {visibility === 'public' ? '전체 공개' : 
+                  {visibility === 'public' ? '전체 공개' :
                    visibility === 'friends' ? '친구만' : '비공개'}
                 </Text>
+                {settings?.profileVisibility === visibility && (
+                  <Icon name="check" size={18} color={COLORS.primary.accent} />
+                )}
               </TouchableOpacity>
             ))}
           </View>
@@ -174,60 +175,165 @@ const UniversalPrivacySettingsScreen: React.FC<{navigation: NavigationAdapter, u
         <View style={styles.infoSection}>
           <Text style={styles.infoTitle}>개인정보 처리방침</Text>
           <Text style={styles.infoText}>
-            혼밥노노는 회원님의 개인정보를 소중히 보호합니다. 
+            혼밥노노는 회원님의 개인정보를 소중히 보호합니다.
             자세한 내용은 개인정보 처리방침을 확인해주세요.
           </Text>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.linkButton}
             onPress={() => navigation.navigate('PrivacyPolicy')}
           >
             <Text style={styles.linkButtonText}>개인정보 처리방침 보기</Text>
-            <Icon name="external-link" size={16} color={COLORS.primary.main} />
+            <Icon name="external-link" size={16} color={COLORS.primary.accent} />
           </TouchableOpacity>
         </View>
+
+        <View style={styles.bottomSpacer} />
       </ScrollView>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.neutral.background },
+  container: {
+    flex: 1,
+    backgroundColor: COLORS.neutral.background,
+  },
   header: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingHorizontal: 20, paddingTop: 20, paddingBottom: 16,
-    backgroundColor: COLORS.neutral.white, ...SHADOWS.small,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 16,
+    backgroundColor: COLORS.neutral.white,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(17,17,17,0.06)',
+    ...SHADOWS.sticky,
+    zIndex: 10,
   },
-  headerTitle: { fontSize: 20, fontWeight: '700', color: COLORS.text.primary },
-  content: { flex: 1 },
-  section: { marginBottom: 8 },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: COLORS.text.primary,
+    letterSpacing: -0.3,
+  },
+  placeholder: {
+    width: 24,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  content: {
+    flex: 1,
+  },
+  section: {
+    marginBottom: 8,
+  },
   sectionTitle: {
-    fontSize: 18, fontWeight: '700', color: COLORS.text.primary,
-    paddingHorizontal: 20, paddingVertical: 16, backgroundColor: COLORS.neutral.background,
+    fontSize: 13,
+    fontWeight: '600',
+    color: COLORS.text.tertiary,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 10,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
   },
-  settingsContainer: { backgroundColor: COLORS.neutral.white, marginHorizontal: 16, borderRadius: 16, ...SHADOWS.small },
+  settingsContainer: {
+    backgroundColor: COLORS.neutral.white,
+    marginHorizontal: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(17,17,17,0.06)',
+    ...SHADOWS.small,
+  },
   settingItem: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingVertical: 16, paddingHorizontal: 20, borderBottomWidth: 1, borderBottomColor: COLORS.neutral.grey200,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(17,17,17,0.06)',
   },
-  settingInfo: { flex: 1, marginRight: 16 },
-  settingTitle: { fontSize: 16, fontWeight: '600', color: COLORS.text.primary, marginBottom: 2 },
-  settingDescription: { fontSize: 13, color: COLORS.text.secondary, lineHeight: 18 },
+  settingInfo: {
+    flex: 1,
+    marginRight: 16,
+  },
+  settingTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+    marginBottom: 2,
+    letterSpacing: -0.1,
+  },
+  settingDescription: {
+    fontSize: 13,
+    color: COLORS.text.tertiary,
+    lineHeight: 18,
+  },
   visibilityOption: {
-    paddingVertical: 12, paddingHorizontal: 20, borderBottomWidth: 1, borderBottomColor: COLORS.neutral.grey200,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(17,17,17,0.06)',
   },
-  selectedOption: { backgroundColor: COLORS.primary.main + '10' },
-  optionText: { fontSize: 16, color: COLORS.text.primary },
-  selectedOptionText: { color: COLORS.primary.main, fontWeight: '600' },
+  selectedOption: {
+    backgroundColor: COLORS.primary.accent + '08',
+  },
+  optionText: {
+    fontSize: 15,
+    color: COLORS.text.primary,
+  },
+  selectedOptionText: {
+    color: COLORS.primary.accent,
+    fontWeight: '600',
+  },
   infoSection: {
-    backgroundColor: COLORS.neutral.white, margin: 16, padding: 20, borderRadius: 16, ...SHADOWS.small,
+    backgroundColor: COLORS.neutral.white,
+    margin: 16,
+    padding: 20,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(17,17,17,0.06)',
+    ...SHADOWS.small,
   },
-  infoTitle: { fontSize: 16, fontWeight: '600', color: COLORS.text.primary, marginBottom: 8 },
-  infoText: { fontSize: 14, color: COLORS.text.secondary, lineHeight: 20, marginBottom: 12 },
+  infoTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+    marginBottom: 8,
+    letterSpacing: -0.1,
+  },
+  infoText: {
+    fontSize: 14,
+    color: COLORS.text.secondary,
+    lineHeight: 20,
+    marginBottom: 14,
+  },
   linkButton: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1, borderColor: COLORS.primary.main, borderRadius: 8, paddingVertical: 10, gap: 4,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.primary.accent,
+    borderRadius: 6,
+    paddingVertical: 10,
+    gap: 6,
   },
-  linkButtonText: { fontSize: 14, fontWeight: '500', color: COLORS.primary.main },
+  linkButtonText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: COLORS.primary.accent,
+  },
+  bottomSpacer: {
+    height: 40,
+  },
 });
 
 export default UniversalPrivacySettingsScreen;

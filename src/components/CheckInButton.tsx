@@ -47,8 +47,7 @@ const CheckInButton: React.FC<CheckInButtonProps> = ({
         setAttendanceData(response.data);
         setMyAttendance(response.data.myAttendance);
       }
-    } catch (error) {
-      console.error('출석 현황 조회 실패:', error);
+    } catch (_error) {
     }
   };
 
@@ -71,8 +70,7 @@ const CheckInButton: React.FC<CheckInButtonProps> = ({
         }
       );
       return granted === PermissionsAndroid.RESULTS.GRANTED;
-    } catch (err) {
-      console.warn('위치 권한 요청 실패:', err);
+    } catch (_err) {
       return false;
     }
   };
@@ -132,8 +130,7 @@ const CheckInButton: React.FC<CheckInButtonProps> = ({
             setLoading(false);
           }
         },
-        (error) => {
-          console.error('위치 가져오기 실패:', error);
+        (_error) => {
           Alert.alert('위치 오류', '현재 위치를 가져올 수 없습니다. GPS를 확인해주세요.');
           setLoading(false);
         },
@@ -143,8 +140,7 @@ const CheckInButton: React.FC<CheckInButtonProps> = ({
           maximumAge: 10000,
         }
       );
-    } catch (error: any) {
-      console.error('체크인 오류:', error);
+    } catch (_error: any) {
       Alert.alert('체크인 실패', '체크인 중 오류가 발생했습니다.');
       setLoading(false);
     }
@@ -193,7 +189,7 @@ const CheckInButton: React.FC<CheckInButtonProps> = ({
   return (
     <View style={styles.container}>
       <View style={styles.infoContainer}>
-        <Icon name="map-pin" size={20} color={COLORS.primary.main} />
+        <Icon name="map-pin" size={20} color={COLORS.primary.accent} />
         <Text style={styles.infoText}>
           {meetupLocation} 근처 {checkInRadius}m 이내에서 체크인하세요
         </Text>
@@ -227,7 +223,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 20,
     marginBottom: 16,
     padding: 16,
-    borderRadius: 16,
+    borderRadius: 8,
     borderWidth: 1,
     borderColor: COLORS.neutral.grey200,
     ...SHADOWS.small,
@@ -247,8 +243,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: COLORS.primary.main,
-    borderRadius: 12,
+    backgroundColor: COLORS.primary.accent,
+    borderRadius: 6,
     paddingVertical: 14,
     gap: 8,
   },

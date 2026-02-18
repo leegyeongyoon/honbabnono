@@ -42,8 +42,7 @@ export const PointsModal: React.FC<PointsModalProps> = ({
 
       // 포인트 내역도 로드 (추후 API 구현)
       setPointHistory([]);
-    } catch (error) {
-      console.error('포인트 정보 로드 실패:', error);
+    } catch (_error) {
     } finally {
       setLoading(false);
     }
@@ -64,8 +63,6 @@ export const PointsModal: React.FC<PointsModalProps> = ({
           text: '사용하기',
           onPress: async () => {
             try {
-              // 실제로는 API 호출
-              console.log(`포인트 사용: ${option.id}`);
               Alert.alert('성공', '포인트가 사용되었습니다!');
               loadPointsData(); // 포인트 정보 새로고침
             } catch (error) {
@@ -310,7 +307,7 @@ const styles = StyleSheet.create({
   },
   activeTab: {
     borderBottomWidth: 2,
-    borderBottomColor: COLORS.primary.main,
+    borderBottomColor: COLORS.primary.accent,
   },
   tabText: {
     fontSize: 16,
@@ -318,7 +315,7 @@ const styles = StyleSheet.create({
     color: COLORS.text.secondary,
   },
   activeTabText: {
-    color: COLORS.primary.main,
+    color: COLORS.primary.accent,
     fontWeight: '600',
   },
   content: {
@@ -330,7 +327,7 @@ const styles = StyleSheet.create({
   },
   pointsCard: {
     backgroundColor: COLORS.primary.main,
-    borderRadius: 16,
+    borderRadius: 8,
     padding: 24,
     marginBottom: 24,
   },
@@ -404,7 +401,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.neutral.white,
     borderWidth: 1,
     borderColor: COLORS.neutral.grey200,
-    borderRadius: 12,
+    borderRadius: 8,
     marginBottom: 12,
   },
   usageOptionDisabled: {
@@ -443,7 +440,7 @@ const styles = StyleSheet.create({
   },
   usageOptionPoints: {
     fontSize: 12,
-    color: COLORS.primary.main,
+    color: COLORS.primary.accent,
     fontWeight: '500',
   },
   historyItem: {

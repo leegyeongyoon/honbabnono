@@ -52,6 +52,13 @@ const createMockResponse = () => {
  * @returns {Object} Mock req 객체
  */
 const createMockRequest = (options = {}) => {
+  // Mock Express app with settings store (for app.set/app.get)
+  const appSettings = {};
+  const mockApp = {
+    get: jest.fn().mockImplementation((key) => appSettings[key]),
+    set: jest.fn().mockImplementation((key, value) => { appSettings[key] = value; }),
+  };
+
   return {
     body: options.body || {},
     params: options.params || {},
@@ -65,6 +72,7 @@ const createMockRequest = (options = {}) => {
     method: options.method || 'GET',
     path: options.path || '/',
     file: options.file || null,
+    app: options.app || mockApp,
     get: jest.fn().mockImplementation((header) => {
       return options.headers?.[header.toLowerCase()] || null;
     }),

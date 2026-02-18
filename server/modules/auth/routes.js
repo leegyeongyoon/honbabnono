@@ -33,4 +33,7 @@ router.post('/register', authController.register);
 // 이메일 로그인
 router.post('/login', authController.login);
 
+// 리프레시 토큰으로 새 액세스 토큰 발급
+router.post('/refresh-token', authController.refreshToken);
+
 module.exports = router;

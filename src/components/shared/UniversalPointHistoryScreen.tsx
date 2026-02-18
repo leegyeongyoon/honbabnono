@@ -36,8 +36,7 @@ const UniversalPointHistoryScreen: React.FC<{navigation: NavigationAdapter, user
       // 포인트 거래 내역 조회
       const historyResponse = await userApiService.getPointHistory();
       setTransactions(historyResponse.data || historyResponse.transactions || []);
-    } catch (error) {
-      console.error('포인트 내역 조회 실패:', error);
+    } catch (_error) {
       setError('포인트 내역을 불러오는데 실패했습니다');
     } finally {
       setLoading(false);
@@ -60,7 +59,7 @@ const UniversalPointHistoryScreen: React.FC<{navigation: NavigationAdapter, user
     switch (type) {
       case 'earned': return COLORS.functional.success;
       case 'spent': return COLORS.functional.error;
-      case 'refunded': return COLORS.primary.main;
+      case 'refunded': return COLORS.primary.accent;
       default: return COLORS.text.secondary;
     }
   };
@@ -69,12 +68,12 @@ const UniversalPointHistoryScreen: React.FC<{navigation: NavigationAdapter, user
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <View style={{ width: 24 }} />
+          <View style={styles.placeholder} />
           <Text style={styles.headerTitle}>포인트 내역</Text>
-          <View style={{ width: 24 }} />
+          <View style={styles.placeholder} />
         </View>
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-          <ActivityIndicator size="large" color={COLORS.primary.main} />
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={COLORS.primary.accent} />
         </View>
       </View>
     );
@@ -83,17 +82,17 @@ const UniversalPointHistoryScreen: React.FC<{navigation: NavigationAdapter, user
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <View style={{ width: 24 }} />
+        <View style={styles.placeholder} />
         <Text style={styles.headerTitle}>포인트 내역</Text>
         <TouchableOpacity onPress={() => navigation.navigate('PointCharge')}>
-          <Icon name="plus" size={24} color={COLORS.primary.main} />
+          <Icon name="plus" size={24} color={COLORS.primary.accent} />
         </TouchableOpacity>
       </View>
 
       <View style={styles.pointsCard}>
         <Text style={styles.pointsLabel}>보유 포인트</Text>
         <Text style={styles.pointsAmount}>{currentPoints.toLocaleString()}P</Text>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.chargeButton}
           onPress={() => navigation.navigate('PointCharge')}
         >
@@ -103,7 +102,7 @@ const UniversalPointHistoryScreen: React.FC<{navigation: NavigationAdapter, user
 
       <ScrollView
         style={styles.content}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => {setRefreshing(true); fetchPointHistory();}} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => {setRefreshing(true); fetchPointHistory();}} tintColor={COLORS.primary.accent} colors={[COLORS.primary.accent]} />}
       >
         {error ? (
           <View style={styles.errorContainer}>
@@ -120,7 +119,7 @@ const UniversalPointHistoryScreen: React.FC<{navigation: NavigationAdapter, user
             <Text style={styles.emptySubtext}>모임에 참여하면 포인트를 받을 수 있어요!</Text>
           </View>
         ) : (
-          <View style={{ padding: 16 }}>
+          <View style={styles.listContainer}>
             {transactions.map(transaction => (
               <TouchableOpacity
                 key={transaction.id}
@@ -128,7 +127,7 @@ const UniversalPointHistoryScreen: React.FC<{navigation: NavigationAdapter, user
                 onPress={() => transaction.meetup_id && navigation.navigate('MeetupDetail', { meetupId: transaction.meetup_id })}
                 disabled={!transaction.meetup_id}
               >
-                <View style={[styles.transactionIcon, { backgroundColor: getTransactionColor(transaction.type) + '20' }]}>
+                <View style={[styles.transactionIcon, { backgroundColor: getTransactionColor(transaction.type) + '12' }]}>
                   <Icon name={getTransactionIcon(transaction.type)} size={20} color={getTransactionColor(transaction.type)} />
                 </View>
                 <View style={styles.transactionContent}>
@@ -150,51 +149,159 @@ const UniversalPointHistoryScreen: React.FC<{navigation: NavigationAdapter, user
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.neutral.background },
+  container: {
+    flex: 1,
+    backgroundColor: COLORS.neutral.background,
+  },
   header: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingHorizontal: 20, paddingTop: 20, paddingBottom: 16,
-    backgroundColor: COLORS.neutral.white, ...SHADOWS.small,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 16,
+    backgroundColor: COLORS.neutral.white,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(17,17,17,0.06)',
+    ...SHADOWS.sticky,
   },
-  headerTitle: { fontSize: 20, fontWeight: '700', color: COLORS.text.primary },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: COLORS.text.primary,
+    letterSpacing: -0.3,
+  },
+  placeholder: {
+    width: 24,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   pointsCard: {
-    backgroundColor: COLORS.primary.main, margin: 16, padding: 20, borderRadius: 16, alignItems: 'center',
+    backgroundColor: COLORS.primary.main,
+    margin: 16,
+    padding: 24,
+    borderRadius: 8,
+    alignItems: 'center',
+    ...SHADOWS.medium,
   },
-  pointsLabel: { fontSize: 14, color: COLORS.neutral.white, opacity: 0.8 },
-  pointsAmount: { fontSize: 32, fontWeight: '700', color: COLORS.neutral.white, marginVertical: 8 },
-  chargeButton: { backgroundColor: COLORS.neutral.white, paddingHorizontal: 20, paddingVertical: 8, borderRadius: 20 },
-  chargeButtonText: { fontSize: 14, fontWeight: '600', color: COLORS.primary.main },
-  content: { flex: 1 },
+  pointsLabel: {
+    fontSize: 13,
+    color: COLORS.neutral.white,
+    opacity: 0.7,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
+  pointsAmount: {
+    fontSize: 34,
+    fontWeight: '700',
+    color: COLORS.neutral.white,
+    marginVertical: 8,
+    letterSpacing: -0.5,
+  },
+  chargeButton: {
+    backgroundColor: COLORS.neutral.white,
+    paddingHorizontal: 24,
+    paddingVertical: 8,
+    borderRadius: 6,
+  },
+  chargeButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.primary.main,
+  },
+  content: {
+    flex: 1,
+  },
+  listContainer: {
+    padding: 16,
+  },
   transactionItem: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.neutral.white,
-    borderRadius: 12, padding: 16, marginBottom: 8, ...SHADOWS.small,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.neutral.white,
+    borderRadius: 8,
+    padding: 14,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(17,17,17,0.06)',
+    ...SHADOWS.small,
   },
-  transactionIcon: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
-  transactionContent: { flex: 1 },
-  transactionDescription: { fontSize: 14, fontWeight: '600', color: COLORS.text.primary },
-  transactionDate: { fontSize: 12, color: COLORS.text.secondary, marginTop: 4 },
-  transactionAmount: { fontSize: 16, fontWeight: '600' },
+  transactionIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  transactionContent: {
+    flex: 1,
+  },
+  transactionDescription: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+    letterSpacing: -0.1,
+  },
+  transactionDate: {
+    fontSize: 12,
+    color: COLORS.text.tertiary,
+    marginTop: 3,
+  },
+  transactionAmount: {
+    fontSize: 16,
+    fontWeight: '700',
+    letterSpacing: -0.3,
+  },
   emptyContainer: {
-    flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 80,
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 80,
+    paddingHorizontal: 40,
   },
   emptyText: {
-    fontSize: 18, fontWeight: '600', color: COLORS.text.primary, marginTop: 16,
+    fontSize: 17,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+    marginTop: 16,
+    letterSpacing: -0.2,
   },
   emptySubtext: {
-    fontSize: 14, color: COLORS.text.secondary, marginTop: 8, textAlign: 'center',
+    fontSize: 14,
+    color: COLORS.text.secondary,
+    marginTop: 8,
+    textAlign: 'center',
+    lineHeight: 20,
   },
   errorContainer: {
-    flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 80,
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 80,
+    paddingHorizontal: 40,
   },
   errorText: {
-    fontSize: 16, color: COLORS.text.secondary, marginTop: 16, textAlign: 'center',
+    fontSize: 15,
+    color: COLORS.text.secondary,
+    marginTop: 16,
+    textAlign: 'center',
+    lineHeight: 22,
   },
   retryButton: {
-    marginTop: 16, backgroundColor: COLORS.primary.main, paddingHorizontal: 20,
-    paddingVertical: 10, borderRadius: 8,
+    marginTop: 16,
+    backgroundColor: COLORS.primary.main,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 6,
   },
   retryButtonText: {
-    fontSize: 14, fontWeight: '600', color: COLORS.neutral.white,
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.neutral.white,
   },
 });
 

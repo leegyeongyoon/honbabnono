@@ -67,9 +67,7 @@ const UniversalNotificationSettingsScreen: React.FC<UniversalNotificationSetting
       if (onSettingsChange) {
         onSettingsChange(newSettings);
       }
-    } catch (error) {
-      console.error('알림 설정 조회 실패:', error);
-
+    } catch (_error) {
       // 오류 발생시 기본값 설정
       const defaultSettings: NotificationSettings = {
         pushNotifications: true,
@@ -121,9 +119,7 @@ const UniversalNotificationSettingsScreen: React.FC<UniversalNotificationSetting
           [backendKey]: value
         });
       }
-    } catch (error) {
-      console.error('알림 설정 업데이트 실패:', error);
-
+    } catch (_error) {
       // 실패시 원래 값으로 되돌리기
       setSettings(settings);
 
@@ -147,11 +143,11 @@ const UniversalNotificationSettingsScreen: React.FC<UniversalNotificationSetting
     icon: string
   ) => {
     const settingValue = settings && typeof settings[key] === 'boolean' ? settings[key] : false;
-    
+
     return (
       <View key={key} style={styles.settingItem}>
         <View style={styles.settingIconContainer}>
-          <Icon name={icon} size={20} color={COLORS.primary.main} />
+          <Icon name={icon} size={18} color={COLORS.primary.accent} />
         </View>
         <View style={styles.settingInfo}>
           <Text style={styles.settingTitle}>{title}</Text>
@@ -160,8 +156,8 @@ const UniversalNotificationSettingsScreen: React.FC<UniversalNotificationSetting
         <Switch
           value={settingValue}
           onValueChange={(value) => handleSettingChange(key, value)}
-          trackColor={{ false: COLORS.neutral.grey200, true: COLORS.primary.light }}
-          thumbColor={settingValue ? COLORS.primary.main : COLORS.neutral.grey300}
+          trackColor={{ false: COLORS.neutral.grey200, true: COLORS.primary.accent + '40' }}
+          thumbColor={settingValue ? COLORS.primary.accent : COLORS.neutral.grey300}
           disabled={saving}
         />
       </View>
@@ -172,7 +168,7 @@ const UniversalNotificationSettingsScreen: React.FC<UniversalNotificationSetting
   if (loading) {
     return (
       <View style={[styles.container, styles.centerContent]}>
-        <ActivityIndicator size="large" color={COLORS.primary.main} />
+        <ActivityIndicator size="large" color={COLORS.primary.accent} />
         <Text style={styles.loadingText}>알림 설정을 불러오는 중...</Text>
       </View>
     );
@@ -202,7 +198,7 @@ const UniversalNotificationSettingsScreen: React.FC<UniversalNotificationSetting
         <Text style={styles.headerTitle}>알림 설정</Text>
         <View style={styles.placeholder}>
           {saving && (
-            <ActivityIndicator size="small" color={COLORS.primary.main} />
+            <ActivityIndicator size="small" color={COLORS.primary.accent} />
           )}
         </View>
       </View>
@@ -269,7 +265,7 @@ const UniversalNotificationSettingsScreen: React.FC<UniversalNotificationSetting
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>알림 시간 설정</Text>
           <View style={styles.infoCard}>
-            <Icon name="info" size={20} color={COLORS.primary.main} />
+            <Icon name="info" size={18} color={COLORS.primary.accent} />
             <Text style={styles.infoText}>
               모임 리마인더는 모임 시작 30분 전, 10분 전에 발송됩니다.
             </Text>
@@ -281,7 +277,7 @@ const UniversalNotificationSettingsScreen: React.FC<UniversalNotificationSetting
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>iOS 설정</Text>
             <View style={styles.infoCard}>
-              <Icon name="smartphone" size={20} color={COLORS.primary.main} />
+              <Icon name="smartphone" size={18} color={COLORS.primary.accent} />
               <Text style={styles.infoText}>
                 시스템 설정에서 알림 권한을 확인해주세요. 설정 &gt; 알림 &gt; 혼밥노노
               </Text>
@@ -293,7 +289,7 @@ const UniversalNotificationSettingsScreen: React.FC<UniversalNotificationSetting
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Android 설정</Text>
             <View style={styles.infoCard}>
-              <Icon name="smartphone" size={20} color={COLORS.primary.main} />
+              <Icon name="smartphone" size={18} color={COLORS.primary.accent} />
               <Text style={styles.infoText}>
                 시스템 설정에서 알림 권한을 확인해주세요. 설정 &gt; 앱 &gt; 혼밥노노 &gt; 알림
               </Text>
@@ -317,12 +313,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loadingText: {
-    fontSize: 16,
+    fontSize: 15,
     color: COLORS.text.secondary,
     marginTop: 12,
   },
   errorText: {
-    fontSize: 16,
+    fontSize: 15,
     color: COLORS.text.secondary,
     marginTop: 12,
     marginBottom: 16,
@@ -332,7 +328,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary.main,
     paddingHorizontal: 20,
     paddingVertical: 10,
-    borderRadius: 8,
+    borderRadius: 6,
   },
   retryButtonText: {
     fontSize: 14,
@@ -347,7 +343,10 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     paddingBottom: 16,
     backgroundColor: COLORS.neutral.white,
-    ...SHADOWS.small,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(17,17,17,0.06)',
+    ...SHADOWS.sticky,
+    zIndex: 10,
   },
   backButton: {
     padding: 4,
@@ -356,6 +355,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '700',
     color: COLORS.text.primary,
+    letterSpacing: -0.3,
   },
   placeholder: {
     width: 32,
@@ -370,31 +370,35 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: COLORS.text.primary,
+    fontSize: 13,
+    fontWeight: '600',
+    color: COLORS.text.tertiary,
     paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: COLORS.neutral.background,
+    paddingTop: 20,
+    paddingBottom: 10,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
   },
   settingsContainer: {
     backgroundColor: COLORS.neutral.white,
     marginHorizontal: 16,
-    borderRadius: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(17,17,17,0.06)',
     ...SHADOWS.small,
   },
   settingItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 20,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.neutral.grey200,
+    borderBottomColor: 'rgba(17,17,17,0.06)',
   },
   settingIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 36,
+    height: 36,
+    borderRadius: 8,
     backgroundColor: COLORS.neutral.background,
     justifyContent: 'center',
     alignItems: 'center',
@@ -404,29 +408,32 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   settingTitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
     color: COLORS.text.primary,
     marginBottom: 2,
+    letterSpacing: -0.1,
   },
   settingDescription: {
     fontSize: 13,
-    color: COLORS.text.secondary,
+    color: COLORS.text.tertiary,
     lineHeight: 18,
   },
   infoCard: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    backgroundColor: COLORS.primary.light,
+    backgroundColor: COLORS.neutral.white,
     marginHorizontal: 16,
     padding: 16,
-    borderRadius: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(17,17,17,0.06)',
   },
   infoText: {
     flex: 1,
     marginLeft: 12,
     fontSize: 14,
-    color: COLORS.primary.dark,
+    color: COLORS.text.secondary,
     lineHeight: 20,
   },
   bottomSpacer: {

@@ -30,6 +30,12 @@ router.put('/settings', authenticateToken, notificationController.updateSettings
 // 테스트 알림 생성
 router.post('/test', authenticateToken, notificationController.createTestNotification);
 
+// 디바이스 FCM 토큰 등록
+router.post('/device-token', authenticateToken, notificationController.registerToken);
+
+// 디바이스 FCM 토큰 해제
+router.delete('/device-token', authenticateToken, notificationController.unregisterToken);
+
 // PATCH 버전 알림 읽음 처리
 router.patch('/:notificationId/read', authenticateToken, notificationController.markAsReadPatch);
 

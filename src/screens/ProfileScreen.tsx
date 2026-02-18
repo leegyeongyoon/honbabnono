@@ -208,7 +208,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation, user, onLogou
 
       {/* 앱 정보 */}
       <View style={styles.appInfoSection}>
-        <Text style={styles.appInfoText}>혼밥시러 v1.0.0</Text>
+        <Text style={styles.appInfoText}>잇테이블 v1.0.0</Text>
         <Text style={styles.appInfoText}>이용약관 · 개인정보처리방침</Text>
       </View>
 
@@ -288,7 +288,7 @@ const styles = StyleSheet.create({
     height: 80,
     borderRadius: 40,
     borderWidth: 3,
-    borderColor: '#EFE9E3',
+    borderColor: COLORS.neutral.grey200,
   },
   verifiedBadge: {
     position: 'absolute',
@@ -306,7 +306,7 @@ const styles = StyleSheet.create({
   },
   userName: {
     fontSize: 20,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: COLORS.text.primary,
     marginTop: 16,
     marginBottom: 8,
@@ -324,7 +324,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary.accent,
     paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: 20,
+    borderRadius: 8,
   },
   editButtonText: {
     color: COLORS.text.primary,
@@ -339,7 +339,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',
-    borderRadius: 12,
+    borderRadius: 8,
     borderWidth: 0,
   },
   statItem: {
@@ -348,7 +348,7 @@ const styles = StyleSheet.create({
   },
   statNumber: {
     fontSize: 20,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: COLORS.text.primary,
     marginBottom: 4,
   },
@@ -370,7 +370,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: COLORS.text.primary,
     marginBottom: 16,
   },
@@ -464,7 +464,7 @@ const styles = StyleSheet.create({
   },
   logoutButton: {
     backgroundColor: COLORS.functional.error,
-    borderRadius: 12,
+    borderRadius: 6,
     padding: 16,
     alignItems: 'center',
     ...SHADOWS.small,
@@ -472,7 +472,7 @@ const styles = StyleSheet.create({
   logoutText: {
     color: COLORS.text.white,
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '700',
   },
   appInfoSection: {
     padding: 20,
@@ -488,13 +488,13 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(15,14,12,0.6)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   modalContainer: {
     backgroundColor: COLORS.neutral.white,
-    borderRadius: 16,
+    borderRadius: 8,
     width: '90%',
     maxWidth: 400,
     borderWidth: 0,
@@ -509,7 +509,7 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: COLORS.text.primary,
   },
   closeButton: {
@@ -523,7 +523,7 @@ const styles = StyleSheet.create({
   closeButtonText: {
     fontSize: 18,
     color: COLORS.text.primary,
-    fontWeight: 'bold',
+    fontWeight: '700',
   },
   fixedHeader: {
     position: 'absolute',
@@ -546,7 +546,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: COLORS.text.primary,
   },
   settingsButton: {
@@ -567,7 +567,7 @@ const styles = StyleSheet.create({
   nameInput: {
     borderWidth: 1,
     borderColor: COLORS.primary.light,
-    borderRadius: 12,
+    borderRadius: 8,
     padding: 16,
     fontSize: 16,
     backgroundColor: COLORS.secondary.light,
@@ -580,7 +580,7 @@ const styles = StyleSheet.create({
   },
   modalButton: {
     flex: 1,
-    borderRadius: 12,
+    borderRadius: 6,
     padding: 16,
     alignItems: 'center',
     ...SHADOWS.small,

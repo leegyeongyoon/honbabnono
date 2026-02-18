@@ -4,10 +4,23 @@ const depositsController = require('./controller');
 const { authenticateToken, authenticateAdminNew } = require('../../middleware/auth');
 
 // ============================================
+// PortOne 결제 연동 API
+// ============================================
+
+// 결제 준비 (merchant_uid 생성)
+router.post('/prepare', authenticateToken, depositsController.preparePayment);
+
+// 결제 검증 (클라이언트 결제 완료 후)
+router.post('/verify', authenticateToken, depositsController.verifyPayment);
+
+// PortOne 환불
+router.post('/portone-refund', authenticateToken, depositsController.refundDepositViaPortone);
+
+// ============================================
 // 약속금 기본 API
 // ============================================
 
-// 약속금 결제
+// 약속금 결제 (레거시 - 포인트/목업)
 router.post('/payment', authenticateToken, depositsController.createPayment);
 
 // 약속금 일반 환불
