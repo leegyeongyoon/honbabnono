@@ -76,7 +76,7 @@ const KakaoMapModal: React.FC<KakaoMapModalProps> = ({
       const script = document.createElement('script');
       script.id = 'kakao-map-script';
       // WebView 환경을 위한 JavaScript 키 사용 (REST API 키 대신)
-      const KAKAO_MAP_KEY = process.env.REACT_APP_KAKAO_JS_KEY || '9d1ee4bec9bd24d0ac9f8c9d68fbf432';
+      const KAKAO_MAP_KEY = process.env.REACT_APP_KAKAO_JS_KEY || process.env.REACT_APP_KAKAO_CLIENT_ID || '5a202bd90ab8dff01348f24cb1c37f3f';
       script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${KAKAO_MAP_KEY}&libraries=services&autoload=true`;
       script.async = true;
       

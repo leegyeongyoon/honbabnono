@@ -121,7 +121,7 @@ const KakaoMapComponent: React.FC<KakaoMapComponentProps> = ({ onMapLoad, onLoca
     const script = document.createElement('script');
     script.async = true;
     // WebView 환경을 위한 JavaScript 키 사용 (REST API 키 대신)
-    const apiKey = process.env.REACT_APP_KAKAO_JS_KEY || '9d1ee4bec9bd24d0ac9f8c9d68fbf432';
+    const apiKey = process.env.REACT_APP_KAKAO_JS_KEY || process.env.REACT_APP_KAKAO_CLIENT_ID || '5a202bd90ab8dff01348f24cb1c37f3f';
     script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${apiKey}&libraries=services,clusterer,drawing&autoload=true`;
     
     sendLogToNative(`스크립트 생성: ${script.src}`);
