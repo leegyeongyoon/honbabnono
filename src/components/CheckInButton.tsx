@@ -95,21 +95,22 @@ const CheckInButton: React.FC<CheckInButtonProps> = ({
 
           try {
             // 체크인 API 호출
-            const response = await apiClient.post(`/meetups/${meetupId}/check-in`, {
+            const response = await apiClient.post(`/meetups/${meetupId}/checkin/gps`, {
               latitude,
               longitude,
             });
 
-            if (response.data && response.data.attended) {
+            if (response.data?.success) {
+              const result = response.data.data;
               Alert.alert(
                 '체크인 완료',
-                `${response.data.distance}m 거리에서 체크인되었습니다.`,
+                `${result.distance}m 거리에서 체크인되었습니다.`,
                 [{ text: '확인' }]
               );
               setMyAttendance({
                 attended: true,
-                attendedAt: response.data.attendedAt,
-                distance: response.data.distance,
+                attendedAt: result.checkedInAt,
+                distance: result.distance,
               });
               onCheckInSuccess?.();
             }

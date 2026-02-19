@@ -36,7 +36,7 @@ export interface Meetup {
   ageRange?: string;
   genderPreference?: string;
   image?: string;
-  status: 'recruiting' | 'confirmed' | 'completed' | 'cancelled';
+  status: 'recruiting' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled';
   hostId: string;
   hostName: string;
   hostBabAlScore: number;
@@ -135,6 +135,18 @@ const apiCall = async (endpoint: string, options: any = {}) => {
   }
 };
 
+// 한국어 상태를 영문 상태로 매핑
+const mapKoreanStatus = (status: string): Meetup['status'] => {
+  const statusMap: Record<string, Meetup['status']> = {
+    '모집중': 'recruiting',
+    '모집완료': 'confirmed',
+    '진행중': 'in_progress',
+    '종료': 'completed',
+    '취소': 'cancelled',
+  };
+  return statusMap[status] || status as Meetup['status'];
+};
+
 // 백엔드 데이터를 프론트엔드 형식으로 변환
 const transformMeetupData = (meetupData: any): Meetup => {
   // 다양한 응답 구조 처리
@@ -164,7 +176,7 @@ const transformMeetupData = (meetupData: any): Meetup => {
     ageRange: actualData.ageRange,
     genderPreference: actualData.genderPreference,
     image: actualData.image,
-    status: actualData.status === '모집중' ? 'recruiting' : actualData.status,
+    status: mapKoreanStatus(actualData.status),
     hostId: actualData.hostId || actualData.host?.id || 'unknown',
     hostName: actualData.host?.name || actualData.hostName || '익명',
     hostBabAlScore: actualData.host?.babAlScore || actualData.hostBabAlScore || 98,

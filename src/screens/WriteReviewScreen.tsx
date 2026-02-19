@@ -100,15 +100,15 @@ const WriteReviewScreen = () => {
 
     setSubmitting(true);
     try {
-      const response = await apiClient.post(`/meetups/${meetupId}/reviews`, {
-        revieweeId: selectedParticipant.id,
+      const response = await apiClient.post(`/meetups/${meetupId}/user-reviews`, {
+        reviewedUserId: selectedParticipant.id,
         rating,
-        content: content.trim() || null,
+        comment: content.trim() || null,
         tags: selectedTags,
         isAnonymous,
       });
 
-      if (response.data?.review) {
+      if (response.data?.success) {
         Alert.alert('완료', '리뷰가 작성되었습니다.', [
           {
             text: '확인',

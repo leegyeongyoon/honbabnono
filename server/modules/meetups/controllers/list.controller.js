@@ -39,6 +39,7 @@ exports.getHomeMeetups = async (req, res) => {
       FROM meetups m
       LEFT JOIN users h ON m.host_id = h.id
       WHERE m.status IN ('모집중', '모집완료')
+        AND (m.date::date + m.time::time) > NOW()
     `;
 
     const homeParams = [];
@@ -401,7 +402,11 @@ exports.getMyMeetups = async (req, res) => {
  */
 exports.getMeetups = async (req, res) => {
   try {
-    const { category, status, page = 1, limit = 10 } = req.query;
+    const { category, status, latitude, longitude, radius, page = 1, limit = 10 } = req.query;
+    const hasLocationFilter = latitude && longitude;
+    const userLat = hasLocationFilter ? parseFloat(latitude) : null;
+    const userLng = hasLocationFilter ? parseFloat(longitude) : null;
+    const searchRadius = radius ? parseInt(radius) : null;
     const { offset, limit: parsedLimit } = buildPagination(page, limit);
 
     const whereConditions = [];
@@ -409,15 +414,19 @@ exports.getMeetups = async (req, res) => {
     let paramIndex = 1;
 
     if (category) {
-      whereConditions.push(`category = $${paramIndex}`);
+      whereConditions.push(`m.category = $${paramIndex}`);
       params.push(category);
       paramIndex++;
     }
 
     if (status) {
-      whereConditions.push(`status = $${paramIndex}`);
+      whereConditions.push(`m.status = $${paramIndex}`);
       params.push(status);
       paramIndex++;
+    } else {
+      // status 파라미터 없으면 지난/취소 모임 제외
+      whereConditions.push("m.status NOT IN ('종료', '취소')");
+      whereConditions.push("(m.date::date + m.time::time) > NOW()");
     }
 
     const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
@@ -425,23 +434,44 @@ exports.getMeetups = async (req, res) => {
 
     const result = await pool.query(
       `
-      SELECT m.*, u.name as host_name, u.profile_image as host_profile_image
+      SELECT
+        m.id, m.title, m.description, m.location, m.address,
+        m.latitude, m.longitude,
+        m.date, m.time, m.max_participants, m.current_participants,
+        m.category, m.price_range, m.image, m.status,
+        m.age_range, m.gender_preference, m.host_id,
+        m.created_at, m.updated_at,
+        u.name as "host.name",
+        u.profile_image as "host.profileImage",
+        u.rating as "host.rating"
       FROM meetups m
       LEFT JOIN users u ON m.host_id = u.id
       ${whereClause}
-      ORDER BY m.date DESC, m.time DESC
+      ORDER BY m.date ASC, m.time ASC
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
     `,
       params
     );
 
+    const userLocation = hasLocationFilter ? { lat: userLat, lng: userLng } : null;
+    let meetups = result.rows.map((row) =>
+      transformMeetupData(row, { userLocation, includeDistance: hasLocationFilter })
+    );
+
+    // 거리 필터 적용
+    if (hasLocationFilter && searchRadius) {
+      meetups = meetups
+        .filter((m) => m.distance !== null && m.distance <= searchRadius)
+        .sort((a, b) => (a.distance || 0) - (b.distance || 0));
+    }
+
     res.json({
       success: true,
-      meetups: result.rows,
+      meetups,
       pagination: {
         page: parseInt(page),
         limit: parsedLimit,
-        total: result.rowCount,
+        total: meetups.length,
       },
     });
   } catch (error) {

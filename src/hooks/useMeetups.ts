@@ -5,6 +5,9 @@ interface SearchParams {
   search?: string;
   category?: string;
   location?: string;
+  latitude?: number;
+  longitude?: number;
+  radius?: number;
   page?: number;
   limit?: number;
 }
@@ -27,6 +30,9 @@ export const useMeetups = () => {
       if (searchParams.location && searchParams.location !== '전체') {
         queryParams.append('location', searchParams.location);
       }
+      if (searchParams.latitude) {queryParams.append('latitude', searchParams.latitude.toString());}
+      if (searchParams.longitude) {queryParams.append('longitude', searchParams.longitude.toString());}
+      if (searchParams.radius) {queryParams.append('radius', searchParams.radius.toString());}
       if (searchParams.page) {queryParams.append('page', searchParams.page.toString());}
       if (searchParams.limit) {queryParams.append('limit', searchParams.limit.toString());}
       
@@ -64,6 +70,19 @@ export const useMeetups = () => {
           restriction: [],
           atmosphere: []
         },
+        status: (() => {
+          const statusMap: Record<string, string> = {
+            '모집중': 'recruiting',
+            '모집완료': 'confirmed',
+            '진행중': 'in_progress',
+            '종료': 'completed',
+            '취소': 'cancelled',
+          };
+          return statusMap[meetup.status] || meetup.status;
+        })(),
+        latitude: meetup.latitude,
+        longitude: meetup.longitude,
+        distance: meetup.distance ?? null,
         isApproved: true, // 백엔드에서 온 데이터는 모두 승인된 것으로 처리
         createdAt: meetup.createdAt,
         image: meetup.image || undefined,

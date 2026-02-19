@@ -209,8 +209,12 @@ class LocationServiceNative {
    */
   async reverseGeocode(latitude: number, longitude: number): Promise<{ district: string; neighborhood: string; fullAddress: string } | null> {
     try {
-      const KAKAO_REST_API_KEY = '5a202bd90ab8dff01348f24cb1c37f3f';
-      
+      const KAKAO_REST_API_KEY = process.env.REACT_APP_KAKAO_REST_API_KEY || '';
+      if (!KAKAO_REST_API_KEY) {
+        console.warn('REACT_APP_KAKAO_REST_API_KEY 환경변수가 설정되지 않았습니다.');
+        return null;
+      }
+
       const response = await fetch(
         `https://dapi.kakao.com/v2/local/geo/coord2address.json?x=${longitude}&y=${latitude}`,
         {
@@ -305,8 +309,12 @@ class LocationServiceNative {
    */
   async searchAddress(query: string): Promise<Array<{ latitude: number; longitude: number; district: string; neighborhood: string; fullAddress: string }>> {
     try {
-      const KAKAO_REST_API_KEY = '5a202bd90ab8dff01348f24cb1c37f3f';
-      
+      const KAKAO_REST_API_KEY = process.env.REACT_APP_KAKAO_REST_API_KEY || '';
+      if (!KAKAO_REST_API_KEY) {
+        console.warn('REACT_APP_KAKAO_REST_API_KEY 환경변수가 설정되지 않았습니다.');
+        return [];
+      }
+
       const response = await fetch(
         `https://dapi.kakao.com/v2/local/search/address.json?query=${encodeURIComponent(query)}`,
         {

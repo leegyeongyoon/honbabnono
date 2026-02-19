@@ -22,25 +22,60 @@ interface UniversalMeetupListScreenProps {
   navigation: NavigationAdapter;
 }
 
-const UniversalMeetupListScreen: React.FC<UniversalMeetupListScreenProps> = ({ 
+const DISTANCE_OPTIONS = [
+  { label: '전체', value: 0 },
+  { label: '1km', value: 1000 },
+  { label: '3km', value: 3000 },
+  { label: '5km', value: 5000 },
+  { label: '10km', value: 10000 },
+];
+
+const UniversalMeetupListScreen: React.FC<UniversalMeetupListScreenProps> = ({
   navigation
 }) => {
   const { meetups, loading, error, refreshMeetups } = useMeetups();
   const [filter, setFilter] = useState<'all' | 'recruiting' | 'full'>('all');
+  const [distanceFilter, setDistanceFilter] = useState(0);
+  const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
 
   useEffect(() => {
-    refreshMeetups();
+    // 사용자 위치 가져오기
+    if (typeof navigator !== 'undefined' && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const loc = { latitude: position.coords.latitude, longitude: position.coords.longitude };
+          setUserLocation(loc);
+          refreshMeetups({ latitude: loc.latitude, longitude: loc.longitude });
+        },
+        () => {
+          refreshMeetups();
+        },
+        { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 }
+      );
+    } else {
+      refreshMeetups();
+    }
   }, []);
 
   const filteredMeetups = meetups.filter(meetup => {
+    // 상태 필터
+    let statusMatch = true;
     switch (filter) {
       case 'recruiting':
-        return meetup.status === '모집중';
+        statusMatch = meetup.status === 'recruiting';
+        break;
       case 'full':
-        return (meetup.currentParticipants || meetup.current_participants) >= (meetup.maxParticipants || meetup.max_participants);
-      default:
-        return true;
+        statusMatch = (meetup.currentParticipants || meetup.current_participants) >= (meetup.maxParticipants || meetup.max_participants);
+        break;
     }
+    // 거리 필터
+    let distanceMatch = true;
+    if (distanceFilter > 0 && meetup.distance != null) {
+      distanceMatch = meetup.distance <= distanceFilter;
+    } else if (distanceFilter > 0 && meetup.distance == null) {
+      distanceMatch = false;
+    }
+    return statusMatch && distanceMatch;
   });
 
   if (loading) {
@@ -91,7 +126,7 @@ const UniversalMeetupListScreen: React.FC<UniversalMeetupListScreenProps> = ({
           onPress={() => setFilter('recruiting')}
         >
           <Text style={[styles.filterText, filter === 'recruiting' && styles.activeFilterText]}>
-            모집중 ({meetups.filter(m => m.status === '모집중').length})
+            모집중 ({meetups.filter(m => m.status === 'recruiting').length})
           </Text>
         </TouchableOpacity>
         
@@ -104,6 +139,25 @@ const UniversalMeetupListScreen: React.FC<UniversalMeetupListScreenProps> = ({
           </Text>
         </TouchableOpacity>
       </View>
+
+      {userLocation && (
+        <View style={styles.distanceFilterContainer}>
+          <Icon name="map-pin" size={14} color={COLORS.text.secondary} />
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.distanceScroll}>
+            {DISTANCE_OPTIONS.map((option) => (
+              <TouchableOpacity
+                key={option.value}
+                style={[styles.distanceChip, distanceFilter === option.value && styles.distanceChipActive]}
+                onPress={() => setDistanceFilter(option.value)}
+              >
+                <Text style={[styles.distanceChipText, distanceFilter === option.value && styles.distanceChipTextActive]}>
+                  {option.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+      )}
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {filteredMeetups.length === 0 ? (
@@ -218,6 +272,37 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   activeFilterText: {
+    color: COLORS.text.white,
+  },
+  distanceFilterContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.neutral.white,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    gap: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.neutral.grey100,
+  },
+  distanceScroll: {
+    flexGrow: 0,
+  },
+  distanceChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    backgroundColor: COLORS.neutral.grey100,
+    marginRight: 6,
+  },
+  distanceChipActive: {
+    backgroundColor: COLORS.primary.main,
+  },
+  distanceChipText: {
+    fontSize: 13,
+    color: COLORS.text.secondary,
+    fontWeight: '500',
+  },
+  distanceChipTextActive: {
     color: COLORS.text.white,
   },
   scrollView: {
