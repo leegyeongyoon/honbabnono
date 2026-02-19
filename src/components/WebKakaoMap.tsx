@@ -26,7 +26,7 @@ interface WebKakaoMapProps {
   onSearchHere?: (center: { lat: number; lng: number }) => void;
 }
 
-const KAKAO_APP_KEY = process.env.REACT_APP_KAKAO_CLIENT_ID || '';
+const KAKAO_APP_KEY = process.env.REACT_APP_KAKAO_JS_KEY || process.env.REACT_APP_KAKAO_CLIENT_ID || '';
 const DEFAULT_CENTER = { lat: 37.498095, lng: 127.027610 }; // 강남역
 
 const loadKakaoScript = (): Promise<void> => {

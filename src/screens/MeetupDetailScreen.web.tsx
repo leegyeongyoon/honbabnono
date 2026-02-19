@@ -245,7 +245,7 @@ const KakaoMap: React.FC<{
     if (!window.kakao) {
       const script = document.createElement('script');
       script.async = true;
-      const kakaoAppKey = process.env.REACT_APP_KAKAO_CLIENT_ID || '';
+      const kakaoAppKey = process.env.REACT_APP_KAKAO_JS_KEY || process.env.REACT_APP_KAKAO_CLIENT_ID || '';
       script.src = `//dapi.kakao.com/v2/maps/sdk.js?appkey=${kakaoAppKey}&libraries=services&autoload=false`;
       script.onload = () => {
         if (window.kakao && window.kakao.maps) {
