@@ -116,12 +116,12 @@ const PointBalanceScreen: React.FC = () => {
 
   const formatDescription = (description: string) => {
     // 모임 ID를 모임 이름으로 변환하는 로직
-    if (description.includes('모임 ID:')) {
-      // 실제로는 모임 ID를 통해 모임 이름을 조회해야 하지만, 
+    if (description.includes('약속 ID:')) {
+      // 실제로는 약속 ID를 통해 약속 이름을 조회해야 하지만,
       // 지금은 간단하게 처리
-      const meetupIdMatch = description.match(/모임 ID: ([^)]+)/);
+      const meetupIdMatch = description.match(/약속 ID: ([^)]+)/);
       if (meetupIdMatch) {
-        return description.replace(/모임 ID: [^)]+/, '모임 약속금 결제');
+        return description.replace(/약속 ID: [^)]+/, '약속금 결제');
       }
     }
     
@@ -218,7 +218,7 @@ const PointBalanceScreen: React.FC = () => {
             <View style={styles.emptyState}>
               <Text style={styles.emptyIcon}>💸</Text>
               <Text style={styles.emptyStateText}>포인트 내역이 없습니다</Text>
-              <Text style={styles.emptyStateSubtext}>포인트를 충전하거나 모임에 참여해보세요!</Text>
+              <Text style={styles.emptyStateSubtext}>포인트를 충전하거나 약속에 참여해보세요!</Text>
             </View>
           ) : (
             transactions.map(transaction => (

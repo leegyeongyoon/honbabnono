@@ -61,7 +61,7 @@ function ResearchAgent() {
     setMessage('리서치를 실행 중입니다...');
     
     try {
-      const systemPrompt = `당신은 혼밥(혼자 밥 먹기) 플랫폼 '혼밥시러'의 마켓 리서치 전문가입니다. 
+      const systemPrompt = `당신은 밥약속 플랫폼 '잇테이블'의 마켓 리서치 전문가입니다. 
 아래 요청에 대해 다음 형식의 JSON으로 응답해주세요:
 
 {
@@ -92,7 +92,7 @@ function ResearchAgent() {
         systemPrompt,
         dailyPrompt,
         sources: [],
-        customKeywords: ['혼밥', '혼밥시러', '혼자밥', '솔로다이닝', '1인식당']
+        customKeywords: ['혼밥', '잇테이블', '혼자밥', '솔로다이닝', '1인식당']
       }, {
         timeout: 120000 // 2분 타임아웃 설정
       });
@@ -242,7 +242,7 @@ function ResearchAgent() {
 
       <Paper sx={{ p: 3, mb: 3 }}>
         <Typography variant="h6" gutterBottom>
-          혼밥시러 Market Intelligence
+          잇테이블 Market Intelligence
         </Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
           혼밥 관련 인사이트를 수집하고 시장 동향을 분석합니다.

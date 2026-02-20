@@ -226,7 +226,7 @@ const PointHistoryScreen: React.FC = () => {
           <EmptyState
             icon="dollar-sign"
             title="포인트 사용 내역이 없습니다"
-            description="포인트를 충전하고 모임에 참여해보세요!"
+            description="포인트를 충전하고 약속에 참여해보세요!"
             actionLabel="포인트 충전하기"
             onAction={() => navigate('/point-charge')}
           />

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
+  Image,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
@@ -121,11 +122,11 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
   };
 
   const searchSuggestions = [
-    '우울할때 갈만한 모임 추천해줘',
+    '우울할때 갈만한 밥약속 추천해줘',
     '스트레스 받을 때 좋은 곳',
     '혼자 갈 수 있는 카페',
-    '맛있는 한식 모임',
-    '저렴한 술집 모임',
+    '맛있는 한식 밥약속',
+    '저렴한 술집 약속',
     '새로운 사람들과 친해지기',
   ];
 
@@ -270,7 +271,13 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
         borderBottom: `1px solid rgba(17,17,17,0.06)`,
       }}>
         <View style={styles.header}>
-          <Text style={styles.headerLogo}>잇테이블</Text>
+          <View style={styles.headerLogoWrap}>
+            <Image
+              source={require('../assets/logo/logo-v2-table-e.png')}
+              style={styles.headerLogoImage}
+            />
+            <Text style={styles.headerLogo}>잇테이블</Text>
+          </View>
 
           <TouchableOpacity
             style={[styles.locationButton, { cursor: 'pointer' } as any]}
@@ -411,7 +418,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
               autoCapitalize="none"
               autoCorrect={false}
               returnKeyType="search"
-              aria-label="모임 검색"
+              aria-label="약속 검색"
             />
             {searchQuery.length > 0 && (
               <>
@@ -596,7 +603,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
           </FadeIn>
         )}
 
-        {/* 섹션 2: 새로 올라온 모임 */}
+        {/* 섹션 2: 새로 올라온 밥약속 */}
         {(isLoading || newMeetups.length > 0) && (
           <FadeIn delay={300}>
             <div
@@ -609,8 +616,8 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
               }}
             >
               <SectionHeader
-                title="새로 올라온 모임"
-                subtitle="방금 등록된 새 모임"
+                title="새로 올라온 밥약속"
+                subtitle="방금 등록된 새 밥약속"
                 onSeeAll={() => navigate('/explore')}
                 seeAllKey="new"
               />
@@ -663,7 +670,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
           </FadeIn>
         )}
 
-        {/* 섹션 3: 모집중인 모임 (세로 리스트) */}
+        {/* 섹션 3: 모집중인 밥약속 (세로 리스트) */}
         {(isLoading || recruitingMeetups.length > 0) && (
           <FadeIn delay={400}>
             <div
@@ -676,7 +683,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
               }}
             >
               <SectionHeader
-                title="모집중인 모임"
+                title="모집중인 밥약속"
                 subtitle="함께할 사람을 찾고 있어요"
                 onSeeAll={() => navigate('/explore')}
                 seeAllKey="recruiting"
@@ -721,18 +728,18 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
           </FadeIn>
         )}
 
-        {/* 모임이 전혀 없을 때 */}
+        {/* 밥약속이 전혀 없을 때 */}
         {!isLoading && !fetchError && meetups.length === 0 && (
           <EmptyState
             icon="&#x1F37D;"
-            title="아직 등록된 모임이 없어요"
-            description="첫 번째 모임을 만들어보세요!"
-            actionLabel="모임 만들기"
+            title="아직 등록된 밥약속이 없어요"
+            description="첫 번째 밥약속을 만들어보세요!"
+            actionLabel="약속 만들기"
             onAction={() => setShowCreateMeetup(true)}
           />
         )}
 
-        {/* 모든 모임 보기 버튼 — 테라코타 CTA */}
+        {/* 모든 약속 보기 버튼 -- 테라코타 CTA */}
         <div
           onClick={() => navigate('/explore')}
           onMouseEnter={() => setHoveredAllMeetups(true)}
@@ -757,14 +764,14 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
             boxShadow: hoveredAllMeetups ? CSS_SHADOWS.cta : CSS_SHADOWS.card,
           }}
           role="button"
-          aria-label="모든 모임 보기"
+          aria-label="모든 약속 보기"
         >
           <span style={{
             fontSize: 14,
             fontWeight: '600',
             letterSpacing: -0.03,
             color: COLORS.neutral.white,
-          }}>모든 모임 보기</span>
+          }}>모든 약속 보기</span>
           <span style={{ color: COLORS.neutral.white, fontSize: 14 }}>&#x203A;</span>
         </div>
 
@@ -832,10 +839,10 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
           animationDelay: '800ms',
         }}
         role="button"
-        aria-label="새 모임 만들기"
+        aria-label="새 약속 만들기"
       >
         <span style={{ fontSize: 20, color: COLORS.neutral.white, fontWeight: '300', lineHeight: '20px' }}>+</span>
-        <span style={{ fontSize: 14, fontWeight: '600', color: COLORS.neutral.white, whiteSpace: 'nowrap' }}>모임 만들기</span>
+        <span style={{ fontSize: 14, fontWeight: '600', color: COLORS.neutral.white, whiteSpace: 'nowrap' }}>약속 만들기</span>
       </div>
 
       {/* 모달들 */}
@@ -874,6 +881,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.xl,
     backgroundColor: COLORS.neutral.white,
     gap: SPACING.md,
+  },
+  headerLogoWrap: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: SPACING.sm,
+  },
+  headerLogoImage: {
+    width: 28,
+    height: 28,
+    borderRadius: 6,
   },
   headerLogo: {
     fontSize: 22,

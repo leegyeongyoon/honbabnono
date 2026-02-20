@@ -103,7 +103,7 @@ const AISearchResultScreen: React.FC<{ user: any; navigation: any }> = ({ user, 
     }
 
     // 키워드 추출 (가격 관련 단어 제외)
-    const excludeWords = ['모임', '찾기', '검색', '이상', '이하', '미만', '만원', '원'];
+    const excludeWords = ['모임', '약속', '찾기', '검색', '이상', '이하', '미만', '만원', '원'];
     let queryWords = queryLower.split(' ').filter(w => {
       if (w.length <= 1) {return false;}
       if (excludeWords.some(ex => w.includes(ex))) {return false;}
@@ -464,9 +464,9 @@ const AISearchResultScreen: React.FC<{ user: any; navigation: any }> = ({ user, 
       if (userIntent.searchContext === 'lunch') {
         greeting = `🍽️ 점심시간이네요! "${query}" 검색 결과를 분석했어요.`;
       } else if (userIntent.searchContext === 'dinner') {
-        greeting = `🌆 저녁 모임을 찾고 계신가요? "${query}" 검색 결과입니다.`;
+        greeting = `🌆 저녁 약속을 찾고 계신가요? "${query}" 검색 결과입니다.`;
       } else if (userIntent.searchContext === 'late-night') {
-        greeting = `🌙 늦은 시간이지만 "${query}" 모임을 찾아봤어요.`;
+        greeting = `🌙 늦은 시간이지만 "${query}" 약속을 찾아봤어요.`;
       } else {
         greeting = `🔍 "${query}" 검색을 AI가 분석했어요!`;
       }
@@ -485,7 +485,7 @@ const AISearchResultScreen: React.FC<{ user: any; navigation: any }> = ({ user, 
       } else if (userIntent.userPersonality === 'beginner') {
         profileAnalysis.push(`• 새로운 시도를 하시는 용기있는 분이시네요`);
       } else if (userIntent.userPersonality === 'regular') {
-        profileAnalysis.push(`• 꾸준한 모임 활동을 원하시는군요`);
+        profileAnalysis.push(`• 꾸준한 밥약속 활동을 원하시는군요`);
       }
 
       // 상세 의도 분석
@@ -506,16 +506,16 @@ const AISearchResultScreen: React.FC<{ user: any; navigation: any }> = ({ user, 
 
       if (userIntent.wantsPrice) {
         if (priceFilter && priceFilter.min === 0 && priceFilter.max === 0) {
-          profileAnalysis.push(`• 경제적인 무료 모임을 선호하시는 실속파`);
+          profileAnalysis.push(`• 경제적인 무료 약속을 선호하시는 실속파`);
         } else if (priceFilter && priceFilter.min >= 30000) {
-          profileAnalysis.push(`• 퀄리티 있는 프리미엄 모임을 원하시는 분`);
+          profileAnalysis.push(`• 퀄리티 있는 프리미엄 약속을 원하시는 분`);
         } else {
           profileAnalysis.push(`• 예산 ${userIntent.priceRange}을 고려하시는 계획적인 분`);
         }
       }
 
       if (userIntent.wantsGender) {
-        profileAnalysis.push(`• ${userIntent.gender} 모임에서 편안함을 느끼시는 분`);
+        profileAnalysis.push(`• ${userIntent.gender} 약속에서 편안함을 느끼시는 분`);
       }
 
       if (userIntent.wantsDate) {
@@ -531,12 +531,12 @@ const AISearchResultScreen: React.FC<{ user: any; navigation: any }> = ({ user, 
       if (profileAnalysis.length > 0) {
         response += profileAnalysis.join('\n') + '\n\n';
       } else {
-        response += `• 다양한 모임에 관심이 있으신 열린 마음의 소유자\n\n`;
+        response += `• 다양한 밥약속에 관심이 있으신 열린 마음의 소유자\n\n`;
       }
 
       // 검색 결과 요약
       response += `✨ 총 ${filteredResults.length}개의 완벽한 매칭을 찾았어요!\n\n`;
-      response += `📌 특별히 추천드리는 TOP ${Math.min(5, topMeetups.length)} 모임:\n\n`;
+      response += `📌 특별히 추천드리는 TOP ${Math.min(5, topMeetups.length)} 약속:\n\n`;
 
       // 각 모임 상세 설명
       topMeetups.forEach((meetup, index) => {
@@ -565,43 +565,43 @@ const AISearchResultScreen: React.FC<{ user: any; navigation: any }> = ({ user, 
             if (reason.includes('title_')) {
               const keyword = reason.replace('title_', '');
               if (userIntent.wantsFood && keyword === userIntent.foodType) {
-                insights.push(`정확히 원하시던 ${keyword} 모임이에요!`);
+                insights.push(`정확히 원하시던 ${keyword} 약속이에요!`);
               } else {
                 insights.push(`"${keyword}" 키워드가 제목에 있어 관련성이 높아요`);
               }
             } else if (reason.includes('desc_')) {
               const keyword = reason.replace('desc_', '');
-              insights.push(`모임 소개에서 "${keyword}"를 언급하고 있어요`);
+              insights.push(`약속 소개에서 "${keyword}"를 언급하고 있어요`);
             } else if (reason.includes('price_')) {
               if (priceFilter && priceFilter.min === 0 && priceFilter.max === 0) {
-                insights.push(`무료 모임을 원하셨는데 딱 맞네요!`);
+                insights.push(`무료 약속을 원하셨는데 딱 맞네요!`);
               } else if (priceFilter && priceFilter.min >= 10000) {
                 insights.push(`${userIntent.priceRange} 예산 조건과 정확히 일치해요`);
               } else {
                 insights.push(`가격대가 예산 범위 내에 있어요`);
               }
             } else if (reason === 'gender_female') {
-              insights.push(`여성분들만의 편안한 모임이에요`);
+              insights.push(`여성분들만의 편안한 약속이에요`);
             } else if (reason === 'gender_male') {
-              insights.push(`남성분들만의 편안한 모임이에요`);
+              insights.push(`남성분들만의 편안한 약속이에요`);
             } else if (reason === 'date_today') {
-              insights.push(`오늘 당장 만날 수 있는 즉석 모임!`);
+              insights.push(`오늘 당장 만날 수 있는 즉석 약속!`);
             } else if (reason === 'date_tomorrow') {
-              insights.push(`내일 예정된 모임이라 준비할 시간이 있어요`);
+              insights.push(`내일 예정된 약속이라 준비할 시간이 있어요`);
             }
           });
         }
 
         // 사용자 성향과 연결된 추천 이유
         if (userIntent.userPersonality === 'solo' && (meetup.max_participants ?? 4) <= 4) {
-          reasons.push(`소규모 모임이라 부담없이 참여하실 수 있어요`);
+          reasons.push(`소규모 약속이라 부담없이 참여하실 수 있어요`);
         } else if (userIntent.userPersonality === 'social' && (meetup.max_participants ?? 4) >= 6) {
-          reasons.push(`많은 사람들과 교류할 수 있는 활발한 모임이에요`);
+          reasons.push(`많은 사람들과 교류할 수 있는 활발한 약속이에요`);
         }
 
         if (userIntent.userPersonality === 'beginner' && meetup.description &&
           (meetup.description.includes('처음') || meetup.description.includes('초보'))) {
-          reasons.push(`초보자도 환영하는 모임이라 부담없어요`);
+          reasons.push(`초보자도 환영하는 약속이라 부담없어요`);
         }
 
         // 시간대 맥락 추천
@@ -610,14 +610,14 @@ const AISearchResultScreen: React.FC<{ user: any; navigation: any }> = ({ user, 
           reasons.push(`점심시간에 딱 맞는 시간대예요`);
         } else if (userIntent.searchContext === 'dinner' && meetup.time &&
           (meetup.time.includes('18') || meetup.time.includes('19'))) {
-          reasons.push(`저녁 시간대에 진행되는 모임이에요`);
+          reasons.push(`저녁 시간대에 진행되는 약속이에요`);
         }
 
         // 인기도 분석
         if ((meetup.current_participants ?? 0) > 0 && (meetup.max_participants ?? 0) > 0) {
           const fillRate = ((meetup.current_participants ?? 0) / (meetup.max_participants ?? 1)) * 100;
           if (fillRate >= 70) {
-            reasons.push(`🔥 인기 모임! 벌써 ${Math.round(fillRate)}% 마감되었어요`);
+            reasons.push(`🔥 인기 약속! 벌써 ${Math.round(fillRate)}% 마감되었어요`);
           } else if (fillRate >= 50) {
             reasons.push(`참가자가 절반 이상 모였어요 (${meetup.current_participants}명)`);
           } else {
@@ -641,20 +641,20 @@ const AISearchResultScreen: React.FC<{ user: any; navigation: any }> = ({ user, 
             response += `   • ${reason}\n`;
           });
         } else {
-          response += `   • 검색어와 관련성이 높은 모임이에요\n`;
+          response += `   • 검색어와 관련성이 높은 약속이에요\n`;
         }
 
         // 참가 권유 메시지
         if (index === 0) {
-          response += `\n   🎯 AI 추천: 가장 적합한 모임이에요! 놓치지 마세요.\n`;
+          response += `\n   🎯 AI 추천: 가장 적합한 약속이에요! 놓치지 마세요.\n`;
         }
 
         response += '\n';
       });
 
       // 마무리 멘트
-      response += `💬 관심 있는 모임을 클릭해서 자세히 알아보세요!\n`;
-      response += `원하시는 모임이 없다면 직접 만들어보는 것도 좋은 방법이에요 😊`;
+      response += `💬 관심 있는 약속을 클릭해서 자세히 알아보세요!\n`;
+      response += `원하시는 약속이 없다면 직접 만들어보는 것도 좋은 방법이에요 😊`;
 
     } else {
       // 결과가 없을 때 더 도움이 되는 응답
@@ -664,16 +664,16 @@ const AISearchResultScreen: React.FC<{ user: any; navigation: any }> = ({ user, 
 
       // 검색 의도 분석
       if (userIntent.wantsFood) {
-        response += `• ${userIntent.foodType} 관련 모임을 찾으셨군요\n`;
-        response += `• 현재 활성화된 ${userIntent.foodType} 모임이 없어요\n\n`;
+        response += `• ${userIntent.foodType} 관련 약속을 찾으셨군요\n`;
+        response += `• 현재 활성화된 ${userIntent.foodType} 약속이 없어요\n\n`;
 
         response += `🎯 AI 제안:\n`;
-        response += `1. 직접 "${userIntent.foodType} 맛집 탐방" 모임을 만들어보세요!\n`;
+        response += `1. 직접 "${userIntent.foodType} 맛집 탐방" 약속을 만들어보세요!\n`;
         response += `2. 비슷한 음식 카테고리로 검색해보세요:\n`;
 
         // 유사 음식 추천
         if (userIntent.foodType === '라멘') {
-          response += `   • "일식 모임", "우동", "돈카츠"\n`;
+          response += `   • "일식 약속", "우동", "돈카츠"\n`;
         } else if (userIntent.foodType === '고기') {
           response += `   • "삼겹살", "BBQ", "스테이크"\n`;
         } else if (userIntent.foodType === '피자') {
@@ -681,11 +681,11 @@ const AISearchResultScreen: React.FC<{ user: any; navigation: any }> = ({ user, 
         }
 
       } else if (userIntent.wantsActivity) {
-        response += `• ${userIntent.activity} 활동 모임을 찾으셨군요\n`;
-        response += `• 아쉽게도 현재 매칭되는 모임이 없어요\n\n`;
+        response += `• ${userIntent.activity} 활동 약속을 찾으셨군요\n`;
+        response += `• 아쉽게도 현재 매칭되는 약속이 없어요\n\n`;
 
         response += `🎯 AI 제안:\n`;
-        response += `1. "${userIntent.activity}" 정기 모임을 직접 만들어보세요!\n`;
+        response += `1. "${userIntent.activity}" 정기 약속을 직접 만들어보세요!\n`;
         response += `2. 관련 활동을 검색해보세요:\n`;
 
         // 유사 활동 추천
@@ -697,35 +697,35 @@ const AISearchResultScreen: React.FC<{ user: any; navigation: any }> = ({ user, 
 
       } else if (userIntent.wantsPrice) {
         response += `• ${userIntent.priceRange} 예산 조건으로 검색하셨네요\n`;
-        response += `• 해당 가격대의 모임이 현재 없어요\n\n`;
+        response += `• 해당 가격대의 약속이 현재 없어요\n\n`;
 
         response += `🎯 AI 제안:\n`;
         response += `1. 예산 범위를 조금 넓혀서 다시 검색해보세요\n`;
-        response += `2. 원하는 가격대의 모임을 직접 만들어보세요\n`;
+        response += `2. 원하는 가격대의 약속을 직접 만들어보세요\n`;
 
       } else {
-        response += `• 특정 조건의 모임을 찾고 계신 것 같아요\n`;
-        response += `• 아직 매칭되는 모임이 없네요\n\n`;
+        response += `• 특정 조건의 약속을 찾고 계신 것 같아요\n`;
+        response += `• 아직 매칭되는 약속이 없네요\n\n`;
 
         response += `🎯 AI 제안:\n`;
         response += `1. 검색어를 조금 더 일반적으로 바꿔보세요\n`;
-        response += `2. 원하는 모임을 직접 만들어 호스트가 되어보세요\n`;
+        response += `2. 원하는 약속을 직접 만들어 호스트가 되어보세요\n`;
       }
 
       // 시간대별 추천
       if (userIntent.searchContext === 'lunch') {
         response += `\n⏰ 점심시간 추천:\n`;
-        response += `• "점심 같이", "런치 모임", "간단한 식사"\n`;
+        response += `• "점심 같이", "런치 약속", "간단한 식사"\n`;
       } else if (userIntent.searchContext === 'dinner') {
         response += `\n⏰ 저녁시간 추천:\n`;
-        response += `• "저녁 모임", "퇴근 후", "회식"\n`;
+        response += `• "저녁 약속", "퇴근 후", "회식"\n`;
       } else if (userIntent.searchContext === 'late-night') {
         response += `\n⏰ 늦은 시간 추천:\n`;
-        response += `• "야식", "심야 모임", "24시"\n`;
+        response += `• "야식", "심야 약속", "24시"\n`;
       }
 
-      response += `\n💡 Tip: 잇테이블는 사용자가 만드는 모임 플랫폼이에요.\n`;
-      response += `원하는 모임이 없다면 직접 만들어서 호스트가 되어보세요! 🚀`;
+      response += `\n💡 Tip: 잇테이블는 사용자가 만드는 밥약속 플랫폼이에요.\n`;
+      response += `원하는 약속이 없다면 직접 만들어서 호스트가 되어보세요! 🚀`;
     }
 
     return response;
@@ -764,7 +764,7 @@ const AISearchResultScreen: React.FC<{ user: any; navigation: any }> = ({ user, 
           conversationalResponse += `❌ 아쉽게도 현재 ${result.noMatchReason}\n\n`;
           
           if (result.alternatives && result.alternatives.length > 0) {
-            conversationalResponse += `💡 대신 이런 모임들은 어떠세요?\n`;
+            conversationalResponse += `💡 대신 이런 약속들은 어떠세요?\n`;
             result.alternatives.forEach((alt: string, index: number) => {
               conversationalResponse += `${index + 1}. ${alt}\n`;
             });
@@ -806,7 +806,7 @@ const AISearchResultScreen: React.FC<{ user: any; navigation: any }> = ({ user, 
             conversationalResponse += `\n`;
           }
           
-          conversationalResponse += `🎯 총 ${result.recommendedMeetups.length}개의 모임을 추천드려요:\n\n`;
+          conversationalResponse += `🎯 총 ${result.recommendedMeetups.length}개의 약속을 추천드려요:\n\n`;
           
           // 각 추천 모임의 이유 설명
           result.recommendedMeetups.forEach((meetup: any, index: number) => {
@@ -913,7 +913,7 @@ const AISearchResultScreen: React.FC<{ user: any; navigation: any }> = ({ user, 
 
       // AI가 자유롭게 분석하도록 - 카테고리 하드코딩 제거
       const prompt = `
-당신은 사용자의 검색 의도를 정확히 파악하고 가장 적합한 모임을 추천하는 AI입니다.
+당신은 사용자의 검색 의도를 정확히 파악하고 가장 적합한 약속을 추천하는 AI입니다.
 
 사용자가 원하는 음식 카테고리(wantedCategory): ${wantedCategory || 'null'}
 카테고리가 없으면 null로 간주합니다.
@@ -927,20 +927,20 @@ const AISearchResultScreen: React.FC<{ user: any; navigation: any }> = ({ user, 
    - 한식 → 김치찌개, 불고기, 삼겹살 등
 
 2. 사용자가 특정 음식을 원하면 그 음식만 추천:
-   - "중국음식" 검색 → 중식 모임만 (라멘 절대 안됨!)
-   - "일본음식" 검색 → 일식 모임만
-   - "한식" 검색 → 한식 모임만
+   - "중국음식" 검색 → 중식 약속만 (라멘 절대 안됨!)
+   - "일본음식" 검색 → 일식 약속만
+   - "한식" 검색 → 한식 약속만
 
 3. 감성/상황 검색일 때만 다양하게:
    - "비오는날" → 전, 국물요리, 막걸리 등 다양하게 OK
    - "스트레스" → 매운 음식, 술, 디저트 등 다양하게 OK
 
-4. 일치하는 모임이 없으면:
+4. 일치하는 약속이 없으면:
    - hasMatch: false로 응답
    - 억지로 다른 카테고리 추천하지 말것!
-5. wantedCategory가 설정되면 해당 카테고리와 정확히 일치하는 모임만 추천하세요. 하나도 없으면 hasMatch=false, recommendations=[]로만 응답하세요.
+5. wantedCategory가 설정되면 해당 카테고리와 정확히 일치하는 약속만 추천하세요. 하나도 없으면 hasMatch=false, recommendations=[]로만 응답하세요.
 
-모임 목록:
+약속 목록:
 ${meetups.slice(0, 30).map((m, i) => `
 ${i + 1}. "${m.title}"
 - 설명: ${m.description || '없음'}
@@ -952,20 +952,20 @@ ${i + 1}. "${m.title}"
 - 현재 참가자: ${m.current_participants || 0}/${m.max_participants || '?'}명
 `).join('\n')}
 
-위 모임들을 분석해주세요.
-사용자가 원하는 조건에 맞는 모임이 있다면 추천하고, 없다면 정직하게 없다고 답하세요.
+위 약속들을 분석해주세요.
+사용자가 원하는 조건에 맞는 약속이 있다면 추천하고, 없다면 정직하게 없다고 답하세요.
 
 응답 형식:
 {
   "userContext": "사용자의 검색 의도 분석",
-  "hasMatch": true/false (맞는 모임이 있는지 여부),
-  "noMatchReason": "맞는 모임이 없는 이유 (hasMatch가 false일 때만)",
+  "hasMatch": true/false (맞는 약속이 있는지 여부),
+  "noMatchReason": "맞는 약속이 없는 이유 (hasMatch가 false일 때만)",
   "recommendations": [
     {
-      "index": 모임번호,
+      "index": 약속번호,
       "score": 관련성점수(0-100),
       "reasons": ["추천 이유1", "이유2"],
-      "emotionalBenefit": "이 모임의 장점",
+      "emotionalBenefit": "이 약속의 장점",
       "wantedCategory": "${wantedCategory || ''}"
     }
   ]
@@ -980,7 +980,7 @@ ${i + 1}. "${m.title}"
           messages: [
             {
               role: "system",
-              content: `당신은 사용자가 원하는 음식 카테고리를 정확히 구분하는 모임 추천 AI입니다.
+              content: `당신은 사용자가 원하는 음식 카테고리를 정확히 구분하는 약속 추천 AI입니다.
 
 🔴 절대 규칙(하나라도 위반하면 실패):
 
@@ -995,12 +995,12 @@ ${i + 1}. "${m.title}"
     - 라멘은 절대로 중식이 아닙니다!
 
 3. 검색어 분석:
-- "중국음식", "중식" → 중식 모임만
-  - "일본음식", "일식" → 일식 모임만
+- "중국음식", "중식" → 중식 약속만
+  - "일본음식", "일식" → 일식 약속만
     - "비오는날" 같은 상황 → 다양하게 OK
 
 4. 없으면 없다고:
-- 중식 모임이 없으면 hasMatch: false
+- 중식 약속이 없으면 hasMatch: false
   - 절대 다른 카테고리로 대체하지 말것
 
 반드시 JSON 형식으로 응답하세요.`
@@ -1033,7 +1033,7 @@ if (parsed.hasMatch === false) {
   return [{
     isNoMatch: true,
     userContext: parsed.userContext,
-    noMatchReason: parsed.noMatchReason || '현재 조건에 맞는 모임이 없습니다',
+    noMatchReason: parsed.noMatchReason || '현재 조건에 맞는 약속이 없습니다',
     wantedCategory: wantedCategory
   }];
 }
@@ -1046,7 +1046,7 @@ if (recommendations.length === 0) {
   return [{
     isNoMatch: true,
     userContext: parsed.userContext,
-    noMatchReason: '조건에 맞는 모임이 없습니다',
+    noMatchReason: '조건에 맞는 약속이 없습니다',
     wantedCategory: wantedCategory
   }];
 }
@@ -1082,7 +1082,7 @@ if (wantedCategory) {
     return [{
       isNoMatch: true,
       userContext: parsed.userContext,
-      noMatchReason: `현재 ${wantedCategory} 모임이 없습니다.`,
+      noMatchReason: `현재 ${wantedCategory} 약속이 없습니다.`,
       wantedCategory
     }];
   }
@@ -1122,7 +1122,7 @@ if (wantedCategory && foodCategoryMap[wantedCategory]) {
   if (validFiltered.length === 0) {
     return [{
       isNoMatch: true,
-      noMatchReason: `현재 ${wantedCategory} 모임이 없습니다.`,
+      noMatchReason: `현재 ${wantedCategory} 약속이 없습니다.`,
       wantedCategory: wantedCategory
     }];
   }
@@ -1140,25 +1140,25 @@ const generateAIResponse = (query: string, recommendations: any[], aiAnalysis: a
 
   // 사용자 감정/상황에 따른 맞춤 인사
   if (queryLower.includes('기분') && (queryLower.includes('안좋') || queryLower.includes('우울'))) {
-    response = `😔 기분이 안 좋으시군요. AI가 기분 전환에 도움될 모임을 찾아봤어요.\n\n`;
+    response = `😔 기분이 안 좋으시군요. AI가 기분 전환에 도움될 약속을 찾아봤어요.\n\n`;
   } else if (queryLower.includes('배고') || queryLower.includes('허기')) {
-    response = `🍽️ 배가 고프시네요! 맛있는 음식 모임을 바로 추천해드릴게요.\n\n`;
+    response = `🍽️ 배가 고프시네요! 맛있는 음식 약속을 바로 추천해드릴게요.\n\n`;
   } else if (queryLower.includes('한식') || queryLower.includes('김치') || queryLower.includes('된장')) {
-    response = `🍚 한식이 땡기시는군요! 구수한 한국 음식 모임을 찾아봤어요.\n\n`;
+    response = `🍚 한식이 땡기시는군요! 구수한 한국 음식 약속을 찾아봤어요.\n\n`;
   } else if (queryLower.includes('중식') || queryLower.includes('짜장') || queryLower.includes('짬뽕')) {
-    response = `🥟 중식이 드시고 싶으시군요! 중국 음식 모임을 추천해드릴게요.\n\n`;
+    response = `🥟 중식이 드시고 싶으시군요! 중국 음식 약속을 추천해드릴게요.\n\n`;
   } else if (queryLower.includes('일식') || queryLower.includes('초밥') || queryLower.includes('라멘')) {
-    response = `🍱 일식이 땡기시네요! 일본 음식 모임을 찾아봤어요.\n\n`;
+    response = `🍱 일식이 땡기시네요! 일본 음식 약속을 찾아봤어요.\n\n`;
   } else if (queryLower.includes('양식') || queryLower.includes('파스타') || queryLower.includes('피자')) {
-    response = `🍝 양식이 드시고 싶으시군요! 서양 음식 모임을 추천해드릴게요.\n\n`;
+    response = `🍝 양식이 드시고 싶으시군요! 서양 음식 약속을 추천해드릴게요.\n\n`;
   } else if (queryLower.includes('무한리필') || queryLower.includes('양 많')) {
-    response = `🍖 푸짐하게 드시고 싶으시군요! 무한리필이나 양 많은 모임을 찾아봤어요.\n\n`;
+    response = `🍖 푸짐하게 드시고 싶으시군요! 무한리필이나 양 많은 약속을 찾아봤어요.\n\n`;
   } else if (queryLower.includes('심심') || queryLower.includes('지루')) {
-    response = `😊 심심하신가요? 재미있는 활동이 있는 모임을 찾아봤어요!\n\n`;
+    response = `😊 심심하신가요? 재미있는 활동이 있는 약속을 찾아봤어요!\n\n`;
   } else if (queryLower.includes('스트레스')) {
-    response = `😰 스트레스 받으셨군요. 힐링할 수 있는 모임을 추천해드릴게요.\n\n`;
+    response = `😰 스트레스 받으셨군요. 힐링할 수 있는 약속을 추천해드릴게요.\n\n`;
   } else if (queryLower.includes('외로') || queryLower.includes('혼자')) {
-    response = `🤗 혼자 계신가요? 따뜻한 사람들과 만날 수 있는 모임이 있어요.\n\n`;
+    response = `🤗 혼자 계신가요? 따뜻한 사람들과 만날 수 있는 약속이 있어요.\n\n`;
   } else {
     response = `🤖 AI가 "${query}" 검색을 분석했습니다!\n\n`;
   }
@@ -1170,7 +1170,7 @@ const generateAIResponse = (query: string, recommendations: any[], aiAnalysis: a
 
   // 조건에 맞는 모임이 없는 경우 처리
   if (recommendations.length > 0 && recommendations[0].isNoMatch) {
-    response += `😅 아쉽게도 현재 조건에 맞는 모임이 없어요.\n\n`;
+    response += `😅 아쉽게도 현재 조건에 맞는 약속이 없어요.\n\n`;
 
     if (recommendations[0].noMatchReason) {
       response += `📊 이유: ${recommendations[0].noMatchReason}\n\n`;
@@ -1179,17 +1179,17 @@ const generateAIResponse = (query: string, recommendations: any[], aiAnalysis: a
     // 검색어에 따른 맞춤 제안
     const categoryName = recommendations[0].wantedCategory || '';
     if (categoryName === '중식' || queryLower.includes('중식') || queryLower.includes('중국')) {
-      response += `💡 중식 모임이 없네요! 제안드려요:\n`;
-      response += `• 직접 "중식 맛집 탐방" 모임을 만들어보세요!\n`;
+      response += `💡 중식 약속이 없네요! 제안드려요:\n`;
+      response += `• 직접 "중식 맛집 탐방" 약속을 만들어보세요!\n`;
       response += `• 짜장면, 짬뽕, 마라탕을 좋아하는 사람들이 모일 거예요\n`;
-      response += `• 혹은 "맛집 모임"으로 더 넓게 검색해보세요`;
+      response += `• 혹은 "맛집 약속"으로 더 넓게 검색해보세요`;
     } else if (categoryName === '한식' || queryLower.includes('한식')) {
       response += `💡 제안:\n`;
-      response += `• 직접 "한식 모임"을 만들어보세요!\n`;
+      response += `• 직접 "한식 약속"을 만들어보세요!\n`;
       response += `• 김치찌개, 된장찌개 등을 좋아하는 분들이 모일 거예요.\n`;
     } else {
       response += `💡 제안:\n`;
-      response += `• 직접 원하는 모임을 만들어보세요!\n`;
+      response += `• 직접 원하는 약속을 만들어보세요!\n`;
       response += `• 다른 검색어를 시도해보세요.\n`;
       response += `• 조건을 조금 넓혀서 검색해보세요.`;
     }
@@ -1198,7 +1198,7 @@ const generateAIResponse = (query: string, recommendations: any[], aiAnalysis: a
   }
 
   if (recommendations.length > 0 && !recommendations[0].isNoMatch) {
-    response += `✨ 현재 상황에 딱 맞는 ${recommendations.length}개 모임을 추천해요:\n\n`;
+    response += `✨ 현재 상황에 딱 맞는 ${recommendations.length}개 약속을 추천해요:\n\n`;
 
     recommendations.forEach((meetup, index) => {
       const emoji = ['🥇', '🥈', '🥉', '4️⃣', '5️⃣'][index] || '▪️';
@@ -1220,7 +1220,7 @@ const generateAIResponse = (query: string, recommendations: any[], aiAnalysis: a
 
       // 감정적 효과 (있다면)
       if (meetup.emotionalBenefit) {
-        response += `\n💚 이 모임의 효과:\n`;
+        response += `\n💚 이 약속의 효과:\n`;
         response += `   ${meetup.emotionalBenefit}\n`;
       }
 
@@ -1243,7 +1243,7 @@ const generateAIResponse = (query: string, recommendations: any[], aiAnalysis: a
 
     // 상황별 마무리 멘트
     if (queryLower.includes('기분') && queryLower.includes('안좋')) {
-      response += `💬 이런 모임들이 기분 전환에 도움이 될 거예요. 힘내세요! 💪`;
+      response += `💬 이런 약속들이 기분 전환에 도움이 될 거예요. 힘내세요! 💪`;
     } else if (queryLower.includes('배고')) {
       response += `🍴 빨리 맛있는 걸 먹으러 가세요! 배고플 때는 뭐든 맛있어요 😋`;
     } else if (queryLower.includes('심심')) {
@@ -1253,21 +1253,21 @@ const generateAIResponse = (query: string, recommendations: any[], aiAnalysis: a
     } else if (queryLower.includes('외로')) {
       response += `👥 좋은 사람들과 즐거운 시간 보내세요! 혼자가 아니에요.`;
     } else {
-      response += `💡 관심 있는 모임을 클릭해서 자세히 알아보세요!`;
+      response += `💡 관심 있는 약속을 클릭해서 자세히 알아보세요!`;
     }
   } else {
     // 결과가 없을 때
-    response += `😅 "${query}"에 딱 맞는 모임을 찾지 못했어요.\n\n`;
+    response += `😅 "${query}"에 딱 맞는 약속을 찾지 못했어요.\n\n`;
 
     if (queryLower.includes('기분') && queryLower.includes('안좋')) {
       response += `💡 제안:\n`;
-      response += `• "맛집 모임"이나 "운동 모임"을 검색해보세요\n`;
-      response += `• 직접 "기분전환 모임"을 만들어보는 것도 좋아요\n`;
+      response += `• "맛집 약속"이나 "운동 약속"을 검색해보세요\n`;
+      response += `• 직접 "기분전환 약속"을 만들어보는 것도 좋아요\n`;
       response += `• 가까운 카페나 공원 산책도 도움이 될 거예요`;
     } else if (queryLower.includes('배고')) {
       response += `💡 제안:\n`;
-      response += `• "오늘 저녁 모임"을 검색해보세요\n`;
-      response += `• "고기 모임"이나 "뷔페 모임"도 찾아보세요\n`;
+      response += `• "오늘 저녁 약속"을 검색해보세요\n`;
+      response += `• "고기 약속"이나 "뷔페 약속"도 찾아보세요\n`;
       response += `• 급하시면 근처 맛집을 바로 가는 것도 좋아요`;
     } else {
       response += `💡 다른 검색어를 시도해보세요:\n`;
@@ -1332,17 +1332,17 @@ const generateSuggestions = (query: string, analysis: any): string[] => {
   const suggestions = [];
 
   if (query.includes('라멘') || query.includes('라면')) {
-    suggestions.push('일식 모임', '돈코츠 라멘', '일본 음식 탐방');
+    suggestions.push('일식 약속', '돈코츠 라멘', '일본 음식 탐방');
   } else if (query.includes('고기')) {
-    suggestions.push('삼겹살 모임', '갈비 모임', 'BBQ 파티');
+    suggestions.push('삼겹살 약속', '갈비 약속', 'BBQ 파티');
   } else if (query.includes('피자')) {
-    suggestions.push('피자 파티', '이탈리안 모임', '양식 맛집');
+    suggestions.push('피자 파티', '이탈리안 약속', '양식 맛집');
   } else if (query.includes('치킨')) {
-    suggestions.push('치맥 모임', '프라이드 치킨', '양념치킨 파티');
+    suggestions.push('치맥 약속', '프라이드 치킨', '양념치킨 파티');
   }
 
   if (query.includes('여자') || query.includes('여성')) {
-    suggestions.push('여성 전용 카페', '여자들끼리 맛집', '여성 와인 모임');
+    suggestions.push('여성 전용 카페', '여자들끼리 맛집', '여성 와인 약속');
   }
 
   if (analysis?.intent?.location) {
@@ -1351,7 +1351,7 @@ const generateSuggestions = (query: string, analysis: any): string[] => {
 
   // 기본 추천
   if (suggestions.length === 0) {
-    suggestions.push('오늘 저녁 모임', '주말 브런치', '강남 맛집 탐방');
+    suggestions.push('오늘 저녁 약속', '주말 브런치', '강남 맛집 탐방');
   }
 
   return suggestions.slice(0, 5);
@@ -1449,7 +1449,7 @@ return (
                 opacity: 0.8,
                 fontWeight: '400'
               }}>
-                인공지능이 당신의 취향을 분석해 완벽한 모임을 찾아드려요
+                인공지능이 당신의 취향을 분석해 완벽한 약속을 찾아드려요
               </p>
             </div>
           </div>
@@ -1505,7 +1505,7 @@ return (
               color: COLORS.text.primary,
               outline: 'none'
             }}
-            placeholder="AI에게 원하는 모임을 자유롭게 말해보세요..."
+            placeholder="AI에게 원하는 약속을 자유롭게 말해보세요..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onKeyDown={handleKeyPress}
@@ -1620,7 +1620,7 @@ return (
                 color: COLORS.text.secondary,
                 marginBottom: '12px'
               }}>
-                수백 개의 모임 데이터를 실시간으로 분석 중...
+                수백 개의 약속 데이터를 실시간으로 분석 중...
               </div>
               
               {/* 진행률 바 */}
@@ -1809,7 +1809,7 @@ return (
             marginBottom: '16px',
             color: COLORS.text.primary
           }}>
-            모임 목록 ({searchResults.length}개)
+            약속 목록 ({searchResults.length}개)
           </h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             {searchResults.map((meetup) => (
@@ -1935,7 +1935,7 @@ return (
             color: COLORS.text.primary,
             marginBottom: '8px'
           }}>
-            조건에 맞는 모임이 없어요
+            조건에 맞는 약속이 없어요
           </p>
           <p style={{
             fontSize: 15,
@@ -1943,7 +1943,7 @@ return (
             color: COLORS.text.secondary,
             marginBottom: '24px'
           }}>
-            다른 검색어를 시도하거나 직접 모임을 만들어보세요!
+            다른 검색어를 시도하거나 직접 약속을 만들어보세요!
           </p>
           <button
             onClick={() => navigate('/create-meetup')}
@@ -1968,7 +1968,7 @@ return (
               transition: 'all 200ms ease',
             }}
           >
-            새 모임 만들기
+            새 약속 만들기
           </button>
         </div>
       )}

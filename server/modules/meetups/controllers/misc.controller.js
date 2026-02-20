@@ -88,7 +88,7 @@ exports.addWishlist = async (req, res) => {
     if (existingResult.rows.length > 0) {
       return res.status(400).json({
         success: false,
-        message: '이미 찜한 모임입니다.',
+        message: '이미 찜한 약속입니다.',
       });
     }
 
@@ -165,13 +165,13 @@ exports.confirmMeetup = async (req, res) => {
 
     res.json({
       success: true,
-      message: '모임이 확정되었습니다.',
+      message: '약속이 확정되었습니다.',
     });
   } catch (error) {
     console.error('모임 확정 오류:', error);
     res.status(500).json({
       success: false,
-      message: '모임 확정에 실패했습니다.',
+      message: '약속 확정에 실패했습니다.',
     });
   }
 };
@@ -220,7 +220,7 @@ exports.applyNoShowPenalties = async (req, res) => {
       await client.query(
         `
         INSERT INTO user_penalties (user_id, meetup_id, penalty_type, penalty_amount, reason, created_at)
-        VALUES ($1, $2, 'no_show', 10, '모임 노쇼', NOW())
+        VALUES ($1, $2, 'no_show', 10, '약속 노쇼', NOW())
       `,
         [noShow.user_id, meetupId]
       );
@@ -276,7 +276,7 @@ exports.progressCheck = async (req, res) => {
     if (meetupResult.rows.length === 0) {
       return res.status(404).json({
         success: false,
-        error: '모임을 찾을 수 없습니다.',
+        error: '약속을 찾을 수 없습니다.',
       });
     }
 

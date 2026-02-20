@@ -65,7 +65,7 @@ const MyReviewsScreen: React.FC = () => {
       </View>
 
       <View style={styles.reviewInfo}>
-        <Text style={styles.reviewTitle}>{review.meetup_title || '모임'}</Text>
+        <Text style={styles.reviewTitle}>{review.meetup_title || '약속'}</Text>
         <View style={styles.ratingRow}>
           {renderStars(review.rating ?? 0)}
           <Text style={styles.ratingText}>({review.rating ?? 0}.0)</Text>
@@ -136,7 +136,7 @@ const MyReviewsScreen: React.FC = () => {
             variant="no-data"
             icon="star"
             title="아직 작성한 리뷰가 없어요"
-            description="참여한 모임에 대한 리뷰를 작성해보세요!"
+            description="참여한 약속에 대한 리뷰를 작성해보세요!"
             actionLabel="내 활동 보기"
             onAction={() => navigate('/my-activities')}
           />

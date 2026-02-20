@@ -64,8 +64,8 @@ async function run() {
         values.push(
           participant.user_id,
           'meetup_reminder_30min',
-          '🍚 모임 30분 전 알림',
-          `"${meetup.title}" 모임이 곧 시작됩니다! 장소: ${meetup.location}`,
+          '🍚 약속 30분 전 알림',
+          `"${meetup.title}" 약속이 곧 시작됩니다! 장소: ${meetup.location}`,
           meetup.id
         );
         userIds.push(participant.user_id);
@@ -81,8 +81,8 @@ async function run() {
         // 푸시 알림 발송
         sendMultiplePush(
           userIds,
-          '🍚 모임 30분 전 알림',
-          `"${meetup.title}" 모임이 곧 시작됩니다! 장소: ${meetup.location}`,
+          '🍚 약속 30분 전 알림',
+          `"${meetup.title}" 약속이 곧 시작됩니다! 장소: ${meetup.location}`,
           { type: 'meetup_reminder_30min', meetupId: String(meetup.id) }
         ).catch(err => console.error(`${JOB_NAME} 푸시 전송 실패:`, err.message));
 

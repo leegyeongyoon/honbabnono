@@ -72,7 +72,7 @@ const UserVerificationScreen = () => {
     <View style={styles.stepContainer}>
       <Text style={styles.stepTitle}>기본 정보 입력</Text>
       <Text style={styles.stepDescription}>
-        안전한 모임을 위해 기본 정보를 입력해주세요
+        안전한 약속을 위해 기본 정보를 입력해주세요
       </Text>
 
       <View style={styles.formGroup}>
@@ -147,7 +147,7 @@ const UserVerificationScreen = () => {
     <View style={styles.stepContainer}>
       <Text style={styles.stepTitle}>전화번호 인증</Text>
       <Text style={styles.stepDescription}>
-        안전한 모임을 위해 전화번호 인증이 필요합니다
+        안전한 약속을 위해 전화번호 인증이 필요합니다
       </Text>
 
       <View style={styles.formGroup}>

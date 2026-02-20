@@ -32,7 +32,7 @@ interface SearchScreenProps {
 const SearchScreen: React.FC<SearchScreenProps> = ({ navigation, user }) => {
   const navigate = useNavigate();
   const [searchText, setSearchText] = useState('');
-  const [selectedTab, setSelectedTab] = useState('내주변모임');
+  const [selectedTab, setSelectedTab] = useState('내주변약속');
   const [selectedCategory, setSelectedCategory] = useState('전체');
   const [selectedLocation, setSelectedLocation] = useState('전체');
   const [selectedSort, setSelectedSort] = useState('최신순');
@@ -44,7 +44,7 @@ const SearchScreen: React.FC<SearchScreenProps> = ({ navigation, user }) => {
 
   const { meetups, searchMeetups, loading } = useMeetups();
 
-  const tabs = ['내주변모임', '맛집리스트', '필터링'];
+  const tabs = ['내주변약속', '맛집리스트', '필터링'];
 
   const categories = SEARCH_CATEGORIES;
   const locations = SEARCH_LOCATIONS;
@@ -283,7 +283,7 @@ const SearchScreen: React.FC<SearchScreenProps> = ({ navigation, user }) => {
 
   const renderTabContent = () => {
     switch (selectedTab) {
-      case '내주변모임':
+      case '내주변약속':
         if (loading) {
           return (
             <View style={styles.loadingContainer}>
@@ -393,7 +393,7 @@ const SearchScreen: React.FC<SearchScreenProps> = ({ navigation, user }) => {
           <Icon name="search" size={16} color={searchInputFocused ? COLORS.primary.main : COLORS.text.tertiary} />
           <TextInput
             style={styles.searchInput}
-            placeholder="모임이나 장소를 검색해보세요"
+            placeholder="약속이나 장소를 검색해보세요"
             value={searchText}
             onChangeText={(text) => {
               setSearchText(text);
@@ -540,10 +540,10 @@ const SearchScreen: React.FC<SearchScreenProps> = ({ navigation, user }) => {
       )}
 
       {/* 검색 결과 */}
-      {selectedTab === '내주변모임' && (
+      {selectedTab === '내주변약속' && (
         <View style={styles.resultsHeader}>
           <Text style={styles.resultsCount}>
-            총 {filteredMeetups.length}개의 모임
+            총 {filteredMeetups.length}개의 약속
             {searchText && aiSearchService.isAIEnabled() && ' (AI 필터링 적용)'}
           </Text>
           {searchText && (

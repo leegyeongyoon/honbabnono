@@ -77,7 +77,7 @@ const menuItems = [
   { text: '대시보드', icon: <DashboardIcon />, path: '/dashboard' },
   { text: '사용자 관리', icon: <PeopleIcon />, path: '/users' },
   { text: '차단 관리', icon: <BlockIcon />, path: '/blocked-users' },
-  { text: '모임 관리', icon: <EventIcon />, path: '/meetups' },
+  { text: '약속 관리', icon: <EventIcon />, path: '/meetups' },
   { text: '공지사항', icon: <AnnouncementIcon />, path: '/notices' },
   { text: '광고 관리', icon: <CampaignIcon />, path: '/advertisements' },
   { text: '리서치 에이전트', icon: <PsychologyIcon />, path: '/research-agent' },
@@ -164,7 +164,7 @@ function App() {
           >
             <Toolbar>
               <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
-                혼밥시러 관리자 패널
+                잇테이블 관리자 패널
               </Typography>
               <Typography variant="body2" sx={{ mr: 2 }}>
                 {adminData?.username || '관리자'}님
@@ -200,7 +200,7 @@ function App() {
           >
             <Toolbar>
               <Typography variant="h6" sx={{ color: '#4C422C', fontWeight: 700 }}>
-                혼밥시러
+                잇테이블
               </Typography>
             </Toolbar>
             <List>

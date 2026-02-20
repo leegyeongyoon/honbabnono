@@ -235,7 +235,7 @@ const LocationSelector: React.FC<{
     // Native - 지도 선택 버튼 + 텍스트 표시
     return (
       <View style={styles.mapSelectorContainer}>
-        <Text style={styles.mapSelectorTitle}>모임 장소 선택</Text>
+        <Text style={styles.mapSelectorTitle}>약속 장소 선택</Text>
 
         {/* 선택된 위치 표시 */}
         {selectedLocation ? (
@@ -284,8 +284,8 @@ const LocationSelector: React.FC<{
 
   return (
     <View style={styles.mapSelectorContainer}>
-      <Text style={styles.mapSelectorTitle}>모임 장소 선택</Text>
-      
+      <Text style={styles.mapSelectorTitle}>약속 장소 선택</Text>
+
       {/* 검색과 지도 선택 */}
       <View style={styles.searchContainer}>
         <View style={styles.inputWithButton}>
@@ -484,22 +484,22 @@ const UniversalCreateMeetupScreen: React.FC<UniversalCreateMeetupScreenProps> = 
 
   const validateForm = () => {
     if (!formData.title.trim()) {
-      Alert.alert('오류', '모임 제목을 입력해주세요.');
+      Alert.alert('오류', '약속 제목을 입력해주세요.');
       return false;
     }
 
     if (!formData.location.trim()) {
-      Alert.alert('오류', '모임 장소를 입력해주세요.');
+      Alert.alert('오류', '약속 장소를 입력해주세요.');
       return false;
     }
 
     if (!formData.date || formData.date.trim() === '') {
-      Alert.alert('오류', '모임 날짜를 입력해주세요.');
+      Alert.alert('오류', '약속 날짜를 입력해주세요.');
       return false;
     }
 
     if (!formData.time || formData.time.trim() === '') {
-      Alert.alert('오류', '모임 시간을 입력해주세요.');
+      Alert.alert('오류', '약속 시간을 입력해주세요.');
       return false;
     }
 
@@ -566,7 +566,7 @@ const UniversalCreateMeetupScreen: React.FC<UniversalCreateMeetupScreenProps> = 
 
   const createActualMeetup = async (depositId: string) => {
     if (!tempMeetupData) {
-      showError('모임 데이터를 찾을 수 없습니다.');
+      showError('약속 데이터를 찾을 수 없습니다.');
       return null;
     }
 
@@ -630,7 +630,7 @@ const UniversalCreateMeetupScreen: React.FC<UniversalCreateMeetupScreenProps> = 
         const meetupId = data.meetup?.id;
         return meetupId;
       } else {
-        showError(data.error || '모임 생성에 실패했습니다.');
+        showError(data.error || '약속 만들기에 실패했습니다.');
         return null;
       }
     } catch (error) {
@@ -646,7 +646,7 @@ const UniversalCreateMeetupScreen: React.FC<UniversalCreateMeetupScreenProps> = 
     const meetupId = await createActualMeetup(depositId);
     
     if (!meetupId) {
-      showError('모임 생성에 실패했습니다.');
+      showError('약속 만들기에 실패했습니다.');
       return;
     }
 
@@ -688,7 +688,7 @@ const UniversalCreateMeetupScreen: React.FC<UniversalCreateMeetupScreenProps> = 
         }
       }
       
-      showSuccess('모임이 성공적으로 생성되고 약속금이 결제되었습니다! 🎉');
+      showSuccess('밥약속이 만들어지고 약속금이 결제되었습니다! 🎉');
       
       // 모임 상세 페이지로 이동
       setTimeout(() => {
@@ -701,7 +701,7 @@ const UniversalCreateMeetupScreen: React.FC<UniversalCreateMeetupScreenProps> = 
       
     } catch (error) {
       console.error('약속금 결제 후 처리 오류:', error);
-      showError('모임 생성 완료 중 오류가 발생했습니다.');
+      showError('약속 만들기 완료 중 오류가 발생했습니다.');
     }
   };
 
@@ -723,7 +723,7 @@ const UniversalCreateMeetupScreen: React.FC<UniversalCreateMeetupScreenProps> = 
         >
           <Icon name="chevron-left" size={24} color={COLORS.text.primary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>모임 만들기</Text>
+        <Text style={styles.headerTitle}>약속 만들기</Text>
         <View style={{ width: 24 }} />
       </View>
 
@@ -733,7 +733,7 @@ const UniversalCreateMeetupScreen: React.FC<UniversalCreateMeetupScreenProps> = 
           <Text style={styles.sectionTitle}>기본 정보</Text>
           
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>모임 제목 *</Text>
+            <Text style={styles.label}>약속 제목 *</Text>
             <TextInput
               style={styles.input}
               placeholder="예) 강남 맛집 탐방"
@@ -744,10 +744,10 @@ const UniversalCreateMeetupScreen: React.FC<UniversalCreateMeetupScreenProps> = 
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>모임 설명</Text>
+            <Text style={styles.label}>약속 설명</Text>
             <TextInput
               style={[styles.input, styles.textArea]}
-              placeholder="모임에 대한 설명을 작성해주세요"
+              placeholder="약속에 대한 설명을 작성해주세요"
               value={formData.description}
               onChangeText={(value) => handleInputChange('description', value)}
               multiline
@@ -759,13 +759,13 @@ const UniversalCreateMeetupScreen: React.FC<UniversalCreateMeetupScreenProps> = 
           {/* 이미지 업로드 - Web only */}
           {Platform.OS === 'web' && (
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>모임 이미지</Text>
+              <Text style={styles.label}>약속 이미지</Text>
               <View style={styles.imageUploadContainer}>
                 {formData.imagePreview ? (
                   <View style={styles.imagePreviewContainer}>
                     <img 
                       src={formData.imagePreview} 
-                      alt="모임 이미지 미리보기" 
+                      alt="약속 이미지 미리보기" 
                       style={styles.imagePreview}
                     />
                     <TouchableOpacity 
@@ -853,7 +853,7 @@ const UniversalCreateMeetupScreen: React.FC<UniversalCreateMeetupScreenProps> = 
                   localizer={localizer}
                   events={selectedDate ? [{
                     id: 1,
-                    title: '모임 일정',
+                    title: '약속 일정',
                     start: selectedDate,
                     end: new Date(selectedDate.getTime() + 60 * 60 * 1000),
                     resource: null
@@ -998,9 +998,9 @@ const UniversalCreateMeetupScreen: React.FC<UniversalCreateMeetupScreenProps> = 
           )}
         </View>
 
-        {/* 모임 설정 */}
+        {/* 약속 설정 */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>모임 설정</Text>
+          <Text style={styles.sectionTitle}>약속 설정</Text>
           
           <View style={styles.inputGroup}>
             <Text style={styles.label}>최대 참가자 수 *</Text>
@@ -1078,7 +1078,7 @@ const UniversalCreateMeetupScreen: React.FC<UniversalCreateMeetupScreenProps> = 
 
           {/* 1대1 채팅 허용 설정 */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>모임 내 1대1 채팅</Text>
+            <Text style={styles.label}>약속 내 1대1 채팅</Text>
             <TouchableOpacity 
               style={styles.checkboxContainer} 
               onPress={() => handleInputChange('allowDirectChat', !formData.allowDirectChat)}
@@ -1088,10 +1088,10 @@ const UniversalCreateMeetupScreen: React.FC<UniversalCreateMeetupScreenProps> = 
                   <Text style={styles.checkboxCheck}>✓</Text>
                 )}
               </View>
-              <Text style={styles.checkboxLabel}>모임 참가자 간 1대1 채팅 허용</Text>
+              <Text style={styles.checkboxLabel}>약속 참가자 간 1대1 채팅 허용</Text>
             </TouchableOpacity>
             <Text style={styles.helperText}>
-              체크 시 모임 참가자들이 서로 개인 메시지를 주고받을 수 있습니다
+              체크 시 약속 참가자들이 서로 개인 메시지를 주고받을 수 있습니다
             </Text>
           </View>
         </View>
@@ -1101,7 +1101,7 @@ const UniversalCreateMeetupScreen: React.FC<UniversalCreateMeetupScreenProps> = 
           <Text style={styles.sectionTitle}>필수 성향 필터</Text>
           
           <Text style={styles.sectionSubtitle}>
-            모임 참가 시 필수로 설정되는 기본 조건입니다
+            약속 참가 시 필수로 설정되는 기본 조건입니다
           </Text>
 
           <View style={styles.filterGroup}>
@@ -1398,7 +1398,7 @@ const UniversalCreateMeetupScreen: React.FC<UniversalCreateMeetupScreenProps> = 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>약속금 정책</Text>
           <Text style={styles.sectionSubtitle}>
-            이 모임은 노쇼 방지와 신뢰도 향상을 위해 약속금 제도를 운영합니다
+            노쇼 방지와 신뢰도 향상을 위해 약속금 제도를 운영합니다
           </Text>
           
           <View style={styles.depositPolicyInfo}>
@@ -1412,7 +1412,7 @@ const UniversalCreateMeetupScreen: React.FC<UniversalCreateMeetupScreenProps> = 
                     약속금 3,000원
                   </Text>
                   <Text style={styles.depositToggleDesc}>
-                    모임 참가 신청 시 결제됩니다
+                    약속 참가 신청 시 결제됩니다
                   </Text>
                 </View>
               </View>
@@ -1434,7 +1434,7 @@ const UniversalCreateMeetupScreen: React.FC<UniversalCreateMeetupScreenProps> = 
             
             <View style={styles.policyNote}>
               <Text style={styles.policyNoteText}>
-                💡 약속금은 모임 참가 신청 시에 결제되며, 참석 및 후기 작성 시 자동 환불됩니다.
+                💡 약속금은 참가 신청 시에 결제되며, 참석 및 후기 작성 시 자동 환불됩니다.
               </Text>
             </View>
           </View>
@@ -1447,7 +1447,7 @@ const UniversalCreateMeetupScreen: React.FC<UniversalCreateMeetupScreenProps> = 
           disabled={loading}
         >
           <Text style={styles.createButtonText}>
-            {loading ? '모임 생성 중...' : '모임 만들기'}
+            {loading ? '약속 만드는 중...' : '약속 만들기'}
           </Text>
         </TouchableOpacity>
 

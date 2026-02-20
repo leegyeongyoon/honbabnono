@@ -62,7 +62,7 @@ const UniversalChatScreen: React.FC<UniversalChatScreenProps> = ({
   const [messageInputFocused, setMessageInputFocused] = useState(false);
   const messageListRef = useRef<ScrollView>(null);
 
-  const tabs = ['전체', '모임', '개인'];
+  const tabs = ['전체', '약속', '개인'];
   const userId = currentUser?.id || '';
 
   // 1대1 채팅 권한 체크
@@ -345,7 +345,7 @@ const UniversalChatScreen: React.FC<UniversalChatScreenProps> = ({
   const renderChatList = () => {
     const filteredRooms = chatRooms.filter(room => {
       if (selectedTab === '전체') return true;
-      if (selectedTab === '모임') return room.type === 'meetup';
+      if (selectedTab === '약속') return room.type === 'meetup';
       return room.type === 'direct';
     });
 
@@ -365,7 +365,7 @@ const UniversalChatScreen: React.FC<UniversalChatScreenProps> = ({
           icon="message-circle"
           iconSize={56}
           title={selectedTab === '개인' ? '1:1 채팅이 없어요' : '아직 대화가 없어요'}
-          description="모임에 참여하고 대화를 시작해보세요!"
+          description="약속에 참여하고 대화를 시작해보세요!"
         />
       );
     }
@@ -594,7 +594,7 @@ const UniversalChatScreen: React.FC<UniversalChatScreenProps> = ({
         {tabs.map((tab) => {
           const tabHasUnread = chatRooms.some(r => {
             if (tab === '전체') return r.unreadCount > 0;
-            if (tab === '모임') return r.type === 'meetup' && r.unreadCount > 0;
+            if (tab === '약속') return r.type === 'meetup' && r.unreadCount > 0;
             return r.type === 'direct' && r.unreadCount > 0;
           });
 

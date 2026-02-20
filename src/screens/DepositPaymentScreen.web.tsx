@@ -180,10 +180,10 @@ const DepositPaymentScreen: React.FC = () => {
 
                 const joinData = await joinResponse.json();
                 if (joinData.success) {
-                  showSuccess(`약속금 ${depositAmount.toLocaleString()}원이 결제되어 모임에 참여했습니다.`);
+                  showSuccess(`약속금 ${depositAmount.toLocaleString()}원이 결제되어 약속에 참여했습니다.`);
                   setTimeout(() => navigate(`/meetup/${id}`), 1500);
                 } else {
-                  showSuccess(`약속금 결제가 완료되었습니다. 모임 참여를 다시 시도해주세요.`);
+                  showSuccess(`약속금 결제가 완료되었습니다. 약속 참여를 다시 시도해주세요.`);
                   setTimeout(() => navigate(`/meetup/${id}`), 1500);
                 }
               } else {
@@ -231,7 +231,7 @@ const DepositPaymentScreen: React.FC = () => {
         },
         body: JSON.stringify({
           amount: depositAmount,
-          description: `모임 약속금 결제`
+          description: `약속금 결제`
         }),
       });
 
@@ -253,12 +253,12 @@ const DepositPaymentScreen: React.FC = () => {
 
       const joinData = await joinResponse.json();
       if (!joinData.success) {
-        showError(joinData.message || '모임 참여 중 오류가 발생했습니다.');
+        showError(joinData.message || '약속 참여 중 오류가 발생했습니다.');
         setLoading(false);
         return;
       }
 
-      showSuccess(`약속금 ${depositAmount.toLocaleString()}원이 결제되어 모임에 참여했습니다.`);
+      showSuccess(`약속금 ${depositAmount.toLocaleString()}원이 결제되어 약속에 참여했습니다.`);
       setTimeout(() => navigate(`/meetup/${id}`), 1000);
     } catch (error) {
       showError('결제 중 오류가 발생했습니다.');

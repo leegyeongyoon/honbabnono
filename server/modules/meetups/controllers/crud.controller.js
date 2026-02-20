@@ -26,7 +26,7 @@ exports.getMeetupById = async (req, res) => {
     if (result.rows.length === 0) {
       return res.status(404).json({
         success: false,
-        error: '모임을 찾을 수 없습니다.',
+        error: '약속을 찾을 수 없습니다.',
       });
     }
 
@@ -60,7 +60,7 @@ exports.getMeetupById = async (req, res) => {
     console.error('모임 상세 조회 오류:', error);
     res.status(500).json({
       success: false,
-      message: '모임 조회에 실패했습니다.',
+      message: '약속 조회에 실패했습니다.',
     });
   }
 };
@@ -132,14 +132,14 @@ exports.createMeetup = async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: '모임이 생성되었습니다.',
+      message: '약속이 만들어졌습니다.',
       meetup,
     });
   } catch (error) {
     console.error('모임 생성 오류:', error);
     res.status(500).json({
       success: false,
-      message: '모임 생성에 실패했습니다.',
+      message: '약속 만들기에 실패했습니다.',
     });
   }
 };
@@ -192,14 +192,14 @@ exports.updateMeetup = async (req, res) => {
 
     res.json({
       success: true,
-      message: '모임이 수정되었습니다.',
+      message: '약속이 수정되었습니다.',
       meetup: result.rows[0],
     });
   } catch (error) {
     console.error('모임 수정 오류:', error);
     res.status(500).json({
       success: false,
-      message: '모임 수정에 실패했습니다.',
+      message: '약속 수정에 실패했습니다.',
     });
   }
 };
@@ -222,13 +222,13 @@ exports.deleteMeetup = async (req, res) => {
 
     res.json({
       success: true,
-      message: '모임이 삭제되었습니다.',
+      message: '약속이 삭제되었습니다.',
     });
   } catch (error) {
     console.error('모임 삭제 오류:', error);
     res.status(500).json({
       success: false,
-      message: '모임 삭제에 실패했습니다.',
+      message: '약속 삭제에 실패했습니다.',
     });
   }
 };
@@ -268,14 +268,14 @@ exports.updateMeetupStatus = async (req, res) => {
 
     res.json({
       success: true,
-      message: '모임 상태가 변경되었습니다.',
+      message: '약속 상태가 변경되었습니다.',
       meetup: result.rows[0],
     });
   } catch (error) {
     console.error('모임 상태 변경 오류:', error);
     res.status(500).json({
       success: false,
-      message: '모임 상태 변경에 실패했습니다.',
+      message: '약속 상태 변경에 실패했습니다.',
     });
   }
 };

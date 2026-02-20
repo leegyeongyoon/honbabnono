@@ -168,7 +168,7 @@ router.post('/collector-agent', authenticateAdmin, async (req, res) => {
     
     const defaultKeywords = [
       '혼밥', '혼자 밥', '혼자 고기', '밥친구', '밥약', '점심 같이', '저녁 같이',
-      '1인분', '2인분 주문', '외로움', '자취', '새 직장', '노쇼', '번개 모임'
+      '1인분', '2인분 주문', '외로움', '자취', '새 직장', '노쇼', '번개 밥약속'
     ];
 
     const finalKeywords = keywords.length > 0 ? keywords : defaultKeywords;

@@ -56,7 +56,7 @@ const MeetupListScreen = () => {
           >
             <Icon name="chevron-left" size={24} color={COLORS.text.primary} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>모든 모임</Text>
+          <Text style={styles.headerTitle}>모든 약속</Text>
           <View style={{ width: 20 }} />
         </View>
         <View style={styles.skeletonWrap}>
@@ -84,11 +84,11 @@ const MeetupListScreen = () => {
           >
             <Icon name="chevron-left" size={24} color={COLORS.text.primary} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>모든 모임</Text>
+          <Text style={styles.headerTitle}>모든 약속</Text>
           <View style={{ width: 20 }} />
         </View>
         <ErrorState
-          title="모임을 불러올 수 없습니다"
+          title="약속을 불러올 수 없습니다"
           description="네트워크 상태를 확인하고 다시 시도해주세요"
           onRetry={refreshMeetups}
         />
@@ -114,7 +114,7 @@ const MeetupListScreen = () => {
         >
           <Icon name="chevron-left" size={24} color={COLORS.text.primary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>모든 모임</Text>
+        <Text style={styles.headerTitle}>모든 약속</Text>
         <NotificationBell
           onPress={() => {}}
           color={COLORS.text.primary}
@@ -158,8 +158,8 @@ const MeetupListScreen = () => {
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyText}>
               {filter === 'all' 
-                ? '등록된 모임이 없습니다.' 
-                : `${filter === 'recruiting' ? '모집중인' : '모집완료된'} 모임이 없습니다.`
+                ? '등록된 약속이 없습니다.'
+                : `${filter === 'recruiting' ? '모집중인' : '모집완료된'} 약속이 없습니다.`
               }
             </Text>
           </View>

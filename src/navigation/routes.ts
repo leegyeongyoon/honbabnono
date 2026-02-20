@@ -26,15 +26,15 @@ export const TAB_ROUTES = [
   },
   {
     name: ROUTES.MY_MEETUPS,
-    title: '내모임',
+    title: '내약속',
     icon: '📅',
-    headerTitle: '내 모임',
+    headerTitle: '내 약속',
   },
   {
     name: ROUTES.SEARCH,
     title: '탐색',
     icon: '🔍',
-    headerTitle: '모임 탐색',
+    headerTitle: '약속 탐색',
   },
   {
     name: ROUTES.CHAT,

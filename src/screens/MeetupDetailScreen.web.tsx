@@ -447,7 +447,7 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
 
       // 호스트가 모임을 취소한 경우 홈으로 리다이렉트
       if (result?.isHostCancellation) {
-        showInfo('모임이 취소되었습니다. 모든 참가자가 자동으로 나가게 됩니다.');
+        showInfo('약속이 취소되었습니다. 모든 참가자가 자동으로 나가게 됩니다.');
         navigate('/home');
       }
     } catch (error) {
@@ -480,9 +480,9 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
       // 실제 모임 참여 처리
       await joinMeetup(id, user.id);
 
-      showSuccess('약속금 ' + amount.toLocaleString() + '원이 결제되었습니다! 모임에 참여되었습니다.');
+      showSuccess('약속금 ' + amount.toLocaleString() + '원이 결제되었습니다! 약속에 참여되었습니다.');
     } catch (error) {
-      showError('모임 참여에 실패했습니다. 다시 시도해주세요.');
+      showError('약속 참여에 실패했습니다. 다시 시도해주세요.');
     }
   };
 
@@ -507,7 +507,7 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
         const chatRoomId = data.data.chatRoomId;
         navigate(`/chat/${chatRoomId}`);
       } else {
-        showError('채팅방을 찾을 수 없습니다. 모임에 참여해주세요.');
+        showError('채팅방을 찾을 수 없습니다. 약속에 참여해주세요.');
       }
     } catch (error) {
       showError('채팅방 이동 중 오류가 발생했습니다.');
@@ -529,7 +529,7 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
         await fetchMeetupById(id);
         setShowHostModal(false);
 
-        const message = action === 'confirm' ? '모임이 확정되었습니다!' : '모임이 취소되었습니다.';
+        const message = action === 'confirm' ? '약속이 확정되었습니다!' : '약속이 취소되었습니다.';
         showSuccess(message);
       } else {
         showError(response.data.error || '처리 중 오류가 발생했습니다.');
@@ -567,7 +567,7 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
       // 포인트 사용 API 호출
       const usePointsResponse = await apiClient.post('/users/use-points', {
         amount: meetup.deposit || 3000,
-        description: `모임 참여비: ${meetup.title}`
+        description: `약속 참여비: ${meetup.title}`
       });
 
       if (!usePointsResponse.data.success) {
@@ -580,9 +580,9 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
       await joinMeetup(id, user.id);
       setShowPromiseModal(false);
 
-      showSuccess('모임 참여가 완료되었습니다! 사용된 포인트: ' + (meetup.deposit || 3000).toLocaleString() + '원');
+      showSuccess('약속 참여가 완료되었습니다! 사용된 포인트: ' + (meetup.deposit || 3000).toLocaleString() + '원');
     } catch (error) {
-      showError('모임 참여 중 오류가 발생했습니다.');
+      showError('약속 참여 중 오류가 발생했습니다.');
       setShowPromiseModal(false);
     }
   };
@@ -1005,10 +1005,10 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
           <View style={styles.pastMeetupContainer}>
             <Text style={styles.pastMeetupText}>
               {meetup.status === '완료' || meetup.status === '종료' ?
-                '완료된 모임이에요' :
+                '완료된 약속이에요' :
                 meetup.status === '취소' ?
-                '취소된 모임이에요' :
-                '파토된 모임이에요'
+                '취소된 약속이에요' :
+                '파토된 약속이에요'
               }
             </Text>
           </View>
@@ -1032,7 +1032,7 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
                     style={styles.hostButton}
                   >
                     <Text style={styles.hostButtonText}>
-                      {meetup.status === 'confirmed' ? '모임취소' : '모임확정'}
+                      {meetup.status === 'confirmed' ? '약속취소' : '약속확정'}
                     </Text>
                   </TouchableOpacity>
                 )}
@@ -1120,12 +1120,12 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
             <Text style={styles.modalTitle}>
-              {isHost ? '모임을 취소하시겠어요?' : '모임에서 나가시겠어요?'}
+              {isHost ? '약속을 취소하시겠어요?' : '약속에서 나가시겠어요?'}
             </Text>
             <Text style={styles.modalDescription}>
               {isHost ?
-                '모임을 취소하면 모든 참가자가 나가게 되고,\n채팅방도 삭제됩니다. 취소하시겠어요?' :
-                '모임을 나가면 채팅방에서도 나가게 되며,\n다시 참여하려면 새로 신청해야 해요.'
+                '약속을 취소하면 모든 참가자가 나가게 되고,\n채팅방도 삭제됩니다. 취소하시겠어요?' :
+                '약속을 나가면 채팅방에서도 나가게 되며,\n다시 참여하려면 새로 신청해야 해요.'
               }
             </Text>
             <View style={styles.modalButtonContainer}>
@@ -1140,7 +1140,7 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
                 onPress={handleConfirmLeave}
               >
                 <Text style={styles.modalLeaveText}>
-                  {isHost ? '모임취소' : '나가기'}
+                  {isHost ? '약속취소' : '나가기'}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -1153,12 +1153,12 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
             <Text style={styles.modalTitle}>
-              {meetup.status === 'confirmed' ? '모임을 취소하시겠어요?' : '모임을 확정하시겠어요?'}
+              {meetup.status === 'confirmed' ? '약속을 취소하시겠어요?' : '약속을 확정하시겠어요?'}
             </Text>
             <Text style={styles.modalDescription}>
               {meetup.status === 'confirmed' ?
-                '확정된 모임을 취소하면 취소 시점에 따라\n참가자들에게 부분 환불됩니다.' :
-                `현재 ${participants.length}명이 참여중입니다.\n모임을 확정하면 취소 시 패널티가 적용됩니다.`
+                '확정된 약속을 취소하면 취소 시점에 따라\n참가자들에게 부분 환불됩니다.' :
+                `현재 ${participants.length}명이 참여중입니다.\n약속을 확정하면 취소 시 패널티가 적용됩니다.`
               }
             </Text>
             <View style={styles.modalButtonContainer}>
@@ -1173,7 +1173,7 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
                 onPress={handleMeetupAction}
               >
                 <Text style={styles.modalConfirmText}>
-                  {meetup.status === 'confirmed' ? '모임취소' : '모임확정'}
+                  {meetup.status === 'confirmed' ? '약속취소' : '약속확정'}
                 </Text>
               </TouchableOpacity>
             </View>

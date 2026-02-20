@@ -225,18 +225,18 @@ const UniversalNotificationSettingsScreen: React.FC<UniversalNotificationSetting
 
         {/* 모임 관련 알림 */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>모임 알림</Text>
+          <Text style={styles.sectionTitle}>약속 알림</Text>
           <View style={styles.settingsContainer}>
             {renderSettingItem(
               'meetupReminders',
-              '모임 리마인더',
-              '모임 시작 전 미리 알려드립니다',
+              '약속 리마인더',
+              '약속 시작 전 미리 알려드립니다',
               'clock'
             )}
             {renderSettingItem(
               'chatMessages',
               '채팅 메시지',
-              '모임 채팅방의 새 메시지 알림',
+              '약속 채팅방의 새 메시지 알림',
               'message-circle'
             )}
           </View>
@@ -267,7 +267,7 @@ const UniversalNotificationSettingsScreen: React.FC<UniversalNotificationSetting
           <View style={styles.infoCard}>
             <Icon name="info" size={18} color={COLORS.primary.accent} />
             <Text style={styles.infoText}>
-              모임 리마인더는 모임 시작 30분 전, 10분 전에 발송됩니다.
+              약속 리마인더는 약속 시작 30분 전, 10분 전에 발송됩니다.
             </Text>
           </View>
         </View>
@@ -279,7 +279,7 @@ const UniversalNotificationSettingsScreen: React.FC<UniversalNotificationSetting
             <View style={styles.infoCard}>
               <Icon name="smartphone" size={18} color={COLORS.primary.accent} />
               <Text style={styles.infoText}>
-                시스템 설정에서 알림 권한을 확인해주세요. 설정 &gt; 알림 &gt; 혼밥노노
+                시스템 설정에서 알림 권한을 확인해주세요. 설정 &gt; 알림 &gt; 잇테이블
               </Text>
             </View>
           </View>
@@ -291,7 +291,7 @@ const UniversalNotificationSettingsScreen: React.FC<UniversalNotificationSetting
             <View style={styles.infoCard}>
               <Icon name="smartphone" size={18} color={COLORS.primary.accent} />
               <Text style={styles.infoText}>
-                시스템 설정에서 알림 권한을 확인해주세요. 설정 &gt; 앱 &gt; 혼밥노노 &gt; 알림
+                시스템 설정에서 알림 권한을 확인해주세요. 설정 &gt; 앱 &gt; 잇테이블 &gt; 알림
               </Text>
             </View>
           </View>

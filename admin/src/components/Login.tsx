@@ -114,7 +114,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
                   <LockOutlinedIcon />
                 </Avatar>
                 <Typography component="h1" variant="h5" sx={{ mb: 3 }}>
-                  혼밥시러 관리자 로그인
+                  잇테이블 관리자 로그인
                 </Typography>
 
                 {error && (

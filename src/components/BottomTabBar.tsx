@@ -15,7 +15,7 @@ const BottomTabBar: React.FC = () => {
 
   const tabs = [
     { key: 'home', title: '홈', icon: 'home' as IconName, path: '/home' },
-    { key: 'my-meetups', title: '내모임', icon: 'calendar' as IconName, path: '/my-meetups' },
+    { key: 'my-meetups', title: '내약속', icon: 'calendar' as IconName, path: '/my-meetups' },
     { key: 'explore', title: '탐색', icon: 'compass' as IconName, path: '/explore' },
     { key: 'chat', title: '채팅', icon: 'message-circle' as IconName, path: '/chat' },
     { key: 'mypage', title: '마이페이지', icon: 'user' as IconName, path: '/mypage' },

@@ -52,8 +52,8 @@ const UniversalNotificationScreen: React.FC<UniversalNotificationScreenProps> = 
     {
       id: 1,
       type: 'meetup_approved',
-      title: '모임 승인 완료',
-      message: '강남역 파스타 맛집 탐방 모임이 승인되었습니다.',
+      title: '약속 승인 완료',
+      message: '강남역 파스타 맛집 탐방 약속이 승인되었습니다.',
       time: '5분 전',
       isRead: false,
       actionRequired: false,
@@ -61,8 +61,8 @@ const UniversalNotificationScreen: React.FC<UniversalNotificationScreenProps> = 
     {
       id: 2,
       type: 'meetup_invite',
-      title: '새로운 모임 초대',
-      message: '홍대 술집 호핑 모임에 초대되었습니다.',
+      title: '새로운 약속 초대',
+      message: '홍대 술집 호핑 약속에 초대되었습니다.',
       time: '1시간 전',
       isRead: false,
       actionRequired: true,
@@ -79,8 +79,8 @@ const UniversalNotificationScreen: React.FC<UniversalNotificationScreenProps> = 
     {
       id: 4,
       type: 'meetup_cancelled',
-      title: '모임 취소 알림',
-      message: '신촌 브런치 모임이 취소되었습니다.',
+      title: '약속 취소 알림',
+      message: '신촌 브런치 약속이 취소되었습니다.',
       time: '1일 전',
       isRead: true,
       actionRequired: false,
@@ -169,7 +169,7 @@ const UniversalNotificationScreen: React.FC<UniversalNotificationScreenProps> = 
       case 'meetup_invite':
         if (notification.actionRequired) {
           Alert.alert(
-            '모임 초대',
+            '약속 초대',
             notification.message + '\n참여하시겠습니까?',
             [
               { text: '거절', style: 'cancel' },

@@ -138,7 +138,7 @@ export const useMeetups = () => {
       });
 
       if (!response.ok) {
-        throw new Error('모임 생성에 실패했습니다');
+        throw new Error('약속 생성에 실패했습니다');
       }
 
       const result = await response.json();
@@ -170,7 +170,7 @@ export const useMeetups = () => {
       const response = await fetch(`${apiUrl}/meetups/${id}`);
       
       if (!response.ok) {
-        throw new Error('모임을 찾을 수 없습니다');
+        throw new Error('약속을 찾을 수 없습니다');
       }
       
       const data = await response.json();

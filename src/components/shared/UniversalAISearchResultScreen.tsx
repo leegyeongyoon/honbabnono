@@ -147,14 +147,14 @@ const UniversalAISearchResultScreen: React.FC<UniversalAISearchResultScreenProps
           setSearchResults(firstResult.recommendedMeetups);
           // intentSummary가 없으면 기본 메시지
           if (!firstResult.intentSummary) {
-            setAiResponse(`🎉 "${query}"에 대한 ${firstResult.recommendedMeetups.length}개의 모임을 찾았습니다!`);
+            setAiResponse(`🎉 "${query}"에 대한 ${firstResult.recommendedMeetups.length}개의 약속을 찾았습니다!`);
           }
         } else {
           // 검색 결과가 없는 경우
           if (firstResult.noMatchReason) {
             setAiResponse(firstResult.noMatchReason);
           } else if (!firstResult.intentSummary) {
-            setAiResponse('검색 조건에 맞는 모임이 없습니다.');
+            setAiResponse('검색 조건에 맞는 약속이 없습니다.');
           }
           // Fallback search
           await fallbackSearch(query);
@@ -355,7 +355,7 @@ const UniversalAISearchResultScreen: React.FC<UniversalAISearchResultScreenProps
     return (
       <View style={styles.resultsContainer}>
         <Text style={styles.resultsTitle}>
-          🎯 AI 추천 모임 ({searchResults.length}개)
+          🎯 AI 추천 약속 ({searchResults.length}개)
         </Text>
 
         {searchResults.map((meetup, index) => (
@@ -389,7 +389,7 @@ const UniversalAISearchResultScreen: React.FC<UniversalAISearchResultScreenProps
           <Icon name="search" size={20} color={COLORS.text.tertiary} />
           <TextInput
             style={styles.searchInput}
-            placeholder="AI에게 원하는 모임을 설명해보세요"
+            placeholder="AI에게 원하는 약속을 설명해보세요"
             placeholderTextColor={COLORS.text.tertiary}
             value={searchQuery}
             onChangeText={setSearchQuery}

@@ -85,11 +85,11 @@ const BabAlIndex: React.FC<BabAlIndexProps> = ({
         <View style={styles.detailsContainer}>
           <Text style={styles.detailsTitle}>밥알지수 구성</Text>
           <View style={styles.detailItem}>
-            <Text style={styles.detailLabel}>• 모임 참여</Text>
+            <Text style={styles.detailLabel}>• 약속 참여</Text>
             <Text style={styles.detailValue}>+5점/회</Text>
           </View>
           <View style={styles.detailItem}>
-            <Text style={styles.detailLabel}>• 모임 주최</Text>
+            <Text style={styles.detailLabel}>• 약속 주최</Text>
             <Text style={styles.detailValue}>+10점/회</Text>
           </View>
           <View style={styles.detailItem}>

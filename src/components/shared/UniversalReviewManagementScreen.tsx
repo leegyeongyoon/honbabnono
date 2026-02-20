@@ -119,7 +119,7 @@ const UniversalReviewManagementScreen: React.FC<{navigation: NavigationAdapter, 
           <View style={styles.emptyContainer}>
             <Icon name="star" size={48} color={COLORS.text.tertiary} />
             <Text style={styles.emptyText}>받은 리뷰가 없습니다</Text>
-            <Text style={styles.emptySubtext}>모임을 호스팅하면 리뷰를 받을 수 있어요</Text>
+            <Text style={styles.emptySubtext}>약속을 호스팅하면 리뷰를 받을 수 있어요</Text>
           </View>
         ) : (
           <View style={styles.listContainer}>

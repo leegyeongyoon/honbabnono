@@ -138,7 +138,7 @@ exports.getHomeMeetups = async (req, res) => {
     console.error('❌ 홈화면 모임 목록 조회 오류:', error);
     res.status(500).json({
       success: false,
-      message: '모임 목록 조회에 실패했습니다.'
+      message: '약속 목록 조회에 실패했습니다.'
     });
   }
 };
@@ -243,7 +243,7 @@ exports.getActiveMeetups = async (req, res) => {
     console.error('❌ 활성 모임 목록 조회 오류:', error);
     res.status(500).json({
       success: false,
-      message: '모임 목록 조회에 실패했습니다.'
+      message: '약속 목록 조회에 실패했습니다.'
     });
   }
 };
@@ -304,7 +304,7 @@ exports.getCompletedMeetups = async (req, res) => {
     console.error('❌ 완료된 모임 조회 오류:', error);
     res.status(500).json({
       success: false,
-      message: '완료된 모임 조회에 실패했습니다.'
+      message: '완료된 약속 조회에 실패했습니다.'
     });
   }
 };
@@ -401,7 +401,7 @@ exports.getNearbyMeetups = async (req, res) => {
     console.error('❌ 주변 모임 검색 오류:', error);
     res.status(500).json({
       success: false,
-      message: '주변 모임 검색에 실패했습니다.'
+      message: '주변 약속 검색에 실패했습니다.'
     });
   }
 };
@@ -466,7 +466,7 @@ exports.getMyMeetups = async (req, res) => {
     console.error('❌ 내 모임 조회 오류:', error);
     res.status(500).json({
       success: false,
-      message: '내 모임 조회에 실패했습니다.'
+      message: '내 약속 조회에 실패했습니다.'
     });
   }
 };
@@ -519,7 +519,7 @@ exports.getMeetups = async (req, res) => {
     console.error('❌ 모임 목록 조회 오류:', error);
     res.status(500).json({
       success: false,
-      message: '모임 목록 조회에 실패했습니다.'
+      message: '약속 목록 조회에 실패했습니다.'
     });
   }
 };
@@ -564,7 +564,7 @@ exports.createMeetup = async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: '모임이 생성되었습니다.',
+      message: '약속이 만들어졌습니다.',
       meetup
     });
 
@@ -572,7 +572,7 @@ exports.createMeetup = async (req, res) => {
     console.error('❌ 모임 생성 오류:', error);
     res.status(500).json({
       success: false,
-      message: '모임 생성에 실패했습니다.'
+      message: '약속 만들기에 실패했습니다.'
     });
   }
 };
@@ -594,7 +594,7 @@ exports.getMeetupById = async (req, res) => {
     if (result.rows.length === 0) {
       return res.status(404).json({
         success: false,
-        error: '모임을 찾을 수 없습니다.'
+        error: '약속을 찾을 수 없습니다.'
       });
     }
 
@@ -627,7 +627,7 @@ exports.getMeetupById = async (req, res) => {
     console.error('❌ 모임 상세 조회 오류:', error);
     res.status(500).json({
       success: false,
-      message: '모임 조회에 실패했습니다.'
+      message: '약속 조회에 실패했습니다.'
     });
   }
 };
@@ -648,14 +648,14 @@ exports.updateMeetup = async (req, res) => {
     if (meetupResult.rows.length === 0) {
       return res.status(404).json({
         success: false,
-        error: '모임을 찾을 수 없습니다.'
+        error: '약속을 찾을 수 없습니다.'
       });
     }
 
     if (meetupResult.rows[0].host_id !== userId) {
       return res.status(403).json({
         success: false,
-        error: '모임을 수정할 권한이 없습니다.'
+        error: '약속을 수정할 권한이 없습니다.'
       });
     }
 
@@ -689,7 +689,7 @@ exports.updateMeetup = async (req, res) => {
 
     res.json({
       success: true,
-      message: '모임이 수정되었습니다.',
+      message: '약속이 수정되었습니다.',
       meetup: result.rows[0]
     });
 
@@ -697,7 +697,7 @@ exports.updateMeetup = async (req, res) => {
     console.error('❌ 모임 수정 오류:', error);
     res.status(500).json({
       success: false,
-      message: '모임 수정에 실패했습니다.'
+      message: '약속 수정에 실패했습니다.'
     });
   }
 };
@@ -716,14 +716,14 @@ exports.deleteMeetup = async (req, res) => {
     if (meetupResult.rows.length === 0) {
       return res.status(404).json({
         success: false,
-        error: '모임을 찾을 수 없습니다.'
+        error: '약속을 찾을 수 없습니다.'
       });
     }
 
     if (meetupResult.rows[0].host_id !== userId) {
       return res.status(403).json({
         success: false,
-        error: '모임을 삭제할 권한이 없습니다.'
+        error: '약속을 삭제할 권한이 없습니다.'
       });
     }
 
@@ -731,14 +731,14 @@ exports.deleteMeetup = async (req, res) => {
 
     res.json({
       success: true,
-      message: '모임이 삭제되었습니다.'
+      message: '약속이 삭제되었습니다.'
     });
 
   } catch (error) {
     console.error('❌ 모임 삭제 오류:', error);
     res.status(500).json({
       success: false,
-      message: '모임 삭제에 실패했습니다.'
+      message: '약속 삭제에 실패했습니다.'
     });
   }
 };
@@ -758,7 +758,7 @@ exports.joinMeetup = async (req, res) => {
     if (meetupResult.rows.length === 0) {
       return res.status(404).json({
         success: false,
-        error: '모임을 찾을 수 없습니다.'
+        error: '약속을 찾을 수 없습니다.'
       });
     }
 
@@ -767,14 +767,14 @@ exports.joinMeetup = async (req, res) => {
     if (meetup.status !== '모집중') {
       return res.status(400).json({
         success: false,
-        error: '현재 참가할 수 없는 모임입니다.'
+        error: '현재 참가할 수 없는 약속입니다.'
       });
     }
 
     if (meetup.current_participants >= meetup.max_participants) {
       return res.status(400).json({
         success: false,
-        error: '모임 정원이 가득 찼습니다.'
+        error: '약속 정원이 가득 찼습니다.'
       });
     }
 
@@ -787,7 +787,7 @@ exports.joinMeetup = async (req, res) => {
     if (existingResult.rows.length > 0) {
       return res.status(400).json({
         success: false,
-        error: '이미 참가 신청한 모임입니다.'
+        error: '이미 참가 신청한 약속입니다.'
       });
     }
 
@@ -806,7 +806,7 @@ exports.joinMeetup = async (req, res) => {
     console.error('❌ 모임 참가 오류:', error);
     res.status(500).json({
       success: false,
-      message: '모임 참가에 실패했습니다.'
+      message: '약속 참가에 실패했습니다.'
     });
   }
 };
@@ -892,7 +892,7 @@ exports.updateParticipantStatus = async (req, res) => {
     if (meetupResult.rows.length === 0) {
       return res.status(404).json({
         success: false,
-        error: '모임을 찾을 수 없습니다.'
+        error: '약속을 찾을 수 없습니다.'
       });
     }
 
@@ -955,14 +955,14 @@ exports.updateMeetupStatus = async (req, res) => {
     if (meetupResult.rows.length === 0) {
       return res.status(404).json({
         success: false,
-        error: '모임을 찾을 수 없습니다.'
+        error: '약속을 찾을 수 없습니다.'
       });
     }
 
     if (meetupResult.rows[0].host_id !== userId) {
       return res.status(403).json({
         success: false,
-        error: '모임 상태를 변경할 권한이 없습니다.'
+        error: '약속 상태를 변경할 권한이 없습니다.'
       });
     }
 
@@ -975,7 +975,7 @@ exports.updateMeetupStatus = async (req, res) => {
 
     res.json({
       success: true,
-      message: `모임 상태가 ${status}(으)로 변경되었습니다.`,
+      message: `약속 상태가 ${status}(으)로 변경되었습니다.`,
       meetup: result.rows[0]
     });
 
@@ -983,7 +983,7 @@ exports.updateMeetupStatus = async (req, res) => {
     console.error('❌ 모임 상태 변경 오류:', error);
     res.status(500).json({
       success: false,
-      message: '모임 상태 변경에 실패했습니다.'
+      message: '약속 상태 변경에 실패했습니다.'
     });
   }
 };
@@ -1001,7 +1001,7 @@ exports.addView = async (req, res) => {
     if (meetupResult.rows.length === 0) {
       return res.status(404).json({
         success: false,
-        message: '모임을 찾을 수 없습니다.'
+        message: '약속을 찾을 수 없습니다.'
       });
     }
 
@@ -1074,14 +1074,14 @@ exports.createReview = async (req, res) => {
     );
 
     if (meetupResult.rows.length === 0) {
-      return res.status(404).json({ error: '모임을 찾을 수 없습니다' });
+      return res.status(404).json({ error: '약속을 찾을 수 없습니다' });
     }
 
     const meetup = meetupResult.rows[0];
 
     // 모임이 완료되었는지 확인
     if (new Date(meetup.date) > new Date()) {
-      return res.status(400).json({ error: '완료된 모임에만 리뷰를 작성할 수 있습니다' });
+      return res.status(400).json({ error: '완료된 약속에만 리뷰를 작성할 수 있습니다' });
     }
 
     // 사용자가 해당 모임에 참가했는지 확인
@@ -1091,7 +1091,7 @@ exports.createReview = async (req, res) => {
     );
 
     if (participantResult.rows.length === 0) {
-      return res.status(403).json({ error: '참가한 모임에만 리뷰를 작성할 수 있습니다' });
+      return res.status(403).json({ error: '참가한 약속에만 리뷰를 작성할 수 있습니다' });
     }
 
     // 이미 리뷰를 작성했는지 확인
@@ -1230,7 +1230,7 @@ exports.confirmMeetup = async (req, res) => {
     if (meetupResult.rows.length === 0) {
       return res.status(404).json({
         success: false,
-        error: '모임을 찾을 수 없거나 호스트 권한이 없습니다.'
+        error: '약속을 찾을 수 없거나 호스트 권한이 없습니다.'
       });
     }
 
@@ -1239,12 +1239,12 @@ exports.confirmMeetup = async (req, res) => {
 
     if (action === 'confirm') {
       if (meetup.status === 'confirmed' || meetup.status === '모집완료') {
-        return res.status(400).json({ success: false, error: '이미 확정된 모임입니다.' });
+        return res.status(400).json({ success: false, error: '이미 확정된 약속입니다.' });
       }
       newStatus = '모집완료';
     } else {
       if (meetup.status === 'cancelled' || meetup.status === '취소') {
-        return res.status(400).json({ success: false, error: '이미 취소된 모임입니다.' });
+        return res.status(400).json({ success: false, error: '이미 취소된 약속입니다.' });
       }
       newStatus = '취소';
     }
@@ -1277,7 +1277,7 @@ exports.confirmMeetup = async (req, res) => {
             INSERT INTO point_transactions
             (user_id, type, amount, description, created_at, updated_at)
             VALUES ($1, 'earned', $2, $3, NOW(), NOW())
-          `, [participant.user_id, participant.amount, `모임 취소로 인한 약속금 환불: ${meetup.title}`]);
+          `, [participant.user_id, participant.amount, `약속 취소로 인한 약속금 환불: ${meetup.title}`]);
 
           await pool.query(
             "UPDATE promise_deposits SET status = 'refunded', updated_at = NOW() WHERE id = $1",
@@ -1291,7 +1291,7 @@ exports.confirmMeetup = async (req, res) => {
 
     res.json({
       success: true,
-      message: action === 'confirm' ? '모임이 확정되었습니다.' : '모임이 취소되었습니다.',
+      message: action === 'confirm' ? '약속이 확정되었습니다.' : '약속이 취소되었습니다.',
       status: newStatus
     });
   } catch (error) {
@@ -1319,7 +1319,7 @@ exports.gpsCheckin = async (req, res) => {
     );
 
     if (meetupResult.rows.length === 0) {
-      return res.status(404).json({ error: '모임을 찾을 수 없습니다' });
+      return res.status(404).json({ error: '약속을 찾을 수 없습니다' });
     }
 
     const meetup = meetupResult.rows[0];
@@ -1331,7 +1331,7 @@ exports.gpsCheckin = async (req, res) => {
     );
 
     if (participantResult.rows.length === 0) {
-      return res.status(403).json({ error: '모임 참가자만 체크인할 수 있습니다' });
+      return res.status(403).json({ error: '약속 참가자만 체크인할 수 있습니다' });
     }
 
     // 거리 계산
@@ -1347,7 +1347,7 @@ exports.gpsCheckin = async (req, res) => {
     const MAX_DISTANCE = 100;
     if (distance > MAX_DISTANCE) {
       return res.status(400).json({
-        error: `모임 장소에서 ${MAX_DISTANCE}m 이내에서만 체크인할 수 있습니다`,
+        error: `약속 장소에서 ${MAX_DISTANCE}m 이내에서만 체크인할 수 있습니다`,
         distance: Math.round(distance),
         maxDistance: MAX_DISTANCE
       });
@@ -1412,7 +1412,7 @@ exports.generateQRCode = async (req, res) => {
     );
 
     if (meetupResult.rows.length === 0) {
-      return res.status(404).json({ error: '모임을 찾을 수 없습니다' });
+      return res.status(404).json({ error: '약속을 찾을 수 없습니다' });
     }
 
     if (meetupResult.rows[0].host_id !== userId) {
@@ -1472,7 +1472,7 @@ exports.qrCheckin = async (req, res) => {
       );
 
       if (participantResult.rows.length === 0) {
-        return res.status(403).json({ error: '모임 참가자만 체크인할 수 있습니다' });
+        return res.status(403).json({ error: '약속 참가자만 체크인할 수 있습니다' });
       }
 
       // 출석 기록
@@ -1519,7 +1519,7 @@ exports.getReviewableParticipants = async (req, res) => {
     if (meetupResult.rows.length === 0) {
       return res.status(404).json({
         success: false,
-        message: '모임을 찾을 수 없습니다.'
+        message: '약속을 찾을 수 없습니다.'
       });
     }
 
@@ -1598,11 +1598,11 @@ exports.hostConfirmAttendance = async (req, res) => {
     );
 
     if (meetupResult.rows.length === 0) {
-      return res.status(404).json({ success: false, message: '모임을 찾을 수 없습니다.' });
+      return res.status(404).json({ success: false, message: '약속을 찾을 수 없습니다.' });
     }
 
     if (meetupResult.rows[0].host_id !== hostId) {
-      return res.status(403).json({ success: false, message: '해당 모임의 호스트만 참석을 확인할 수 있습니다.' });
+      return res.status(403).json({ success: false, message: '해당 약속의 호스트만 참석을 확인할 수 있습니다.' });
     }
 
     // 참가자 확인
@@ -1652,11 +1652,11 @@ exports.getAttendanceParticipants = async (req, res) => {
     );
 
     if (meetupResult.rows.length === 0) {
-      return res.status(404).json({ success: false, message: '모임을 찾을 수 없습니다.' });
+      return res.status(404).json({ success: false, message: '약속을 찾을 수 없습니다.' });
     }
 
     if (meetupResult.rows[0].host_id !== hostId) {
-      return res.status(403).json({ success: false, message: '해당 모임의 호스트만 참가자를 확인할 수 있습니다.' });
+      return res.status(403).json({ success: false, message: '해당 약속의 호스트만 참가자를 확인할 수 있습니다.' });
     }
 
     const participantsResult = await pool.query(`
@@ -1720,7 +1720,7 @@ exports.mutualConfirmAttendance = async (req, res) => {
     if (participantsResult.rows.length !== 2) {
       return res.status(403).json({
         success: false,
-        message: '두 사용자 모두 해당 모임의 승인된 참가자여야 합니다.'
+        message: '두 사용자 모두 해당 약속의 승인된 참가자여야 합니다.'
       });
     }
 
@@ -1774,7 +1774,7 @@ exports.verifyLocation = async (req, res) => {
     if (meetupResult.rows.length === 0) {
       return res.status(403).json({
         success: false,
-        error: '참가 승인된 모임만 위치 인증이 가능합니다.'
+        error: '참가 승인된 약속만 위치 인증이 가능합니다.'
       });
     }
 
@@ -1796,8 +1796,8 @@ exports.verifyLocation = async (req, res) => {
     `, [meetupId, userId, latitude, longitude, accuracy, Math.round(distance), isVerified]);
 
     const message = isVerified
-      ? `모임 장소 인증 성공! (${Math.round(distance)}m 거리)`
-      : `모임 장소에서 너무 멀리 있습니다. (${Math.round(distance)}m 거리, 최대 ${maxDistance}m)`;
+      ? `약속 장소 인증 성공! (${Math.round(distance)}m 거리)`
+      : `약속 장소에서 너무 멀리 있습니다. (${Math.round(distance)}m 거리, 최대 ${maxDistance}m)`;
 
     res.json({
       success: true,
@@ -1829,7 +1829,7 @@ exports.getConfirmableParticipants = async (req, res) => {
     if (participantCheck.rows.length === 0) {
       return res.status(403).json({
         success: false,
-        message: '해당 모임의 승인된 참가자가 아닙니다.'
+        message: '해당 약속의 승인된 참가자가 아닙니다.'
       });
     }
 
@@ -1897,14 +1897,14 @@ exports.applyNoShowPenalties = async (req, res) => {
     );
 
     if (meetupResult.rows.length === 0) {
-      return res.status(404).json({ success: false, message: '모임을 찾을 수 없습니다.' });
+      return res.status(404).json({ success: false, message: '약속을 찾을 수 없습니다.' });
     }
 
     const meetup = meetupResult.rows[0];
     if (meetup.host_id !== hostId) {
       return res.status(403).json({
         success: false,
-        message: '해당 모임의 호스트만 노쇼 패널티를 적용할 수 있습니다.'
+        message: '해당 약속의 호스트만 노쇼 패널티를 적용할 수 있습니다.'
       });
     }
 
@@ -1977,13 +1977,13 @@ exports.getQRCode = async (req, res) => {
     const hostCheck = await pool.query('SELECT host_id FROM meetups WHERE id = $1', [meetupId]);
 
     if (hostCheck.rows.length === 0) {
-      return res.status(404).json({ success: false, message: '모임을 찾을 수 없습니다.' });
+      return res.status(404).json({ success: false, message: '약속을 찾을 수 없습니다.' });
     }
 
     if (hostCheck.rows[0].host_id !== userId) {
       return res.status(403).json({
         success: false,
-        message: '해당 모임의 호스트만 QR코드를 생성할 수 있습니다.'
+        message: '해당 약속의 호스트만 QR코드를 생성할 수 있습니다.'
       });
     }
 
@@ -2022,7 +2022,7 @@ exports.qrScanCheckin = async (req, res) => {
     }
 
     if (qrData.meetupId !== meetupId) {
-      return res.status(400).json({ success: false, message: '다른 모임의 QR코드입니다.' });
+      return res.status(400).json({ success: false, message: '다른 약속의 QR코드입니다.' });
     }
 
     if (Date.now() > qrData.expiresAt) {
@@ -2036,7 +2036,7 @@ exports.qrScanCheckin = async (req, res) => {
     `, [meetupId, userId]);
 
     if (participantCheck.rows.length === 0) {
-      return res.status(403).json({ success: false, message: '해당 모임의 승인된 참가자가 아닙니다.' });
+      return res.status(403).json({ success: false, message: '해당 약속의 승인된 참가자가 아닙니다.' });
     }
 
     await client.query('BEGIN');
@@ -2078,13 +2078,13 @@ exports.progressCheck = async (req, res) => {
     const meetupResult = await pool.query('SELECT host_id FROM meetups WHERE id = $1', [meetupId]);
 
     if (meetupResult.rows.length === 0) {
-      return res.status(404).json({ success: false, error: '모임을 찾을 수 없습니다.' });
+      return res.status(404).json({ success: false, error: '약속을 찾을 수 없습니다.' });
     }
 
     if (meetupResult.rows[0].host_id !== userId) {
       return res.status(403).json({
         success: false,
-        error: '모임 호스트만 진행 확인을 요청할 수 있습니다.'
+        error: '약속 호스트만 진행 확인을 요청할 수 있습니다.'
       });
     }
 
@@ -2095,8 +2095,8 @@ exports.progressCheck = async (req, res) => {
     const notifications = participantsResult.rows.map(p => [
       p.user_id,
       'meetup_progress_check',
-      '모임 진행 확인',
-      '모임이 예정대로 진행되었나요? 참석 여부를 알려주세요.',
+      '약속 진행 확인',
+      '약속이 예정대로 진행되었나요? 참석 여부를 알려주세요.',
       meetupId,
       userId,
       JSON.stringify({ meetupId, requestedBy: userId })
@@ -2138,7 +2138,7 @@ exports.progressResponse = async (req, res) => {
     `, [meetupId, userId]);
 
     if (participantResult.rows.length === 0) {
-      return res.status(403).json({ success: false, error: '해당 모임의 참가자가 아닙니다.' });
+      return res.status(403).json({ success: false, error: '해당 약속의 참가자가 아닙니다.' });
     }
 
     await pool.query(`
@@ -2174,7 +2174,7 @@ exports.addWishlist = async (req, res) => {
     if (existingResult.rows.length > 0) {
       return res.json({
         success: true,
-        message: '이미 찜한 모임입니다.',
+        message: '이미 찜한 약속입니다.',
         isWishlisted: true
       });
     }
@@ -2253,7 +2253,7 @@ exports.leaveMeetupPost = async (req, res) => {
 
     res.json({
       success: true,
-      message: '모임 참가가 취소되었습니다.'
+      message: '약속 참가가 취소되었습니다.'
     });
 
   } catch (error) {

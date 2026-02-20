@@ -131,7 +131,7 @@ const MeetupMarkerPopup: React.FC<MeetupMarkerPopupProps> = ({
           style={styles.detailButton}
           onPress={() => onDetailPress(meetup.id)}
         >
-          <Text style={styles.detailButtonText}>모임 상세보기</Text>
+          <Text style={styles.detailButtonText}>약속 상세보기</Text>
           <Icon name="arrow-right" size={16} color={COLORS.text.secondary} />
         </TouchableOpacity>
       </View>

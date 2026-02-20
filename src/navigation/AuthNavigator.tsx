@@ -17,7 +17,7 @@ const AuthNavigator: React.FC = () => {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={COLORS.primary.main} />
-        <Text style={styles.loadingText}>혼밥노노 시작 중...</Text>
+        <Text style={styles.loadingText}>잇테이블 시작 중...</Text>
       </View>
     );
   }

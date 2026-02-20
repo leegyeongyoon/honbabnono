@@ -55,7 +55,7 @@ exports.createReview = async (req, res) => {
     if (existingResult.rows.length > 0) {
       return res.status(400).json({
         success: false,
-        error: '이미 이 모임에 대한 리뷰를 작성했습니다.'
+        error: '이미 이 약속에 대한 리뷰를 작성했습니다.'
       });
     }
 
@@ -68,7 +68,7 @@ exports.createReview = async (req, res) => {
     if (participantResult.rows.length === 0) {
       return res.status(400).json({
         success: false,
-        error: '참가한 모임에만 리뷰를 작성할 수 있습니다.'
+        error: '참가한 약속에만 리뷰를 작성할 수 있습니다.'
       });
     }
 

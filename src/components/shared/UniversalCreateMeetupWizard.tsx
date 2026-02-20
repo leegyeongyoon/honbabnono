@@ -70,9 +70,9 @@ const WIZARD_STEPS = [
   { id: 3, title: '참가 인원', description: '몇 명이 함께할까요?' },
   { id: 4, title: '참가자 조건', description: '누구와 함께할까요?' },
   { id: 5, title: '장소', description: '어디서 만날까요?' },
-  { id: 6, title: '모임 정보', description: '모임에 대해 알려주세요' },
+  { id: 6, title: '약속 정보', description: '약속에 대해 알려주세요' },
   { id: 7, title: '약속금', description: '노쇼 방지를 위한 약속금을 설정해주세요' },
-  { id: 8, title: '결제', description: '모임 생성 비용을 결제해주세요' },
+  { id: 8, title: '결제', description: '약속 생성 비용을 결제해주세요' },
 ];
 
 const UniversalCreateMeetupWizard: React.FC<UniversalCreateMeetupWizardProps> = ({
@@ -212,7 +212,7 @@ const UniversalCreateMeetupWizard: React.FC<UniversalCreateMeetupWizardProps> = 
       if (response.ok && data.success) {
         return { success: true, meetupId: data.meetup?.id };
       } else {
-        return { success: false, error: data.message || '모임 생성에 실패했습니다' };
+        return { success: false, error: data.message || '약속 생성에 실패했습니다' };
       }
     } catch (_error) {
       return { success: false, error: _error instanceof Error ? _error.message : '네트워크 오류가 발생했습니다' };
@@ -229,7 +229,7 @@ const UniversalCreateMeetupWizard: React.FC<UniversalCreateMeetupWizardProps> = 
         meetupId: createdMeetupId,
         amount: meetupData.deposit + 1000, // 기본 생성비 1000원
         paymentMethod,
-        description: `모임 생성: ${meetupData.title}`,
+        description: `약속 생성: ${meetupData.title}`,
       };
 
       const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:3001/api'}/payments/process`, {
@@ -294,7 +294,7 @@ const UniversalCreateMeetupWizard: React.FC<UniversalCreateMeetupWizardProps> = 
       const result = await createMeetup();
       
       if (!result.success) {
-        showToast(result.error || '모임 생성에 실패했습니다', 'error');
+        showToast(result.error || '약속 생성에 실패했습니다', 'error');
         setIsLoading(false);
         return;
       }
@@ -305,7 +305,7 @@ const UniversalCreateMeetupWizard: React.FC<UniversalCreateMeetupWizardProps> = 
       nextStep();
       
     } catch (_error) {
-      showToast('모임 생성 중 오류가 발생했습니다', 'error');
+      showToast('약속 생성 중 오류가 발생했습니다', 'error');
     } finally {
       setIsLoading(false);
     }
@@ -316,7 +316,7 @@ const UniversalCreateMeetupWizard: React.FC<UniversalCreateMeetupWizardProps> = 
     const paymentSuccess = await processPayment();
     
     if (paymentSuccess) {
-      showToast('모임이 성공적으로 생성되었습니다!', 'success');
+      showToast('약속이 성공적으로 생성되었습니다!', 'success');
       
       if (onSuccess) {
         onSuccess();
@@ -676,10 +676,10 @@ const UniversalCreateMeetupWizard: React.FC<UniversalCreateMeetupWizardProps> = 
   const renderInfoStep = () => (
     <View style={styles.stepContent}>
       <View style={styles.inputSection}>
-        <Text style={styles.sectionLabel}>모임 제목</Text>
+        <Text style={styles.sectionLabel}>약속 제목</Text>
         <TextInput
           style={styles.textInput}
-          placeholder="모임 제목을 입력하세요"
+          placeholder="약속 제목을 입력하세요"
           value={meetupData.title}
           onChangeText={(text) => setMeetupData(prev => ({ ...prev, title: text }))}
           maxLength={50}
@@ -688,10 +688,10 @@ const UniversalCreateMeetupWizard: React.FC<UniversalCreateMeetupWizardProps> = 
       </View>
 
       <View style={styles.inputSection}>
-        <Text style={styles.sectionLabel}>모임 설명</Text>
+        <Text style={styles.sectionLabel}>약속 설명</Text>
         <TextInput
           style={[styles.textInput, styles.textArea]}
-          placeholder="모임에 대한 설명을 입력하세요"
+          placeholder="약속에 대한 설명을 입력하세요"
           value={meetupData.description}
           onChangeText={(text) => setMeetupData(prev => ({ ...prev, description: text }))}
           multiline
@@ -703,7 +703,7 @@ const UniversalCreateMeetupWizard: React.FC<UniversalCreateMeetupWizardProps> = 
       </View>
 
       <View style={styles.inputSection}>
-        <Text style={styles.sectionLabel}>모임 사진 (선택사항)</Text>
+        <Text style={styles.sectionLabel}>약속 사진 (선택사항)</Text>
         <TouchableOpacity
           style={styles.imageUploadArea}
           onPress={() => {
@@ -769,7 +769,7 @@ const UniversalCreateMeetupWizard: React.FC<UniversalCreateMeetupWizardProps> = 
             <View style={styles.imageUploadPlaceholder}>
               <Text style={styles.imageUploadIcon}>📷</Text>
               <Text style={styles.imageUploadText}>사진 추가하기</Text>
-              <Text style={styles.imageUploadSubText}>모임을 더 잘 표현할 수 있는 사진을 업로드하세요</Text>
+              <Text style={styles.imageUploadSubText}>약속을 더 잘 표현할 수 있는 사진을 업로드하세요</Text>
             </View>
           )}
         </TouchableOpacity>
@@ -1211,7 +1211,7 @@ const UniversalCreateMeetupWizard: React.FC<UniversalCreateMeetupWizardProps> = 
   // 약속금 설정 화면 (결제수단 포함)
   const renderDepositStep = () => (
     <View style={styles.stepContent}>
-      <Text style={styles.depositStepSubtitle}>약속금은 모임 참여의 신뢰성을 높여줍니다</Text>
+      <Text style={styles.depositStepSubtitle}>약속금은 밥약속 참여의 신뢰성을 높여줍니다</Text>
 
       <View style={styles.depositInputSection}>
         <Text style={styles.sectionLabel}>약속금 금액</Text>
@@ -1254,7 +1254,7 @@ const UniversalCreateMeetupWizard: React.FC<UniversalCreateMeetupWizardProps> = 
       <View style={styles.infoBox}>
         <Icon name="info" size={16} color={COLORS.text.secondary} />
         <Text style={styles.infoBoxText}>
-          약속금은 모임 참여 후 자동으로 환불됩니다.{'\n'}
+          약속금은 약속 참여 후 자동으로 환불됩니다.{'\n'}
           노쇼 시 약속금이 차감될 수 있습니다.
         </Text>
       </View>
@@ -1486,7 +1486,7 @@ const UniversalCreateMeetupWizard: React.FC<UniversalCreateMeetupWizardProps> = 
         <TouchableOpacity style={styles.headerButton} onPress={() => onCancel ? onCancel() : navigation.goBack()}>
           <Icon name="arrow-left" size={24} color={COLORS.text.primary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>모임 만들기</Text>
+        <Text style={styles.headerTitle}>약속 만들기</Text>
         <View style={styles.headerButton} />
       </View>
 
@@ -1544,7 +1544,7 @@ const UniversalCreateMeetupWizard: React.FC<UniversalCreateMeetupWizardProps> = 
         >
           <Text style={styles.primaryButtonText}>
             {isLoading || isPaymentLoading ? '처리중...' :
-             currentStep === 7 ? '모임 생성' :
+             currentStep === 7 ? '약속 만들기' :
              currentStep === 8 ? '결제하기' : '다음'}
           </Text>
         </TouchableOpacity>

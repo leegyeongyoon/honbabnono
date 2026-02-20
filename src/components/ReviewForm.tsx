@@ -173,7 +173,7 @@ const ReviewForm: React.FC<ReviewFormProps> = ({
           {/* 모임 정보 */}
           <View style={styles.meetupInfo}>
             <Text style={styles.meetupTitle}>{meetupTitle}</Text>
-            <Text style={styles.meetupSubtitle}>이 모임은 어떠셨나요?</Text>
+            <Text style={styles.meetupSubtitle}>이 약속은 어떠셨나요?</Text>
           </View>
 
           {/* 평점 */}
@@ -184,7 +184,7 @@ const ReviewForm: React.FC<ReviewFormProps> = ({
             <Text style={styles.commentLabel}>후기 (선택사항)</Text>
             <TextInput
               style={styles.commentInput}
-              placeholder="모임에 대한 솔직한 후기를 남겨주세요"
+              placeholder="밥약속에 대한 솔직한 후기를 남겨주세요"
               value={comment}
               onChangeText={setComment}
               multiline

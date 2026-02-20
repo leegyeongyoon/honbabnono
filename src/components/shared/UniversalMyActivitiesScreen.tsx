@@ -197,13 +197,13 @@ const UniversalMyActivitiesScreen: React.FC<UniversalMyActivitiesScreenProps> = 
             <Icon name="activity" size={48} color={COLORS.text.tertiary} />
             <Text style={styles.emptyTitle}>아직 활동 내역이 없습니다</Text>
             <Text style={styles.emptySubtitle}>
-              모임에 참여하거나 새로운 활동을 시작해보세요!
+              약속에 참여하거나 새로운 활동을 시작해보세요!
             </Text>
             <TouchableOpacity
               style={styles.findMeetupButton}
               onPress={() => navigation.navigate('MeetupList')}
             >
-              <Text style={styles.findMeetupButtonText}>모임 찾기</Text>
+              <Text style={styles.findMeetupButtonText}>약속 찾기</Text>
             </TouchableOpacity>
           </View>
         ) : (

@@ -169,7 +169,7 @@ apiRouter.use(apiLimiter);
 apiRouter.get('/health', (req, res) => {
   res.json({
     status: 'ok',
-    message: '혼밥시러 API 서버가 정상 동작 중입니다.',
+    message: '잇테이블 API 서버가 정상 동작 중입니다.',
     timestamp: new Date().toISOString(),
     version: '2.0.0-modular'
   });
@@ -384,7 +384,7 @@ apiRouter.post('/search/ai', async (req, res) => {
         results: [{
           isNoMatch: true,
           userContext: query,
-          noMatchReason: '현재 활성화된 모임이 없습니다.',
+          noMatchReason: '현재 활성화된 밥약속이 없습니다.',
           wantedCategory: ''
         }]
       });
@@ -414,7 +414,7 @@ apiRouter.post('/search/ai', async (req, res) => {
           time: m.time,
           relevanceScore: 50
         })),
-        message: '정확히 일치하는 모임이 없어 모든 모임을 보여드립니다.'
+        message: '정확히 일치하는 약속이 없어 모든 밥약속을 보여드립니다.'
       });
     }
 
@@ -475,7 +475,7 @@ apiRouter.get('/my-meetups', authenticateToken, async (req, res) => {
     res.json({ success: true, data: result.rows });
   } catch (error) {
     console.error('내 모임 목록 조회 오류:', error);
-    res.status(500).json({ success: false, message: '모임 목록을 불러올 수 없습니다.' });
+    res.status(500).json({ success: false, message: '약속 목록을 불러올 수 없습니다.' });
   }
 });
 
@@ -768,7 +768,7 @@ if (mode !== 'test') {
   server.listen(PORT, () => {
     console.log('');
     console.log('═══════════════════════════════════════════════════');
-    console.log('   🍚 혼밥시러 API 서버 (모듈화 버전)');
+    console.log('   🍽️ 잇테이블 API 서버 (모듈화 버전)');
     console.log('═══════════════════════════════════════════════════');
     console.log(`   📍 포트: ${PORT}`);
     console.log(`   🌍 환경: ${mode || 'development'}`);

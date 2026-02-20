@@ -98,14 +98,14 @@ const PaymentScreen: React.FC = () => {
         }} style={styles.backButton}>
           <Icon name="arrow-left" size={20} color="#1A1714" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{isFromMeetup ? '모임 참여비 충전' : '포인트 충전'}</Text>
+        <Text style={styles.headerTitle}>{isFromMeetup ? '약속 참여비 충전' : '포인트 충전'}</Text>
       </View>
 
       <FadeIn>
       <View style={styles.content}>
         {isFromMeetup && requiredAmount > 0 && (
           <View style={styles.meetupInfoSection}>
-            <Text style={styles.meetupInfoTitle}>모임 참여 안내</Text>
+            <Text style={styles.meetupInfoTitle}>약속 참여 안내</Text>
             <View style={styles.meetupInfoRow}>
               <Text style={styles.meetupInfoLabel}>필요한 참여비</Text>
               <Text style={styles.meetupInfoAmount}>{requiredAmount.toLocaleString()}원</Text>

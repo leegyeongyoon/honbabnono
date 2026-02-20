@@ -152,7 +152,7 @@ const UniversalPrivacySettingsScreen: React.FC<{navigation: NavigationAdapter, u
           <Text style={styles.sectionTitle}>활동 정보</Text>
           <View style={styles.settingsContainer}>
             {renderSwitch('showActivityStatus', '활동 상태 표시', '다른 사용자에게 온라인 상태를 보여줍니다')}
-            {renderSwitch('showLocation', '위치 정보 공유', '모임 위치 기반 추천을 받습니다')}
+            {renderSwitch('showLocation', '위치 정보 공유', '약속 위치 기반 추천을 받습니다')}
             {renderSwitch('showInSearchResults', '검색 결과 표시', '다른 사용자의 검색 결과에 표시됩니다')}
           </View>
         </View>
@@ -175,7 +175,7 @@ const UniversalPrivacySettingsScreen: React.FC<{navigation: NavigationAdapter, u
         <View style={styles.infoSection}>
           <Text style={styles.infoTitle}>개인정보 처리방침</Text>
           <Text style={styles.infoText}>
-            혼밥노노는 회원님의 개인정보를 소중히 보호합니다.
+            잇테이블은 회원님의 개인정보를 소중히 보호합니다.
             자세한 내용은 개인정보 처리방침을 확인해주세요.
           </Text>
           <TouchableOpacity

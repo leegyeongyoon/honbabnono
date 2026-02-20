@@ -280,7 +280,7 @@ const LoginScreen = () => {
                   }}>
                     <Icon name="map-pin" size={20} color={COLORS.primary.accent} />
                   </div>
-                  <Text style={styles.featureLabel}>내 주변 모임</Text>
+                  <Text style={styles.featureLabel}>내 주변 약속</Text>
                 </View>
                 <View style={styles.featureItem}>
                   <div style={{

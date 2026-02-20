@@ -91,7 +91,7 @@ exports.getHomeMeetups = async (req, res) => {
     console.error('홈화면 모임 목록 조회 오류:', error);
     res.status(500).json({
       success: false,
-      message: '모임 목록 조회에 실패했습니다.',
+      message: '약속 목록 조회에 실패했습니다.',
     });
   }
 };
@@ -187,7 +187,7 @@ exports.getActiveMeetups = async (req, res) => {
     console.error('활성 모임 목록 조회 오류:', error);
     res.status(500).json({
       success: false,
-      message: '모임 목록 조회에 실패했습니다.',
+      message: '약속 목록 조회에 실패했습니다.',
     });
   }
 };
@@ -242,7 +242,7 @@ exports.getCompletedMeetups = async (req, res) => {
     console.error('완료된 모임 목록 조회 오류:', error);
     res.status(500).json({
       success: false,
-      message: '모임 목록 조회에 실패했습니다.',
+      message: '약속 목록 조회에 실패했습니다.',
     });
   }
 };
@@ -327,7 +327,7 @@ exports.getNearbyMeetups = async (req, res) => {
     console.error('주변 모임 조회 오류:', error);
     res.status(500).json({
       success: false,
-      message: '주변 모임 조회에 실패했습니다.',
+      message: '주변 약속 조회에 실패했습니다.',
     });
   }
 };
@@ -392,7 +392,7 @@ exports.getMyMeetups = async (req, res) => {
     console.error('내 모임 목록 조회 오류:', error);
     res.status(500).json({
       success: false,
-      message: '모임 목록 조회에 실패했습니다.',
+      message: '약속 목록 조회에 실패했습니다.',
     });
   }
 };
@@ -478,7 +478,7 @@ exports.getMeetups = async (req, res) => {
     console.error('모임 목록 조회 오류:', error);
     res.status(500).json({
       success: false,
-      message: '모임 목록 조회에 실패했습니다.',
+      message: '약속 목록 조회에 실패했습니다.',
     });
   }
 };

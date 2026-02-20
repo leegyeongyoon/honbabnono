@@ -327,8 +327,8 @@ const UserManagement: React.FC = () => {
 
   const getActivityTypeText = (type: string) => {
     switch (type) {
-      case 'meetup_created': return '모임 생성';
-      case 'meetup_joined': return '모임 참가';
+      case 'meetup_created': return '약속 생성';
+      case 'meetup_joined': return '약속 참가';
       default: return type;
     }
   };
@@ -353,12 +353,12 @@ const UserManagement: React.FC = () => {
         <Card sx={{ textAlign: 'center', p: 1, minWidth: 120, flex: '1 1 auto' }}>
           <EventIcon color="secondary" sx={{ fontSize: 32, mb: 1 }} />
           <Typography variant="h6">{stats.hostedMeetups}</Typography>
-          <Typography variant="caption" color="text.secondary">호스팅한 모임</Typography>
+          <Typography variant="caption" color="text.secondary">호스팅한 약속</Typography>
         </Card>
         <Card sx={{ textAlign: 'center', p: 1, minWidth: 120, flex: '1 1 auto' }}>
           <GroupIcon color="info" sx={{ fontSize: 32, mb: 1 }} />
           <Typography variant="h6">{stats.joinedMeetups}</Typography>
-          <Typography variant="caption" color="text.secondary">참가한 모임</Typography>
+          <Typography variant="caption" color="text.secondary">참가한 약속</Typography>
         </Card>
         <Card sx={{ textAlign: 'center', p: 1, minWidth: 120, flex: '1 1 auto' }}>
           <StarIcon color="warning" sx={{ fontSize: 32, mb: 1 }} />

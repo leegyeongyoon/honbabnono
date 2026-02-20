@@ -86,7 +86,7 @@ const UniversalMyReviewsScreen: React.FC<{navigation: NavigationAdapter, user?: 
           <View style={styles.emptyContainer}>
             <Icon name="star" size={48} color={COLORS.text.tertiary} />
             <Text style={styles.emptyText}>작성한 리뷰가 없습니다</Text>
-            <Text style={styles.emptySubtext}>모임에 참여 후 리뷰를 남겨보세요!</Text>
+            <Text style={styles.emptySubtext}>약속에 참여 후 리뷰를 남겨보세요!</Text>
           </View>
         ) : (
           <View style={styles.listContainer}>

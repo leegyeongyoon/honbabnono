@@ -82,7 +82,7 @@ const UniversalMeetupListScreen: React.FC<UniversalMeetupListScreenProps> = ({
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={COLORS.primary.main} />
-        <Text style={styles.loadingText}>모임을 불러오는 중...</Text>
+        <Text style={styles.loadingText}>약속을 불러오는 중...</Text>
       </View>
     );
   }
@@ -90,7 +90,7 @@ const UniversalMeetupListScreen: React.FC<UniversalMeetupListScreenProps> = ({
   if (error) {
     return (
       <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>모임을 불러올 수 없습니다.</Text>
+        <Text style={styles.errorText}>약속을 불러올 수 없습니다.</Text>
         <TouchableOpacity style={styles.retryButton} onPress={refreshMeetups}>
           <Text style={styles.retryButtonText}>다시 시도</Text>
         </TouchableOpacity>
@@ -101,7 +101,7 @@ const UniversalMeetupListScreen: React.FC<UniversalMeetupListScreenProps> = ({
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>모든 모임</Text>
+        <Text style={styles.headerTitle}>모든 약속</Text>
         <NotificationBell
           onPress={() => {
             navigation.navigate('Notification');
@@ -164,8 +164,8 @@ const UniversalMeetupListScreen: React.FC<UniversalMeetupListScreenProps> = ({
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyText}>
               {filter === 'all' 
-                ? '등록된 모임이 없습니다.' 
-                : filter === 'recruiting' ? '모집중인 모임이 없습니다.' : '모집완료된 모임이 없습니다.'
+                ? '등록된 약속이 없습니다.'
+                : filter === 'recruiting' ? '모집중인 약속이 없습니다.' : '모집완료된 약속이 없습니다.'
               }
             </Text>
           </View>

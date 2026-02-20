@@ -22,7 +22,7 @@ const UniversalRecentViewsScreen: React.FC<{navigation: NavigationAdapter, user?
       const response = await userApiService.getRecentViews();
       setRecentMeetups(response.data || response.meetups || []);
     } catch (_error) {
-      setError('최근 본 모임을 불러오는데 실패했습니다');
+      setError('최근 본 약속을 불러오는데 실패했습니다');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -34,7 +34,7 @@ const UniversalRecentViewsScreen: React.FC<{navigation: NavigationAdapter, user?
   const clearAll = () => {
     Alert.alert(
       '전체 삭제',
-      '최근 본 모임 기록을 모두 삭제하시겠습니까?',
+      '최근 본 약속 기록을 모두 삭제하시겠습니까?',
       [
         { text: '취소', style: 'cancel' },
         {
@@ -57,7 +57,7 @@ const UniversalRecentViewsScreen: React.FC<{navigation: NavigationAdapter, user?
       <View style={styles.container}>
         <View style={styles.header}>
           <View style={styles.placeholder} />
-          <Text style={styles.headerTitle}>최근 본 모임</Text>
+          <Text style={styles.headerTitle}>최근 본 약속</Text>
           <View style={styles.placeholder} />
         </View>
         <View style={styles.loadingContainer}>
@@ -71,7 +71,7 @@ const UniversalRecentViewsScreen: React.FC<{navigation: NavigationAdapter, user?
     <View style={styles.container}>
       <View style={styles.header}>
         <View style={styles.placeholder} />
-        <Text style={styles.headerTitle}>최근 본 모임</Text>
+        <Text style={styles.headerTitle}>최근 본 약속</Text>
         {recentMeetups.length > 0 ? (
           <TouchableOpacity onPress={clearAll}>
             <Text style={styles.clearButton}>전체 삭제</Text>
@@ -95,13 +95,13 @@ const UniversalRecentViewsScreen: React.FC<{navigation: NavigationAdapter, user?
         ) : recentMeetups.length === 0 ? (
           <View style={styles.emptyContainer}>
             <Icon name="eye" size={48} color={COLORS.text.tertiary} />
-            <Text style={styles.emptyText}>최근 본 모임이 없습니다</Text>
-            <Text style={styles.emptySubtext}>관심있는 모임을 둘러보세요!</Text>
+            <Text style={styles.emptyText}>최근 본 약속이 없습니다</Text>
+            <Text style={styles.emptySubtext}>관심있는 약속을 둘러보세요!</Text>
             <TouchableOpacity
               style={styles.findButton}
               onPress={() => navigation.navigate('Home')}
             >
-              <Text style={styles.findButtonText}>모임 찾기</Text>
+              <Text style={styles.findButtonText}>약속 찾기</Text>
             </TouchableOpacity>
           </View>
         ) : (

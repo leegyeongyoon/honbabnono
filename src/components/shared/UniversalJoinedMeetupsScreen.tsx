@@ -81,10 +81,10 @@ const UniversalJoinedMeetupsScreen: React.FC<UniversalJoinedMeetupsScreenProps> 
       if (response.ok && data.success) {
         setJoinedMeetups(data.meetups || data.data || []);
       } else {
-        throw new Error(data.message || '참여한 모임을 불러오는데 실패했습니다');
+        throw new Error(data.message || '참여한 약속을 불러오는데 실패했습니다');
       }
     } catch (error) {
-      setError(error instanceof Error ? error.message : '참여한 모임을 불러오는데 실패했습니다');
+      setError(error instanceof Error ? error.message : '참여한 약속을 불러오는데 실패했습니다');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -146,7 +146,7 @@ const UniversalJoinedMeetupsScreen: React.FC<UniversalJoinedMeetupsScreenProps> 
         onPress={() => setActiveTab('upcoming')}
       >
         <Text style={[styles.tabText, activeTab === 'upcoming' && styles.activeTabText]}>
-          다가오는 모임
+          다가오는 약속
         </Text>
       </TouchableOpacity>
       <TouchableOpacity
@@ -154,7 +154,7 @@ const UniversalJoinedMeetupsScreen: React.FC<UniversalJoinedMeetupsScreenProps> 
         onPress={() => setActiveTab('completed')}
       >
         <Text style={[styles.tabText, activeTab === 'completed' && styles.activeTabText]}>
-          지난 모임
+          지난 약속
         </Text>
       </TouchableOpacity>
     </View>
@@ -219,13 +219,13 @@ const UniversalJoinedMeetupsScreen: React.FC<UniversalJoinedMeetupsScreenProps> 
       <View style={styles.container}>
         <View style={styles.header}>
           <View style={styles.placeholder} />
-          <Text style={styles.headerTitle}>내가 참여한 모임</Text>
+          <Text style={styles.headerTitle}>내가 참여한 약속</Text>
           <View style={styles.placeholder} />
         </View>
 
         <View style={[styles.centerContent, styles.loadingContainer]}>
           <ActivityIndicator size="large" color={COLORS.primary.accent} />
-          <Text style={styles.loadingText}>참여한 모임을 불러오는 중...</Text>
+          <Text style={styles.loadingText}>참여한 약속을 불러오는 중...</Text>
         </View>
       </View>
     );
@@ -236,7 +236,7 @@ const UniversalJoinedMeetupsScreen: React.FC<UniversalJoinedMeetupsScreenProps> 
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.placeholder} />
-        <Text style={styles.headerTitle}>내가 참여한 모임</Text>
+        <Text style={styles.headerTitle}>내가 참여한 약속</Text>
         <View style={styles.placeholder} />
       </View>
 
@@ -267,12 +267,12 @@ const UniversalJoinedMeetupsScreen: React.FC<UniversalJoinedMeetupsScreenProps> 
           <View style={styles.emptyState}>
             <Icon name="calendar-x" size={48} color={COLORS.text.tertiary} />
             <Text style={styles.emptyTitle}>
-              {activeTab === 'upcoming' ? '다가오는 모임이 없습니다' : '지난 모임이 없습니다'}
+              {activeTab === 'upcoming' ? '다가오는 약속이 없습니다' : '지난 약속이 없습니다'}
             </Text>
             <Text style={styles.emptySubtitle}>
               {activeTab === 'upcoming'
-                ? '새로운 모임에 참여해보세요!'
-                : '아직 참여 완료된 모임이 없습니다'
+                ? '새로운 약속에 참여해보세요!'
+                : '아직 참여 완료된 약속이 없습니다'
               }
             </Text>
             {activeTab === 'upcoming' && (
@@ -280,7 +280,7 @@ const UniversalJoinedMeetupsScreen: React.FC<UniversalJoinedMeetupsScreenProps> 
                 style={styles.findMeetupButton}
                 onPress={() => navigation.navigate('MeetupList')}
               >
-                <Text style={styles.findMeetupButtonText}>모임 찾기</Text>
+                <Text style={styles.findMeetupButtonText}>약속 찾기</Text>
               </TouchableOpacity>
             )}
           </View>

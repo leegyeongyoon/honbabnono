@@ -203,7 +203,7 @@ const BlockedUsersScreen: React.FC = () => {
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>차단한 회원 ({blockedUsers.length}명)</Text>
               <Text style={styles.sectionSubtitle}>
-                차단한 회원의 모임, 채팅, 댓글이 보이지 않습니다.
+                차단한 회원의 약속, 채팅, 댓글이 보이지 않습니다.
               </Text>
             </View>
             {blockedUsers.map(renderBlockedUser)}

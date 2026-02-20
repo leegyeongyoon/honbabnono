@@ -24,14 +24,14 @@ exports.joinMeetup = async (req, res) => {
     if (meetup.status !== '모집중') {
       return res.status(400).json({
         success: false,
-        error: '현재 참가할 수 없는 모임입니다.',
+        error: '현재 참가할 수 없는 약속입니다.',
       });
     }
 
     if (meetup.current_participants >= meetup.max_participants) {
       return res.status(400).json({
         success: false,
-        error: '모임 정원이 가득 찼습니다.',
+        error: '약속 정원이 가득 찼습니다.',
       });
     }
 
@@ -44,7 +44,7 @@ exports.joinMeetup = async (req, res) => {
     if (existingResult.rows.length > 0) {
       return res.status(400).json({
         success: false,
-        error: '이미 참가 신청한 모임입니다.',
+        error: '이미 참가 신청한 약속입니다.',
       });
     }
 
@@ -65,7 +65,7 @@ exports.joinMeetup = async (req, res) => {
     console.error('모임 참가 오류:', error);
     res.status(500).json({
       success: false,
-      message: '모임 참가에 실패했습니다.',
+      message: '약속 참가에 실패했습니다.',
     });
   }
 };
@@ -92,7 +92,7 @@ exports.leaveMeetup = async (req, res) => {
       );
       return res.json({
         success: true,
-        message: '모임이 취소되었습니다.',
+        message: '약속이 취소되었습니다.',
         isHostCancellation: true,
       });
     }

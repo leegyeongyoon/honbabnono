@@ -178,13 +178,13 @@ const Settings: React.FC = () => {
                     onChange={(e) => handleSettingChange('autoApprovalEnabled', e.target.checked)}
                   />
                 }
-                label="모임 자동 승인"
+                label="약속 자동 승인"
               />
 
               <Divider sx={{ my: 2 }} />
 
               <TextField
-                label="최대 모임 참가자 수"
+                label="최대 약속 참가자 수"
                 type="number"
                 value={settings.maxMeetupParticipants}
                 onChange={(e) => handleSettingChange('maxMeetupParticipants', parseInt(e.target.value))}
@@ -193,7 +193,7 @@ const Settings: React.FC = () => {
               />
               
               <TextField
-                label="모임 생성 쿨다운 (분)"
+                label="약속 생성 쿨다운 (분)"
                 type="number"
                 value={settings.meetupCreationCooldown}
                 onChange={(e) => handleSettingChange('meetupCreationCooldown', parseInt(e.target.value))}

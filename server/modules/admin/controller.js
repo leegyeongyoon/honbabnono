@@ -333,7 +333,7 @@ exports.getMeetupById = async (req, res) => {
     if (result.rows.length === 0) {
       return res.status(404).json({
         success: false,
-        error: '모임을 찾을 수 없습니다.'
+        error: '약속을 찾을 수 없습니다.'
       });
     }
 
@@ -379,7 +379,7 @@ exports.deleteMeetup = async (req, res) => {
 
     res.json({
       success: true,
-      message: '모임이 삭제되었습니다.'
+      message: '약속이 삭제되었습니다.'
     });
 
   } catch (error) {
@@ -1260,7 +1260,7 @@ exports.downloadReports = async (req, res) => {
     }
 
     // CSV 형식으로 변환
-    const csvHeader = '기간,신규 사용자,신규 모임,완료된 모임,활성 사용자\n';
+    const csvHeader = '기간,신규 사용자,신규 밥약속,완료된 밥약속,활성 사용자\n';
     const csvRows = reportData.map(row =>
       `${row.period},${row.newUsers},${row.newMeetups},${row.completedMeetups},${row.activeUsers}`
     ).join('\n');
@@ -1292,7 +1292,7 @@ exports.getMeetupDetails = async (req, res) => {
     if (meetupResult.rows.length === 0) {
       return res.status(404).json({
         success: false,
-        error: '모임을 찾을 수 없습니다.'
+        error: '약속을 찾을 수 없습니다.'
       });
     }
 
@@ -1311,7 +1311,7 @@ exports.getMeetupDetails = async (req, res) => {
     });
   } catch (error) {
     console.error('모임 상세 조회 오류:', error);
-    res.status(500).json({ success: false, error: '모임 상세 조회에 실패했습니다.' });
+    res.status(500).json({ success: false, error: '약속 상세 조회에 실패했습니다.' });
   }
 };
 
@@ -1345,11 +1345,11 @@ exports.updateMeetupAction = async (req, res) => {
 
     res.json({
       success: true,
-      message: `모임이 ${action === 'approve' ? '승인' : action === 'reject' ? '반려' : action === 'suspend' ? '중단' : '복원'}되었습니다.`
+      message: `약속이 ${action === 'approve' ? '승인' : action === 'reject' ? '반려' : action === 'suspend' ? '중단' : '복원'}되었습니다.`
     });
   } catch (error) {
     console.error('모임 상태 변경 오류:', error);
-    res.status(500).json({ success: false, error: '모임 상태 변경에 실패했습니다.' });
+    res.status(500).json({ success: false, error: '약속 상태 변경에 실패했습니다.' });
   }
 };
 

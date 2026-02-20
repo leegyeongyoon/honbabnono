@@ -153,7 +153,7 @@ const MeetupManagement: React.FC = () => {
       console.error('모임 상세 정보 로드 실패:', error);
       setSnackbar({
         open: true,
-        message: '모임 상세 정보를 불러오는데 실패했습니다.',
+        message: '약속 상세 정보를 불러오는데 실패했습니다.',
         severity: 'error'
       });
     } finally {
@@ -169,14 +169,14 @@ const MeetupManagement: React.FC = () => {
       // setDialogOpen(false); // 제거된 dialogOpen state
       setSnackbar({
         open: true,
-        message: `모임이 성공적으로 ${action === 'approve' ? '승인' : '취소'}되었습니다.`,
+        message: `약속이 성공적으로 ${action === 'approve' ? '승인' : '취소'}되었습니다.`,
         severity: 'success'
       });
     } catch (error) {
       console.error(`모임 ${action} 실패:`, error);
       setSnackbar({
         open: true,
-        message: `모임 ${action === 'approve' ? '승인' : '취소'} 중 오류가 발생했습니다.`,
+        message: `약속 ${action === 'approve' ? '승인' : '취소'} 중 오류가 발생했습니다.`,
         severity: 'error'
       });
     }
@@ -302,12 +302,12 @@ const MeetupManagement: React.FC = () => {
   return (
     <Box>
       <Typography variant="h4" gutterBottom>
-        모임 관리
+        약속 관리
       </Typography>
 
       <Box sx={{ mb: 3 }}>
         <TextField
-          placeholder="모임 검색..."
+          placeholder="약속 검색..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           InputProps={{
@@ -325,7 +325,7 @@ const MeetupManagement: React.FC = () => {
         <Table>
           <TableHead>
             <TableRow>
-              <TableCell>모임명</TableCell>
+              <TableCell>약속명</TableCell>
               <TableCell>호스트</TableCell>
               <TableCell>장소</TableCell>
               <TableCell>카테고리</TableCell>
@@ -383,7 +383,7 @@ const MeetupManagement: React.FC = () => {
       >
         <DialogTitle>
           <Box display="flex" alignItems="center" justifyContent="space-between">
-            <Typography variant="h6">모임 상세 정보</Typography>
+            <Typography variant="h6">약속 상세 정보</Typography>
             {selectedMeetupDetails && selectedMeetupDetails.meetup.status === '모집중' && (
               <Box display="flex" gap={1}>
                 <Button
@@ -523,7 +523,7 @@ const MeetupManagement: React.FC = () => {
               {/* 리뷰 관리 탭 */}
               {tabValue === 1 && (
                 <Box>
-                  <Typography variant="h6" gutterBottom>모임 리뷰</Typography>
+                  <Typography variant="h6" gutterBottom>약속 리뷰</Typography>
                   {selectedMeetupDetails.reviews.length > 0 ? (
                     selectedMeetupDetails.reviews.map((review) => (
                       <Accordion key={review.id}>

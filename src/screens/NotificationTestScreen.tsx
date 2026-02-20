@@ -17,7 +17,7 @@ const NotificationTestScreen: React.FC = () => {
 
   const handleInstantNotification = () => {
     nativeBridge.showNotification(
-      '혼밥노노 알림',
+      '잇테이블 알림',
       '즉시 알림 테스트입니다!',
       { type: 'test' }
     );
@@ -26,7 +26,7 @@ const NotificationTestScreen: React.FC = () => {
 
   const handleDelayedNotification = (delay: number) => {
     nativeBridge.scheduleNotification(
-      '혼밥노노 예약 알림',
+      '잇테이블 예약 알림',
       `${delay}초 후 알림 테스트입니다!`,
       delay,
       { type: 'scheduled' }
@@ -36,15 +36,15 @@ const NotificationTestScreen: React.FC = () => {
 
   const handleMeetupNotification = () => {
     nativeBridge.showNotification(
-      '새로운 모임',
-      '근처에 새로운 밥모임이 생성되었어요!',
+      '새로운 밥약속',
+      '근처에 새로운 밥약속이 생성되었어요!',
       { 
         type: 'meetup',
         meetupId: '123',
         action: 'new_meetup'
       }
     );
-    showSuccess('모임 알림이 발송되었습니다.');
+    showSuccess('약속 알림이 발송되었습니다.');
   };
 
   const handleChatNotification = () => {
@@ -85,8 +85,8 @@ const NotificationTestScreen: React.FC = () => {
       color: COLORS.functional.info,
     },
     {
-      title: '모임 알림 시뮬레이션',
-      subtitle: '새 모임 생성 알림을 테스트합니다',
+      title: '약속 알림 시뮬레이션',
+      subtitle: '새 약속 생성 알림을 테스트합니다',
       onPress: handleMeetupNotification,
       color: COLORS.secondary.main,
     },

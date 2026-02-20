@@ -116,7 +116,7 @@ const UniversalPointHistoryScreen: React.FC<{navigation: NavigationAdapter, user
           <View style={styles.emptyContainer}>
             <Icon name="coins" size={48} color={COLORS.text.tertiary} />
             <Text style={styles.emptyText}>포인트 내역이 없습니다</Text>
-            <Text style={styles.emptySubtext}>모임에 참여하면 포인트를 받을 수 있어요!</Text>
+            <Text style={styles.emptySubtext}>약속에 참여하면 포인트를 받을 수 있어요!</Text>
           </View>
         ) : (
           <View style={styles.listContainer}>

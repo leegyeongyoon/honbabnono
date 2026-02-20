@@ -26,7 +26,7 @@ exports.gpsCheckin = async (req, res) => {
     );
 
     if (meetupResult.rows.length === 0) {
-      return res.status(404).json({ error: '모임을 찾을 수 없습니다' });
+      return res.status(404).json({ error: '약속을 찾을 수 없습니다' });
     }
 
     const meetup = meetupResult.rows[0];
@@ -34,7 +34,7 @@ exports.gpsCheckin = async (req, res) => {
     // 참가자 확인
     const { isParticipant, error: participantError } = await validateParticipant(meetupId, userId, '참가승인');
     if (!isParticipant) {
-      return res.status(403).json({ error: '모임 참가자만 체크인할 수 있습니다' });
+      return res.status(403).json({ error: '약속 참가자만 체크인할 수 있습니다' });
     }
 
     // 거리 계산
@@ -47,7 +47,7 @@ exports.gpsCheckin = async (req, res) => {
 
     if (distance > MAX_CHECKIN_DISTANCE) {
       return res.status(400).json({
-        error: `모임 장소에서 ${MAX_CHECKIN_DISTANCE}m 이내에서만 체크인할 수 있습니다`,
+        error: `약속 장소에서 ${MAX_CHECKIN_DISTANCE}m 이내에서만 체크인할 수 있습니다`,
         distance: Math.round(distance),
         maxDistance: MAX_CHECKIN_DISTANCE,
       });
@@ -192,7 +192,7 @@ exports.qrCheckin = async (req, res) => {
     // 참가자 확인
     const { isParticipant, error: participantError } = await validateParticipant(meetupId, userId, '참가승인');
     if (!isParticipant) {
-      return res.status(403).json({ error: '모임 참가자만 체크인할 수 있습니다' });
+      return res.status(403).json({ error: '약속 참가자만 체크인할 수 있습니다' });
     }
 
     // 출석 기록 (upsert)
@@ -330,7 +330,7 @@ exports.mutualConfirmAttendance = async (req, res) => {
     if (!isParticipant) {
       return res.status(403).json({
         success: false,
-        error: '모임 참가자만 출석 확인을 할 수 있습니다.',
+        error: '약속 참가자만 출석 확인을 할 수 있습니다.',
       });
     }
 
@@ -380,7 +380,7 @@ exports.verifyLocation = async (req, res) => {
     if (meetupResult.rows.length === 0) {
       return res.status(404).json({
         success: false,
-        error: '모임을 찾을 수 없습니다.',
+        error: '약속을 찾을 수 없습니다.',
       });
     }
 

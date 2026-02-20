@@ -200,7 +200,7 @@ exports.getChatRoomByMeetup = async (req, res) => {
     if (chatRoomResult.rows.length === 0) {
       return res.status(404).json({
         success: false,
-        error: '해당 모임의 채팅방을 찾을 수 없습니다'
+        error: '해당 약속의 채팅방을 찾을 수 없습니다'
       });
     }
 

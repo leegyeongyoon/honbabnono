@@ -47,8 +47,8 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation, user, onLogou
   };
 
   const menuItems = [
-    { id: 1, title: '내 모임 관리', icon: 'calendar' as IconName, subtitle: '참여/주최한 모임 확인', onPress: () => navigation?.navigate('MyMeetups') },
-    { id: 2, title: '리뷰 보기', icon: 'star' as IconName, subtitle: '내가 쓴 후기 및 받은 평가', onPress: () => navigation?.navigate('MyReviews') },
+    { id: 1, title: '내 약속 관리', icon: 'calendar' as IconName, subtitle: '참여/주최한 약속 확인', onPress: () => navigation?.navigate('MyMeetups') },
+    { id: 2, title: '리뷰 보기', icon: 'star' as IconName, subtitle: '밥약속 후기 및 받은 평가', onPress: () => navigation?.navigate('MyReviews') },
     { id: 3, title: '내 뱃지', icon: 'award' as IconName, subtitle: '획득한 뱃지 및 업적', onPress: () => navigation?.navigate('MyBadges') },
     { id: 4, title: '포인트 내역', icon: 'dollar-sign' as IconName, subtitle: '포인트 충전 및 사용 기록', onPress: () => navigation?.navigate('PointHistory') },
     { id: 5, title: '설정', icon: 'settings' as IconName, subtitle: '앱 설정 및 알림 관리', onPress: () => navigation?.navigate('Settings') },
@@ -123,12 +123,12 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation, user, onLogou
       <View style={styles.statsSection}>
         <View style={styles.statItem}>
           <Text style={styles.statNumber}>{userProfile.meetupsJoined}</Text>
-          <Text style={styles.statLabel}>참여한 모임</Text>
+          <Text style={styles.statLabel}>참여한 약속</Text>
         </View>
         <View style={styles.statDivider} />
         <View style={styles.statItem}>
           <Text style={styles.statNumber}>{userProfile.meetupsHosted}</Text>
-          <Text style={styles.statLabel}>주최한 모임</Text>
+          <Text style={styles.statLabel}>주최한 약속</Text>
         </View>
         <View style={styles.statDivider} />
         <View style={styles.statItem}>
@@ -143,7 +143,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation, user, onLogou
         <TouchableOpacity style={styles.verificationItem} onPress={handleVerification}>
           <View style={styles.verificationInfo}>
             <Text style={styles.verificationTitle}>추가 본인인증</Text>
-            <Text style={styles.verificationDesc}>더 안전한 모임을 위해 추가 인증을 완료하세요</Text>
+            <Text style={styles.verificationDesc}>더 안전한 약속을 위해 추가 인증을 완료하세요</Text>
           </View>
           <Text style={styles.arrow}>›</Text>
         </TouchableOpacity>
@@ -156,7 +156,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation, user, onLogou
         <View style={styles.settingItem}>
           <View style={styles.settingInfo}>
             <Text style={styles.settingTitle}>알림 받기</Text>
-            <Text style={styles.settingDesc}>모임 관련 알림을 받습니다</Text>
+            <Text style={styles.settingDesc}>약속 관련 알림을 받습니다</Text>
           </View>
           <Switch
             value={notificationsEnabled}
@@ -169,7 +169,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation, user, onLogou
         <View style={styles.settingItem}>
           <View style={styles.settingInfo}>
             <Text style={styles.settingTitle}>위치 서비스</Text>
-            <Text style={styles.settingDesc}>근처 모임을 추천받습니다</Text>
+            <Text style={styles.settingDesc}>근처 약속을 추천받습니다</Text>
           </View>
           <Switch
             value={locationEnabled}

@@ -27,20 +27,20 @@ exports.createReview = async (req, res) => {
     );
 
     if (meetupResult.rows.length === 0) {
-      return res.status(404).json({ error: '모임을 찾을 수 없습니다' });
+      return res.status(404).json({ error: '약속을 찾을 수 없습니다' });
     }
 
     const meetup = meetupResult.rows[0];
 
     // 모임이 완료되었는지 확인
     if (new Date(meetup.date) > new Date()) {
-      return res.status(400).json({ error: '완료된 모임에만 리뷰를 작성할 수 있습니다' });
+      return res.status(400).json({ error: '완료된 약속에만 리뷰를 작성할 수 있습니다' });
     }
 
     // 참가자 확인
     const { isParticipant, error: participantError } = await validateParticipant(meetupId, userId, '참가승인');
     if (!isParticipant) {
-      return res.status(403).json({ error: '참가한 모임에만 리뷰를 작성할 수 있습니다' });
+      return res.status(403).json({ error: '참가한 약속에만 리뷰를 작성할 수 있습니다' });
     }
 
     // 이미 리뷰를 작성했는지 확인
@@ -183,7 +183,7 @@ exports.getReviewableParticipants = async (req, res) => {
     if (meetupResult.rows.length === 0) {
       return res.status(404).json({
         success: false,
-        error: '모임을 찾을 수 없습니다.',
+        error: '약속을 찾을 수 없습니다.',
       });
     }
 
@@ -193,7 +193,7 @@ exports.getReviewableParticipants = async (req, res) => {
     if (meetup.status !== '종료' && new Date(meetup.date) > new Date()) {
       return res.status(400).json({
         success: false,
-        error: '완료된 모임에만 리뷰를 작성할 수 있습니다.',
+        error: '완료된 약속에만 리뷰를 작성할 수 있습니다.',
       });
     }
 
@@ -276,25 +276,25 @@ exports.createUserReview = async (req, res) => {
     );
 
     if (meetupResult.rows.length === 0) {
-      return res.status(404).json({ error: '모임을 찾을 수 없습니다' });
+      return res.status(404).json({ error: '약속을 찾을 수 없습니다' });
     }
 
     const meetup = meetupResult.rows[0];
 
     if (meetup.status !== '종료' && new Date(meetup.date) > new Date()) {
-      return res.status(400).json({ error: '완료된 모임에만 리뷰를 작성할 수 있습니다' });
+      return res.status(400).json({ error: '완료된 약속에만 리뷰를 작성할 수 있습니다' });
     }
 
     // 리뷰어가 참가자인지 확인
     const { isParticipant: reviewerIsParticipant } = await validateParticipant(meetupId, reviewerId, '참가승인');
     if (!reviewerIsParticipant) {
-      return res.status(403).json({ error: '참가한 모임에만 리뷰를 작성할 수 있습니다' });
+      return res.status(403).json({ error: '참가한 약속에만 리뷰를 작성할 수 있습니다' });
     }
 
     // 리뷰 대상자가 참가자인지 확인
     const { isParticipant: reviewedIsParticipant } = await validateParticipant(meetupId, reviewedUserId, '참가승인');
     if (!reviewedIsParticipant) {
-      return res.status(400).json({ error: '리뷰 대상자가 모임 참가자가 아닙니다' });
+      return res.status(400).json({ error: '리뷰 대상자가 약속 참가자가 아닙니다' });
     }
 
     // 중복 리뷰 확인

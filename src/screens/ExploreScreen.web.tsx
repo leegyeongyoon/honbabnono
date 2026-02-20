@@ -305,7 +305,7 @@ const ExploreScreen: React.FC = () => {
           <Icon name="search" size={16} color={searchFocused ? COLORS.primary.main : COLORS.text.tertiary} />
           <TextInput
             style={styles.searchInput}
-            placeholder="모임 검색 (제목, 위치, 카테고리)"
+            placeholder="약속 검색 (제목, 위치, 카테고리)"
             placeholderTextColor={COLORS.text.tertiary}
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -496,10 +496,10 @@ const ExploreScreen: React.FC = () => {
           <ScrollView style={styles.mapListBelow} showsVerticalScrollIndicator={false}>
             <View style={styles.listTitleRow}>
               <Text style={styles.mapListTitle}>
-                {selectedCategory ? `${selectedCategory}` : `반경 ${radius >= 1000 ? `${radius / 1000}km` : `${radius}m`}`} 모임
+                {selectedCategory ? `${selectedCategory}` : `반경 ${radius >= 1000 ? `${radius / 1000}km` : `${radius}m`}`} 약속
               </Text>
               {displayMeetups.length > 0 && (
-                <Text style={styles.listCount}>총 {displayMeetups.length}개의 모임</Text>
+                <Text style={styles.listCount}>총 {displayMeetups.length}개의 약속</Text>
               )}
             </View>
             {loading ? (
@@ -511,7 +511,7 @@ const ExploreScreen: React.FC = () => {
                 <EmptyState
                   compact
                   icon="search"
-                  title={selectedCategory ? `${selectedCategory} 모임이 없어요` : searchQuery ? '조건에 맞는 모임이 없어요' : '주변에 모임이 없어요'}
+                  title={selectedCategory ? `${selectedCategory} 약속이 없어요` : searchQuery ? '조건에 맞는 약속이 없어요' : '주변에 약속이 없어요'}
                   description={selectedCategory ? '다른 카테고리를 선택해보세요' : '검색 조건을 변경해보세요'}
                 />
               </FadeIn>
@@ -546,10 +546,10 @@ const ExploreScreen: React.FC = () => {
           <View style={styles.listHeader}>
             <View style={styles.listTitleRow}>
               <Text style={styles.mapListTitle}>
-                {selectedCategory ? `${selectedCategory}` : `반경 ${radius >= 1000 ? `${radius / 1000}km` : `${radius}m`}`} 모임
+                {selectedCategory ? `${selectedCategory}` : `반경 ${radius >= 1000 ? `${radius / 1000}km` : `${radius}m`}`} 약속
               </Text>
               {displayMeetups.length > 0 && (
-                <Text style={styles.listCount}>총 {displayMeetups.length}개의 모임</Text>
+                <Text style={styles.listCount}>총 {displayMeetups.length}개의 약속</Text>
               )}
             </View>
           </View>
@@ -561,7 +561,7 @@ const ExploreScreen: React.FC = () => {
             <FadeIn>
               <EmptyState
                 icon={searchQuery ? 'search' : 'map-pin'}
-                title={selectedCategory ? `${selectedCategory} 모임이 없어요` : searchQuery ? '조건에 맞는 모임이 없어요' : '주변에 모임이 없어요'}
+                title={selectedCategory ? `${selectedCategory} 약속이 없어요` : searchQuery ? '조건에 맞는 약속이 없어요' : '주변에 약속이 없어요'}
                 description={selectedCategory ? '다른 카테고리를 선택해보세요' : searchQuery ? '검색어를 변경하거나 조건을 변경해보세요' : '반경을 넓히거나 위치를 변경해보세요'}
               />
             </FadeIn>

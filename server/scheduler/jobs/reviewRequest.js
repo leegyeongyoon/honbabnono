@@ -65,7 +65,7 @@ async function run() {
           participant.user_id,
           'review_request',
           '⭐ 리뷰를 작성해주세요!',
-          `"${meetup.title}" 모임은 어떠셨나요? 함께한 분들에 대한 리뷰를 남겨주세요.`,
+          `"${meetup.title}" 밥약속은 어떠셨나요? 함께한 분들에 대한 리뷰를 남겨주세요.`,
           meetup.id
         );
         userIds.push(participant.user_id);
@@ -82,7 +82,7 @@ async function run() {
         sendMultiplePush(
           userIds,
           '⭐ 리뷰를 작성해주세요!',
-          `"${meetup.title}" 모임은 어떠셨나요? 함께한 분들에 대한 리뷰를 남겨주세요.`,
+          `"${meetup.title}" 밥약속은 어떠셨나요? 함께한 분들에 대한 리뷰를 남겨주세요.`,
           { type: 'review_request', meetupId: String(meetup.id) }
         ).catch(err => console.error(`${JOB_NAME} 푸시 전송 실패:`, err.message));
 

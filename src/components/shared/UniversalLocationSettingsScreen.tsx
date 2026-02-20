@@ -363,7 +363,7 @@ const UniversalLocationSettingsScreen: React.FC<UniversalLocationSettingsScreenP
             <View style={styles.infoItem}>
               <Icon name="info" size={18} color={COLORS.primary.accent} />
               <Text style={styles.infoText}>
-                설정한 지역을 기준으로 주변 모임이 추천됩니다.
+                설정한 지역을 기준으로 주변 약속이 추천됩니다.
               </Text>
             </View>
             <View style={styles.infoItem}>
@@ -375,7 +375,7 @@ const UniversalLocationSettingsScreen: React.FC<UniversalLocationSettingsScreenP
             <View style={styles.infoItem}>
               <Icon name="bell" size={18} color={COLORS.primary.accent} />
               <Text style={styles.infoText}>
-                설정 지역에 새로운 모임이 생기면 알림을 받을 수 있습니다.
+                설정 지역에 새로운 약속이 생기면 알림을 받을 수 있습니다.
               </Text>
             </View>
           </View>

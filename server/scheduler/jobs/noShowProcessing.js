@@ -83,7 +83,7 @@ async function run() {
           `, [newScore, participant.user_id]);
 
           // 3. 노쇼 알림 생성
-          const noShowMessage = `"${meetup.title}" 모임에 출석하지 않아 노쇼로 처리되었습니다. 밥알 점수가 ${NOSHOW_SCORE_PENALTY}점 차감되었습니다.`;
+          const noShowMessage = `"${meetup.title}" 약속에 출석하지 않아 노쇼로 처리되었습니다. 밥알 점수가 ${NOSHOW_SCORE_PENALTY}점 차감되었습니다.`;
           await client.query(`
             INSERT INTO notifications (user_id, type, title, message, meetup_id, is_read, created_at)
             VALUES ($1, $2, $3, $4, $5, false, NOW())
@@ -109,7 +109,7 @@ async function run() {
         // 5. 호스트에게 노쇼 결과 알림
         if (noShowParticipants.rows.length > 0) {
           const noShowNames = noShowParticipants.rows.map(p => p.name).join(', ');
-          const hostMessage = `"${meetup.title}" 모임에서 ${noShowParticipants.rows.length}명이 노쇼로 처리되었습니다. (${noShowNames})`;
+          const hostMessage = `"${meetup.title}" 약속에서 ${noShowParticipants.rows.length}명이 노쇼로 처리되었습니다. (${noShowNames})`;
           await client.query(`
             INSERT INTO notifications (user_id, type, title, message, meetup_id, is_read, created_at)
             VALUES ($1, $2, $3, $4, $5, false, NOW())

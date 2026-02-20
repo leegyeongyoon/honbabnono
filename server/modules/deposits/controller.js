@@ -16,7 +16,7 @@ exports.preparePayment = async (req, res) => {
     if (!amount || !meetupId) {
       return res.status(400).json({
         success: false,
-        error: '결제 금액과 모임 정보가 필요합니다.'
+        error: '결제 금액과 약속 정보가 필요합니다.'
       });
     }
 
@@ -49,7 +49,7 @@ exports.preparePayment = async (req, res) => {
       if (existingDeposit.rows.length > 0) {
         return res.status(400).json({
           success: false,
-          error: '이미 해당 모임의 약속금이 존재합니다.'
+          error: '이미 해당 약속의 약속금이 존재합니다.'
         });
       }
     }
@@ -66,7 +66,7 @@ exports.preparePayment = async (req, res) => {
           max_participants, category, host_id, status,
           created_at, updated_at
         ) VALUES (
-          gen_random_uuid(), '임시 모임 (결제 진행 중)', '모임 생성 진행 중', '미정',
+          gen_random_uuid(), '임시 약속 (결제 진행 중)', '약속 만들기 진행 중', '미정',
           CURRENT_DATE + INTERVAL '1 day', '12:00:00',
           2, '기타', $1, '모집중',
           NOW(), NOW()
@@ -97,7 +97,7 @@ exports.preparePayment = async (req, res) => {
         meetupId: actualMeetupId,
         amount,
         storeId: portone.config.storeId,
-        name: '혼밥시러 모임 약속금',
+        name: '잇테이블 약속금',
         buyerName: req.user.name || '사용자',
         buyerEmail: req.user.email || '',
       }
@@ -465,7 +465,7 @@ exports.createPayment = async (req, res) => {
           max_participants, category, host_id, status,
           created_at, updated_at
         ) VALUES (
-          gen_random_uuid(), '임시 모임 (결제 진행 중)', '모임 생성 진행 중', '미정',
+          gen_random_uuid(), '임시 약속 (결제 진행 중)', '약속 만들기 진행 중', '미정',
           CURRENT_DATE + INTERVAL '1 day', '12:00:00',
           2, '기타', $1, '모집중',
           NOW(), NOW()
@@ -484,7 +484,7 @@ exports.createPayment = async (req, res) => {
       if (existingDeposit.rows.length > 0) {
         return res.status(400).json({
           success: false,
-          error: '이미 해당 모임의 약속금을 결제하셨습니다.'
+          error: '이미 해당 약속의 약속금을 결제하셨습니다.'
         });
       }
     }
@@ -525,8 +525,8 @@ exports.createPayment = async (req, res) => {
 
         // 포인트 거래 내역 추가
         const description = isTemporaryMeetupId
-          ? '모임 약속금 결제 (임시 결제)'
-          : `모임 약속금 결제 (모임 ID: ${meetupId})`;
+          ? '약속금 결제 (임시 결제)'
+          : `약속금 결제 (약속 ID: ${meetupId})`;
         await pool.query(`
           INSERT INTO point_transactions (user_id, transaction_type, amount, description, created_at)
           VALUES ($1, 'used', $2, $3, NOW())
@@ -672,7 +672,7 @@ exports.convertToPoints = async (req, res) => {
     await pool.query(`
       INSERT INTO point_transactions (user_id, transaction_type, amount, description, related_meetup_id, created_at)
       VALUES ($1, 'earned', $2, $3, $4, NOW())
-    `, [userId, pointAmount, `약속금 포인트 전환 (모임 ID: ${deposit.meetup_id})`, deposit.meetup_id]);
+    `, [userId, pointAmount, `약속금 포인트 전환 (약속 ID: ${deposit.meetup_id})`, deposit.meetup_id]);
 
     // 약속금 상태 업데이트
     await pool.query(`
@@ -904,7 +904,7 @@ exports.cancelParticipationWithRefund = async (req, res) => {
       await client.query('ROLLBACK');
       return res.status(400).json({
         success: false,
-        error: '모임 시작 10분 이내에는 취소할 수 없습니다. 노쇼 처리됩니다.'
+        error: '약속 시작 10분 이내에는 취소할 수 없습니다. 노쇼 처리됩니다.'
       });
     }
 
@@ -1061,7 +1061,7 @@ exports.reportNoShow = async (req, res) => {
     if (participantCheck.rows.length < 2) {
       return res.status(400).json({
         success: false,
-        error: '같은 모임 참가자만 노쇼 신고할 수 있습니다.'
+        error: '같은 약속 참가자만 노쇼 신고할 수 있습니다.'
       });
     }
 
@@ -1273,7 +1273,7 @@ exports.processNoShow = async (req, res) => {
           await client.query(`
             INSERT INTO point_transactions (user_id, transaction_type, amount, description, created_at)
             VALUES ($1, 'earned', $2, $3, NOW())
-          `, [victimId, compensationPerPerson, `노쇼 배상금 (모임 ID: ${meetupId})`]);
+          `, [victimId, compensationPerPerson, `노쇼 배상금 (약속 ID: ${meetupId})`]);
         }
       }
 
@@ -1440,7 +1440,7 @@ exports.appealNoShow = async (req, res) => {
       INSERT INTO support_tickets (
         user_id, type, title, content, status, priority, created_at
       ) VALUES ($1, 'noshow_appeal', $2, $3, 'pending', 'high', NOW())
-    `, [userId, `노쇼 이의 신청 - 모임 ${meetupId}`, JSON.stringify({ meetupId, reason, evidence })]);
+    `, [userId, `노쇼 이의 신청 - 약속 ${meetupId}`, JSON.stringify({ meetupId, reason, evidence })]);
 
     res.json({
       success: true,

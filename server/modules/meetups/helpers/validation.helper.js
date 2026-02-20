@@ -15,7 +15,7 @@ const validateMeetupExists = async (meetupId) => {
   );
 
   if (result.rows.length === 0) {
-    return { meetup: null, error: '모임을 찾을 수 없습니다.' };
+    return { meetup: null, error: '약속을 찾을 수 없습니다.' };
   }
 
   return { meetup: result.rows[0], error: null };
@@ -34,7 +34,7 @@ const validateHostPermission = async (meetupId, userId) => {
   );
 
   if (result.rows.length === 0) {
-    return { isHost: false, meetup: null, error: '모임을 찾을 수 없습니다.' };
+    return { isHost: false, meetup: null, error: '약속을 찾을 수 없습니다.' };
   }
 
   const meetup = result.rows[0];
@@ -72,7 +72,7 @@ const validateParticipant = async (meetupId, userId, requiredStatus = null) => {
       participant: null,
       error: requiredStatus
         ? `${requiredStatus} 상태의 참가자가 아닙니다.`
-        : '모임 참가자가 아닙니다.',
+        : '약속 참가자가 아닙니다.',
     };
   }
 

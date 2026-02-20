@@ -25,7 +25,7 @@ const MyBadgesScreen: React.FC = () => {
         id: '1',
         emoji: '🥇',
         title: '첫걸음',
-        description: '첫 모임 참여 완료',
+        description: '첫 밥약속 참여 완료',
         earned: true,
         earnedDate: '2023-10-01',
         category: 'activity'
@@ -34,7 +34,7 @@ const MyBadgesScreen: React.FC = () => {
         id: '2', 
         emoji: '🤝',
         title: '밥친구',
-        description: '5회 이상 모임 참여',
+        description: '5회 이상 밥약속 참여',
         earned: true,
         earnedDate: '2023-10-15',
         category: 'social'
@@ -43,7 +43,7 @@ const MyBadgesScreen: React.FC = () => {
         id: '3',
         emoji: '⭐',
         title: '우수회원',
-        description: '모임 평점 4.5 이상 달성',
+        description: '밥약속 평점 4.5 이상 달성',
         earned: true,
         earnedDate: '2023-10-20',
         category: 'achievement'
@@ -52,7 +52,7 @@ const MyBadgesScreen: React.FC = () => {
         id: '4',
         emoji: '🔥',
         title: '열정가',
-        description: '한 달에 10회 이상 모임 참여',
+        description: '한 달에 10회 이상 밥약속 참여',
         earned: false,
         category: 'activity'
       },
@@ -60,7 +60,7 @@ const MyBadgesScreen: React.FC = () => {
         id: '5',
         emoji: '👑',
         title: '호스트 킹',
-        description: '성공적인 모임 호스팅 20회 달성',
+        description: '성공적인 약속 호스팅 20회 달성',
         earned: false,
         category: 'achievement'
       },
@@ -76,7 +76,7 @@ const MyBadgesScreen: React.FC = () => {
         id: '7',
         emoji: '🎯',
         title: '정시러',
-        description: '모임에 항상 정시 참석',
+        description: '약속에 항상 정시 참석',
         earned: false,
         category: 'social'
       },
@@ -84,7 +84,7 @@ const MyBadgesScreen: React.FC = () => {
         id: '8',
         emoji: '🎉',
         title: '파티피플',
-        description: '다양한 카테고리 모임 참여',
+        description: '다양한 카테고리 밥약속 참여',
         earned: false,
         category: 'social'
       }

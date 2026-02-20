@@ -130,7 +130,7 @@ const ChatbotSettings: React.FC = () => {
   const getTriggerTypeDisplay = (triggerType: string) => {
     switch (triggerType) {
       case 'meetup_start':
-        return '모임 시작';
+        return '약속 시작';
       case 'reminder_30min':
         return '30분 전 알림';
       case 'reminder_10min':
@@ -191,7 +191,7 @@ const ChatbotSettings: React.FC = () => {
 
       <Alert severity="info" sx={{ mb: 3 }}>
         <Typography variant="body2">
-          모임 진행 중 자동으로 전송되는 챗봇 메시지를 설정할 수 있습니다.
+          약속 진행 중 자동으로 전송되는 챗봇 메시지를 설정할 수 있습니다.
           각 메시지는 특정 시간에 채팅방에 자동으로 전송됩니다.
         </Typography>
       </Alert>
@@ -342,7 +342,7 @@ const ChatbotSettings: React.FC = () => {
               value={editForm.message}
               onChange={(e) => setEditForm({ ...editForm, message: e.target.value })}
               sx={{ mb: 2 }}
-              helperText="줄바꿈은 \\n을 사용해주세요. 예: 안녕하세요!\\n\\n즐거운 모임 되세요!"
+              helperText="줄바꿈은 \\n을 사용해주세요. 예: 안녕하세요!\\n\\n즐거운 약속 되세요!"
             />
 
             {editDialog.setting?.trigger_type.includes('reminder') && (

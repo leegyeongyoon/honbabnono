@@ -86,7 +86,7 @@ class NotificationService {
           event.preventDefault();
           window.focus();
           
-          // 모임 상세 페이지로 이동
+          // 약속 상세 페이지로 이동
           if (payload.data?.meetupId) {
             window.location.href = `/meetup/${payload.data.meetupId}`;
           }
@@ -131,8 +131,8 @@ class NotificationService {
     time: string;
   }): Promise<any> {
     return this.showNotification({
-      title: '🍚 혼밥노노 모임 알림',
-      body: `"${meetup.title}" 모임이 30분 후에 시작됩니다!\n📍 ${meetup.location}`,
+      title: '🍽️ 잇테이블 약속 알림',
+      body: `"${meetup.title}" 약속이 30분 후에 시작됩니다!\n📍 ${meetup.location}`,
       icon: '/favicon.ico',
       tag: `meetup-reminder-${meetup.id}`,
       data: {
@@ -143,7 +143,7 @@ class NotificationService {
   }
 
   /**
-   * 모임 시작 알림
+   * 약속 시작 알림
    */
   async showMeetupStartNotification(meetup: {
     id: string;
@@ -151,8 +151,8 @@ class NotificationService {
     location: string;
   }): Promise<any> {
     return this.showNotification({
-      title: '🎉 모임이 시작되었습니다!',
-      body: `"${meetup.title}" 모임이 지금 시작됩니다!\n📍 ${meetup.location}에서 확인해보세요.`,
+      title: '🎉 밥약속이 시작되었습니다!',
+      body: `"${meetup.title}" 약속이 지금 시작됩니다!\n📍 ${meetup.location}에서 확인해보세요.`,
       icon: '/favicon.ico',
       tag: `meetup-start-${meetup.id}`,
       data: {
@@ -184,7 +184,7 @@ class NotificationService {
   }
 
   /**
-   * 모임 참가 승인 알림
+   * 약속 참가 승인 알림
    */
   async showJoinApprovedNotification(meetup: {
     id: string;
@@ -193,8 +193,8 @@ class NotificationService {
     time: string;
   }): Promise<any> {
     return this.showNotification({
-      title: '✅ 모임 참가가 승인되었습니다!',
-      body: `"${meetup.title}" 모임에 참가하실 수 있습니다.\n📅 ${meetup.date} ${meetup.time}`,
+      title: '✅ 약속 참가가 승인되었습니다!',
+      body: `"${meetup.title}" 약속에 참가하실 수 있습니다.\n📅 ${meetup.date} ${meetup.time}`,
       icon: '/favicon.ico',
       tag: `join-approved-${meetup.id}`,
       data: {

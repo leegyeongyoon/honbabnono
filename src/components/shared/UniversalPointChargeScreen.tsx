@@ -129,8 +129,8 @@ const UniversalPointChargeScreen: React.FC<UniversalPointChargeScreenProps> = ({
         <View style={styles.infoCard}>
           <Icon name="info" size={20} color={COLORS.primary.accent} />
           <Text style={styles.infoText}>
-            충전된 포인트는 모임 참가비로 사용할 수 있습니다.{'\n'}
-            모임 완료 후 자동으로 환불처리 됩니다.
+            충전된 포인트는 약속 참가비로 사용할 수 있습니다.{'\n'}
+            약속 완료 후 자동으로 환불처리 됩니다.
           </Text>
         </View>
 
@@ -221,8 +221,8 @@ const UniversalPointChargeScreen: React.FC<UniversalPointChargeScreenProps> = ({
         <View style={styles.noticeSection}>
           <Text style={styles.noticeTitle}>이용 안내</Text>
           <Text style={styles.noticeText}>
-            • 충전한 포인트는 모임 참가비 결제에만 사용 가능합니다{'\n'}
-            • 모임 참여 후 정상 완료 시 전액 환불됩니다{'\n'}
+            • 충전한 포인트는 약속 참가비 결제에만 사용 가능합니다{'\n'}
+            • 약속 참여 후 정상 완료 시 전액 환불됩니다{'\n'}
             • 노쇼 발생 시 포인트는 차감됩니다{'\n'}
             • 포인트 유효기간은 1년입니다
           </Text>

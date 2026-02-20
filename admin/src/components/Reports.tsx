@@ -60,7 +60,7 @@ const Reports: React.FC = () => {
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', `혼밥시러_리포트_${reportType}_${new Date().toISOString().split('T')[0]}.csv`);
+      link.setAttribute('download', `잇테이블_리포트_${reportType}_${new Date().toISOString().split('T')[0]}.csv`);
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -154,13 +154,13 @@ const Reports: React.FC = () => {
           color="#C9B59C"
         />
         <StatCard
-          title="총 신규 모임"
+          title="총 신규 약속"
           value={totalStats.newMeetups}
           icon={<EventIcon fontSize="large" />}
           color="#D9CFC7"
         />
         <StatCard
-          title="총 완료된 모임"
+          title="총 완료된 약속"
           value={totalStats.completedMeetups}
           icon={<TrendingUpIcon fontSize="large" />}
           color="#7A8A6E"
@@ -190,8 +190,8 @@ const Reports: React.FC = () => {
                 <TableRow>
                   <TableCell>기간</TableCell>
                   <TableCell align="right">신규 사용자</TableCell>
-                  <TableCell align="right">신규 모임</TableCell>
-                  <TableCell align="right">완료된 모임</TableCell>
+                  <TableCell align="right">신규 약속</TableCell>
+                  <TableCell align="right">완료된 약속</TableCell>
                   <TableCell align="right">활성 사용자</TableCell>
                   <TableCell align="right">광고 수익</TableCell>
                 </TableRow>

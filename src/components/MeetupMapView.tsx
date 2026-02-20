@@ -119,7 +119,7 @@ const MeetupMapView: React.FC<MeetupMapViewProps> = ({
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=10.0, user-scalable=yes">
-  <title>모임 지도</title>
+  <title>약속 지도</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; touch-action: manipulation; }
     html, body { width: 100%; height: 100%; overflow: hidden; touch-action: manipulation; }

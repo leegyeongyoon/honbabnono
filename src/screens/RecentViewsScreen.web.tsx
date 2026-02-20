@@ -126,7 +126,7 @@ const RecentViewsScreen: React.FC = () => {
 
   const getStatusText = (item: RecentViewItem) => {
     if (item.is_ended) {
-      return '이미 종료된 모임';
+      return '이미 종료된 약속';
     }
     switch (item.status) {
       case '모집중': return '모집 중';
@@ -191,7 +191,7 @@ const RecentViewsScreen: React.FC = () => {
         {/* 종료 오버레이 */}
         {item.is_ended && (
           <View style={styles.endedOverlay}>
-            <Text style={styles.endedOverlayText}>종료된 모임</Text>
+            <Text style={styles.endedOverlayText}>종료된 약속</Text>
           </View>
         )}
       </View>
@@ -335,7 +335,7 @@ const RecentViewsScreen: React.FC = () => {
             <Text style={styles.statNumber}>
               {recentViews.filter(item => !item.is_ended).length}
             </Text>
-            <Text style={styles.statLabel}>참여 가능한 모임</Text>
+            <Text style={styles.statLabel}>참여 가능한 약속</Text>
           </View>
         </View>
       )}
@@ -345,8 +345,8 @@ const RecentViewsScreen: React.FC = () => {
           <EmptyState
             icon="clock"
             title="아직 본 글이 없어요"
-            description="모임을 둘러보고 관심있는 모임을 확인해보세요! 최근 본 글 내역이 여기에 표시됩니다."
-            actionLabel="모임 둘러보기"
+            description="밥약속을 둘러보고 관심있는 약속을 확인해보세요! 최근 본 글 내역이 여기에 표시됩니다."
+            actionLabel="약속 둘러보기"
             onAction={() => navigate('/home')}
           />
         ) : (

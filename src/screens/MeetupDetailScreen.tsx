@@ -35,14 +35,14 @@ const MeetupDetailScreen = () => {
       <SafeAreaView style={styles.container}>
         <Header
           mode="sub"
-          title="모임 상세"
+          title="약속 상세"
           onBackPress={navigation.goBack}
           showNotification={false}
         />
         <View style={styles.errorContainer}>
           <ErrorState
-            title="모임을 찾을 수 없습니다"
-            description="잘못된 접근이거나 삭제된 모임입니다"
+            title="약속을 찾을 수 없습니다"
+            description="잘못된 접근이거나 삭제된 약속입니다"
             onRetry={navigation.goBack}
           />
         </View>
@@ -54,7 +54,7 @@ const MeetupDetailScreen = () => {
     <SafeAreaView style={styles.container}>
       <Header
         mode="sub"
-        title="모임 상세"
+        title="약속 상세"
         onBackPress={navigation.goBack}
         showNotification={false}
       />

@@ -1542,7 +1542,7 @@ exports.getReviewableMeetups = async (req, res) => {
     });
   } catch (error) {
     console.error('리뷰 가능 모임 조회 오류:', error);
-    res.status(500).json({ success: false, error: '리뷰 가능 모임 조회 실패' });
+    res.status(500).json({ success: false, error: '리뷰 가능 약속 조회 실패' });
   }
 };
 
@@ -1746,7 +1746,7 @@ exports.getMyMeetups = async (req, res) => {
     res.json({ success: true, data: result.rows });
   } catch (error) {
     console.error('참가한 모임 목록 조회 오류:', error);
-    res.status(500).json({ success: false, message: '참가한 모임 목록을 불러올 수 없습니다.' });
+    res.status(500).json({ success: false, message: '참가한 약속 목록을 불러올 수 없습니다.' });
   }
 };
 

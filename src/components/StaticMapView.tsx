@@ -123,7 +123,7 @@ const StaticMapView: React.FC<StaticMapViewProps> = ({
     <View style={styles.container}>
       <View style={styles.header}>
         <Icon name="map-pin" size={18} color={COLORS.primary.main} />
-        <Text style={styles.headerTitle}>모임 장소</Text>
+        <Text style={styles.headerTitle}>약속 장소</Text>
       </View>
 
       <View style={styles.mapWrapper}>

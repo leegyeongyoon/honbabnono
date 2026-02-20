@@ -98,22 +98,22 @@ const RootNavigator = () => {
       <Stack.Screen
         name="MeetupDetail"
         component={MeetupDetailScreen}
-        options={{ title: '모임 상세' }}
+        options={{ title: '약속 상세' }}
       />
       <Stack.Screen
         name="MeetupList"
         component={MeetupListScreen}
-        options={{ title: '모임 목록' }}
+        options={{ title: '약속 목록' }}
       />
       <Stack.Screen
         name="CreateMeetup"
         component={CreateMeetupWizard}
-        options={{ title: '모임 만들기' }}
+        options={{ title: '약속 만들기' }}
       />
       <Stack.Screen
         name="CreateMeetupWizard"
         component={CreateMeetupWizard}
-        options={{ title: '모임 만들기' }}
+        options={{ title: '약속 만들기' }}
       />
       <Stack.Screen
         name="ChatRoom"
@@ -165,7 +165,7 @@ const RootNavigator = () => {
       <Stack.Screen
         name="MyMeetups"
         component={MyMeetupsScreen}
-        options={{ title: '내 모임' }}
+        options={{ title: '내 약속' }}
       />
       <Stack.Screen
         name="MyActivities"
@@ -180,12 +180,12 @@ const RootNavigator = () => {
       <Stack.Screen
         name="JoinedMeetups"
         component={JoinedMeetupsScreen}
-        options={{ title: '참여한 모임' }}
+        options={{ title: '참여한 약속' }}
       />
       <Stack.Screen
         name="RecentViews"
         component={RecentViewsScreen}
-        options={{ title: '최근 본 모임' }}
+        options={{ title: '최근 본 약속' }}
       />
       <Stack.Screen
         name="Wishlist"

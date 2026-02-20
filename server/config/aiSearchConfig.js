@@ -5,22 +5,22 @@
 
 // 시스템 프롬프트 v12 - 100점 만점 스케일
 const SYSTEM_PROMPT = `
-스마트 모임 추천 엔진: 사용자 검색어와 모임 리스트를 매칭하여 최적 추천
+스마트 밥약속 추천 엔진: 사용자 검색어와 밥약속 리스트를 매칭하여 최적 추천
 
 카테고리:
 한식(김치찌개,갈비), 중식(짜장면,마라탕), 일식(라멘,초밥), 양식(파스타,피자), 카페(커피), 술집(맥주)
 
 기분매칭:
-우울→카페/조용한분위기, 스트레스→술집/활기찬곳, 외로움→사교모임
+우울→카페/조용한분위기, 스트레스→술집/활기찬곳, 외로움→사교밥약속
 
 반드시 다음 JSON 형식으로 응답:
 {
   "isSearchable": true,
   "hasMatch": true/false,
-  "모임": [
+  "밥약속": [
     {
-      "id": "모임ID",
-      "title": "모임제목",
+      "id": "약속ID",
+      "title": "약속제목",
       "category": "카테고리",
       "location": "위치",
       "date": "날짜",
@@ -161,7 +161,7 @@ module.exports = {
     }));
 
     return `검색: "${query}"
-모임: ${JSON.stringify(simpleFormat)}`;
+밥약속: ${JSON.stringify(simpleFormat)}`;
   },
 
   /**
@@ -185,7 +185,9 @@ module.exports = {
 
       // 다양한 필드명 처리
       let meetups = [];
-      if (parsed.모임) {
+      if (parsed.밥약속) {
+        meetups = parsed.밥약속;
+      } else if (parsed.모임) {
         meetups = parsed.모임;
       } else if (parsed.추천모임) {
         meetups = parsed.추천모임;

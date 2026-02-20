@@ -22,7 +22,7 @@ const UniversalWishlistScreen: React.FC<{navigation: NavigationAdapter, user?: a
       const response = await userApiService.getWishlist();
       setWishlistMeetups(response.data || response.meetups || []);
     } catch (_error) {
-      setError('찜한 모임을 불러오는데 실패했습니다');
+      setError('찜한 약속을 불러오는데 실패했습니다');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -44,7 +44,7 @@ const UniversalWishlistScreen: React.FC<{navigation: NavigationAdapter, user?: a
       <View style={styles.container}>
         <View style={styles.header}>
           <View style={styles.placeholder} />
-          <Text style={styles.headerTitle}>찜한 모임</Text>
+          <Text style={styles.headerTitle}>찜한 약속</Text>
           <View style={styles.placeholder} />
         </View>
         <View style={styles.loadingContainer}>
@@ -58,7 +58,7 @@ const UniversalWishlistScreen: React.FC<{navigation: NavigationAdapter, user?: a
     <View style={styles.container}>
       <View style={styles.header}>
         <View style={styles.placeholder} />
-        <Text style={styles.headerTitle}>찜한 모임</Text>
+        <Text style={styles.headerTitle}>찜한 약속</Text>
         <View style={styles.placeholder} />
       </View>
 
@@ -76,13 +76,13 @@ const UniversalWishlistScreen: React.FC<{navigation: NavigationAdapter, user?: a
         ) : wishlistMeetups.length === 0 ? (
           <View style={styles.emptyContainer}>
             <Icon name="heart" size={48} color={COLORS.text.tertiary} />
-            <Text style={styles.emptyText}>찜한 모임이 없습니다</Text>
-            <Text style={styles.emptySubtext}>마음에 드는 모임을 찜해보세요!</Text>
+            <Text style={styles.emptyText}>찜한 약속이 없습니다</Text>
+            <Text style={styles.emptySubtext}>마음에 드는 약속을 찜해보세요!</Text>
             <TouchableOpacity
               style={styles.findButton}
               onPress={() => navigation.navigate('Home')}
             >
-              <Text style={styles.findButtonText}>모임 찾기</Text>
+              <Text style={styles.findButtonText}>약속 찾기</Text>
             </TouchableOpacity>
           </View>
         ) : (

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import {
   View,
   Text,
+  Image,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
@@ -121,11 +122,11 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
 
   // 검색 제안 데이터
   const searchSuggestions = [
-    '우울할때 갈만한 모임 추천해줘',
+    '우울할때 갈만한 밥약속 추천해줘',
     '스트레스 받을 때 좋은 곳',
     '혼자 갈 수 있는 카페',
-    '맛있는 한식 모임',
-    '저렴한 술집 모임',
+    '맛있는 한식 밥약속',
+    '저렴한 술집 약속',
     '새로운 사람들과 친해지기',
   ];
 
@@ -311,7 +312,14 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
       <View style={styles.container}>
         {/* 고정 헤더 — 미니멀 에디토리얼 */}
         <View style={styles.header}>
-          <Text style={styles.headerLogo}>잇테이블</Text>
+          <View style={styles.headerLogoWrap}>
+            <Image
+              source={require('../../assets/logo/logo-v2-table-e.png')}
+              style={styles.headerLogoImage}
+              resizeMode="contain"
+            />
+            <Text style={styles.headerLogo}>잇테이블</Text>
+          </View>
 
           <TouchableOpacity
             style={styles.locationButton}
@@ -404,7 +412,7 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
                 autoCapitalize="none"
                 autoCorrect={false}
                 returnKeyType="search"
-                accessibilityLabel="모임 검색"
+                accessibilityLabel="약속 검색"
               />
               {searchQuery.length > 0 && (
                 <>
@@ -538,7 +546,7 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
             </FadeIn>
           )}
 
-          {/* 섹션 2: 새로 올라온 모임 */}
+          {/* 섹션 2: 새로 올라온 밥약속 */}
           {(isLoading || newMeetups.length > 0) && (
             <FadeIn delay={300}>
             <View style={[styles.contentSection, { backgroundColor: COLORS.surface.secondary }]}>
@@ -546,14 +554,14 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
                 <View>
                   <View style={styles.sectionTitleRow}>
                     <View style={styles.sectionAccentBar} />
-                    <Text style={styles.sectionTitle}>새로 올라온 모임</Text>
+                    <Text style={styles.sectionTitle}>새로 올라온 밥약속</Text>
                   </View>
-                  <Text style={styles.sectionSubtitle}>방금 등록된 새 모임</Text>
+                  <Text style={styles.sectionSubtitle}>방금 등록된 새 밥약속</Text>
                 </View>
                 <TouchableOpacity
                   onPress={() => navigation.navigate('MeetupList')}
                   activeOpacity={0.7}
-                  accessibilityLabel="새로 올라온 모임 더보기"
+                  accessibilityLabel="새로 올라온 밥약속 더보기"
                   style={styles.seeAllButton as any}
                 >
                   <View style={styles.seeAllRow}>
@@ -590,7 +598,7 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
             </FadeIn>
           )}
 
-          {/* 섹션 3: 모집중인 모임 */}
+          {/* 섹션 3: 모집중인 밥약속 */}
           {(isLoading || recruitingMeetups.length > 0) && (
             <FadeIn delay={400}>
             <View style={[styles.contentSection, { backgroundColor: COLORS.neutral.white }]}>
@@ -598,14 +606,14 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
                 <View>
                   <View style={styles.sectionTitleRow}>
                     <View style={styles.sectionAccentBar} />
-                    <Text style={styles.sectionTitle}>모집중인 모임</Text>
+                    <Text style={styles.sectionTitle}>모집중인 밥약속</Text>
                   </View>
                   <Text style={styles.sectionSubtitle}>함께할 사람을 찾고 있어요</Text>
                 </View>
                 <TouchableOpacity
                   onPress={() => navigation.navigate('MeetupList')}
                   activeOpacity={0.7}
-                  accessibilityLabel="모집중인 모임 더보기"
+                  accessibilityLabel="모집중인 밥약속 더보기"
                   style={styles.seeAllButton as any}
                 >
                   <View style={styles.seeAllRow}>
@@ -637,23 +645,23 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
             </FadeIn>
           )}
 
-          {/* 모임이 전혀 없을 때 */}
+          {/* 밥약속이 전혀 없을 때 */}
           {!isLoading && !fetchError && meetups.length === 0 && (
             <EmptyState
               icon={'\uD83C\uDF7D\uFE0F'}
-              title="아직 등록된 모임이 없어요"
-              description="첫 번째 모임을 만들어보세요!"
-              actionLabel="모임 만들기"
+              title="아직 등록된 밥약속이 없어요"
+              description="첫 번째 밥약속을 만들어보세요!"
+              actionLabel="약속 만들기"
               onAction={() => navigation.navigate('CreateMeetup')}
             />
           )}
 
-          {/* 모든 모임 보기 버튼 — 그라데이션 CTA */}
+          {/* 모든 약속 보기 버튼 -- 그라데이션 CTA */}
           <TouchableOpacity
             style={styles.allMeetupsButtonWrapper}
             onPress={() => navigation.navigate('MeetupList')}
             activeOpacity={0.7}
-            accessibilityLabel="모든 모임 보기"
+            accessibilityLabel="모든 약속 보기"
             accessibilityRole="button"
           >
             <LinearGradient
@@ -662,7 +670,7 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
               end={{ x: 1, y: 1 }}
               style={styles.allMeetupsButton}
             >
-              <Text style={styles.allMeetupsText}>모든 모임 보기</Text>
+              <Text style={styles.allMeetupsText}>모든 약속 보기</Text>
               <Text style={styles.allMeetupsChevron}>{'\u203A'}</Text>
             </LinearGradient>
           </TouchableOpacity>
@@ -699,7 +707,7 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
           style={styles.fabWrapper}
           onPress={() => navigation.navigate('CreateMeetup')}
           activeOpacity={0.7}
-          accessibilityLabel="새 모임 만들기"
+          accessibilityLabel="새 약속 만들기"
           accessibilityRole="button"
         >
           <LinearGradient
@@ -709,7 +717,7 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
             style={styles.fab}
           >
             <Text style={styles.fabIcon}>+</Text>
-            <Text style={styles.fabLabel}>모임 만들기</Text>
+            <Text style={styles.fabLabel}>약속 만들기</Text>
           </LinearGradient>
         </TouchableOpacity>
 
@@ -739,7 +747,7 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
             onClose={() => setShowCreateMeetup(false)}
             onSuccess={() => {
               setShowCreateMeetup(false);
-              showSuccess('모임이 성공적으로 생성되었습니다!');
+              showSuccess('밥약속이 성공적으로 만들어졌습니다!');
               fetchHomeMeetups();
             }}
           />
@@ -796,6 +804,16 @@ const styles = StyleSheet.create({
     zIndex: 10,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(17,17,17,0.06)',
+  },
+  headerLogoWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+  },
+  headerLogoImage: {
+    width: 28,
+    height: 28,
+    borderRadius: 6,
   },
   headerLogo: {
     fontSize: 22,

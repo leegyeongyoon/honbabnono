@@ -240,7 +240,7 @@ const NotificationList: React.FC<NotificationListProps> = ({
       <Text style={styles.emptyDescription}>
         {showUnreadOnly 
           ? '읽지 않은 알림이 도착하면 여기에 표시됩니다'
-          : '모임, 채팅 등의 알림이 도착하면 여기에 표시됩니다'
+          : '약속, 채팅 등의 알림이 도착하면 여기에 표시됩니다'
         }
       </Text>
     </View>

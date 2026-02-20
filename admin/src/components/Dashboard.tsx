@@ -165,17 +165,17 @@ export default function Dashboard() {
     labels: dashboardData.map(item => format(new Date(item.date), 'MM/dd')),
     datasets: [
       {
-        label: '총 모임',
+        label: '총 약속',
         data: dashboardData.map(item => item.totalMeetups),
         backgroundColor: 'rgba(75, 192, 192, 0.6)',
       },
       {
-        label: '활성 모임',
+        label: '활성 약속',
         data: dashboardData.map(item => item.activeMeetups),
         backgroundColor: 'rgba(255, 99, 132, 0.6)',
       },
       {
-        label: '신규 모임',
+        label: '신규 약속',
         data: dashboardData.map(item => item.newMeetups),
         backgroundColor: 'rgba(54, 162, 235, 0.6)',
       },
@@ -285,7 +285,7 @@ export default function Dashboard() {
           <Card>
             <CardContent>
               <Typography color="textSecondary" gutterBottom variant="body2">
-                총 모임
+                총 약속
               </Typography>
               <Typography variant="h5">
                 {realtimeData.totalMeetups?.toLocaleString() || '0'}
@@ -364,7 +364,7 @@ export default function Dashboard() {
         
         <Paper sx={{ p: 2 }}>
           <Typography variant="h6" gutterBottom>
-            모임 활동
+            약속 활동
           </Typography>
           <Bar data={meetupActivityData} options={chartOptions} />
         </Paper>
@@ -408,7 +408,7 @@ export default function Dashboard() {
                 <TableCell>날짜</TableCell>
                 <TableCell align="right">신규 사용자</TableCell>
                 <TableCell align="right">활성 사용자</TableCell>
-                <TableCell align="right">신규 모임</TableCell>
+                <TableCell align="right">신규 약속</TableCell>
                 <TableCell align="right">채팅 메시지</TableCell>
                 <TableCell align="right">일일 수익</TableCell>
                 <TableCell align="right">광고 클릭률</TableCell>

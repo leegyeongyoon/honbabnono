@@ -145,7 +145,7 @@ const ReviewManagementScreen: React.FC = () => {
             />
           </View>
           <View style={styles.titleWrap}>
-            <Text style={styles.reviewTitle} numberOfLines={1}>{review.meetup_title || '모임'}</Text>
+            <Text style={styles.reviewTitle} numberOfLines={1}>{review.meetup_title || '약속'}</Text>
             <View style={styles.ratingContainer}>
               {renderStars(review.rating ?? 0)}
               <Text style={styles.ratingText}>{review.rating ?? 0}.0</Text>
@@ -291,8 +291,8 @@ const ReviewManagementScreen: React.FC = () => {
           <EmptyState
             icon="star"
             title={selectedFilter === 'featured' ? '추천 리뷰가 없습니다' : '작성한 리뷰가 없습니다'}
-            description="참여한 모임에 대한 리뷰를 작성해보세요!"
-            actionLabel="내 모임 보기"
+            description="참여한 약속에 대한 리뷰를 작성해보세요!"
+            actionLabel="내 약속 보기"
             onAction={() => navigate('/my-meetups')}
           />
         ) : (

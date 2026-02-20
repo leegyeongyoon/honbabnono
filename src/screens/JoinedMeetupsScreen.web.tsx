@@ -161,7 +161,7 @@ const JoinedMeetupsScreen: React.FC = () => {
           >
             <Icon name="arrow-left" size={24} color={COLORS.text.primary} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>참여한 모임</Text>
+          <Text style={styles.headerTitle}>참여한 약속</Text>
           <View style={{ width: 20 }} />
         </View>
         <View style={styles.skeletonWrap}>
@@ -183,7 +183,7 @@ const JoinedMeetupsScreen: React.FC = () => {
         >
           <Icon name="arrow-left" size={24} color={COLORS.text.primary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>참여한 모임</Text>
+        <Text style={styles.headerTitle}>참여한 약속</Text>
         <NotificationBell
           onPress={() => {
             navigate('/notifications');
@@ -200,7 +200,7 @@ const JoinedMeetupsScreen: React.FC = () => {
           onPress={() => setActiveTab('upcoming')}
         >
           <Text style={[styles.tabText, activeTab === 'upcoming' && styles.activeTabText]}>
-            예정된 모임
+            예정된 약속
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -208,7 +208,7 @@ const JoinedMeetupsScreen: React.FC = () => {
           onPress={() => setActiveTab('completed')}
         >
           <Text style={[styles.tabText, activeTab === 'completed' && styles.activeTabText]}>
-            완료된 모임
+            완료된 약속
           </Text>
         </TouchableOpacity>
       </View>
@@ -218,15 +218,15 @@ const JoinedMeetupsScreen: React.FC = () => {
           <EmptyState
             variant="no-data"
             icon="calendar"
-            title={activeTab === 'upcoming' ? '예정된 모임이 없어요' : '완료된 모임이 없어요'}
-            description="새로운 모임을 찾아 참여해보세요!"
-            actionLabel="모임 찾아보기"
+            title={activeTab === 'upcoming' ? '예정된 약속이 없어요' : '완료된 약속이 없어요'}
+            description="새로운 약속을 찾아 참여해보세요!"
+            actionLabel="약속 찾아보기"
             onAction={() => navigate('/home')}
           />
         ) : (
           <View style={styles.meetupsList}>
             <Text style={styles.sectionTitle}>
-              {activeTab === 'upcoming' ? '예정된' : '완료된'} 모임 ({filteredMeetups.length}개)
+              {activeTab === 'upcoming' ? '예정된' : '완료된'} 약속 ({filteredMeetups.length}개)
             </Text>
             {filteredMeetups.map(renderMeetupItem)}
           </View>

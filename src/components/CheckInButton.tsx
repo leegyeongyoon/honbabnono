@@ -122,7 +122,7 @@ const CheckInButton: React.FC<CheckInButtonProps> = ({
             if (distance && maxDistance) {
               Alert.alert(
                 '체크인 실패',
-                `현재 위치가 모임 장소에서 ${distance}m 떨어져 있습니다.\n체크인 가능 거리: ${maxDistance}m 이내`
+                `현재 위치가 약속 장소에서 ${distance}m 떨어져 있습니다.\n체크인 가능 거리: ${maxDistance}m 이내`
               );
             } else {
               Alert.alert('체크인 실패', errorMessage);

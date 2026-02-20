@@ -51,7 +51,7 @@ interface QuickMenuItem {
 }
 
 const QUICK_MENUS: QuickMenuItem[] = [
-  { id: 'my-meetups', label: '내 모임', icon: 'calendar', path: '/my-meetups' },
+  { id: 'my-meetups', label: '내 약속', icon: 'calendar', path: '/my-meetups' },
   { id: 'wishlist', label: '찜 목록', icon: 'heart', path: '/wishlist' },
   { id: 'point-charge', label: '포인트', icon: 'credit-card', path: '/point-charge' },
   { id: 'my-reviews', label: '리뷰', icon: 'star', path: '/my-reviews' },

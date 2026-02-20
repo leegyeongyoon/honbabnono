@@ -192,7 +192,7 @@ exports.getAppInfo = async (req, res) => {
         buildNumber: '2024.11.28.001',
         lastUpdated: '2024-11-28',
         features: [
-          '모임 생성 및 참가',
+          '밥약속 만들기 및 참가',
           '실시간 채팅',
           '리뷰 시스템',
           '포인트 시스템',

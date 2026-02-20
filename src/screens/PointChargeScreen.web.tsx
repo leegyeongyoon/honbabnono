@@ -73,7 +73,7 @@ const PointChargeScreen: React.FC = () => {
         <View style={styles.infoCard}>
           <Icon name="info" size={24} color="#C49A70" />
           <Text style={styles.infoText}>
-            충전된 포인트는 모임 참가비로 사용할 수 있습니다.
+            충전된 포인트는 약속 참가비로 사용할 수 있습니다.
           </Text>
         </View>
 

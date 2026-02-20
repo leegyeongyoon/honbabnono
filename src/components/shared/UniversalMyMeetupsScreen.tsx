@@ -30,9 +30,9 @@ interface UniversalMyMeetupsScreenProps {
 }
 
 const TAB_ITEMS = [
-  { key: 'applied' as const, label: '신청한 모임' },
-  { key: 'created' as const, label: '내가 만든 모임' },
-  { key: 'past' as const, label: '지난 모임' },
+  { key: 'applied' as const, label: '신청한 약속' },
+  { key: 'created' as const, label: '내가 만든 약속' },
+  { key: 'past' as const, label: '지난 약속' },
 ];
 
 const SkeletonPulse: React.FC<{ style?: any }> = ({ style }) => {
@@ -253,9 +253,9 @@ const UniversalMyMeetupsScreen: React.FC<UniversalMyMeetupsScreenProps> = ({
             {appliedMeetups.length === 0 ? (
               <EmptyState
                 icon="calendar"
-                title="아직 신청한 모임이 없어요"
-                description="홈에서 모임을 찾아보세요!"
-                actionLabel="모임 찾아보기"
+                title="아직 신청한 약속이 없어요"
+                description="홈에서 밥약속을 찾아보세요!"
+                actionLabel="약속 찾아보기"
                 onAction={() => handleNavigate('Home')}
               />
             ) : (
@@ -272,9 +272,9 @@ const UniversalMyMeetupsScreen: React.FC<UniversalMyMeetupsScreenProps> = ({
             {createdMeetups.length === 0 ? (
               <EmptyState
                 icon="plus-circle"
-                title="모임을 만들어보세요!"
-                description="새로운 모임을 만들어보세요!"
-                actionLabel="모임 만들기"
+                title="약속을 만들어보세요!"
+                description="새로운 밥약속을 만들어보세요!"
+                actionLabel="약속 만들기"
                 onAction={() => handleNavigate('CreateMeetup')}
               />
             ) : (
@@ -291,8 +291,8 @@ const UniversalMyMeetupsScreen: React.FC<UniversalMyMeetupsScreenProps> = ({
             {pastMeetups.length === 0 ? (
               <EmptyState
                 icon="clock"
-                title="아직 지난 모임이 없어요"
-                description="모임에 참여해보세요!"
+                title="아직 지난 약속이 없어요"
+                description="밥약속에 참여해보세요!"
               />
             ) : (
               pastMeetups.map((meetup, index) => renderMeetupItem(meetup, !('hostName' in meetup), `past-${index}`))
@@ -310,7 +310,7 @@ const UniversalMyMeetupsScreen: React.FC<UniversalMyMeetupsScreenProps> = ({
     <SafeAreaView style={styles.container}>
       {/* 헤더 */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>내 모임</Text>
+        <Text style={styles.headerTitle}>내 약속</Text>
         <NotificationBell
           userId={user?.id?.toString()}
           onPress={handleNotificationPress}

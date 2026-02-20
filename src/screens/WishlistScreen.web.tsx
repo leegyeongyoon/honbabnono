@@ -96,7 +96,7 @@ const WishlistScreen: React.FC = () => {
 
   const getStatusText = (item: WishlistItem) => {
     if (item.is_ended) {
-      return '이미 종료된 모임';
+      return '이미 종료된 약속';
     }
     switch (item.status) {
       case '모집중': return '모집 중';
@@ -166,7 +166,7 @@ const WishlistScreen: React.FC = () => {
         {/* 종료 오버레이 */}
         {item.is_ended && (
           <View style={styles.endedOverlay}>
-            <Text style={styles.endedText}>종료된 모임</Text>
+            <Text style={styles.endedText}>종료된 약속</Text>
           </View>
         )}
       </View>
@@ -324,13 +324,13 @@ const WishlistScreen: React.FC = () => {
         <View style={styles.statsContainer}>
           <View style={styles.statCard}>
             <Text style={styles.statNumber}>{wishlist.length}</Text>
-            <Text style={styles.statLabel}>총 찜한 모임</Text>
+            <Text style={styles.statLabel}>총 찜한 약속</Text>
           </View>
           <View style={styles.statCard}>
             <Text style={styles.statNumber}>
               {wishlist.filter(item => !item.is_ended).length}
             </Text>
-            <Text style={styles.statLabel}>참여 가능한 모임</Text>
+            <Text style={styles.statLabel}>참여 가능한 약속</Text>
           </View>
         </View>
       )}
@@ -340,14 +340,14 @@ const WishlistScreen: React.FC = () => {
           <EmptyState
             variant="no-data"
             icon="heart"
-            title="아직 찜한 모임이 없어요"
-            description="마음에 드는 모임을 찜해보세요! 언제든지 다시 확인할 수 있어요."
-            actionLabel="모임 찾아보기"
+            title="아직 찜한 약속이 없어요"
+            description="마음에 드는 밥약속을 찜해보세요! 언제든지 다시 확인할 수 있어요."
+            actionLabel="약속 찾아보기"
             onAction={() => navigate('/home')}
           />
         ) : (
           <View style={styles.wishlistGrid}>
-            <Text style={styles.sectionTitle}>저장한 모임 ({wishlist.length}개)</Text>
+            <Text style={styles.sectionTitle}>저장한 약속 ({wishlist.length}개)</Text>
             {wishlist.map(renderWishlistItem)}
           </View>
         )}

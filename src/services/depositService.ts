@@ -141,7 +141,7 @@ class DepositService {
     }
 
     // 포인트 차감 처리
-    await this.deductPoints(request.userId, request.amount, `모임 약속금 결제 (모임 ID: ${request.meetupId})`);
+    await this.deductPoints(request.userId, request.amount, `약속금 결제 (약속 ID: ${request.meetupId})`);
 
     return {
       success: true,
@@ -179,7 +179,7 @@ class DepositService {
 
       case 'cancellation':
         if (hoursBeforeMeetup === undefined) {
-          throw new Error('취소 시에는 모임 전 시간을 명시해야 합니다.');
+          throw new Error('취소 시에는 약속 전 시간을 명시해야 합니다.');
         }
 
         const applicablePolicy = this.refundPolicy.cancellation.beforeHours
@@ -239,7 +239,7 @@ class DepositService {
       await this.addPoints(
         deposit.userId, 
         pointAmount, 
-        `약속금 포인트 전환 (모임 ID: ${deposit.meetupId})`,
+        `약속금 포인트 전환 (약속 ID: ${deposit.meetupId})`,
         deposit.id
       );
 
@@ -281,7 +281,7 @@ class DepositService {
           await this.addPoints(
             userId,
             pointsPerAttendee,
-            `노쇼자 약속금 분배 (모임 ID: ${meetupId})`
+            `노쇼자 약속금 분배 (약속 ID: ${meetupId})`
           );
         }
       }
@@ -326,7 +326,7 @@ class DepositService {
       {
         id: 'deposit_payment',
         name: '약속금 대체 결제',
-        description: '다음 모임 참여 시 약속금으로 사용',
+        description: '다음 밥약속 참여 시 약속금으로 사용',
         pointsRequired: 3000,
         category: 'meetup',
         isActive: true
@@ -352,7 +352,7 @@ class DepositService {
       {
         id: 'meal_payment',
         name: '밥값 결제',
-        description: '모임에서 식비 지불 시 사용',
+        description: '밥약속에서 식비 지불 시 사용',
         pointsRequired: 10000,
         category: 'meetup',
         isActive: false // MVP 이후

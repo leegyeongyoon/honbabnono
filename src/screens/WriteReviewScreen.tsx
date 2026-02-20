@@ -317,7 +317,7 @@ const WriteReviewScreen = () => {
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.meetupInfo}>
-          <Text style={styles.meetupTitle}>{meetupTitle || '모임'}</Text>
+          <Text style={styles.meetupTitle}>{meetupTitle || '약속'}</Text>
           <Text style={styles.meetupSubtitle}>함께한 참가자에게 리뷰를 남겨주세요</Text>
         </View>
 

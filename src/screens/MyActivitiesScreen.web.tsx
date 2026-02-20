@@ -206,9 +206,9 @@ const MyActivitiesScreen: React.FC = () => {
         {filteredActivities.length === 0 ? (
           <EmptyState
             icon="calendar"
-            title="참여한 모임이 없습니다"
-            description="새로운 모임을 찾아 참여해보세요!"
-            actionLabel="모임 찾아보기"
+            title="참여한 약속이 없습니다"
+            description="새로운 약속을 찾아 참여해보세요!"
+            actionLabel="약속 찾아보기"
             onAction={() => navigate('/home')}
           />
         ) : (
