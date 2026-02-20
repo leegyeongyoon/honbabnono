@@ -72,8 +72,8 @@ exports.getStats = async (req, res) => {
     // 리뷰 수 조회
     const reviewsResult = await pool.query(`
       SELECT COUNT(*) as review_count
-      FROM meetup_reviews
-      WHERE user_id = $1
+      FROM reviews
+      WHERE reviewer_id = $1
     `, [userId]);
 
     const stats = {
@@ -104,14 +104,13 @@ exports.getMyReviews = async (req, res) => {
         r.id,
         r.rating,
         r.content,
-        r.images,
         r.created_at,
         m.title as meetup_title,
         m.date as meetup_date,
         m.location as meetup_location
-      FROM meetup_reviews r
+      FROM reviews r
       JOIN meetups m ON r.meetup_id = m.id
-      WHERE r.user_id = $1
+      WHERE r.reviewer_id = $1
       ORDER BY r.created_at DESC
       LIMIT $2 OFFSET $3
     `, [userId, limit, offset]);
@@ -1389,10 +1388,9 @@ exports.getUserPoints = async (req, res) => {
 
     const userResult = await pool.query(`
       SELECT u.id, u.name, u.email,
-             COALESCE(up.total_points, 0) as total_points,
+             COALESCE(up.total_earned, 0) as total_earned,
              COALESCE(up.available_points, 0) as available_points,
-             COALESCE(up.used_points, 0) as used_points,
-             COALESCE(up.expired_points, 0) as expired_points
+             COALESCE(up.total_used, 0) as total_used
       FROM users u
       LEFT JOIN user_points up ON u.id = up.user_id
       WHERE u.id = $1
@@ -1410,10 +1408,10 @@ exports.getUserPoints = async (req, res) => {
       data: {
         id: user.id,
         userId: user.id,
-        totalPoints: user.total_points,
+        totalPoints: user.total_earned,
         availablePoints: user.available_points,
-        usedPoints: user.used_points,
-        expiredPoints: user.expired_points,
+        usedPoints: user.total_used,
+        expiredPoints: 0,
         lastUpdatedAt: new Date().toISOString()
       }
     });
@@ -1806,13 +1804,13 @@ exports.usePoints = async (req, res) => {
     // 포인트 차감
     await pool.query(`
       UPDATE user_points
-      SET available_points = available_points - $1, used_points = used_points + $1, updated_at = NOW()
+      SET available_points = available_points - $1, total_used = total_used + $1, updated_at = NOW()
       WHERE user_id = $2 AND available_points >= $1
     `, [amount, userId]);
 
     // 거래 내역 기록
     await pool.query(`
-      INSERT INTO point_transactions (user_id, amount, type, description, created_at)
+      INSERT INTO point_transactions (user_id, amount, transaction_type, description, created_at)
       VALUES ($1, $2, 'use', $3, NOW())
     `, [userId, -amount, purpose]);
 
@@ -1835,17 +1833,17 @@ exports.refundPoints = async (req, res) => {
 
     // 포인트 환불
     await pool.query(`
-      INSERT INTO user_points (id, user_id, total_points, available_points, used_points, expired_points, created_at, updated_at)
-      VALUES (gen_random_uuid(), $1, $2, $2, 0, 0, NOW(), NOW())
+      INSERT INTO user_points (id, user_id, total_earned, available_points, total_used, created_at, updated_at)
+      VALUES (gen_random_uuid(), $1, $2, $2, 0, NOW(), NOW())
       ON CONFLICT (user_id) DO UPDATE SET
-        total_points = user_points.total_points + $2,
+        total_earned = user_points.total_earned + $2,
         available_points = user_points.available_points + $2,
         updated_at = NOW()
     `, [userId, amount]);
 
     // 거래 내역 기록
     await pool.query(`
-      INSERT INTO point_transactions (user_id, amount, type, description, created_at)
+      INSERT INTO point_transactions (user_id, amount, transaction_type, description, created_at)
       VALUES ($1, $2, 'refund', $3, NOW())
     `, [userId, amount, reason]);
 
@@ -2051,12 +2049,11 @@ exports.getReviewsManage = async (req, res) => {
         r.id,
         r.rating,
         r.content,
-        r.images,
+        r.tags,
+        r.is_anonymous,
         r.created_at,
         r.updated_at,
         COALESCE(r.is_featured, false) as is_featured,
-        COALESCE(r.like_count, 0) as like_count,
-        COALESCE(r.reply_count, 0) as reply_count,
         m.title as meetup_title,
         m.date as meetup_date,
         m.location as meetup_location
@@ -2084,18 +2081,17 @@ exports.getParticipantReviews = async (req, res) => {
 
     const participantReviewsResult = await pool.query(`
       SELECT
-        pr.rating, pr.comment, pr.created_at,
+        ur.rating, ur.comment, ur.created_at,
         m.title as meetup_title, m.date as meetup_date,
         CASE
-          WHEN r.is_anonymous THEN '익명'
+          WHEN ur.is_anonymous THEN '익명'
           ELSE u.name
         END as reviewer_name
-      FROM participant_reviews pr
-      JOIN reviews r ON pr.review_id = r.id
-      JOIN meetups m ON pr.meetup_id = m.id
-      JOIN users u ON pr.reviewer_id = u.id
-      WHERE pr.reviewed_user_id = $1
-      ORDER BY pr.created_at DESC
+      FROM user_reviews ur
+      JOIN meetups m ON ur.meetup_id = m.id
+      JOIN users u ON ur.reviewer_id = u.id
+      WHERE ur.reviewed_user_id = $1
+      ORDER BY ur.created_at DESC
     `, [userId]);
 
     const reviews = participantReviewsResult.rows;
@@ -2131,10 +2127,10 @@ exports.getPointHistory = async (req, res) => {
 
     const transactionsResult = await pool.query(`
       SELECT
-        pt.id, pt.type, pt.amount, pt.description, pt.created_at, pt.status,
+        pt.id, pt.transaction_type, pt.amount, pt.description, pt.created_at,
         m.title as meetup_title
       FROM point_transactions pt
-      LEFT JOIN meetups m ON pt.meetup_id = m.id
+      LEFT JOIN meetups m ON pt.related_meetup_id = m.id
       WHERE pt.user_id = $1
       ORDER BY pt.created_at DESC
       LIMIT 50
@@ -2252,9 +2248,9 @@ exports.getPointStats = async (req, res) => {
     // user_points 테이블에서 통계 조회
     const statsResult = await pool.query(`
       SELECT
-        COALESCE(total_points, 0) as total_earned,
+        COALESCE(total_earned, 0) as total_earned,
         COALESCE(available_points, 0) as current_balance,
-        COALESCE(used_points, 0) as total_spent
+        COALESCE(total_used, 0) as total_spent
       FROM user_points
       WHERE user_id = $1
     `, [userId]);
@@ -2393,10 +2389,10 @@ exports.chargeLegacyPoints = async (req, res) => {
 
     // user_points 테이블에 포인트 업데이트 또는 생성
     await pool.query(`
-      INSERT INTO user_points (id, user_id, total_points, available_points, used_points, expired_points, created_at, updated_at)
-      VALUES (gen_random_uuid(), $1, $2, $2, 0, 0, NOW(), NOW())
+      INSERT INTO user_points (id, user_id, total_earned, available_points, total_used, created_at, updated_at)
+      VALUES (gen_random_uuid(), $1, $2, $2, 0, NOW(), NOW())
       ON CONFLICT (user_id) DO UPDATE SET
-        total_points = user_points.total_points + $3,
+        total_earned = user_points.total_earned + $3,
         available_points = user_points.available_points + $3,
         updated_at = NOW()
     `, [userId, newPoints, finalAmount]);
@@ -2404,7 +2400,7 @@ exports.chargeLegacyPoints = async (req, res) => {
     // 포인트 충전 기록 저장
     try {
       await pool.query(`
-        INSERT INTO point_transactions (user_id, amount, type, description, created_at)
+        INSERT INTO point_transactions (user_id, amount, transaction_type, description, created_at)
         VALUES ($1, $2, 'charge', $3, NOW())
       `, [userId, finalAmount, isDevAccount ? '개발자 계정 보너스 충전' : '포인트 충전']);
     } catch (transactionError) {

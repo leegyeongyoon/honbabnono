@@ -196,7 +196,7 @@ exports.applyNoShowPenalties = async (req, res) => {
     // 출석하지 않은 참가자 조회
     const noShowsResult = await client.query(
       `
-      SELECT mp.user_id, u.name, u.bab_al_score
+      SELECT mp.user_id, u.name, u.babal_score
       FROM meetup_participants mp
       JOIN users u ON mp.user_id = u.id
       WHERE mp.meetup_id = $1
@@ -210,8 +210,8 @@ exports.applyNoShowPenalties = async (req, res) => {
     const penalties = [];
     for (const noShow of noShowsResult.rows) {
       // 밥알 점수 차감
-      const newScore = Math.max(0, (noShow.bab_al_score || 50) - 10);
-      await client.query('UPDATE users SET bab_al_score = $1, updated_at = NOW() WHERE id = $2', [
+      const newScore = Math.max(0, (noShow.babal_score || 50) - 10);
+      await client.query('UPDATE users SET babal_score = $1, updated_at = NOW() WHERE id = $2', [
         newScore,
         noShow.user_id,
       ]);
@@ -228,7 +228,7 @@ exports.applyNoShowPenalties = async (req, res) => {
       penalties.push({
         userId: noShow.user_id,
         name: noShow.name,
-        previousScore: noShow.bab_al_score,
+        previousScore: noShow.babal_score,
         newScore,
       });
     }
@@ -352,12 +352,12 @@ exports.getConfirmableParticipants = async (req, res) => {
         mp.user_id as id,
         u.name,
         u.profile_image,
-        u.bab_al_score,
+        u.babal_score,
         mp.status,
         mp.joined_at
       FROM meetup_participants mp
       JOIN users u ON mp.user_id = u.id
-      WHERE mp.meetup_id = $1 AND mp.status = '참가대기'
+      WHERE mp.meetup_id = $1 AND mp.status = '참가신청'
       ORDER BY mp.joined_at
     `,
       [meetupId]
@@ -369,7 +369,7 @@ exports.getConfirmableParticipants = async (req, res) => {
         id: p.id,
         name: p.name,
         profileImage: p.profile_image,
-        babAlScore: p.bab_al_score,
+        babAlScore: p.babal_score,
         status: p.status,
         joinedAt: p.joined_at,
       })),

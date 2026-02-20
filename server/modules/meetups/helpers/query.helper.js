@@ -91,7 +91,7 @@ const transformParticipantData = (row) => ({
   profileImage: row.profile_image,
   status: row.status,
   joinedAt: row.joined_at || row.created_at,
-  babAlScore: row.bab_al_score || 50,
+  babAlScore: row.babal_score || 50,
 });
 
 /**
@@ -149,7 +149,7 @@ const MEETUP_BASE_SELECT = `
     h.name as "host.name",
     h.profile_image as "host.profileImage",
     h.rating as "host.rating",
-    h.bab_al_score as "host.babAlScore"
+    h.babal_score as "host.babAlScore"
   FROM meetups m
   LEFT JOIN users h ON m.host_id = h.id
 `;
@@ -168,7 +168,7 @@ const MEETUP_WITH_TIME_SELECT = `
     h.name as "host.name",
     h.profile_image as "host.profileImage",
     h.rating as "host.rating",
-    h.bab_al_score as "host.babAlScore",
+    h.babal_score as "host.babAlScore",
     EXTRACT(EPOCH FROM (m.date::date + m.time::time - NOW())) / 3600 as hours_until_start
   FROM meetups m
   LEFT JOIN users h ON m.host_id = h.id

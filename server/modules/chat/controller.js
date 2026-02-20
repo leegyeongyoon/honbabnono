@@ -155,8 +155,9 @@ exports.getUnreadCount = async (req, res) => {
       SELECT COUNT(*) as total_unread
       FROM chat_messages cm
       JOIN chat_participants cp ON cm."chatRoomId" = cp."chatRoomId"
+      JOIN chat_rooms cr ON cm."chatRoomId" = cr.id
       WHERE cp."userId" = $1
-        AND cp."isActive" = true
+        AND cr."isActive" = true
         AND cm."senderId" <> $1
         AND cm."createdAt" > COALESCE(cp."lastReadAt", cp."joinedAt", '1970-01-01'::timestamp)
     `, [userId]);

@@ -794,7 +794,7 @@ exports.joinMeetup = async (req, res) => {
     // 참가 신청
     await pool.query(`
       INSERT INTO meetup_participants (meetup_id, user_id, status, joined_at)
-      VALUES ($1, $2, '참가대기', NOW())
+      VALUES ($1, $2, '참가신청', NOW())
     `, [id, userId]);
 
     res.json({
@@ -1104,17 +1104,13 @@ exports.createReview = async (req, res) => {
       return res.status(400).json({ error: '이미 리뷰를 작성하셨습니다' });
     }
 
-    // 사용자 정보 조회
-    const userResult = await pool.query('SELECT name FROM users WHERE id = $1', [userId]);
-    const reviewerName = userResult.rows[0]?.name || '익명';
-
-    // 리뷰 저장
+    // 리뷰 저장 (reviewee_id는 호스트로 설정)
     const reviewResult = await pool.query(`
       INSERT INTO reviews (
-        meetup_id, reviewer_id, reviewer_name, rating, comment, tags, created_at, updated_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
-      RETURNING id, meetup_id, reviewer_id, reviewer_name, rating, comment, tags, created_at
-    `, [meetupId, userId, reviewerName, rating, comment || '', JSON.stringify(tags || [])]);
+        meetup_id, reviewer_id, reviewee_id, rating, content, tags, created_at, updated_at
+      ) VALUES ($1, $2, $3, $4, $5, $6::jsonb, NOW(), NOW())
+      RETURNING id, meetup_id, reviewer_id, reviewee_id, rating, content, tags, created_at
+    `, [meetupId, userId, meetup.host_id, rating, comment || '', JSON.stringify(tags || [])]);
 
     const review = reviewResult.rows[0];
 
@@ -1139,7 +1135,7 @@ exports.createReview = async (req, res) => {
       success: true,
       data: {
         ...review,
-        tags: JSON.parse(review.tags)
+        tags: typeof review.tags === 'string' ? JSON.parse(review.tags) : (review.tags || []),
       }
     });
   } catch (error) {
@@ -1159,8 +1155,9 @@ exports.getReviews = async (req, res) => {
 
     const reviewsResult = await pool.query(`
       SELECT
-        r.id, r.meetup_id, r.reviewer_id, r.reviewer_name,
-        r.rating, r.comment, r.tags, r.created_at,
+        r.id, r.meetup_id, r.reviewer_id,
+        u.name as reviewer_name,
+        r.rating, r.content, r.tags, r.created_at,
         u.profile_image as reviewer_profile_image
       FROM reviews r
       LEFT JOIN users u ON r.reviewer_id = u.id
@@ -1181,7 +1178,7 @@ exports.getReviews = async (req, res) => {
 
     const reviews = reviewsResult.rows.map(review => ({
       ...review,
-      tags: JSON.parse(review.tags || '[]')
+      tags: typeof review.tags === 'string' ? JSON.parse(review.tags) : (review.tags || []),
     }));
 
     const total = parseInt(countResult.rows[0].total);
@@ -1268,15 +1265,15 @@ exports.confirmMeetup = async (req, res) => {
           await pool.query(`
             UPDATE user_points
             SET available_points = available_points + $1,
-                used_points = used_points - $1,
+                total_used = total_used - $1,
                 updated_at = NOW()
             WHERE user_id = $2
           `, [participant.amount, participant.user_id]);
 
           await pool.query(`
             INSERT INTO point_transactions
-            (user_id, type, amount, description, created_at, updated_at)
-            VALUES ($1, 'earned', $2, $3, NOW(), NOW())
+            (user_id, transaction_type, amount, description, created_at)
+            VALUES ($1, 'earned', $2, $3, NOW())
           `, [participant.user_id, participant.amount, `약속 취소로 인한 약속금 환불: ${meetup.title}`]);
 
           await pool.query(

@@ -53,19 +53,15 @@ exports.createReview = async (req, res) => {
       return res.status(400).json({ error: '이미 리뷰를 작성하셨습니다' });
     }
 
-    // 사용자 정보 조회
-    const userResult = await pool.query('SELECT name FROM users WHERE id = $1', [userId]);
-    const reviewerName = userResult.rows[0]?.name || '익명';
-
-    // 리뷰 저장
+    // 리뷰 저장 (reviewee_id는 호스트로 설정)
     const reviewResult = await pool.query(
       `
       INSERT INTO reviews (
-        meetup_id, reviewer_id, reviewer_name, rating, comment, tags, created_at, updated_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
-      RETURNING id, meetup_id, reviewer_id, reviewer_name, rating, comment, tags, created_at
+        meetup_id, reviewer_id, reviewee_id, rating, content, tags, created_at, updated_at
+      ) VALUES ($1, $2, $3, $4, $5, $6::jsonb, NOW(), NOW())
+      RETURNING id, meetup_id, reviewer_id, reviewee_id, rating, content, tags, created_at
     `,
-      [meetupId, userId, reviewerName, rating, comment || '', JSON.stringify(tags || [])]
+      [meetupId, userId, meetup.host_id, rating, comment || '', JSON.stringify(tags || [])]
     );
 
     const review = reviewResult.rows[0];
@@ -92,7 +88,7 @@ exports.createReview = async (req, res) => {
       success: true,
       data: {
         ...review,
-        tags: JSON.parse(review.tags),
+        tags: typeof review.tags === 'string' ? JSON.parse(review.tags) : (review.tags || []),
       },
     });
   } catch (error) {
@@ -114,8 +110,9 @@ exports.getReviews = async (req, res) => {
       pool.query(
         `
         SELECT
-          r.id, r.meetup_id, r.reviewer_id, r.reviewer_name,
-          r.rating, r.comment, r.tags, r.created_at,
+          r.id, r.meetup_id, r.reviewer_id,
+          u.name as reviewer_name,
+          r.rating, r.content, r.tags, r.created_at,
           u.profile_image as reviewer_profile_image
         FROM reviews r
         LEFT JOIN users u ON r.reviewer_id = u.id
@@ -137,7 +134,7 @@ exports.getReviews = async (req, res) => {
 
     const reviews = reviewsResult.rows.map((review) => ({
       ...review,
-      tags: JSON.parse(review.tags || '[]'),
+      tags: typeof review.tags === 'string' ? JSON.parse(review.tags) : (review.tags || []),
     }));
 
     const total = parseInt(countResult.rows[0].total);

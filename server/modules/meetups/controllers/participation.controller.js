@@ -52,7 +52,7 @@ exports.joinMeetup = async (req, res) => {
     await pool.query(
       `
       INSERT INTO meetup_participants (meetup_id, user_id, status, joined_at)
-      VALUES ($1, $2, '참가대기', NOW())
+      VALUES ($1, $2, '참가신청', NOW())
     `,
       [id, userId]
     );
@@ -160,7 +160,7 @@ exports.getParticipants = async (req, res) => {
         u.name,
         u.profile_image,
         u.rating,
-        u.bab_al_score
+        u.babal_score
       FROM meetup_participants mp
       JOIN users u ON mp.user_id = u.id
       WHERE mp.meetup_id = $1
@@ -176,7 +176,7 @@ exports.getParticipants = async (req, res) => {
         name: row.name,
         profileImage: row.profile_image,
         rating: row.rating,
-        babAlScore: row.bab_al_score,
+        babAlScore: row.babal_score,
         status: row.status,
         joinedAt: row.joined_at,
       })),
@@ -205,7 +205,7 @@ exports.updateParticipantStatus = async (req, res) => {
       return res.status(statusCode).json({ success: false, error });
     }
 
-    const validStatuses = ['참가승인', '참가거절', '참가대기'];
+    const validStatuses = ['참가승인', '참가거절', '참가신청'];
     if (!validStatuses.includes(status)) {
       return res.status(400).json({
         success: false,

@@ -10,13 +10,12 @@
 CREATE TYPE enum_users_provider AS ENUM ('email', 'kakao', 'naver', 'google');
 
 -- 모임 상태 타입
-CREATE TYPE meetup_status AS ENUM ('모집중', '모집완료', '진행중', '완료', '취소');
+CREATE TYPE meetup_status AS ENUM ('모집중', '모집완료', '진행중', '종료', '취소');
 
 -- 모임 참가자 상태 타입
-CREATE TYPE participant_status AS ENUM ('대기중', '승인', '거절', '참가완료', '불참');
+CREATE TYPE participant_status AS ENUM ('참가신청', '참가승인', '참가거절', '참가취소');
 
--- 리뷰 태그 타입 (간편한 선택지)
-CREATE TYPE review_tag AS ENUM ('친절함', '시간약속 잘 지킴', '대화가 즐거웠음', '음식추천이 좋았음', '분위기가 좋았음');
+-- 리뷰 태그 (TEXT[] 사용으로 유연한 태그 관리)
 
 -- =====================================
 -- 2. 테이블 생성
@@ -88,12 +87,14 @@ CREATE TABLE meetup_participants (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     meetup_id UUID NOT NULL REFERENCES meetups(id) ON DELETE CASCADE,
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    status participant_status DEFAULT '대기중',
+    status participant_status DEFAULT '참가신청',
     message TEXT,
     attended BOOLEAN DEFAULT false, -- 출석 여부
     attended_at TIMESTAMP WITH TIME ZONE, -- 출석 시간
     no_show BOOLEAN DEFAULT false, -- 노쇼 여부
     no_show_confirmed BOOLEAN DEFAULT false, -- 노쇼 확정 (후기에서 확인)
+    progress_response TEXT, -- 진행 상황 응답
+    progress_responded_at TIMESTAMP WITH TIME ZONE, -- 응답 시간
     joined_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     UNIQUE(meetup_id, user_id)
@@ -104,6 +105,11 @@ CREATE TABLE chat_rooms (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     "meetupId" UUID NOT NULL REFERENCES meetups(id) ON DELETE CASCADE,
     "createdBy" UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    type VARCHAR(50) DEFAULT 'meetup',
+    title VARCHAR(255),
+    description TEXT,
+    "lastMessage" TEXT,
+    "lastMessageTime" TIMESTAMP WITH TIME ZONE,
     "isActive" BOOLEAN DEFAULT true,
     "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     "updatedAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
@@ -114,9 +120,18 @@ CREATE TABLE chat_messages (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     "chatRoomId" UUID NOT NULL REFERENCES chat_rooms(id) ON DELETE CASCADE,
     "senderId" UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    "senderName" VARCHAR(255),
     message TEXT NOT NULL,
     "messageType" VARCHAR(50) DEFAULT 'text',
-    "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+    "isEdited" BOOLEAN DEFAULT false,
+    "editedAt" TIMESTAMP WITH TIME ZONE,
+    "isDeleted" BOOLEAN DEFAULT false,
+    "replyToId" UUID,
+    "fileUrl" TEXT,
+    "fileName" VARCHAR(255),
+    "fileSize" INTEGER,
+    "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- 채팅방 참가자 테이블
@@ -137,7 +152,7 @@ CREATE TABLE reviews (
     reviewee_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     rating INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5),
     content TEXT,
-    tags review_tag[],
+    tags JSONB DEFAULT '[]',
     is_anonymous BOOLEAN DEFAULT false,
     is_featured BOOLEAN DEFAULT false,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
@@ -145,8 +160,8 @@ CREATE TABLE reviews (
     UNIQUE(meetup_id, reviewer_id, reviewee_id)
 );
 
--- 위시리스트 테이블
-CREATE TABLE wishlists (
+-- 위시리스트 테이블 (코드에서 meetup_wishlists로 참조)
+CREATE TABLE meetup_wishlists (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     meetup_id UUID NOT NULL REFERENCES meetups(id) ON DELETE CASCADE,
@@ -209,6 +224,26 @@ CREATE TABLE user_blocks (
     UNIQUE(blocker_id, blocked_id)
 );
 
+-- 최근 본 모임 테이블
+CREATE TABLE user_recent_views (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    meetup_id UUID NOT NULL REFERENCES meetups(id) ON DELETE CASCADE,
+    viewed_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    UNIQUE(user_id, meetup_id)
+);
+
+-- 사용자 패널티 테이블 (노쇼 등)
+CREATE TABLE user_penalties (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    meetup_id UUID REFERENCES meetups(id) ON DELETE SET NULL,
+    penalty_type VARCHAR(50) NOT NULL, -- 'no_show', 'late_cancel', 'bad_behavior'
+    penalty_amount INTEGER NOT NULL DEFAULT 0, -- 밥알 차감 점수
+    reason TEXT,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+);
+
 -- 출석체크 테이블 (attendance_checks - 레거시 호환용)
 CREATE TABLE attendance_checks (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -236,6 +271,7 @@ CREATE TABLE attendances (
     confirmed_by UUID REFERENCES users(id),
     notes TEXT,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     UNIQUE(meetup_id, user_id)
 );
 

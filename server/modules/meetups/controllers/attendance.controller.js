@@ -281,7 +281,7 @@ exports.getAttendanceParticipants = async (req, res) => {
         mp.user_id as id,
         u.name,
         u.profile_image,
-        u.bab_al_score,
+        u.babal_score,
         mp.attended,
         mp.attended_at,
         a.attendance_type,
@@ -301,7 +301,7 @@ exports.getAttendanceParticipants = async (req, res) => {
         id: p.id,
         name: p.name,
         profileImage: p.profile_image,
-        babAlScore: p.bab_al_score,
+        babAlScore: p.babal_score,
         attended: p.attended,
         attendedAt: p.attended_at,
         attendanceType: p.attendance_type,
@@ -353,6 +353,60 @@ exports.mutualConfirmAttendance = async (req, res) => {
     res.status(500).json({
       success: false,
       message: '출석 확인에 실패했습니다.',
+    });
+  }
+};
+
+/**
+ * 출석 현황 조회 (CheckInButton.tsx에서 사용)
+ * GET /meetups/:id/attendance
+ */
+exports.getAttendance = async (req, res) => {
+  try {
+    const { id: meetupId } = req.params;
+    const userId = req.user.userId;
+
+    // 단일 쿼리로 전체 통계 + 내 출석 정보 조회
+    const result = await pool.query(
+      `SELECT
+        COUNT(*) FILTER (WHERE status = '참가승인') as total,
+        COUNT(*) FILTER (WHERE status = '참가승인' AND attended = true) as attended,
+        MAX(CASE WHEN user_id = $2 AND attended = true THEN 'true' END) as my_attended,
+        MAX(CASE WHEN user_id = $2 THEN attended_at::text END) as my_attended_at
+      FROM meetup_participants
+      WHERE meetup_id = $1`,
+      [meetupId, userId]
+    );
+
+    const row = result.rows[0];
+    const totalParticipants = parseInt(row.total) || 0;
+    const attendedCount = parseInt(row.attended) || 0;
+
+    let myAttendance = null;
+    if (row.my_attended === 'true') {
+      // 출석 방법 조회 (별도 쿼리 - 필요할 때만)
+      const attendanceResult = await pool.query(
+        'SELECT attendance_type FROM attendances WHERE meetup_id = $1 AND user_id = $2',
+        [meetupId, userId]
+      );
+      myAttendance = {
+        attended: true,
+        attendedAt: row.my_attended_at,
+        attendanceType: attendanceResult.rows[0]?.attendance_type || 'gps',
+      };
+    }
+
+    res.json({
+      success: true,
+      totalParticipants,
+      attendedCount,
+      myAttendance,
+    });
+  } catch (error) {
+    console.error('출석 현황 조회 오류:', error);
+    res.status(500).json({
+      success: false,
+      error: '출석 현황 조회에 실패했습니다.',
     });
   }
 };

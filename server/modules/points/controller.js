@@ -57,7 +57,7 @@ exports.getPointHistory = async (req, res) => {
     const params = [userId, parseInt(limit), offset];
 
     if (type) {
-      whereClause += ' AND type = $4';
+      whereClause += ' AND transaction_type = $4';
       params.push(type);
     }
 
@@ -89,7 +89,7 @@ exports.getPointHistory = async (req, res) => {
 exports.earnPoints = async (req, res) => {
   try {
     const userId = req.user.userId;
-    const { amount, reason, referenceId } = req.body;
+    const { amount, reason, relatedMeetupId } = req.body;
 
     const client = await pool.connect();
     try {
@@ -107,9 +107,9 @@ exports.earnPoints = async (req, res) => {
 
       // 거래 내역 기록
       await client.query(`
-        INSERT INTO point_transactions (user_id, type, amount, reason, reference_id, created_at)
+        INSERT INTO point_transactions (user_id, transaction_type, amount, description, related_meetup_id, created_at)
         VALUES ($1, 'earn', $2, $3, $4, NOW())
-      `, [userId, amount, reason, referenceId]);
+      `, [userId, amount, reason, relatedMeetupId]);
 
       await client.query('COMMIT');
 
@@ -135,7 +135,7 @@ exports.earnPoints = async (req, res) => {
 exports.usePoints = async (req, res) => {
   try {
     const userId = req.user.userId;
-    const { amount, reason, referenceId } = req.body;
+    const { amount, reason, relatedMeetupId } = req.body;
 
     const client = await pool.connect();
     try {
@@ -165,9 +165,9 @@ exports.usePoints = async (req, res) => {
 
       // 거래 내역 기록
       await client.query(`
-        INSERT INTO point_transactions (user_id, type, amount, reason, reference_id, created_at)
+        INSERT INTO point_transactions (user_id, transaction_type, amount, description, related_meetup_id, created_at)
         VALUES ($1, 'use', $2, $3, $4, NOW())
-      `, [userId, amount, reason, referenceId]);
+      `, [userId, amount, reason, relatedMeetupId]);
 
       await client.query('COMMIT');
 
@@ -222,8 +222,8 @@ exports.payDeposit = async (req, res) => {
 
       // 약속금 기록
       await client.query(`
-        INSERT INTO meetup_deposits (meetup_id, user_id, amount, status, created_at)
-        VALUES ($1, $2, $3, 'paid', NOW())
+        INSERT INTO promise_deposits (meetup_id, user_id, amount, status, paid_at, created_at)
+        VALUES ($1, $2, $3, 'paid', NOW(), NOW())
       `, [meetupId, userId, amount]);
 
       await client.query('COMMIT');
@@ -258,7 +258,7 @@ exports.refundDeposit = async (req, res) => {
 
       // 약속금 확인
       const depositResult = await client.query(`
-        SELECT amount FROM meetup_deposits
+        SELECT amount FROM promise_deposits
         WHERE meetup_id = $1 AND user_id = $2 AND status = 'paid'
       `, [meetupId, userId]);
 
@@ -281,7 +281,7 @@ exports.refundDeposit = async (req, res) => {
 
       // 약속금 상태 변경
       await client.query(`
-        UPDATE meetup_deposits
+        UPDATE promise_deposits
         SET status = 'refunded', refunded_at = NOW()
         WHERE meetup_id = $1 AND user_id = $2
       `, [meetupId, userId]);

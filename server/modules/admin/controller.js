@@ -987,17 +987,17 @@ exports.updateUserPoints = async (req, res) => {
     const operator = type === 'add' ? '+' : '-';
 
     await pool.query(`
-      INSERT INTO user_points (user_id, total_points, available_points, used_points, expired_points)
-      VALUES ($1, $2, $2, 0, 0)
+      INSERT INTO user_points (user_id, total_earned, available_points, total_used)
+      VALUES ($1, $2, $2, 0)
       ON CONFLICT (user_id)
       DO UPDATE SET
         available_points = user_points.available_points ${operator} $2,
-        total_points = CASE WHEN '${type}' = 'add' THEN user_points.total_points + $2 ELSE user_points.total_points END,
+        total_earned = CASE WHEN '${type}' = 'add' THEN user_points.total_earned + $2 ELSE user_points.total_earned END,
         updated_at = NOW()
     `, [userId, pointAmount]);
 
     await pool.query(`
-      INSERT INTO point_transactions (user_id, type, amount, description, created_at)
+      INSERT INTO point_transactions (user_id, transaction_type, amount, description, created_at)
       VALUES ($1, $2, $3, $4, NOW())
     `, [userId, type === 'add' ? 'earned' : 'used', pointAmount, description || '관리자 조정']);
 

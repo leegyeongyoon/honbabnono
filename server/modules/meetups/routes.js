@@ -87,6 +87,9 @@ router.post('/:id/user-reviews', authenticateToken, reviewController.createUserR
 // 모임 확정/취소
 router.put('/:id/confirm', authenticateToken, miscController.confirmMeetup);
 
+// 출석 현황 조회 (CheckInButton.tsx에서 사용)
+router.get('/:id/attendance', authenticateToken, attendanceController.getAttendance);
+
 // GPS 체크인
 router.post('/:id/checkin/gps', authenticateToken, attendanceController.gpsCheckin);
 
@@ -100,13 +103,13 @@ router.post('/:id/checkin/qr', authenticateToken, attendanceController.qrCheckin
 router.get('/:id/reviewable-participants', authenticateToken, reviewController.getReviewableParticipants);
 
 // 호스트 출석 확인
-router.post('/:id/attendance/host-confirm', authenticateToken, attendanceController.hostConfirmAttendance);
+router.post('/:id/attendance/host-confirm/:participantId', authenticateToken, attendanceController.hostConfirmAttendance);
 
 // 참가자 출석 상태 조회 (호스트용)
 router.get('/:id/attendance/participants', authenticateToken, attendanceController.getAttendanceParticipants);
 
 // 상호 확인
-router.post('/:id/attendance/mutual-confirm', authenticateToken, attendanceController.mutualConfirmAttendance);
+router.post('/:id/attendance/mutual-confirm/:participantId', authenticateToken, attendanceController.mutualConfirmAttendance);
 
 // 위치 인증
 router.post('/:id/verify-location', authenticateToken, attendanceController.verifyLocation);

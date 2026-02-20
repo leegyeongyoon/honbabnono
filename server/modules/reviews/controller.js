@@ -12,15 +12,15 @@ exports.getMeetupReviews = async (req, res) => {
         r.*,
         u.name as reviewer_name,
         u.profile_image as reviewer_profile_image
-      FROM meetup_reviews r
-      JOIN users u ON r.user_id = u.id
+      FROM reviews r
+      JOIN users u ON r.reviewer_id = u.id
       WHERE r.meetup_id = $1
       ORDER BY r.created_at DESC
       LIMIT $2 OFFSET $3
     `, [meetupId, parseInt(limit), offset]);
 
     const countResult = await pool.query(
-      'SELECT COUNT(*) as total FROM meetup_reviews WHERE meetup_id = $1',
+      'SELECT COUNT(*) as total FROM reviews WHERE meetup_id = $1',
       [meetupId]
     );
 
@@ -44,12 +44,28 @@ exports.getMeetupReviews = async (req, res) => {
 exports.createReview = async (req, res) => {
   try {
     const userId = req.user.userId;
-    const { meetupId, rating, content, images } = req.body;
+    const { meetupId, rating, content, revieweeId } = req.body;
+
+    // revieweeId가 없으면 모임 호스트를 대상으로 설정
+    let targetRevieweeId = revieweeId;
+    if (!targetRevieweeId) {
+      const meetupResult = await pool.query(
+        'SELECT host_id FROM meetups WHERE id = $1',
+        [meetupId]
+      );
+      if (meetupResult.rows.length === 0) {
+        return res.status(404).json({
+          success: false,
+          error: '모임을 찾을 수 없습니다.'
+        });
+      }
+      targetRevieweeId = meetupResult.rows[0].host_id;
+    }
 
     // 이미 리뷰 작성 여부 확인
     const existingResult = await pool.query(
-      'SELECT * FROM meetup_reviews WHERE meetup_id = $1 AND user_id = $2',
-      [meetupId, userId]
+      'SELECT * FROM reviews WHERE meetup_id = $1 AND reviewer_id = $2 AND reviewee_id = $3',
+      [meetupId, userId, targetRevieweeId]
     );
 
     if (existingResult.rows.length > 0) {
@@ -73,10 +89,10 @@ exports.createReview = async (req, res) => {
     }
 
     const result = await pool.query(`
-      INSERT INTO meetup_reviews (meetup_id, user_id, rating, content, images, created_at)
-      VALUES ($1, $2, $3, $4, $5, NOW())
+      INSERT INTO reviews (meetup_id, reviewer_id, reviewee_id, rating, content)
+      VALUES ($1, $2, $3, $4, $5)
       RETURNING *
-    `, [meetupId, userId, rating, content, images]);
+    `, [meetupId, userId, targetRevieweeId, rating, content]);
 
     res.status(201).json({
       success: true,
@@ -95,14 +111,14 @@ exports.updateReview = async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.user.userId;
-    const { rating, content, images } = req.body;
+    const { rating, content } = req.body;
 
     const result = await pool.query(`
-      UPDATE meetup_reviews
-      SET rating = $1, content = $2, images = $3, updated_at = NOW()
-      WHERE id = $4 AND user_id = $5
+      UPDATE reviews
+      SET rating = $1, content = $2, updated_at = NOW()
+      WHERE id = $3 AND reviewer_id = $4
       RETURNING *
-    `, [rating, content, images, id, userId]);
+    `, [rating, content, id, userId]);
 
     if (result.rows.length === 0) {
       return res.status(404).json({
@@ -130,7 +146,7 @@ exports.deleteReview = async (req, res) => {
     const userId = req.user.userId;
 
     const result = await pool.query(
-      'DELETE FROM meetup_reviews WHERE id = $1 AND user_id = $2 RETURNING *',
+      'DELETE FROM reviews WHERE id = $1 AND reviewer_id = $2 RETURNING *',
       [id, userId]
     );
 
@@ -159,9 +175,9 @@ exports.rateParticipant = async (req, res) => {
     const { meetupId, targetUserId, rating, comment } = req.body;
 
     const result = await pool.query(`
-      INSERT INTO participant_ratings (meetup_id, reviewer_id, target_user_id, rating, comment, created_at)
-      VALUES ($1, $2, $3, $4, $5, NOW())
-      ON CONFLICT (meetup_id, reviewer_id, target_user_id)
+      INSERT INTO user_reviews (meetup_id, reviewer_id, reviewed_user_id, rating, comment)
+      VALUES ($1, $2, $3, $4, $5)
+      ON CONFLICT (meetup_id, reviewer_id, reviewed_user_id)
       DO UPDATE SET rating = $4, comment = $5, updated_at = NOW()
       RETURNING *
     `, [meetupId, userId, targetUserId, rating, comment]);
@@ -170,7 +186,7 @@ exports.rateParticipant = async (req, res) => {
     await pool.query(`
       UPDATE users
       SET rating = (
-        SELECT AVG(rating) FROM participant_ratings WHERE target_user_id = $1
+        SELECT AVG(rating) FROM user_reviews WHERE reviewed_user_id = $1
       )
       WHERE id = $1
     `, [targetUserId]);
@@ -204,10 +220,10 @@ exports.getUserReviewStats = async (req, res) => {
     // 태그 분석 (리뷰에서 자주 사용된 태그)
     const tagsResult = await pool.query(`
       SELECT
-        UNNEST(string_to_array(tags::text, ',')) as tag,
+        UNNEST(tags) as tag,
         COUNT(*) as count
       FROM reviews
-      WHERE reviewee_id = $1 AND tags IS NOT NULL
+      WHERE reviewee_id = $1 AND tags IS NOT NULL AND array_length(tags, 1) > 0
       GROUP BY tag
       ORDER BY count DESC
       LIMIT 10
@@ -237,8 +253,8 @@ exports.featureReview = async (req, res) => {
     const { featured } = req.body;
 
     const result = await pool.query(`
-      UPDATE meetup_reviews
-      SET is_featured = $1, updated_at = NOW()
+      UPDATE reviews
+      SET is_featured = $1
       WHERE id = $2
       RETURNING *
     `, [featured !== false, reviewId]);
