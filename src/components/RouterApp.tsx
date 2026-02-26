@@ -36,6 +36,7 @@ import NoticeDetailScreen from '../screens/NoticeDetailScreen.web';
 import SearchScreen from '../screens/SearchScreen.web';
 import AISearchResultScreen from '../screens/AISearchResultScreen.web';
 import ExploreScreen from '../screens/ExploreScreen.web';
+import SettingsScreen from '../screens/SettingsScreen.web';
 
 // Components
 import BottomTabBar from './BottomTabBar';
@@ -188,6 +189,8 @@ const RouterApp: React.FC = () => {
         window.location.href = '/create-meetup';
       } else if (screenName === 'Chat') {
         window.location.href = `/chat/${params.meetupId}?title=${encodeURIComponent(params.meetupTitle)}`;
+      } else if (screenName === 'Settings') {
+        window.location.href = '/settings';
       }
     },
     navigateToNotifications: () => {
@@ -279,6 +282,7 @@ const RouterApp: React.FC = () => {
           <Route path="/point-balance" element={protectedElement(<PointBalanceScreen />)} />
           <Route path="/recent-views" element={protectedElement(<RecentViewsScreen />)} />
           <Route path="/blocked-users" element={protectedElement(<BlockedUsersScreen />)} />
+          <Route path="/settings" element={protectedElement(<SettingsScreen />)} />
 
           {/* 로그인 페이지 */}
           <Route path="/login" element={loginRedirectElement(<LoginScreen />)} />

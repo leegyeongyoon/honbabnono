@@ -40,13 +40,16 @@ const UniversalMyReviewsScreen: React.FC<{navigation: NavigationAdapter, user?: 
 
   useEffect(() => { fetchReviews(); }, [fetchReviews]);
 
-  const renderStars = (rating: number) => (
-    <View style={styles.starsContainer}>
-      {[1,2,3,4,5].map(i => (
-        <Icon key={i} name="star" size={16} color={i <= rating ? COLORS.primary.accent : COLORS.neutral.grey200} />
-      ))}
-    </View>
-  );
+  const renderStars = (rating: number) => {
+    const numRating = Number(rating) || 0;
+    return (
+      <View style={styles.starsContainer}>
+        {[1,2,3,4,5].map(i => (
+          <Icon key={i} name="star" size={16} color={i <= numRating ? COLORS.primary.accent : COLORS.neutral.grey200} />
+        ))}
+      </View>
+    );
+  };
 
   if (loading) {
     return (

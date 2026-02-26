@@ -2,10 +2,12 @@
 
 export const getTimeDifference = (timestamp?: string) => {
   if (!timestamp) {return '아직 대화 없음';}
-  
+
   const now = new Date();
   const targetTime = new Date(timestamp);
+  if (isNaN(targetTime.getTime())) {return '';}
   const diffInMinutes = Math.floor((now.getTime() - targetTime.getTime()) / (1000 * 60));
+  if (diffInMinutes < 0) {return '방금 전';}
   
   if (diffInMinutes < 1) {return '방금 전';}
   if (diffInMinutes < 60) {return `${diffInMinutes}분 전`;}
@@ -26,10 +28,12 @@ export const getTimeDifference = (timestamp?: string) => {
 // 채팅용 시간 표기 (대화 텍스트 포함)
 export const getChatTimeDifference = (timestamp?: string) => {
   if (!timestamp) {return '아직 대화 없음';}
-  
+
   const now = new Date();
   const targetTime = new Date(timestamp);
+  if (isNaN(targetTime.getTime())) {return '';}
   const diffInMinutes = Math.floor((now.getTime() - targetTime.getTime()) / (1000 * 60));
+  if (diffInMinutes < 0) {return '방금 전 대화';}
   
   if (diffInMinutes < 1) {return '방금 전 대화';}
   if (diffInMinutes < 60) {return `${diffInMinutes}분 전 대화`;}

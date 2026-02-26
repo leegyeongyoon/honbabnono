@@ -281,7 +281,7 @@ const UniversalChatScreen: React.FC<UniversalChatScreenProps> = ({
 
   const renderChatListItem = (item: ChatRoom) => {
     const displayTitle = item.title;
-    const participantCount = item.type === 'meetup' ? item.participants.length : undefined;
+    const participantCount = item.type === 'meetup' ? (item.participants?.length || undefined) : undefined;
     const hasUnread = item.unreadCount > 0;
 
     return (
@@ -317,7 +317,7 @@ const UniversalChatScreen: React.FC<UniversalChatScreenProps> = ({
               <Text style={[styles.chatTitle, hasUnread && { fontWeight: '800' }]} numberOfLines={1}>
                 {displayTitle}
               </Text>
-              {participantCount && (
+              {participantCount != null && participantCount > 0 && (
                 <Text style={styles.chatParticipantCount}>{participantCount}</Text>
               )}
             </View>

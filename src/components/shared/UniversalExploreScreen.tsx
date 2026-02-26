@@ -28,8 +28,8 @@ const API_URL = Platform.OS === 'web'
   ? (process.env.REACT_APP_API_URL || 'http://localhost:3001')
   : `http://${API_HOSTS[0]}:3001`;
 
-// 기본 검색 반경 (3km)
-const DEFAULT_RADIUS = 3000;
+// 기본 검색 반경 (5km)
+const DEFAULT_RADIUS = 5000;
 
 const RADIUS_OPTIONS = [
   { label: '1km', value: 1000 },

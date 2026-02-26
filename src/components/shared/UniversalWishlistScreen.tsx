@@ -10,6 +10,22 @@ interface NavigationAdapter {
   goBack: () => void;
 }
 
+const normalizeMeetup = (item: any) => ({
+  id: item.id || item.meetup_id,
+  title: item.title || '제목 없음',
+  description: item.description || '',
+  date: item.date || item.meetup_date || '',
+  time: item.time || item.meetup_time || '',
+  location: item.location || item.meetup_location || '위치 미정',
+  category: item.category || '',
+  hostName: item.hostName || item.host_name || '익명',
+  currentParticipants: item.currentParticipants ?? item.current_participants ?? 0,
+  maxParticipants: item.maxParticipants ?? item.max_participants ?? 4,
+  image: item.image || item.meetup_image || null,
+  status: item.status || '모집중',
+  ...item,
+});
+
 const UniversalWishlistScreen: React.FC<{navigation: NavigationAdapter, user?: any}> = ({ navigation, user }) => {
   const [wishlistMeetups, setWishlistMeetups] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -20,7 +36,9 @@ const UniversalWishlistScreen: React.FC<{navigation: NavigationAdapter, user?: a
     try {
       setError(null);
       const response = await userApiService.getWishlist();
-      setWishlistMeetups(response.data || response.meetups || []);
+      const rawData = response.data || response.meetups || response.wishlists || [];
+      const items = Array.isArray(rawData) ? rawData.map(normalizeMeetup) : [];
+      setWishlistMeetups(items);
     } catch (_error) {
       setError('찜한 약속을 불러오는데 실패했습니다');
     } finally {

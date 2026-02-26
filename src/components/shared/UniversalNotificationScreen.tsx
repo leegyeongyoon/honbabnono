@@ -17,6 +17,7 @@ import { Icon } from '../Icon';
 import { NotificationList } from '../NotificationList';
 import { Notification } from '../../types/notification';
 import notificationApiService from '../../services/notificationApiService';
+import { getTimeDifference } from '../../utils/timeUtils';
 
 interface UniversalNotificationScreenProps {
   navigation?: any;
@@ -36,6 +37,17 @@ interface NotificationItem {
   imageUrl?: string;
   data?: any; // For additional notification data
 }
+
+const formatNotificationTime = (time?: string): string => {
+  if (!time) return '';
+  // Already formatted (e.g. "5분 전", "1시간 전") - pass through
+  if (time.includes('전') || time.includes('후') || time.includes('방금')) {
+    return time;
+  }
+  // ISO timestamp - convert using getTimeDifference
+  const result = getTimeDifference(time);
+  return result || time;
+};
 
 const UniversalNotificationScreen: React.FC<UniversalNotificationScreenProps> = ({
   navigation,
@@ -353,7 +365,7 @@ const UniversalNotificationScreen: React.FC<UniversalNotificationScreenProps> = 
                       {notification.message}
                     </Text>
                     <Text style={styles.notificationTime}>
-                      {notification.time}
+                      {formatNotificationTime(notification.time)}
                     </Text>
                   </View>
 

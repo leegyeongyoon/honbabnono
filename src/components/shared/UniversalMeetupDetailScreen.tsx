@@ -6,6 +6,7 @@ import { useUserStore } from '../../store/userStore';
 import { useMeetupStore } from '../../store/meetupStore';
 import apiClient from '../../services/apiClient';
 import { getChatTimeDifference } from '../../utils/timeUtils';
+import { formatMeetupDateTime } from '../../utils/dateUtils';
 import { processImageUrl } from '../../utils/imageUtils';
 import { Icon } from '../Icon';
 import { ProfileImage } from '../ProfileImage';
@@ -775,7 +776,7 @@ const UniversalMeetupDetailScreen: React.FC<UniversalMeetupDetailScreenProps> = 
 
             <View style={styles.infoRow}>
               <Icon name="clock" size={15} color={COLORS.text.tertiary} />
-              <Text style={styles.infoLabel}>{meetup.date} {meetup.time}</Text>
+              <Text style={styles.infoLabel}>{formatMeetupDateTime(meetup.date, meetup.time)}</Text>
             </View>
 
             <View style={styles.infoRow}>

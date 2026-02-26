@@ -31,11 +31,12 @@ const UniversalPointHistoryScreen: React.FC<{navigation: NavigationAdapter, user
 
       // 현재 포인트 조회
       const pointsResponse = await userApiService.getPoints();
-      setCurrentPoints(pointsResponse.data?.points || pointsResponse.points || 0);
+      setCurrentPoints(pointsResponse.data?.points || pointsResponse.data?.availablePoints || pointsResponse.points || pointsResponse.availablePoints || 0);
 
       // 포인트 거래 내역 조회
       const historyResponse = await userApiService.getPointHistory();
-      setTransactions(historyResponse.data || historyResponse.transactions || []);
+      const txData = historyResponse.data || historyResponse.history || historyResponse.transactions || [];
+      setTransactions(Array.isArray(txData) ? txData : []);
     } catch (_error) {
       setError('포인트 내역을 불러오는데 실패했습니다');
     } finally {

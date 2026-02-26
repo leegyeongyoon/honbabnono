@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { COLORS, SHADOWS } from '../styles/colors';
 import { Icon } from '../components/Icon';
@@ -13,6 +13,18 @@ interface Badge {
   earnedDate?: string;
   category: 'activity' | 'social' | 'achievement';
 }
+
+const safeGoBack = (navigation: any) => {
+  try {
+    if (navigation?.goBack) {
+      navigation.goBack();
+    }
+  } catch {
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      window.history.back();
+    }
+  }
+};
 
 const MyBadgesScreen: React.FC = () => {
   const navigation = useNavigation();
@@ -133,7 +145,7 @@ const MyBadgesScreen: React.FC = () => {
       <View style={styles.header}>
         <TouchableOpacity 
           style={styles.backButton}
-          onPress={() => navigation.goBack()}
+          onPress={() => safeGoBack(navigation)}
         >
           <Icon name="arrow-left" size={24} color={COLORS.text.primary} />
         </TouchableOpacity>

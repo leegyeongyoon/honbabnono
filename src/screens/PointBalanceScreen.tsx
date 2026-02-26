@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { COLORS, SHADOWS } from '../styles/colors';
 import { Icon } from '../components/Icon';
@@ -14,6 +14,18 @@ interface PointTransaction {
   createdAt: string;
   relatedDepositId?: string;
 }
+
+const safeGoBack = (navigation: any) => {
+  try {
+    if (navigation?.goBack) {
+      safeGoBack(navigation);
+    }
+  } catch {
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      window.history.back();
+    }
+  }
+};
 
 const PointBalanceScreen: React.FC = () => {
   const navigation = useNavigation();
@@ -158,7 +170,7 @@ const PointBalanceScreen: React.FC = () => {
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <TouchableOpacity style={styles.backButton} onPress={() => safeGoBack(navigation)}>
             <Icon name="arrow-left" size={24} color={COLORS.text.primary} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>포인트</Text>
@@ -186,7 +198,7 @@ const PointBalanceScreen: React.FC = () => {
       <View style={styles.header}>
         <TouchableOpacity 
           style={styles.backButton}
-          onPress={() => navigation.goBack()}
+          onPress={() => safeGoBack(navigation)}
         >
           <Icon name="arrow-left" size={24} color={COLORS.text.primary} />
         </TouchableOpacity>
