@@ -9,6 +9,7 @@
  */
 
 const pool = require('../../config/database');
+const logger = require('../../config/logger');
 const { sendPushNotification } = require('../../modules/notifications/pushService');
 
 const JOB_NAME = '🚫 [노쇼 처리]';
@@ -38,7 +39,7 @@ async function run() {
       return;
     }
 
-    console.log(`${JOB_NAME} ${completedMeetups.rows.length}개 모임 노쇼 처리 시작`);
+    logger.info(`${JOB_NAME} ${completedMeetups.rows.length}개 모임 노쇼 처리 시작`);
 
     let totalNoShows = 0;
 
@@ -101,7 +102,7 @@ async function run() {
             '⚠️ 노쇼 처리 안내',
             noShowMessage,
             { type: 'noshow_penalty', meetupId: String(meetup.id) }
-          ).catch(err => console.error(`${JOB_NAME} 푸시 전송 실패:`, err.message));
+          ).catch(err => logger.error(`${JOB_NAME} 푸시 전송 실패:`, err.message));
 
           totalNoShows++;
         }
@@ -127,23 +128,23 @@ async function run() {
             '📋 노쇼 처리 결과',
             hostMessage,
             { type: 'noshow_report', meetupId: String(meetup.id) }
-          ).catch(err => console.error(`${JOB_NAME} 호스트 푸시 전송 실패:`, err.message));
+          ).catch(err => logger.error(`${JOB_NAME} 호스트 푸시 전송 실패:`, err.message));
         }
 
         await client.query('COMMIT');
 
       } catch (meetupError) {
         await client.query('ROLLBACK');
-        console.error(`${JOB_NAME} 모임 ${meetup.id} 처리 중 오류:`, meetupError);
+        logger.error(`${JOB_NAME} 모임 ${meetup.id} 처리 중 오류:`, meetupError);
       }
     }
 
     if (totalNoShows > 0) {
-      console.log(`${JOB_NAME} 완료: ${totalNoShows}명 노쇼 처리`);
+      logger.info(`${JOB_NAME} 완료: ${totalNoShows}명 노쇼 처리`);
     }
 
   } catch (error) {
-    console.error(`${JOB_NAME} 오류:`, error);
+    logger.error(`${JOB_NAME} 오류:`, error);
   } finally {
     client.release();
   }

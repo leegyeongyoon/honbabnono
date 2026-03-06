@@ -6,7 +6,7 @@ const logger = require('./logger');
 // S3 설정을 위한 초기화 함수
 const initializeS3Upload = () => {
   // 환경변수 확인 및 디버그 로깅
-  logger.debug('🔧 S3 환경변수 확인:', {
+  logger.debug('S3 환경변수 확인:', {
     accessKeyId: process.env.AWS_ACCESS_KEY_ID ? `${process.env.AWS_ACCESS_KEY_ID.substring(0, 8)}...` : 'undefined',
     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY ? `${process.env.AWS_SECRET_ACCESS_KEY.substring(0, 8)}...` : 'undefined',
     region: process.env.AWS_REGION,
@@ -41,14 +41,14 @@ const initializeS3Upload = () => {
   const uploadToS3Direct = async (file, prefix = 'uploads') => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
     let fileName;
-    
+
     // prefix에 따라 폴더 구분
     if (prefix.startsWith('meetup-')) {
       fileName = `meetup-images/${prefix}-${uniqueSuffix}${path.extname(file.originalname)}`;
     } else {
       fileName = `profiles/${prefix}-${uniqueSuffix}${path.extname(file.originalname)}`;
     }
-    
+
     const params = {
       Bucket: process.env.AWS_S3_BUCKET || 'honbabnono-uploads',
       Key: fileName,
@@ -58,16 +58,16 @@ const initializeS3Upload = () => {
     };
 
     try {
-      logger.debug('🔄 S3 업로드 시작:', { fileName, contentType: file.mimetype, size: file.buffer.length });
+      logger.debug('S3 업로드 시작:', { fileName, contentType: file.mimetype, size: file.buffer.length });
       const result = await s3.upload(params).promise();
-      logger.info('✅ S3 업로드 성공:', result.Location);
+      logger.info('S3 업로드 성공:', result.Location);
       return {
         success: true,
         location: result.Location,
         key: result.Key
       };
     } catch (error) {
-      logger.error('❌ S3 업로드 실패:', error);
+      logger.error('S3 업로드 실패:', error);
       throw error;
     }
   };
@@ -79,26 +79,27 @@ const initializeS3Upload = () => {
 const deleteFromS3 = async (fileUrl) => {
   try {
     // S3 URL에서 key 추출
+    const s3Region = process.env.AWS_REGION || 'ap-northeast-2';
     const urlParts = fileUrl.split('/');
-    const bucketIndex = urlParts.indexOf(process.env.AWS_S3_BUCKET + '.s3.ap-northeast-2.amazonaws.com');
-    
+    const bucketIndex = urlParts.indexOf(process.env.AWS_S3_BUCKET + '.s3.' + s3Region + '.amazonaws.com');
+
     if (bucketIndex === -1) {
-      logger.warn('❌ S3 URL 형식이 잘못되었습니다:', fileUrl);
+      logger.warn('S3 URL 형식이 잘못되었습니다:', fileUrl);
       return false;
     }
-    
+
     const key = urlParts.slice(bucketIndex + 1).join('/');
-    
+
     const params = {
       Bucket: process.env.AWS_S3_BUCKET,
       Key: key
     };
-    
+
     await s3.deleteObject(params).promise();
-    logger.info('✅ S3에서 파일 삭제 성공:', key);
+    logger.info('S3에서 파일 삭제 성공:', key);
     return true;
   } catch (error) {
-    logger.error('❌ S3 파일 삭제 실패:', error);
+    logger.error('S3 파일 삭제 실패:', error);
     return false;
   }
 };

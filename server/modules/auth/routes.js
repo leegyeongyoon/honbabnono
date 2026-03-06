@@ -2,6 +2,8 @@ const express = require('express');
 const router = express.Router();
 const authController = require('./controller');
 const { authenticateToken } = require('../../middleware/auth');
+const validate = require('../../middleware/validate');
+const { registerSchema, loginSchema } = require('../../middleware/schemas/auth.schemas');
 
 // 카카오 로그인 시작 (인증 페이지로 리다이렉트)
 router.get('/kakao', authController.kakaoAuthRedirect);
@@ -28,12 +30,18 @@ router.post('/test-login', authController.testLogin);
 router.get('/profile', authenticateToken, authController.getProfile);
 
 // 이메일 회원가입
-router.post('/register', authController.register);
+router.post('/register', validate({ body: registerSchema }), authController.register);
 
 // 이메일 로그인
-router.post('/login', authController.login);
+router.post('/login', validate({ body: loginSchema }), authController.login);
 
 // 리프레시 토큰으로 새 액세스 토큰 발급
 router.post('/refresh-token', authController.refreshToken);
+
+// 비밀번호 재설정 요청
+router.post('/forgot-password', authController.forgotPassword);
+
+// 비밀번호 재설정 실행
+router.post('/reset-password', authController.resetPassword);
 
 module.exports = router;

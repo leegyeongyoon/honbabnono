@@ -1,14 +1,15 @@
 const { Router } = require('express');
 const OpenAI = require('openai');
 const jwt = require('jsonwebtoken');
+const logger = require('../config/logger');
 // Canvas는 선택적으로 import (텍스트 카드 생성용)
 let createCanvas = null;
 try {
   const canvas = require('canvas');
   createCanvas = canvas.createCanvas;
-  console.log('✅ Canvas 모듈 로드 완료');
+  logger.info('Canvas 모듈 로드 완료');
 } catch (error) {
-  console.log('⚠️ Canvas 모듈 없음 - 텍스트 카드 생성 비활성화');
+  logger.info('Canvas 모듈 없음 - 텍스트 카드 생성 비활성화');
 }
 
 const router = Router();
@@ -61,7 +62,7 @@ const authenticateAdmin = async (req, res, next) => {
     req.admin = result.rows[0];
     next();
   } catch (error) {
-    console.error('인증 오류:', error);
+    logger.error('인증 오류:', error);
     res.status(401).json({ error: '인증 실패' });
   }
 };
@@ -164,7 +165,7 @@ router.post('/collector-agent', authenticateAdmin, async (req, res) => {
   try {
     const { keywords = [], customSources = [] } = req.body;
 
-    console.log('🔍 Collector Agent 실행 시작');
+    logger.info('Collector Agent 실행 시작');
     
     const defaultKeywords = [
       '혼밥', '혼자 밥', '혼자 고기', '밥친구', '밥약', '점심 같이', '저녁 같이',
@@ -206,7 +207,7 @@ router.post('/collector-agent', authenticateAdmin, async (req, res) => {
 
     const result = JSON.parse(completion.choices[0].message.content);
 
-    console.log('✅ Collector Agent 완료');
+    logger.info('Collector Agent 완료');
 
     res.json({
       success: true,
@@ -215,7 +216,7 @@ router.post('/collector-agent', authenticateAdmin, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Collector Agent 오류:', error);
+    logger.error('Collector Agent 오류:', error);
     res.status(500).json({
       success: false,
       error: error.message || '데이터 수집 중 오류가 발생했습니다'
@@ -228,7 +229,7 @@ router.post('/analyst-agent', authenticateAdmin, async (req, res) => {
   try {
     const { sources } = req.body;
 
-    console.log('📊 Analyst Agent 실행 시작');
+    logger.info('Analyst Agent 실행 시작');
 
     const prompt = `다음 수집된 데이터를 분석하여 인사이트를 도출해주세요:
 
@@ -285,7 +286,7 @@ ${JSON.stringify(sources, null, 2)}
 
     const result = JSON.parse(completion.choices[0].message.content);
 
-    console.log('✅ Analyst Agent 완료');
+    logger.info('Analyst Agent 완료');
 
     res.json({
       success: true,
@@ -294,7 +295,7 @@ ${JSON.stringify(sources, null, 2)}
     });
 
   } catch (error) {
-    console.error('Analyst Agent 오류:', error);
+    logger.error('Analyst Agent 오류:', error);
     res.status(500).json({
       success: false,
       error: error.message || '신호 분석 중 오류가 발생했습니다'
@@ -305,7 +306,7 @@ ${JSON.stringify(sources, null, 2)}
 // 텍스트 카드 이미지 생성 함수
 function createTextCard(text, options = {}) {
   if (!createCanvas) {
-    console.log('⚠️ Canvas 모듈이 없어 텍스트 카드 생성을 건너뜁니다');
+    logger.info('Canvas 모듈이 없어 텍스트 카드 생성을 건너뜁니다');
     return null;
   }
   
@@ -382,7 +383,7 @@ async function generateImage(prompt, style = 'vivid') {
     });
     return response.data[0].url;
   } catch (error) {
-    console.error('이미지 생성 오류:', error);
+    logger.error('이미지 생성 오류:', error);
     return null;
   }
 }
@@ -392,7 +393,7 @@ router.post('/studio-agent', authenticateAdmin, async (req, res) => {
   try {
     const { analysisData, tone = 'warm_story', generateImages = false } = req.body;
 
-    console.log('🎨 Studio Agent 실행 시작');
+    logger.info('Studio Agent 실행 시작');
 
     const toneGuide = tone === 'warm_story' 
       ? '따뜻한 스토리텔링, 공감과 위로, 경험 중심'
@@ -454,8 +455,8 @@ ${JSON.stringify(analysisData, null, 2)}
 
     // 이미지 생성 옵션이 활성화된 경우
     if (generateImages && result.imagePlans && result.imagePlans.length > 0) {
-      console.log('🎨 이미지 생성 시작...');
-      
+      logger.info('이미지 생성 시작...');
+
       // 각 이미지 플랜에 대해 실제 이미지 생성
       for (let plan of result.imagePlans) {
         // 영어 프롬프트가 있으면 사용, 없으면 한글 프롬프트 사용
@@ -464,13 +465,13 @@ ${JSON.stringify(analysisData, null, 2)}
           const imageUrl = await generateImage(imagePrompt, plan.style === 'photo' ? 'natural' : 'vivid');
           if (imageUrl) {
             plan.generatedImageUrl = imageUrl;
-            console.log(`✅ 이미지 생성 완료: ${plan.name}`);
+            logger.info(`이미지 생성 완료: ${plan.name}`);
           }
         }
       }
     }
 
-    console.log('✅ Studio Agent 완료');
+    logger.info('Studio Agent 완료');
 
     res.json({
       success: true,
@@ -479,7 +480,7 @@ ${JSON.stringify(analysisData, null, 2)}
     });
 
   } catch (error) {
-    console.error('Studio Agent 오류:', error);
+    logger.error('Studio Agent 오류:', error);
     res.status(500).json({
       success: false,
       error: error.message || '콘텐츠 생성 중 오류가 발생했습니다'
@@ -492,7 +493,7 @@ router.post('/run-full-pipeline', authenticateAdmin, async (req, res) => {
   try {
     const { keywords = [], tone = 'warm_story', customPrompt, generateImages = false } = req.body;
 
-    console.log('🚀 전체 파이프라인 실행 시작');
+    logger.info('전체 파이프라인 실행 시작');
 
     // Step 1: Collector
     const collectorPrompt = `오늘 날짜: ${new Date().toLocaleDateString('ko-KR')}
@@ -530,11 +531,11 @@ router.post('/run-full-pipeline', authenticateAdmin, async (req, res) => {
     try {
       collectorResult = JSON.parse(collectorResponse.choices[0].message.content);
     } catch (e) {
-      console.error('Collector JSON 파싱 오류:', e);
+      logger.error('Collector JSON 파싱 오류:', e);
       collectorResult = { sources: [], keyTrends: [], totalSourcesFound: 0 };
     }
-    console.log('✅ Step 1: Collector 완료');
-    console.log('Collector 결과:', JSON.stringify(collectorResult, null, 2).substring(0, 500));
+    logger.info('Step 1: Collector 완료');
+    logger.debug('Collector 결과:', JSON.stringify(collectorResult, null, 2).substring(0, 500));
 
     // Step 2: Analyst
     const analystPrompt = `수집된 데이터를 분석하여 인사이트를 도출해주세요:
@@ -593,11 +594,11 @@ ${JSON.stringify(collectorResult, null, 2)}
     try {
       analystResult = JSON.parse(analystResponse.choices[0].message.content);
     } catch (e) {
-      console.error('Analyst JSON 파싱 오류:', e);
+      logger.error('Analyst JSON 파싱 오류:', e);
       analystResult = { signals: [], clusters: [], risksAndFixes: [], hypothesesToValidate: [] };
     }
-    console.log('✅ Step 2: Analyst 완료');
-    console.log('Analyst 결과 요약:', {
+    logger.info('Step 2: Analyst 완료');
+    logger.debug('Analyst 결과 요약:', {
       signals: analystResult.signals?.length || 0,
       clusters: analystResult.clusters?.length || 0
     });
@@ -657,13 +658,13 @@ ${JSON.stringify(analystResult, null, 2)}
     try {
       studioResult = JSON.parse(studioResponse.choices[0].message.content);
     } catch (e) {
-      console.error('Studio JSON 파싱 오류:', e);
+      logger.error('Studio JSON 파싱 오류:', e);
       studioResult = { threadsDrafts: [], instagramDrafts: [], imagePlans: [] };
     }
     
     // 인스타그램 캡션을 텍스트 카드 이미지로 생성
     if (studioResult.instagramDrafts && studioResult.instagramDrafts.length > 0) {
-      console.log('📝 인스타그램 텍스트 카드 생성 시작...');
+      logger.info('인스타그램 텍스트 카드 생성 시작...');
       
       for (let insta of studioResult.instagramDrafts) {
         if (insta.caption) {
@@ -677,9 +678,9 @@ ${JSON.stringify(analystResult, null, 2)}
           });
           if (cardImage) {
             insta.textCardImage = cardImage;
-            console.log(`✅ 텍스트 카드 생성 완료: ${insta.format}`);
+            logger.info(`텍스트 카드 생성 완료: ${insta.format}`);
           } else {
-            console.log(`⚠️ 텍스트 카드 생성 건너뜀: ${insta.format}`);
+            logger.info(`텍스트 카드 생성 건너뜀: ${insta.format}`);
           }
         }
       }
@@ -687,7 +688,7 @@ ${JSON.stringify(analystResult, null, 2)}
     
     // DALL-E 이미지 생성 옵션이 활성화된 경우
     if (generateImages && studioResult.imagePlans && studioResult.imagePlans.length > 0) {
-      console.log('🎨 DALL-E 이미지 생성 시작...');
+      logger.info('DALL-E 이미지 생성 시작...');
       
       for (let plan of studioResult.imagePlans) {
         const imagePrompt = plan.aiPromptEN || plan.aiPromptKR;
@@ -695,14 +696,14 @@ ${JSON.stringify(analystResult, null, 2)}
           const imageUrl = await generateImage(imagePrompt, plan.style === 'photo' ? 'natural' : 'vivid');
           if (imageUrl) {
             plan.generatedImageUrl = imageUrl;
-            console.log(`✅ DALL-E 이미지 생성 완료: ${plan.name}`);
+            logger.info(`DALL-E 이미지 생성 완료: ${plan.name}`);
           }
         }
       }
     }
     
-    console.log('✅ Step 3: Studio 완료');
-    console.log('Studio 결과 요약:', {
+    logger.info('Step 3: Studio 완료');
+    logger.debug('Studio 결과 요약:', {
       threads: studioResult.threadsDrafts?.length || 0,
       instagram: studioResult.instagramDrafts?.length || 0,
       images: studioResult.imagePlans?.length || 0
@@ -723,7 +724,7 @@ ${JSON.stringify(analystResult, null, 2)}
       }
     };
 
-    console.log('📊 파이프라인 결과 (요약):', {
+    logger.debug('파이프라인 결과 (요약):', {
       collectorSources: collectorResult?.sources?.length || 0,
       analystClusters: analystResult?.clusters?.length || 0,
       studioContents: (studioResult?.threadsDrafts?.length || 0) + (studioResult?.instagramDrafts?.length || 0)
@@ -736,9 +737,9 @@ ${JSON.stringify(analystResult, null, 2)}
          VALUES ($1, $2, NOW())`,
         [req.admin.id, JSON.stringify(fullResult)]
       );
-      console.log('💾 파이프라인 결과 DB 저장 완료');
+      logger.info('파이프라인 결과 DB 저장 완료');
     } catch (dbError) {
-      console.log('⚠️ DB 저장 실패 (테이블이 없을 수 있음):', dbError.message);
+      logger.warn('DB 저장 실패 (테이블이 없을 수 있음):', dbError.message);
       // 테이블 생성 시도
       try {
         await pool.query(`
@@ -749,13 +750,13 @@ ${JSON.stringify(analystResult, null, 2)}
             created_at TIMESTAMP DEFAULT NOW()
           )
         `);
-        console.log('✅ advanced_research_reports 테이블 생성 완료');
+        logger.info('advanced_research_reports 테이블 생성 완료');
       } catch (createError) {
-        console.log('테이블 생성 시도:', createError.message);
+        logger.error('테이블 생성 시도:', createError.message);
       }
     }
 
-    console.log('🎉 전체 파이프라인 완료');
+    logger.info('전체 파이프라인 완료');
 
     res.json({
       success: true,
@@ -764,7 +765,7 @@ ${JSON.stringify(analystResult, null, 2)}
     });
 
   } catch (error) {
-    console.error('파이프라인 실행 오류:', error);
+    logger.error('파이프라인 실행 오류:', error);
     res.status(500).json({
       success: false,
       error: error.message || '파이프라인 실행 중 오류가 발생했습니다'
@@ -777,7 +778,7 @@ router.post('/generate-hashtags', authenticateAdmin, async (req, res) => {
   try {
     const { topic, platform, tone = 'neutral' } = req.body;
 
-    console.log('🏷️ 해시태그 생성 시작:', { topic, platform, tone });
+    logger.info('해시태그 생성 시작:', { topic, platform, tone });
 
     if (!topic || !platform) {
       return res.status(400).json({
@@ -836,7 +837,7 @@ ${platformGuide}
 
     const result = JSON.parse(completion.choices[0].message.content);
 
-    console.log('✅ 해시태그 생성 완료');
+    logger.info('해시태그 생성 완료');
 
     res.json({
       success: true,
@@ -850,7 +851,7 @@ ${platformGuide}
     });
 
   } catch (error) {
-    console.error('해시태그 생성 오류:', error);
+    logger.error('해시태그 생성 오류:', error);
     res.status(500).json({
       success: false,
       error: error.message || '해시태그 생성 중 오류가 발생했습니다'
@@ -883,14 +884,14 @@ router.get('/advanced-reports', authenticateAdmin, async (req, res) => {
         reports: parsedReports
       });
     } catch (dbError) {
-      console.log('⚠️ 리포트 조회 실패:', dbError.message);
+      logger.warn('리포트 조회 실패:', dbError.message);
       res.json({
         success: true,
         reports: []
       });
     }
   } catch (error) {
-    console.error('리포트 조회 오류:', error);
+    logger.error('리포트 조회 오류:', error);
     res.status(500).json({
       success: false,
       error: '리포트 조회 중 오류가 발생했습니다'

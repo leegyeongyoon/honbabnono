@@ -2,6 +2,7 @@
  * 모임 참가 관리 컨트롤러
  */
 const pool = require('../../../config/database');
+const logger = require('../../../config/logger');
 const {
   validateMeetupExists,
   validateHostPermission,
@@ -62,7 +63,7 @@ exports.joinMeetup = async (req, res) => {
       message: '참가 신청이 완료되었습니다.',
     });
   } catch (error) {
-    console.error('모임 참가 오류:', error);
+    logger.error('모임 참가 오류:', error);
     res.status(500).json({
       success: false,
       message: '약속 참가에 실패했습니다.',
@@ -136,7 +137,7 @@ exports.leaveMeetup = async (req, res) => {
       message: '참가가 취소되었습니다.',
     });
   } catch (error) {
-    console.error('모임 참가 취소 오류:', error);
+    logger.error('모임 참가 취소 오류:', error);
     res.status(500).json({
       success: false,
       message: '참가 취소에 실패했습니다.',
@@ -182,7 +183,7 @@ exports.getParticipants = async (req, res) => {
       })),
     });
   } catch (error) {
-    console.error('참가자 목록 조회 오류:', error);
+    logger.error('참가자 목록 조회 오류:', error);
     res.status(500).json({
       success: false,
       message: '참가자 목록 조회에 실패했습니다.',
@@ -273,7 +274,7 @@ exports.updateParticipantStatus = async (req, res) => {
       participant: result.rows[0],
     });
   } catch (error) {
-    console.error('참가자 상태 변경 오류:', error);
+    logger.error('참가자 상태 변경 오류:', error);
     res.status(500).json({
       success: false,
       message: '참가자 상태 변경에 실패했습니다.',

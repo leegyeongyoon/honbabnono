@@ -2,6 +2,7 @@
  * 모임 리뷰 컨트롤러
  */
 const pool = require('../../../config/database');
+const logger = require('../../../config/logger');
 const { validateMeetupExists, validateParticipant, validateRating } = require('../helpers/validation.helper');
 const { buildPagination } = require('../helpers/query.helper');
 
@@ -92,7 +93,7 @@ exports.createReview = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('리뷰 작성 오류:', error);
+    logger.error('리뷰 작성 오류:', error);
     res.status(500).json({ error: '서버 오류가 발생했습니다' });
   }
 };
@@ -158,7 +159,7 @@ exports.getReviews = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('리뷰 목록 조회 오류:', error);
+    logger.error('리뷰 목록 조회 오류:', error);
     res.status(500).json({ error: '서버 오류가 발생했습니다' });
   }
 };
@@ -233,7 +234,7 @@ exports.getReviewableParticipants = async (req, res) => {
       })),
     });
   } catch (error) {
-    console.error('리뷰 가능 참가자 목록 조회 오류:', error);
+    logger.error('리뷰 가능 참가자 목록 조회 오류:', error);
     res.status(500).json({
       success: false,
       message: '참가자 목록 조회에 실패했습니다.',
@@ -335,7 +336,7 @@ exports.createUserReview = async (req, res) => {
       data: review,
     });
   } catch (error) {
-    console.error('참가자 리뷰 작성 오류:', error);
+    logger.error('참가자 리뷰 작성 오류:', error);
     res.status(500).json({ error: '서버 오류가 발생했습니다' });
   }
 };

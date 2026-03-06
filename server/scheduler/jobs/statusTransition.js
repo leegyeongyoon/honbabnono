@@ -7,6 +7,7 @@
  */
 
 const pool = require('../../config/database');
+const logger = require('../../config/logger');
 
 const JOB_NAME = '🔄 [상태 전환]';
 
@@ -22,7 +23,7 @@ async function run() {
     `);
 
     if (toInProgressResult.rows.length > 0) {
-      console.log(
+      logger.info(
         `${JOB_NAME} ${toInProgressResult.rows.length}개 모임 '진행중'으로 전환:`,
         toInProgressResult.rows.map(m => m.title).join(', ')
       );
@@ -38,7 +39,7 @@ async function run() {
     `);
 
     if (toCompletedResult.rows.length > 0) {
-      console.log(
+      logger.info(
         `${JOB_NAME} ${toCompletedResult.rows.length}개 모임 '종료'로 전환:`,
         toCompletedResult.rows.map(m => m.title).join(', ')
       );
@@ -46,11 +47,11 @@ async function run() {
 
     const totalTransitions = toInProgressResult.rows.length + toCompletedResult.rows.length;
     if (totalTransitions > 0) {
-      console.log(`${JOB_NAME} 완료: 총 ${totalTransitions}개 모임 상태 전환`);
+      logger.info(`${JOB_NAME} 완료: 총 ${totalTransitions}개 모임 상태 전환`);
     }
 
   } catch (error) {
-    console.error(`${JOB_NAME} 오류:`, error);
+    logger.error(`${JOB_NAME} 오류:`, error);
   }
 }
 

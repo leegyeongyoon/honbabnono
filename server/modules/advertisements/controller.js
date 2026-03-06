@@ -1,4 +1,5 @@
 const pool = require('../../config/database');
+const logger = require('../../config/logger');
 
 // 전체 광고 목록 조회
 exports.getAllAds = async (req, res) => {
@@ -54,7 +55,7 @@ exports.getAllAds = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('광고 목록 조회 오류:', error);
+    logger.error('광고 목록 조회 오류:', error);
     res.status(500).json({
       success: false,
       error: '광고 목록을 불러오는데 실패했습니다.'
@@ -96,7 +97,7 @@ exports.getActiveAds = async (req, res) => {
       data: result.rows
     });
   } catch (error) {
-    console.error('활성 광고 조회 오류:', error);
+    logger.error('활성 광고 조회 오류:', error);
     res.status(500).json({
       success: false,
       error: '광고를 불러오는데 실패했습니다.'
@@ -128,7 +129,7 @@ exports.recordClick = async (req, res) => {
       message: '클릭이 기록되었습니다.'
     });
   } catch (error) {
-    console.error('광고 클릭 기록 오류:', error);
+    logger.error('광고 클릭 기록 오류:', error);
     res.status(500).json({
       success: false,
       error: '클릭 기록에 실패했습니다.'
@@ -169,7 +170,7 @@ exports.getAdDetail = async (req, res) => {
       data: result.rows[0]
     });
   } catch (error) {
-    console.error('광고 디테일 조회 오류:', error);
+    logger.error('광고 디테일 조회 오류:', error);
     res.status(500).json({
       success: false,
       error: '광고를 불러오는데 실패했습니다.'

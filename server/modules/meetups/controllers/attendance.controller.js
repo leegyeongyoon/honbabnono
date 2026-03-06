@@ -2,6 +2,7 @@
  * 출석 관리 컨트롤러
  */
 const pool = require('../../../config/database');
+const logger = require('../../../config/logger');
 const { calculateDistance } = require('../../../utils/helpers');
 const { validateMeetupExists, validateHostPermission, validateParticipant } = require('../helpers/validation.helper');
 
@@ -80,7 +81,7 @@ exports.gpsCheckin = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('GPS 체크인 오류:', error);
+    logger.error('GPS 체크인 오류:', error);
     res.status(500).json({ error: '서버 오류가 발생했습니다' });
   }
 };
@@ -118,7 +119,7 @@ exports.generateQRCode = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('QR 코드 생성 오류:', error);
+    logger.error('QR 코드 생성 오류:', error);
     res.status(500).json({ error: '서버 오류가 발생했습니다' });
   }
 };
@@ -156,7 +157,7 @@ exports.getQRCode = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('QR 코드 조회 오류:', error);
+    logger.error('QR 코드 조회 오류:', error);
     res.status(500).json({ error: '서버 오류가 발생했습니다' });
   }
 };
@@ -218,7 +219,7 @@ exports.qrCheckin = async (req, res) => {
       message: 'QR 코드 체크인이 완료되었습니다!',
     });
   } catch (error) {
-    console.error('QR 체크인 오류:', error);
+    logger.error('QR 체크인 오류:', error);
     res.status(500).json({ error: '서버 오류가 발생했습니다' });
   }
 };
@@ -260,7 +261,7 @@ exports.hostConfirmAttendance = async (req, res) => {
       message: '출석이 확인되었습니다.',
     });
   } catch (error) {
-    console.error('호스트 출석 확인 오류:', error);
+    logger.error('호스트 출석 확인 오류:', error);
     res.status(500).json({
       success: false,
       message: '출석 확인에 실패했습니다.',
@@ -309,7 +310,7 @@ exports.getAttendanceParticipants = async (req, res) => {
       })),
     });
   } catch (error) {
-    console.error('출석 참가자 목록 조회 오류:', error);
+    logger.error('출석 참가자 목록 조회 오류:', error);
     res.status(500).json({
       success: false,
       message: '참가자 목록 조회에 실패했습니다.',
@@ -349,7 +350,7 @@ exports.mutualConfirmAttendance = async (req, res) => {
       message: '출석 확인이 완료되었습니다.',
     });
   } catch (error) {
-    console.error('상호 출석 확인 오류:', error);
+    logger.error('상호 출석 확인 오류:', error);
     res.status(500).json({
       success: false,
       message: '출석 확인에 실패했습니다.',
@@ -403,7 +404,7 @@ exports.getAttendance = async (req, res) => {
       myAttendance,
     });
   } catch (error) {
-    console.error('출석 현황 조회 오류:', error);
+    logger.error('출석 현황 조회 오류:', error);
     res.status(500).json({
       success: false,
       error: '출석 현황 조회에 실패했습니다.',
@@ -458,7 +459,7 @@ exports.verifyLocation = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('위치 검증 오류:', error);
+    logger.error('위치 검증 오류:', error);
     res.status(500).json({
       success: false,
       message: '위치 검증에 실패했습니다.',

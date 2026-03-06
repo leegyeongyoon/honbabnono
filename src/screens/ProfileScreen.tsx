@@ -18,6 +18,7 @@ import { useToast } from '../hooks/useToast';
 import Toast from '../components/Toast';
 import { useConfirmDialog } from '../hooks/useConfirmDialog';
 import ConfirmDialog from '../components/ConfirmDialog';
+import userApiService from '../services/userApiService';
 
 interface ProfileScreenProps {
   navigation?: any;
@@ -60,10 +61,23 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation, user, onLogou
     setShowEditModal(true);
   };
 
-  const handleSaveProfile = () => {
-    // TODO: 실제 API 호출로 이름 업데이트
-    showSuccess('프로필이 업데이트되었습니다.');
-    setShowEditModal(false);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleSaveProfile = async () => {
+    if (!editedName.trim()) {
+      showError('이름을 입력해주세요.');
+      return;
+    }
+    setIsSaving(true);
+    try {
+      await userApiService.updateProfile({ name: editedName.trim() });
+      showSuccess('프로필이 업데이트되었습니다.');
+      setShowEditModal(false);
+    } catch (_error) {
+      showError('프로필 업데이트에 실패했습니다.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleVerification = async () => {

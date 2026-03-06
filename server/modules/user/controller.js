@@ -1,5 +1,6 @@
 const pool = require('../../config/database');
 const { processImageUrl } = require('../../utils/helpers');
+const logger = require('../../config/logger');
 
 // 현재 사용자 정보 조회
 exports.getMe = async (req, res) => {
@@ -35,7 +36,7 @@ exports.getMe = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('사용자 정보 조회 오류:', error);
+    logger.error('사용자 정보 조회 오류:', error);
     res.status(500).json({
       success: false,
       error: '사용자 정보를 불러올 수 없습니다.'
@@ -86,7 +87,7 @@ exports.getStats = async (req, res) => {
 
     res.json({ stats });
   } catch (error) {
-    console.error('통계 조회 오류:', error);
+    logger.error('통계 조회 오류:', error);
     res.status(500).json({ error: '서버 오류가 발생했습니다' });
   }
 };
@@ -124,7 +125,7 @@ exports.getMyReviews = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('내 리뷰 조회 오류:', error);
+    logger.error('내 리뷰 조회 오류:', error);
     res.status(500).json({ error: '서버 오류가 발생했습니다' });
   }
 };
@@ -176,7 +177,7 @@ exports.getActivities = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('내 활동 조회 오류:', error);
+    logger.error('내 활동 조회 오류:', error);
     res.status(500).json({ error: '서버 오류가 발생했습니다' });
   }
 };
@@ -218,7 +219,7 @@ exports.getHostedMeetups = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('호스트 모임 조회 오류:', error);
+    logger.error('호스트 모임 조회 오류:', error);
     res.status(500).json({ error: '서버 오류가 발생했습니다' });
   }
 };
@@ -242,7 +243,7 @@ exports.getWishlist = async (req, res) => {
       wishlist: result.rows
     });
   } catch (error) {
-    console.error('위시리스트 조회 오류:', error);
+    logger.error('위시리스트 조회 오류:', error);
     res.status(500).json({ error: '서버 오류가 발생했습니다' });
   }
 };
@@ -281,7 +282,7 @@ exports.toggleWishlist = async (req, res) => {
       message: isWishlisted ? '위시리스트에 추가되었습니다' : '위시리스트에서 제거되었습니다'
     });
   } catch (error) {
-    console.error('위시리스트 토글 오류:', error);
+    logger.error('위시리스트 토글 오류:', error);
     res.status(500).json({ error: '서버 오류가 발생했습니다' });
   }
 };
@@ -290,7 +291,7 @@ exports.toggleWishlist = async (req, res) => {
 exports.getRiceIndex = async (req, res) => {
   try {
     const userId = req.user.userId;
-    console.log('🍚 밥알지수 계산 요청:', { userId });
+    logger.debug('밥알지수 계산 요청:', { userId });
 
     // 사용자 활동 데이터 조회
     const [
@@ -375,7 +376,7 @@ exports.getRiceIndex = async (req, res) => {
 
     const levelInfo = getRiceLevel(riceIndex);
 
-    console.log('✅ 밥알지수 계산 완료:', { userId, riceIndex, level: levelInfo.level });
+    logger.info('밥알지수 계산 완료:', { userId, riceIndex, level: levelInfo.level });
 
     res.json({
       success: true,
@@ -386,7 +387,7 @@ exports.getRiceIndex = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ 밥알지수 계산 실패:', error);
+    logger.error('밥알지수 계산 실패:', error);
     res.status(500).json({
       success: false,
       error: '밥알지수를 계산할 수 없습니다.'
@@ -433,7 +434,7 @@ exports.updateProfile = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('프로필 업데이트 오류:', error);
+    logger.error('프로필 업데이트 오류:', error);
     res.status(500).json({ error: '서버 오류가 발생했습니다' });
   }
 };
@@ -445,7 +446,7 @@ exports.getWishlists = async (req, res) => {
     const { page = 1, limit = 10 } = req.query;
     const offset = (page - 1) * limit;
 
-    console.log('🤍 찜 목록 조회:', { userId, page, limit });
+    logger.debug('찜 목록 조회:', { userId, page, limit });
 
     const result = await pool.query(`
       SELECT
@@ -488,7 +489,7 @@ exports.getWishlists = async (req, res) => {
 
     const totalCount = parseInt(countResult.rows[0].count);
 
-    console.log('✅ 찜 목록 조회 성공:', result.rows.length, '건');
+    logger.debug('찜 목록 조회 성공:', result.rows.length, '건');
 
     res.json({
       success: true,
@@ -502,7 +503,7 @@ exports.getWishlists = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('찜 목록 조회 오류:', error);
+    logger.error('찜 목록 조회 오류:', error);
     res.status(500).json({
       success: false,
       message: '찜 목록 조회 중 오류가 발생했습니다.'
@@ -517,7 +518,7 @@ exports.getRecentViews = async (req, res) => {
     const { page = 1, limit = 20 } = req.query;
     const offset = (page - 1) * limit;
 
-    console.log('👀 최근 본 글 목록 조회:', { userId, page, limit });
+    logger.debug('최근 본 글 목록 조회:', { userId, page, limit });
 
     const result = await pool.query(`
       SELECT
@@ -560,7 +561,7 @@ exports.getRecentViews = async (req, res) => {
 
     const totalCount = parseInt(countResult.rows[0].count);
 
-    console.log('✅ 최근 본 글 목록 조회 성공:', result.rows.length, '건');
+    logger.debug('최근 본 글 목록 조회 성공:', result.rows.length, '건');
 
     res.json({
       success: true,
@@ -574,7 +575,7 @@ exports.getRecentViews = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('최근 본 글 목록 조회 오류:', error);
+    logger.error('최근 본 글 목록 조회 오류:', error);
     res.status(500).json({
       success: false,
       message: '최근 본 글 목록 조회 중 오류가 발생했습니다.'
@@ -588,7 +589,7 @@ exports.deleteRecentView = async (req, res) => {
     const { viewId } = req.params;
     const userId = req.user.userId;
 
-    console.log('👀 최근 본 글 제거 요청:', { viewId, userId });
+    logger.debug('최근 본 글 제거 요청:', { viewId, userId });
 
     const result = await pool.query(
       'DELETE FROM user_recent_views WHERE id = $1 AND user_id = $2 RETURNING id',
@@ -602,7 +603,7 @@ exports.deleteRecentView = async (req, res) => {
       });
     }
 
-    console.log('✅ 최근 본 글 제거 성공');
+    logger.debug('최근 본 글 제거 성공');
 
     res.json({
       success: true,
@@ -610,7 +611,7 @@ exports.deleteRecentView = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('최근 본 글 제거 오류:', error);
+    logger.error('최근 본 글 제거 오류:', error);
     res.status(500).json({
       success: false,
       message: '최근 본 글 제거 중 오류가 발생했습니다.'
@@ -623,14 +624,14 @@ exports.deleteAllRecentViews = async (req, res) => {
   try {
     const userId = req.user.userId;
 
-    console.log('👀 최근 본 글 전체 삭제 요청:', { userId });
+    logger.debug('최근 본 글 전체 삭제 요청:', { userId });
 
     const result = await pool.query(
       'DELETE FROM user_recent_views WHERE user_id = $1',
       [userId]
     );
 
-    console.log('✅ 최근 본 글 전체 삭제 성공:', result.rowCount, '건');
+    logger.debug('최근 본 글 전체 삭제 성공:', result.rowCount, '건');
 
     res.json({
       success: true,
@@ -638,7 +639,7 @@ exports.deleteAllRecentViews = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('최근 본 글 전체 삭제 오류:', error);
+    logger.error('최근 본 글 전체 삭제 오류:', error);
     res.status(500).json({
       success: false,
       message: '최근 본 글 전체 삭제 중 오류가 발생했습니다.'
@@ -653,7 +654,7 @@ exports.blockUser = async (req, res) => {
     const { userId: blockedUserId } = req.params;
     const { reason } = req.body;
 
-    console.log('🚫 회원 차단 요청:', { blockerId, blockedUserId, reason });
+    logger.info('회원 차단 요청:', { blockerId, blockedUserId, reason });
 
     if (blockerId === blockedUserId) {
       return res.status(400).json({
@@ -687,7 +688,7 @@ exports.blockUser = async (req, res) => {
       [blockerId, blockedUserId, reason || null]
     );
 
-    console.log('✅ 회원 차단 성공:', { blockId: result.rows[0].id });
+    logger.info('회원 차단 성공:', { blockId: result.rows[0].id });
 
     res.json({
       success: true,
@@ -699,7 +700,7 @@ exports.blockUser = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('회원 차단 오류:', error);
+    logger.error('회원 차단 오류:', error);
     res.status(500).json({
       success: false,
       message: '회원 차단 중 오류가 발생했습니다.'
@@ -713,7 +714,7 @@ exports.unblockUser = async (req, res) => {
     const blockerId = req.user.userId;
     const { userId: blockedUserId } = req.params;
 
-    console.log('🔓 회원 차단 해제 요청:', { blockerId, blockedUserId });
+    logger.info('회원 차단 해제 요청:', { blockerId, blockedUserId });
 
     const userCheck = await pool.query('SELECT name FROM users WHERE id = $1', [blockedUserId]);
     if (userCheck.rows.length === 0) {
@@ -735,7 +736,7 @@ exports.unblockUser = async (req, res) => {
       });
     }
 
-    console.log('✅ 회원 차단 해제 성공');
+    logger.info('회원 차단 해제 성공');
 
     res.json({
       success: true,
@@ -743,7 +744,7 @@ exports.unblockUser = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('회원 차단 해제 오류:', error);
+    logger.error('회원 차단 해제 오류:', error);
     res.status(500).json({
       success: false,
       message: '회원 차단 해제 중 오류가 발생했습니다.'
@@ -758,7 +759,7 @@ exports.getBlockedUsers = async (req, res) => {
     const { page = 1, limit = 20 } = req.query;
     const offset = (page - 1) * limit;
 
-    console.log('🚫 차단 회원 목록 조회:', { userId, page, limit });
+    logger.debug('차단 회원 목록 조회:', { userId, page, limit });
 
     const result = await pool.query(`
       SELECT
@@ -784,7 +785,7 @@ exports.getBlockedUsers = async (req, res) => {
     const totalCount = parseInt(countResult.rows[0].count);
     const totalPages = Math.ceil(totalCount / limit);
 
-    console.log('✅ 차단 회원 목록 조회 성공:', result.rows.length, '건');
+    logger.debug('차단 회원 목록 조회 성공:', result.rows.length, '건');
 
     res.json({
       success: true,
@@ -798,7 +799,7 @@ exports.getBlockedUsers = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('차단 회원 목록 조회 오류:', error);
+    logger.error('차단 회원 목록 조회 오류:', error);
     res.status(500).json({
       success: false,
       message: '차단 회원 목록을 불러올 수 없습니다.'
@@ -826,7 +827,7 @@ exports.checkBlockedStatus = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('차단 상태 확인 오류:', error);
+    logger.error('차단 상태 확인 오류:', error);
     res.status(500).json({
       success: false,
       message: '차단 상태를 확인할 수 없습니다.'
@@ -858,7 +859,7 @@ exports.getLegacyMyReviews = async (req, res) => {
 
     res.json({ success: true, data: result.rows });
   } catch (error) {
-    console.error('내 리뷰 목록 조회 오류:', error);
+    logger.error('내 리뷰 목록 조회 오류:', error);
     res.status(500).json({ success: false, message: '리뷰 목록을 불러올 수 없습니다.' });
   }
 };
@@ -878,7 +879,7 @@ exports.updateLegacyReview = async (req, res) => {
 
     res.json({ success: true, message: '리뷰가 수정되었습니다.' });
   } catch (error) {
-    console.error('리뷰 수정 오류:', error);
+    logger.error('리뷰 수정 오류:', error);
     res.status(500).json({ success: false, message: '리뷰 수정에 실패했습니다.' });
   }
 };
@@ -896,7 +897,7 @@ exports.deleteLegacyReview = async (req, res) => {
 
     res.json({ success: true, message: '리뷰가 삭제되었습니다.' });
   } catch (error) {
-    console.error('리뷰 삭제 오류:', error);
+    logger.error('리뷰 삭제 오류:', error);
     res.status(500).json({ success: false, message: '리뷰 삭제에 실패했습니다.' });
   }
 };
@@ -905,7 +906,7 @@ exports.deleteLegacyReview = async (req, res) => {
 exports.getPoints = async (req, res) => {
   try {
     const userId = req.user.userId;
-    console.log('💰 포인트 잔액 조회 요청:', { userId });
+    logger.debug('포인트 잔액 조회 요청:', { userId });
 
     const userResult = await pool.query(`
       SELECT u.id, u.name, COALESCE(up.available_points, 0) as points
@@ -922,7 +923,7 @@ exports.getPoints = async (req, res) => {
     }
 
     const user = userResult.rows[0];
-    console.log('✅ 포인트 조회 성공:', { userId: user.id, name: user.name, points: user.points });
+    logger.debug('포인트 조회 성공:', { userId: user.id, name: user.name, points: user.points });
 
     res.json({
       success: true,
@@ -933,7 +934,7 @@ exports.getPoints = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('포인트 조회 오류:', error);
+    logger.error('포인트 조회 오류:', error);
     res.status(500).json({
       success: false,
       message: '포인트 조회 중 오류가 발생했습니다.'
@@ -948,7 +949,7 @@ exports.getJoinedMeetups = async (req, res) => {
     const offset = (page - 1) * limit;
     const userId = req.user.userId;
 
-    console.log('👥 참가 모임 조회 요청:', { userId, page, limit });
+    logger.debug('참가 모임 조회 요청:', { userId, page, limit });
 
     const meetupsResult = await pool.query(`
       SELECT
@@ -987,7 +988,7 @@ exports.getJoinedMeetups = async (req, res) => {
 
     const total = parseInt(countResult.rows[0].total);
 
-    console.log('✅ 참가 모임 조회 성공:', { count: meetupsResult.rows.length, total });
+    logger.debug('참가 모임 조회 성공:', { count: meetupsResult.rows.length, total });
 
     const meetupsWithImages = meetupsResult.rows.map(meetup => ({
       ...meetup,
@@ -1005,7 +1006,7 @@ exports.getJoinedMeetups = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('참가 모임 조회 오류:', error);
+    logger.error('참가 모임 조회 오류:', error);
     res.status(500).json({ error: '서버 오류가 발생했습니다' });
   }
 };
@@ -1013,7 +1014,7 @@ exports.getJoinedMeetups = async (req, res) => {
 // 알림 설정 조회
 exports.getNotificationSettings = async (req, res) => {
   try {
-    console.log('🔔 알림 설정 조회 요청');
+    logger.debug('알림 설정 조회 요청');
     const userId = req.user.userId;
 
     const result = await pool.query(`
@@ -1050,13 +1051,13 @@ exports.getNotificationSettings = async (req, res) => {
       settings = result.rows[0];
     }
 
-    console.log('✅ 알림 설정 조회 성공');
+    logger.debug('알림 설정 조회 성공');
     res.json({
       success: true,
       data: settings
     });
   } catch (error) {
-    console.error('❌ 알림 설정 조회 실패:', error);
+    logger.error('알림 설정 조회 실패:', error);
     res.status(500).json({
       success: false,
       error: '알림 설정 조회 중 오류가 발생했습니다.'
@@ -1067,7 +1068,7 @@ exports.getNotificationSettings = async (req, res) => {
 // 알림 설정 업데이트
 exports.updateNotificationSettings = async (req, res) => {
   try {
-    console.log('🔔 알림 설정 업데이트 요청:', req.body);
+    logger.debug('알림 설정 업데이트 요청:', req.body);
     const userId = req.user.userId;
     const {
       push_notifications,
@@ -1136,13 +1137,13 @@ exports.updateNotificationSettings = async (req, res) => {
       }
     }
 
-    console.log('✅ 알림 설정 업데이트 성공');
+    logger.info('알림 설정 업데이트 성공');
     res.json({
       success: true,
       message: '알림 설정이 성공적으로 업데이트되었습니다.'
     });
   } catch (error) {
-    console.error('❌ 알림 설정 업데이트 실패:', error);
+    logger.error('알림 설정 업데이트 실패:', error);
     res.status(500).json({
       success: false,
       error: '알림 설정 업데이트 중 오류가 발생했습니다.'
@@ -1173,7 +1174,7 @@ exports.getNotices = async (req, res) => {
       notices: result.rows
     });
   } catch (error) {
-    console.error('공지사항 조회 오류:', error);
+    logger.error('공지사항 조회 오류:', error);
     res.status(500).json({ success: false, message: '공지사항을 불러올 수 없습니다.' });
   }
 };
@@ -1215,7 +1216,7 @@ exports.getNoticeDetail = async (req, res) => {
       notice: result.rows[0]
     });
   } catch (error) {
-    console.error('공지사항 상세 조회 오류:', error);
+    logger.error('공지사항 상세 조회 오류:', error);
     res.status(500).json({ success: false, message: '공지사항을 불러올 수 없습니다.' });
   }
 };
@@ -1232,7 +1233,7 @@ exports.getFaq = async (req, res) => {
 
     res.json({ success: true, data: result.rows });
   } catch (error) {
-    console.error('FAQ 조회 오류:', error);
+    logger.error('FAQ 조회 오류:', error);
     res.status(500).json({ success: false, message: 'FAQ를 불러올 수 없습니다.' });
   }
 };
@@ -1240,7 +1241,7 @@ exports.getFaq = async (req, res) => {
 // 계정 탈퇴
 exports.deleteAccount = async (req, res) => {
   try {
-    console.log('🗑️ 계정 탈퇴 요청');
+    logger.info('계정 탈퇴 요청');
     const userId = req.user.userId;
 
     const result = await pool.query(
@@ -1255,13 +1256,13 @@ exports.deleteAccount = async (req, res) => {
       });
     }
 
-    console.log('✅ 계정 삭제 완료:', result.rows[0].email);
+    logger.info('계정 삭제 완료:', result.rows[0].email);
     res.json({
       success: true,
       message: '계정이 성공적으로 삭제되었습니다.'
     });
   } catch (error) {
-    console.error('❌ 계정 탈퇴 실패:', error);
+    logger.error('계정 탈퇴 실패:', error);
     res.status(500).json({
       success: false,
       error: '계정 탈퇴 중 오류가 발생했습니다.'
@@ -1272,7 +1273,7 @@ exports.deleteAccount = async (req, res) => {
 // 비밀번호 변경
 exports.changePassword = async (req, res) => {
   try {
-    console.log('🔐 비밀번호 변경 요청');
+    logger.info('비밀번호 변경 요청');
     const { currentPassword, newPassword } = req.body;
     const userId = req.user.userId;
     const bcrypt = require('bcryptjs');
@@ -1327,13 +1328,13 @@ exports.changePassword = async (req, res) => {
       [hashedNewPassword, new Date(), userId]
     );
 
-    console.log('✅ 비밀번호 변경 성공');
+    logger.info('비밀번호 변경 성공');
     res.json({
       success: true,
       message: '비밀번호가 성공적으로 변경되었습니다.'
     });
   } catch (error) {
-    console.error('❌ 비밀번호 변경 실패:', error);
+    logger.error('비밀번호 변경 실패:', error);
     res.status(500).json({
       success: false,
       error: '비밀번호 변경 중 오류가 발생했습니다.'
@@ -1375,7 +1376,7 @@ exports.getProfile = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('프로필 조회 오류:', error);
+    logger.error('프로필 조회 오류:', error);
     res.status(500).json({ success: false, error: '프로필 조회 실패' });
   }
 };
@@ -1384,7 +1385,7 @@ exports.getProfile = async (req, res) => {
 exports.getUserPoints = async (req, res) => {
   try {
     const userId = req.user.userId;
-    console.log('🎁 포인트 조회 요청:', { userId });
+    logger.debug('포인트 조회 요청:', { userId });
 
     const userResult = await pool.query(`
       SELECT u.id, u.name, u.email,
@@ -1401,7 +1402,7 @@ exports.getUserPoints = async (req, res) => {
     }
 
     const user = userResult.rows[0];
-    console.log('✅ 포인트 조회 성공:', { userId, points: user.available_points });
+    logger.debug('포인트 조회 성공:', { userId, points: user.available_points });
 
     res.json({
       success: true,
@@ -1416,7 +1417,7 @@ exports.getUserPoints = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('❌ 포인트 조회 실패:', error);
+    logger.error('포인트 조회 실패:', error);
     res.status(500).json({ success: false, error: '포인트 정보를 조회할 수 없습니다.' });
   }
 };
@@ -1428,7 +1429,7 @@ exports.getPointTransactions = async (req, res) => {
     const { page = 1, limit = 20 } = req.query;
     const offset = (page - 1) * limit;
 
-    console.log('📋 포인트 내역 조회 요청:', { userId, page, limit });
+    logger.debug('포인트 내역 조회 요청:', { userId, page, limit });
 
     const transactionsResult = await pool.query(`
       SELECT * FROM point_transactions
@@ -1452,7 +1453,7 @@ exports.getPointTransactions = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('포인트 내역 조회 오류:', error);
+    logger.error('포인트 내역 조회 오류:', error);
     res.status(500).json({ success: false, error: '포인트 내역 조회 실패' });
   }
 };
@@ -1475,7 +1476,7 @@ exports.getUserBadges = async (req, res) => {
       data: result.rows
     });
   } catch (error) {
-    console.error('뱃지 조회 오류:', error);
+    logger.error('뱃지 조회 오류:', error);
     res.status(500).json({ success: false, error: '뱃지 조회 실패' });
   }
 };
@@ -1484,7 +1485,7 @@ exports.getUserBadges = async (req, res) => {
 exports.getActivityStats = async (req, res) => {
   try {
     const userId = req.user.userId;
-    console.log('📊 활동 통계 조회 요청:', { userId });
+    logger.debug('활동 통계 조회 요청:', { userId });
 
     const hostedResult = await pool.query(
       'SELECT COUNT(*) as count FROM meetups WHERE host_id = $1',
@@ -1510,7 +1511,7 @@ exports.getActivityStats = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('활동 통계 조회 오류:', error);
+    logger.error('활동 통계 조회 오류:', error);
     res.status(500).json({ success: false, error: '활동 통계 조회 실패' });
   }
 };
@@ -1539,7 +1540,7 @@ exports.getReviewableMeetups = async (req, res) => {
       data: result.rows
     });
   } catch (error) {
-    console.error('리뷰 가능 모임 조회 오류:', error);
+    logger.error('리뷰 가능 모임 조회 오류:', error);
     res.status(500).json({ success: false, error: '리뷰 가능 약속 조회 실패' });
   }
 };
@@ -1576,7 +1577,7 @@ exports.getPrivacySettings = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('개인정보 설정 조회 오류:', error);
+    logger.error('개인정보 설정 조회 오류:', error);
     res.status(500).json({ success: false, error: '개인정보 설정 조회 실패' });
   }
 };
@@ -1602,7 +1603,7 @@ exports.updatePrivacySettings = async (req, res) => {
       message: '개인정보 설정이 업데이트되었습니다.'
     });
   } catch (error) {
-    console.error('개인정보 설정 업데이트 오류:', error);
+    logger.error('개인정보 설정 업데이트 오류:', error);
     res.status(500).json({ success: false, error: '개인정보 설정 업데이트 실패' });
   }
 };
@@ -1629,7 +1630,7 @@ exports.exportData = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('데이터 내보내기 오류:', error);
+    logger.error('데이터 내보내기 오류:', error);
     res.status(500).json({ success: false, error: '데이터 내보내기 실패' });
   }
 };
@@ -1652,7 +1653,7 @@ exports.getDeposits = async (req, res) => {
       data: result.rows
     });
   } catch (error) {
-    console.error('보증금 조회 오류:', error);
+    logger.error('보증금 조회 오류:', error);
     res.status(500).json({ success: false, error: '보증금 조회 실패' });
   }
 };
@@ -1679,7 +1680,7 @@ exports.getLegacyWishlist = async (req, res) => {
 
     res.json({ success: true, data: result.rows });
   } catch (error) {
-    console.error('찜 목록 조회 오류:', error);
+    logger.error('찜 목록 조회 오류:', error);
     res.status(500).json({ success: false, message: '찜 목록을 불러올 수 없습니다.' });
   }
 };
@@ -1698,7 +1699,7 @@ exports.addLegacyWishlist = async (req, res) => {
 
     res.json({ success: true, message: '찜 목록에 추가되었습니다.' });
   } catch (error) {
-    console.error('찜 목록 추가 오류:', error);
+    logger.error('찜 목록 추가 오류:', error);
     res.status(500).json({ success: false, message: '찜 목록 추가에 실패했습니다.' });
   }
 };
@@ -1716,7 +1717,7 @@ exports.removeLegacyWishlist = async (req, res) => {
 
     res.json({ success: true, message: '찜 목록에서 제거되었습니다.' });
   } catch (error) {
-    console.error('찜 목록 제거 오류:', error);
+    logger.error('찜 목록 제거 오류:', error);
     res.status(500).json({ success: false, message: '찜 목록 제거에 실패했습니다.' });
   }
 };
@@ -1743,7 +1744,7 @@ exports.getMyMeetups = async (req, res) => {
 
     res.json({ success: true, data: result.rows });
   } catch (error) {
-    console.error('참가한 모임 목록 조회 오류:', error);
+    logger.error('참가한 모임 목록 조회 오류:', error);
     res.status(500).json({ success: false, message: '참가한 약속 목록을 불러올 수 없습니다.' });
   }
 };
@@ -1765,7 +1766,7 @@ exports.getPaymentHistory = async (req, res) => {
 
     res.json({ success: true, data: result.rows });
   } catch (error) {
-    console.error('결제 내역 조회 오류:', error);
+    logger.error('결제 내역 조회 오류:', error);
     res.status(500).json({ success: false, message: '결제 내역을 불러올 수 없습니다.' });
   }
 };
@@ -1783,7 +1784,7 @@ exports.getLegacyPointHistory = async (req, res) => {
 
     res.json({ success: true, data: result.rows });
   } catch (error) {
-    console.error('포인트 내역 조회 오류:', error);
+    logger.error('포인트 내역 조회 오류:', error);
     res.status(500).json({ success: false, message: '포인트 내역을 불러올 수 없습니다.' });
   }
 };
@@ -1816,7 +1817,7 @@ exports.usePoints = async (req, res) => {
 
     res.json({ success: true, message: '포인트 사용 완료' });
   } catch (error) {
-    console.error('포인트 사용 오류:', error);
+    logger.error('포인트 사용 오류:', error);
     res.status(500).json({ success: false, error: '포인트 사용 실패' });
   }
 };
@@ -1849,7 +1850,7 @@ exports.refundPoints = async (req, res) => {
 
     res.json({ success: true, message: '포인트 환불 완료' });
   } catch (error) {
-    console.error('포인트 환불 오류:', error);
+    logger.error('포인트 환불 오류:', error);
     res.status(500).json({ success: false, error: '포인트 환불 실패' });
   }
 };
@@ -1882,7 +1883,7 @@ exports.getInviteCode = async (req, res) => {
 
     res.json({ success: true, data: result.rows[0] });
   } catch (error) {
-    console.error('초대 코드 조회 오류:', error);
+    logger.error('초대 코드 조회 오류:', error);
     res.status(500).json({ success: false, message: '초대 코드를 불러올 수 없습니다.' });
   }
 };
@@ -1929,7 +1930,7 @@ exports.useInviteCode = async (req, res) => {
 
     res.json({ success: true, message: '초대 코드가 적용되었습니다.' });
   } catch (error) {
-    console.error('초대 코드 사용 오류:', error);
+    logger.error('초대 코드 사용 오류:', error);
     res.status(500).json({ success: false, error: '초대 코드 사용 실패' });
   }
 };
@@ -1977,7 +1978,7 @@ exports.chargePoints = async (req, res) => {
 
   } catch (error) {
     await client.query('ROLLBACK');
-    console.error('포인트 충전 실패:', error);
+    logger.error('포인트 충전 실패:', error);
     res.status(500).json({ success: false, message: '포인트 충전 중 오류가 발생했습니다.' });
   } finally {
     client.release();
@@ -2032,7 +2033,7 @@ exports.spendPoints = async (req, res) => {
 
   } catch (error) {
     await client.query('ROLLBACK');
-    console.error('포인트 사용 실패:', error);
+    logger.error('포인트 사용 실패:', error);
     res.status(500).json({ success: false, message: '포인트 사용 중 오류가 발생했습니다.' });
   } finally {
     client.release();
@@ -2069,7 +2070,7 @@ exports.getReviewsManage = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('리뷰 관리 목록 조회 오류:', error);
+    logger.error('리뷰 관리 목록 조회 오류:', error);
     res.status(500).json({ success: false, message: '리뷰 목록을 불러올 수 없습니다.' });
   }
 };
@@ -2109,7 +2110,7 @@ exports.getParticipantReviews = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('참가자 평가 조회 오류:', error);
+    logger.error('참가자 평가 조회 오류:', error);
     res.status(500).json({ success: false, message: '참가자 평가 조회에 실패했습니다.' });
   }
 };
@@ -2143,7 +2144,7 @@ exports.getPointHistory = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('포인트 내역 조회 오류:', error);
+    logger.error('포인트 내역 조회 오류:', error);
     res.status(500).json({ success: false, message: '포인트 내역 조회에 실패했습니다.' });
   }
 };
@@ -2171,7 +2172,7 @@ exports.uploadProfileImage = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('프로필 이미지 업로드 오류:', error);
+    logger.error('프로필 이미지 업로드 오류:', error);
     res.status(500).json({ success: false, error: '프로필 이미지 업로드에 실패했습니다.' });
   }
 };
@@ -2206,7 +2207,7 @@ exports.getLegacyNotificationSettings = async (req, res) => {
 
     res.json({ success: true, data: result.rows[0] });
   } catch (error) {
-    console.error('알림 설정 조회 오류:', error);
+    logger.error('알림 설정 조회 오류:', error);
     res.status(500).json({ success: false, message: '알림 설정을 불러올 수 없습니다.' });
   }
 };
@@ -2235,7 +2236,7 @@ exports.updateLegacyNotificationSettings = async (req, res) => {
 
     res.json({ success: true, message: '알림 설정이 업데이트되었습니다.' });
   } catch (error) {
-    console.error('알림 설정 업데이트 오류:', error);
+    logger.error('알림 설정 업데이트 오류:', error);
     res.status(500).json({ success: false, message: '알림 설정 업데이트에 실패했습니다.' });
   }
 };
@@ -2270,7 +2271,7 @@ exports.getPointStats = async (req, res) => {
       totalSpent: parseInt(stats.total_spent) || 0
     });
   } catch (error) {
-    console.error('포인트 통계 조회 오류:', error);
+    logger.error('포인트 통계 조회 오류:', error);
     res.status(500).json({ error: '포인트 통계 조회 실패' });
   }
 };
@@ -2303,8 +2304,28 @@ exports.getLegacyRecentViews = async (req, res) => {
 
     res.json({ success: true, data: result.rows });
   } catch (error) {
-    console.error('최근 본 글 조회 오류:', error);
+    logger.error('최근 본 글 조회 오류:', error);
     res.status(500).json({ success: false, message: '최근 본 글을 불러올 수 없습니다.' });
+  }
+};
+
+// 최근 본 글 추가
+exports.addRecentView = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { meetupId } = req.params;
+
+    await pool.query(`
+      INSERT INTO user_recent_views (user_id, meetup_id, viewed_at)
+      VALUES ($1, $2, NOW())
+      ON CONFLICT (user_id, meetup_id)
+      DO UPDATE SET viewed_at = NOW()
+    `, [userId, meetupId]);
+
+    res.json({ success: true });
+  } catch (error) {
+    logger.error('최근 본 글 추가 오류:', error);
+    res.status(500).json({ success: false, error: '최근 본 글 추가에 실패했습니다.' });
   }
 };
 
@@ -2323,7 +2344,7 @@ exports.addLegacyRecentView = async (req, res) => {
 
     res.json({ success: true, message: '최근 본 글에 추가되었습니다.' });
   } catch (error) {
-    console.error('최근 본 글 추가 오류:', error);
+    logger.error('최근 본 글 추가 오류:', error);
     res.status(500).json({ success: false, message: '최근 본 글 추가에 실패했습니다.' });
   }
 };
@@ -2404,7 +2425,7 @@ exports.chargeLegacyPoints = async (req, res) => {
         VALUES ($1, $2, 'charge', $3, NOW())
       `, [userId, finalAmount, isDevAccount ? '개발자 계정 보너스 충전' : '포인트 충전']);
     } catch (transactionError) {
-      console.log('포인트 거래 기록 오류:', transactionError.message);
+      logger.error('포인트 거래 기록 오류:', transactionError.message);
     }
 
     let message = `${finalAmount.toLocaleString()}원이 충전되었습니다.`;
@@ -2426,7 +2447,7 @@ exports.chargeLegacyPoints = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('포인트 충전 오류:', error);
+    logger.error('포인트 충전 오류:', error);
     res.status(500).json({
       success: false,
       message: '포인트 충전 중 오류가 발생했습니다.'

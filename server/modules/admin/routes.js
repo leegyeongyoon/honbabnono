@@ -68,7 +68,7 @@ router.get('/chatbot/settings', authenticateAdminNew, adminController.getChatbot
 router.put('/chatbot/settings/:id', authenticateAdminNew, adminController.updateChatbotSettings);
 
 // 실시간 통계
-router.get('/realtime-stats', adminController.getRealtimeStats);
+router.get('/realtime-stats', authenticateAdminNew, adminController.getRealtimeStats);
 
 // 대시보드 실시간 (legacy path)
 router.get('/dashboard/realtime', authenticateAdminNew, adminController.getRealtimeStats);
@@ -84,7 +84,7 @@ router.delete('/reviews/:reviewId', authenticateAdminNew, adminController.delete
 router.patch('/reviews/:reviewId/delete', authenticateAdminNew, adminController.softDeleteReview);
 
 // 간단 통계 (legacy /admin/stats)
-router.get('/stats', adminController.getStats);
+router.get('/stats', authenticateAdminNew, adminController.getStats);
 
 // 리포트 다운로드
 router.get('/reports/download/:type', authenticateAdminNew, adminController.downloadReports);

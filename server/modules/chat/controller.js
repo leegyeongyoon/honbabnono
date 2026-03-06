@@ -1,4 +1,5 @@
 const pool = require('../../config/database');
+const logger = require('../../config/logger');
 
 // 1대1 채팅 권한 체크
 exports.checkDirectChatPermission = async (req, res) => {
@@ -84,7 +85,7 @@ exports.checkDirectChatPermission = async (req, res) => {
       data: { allowed: true }
     });
   } catch (error) {
-    console.error('Direct chat permission check error:', error);
+    logger.error('Direct chat permission check error:', error);
     res.status(500).json({
       success: false,
       message: '권한 체크에 실패했습니다.',
@@ -96,7 +97,7 @@ exports.checkDirectChatPermission = async (req, res) => {
 exports.getChatRooms = async (req, res) => {
   try {
     const userId = req.user.userId;
-    console.log('🔍 채팅방 목록 조회 요청:', { userId });
+    logger.debug('채팅방 목록 조회 요청:', { userId });
 
     const result = await pool.query(`
       SELECT
@@ -141,7 +142,7 @@ exports.getChatRooms = async (req, res) => {
       data: formattedRooms
     });
   } catch (error) {
-    console.error('채팅방 목록 조회 오류:', error);
+    logger.error('채팅방 목록 조회 오류:', error);
     res.status(500).json({ error: '서버 오류가 발생했습니다' });
   }
 };
@@ -170,7 +171,7 @@ exports.getUnreadCount = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('읽지 않은 채팅 수 조회 오류:', error);
+    logger.error('읽지 않은 채팅 수 조회 오류:', error);
     res.status(500).json({
       success: false,
       error: '읽지 않은 채팅 수 조회에 실패했습니다.'
@@ -216,7 +217,7 @@ exports.getChatRoomByMeetup = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('모임 채팅방 조회 오류:', error);
+    logger.error('모임 채팅방 조회 오류:', error);
     res.status(500).json({ error: '서버 오류가 발생했습니다' });
   }
 };
@@ -305,7 +306,7 @@ exports.getMessages = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('채팅 메시지 조회 오류:', error);
+    logger.error('채팅 메시지 조회 오류:', error);
     res.status(500).json({ error: '서버 오류가 발생했습니다' });
   }
 };
@@ -369,7 +370,7 @@ exports.sendMessage = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('메시지 전송 오류:', error);
+    logger.error('메시지 전송 오류:', error);
     res.status(500).json({ error: '서버 오류가 발생했습니다' });
   }
 };
@@ -404,7 +405,7 @@ exports.markAsRead = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('읽음 처리 오류:', error);
+    logger.error('읽음 처리 오류:', error);
     res.status(500).json({ error: '서버 오류가 발생했습니다' });
   }
 };
@@ -436,7 +437,7 @@ exports.leaveChatRoom = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('채팅방 나가기 오류:', error);
+    logger.error('채팅방 나가기 오류:', error);
     res.status(500).json({ error: '서버 오류가 발생했습니다' });
   }
 };
@@ -474,7 +475,7 @@ exports.markAllAsRead = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('모든 채팅방 읽음 처리 오류:', error);
+    logger.error('모든 채팅방 읽음 처리 오류:', error);
     res.status(500).json({
       success: false,
       error: '모든 채팅방 읽음 처리에 실패했습니다'

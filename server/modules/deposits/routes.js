@@ -2,16 +2,18 @@ const express = require('express');
 const router = express.Router();
 const depositsController = require('./controller');
 const { authenticateToken, authenticateAdminNew } = require('../../middleware/auth');
+const validate = require('../../middleware/validate');
+const { preparePaymentSchema, verifyPaymentSchema } = require('../../middleware/schemas/deposits.schemas');
 
 // ============================================
 // PortOne 결제 연동 API
 // ============================================
 
 // 결제 준비 (merchant_uid 생성)
-router.post('/prepare', authenticateToken, depositsController.preparePayment);
+router.post('/prepare', authenticateToken, validate({ body: preparePaymentSchema }), depositsController.preparePayment);
 
 // 결제 검증 (클라이언트 결제 완료 후)
-router.post('/verify', authenticateToken, depositsController.verifyPayment);
+router.post('/verify', authenticateToken, validate({ body: verifyPaymentSchema }), depositsController.verifyPayment);
 
 // PortOne 환불
 router.post('/portone-refund', authenticateToken, depositsController.refundDepositViaPortone);

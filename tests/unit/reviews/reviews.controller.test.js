@@ -56,9 +56,11 @@ describe('Reviews Controller', () => {
       req = createAuthenticatedRequest(mockUser, {
         body: { meetupId: '1', rating: 5, content: 'Great!' }
       });
+      mockQueryOnce(mockPool, { rows: [{ status: '종료', host_id: 'host1' }], rowCount: 1 }); // Meetup status check
       mockQueryOnce(mockPool, { rows: [], rowCount: 0 }); // No existing review
       mockQueryOnce(mockPool, { rows: [{ meetup_id: '1' }], rowCount: 1 }); // Participant check
       mockQueryOnce(mockPool, { rows: [{ id: 1 }], rowCount: 1 }); // Insert
+      mockQueryOnce(mockPool, { rows: [], rowCount: 0 }); // Babal score update
       await reviewsController.createReview(req, res);
       expect(res.status).toHaveBeenCalledWith(201);
     });
@@ -67,6 +69,7 @@ describe('Reviews Controller', () => {
       req = createAuthenticatedRequest(mockUser, {
         body: { meetupId: '1', rating: 5, content: 'Great!' }
       });
+      mockQueryOnce(mockPool, { rows: [{ status: '종료', host_id: 'host1' }], rowCount: 1 }); // Meetup status check
       mockQueryOnce(mockPool, { rows: [{ id: 1 }], rowCount: 1 }); // Existing review
       await reviewsController.createReview(req, res);
       expect(res.status).toHaveBeenCalledWith(400);
@@ -76,8 +79,26 @@ describe('Reviews Controller', () => {
       req = createAuthenticatedRequest(mockUser, {
         body: { meetupId: '1', rating: 5, content: 'Great!' }
       });
+      mockQueryOnce(mockPool, { rows: [{ status: '종료', host_id: 'host1' }], rowCount: 1 }); // Meetup status check
       mockQueryOnce(mockPool, { rows: [], rowCount: 0 }); // No existing review
       mockQueryOnce(mockPool, { rows: [], rowCount: 0 }); // Not participant
+      await reviewsController.createReview(req, res);
+      expect(res.status).toHaveBeenCalledWith(400);
+    });
+
+    it('should return 400 for invalid rating', async () => {
+      req = createAuthenticatedRequest(mockUser, {
+        body: { meetupId: '1', rating: 6, content: 'Great!' }
+      });
+      await reviewsController.createReview(req, res);
+      expect(res.status).toHaveBeenCalledWith(400);
+    });
+
+    it('should return 400 for meetup not ended', async () => {
+      req = createAuthenticatedRequest(mockUser, {
+        body: { meetupId: '1', rating: 5, content: 'Great!' }
+      });
+      mockQueryOnce(mockPool, { rows: [{ status: '모집중', host_id: 'host1' }], rowCount: 1 }); // Meetup not ended
       await reviewsController.createReview(req, res);
       expect(res.status).toHaveBeenCalledWith(400);
     });
@@ -85,7 +106,7 @@ describe('Reviews Controller', () => {
     it('should return 500 on error', async () => {
       const originalError = console.error;
       console.error = () => console.log('[에러 핸들링 테스트]');
-      req = createAuthenticatedRequest(mockUser, { body: { meetupId: '1' } });
+      req = createAuthenticatedRequest(mockUser, { body: { meetupId: '1', rating: 5 } });
       mockQueryError(mockPool, new Error('DB Error'));
       await reviewsController.createReview(req, res);
       expect(res.status).toHaveBeenCalledWith(500);

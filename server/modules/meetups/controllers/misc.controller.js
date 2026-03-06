@@ -2,6 +2,7 @@
  * 기타 모임 관련 기능 컨트롤러
  */
 const pool = require('../../../config/database');
+const logger = require('../../../config/logger');
 const { validateMeetupExists, validateHostPermission } = require('../helpers/validation.helper');
 
 /**
@@ -29,7 +30,7 @@ exports.addView = async (req, res) => {
       message: '최근 본 글에 추가되었습니다.',
     });
   } catch (error) {
-    console.error('최근 본 글 추가 오류:', error);
+    logger.error('최근 본 글 추가 오류:', error);
     res.status(500).json({
       success: false,
       message: '최근 본 글 추가 중 오류가 발생했습니다.',
@@ -57,7 +58,7 @@ exports.checkWishlist = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('찜 상태 확인 오류:', error);
+    logger.error('찜 상태 확인 오류:', error);
     res.status(500).json({
       success: false,
       message: '찜 상태 확인 중 오류가 발생했습니다.',
@@ -102,7 +103,7 @@ exports.addWishlist = async (req, res) => {
       message: '찜하기가 완료되었습니다.',
     });
   } catch (error) {
-    console.error('찜하기 추가 오류:', error);
+    logger.error('찜하기 추가 오류:', error);
     res.status(500).json({
       success: false,
       message: '찜하기 추가 중 오류가 발생했습니다.',
@@ -128,7 +129,7 @@ exports.removeWishlist = async (req, res) => {
       message: '찜하기가 취소되었습니다.',
     });
   } catch (error) {
-    console.error('찜하기 취소 오류:', error);
+    logger.error('찜하기 취소 오류:', error);
     res.status(500).json({
       success: false,
       message: '찜하기 취소 중 오류가 발생했습니다.',
@@ -168,7 +169,7 @@ exports.confirmMeetup = async (req, res) => {
       message: '약속이 확정되었습니다.',
     });
   } catch (error) {
-    console.error('모임 확정 오류:', error);
+    logger.error('모임 확정 오류:', error);
     res.status(500).json({
       success: false,
       message: '약속 확정에 실패했습니다.',
@@ -242,7 +243,7 @@ exports.applyNoShowPenalties = async (req, res) => {
     });
   } catch (error) {
     await client.query('ROLLBACK');
-    console.error('노쇼 패널티 적용 오류:', error);
+    logger.error('노쇼 패널티 적용 오류:', error);
     res.status(500).json({
       success: false,
       message: '노쇼 패널티 적용에 실패했습니다.',
@@ -293,7 +294,7 @@ exports.progressCheck = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('진행 상황 확인 오류:', error);
+    logger.error('진행 상황 확인 오류:', error);
     res.status(500).json({
       success: false,
       message: '진행 상황 확인에 실패했습니다.',
@@ -324,7 +325,7 @@ exports.progressResponse = async (req, res) => {
       message: '응답이 기록되었습니다.',
     });
   } catch (error) {
-    console.error('진행 상황 응답 오류:', error);
+    logger.error('진행 상황 응답 오류:', error);
     res.status(500).json({
       success: false,
       message: '응답 기록에 실패했습니다.',
@@ -375,7 +376,7 @@ exports.getConfirmableParticipants = async (req, res) => {
       })),
     });
   } catch (error) {
-    console.error('확정 가능한 참가자 목록 조회 오류:', error);
+    logger.error('확정 가능한 참가자 목록 조회 오류:', error);
     res.status(500).json({
       success: false,
       message: '참가자 목록 조회에 실패했습니다.',

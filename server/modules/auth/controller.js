@@ -121,9 +121,18 @@ exports.kakaoCallback = async (req, res) => {
     const jwtToken = generateJWT(user);
     const refreshToken = await generateRefreshToken(user);
 
-    // 5. 프론트엔드로 토큰과 함께 리다이렉트
+    // 5. 리프레시 토큰을 HTTP-only 쿠키로 설정
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+      path: '/'
+    });
+
+    // 6. 프론트엔드로 액세스 토큰과 함께 리다이렉트 (리프레시 토큰은 쿠키로 전달)
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-    res.redirect(`${frontendUrl}/login?success=true&token=${jwtToken}&refreshToken=${refreshToken}&user=${encodeURIComponent(JSON.stringify({
+    res.redirect(`${frontendUrl}/login?success=true&token=${jwtToken}&user=${encodeURIComponent(JSON.stringify({
       id: user.id,
       name: user.name,
       email: user.email,
@@ -148,7 +157,7 @@ exports.kakaoLogin = async (req, res) => {
   }
 
   try {
-    console.log('카카오 로그인 API 요청 처리 시작:', accessToken);
+    logger.debug('카카오 로그인 API 요청 처리 시작');
 
     // access_token으로 직접 사용자 정보 조회
     const kakaoUser = await getKakaoUserInfo(accessToken);
@@ -212,7 +221,7 @@ exports.kakaoLogin = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('카카오 로그인 API 처리 실패:', error);
+    logger.error('카카오 로그인 API 처리 실패:', error);
     res.status(500).json({
       success: false,
       message: '카카오 로그인 처리 중 오류가 발생했습니다.',
@@ -223,8 +232,7 @@ exports.kakaoLogin = async (req, res) => {
 
 // 토큰 검증 및 자동 로그인 API
 exports.verifyToken = async (req, res) => {
-  console.log('🔍 토큰 검증 API 호출됨:', {
-    body: req.body,
+  logger.debug('토큰 검증 API 호출됨', {
     hasToken: !!req.body?.token,
     tokenLength: req.body?.token?.length
   });
@@ -241,11 +249,11 @@ exports.verifyToken = async (req, res) => {
 
     // JWT 토큰 검증
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    console.log('🔍 JWT decoded:', decoded);
+    logger.debug('JWT decoded:', { userId: decoded.userId || decoded.id });
 
     // userId 필드명 확인 (userId 또는 id)
     const userId = decoded.userId || decoded.id;
-    console.log('🔍 Extracted userId:', userId);
+    logger.debug('Extracted userId:', userId);
 
     // 사용자 정보 조회 (삭제되지 않은 계정만)
     const userResult = await pool.query(`
@@ -254,10 +262,10 @@ exports.verifyToken = async (req, res) => {
       WHERE id = $1
     `, [userId]);
 
-    console.log('🔍 User query result:', { found: userResult.rows.length, userId });
+    logger.debug('User query result:', { found: userResult.rows.length, userId });
 
     if (userResult.rows.length === 0) {
-      console.log('❌ 사용자를 찾을 수 없습니다:', userId);
+      logger.info('사용자를 찾을 수 없습니다:', userId);
       return res.status(404).json({
         success: false,
         error: '사용자를 찾을 수 없습니다.'
@@ -266,7 +274,7 @@ exports.verifyToken = async (req, res) => {
 
     const user = userResult.rows[0];
 
-    console.log('✅ 토큰 검증 성공 - 자동 로그인:', user.email);
+    logger.info('토큰 검증 성공 - 자동 로그인:', user.email);
 
     res.json({
       success: true,
@@ -298,7 +306,7 @@ exports.verifyToken = async (req, res) => {
       });
     }
 
-    console.error('토큰 검증 오류:', error);
+    logger.error('토큰 검증 오류:', error);
     res.status(500).json({
       success: false,
       error: '서버 오류가 발생했습니다.'
@@ -309,22 +317,30 @@ exports.verifyToken = async (req, res) => {
 // 로그아웃
 exports.logout = async (req, res) => {
   try {
-    console.log('🚪 로그아웃 요청:', { userId: req.user.userId, email: req.user.email });
+    logger.info('로그아웃 요청:', { userId: req.user.userId, email: req.user.email });
 
-    // 리프레시 토큰이 있으면 삭제
-    const { refreshToken } = req.body;
+    // 리프레시 토큰이 있으면 삭제 (body 또는 쿠키에서 읽기)
+    const refreshToken = req.body.refreshToken || req.cookies?.refreshToken;
     if (refreshToken) {
       await revokeRefreshToken(refreshToken);
-      console.log('🔑 리프레시 토큰 삭제 완료');
+      logger.info('리프레시 토큰 삭제 완료');
     }
+
+    // 쿠키에서 리프레시 토큰 제거
+    res.clearCookie('refreshToken', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/'
+    });
 
     res.json({
       success: true,
       message: '로그아웃 되었습니다.'
     });
-    console.log('✅ 로그아웃 완료:', { userId: req.user.userId });
+    logger.info('로그아웃 완료:', { userId: req.user.userId });
   } catch (error) {
-    console.error('❌ 로그아웃 실패:', error);
+    logger.error('로그아웃 실패:', error);
     res.status(500).json({
       success: false,
       error: '로그아웃 처리 중 오류가 발생했습니다.'
@@ -332,11 +348,77 @@ exports.logout = async (req, res) => {
   }
 };
 
-// 테스트 로그인
-exports.testLogin = async (req, res) => {
+// 비밀번호 재설정 요청
+exports.forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
-    console.log('🧪 테스트 로그인 요청:', { email });
+    // 항상 성공 응답 (이메일 존재 여부 노출 방지)
+    const userResult = await pool.query('SELECT id FROM users WHERE email = $1 AND provider = $2', [email, 'email']);
+
+    if (userResult.rows.length > 0) {
+      const crypto = require('crypto');
+      const resetToken = crypto.randomBytes(32).toString('hex');
+      const resetTokenHash = crypto.createHash('sha256').update(resetToken).digest('hex');
+      const expires = new Date(Date.now() + 60 * 60 * 1000); // 1시간
+
+      await pool.query(
+        'UPDATE users SET reset_token_hash = $1, reset_token_expires = $2 WHERE id = $3',
+        [resetTokenHash, expires, userResult.rows[0].id]
+      );
+
+      logger.info('비밀번호 재설정 토큰 생성:', { userId: userResult.rows[0].id, resetUrl: `/reset-password?token=${resetToken}` });
+      // TODO: 이메일 발송 서비스 연동
+    }
+
+    res.json({ success: true, message: '비밀번호 재설정 링크가 이메일로 발송되었습니다.' });
+  } catch (error) {
+    logger.error('비밀번호 재설정 요청 실패:', error);
+    res.status(500).json({ success: false, error: '처리 중 오류가 발생했습니다.' });
+  }
+};
+
+// 비밀번호 재설정 실행
+exports.resetPassword = async (req, res) => {
+  try {
+    const { token, newPassword } = req.body;
+    const crypto = require('crypto');
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+
+    const userResult = await pool.query(
+      'SELECT id FROM users WHERE reset_token_hash = $1 AND reset_token_expires > NOW()',
+      [tokenHash]
+    );
+
+    if (userResult.rows.length === 0) {
+      return res.status(400).json({ success: false, error: '유효하지 않거나 만료된 토큰입니다.' });
+    }
+
+    const bcrypt = require('bcryptjs');
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    await pool.query(
+      'UPDATE users SET password = $1, reset_token_hash = NULL, reset_token_expires = NULL WHERE id = $2',
+      [hashedPassword, userResult.rows[0].id]
+    );
+
+    logger.info('비밀번호 재설정 완료:', { userId: userResult.rows[0].id });
+    res.json({ success: true, message: '비밀번호가 재설정되었습니다.' });
+  } catch (error) {
+    logger.error('비밀번호 재설정 실패:', error);
+    res.status(500).json({ success: false, error: '비밀번호 재설정 중 오류가 발생했습니다.' });
+  }
+};
+
+// 테스트 로그인
+exports.testLogin = async (req, res) => {
+  // 프로덕션에서 테스트 로그인 차단
+  if (process.env.NODE_ENV === 'production') {
+    return res.status(404).json({ error: 'Not found' });
+  }
+
+  try {
+    const { email } = req.body;
+    logger.debug('테스트 로그인 요청:', { email });
 
     if (!email) {
       return res.status(400).json({
@@ -363,7 +445,7 @@ exports.testLogin = async (req, res) => {
     const token = generateJWT(user);
     const refreshToken = await generateRefreshToken(user);
 
-    console.log('✅ 테스트 로그인 성공:', {
+    logger.info('테스트 로그인 성공:', {
       userId: user.id,
       email: user.email,
       name: user.name
@@ -386,7 +468,7 @@ exports.testLogin = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('❌ 테스트 로그인 실패:', error);
+    logger.error('테스트 로그인 실패:', error);
     res.status(500).json({
       success: false,
       error: '테스트 로그인 처리 중 오류가 발생했습니다.'
@@ -434,7 +516,7 @@ exports.getProfile = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('프로필 조회 오류:', error);
+    logger.error('프로필 조회 오류:', error);
     res.status(500).json({
       success: false,
       error: '프로필 정보를 불러올 수 없습니다.'
@@ -496,7 +578,7 @@ exports.register = async (req, res) => {
       refreshToken
     });
   } catch (error) {
-    console.error('회원가입 오류:', error);
+    logger.error('회원가입 오류:', error);
     res.status(500).json({ success: false, error: '회원가입 중 오류가 발생했습니다.' });
   }
 };
@@ -557,7 +639,7 @@ exports.login = async (req, res) => {
       refreshToken
     });
   } catch (error) {
-    console.error('로그인 오류:', error);
+    logger.error('로그인 오류:', error);
     res.status(500).json({ success: false, error: '로그인 중 오류가 발생했습니다.' });
   }
 };
@@ -565,7 +647,7 @@ exports.login = async (req, res) => {
 // 리프레시 토큰으로 새 액세스 토큰 발급
 exports.refreshToken = async (req, res) => {
   try {
-    const { refreshToken } = req.body;
+    const refreshToken = req.body.refreshToken || req.cookies?.refreshToken;
 
     if (!refreshToken) {
       return res.status(400).json({
@@ -607,7 +689,16 @@ exports.refreshToken = async (req, res) => {
     await revokeRefreshToken(refreshToken);
     const newRefreshToken = await generateRefreshToken(user);
 
-    console.log('🔄 토큰 갱신 성공:', { userId: user.id, email: user.email });
+    // 새 리프레시 토큰을 HTTP-only 쿠키로 설정
+    res.cookie('refreshToken', newRefreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+      path: '/'
+    });
+
+    logger.info('토큰 갱신 성공:', { userId: user.id, email: user.email });
 
     res.json({
       success: true,
@@ -616,7 +707,7 @@ exports.refreshToken = async (req, res) => {
       refreshToken: newRefreshToken
     });
   } catch (error) {
-    console.error('토큰 갱신 오류:', error);
+    logger.error('토큰 갱신 오류:', error);
     res.status(500).json({
       success: false,
       error: '토큰 갱신 중 오류가 발생했습니다.'

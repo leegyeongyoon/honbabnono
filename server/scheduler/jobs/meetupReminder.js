@@ -9,6 +9,7 @@
  */
 
 const pool = require('../../config/database');
+const logger = require('../../config/logger');
 const { sendMultiplePush } = require('../../modules/notifications/pushService');
 
 const JOB_NAME = '⏰ [모임 리마인더]';
@@ -34,7 +35,7 @@ async function run() {
       return;
     }
 
-    console.log(`${JOB_NAME} ${upcomingMeetups.rows.length}개 모임 리마인더 처리 시작`);
+    logger.info(`${JOB_NAME} ${upcomingMeetups.rows.length}개 모임 리마인더 처리 시작`);
 
     let totalNotifications = 0;
 
@@ -84,18 +85,18 @@ async function run() {
           '🍚 약속 30분 전 알림',
           `"${meetup.title}" 약속이 곧 시작됩니다! 장소: ${meetup.location}`,
           { type: 'meetup_reminder_30min', meetupId: String(meetup.id) }
-        ).catch(err => console.error(`${JOB_NAME} 푸시 전송 실패:`, err.message));
+        ).catch(err => logger.error(`${JOB_NAME} 푸시 전송 실패:`, err.message));
 
         totalNotifications += participants.rows.length;
       }
     }
 
     if (totalNotifications > 0) {
-      console.log(`${JOB_NAME} 완료: ${totalNotifications}개 알림 생성 (푸시 포함)`);
+      logger.info(`${JOB_NAME} 완료: ${totalNotifications}개 알림 생성 (푸시 포함)`);
     }
 
   } catch (error) {
-    console.error(`${JOB_NAME} 오류:`, error);
+    logger.error(`${JOB_NAME} 오류:`, error);
   }
 }
 

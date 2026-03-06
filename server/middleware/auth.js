@@ -10,76 +10,24 @@ const authenticateToken = (req, res, next) => {
   const authHeader = req.headers.authorization;
   const token = authHeader && authHeader.split(' ')[1];
 
-  console.log('🔐 토큰 검증 시작:', {
-    url: req.originalUrl,
-    method: req.method,
-    authHeader: authHeader?.substring(0, 20) + '...',
-    token: token?.substring(0, 20) + '...'
-  });
-
   if (!token) {
-    console.log('❌ 토큰이 없습니다');
     return res.status(401).json({ error: '접근 토큰이 필요합니다' });
   }
 
   jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
     if (err) {
-      console.log('❌ 토큰 검증 실패:', err.message);
       return res.status(403).json({ error: '유효하지 않은 토큰입니다' });
     }
-    console.log('✅ 토큰 검증 성공:', { userId: user.userId || user.id, email: user.email, url: req.originalUrl });
     req.user = { userId: user.userId || user.id, email: user.email, name: user.name };
     next();
   });
 };
 
-// 관리자 인증 미들웨어 (기본)
-const authenticateAdmin = (req, res, next) => {
-  const authHeader = req.headers.authorization;
-  const token = authHeader && authHeader.split(' ')[1];
-
-  console.log('🔐 관리자 토큰 검증 시작:', {
-    url: req.originalUrl,
-    method: req.method,
-    authHeader: authHeader?.substring(0, 20) + '...',
-    token: token?.substring(0, 20) + '...'
-  });
-
-  if (!token) {
-    console.log('❌ 관리자 토큰이 없습니다');
-    return res.status(401).json({ error: '관리자 접근 토큰이 필요합니다' });
-  }
-
-  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
-    if (err) {
-      console.log('❌ 관리자 토큰 검증 실패:', err.message);
-      return res.status(403).json({ error: '유효하지 않은 관리자 토큰입니다' });
-    }
-
-    // 관리자 권한 확인 (이메일 기반)
-    if (!user.email || !user.email.includes('@')) {
-      console.log('❌ 관리자 권한 없음:', { email: user.email });
-      return res.status(403).json({ error: '관리자 권한이 필요합니다' });
-    }
-
-    console.log('✅ 관리자 토큰 검증 성공:', { userId: user.userId || user.id, email: user.email, url: req.originalUrl });
-    req.user = { userId: user.userId || user.id, email: user.email, name: user.name };
-    next();
-  });
-};
-
-// 관리자 인증 미들웨어 (DB 확인 포함)
-const authenticateAdminNew = async (req, res, next) => {
+// 관리자 인증 미들웨어 (JWT isAdmin 클레임 + DB admins 테이블 검증)
+const authenticateAdmin = async (req, res, next) => {
   try {
-    console.log('🔐 관리자 인증 시작:', {
-      url: req.url,
-      method: req.method,
-      authHeader: req.headers.authorization ? 'Bearer ' + req.headers.authorization.split(' ')[1]?.substring(0, 20) + '...' : 'None'
-    });
-
     const authHeader = req.headers.authorization;
     if (!authHeader) {
-      console.log('❌ 관리자 인증 실패: 토큰 없음');
       return res.status(401).json({
         success: false,
         error: '관리자 인증 토큰이 필요합니다.'
@@ -96,7 +44,7 @@ const authenticateAdminNew = async (req, res, next) => {
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    // 관리자 권한 확인
+    // 관리자 권한 확인 (JWT 클레임에 isAdmin 플래그 필수)
     if (!decoded.isAdmin) {
       return res.status(403).json({
         success: false,
@@ -104,36 +52,37 @@ const authenticateAdminNew = async (req, res, next) => {
       });
     }
 
-    // 관리자 계정 활성화 상태 확인
+    // 관리자 계정 활성화 상태를 DB에서 검증
     const result = await pool.query(
       'SELECT id, username, email, role, is_active FROM admins WHERE id = $1 AND is_active = true',
       [decoded.adminId]
     );
 
     if (result.rows.length === 0) {
-      console.log('❌ 관리자 인증 실패: 계정 없음 또는 비활성화');
       return res.status(403).json({
         success: false,
         error: '비활성화되거나 존재하지 않는 관리자 계정입니다.'
       });
     }
 
-    console.log('✅ 관리자 인증 성공:', {
-      adminId: decoded.adminId,
-      username: result.rows[0].username,
-      role: result.rows[0].role
-    });
-
     req.admin = result.rows[0];
     next();
   } catch (error) {
-    console.error('관리자 인증 오류:', error);
-    return res.status(401).json({
+    if (error.name === 'JsonWebTokenError' || error.name === 'TokenExpiredError') {
+      return res.status(401).json({
+        success: false,
+        error: '유효하지 않은 관리자 토큰입니다.'
+      });
+    }
+    return res.status(500).json({
       success: false,
-      error: '유효하지 않은 관리자 토큰입니다.'
+      error: '관리자 인증 처리 중 오류가 발생했습니다.'
     });
   }
 };
+
+// authenticateAdminNew는 authenticateAdmin의 별칭 (하위 호환성 유지)
+const authenticateAdminNew = authenticateAdmin;
 
 // JWT 액세스 토큰 생성 (짧은 만료 시간)
 const generateJWT = (user) => {
@@ -191,11 +140,9 @@ const revokeRefreshToken = async (refreshToken) => {
 const cleanupExpiredRefreshTokens = async () => {
   try {
     const result = await pool.query('DELETE FROM user_refresh_tokens WHERE expires_at < NOW()');
-    if (result.rowCount > 0) {
-      console.log(`🔑 만료된 리프레시 토큰 ${result.rowCount}개 정리 완료`);
-    }
+    // cleanup silently
   } catch (error) {
-    console.error('리프레시 토큰 정리 오류:', error.message);
+    // token cleanup error - non-critical
   }
 };
 

@@ -112,9 +112,47 @@ const cancelPayment = async (impUid, reason, amount) => {
   }
 };
 
+/**
+ * PortOne 웹훅 서명 검증
+ * imp_uid로 PortOne API 직접 조회하여 위변조 방지
+ */
+const verifyWebhookPayment = async (impUid, merchantUid) => {
+  try {
+    const paymentData = await verifyPayment(impUid);
+
+    if (merchantUid && paymentData.merchant_uid !== merchantUid) {
+      logger.error('웹훅 검증 실패: merchant_uid 불일치', {
+        expected: merchantUid,
+        actual: paymentData.merchant_uid,
+        impUid,
+      });
+      throw new Error('웹훅 데이터 위변조 의심: merchant_uid 불일치');
+    }
+
+    return paymentData;
+  } catch (error) {
+    logger.error('웹훅 결제 검증 실패:', error.message);
+    throw error;
+  }
+};
+
+/**
+ * merchant_uid 형식 검증
+ * 허용 형식: deposit_{timestamp}_{random6chars}
+ */
+const isValidMerchantUid = (merchantUid) => {
+  if (!merchantUid || typeof merchantUid !== 'string') {
+    return false;
+  }
+  const pattern = /^deposit_\d{13,}_[a-z0-9]{6}$/;
+  return pattern.test(merchantUid);
+};
+
 module.exports = {
   config,
   getAccessToken,
   verifyPayment,
   cancelPayment,
+  verifyWebhookPayment,
+  isValidMerchantUid,
 };

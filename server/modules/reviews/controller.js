@@ -1,4 +1,5 @@
 const pool = require('../../config/database');
+const logger = require('../../config/logger');
 
 // 모임 리뷰 목록 조회
 exports.getMeetupReviews = async (req, res) => {
@@ -35,7 +36,7 @@ exports.getMeetupReviews = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('리뷰 목록 조회 오류:', error);
+    logger.error('리뷰 목록 조회 오류:', error);
     res.status(500).json({ error: '서버 오류가 발생했습니다' });
   }
 };
@@ -46,21 +47,28 @@ exports.createReview = async (req, res) => {
     const userId = req.user.userId;
     const { meetupId, rating, content, revieweeId } = req.body;
 
-    // revieweeId가 없으면 모임 호스트를 대상으로 설정
-    let targetRevieweeId = revieweeId;
-    if (!targetRevieweeId) {
-      const meetupResult = await pool.query(
-        'SELECT host_id FROM meetups WHERE id = $1',
-        [meetupId]
-      );
-      if (meetupResult.rows.length === 0) {
-        return res.status(404).json({
-          success: false,
-          error: '모임을 찾을 수 없습니다.'
-        });
-      }
-      targetRevieweeId = meetupResult.rows[0].host_id;
+    // 평점 범위 검증
+    if (!rating || rating < 1 || rating > 5) {
+      return res.status(400).json({
+        success: false,
+        error: '평점은 1~5 사이의 값이어야 합니다.'
+      });
     }
+
+    // 모임 상태 검증 (종료된 모임만 리뷰 가능)
+    const meetupCheck = await pool.query(
+      'SELECT status, host_id FROM meetups WHERE id = $1',
+      [meetupId]
+    );
+    if (meetupCheck.rows.length === 0) {
+      return res.status(404).json({ success: false, error: '모임을 찾을 수 없습니다.' });
+    }
+    if (meetupCheck.rows[0].status !== '종료') {
+      return res.status(400).json({ success: false, error: '종료된 모임에만 리뷰를 작성할 수 있습니다.' });
+    }
+
+    // revieweeId가 없으면 모임 호스트를 대상으로 설정
+    let targetRevieweeId = revieweeId || meetupCheck.rows[0].host_id;
 
     // 이미 리뷰 작성 여부 확인
     const existingResult = await pool.query(
@@ -94,6 +102,14 @@ exports.createReview = async (req, res) => {
       RETURNING *
     `, [meetupId, userId, targetRevieweeId, rating, content]);
 
+    // 리뷰 대상의 밥알지수 자동 갱신
+    await pool.query(`
+      UPDATE users SET babal_score = (
+        SELECT COALESCE(AVG(rating) * 20, 50)
+        FROM reviews WHERE reviewee_id = $1
+      ) WHERE id = $1
+    `, [targetRevieweeId]);
+
     res.status(201).json({
       success: true,
       message: '리뷰가 작성되었습니다.',
@@ -101,7 +117,7 @@ exports.createReview = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('리뷰 작성 오류:', error);
+    logger.error('리뷰 작성 오류:', error);
     res.status(500).json({ error: '서버 오류가 발생했습니다' });
   }
 };
@@ -134,7 +150,7 @@ exports.updateReview = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('리뷰 수정 오류:', error);
+    logger.error('리뷰 수정 오류:', error);
     res.status(500).json({ error: '서버 오류가 발생했습니다' });
   }
 };
@@ -163,7 +179,7 @@ exports.deleteReview = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('리뷰 삭제 오류:', error);
+    logger.error('리뷰 삭제 오류:', error);
     res.status(500).json({ error: '서버 오류가 발생했습니다' });
   }
 };
@@ -198,7 +214,7 @@ exports.rateParticipant = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('참가자 평가 오류:', error);
+    logger.error('참가자 평가 오류:', error);
     res.status(500).json({ error: '서버 오류가 발생했습니다' });
   }
 };
@@ -241,7 +257,7 @@ exports.getUserReviewStats = async (req, res) => {
       })).filter(t => t.tag)
     });
   } catch (error) {
-    console.error('리뷰 통계 조회 오류:', error);
+    logger.error('리뷰 통계 조회 오류:', error);
     res.status(500).json({ error: '리뷰 통계 조회에 실패했습니다' });
   }
 };
@@ -273,7 +289,7 @@ exports.featureReview = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('리뷰 피처링 오류:', error);
+    logger.error('리뷰 피처링 오류:', error);
     res.status(500).json({ error: '서버 오류가 발생했습니다' });
   }
 };

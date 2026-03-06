@@ -1,6 +1,7 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const pool = require('../../config/database');
+const logger = require('../../config/logger');
 
 // 관리자 로그인
 exports.login = async (req, res) => {
@@ -58,7 +59,7 @@ exports.login = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('관리자 로그인 오류:', error);
+    logger.error('관리자 로그인 오류:', error);
     res.status(500).json({ error: '서버 오류가 발생했습니다' });
   }
 };
@@ -99,7 +100,7 @@ exports.getDashboardStats = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('대시보드 통계 조회 오류:', error);
+    logger.error('대시보드 통계 조회 오류:', error);
     res.status(500).json({ error: '서버 오류가 발생했습니다' });
   }
 };
@@ -153,7 +154,7 @@ exports.getUsers = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('사용자 목록 조회 오류:', error);
+    logger.error('사용자 목록 조회 오류:', error);
     res.status(500).json({ error: '서버 오류가 발생했습니다' });
   }
 };
@@ -181,7 +182,7 @@ exports.getUserById = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('사용자 상세 조회 오류:', error);
+    logger.error('사용자 상세 조회 오류:', error);
     res.status(500).json({ error: '서버 오류가 발생했습니다' });
   }
 };
@@ -192,12 +193,13 @@ exports.updateUser = async (req, res) => {
     const { id } = req.params;
     const updates = req.body;
 
+    const ALLOWED_FIELDS = ['name', 'bio', 'phone', 'gender', 'is_active', 'babal_score', 'profile_image', 'is_verified'];
     const updateFields = [];
     const values = [];
     let paramIndex = 1;
 
     for (const [key, value] of Object.entries(updates)) {
-      if (value !== undefined && key !== 'id') {
+      if (value !== undefined && ALLOWED_FIELDS.includes(key)) {
         updateFields.push(`${key} = $${paramIndex}`);
         values.push(value);
         paramIndex++;
@@ -225,7 +227,7 @@ exports.updateUser = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('사용자 수정 오류:', error);
+    logger.error('사용자 수정 오류:', error);
     res.status(500).json({ error: '서버 오류가 발생했습니다' });
   }
 };
@@ -247,7 +249,7 @@ exports.blockUser = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('사용자 차단 오류:', error);
+    logger.error('사용자 차단 오류:', error);
     res.status(500).json({ error: '서버 오류가 발생했습니다' });
   }
 };
@@ -268,7 +270,7 @@ exports.unblockUser = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('사용자 차단 해제 오류:', error);
+    logger.error('사용자 차단 해제 오류:', error);
     res.status(500).json({ error: '서버 오류가 발생했습니다' });
   }
 };
@@ -313,7 +315,7 @@ exports.getMeetups = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('모임 목록 조회 오류:', error);
+    logger.error('모임 목록 조회 오류:', error);
     res.status(500).json({ error: '서버 오류가 발생했습니다' });
   }
 };
@@ -343,7 +345,7 @@ exports.getMeetupById = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('모임 상세 조회 오류:', error);
+    logger.error('모임 상세 조회 오류:', error);
     res.status(500).json({ error: '서버 오류가 발생했습니다' });
   }
 };
@@ -365,7 +367,7 @@ exports.updateMeetup = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('모임 수정 오류:', error);
+    logger.error('모임 수정 오류:', error);
     res.status(500).json({ error: '서버 오류가 발생했습니다' });
   }
 };
@@ -383,7 +385,7 @@ exports.deleteMeetup = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('모임 삭제 오류:', error);
+    logger.error('모임 삭제 오류:', error);
     res.status(500).json({ error: '서버 오류가 발생했습니다' });
   }
 };
@@ -421,7 +423,7 @@ exports.getReports = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('신고 목록 조회 오류:', error);
+    logger.error('신고 목록 조회 오류:', error);
     res.status(500).json({ error: '서버 오류가 발생했습니다' });
   }
 };
@@ -444,7 +446,7 @@ exports.handleReport = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('신고 처리 오류:', error);
+    logger.error('신고 처리 오류:', error);
     res.status(500).json({ error: '서버 오류가 발생했습니다' });
   }
 };
@@ -468,7 +470,7 @@ exports.getNotices = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('공지사항 목록 조회 오류:', error);
+    logger.error('공지사항 목록 조회 오류:', error);
     res.status(500).json({ error: '서버 오류가 발생했습니다' });
   }
 };
@@ -491,7 +493,7 @@ exports.createNotice = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('공지사항 작성 오류:', error);
+    logger.error('공지사항 작성 오류:', error);
     res.status(500).json({ error: '서버 오류가 발생했습니다' });
   }
 };
@@ -515,7 +517,7 @@ exports.updateNotice = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('공지사항 수정 오류:', error);
+    logger.error('공지사항 수정 오류:', error);
     res.status(500).json({ error: '서버 오류가 발생했습니다' });
   }
 };
@@ -533,7 +535,7 @@ exports.deleteNotice = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('공지사항 삭제 오류:', error);
+    logger.error('공지사항 삭제 오류:', error);
     res.status(500).json({ error: '서버 오류가 발생했습니다' });
   }
 };
@@ -546,7 +548,7 @@ exports.logout = async (req, res) => {
       message: '관리자 로그아웃 완료'
     });
   } catch (error) {
-    console.error('관리자 로그아웃 오류:', error);
+    logger.error('관리자 로그아웃 오류:', error);
     res.status(500).json({
       success: false,
       error: '로그아웃 중 오류가 발생했습니다.'
@@ -567,7 +569,7 @@ exports.getProfile = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('관리자 프로필 조회 오류:', error);
+    logger.error('관리자 프로필 조회 오류:', error);
     res.status(500).json({
       success: false,
       error: '프로필 조회 중 오류가 발생했습니다.'
@@ -595,7 +597,7 @@ exports.getSettings = async (req, res) => {
       data: settings
     });
   } catch (error) {
-    console.error('시스템 설정 조회 오류:', error);
+    logger.error('시스템 설정 조회 오류:', error);
     res.status(500).json({
       success: false,
       error: '시스템 설정 조회 중 오류가 발생했습니다.'
@@ -632,7 +634,7 @@ exports.updateSettings = async (req, res) => {
       });
     }
 
-    console.log('💾 시스템 설정 저장:', {
+    logger.info('시스템 설정 저장:', {
       maintenanceMode,
       allowNewSignups,
       maxMeetupParticipants,
@@ -651,7 +653,7 @@ exports.updateSettings = async (req, res) => {
       message: '시스템 설정이 저장되었습니다.'
     });
   } catch (error) {
-    console.error('시스템 설정 저장 오류:', error);
+    logger.error('시스템 설정 저장 오류:', error);
     res.status(500).json({
       success: false,
       error: '시스템 설정 저장 중 오류가 발생했습니다.'
@@ -676,7 +678,7 @@ exports.pinNotice = async (req, res) => {
       message: `공지사항이 ${is_pinned ? '고정' : '고정 해제'}되었습니다.`
     });
   } catch (error) {
-    console.error('공지사항 고정 상태 변경 오류:', error);
+    logger.error('공지사항 고정 상태 변경 오류:', error);
     res.status(500).json({ success: false, error: '고정 상태 변경에 실패했습니다.' });
   }
 };
@@ -689,7 +691,7 @@ exports.getBlockedUsers = async (req, res) => {
     const offset = (page - 1) * limit;
     const search = req.query.search || '';
 
-    console.log('🔍 관리자 차단 회원 목록 조회:', { page, limit, search });
+    logger.debug('관리자 차단 회원 목록 조회:', { page, limit, search });
 
     let whereClause = 'WHERE 1=1';
     let queryParams = [];
@@ -740,7 +742,7 @@ exports.getBlockedUsers = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('차단 회원 목록 조회 오류:', error);
+    logger.error('차단 회원 목록 조회 오류:', error);
     res.status(500).json({ success: false, message: '차단 회원 목록 조회 중 오류가 발생했습니다.' });
   }
 };
@@ -766,7 +768,7 @@ exports.getBlockingStats = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('차단 통계 조회 오류:', error);
+    logger.error('차단 통계 조회 오류:', error);
     res.status(500).json({ success: false, message: '차단 통계 조회 중 오류가 발생했습니다.' });
   }
 };
@@ -796,7 +798,7 @@ exports.getAccounts = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('관리자 계정 목록 조회 오류:', error);
+    logger.error('관리자 계정 목록 조회 오류:', error);
     res.status(500).json({ success: false, error: '관리자 계정 목록 조회에 실패했습니다.' });
   }
 };
@@ -839,7 +841,7 @@ exports.createAccount = async (req, res) => {
       admin: result.rows[0]
     });
   } catch (error) {
-    console.error('관리자 계정 생성 오류:', error);
+    logger.error('관리자 계정 생성 오류:', error);
     res.status(500).json({ success: false, error: '관리자 계정 생성에 실패했습니다.' });
   }
 };
@@ -873,7 +875,7 @@ exports.updateAccount = async (req, res) => {
       admin: result.rows[0]
     });
   } catch (error) {
-    console.error('관리자 계정 수정 오류:', error);
+    logger.error('관리자 계정 수정 오류:', error);
     res.status(500).json({ success: false, error: '관리자 계정 수정에 실패했습니다.' });
   }
 };
@@ -903,7 +905,7 @@ exports.updateAccountPassword = async (req, res) => {
       message: '비밀번호가 변경되었습니다.'
     });
   } catch (error) {
-    console.error('관리자 비밀번호 변경 오류:', error);
+    logger.error('관리자 비밀번호 변경 오류:', error);
     res.status(500).json({ success: false, error: '비밀번호 변경에 실패했습니다.' });
   }
 };
@@ -928,7 +930,7 @@ exports.deleteAccount = async (req, res) => {
       message: '관리자 계정이 삭제되었습니다.'
     });
   } catch (error) {
-    console.error('관리자 계정 삭제 오류:', error);
+    logger.error('관리자 계정 삭제 오류:', error);
     res.status(500).json({ success: false, error: '관리자 계정 삭제에 실패했습니다.' });
   }
 };
@@ -965,7 +967,7 @@ exports.getUserDetails = async (req, res) => {
       stats: statsResult.rows[0]
     });
   } catch (error) {
-    console.error('사용자 상세 정보 조회 오류:', error);
+    logger.error('사용자 상세 정보 조회 오류:', error);
     res.status(500).json({ success: false, error: '사용자 정보 조회에 실패했습니다.' });
   }
 };
@@ -1006,7 +1008,7 @@ exports.updateUserPoints = async (req, res) => {
       message: `포인트가 ${type === 'add' ? '지급' : '차감'}되었습니다.`
     });
   } catch (error) {
-    console.error('사용자 포인트 수정 오류:', error);
+    logger.error('사용자 포인트 수정 오류:', error);
     res.status(500).json({ success: false, error: '포인트 수정에 실패했습니다.' });
   }
 };
@@ -1021,7 +1023,7 @@ exports.getChatbotSettings = async (req, res) => {
       data: result.rows
     });
   } catch (error) {
-    console.error('챗봇 설정 조회 오류:', error);
+    logger.error('챗봇 설정 조회 오류:', error);
     res.status(500).json({ success: false, error: '챗봇 설정 조회에 실패했습니다.' });
   }
 };
@@ -1048,7 +1050,7 @@ exports.updateChatbotSettings = async (req, res) => {
       data: result.rows[0]
     });
   } catch (error) {
-    console.error('챗봇 설정 수정 오류:', error);
+    logger.error('챗봇 설정 수정 오류:', error);
     res.status(500).json({ success: false, error: '챗봇 설정 수정에 실패했습니다.' });
   }
 };
@@ -1070,7 +1072,7 @@ exports.getRealtimeStats = async (req, res) => {
       data: result.rows[0]
     });
   } catch (error) {
-    console.error('실시간 통계 조회 오류:', error);
+    logger.error('실시간 통계 조회 오류:', error);
     res.status(500).json({ success: false, error: '실시간 통계 조회에 실패했습니다.' });
   }
 };
@@ -1107,7 +1109,7 @@ exports.getStatReports = async (req, res) => {
       data: result.rows
     });
   } catch (error) {
-    console.error('리포트 조회 오류:', error);
+    logger.error('리포트 조회 오류:', error);
     res.status(500).json({ success: false, error: '리포트 조회에 실패했습니다.' });
   }
 };
@@ -1124,7 +1126,7 @@ exports.deleteReview = async (req, res) => {
       message: '리뷰가 삭제되었습니다.'
     });
   } catch (error) {
-    console.error('리뷰 삭제 오류:', error);
+    logger.error('리뷰 삭제 오류:', error);
     res.status(500).json({ success: false, error: '리뷰 삭제에 실패했습니다.' });
   }
 };
@@ -1151,7 +1153,7 @@ exports.bulkUnblock = async (req, res) => {
       message: `${userIds.length}명의 차단이 해제되었습니다.`
     });
   } catch (error) {
-    console.error('대량 차단 해제 오류:', error);
+    logger.error('대량 차단 해제 오류:', error);
     res.status(500).json({ success: false, error: '대량 차단 해제에 실패했습니다.' });
   }
 };
@@ -1186,7 +1188,7 @@ exports.getStats = async (req, res) => {
       activeMeetups
     });
   } catch (error) {
-    console.error('관리자 통계 조회 오류:', error);
+    logger.error('관리자 통계 조회 오류:', error);
     res.status(500).json({ message: '통계 조회 중 오류가 발생했습니다.' });
   }
 };
@@ -1255,7 +1257,7 @@ exports.downloadReports = async (req, res) => {
           activeUsers: Math.floor((newUsers + newMeetups) * 0.8)
         });
       } catch (queryError) {
-        console.error('리포트 쿼리 오류:', queryError);
+        logger.error('리포트 쿼리 오류:', queryError);
       }
     }
 
@@ -1272,7 +1274,7 @@ exports.downloadReports = async (req, res) => {
     res.send('\uFEFF' + csv); // BOM for Korean characters
 
   } catch (error) {
-    console.error('리포트 다운로드 오류:', error);
+    logger.error('리포트 다운로드 오류:', error);
     res.status(500).json({ success: false, error: '리포트 다운로드에 실패했습니다.' });
   }
 };
@@ -1310,7 +1312,7 @@ exports.getMeetupDetails = async (req, res) => {
       participants: participantsResult.rows
     });
   } catch (error) {
-    console.error('모임 상세 조회 오류:', error);
+    logger.error('모임 상세 조회 오류:', error);
     res.status(500).json({ success: false, error: '약속 상세 조회에 실패했습니다.' });
   }
 };
@@ -1348,7 +1350,7 @@ exports.updateMeetupAction = async (req, res) => {
       message: `약속이 ${action === 'approve' ? '승인' : action === 'reject' ? '반려' : action === 'suspend' ? '중단' : '복원'}되었습니다.`
     });
   } catch (error) {
-    console.error('모임 상태 변경 오류:', error);
+    logger.error('모임 상태 변경 오류:', error);
     res.status(500).json({ success: false, error: '약속 상태 변경에 실패했습니다.' });
   }
 };
@@ -1393,7 +1395,7 @@ exports.updateUserAction = async (req, res) => {
       message: `사용자가 ${action === 'ban' ? '정지' : action === 'unban' ? '정지 해제' : action === 'verify' ? '인증' : '인증 해제'}되었습니다.`
     });
   } catch (error) {
-    console.error('사용자 상태 변경 오류:', error);
+    logger.error('사용자 상태 변경 오류:', error);
     res.status(500).json({ success: false, error: '사용자 상태 변경에 실패했습니다.' });
   }
 };
@@ -1426,7 +1428,7 @@ exports.collectDashboardStats = async (req, res) => {
     );
     stats.todaySignups = parseInt(todayResult.rows[0].count);
 
-    console.log('📊 Dashboard stats collected:', stats);
+    logger.info('Dashboard stats collected:', stats);
 
     res.json({
       success: true,
@@ -1434,7 +1436,7 @@ exports.collectDashboardStats = async (req, res) => {
       stats
     });
   } catch (error) {
-    console.error('대시보드 통계 수집 오류:', error);
+    logger.error('대시보드 통계 수집 오류:', error);
     res.status(500).json({ success: false, error: '통계 수집에 실패했습니다.' });
   }
 };
@@ -1462,7 +1464,7 @@ exports.softDeleteReview = async (req, res) => {
       message: '리뷰가 삭제되었습니다.'
     });
   } catch (error) {
-    console.error('리뷰 소프트 삭제 오류:', error);
+    logger.error('리뷰 소프트 삭제 오류:', error);
     res.status(500).json({ success: false, error: '리뷰 삭제에 실패했습니다.' });
   }
 };

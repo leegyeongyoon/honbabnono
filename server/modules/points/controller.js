@@ -1,4 +1,5 @@
 const pool = require('../../config/database');
+const logger = require('../../config/logger');
 
 // 포인트 조회
 exports.getPoints = async (req, res) => {
@@ -41,7 +42,7 @@ exports.getPoints = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('포인트 조회 오류:', error);
+    logger.error('포인트 조회 오류:', error);
     res.status(500).json({ error: '서버 오류가 발생했습니다' });
   }
 };
@@ -57,8 +58,8 @@ exports.getPointHistory = async (req, res) => {
     const params = [userId, parseInt(limit), offset];
 
     if (type) {
-      whereClause += ' AND transaction_type = $4';
       params.push(type);
+      whereClause += ` AND transaction_type = $${params.length}`;
     }
 
     const result = await pool.query(`
@@ -80,7 +81,7 @@ exports.getPointHistory = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('포인트 내역 조회 오류:', error);
+    logger.error('포인트 내역 조회 오류:', error);
     res.status(500).json({ error: '서버 오류가 발생했습니다' });
   }
 };
@@ -126,7 +127,7 @@ exports.earnPoints = async (req, res) => {
     }
 
   } catch (error) {
-    console.error('포인트 적립 오류:', error);
+    logger.error('포인트 적립 오류:', error);
     res.status(500).json({ error: '서버 오류가 발생했습니다' });
   }
 };
@@ -184,7 +185,7 @@ exports.usePoints = async (req, res) => {
     }
 
   } catch (error) {
-    console.error('포인트 사용 오류:', error);
+    logger.error('포인트 사용 오류:', error);
     res.status(500).json({ error: '서버 오류가 발생했습니다' });
   }
 };
@@ -241,7 +242,7 @@ exports.payDeposit = async (req, res) => {
     }
 
   } catch (error) {
-    console.error('약속금 결제 오류:', error);
+    logger.error('약속금 결제 오류:', error);
     res.status(500).json({ error: '서버 오류가 발생했습니다' });
   }
 };
@@ -301,7 +302,7 @@ exports.refundDeposit = async (req, res) => {
     }
 
   } catch (error) {
-    console.error('약속금 환불 오류:', error);
+    logger.error('약속금 환불 오류:', error);
     res.status(500).json({ error: '서버 오류가 발생했습니다' });
   }
 };

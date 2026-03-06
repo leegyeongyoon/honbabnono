@@ -1,4 +1,5 @@
 const axios = require('axios');
+const logger = require('../../config/logger');
 
 // 주소/장소 검색 (카카오 API 프록시)
 exports.searchAddress = async (req, res) => {
@@ -91,7 +92,7 @@ exports.searchAddress = async (req, res) => {
         });
       }
     } catch (apiError) {
-      console.log('카카오 API 호출 실패, 더미 데이터로 대체:', apiError.message);
+      logger.warn('카카오 API 호출 실패, 더미 데이터로 대체:', apiError.message);
     }
 
     // API 호출 실패 시 더미 데이터로 대체
@@ -102,7 +103,7 @@ exports.searchAddress = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('주소 검색 오류:', error);
+    logger.error('주소 검색 오류:', error);
     res.status(500).json({ error: '주소 검색에 실패했습니다', documents: [] });
   }
 };

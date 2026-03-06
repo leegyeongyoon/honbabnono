@@ -1,4 +1,5 @@
 const pool = require('../../config/database');
+const logger = require('../../config/logger');
 const pushService = require('./pushService');
 
 // 알림 목록 조회
@@ -35,7 +36,7 @@ exports.getNotifications = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('알림 목록 조회 오류:', error);
+    logger.error('알림 목록 조회 오류:', error);
     res.status(500).json({ error: '서버 오류가 발생했습니다' });
   }
 };
@@ -56,7 +57,7 @@ exports.getUnreadCount = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('읽지 않은 알림 수 조회 오류:', error);
+    logger.error('읽지 않은 알림 수 조회 오류:', error);
     res.status(500).json({ error: '서버 오류가 발생했습니다' });
   }
 };
@@ -78,7 +79,7 @@ exports.markAsRead = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('알림 읽음 처리 오류:', error);
+    logger.error('알림 읽음 처리 오류:', error);
     res.status(500).json({ error: '서버 오류가 발생했습니다' });
   }
 };
@@ -99,7 +100,7 @@ exports.markAllAsRead = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('모든 알림 읽음 처리 오류:', error);
+    logger.error('모든 알림 읽음 처리 오류:', error);
     res.status(500).json({ error: '서버 오류가 발생했습니다' });
   }
 };
@@ -121,7 +122,7 @@ exports.deleteNotification = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('알림 삭제 오류:', error);
+    logger.error('알림 삭제 오류:', error);
     res.status(500).json({ error: '서버 오류가 발생했습니다' });
   }
 };
@@ -155,7 +156,7 @@ exports.getSettings = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('알림 설정 조회 오류:', error);
+    logger.error('알림 설정 조회 오류:', error);
     res.status(500).json({ error: '서버 오류가 발생했습니다' });
   }
 };
@@ -164,19 +165,19 @@ exports.getSettings = async (req, res) => {
 exports.updateSettings = async (req, res) => {
   try {
     const userId = req.user.userId;
-    const { pushEnabled, chatEnabled, meetupEnabled, marketingEnabled } = req.body;
+    const { pushEnabled, chatMessages, meetupReminders, systemAnnouncements } = req.body;
 
     await pool.query(`
-      INSERT INTO notification_settings (user_id, push_enabled, chat_enabled, meetup_enabled, marketing_enabled)
+      INSERT INTO user_notification_settings (user_id, push_enabled, chat_messages, meetup_reminders, system_announcements)
       VALUES ($1, $2, $3, $4, $5)
       ON CONFLICT (user_id)
       DO UPDATE SET
-        push_enabled = $2,
-        chat_enabled = $3,
-        meetup_enabled = $4,
-        marketing_enabled = $5,
+        push_enabled = COALESCE($2, user_notification_settings.push_enabled),
+        chat_messages = COALESCE($3, user_notification_settings.chat_messages),
+        meetup_reminders = COALESCE($4, user_notification_settings.meetup_reminders),
+        system_announcements = COALESCE($5, user_notification_settings.system_announcements),
         updated_at = NOW()
-    `, [userId, pushEnabled, chatEnabled, meetupEnabled, marketingEnabled]);
+    `, [userId, pushEnabled, chatMessages, meetupReminders, systemAnnouncements]);
 
     res.json({
       success: true,
@@ -184,7 +185,7 @@ exports.updateSettings = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('알림 설정 변경 오류:', error);
+    logger.error('알림 설정 변경 오류:', error);
     res.status(500).json({ error: '서버 오류가 발생했습니다' });
   }
 };
@@ -201,9 +202,9 @@ exports.createNotification = async (userId, type, title, message, data = {}) => 
 
     // 푸시 알림 전송 (비동기, 실패해도 DB 알림은 유지)
     pushService.sendPushNotification(userId, title, message, { type, ...data })
-      .catch(err => console.error('푸시 알림 전송 실패:', err));
+      .catch(err => logger.error('푸시 알림 전송 실패:', err));
   } catch (error) {
-    console.error('알림 생성 오류:', error);
+    logger.error('알림 생성 오류:', error);
   }
 };
 
@@ -231,7 +232,7 @@ exports.createTestNotification = async (req, res) => {
       push: pushResult
     });
   } catch (error) {
-    console.error('테스트 알림 생성 오류:', error);
+    logger.error('테스트 알림 생성 오류:', error);
     res.status(500).json({ error: '테스트 알림 생성에 실패했습니다.' });
   }
 };
@@ -253,7 +254,7 @@ exports.markAsReadPatch = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('알림 읽음 처리 오류:', error);
+    logger.error('알림 읽음 처리 오류:', error);
     res.status(500).json({ error: '서버 오류가 발생했습니다' });
   }
 };
@@ -283,7 +284,7 @@ exports.registerToken = async (req, res) => {
       res.status(500).json({ error: '디바이스 토큰 등록에 실패했습니다.' });
     }
   } catch (error) {
-    console.error('디바이스 토큰 등록 오류:', error);
+    logger.error('디바이스 토큰 등록 오류:', error);
     res.status(500).json({ error: '서버 오류가 발생했습니다' });
   }
 };
@@ -308,7 +309,7 @@ exports.unregisterToken = async (req, res) => {
       res.status(500).json({ error: '디바이스 토큰 해제에 실패했습니다.' });
     }
   } catch (error) {
-    console.error('디바이스 토큰 해제 오류:', error);
+    logger.error('디바이스 토큰 해제 오류:', error);
     res.status(500).json({ error: '서버 오류가 발생했습니다' });
   }
 };

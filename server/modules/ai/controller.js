@@ -1,5 +1,6 @@
 const { OpenAI } = require('openai');
 const pool = require('../../config/database');
+const logger = require('../../config/logger');
 const aiSearchConfig = require('../../config/aiSearchConfig');
 
 // OpenAI 클라이언트 초기화 (테스트 환경에서는 더미 키 사용)
@@ -18,7 +19,7 @@ exports.aiSearch = async (req, res) => {
       });
     }
 
-    console.log('🤖 AI 검색 요청:', { query, filters });
+    logger.info('AI 검색 요청:', { query, filters });
 
     // AI를 사용해 검색어 의도 파악
     const intentPrompt = `
@@ -54,7 +55,7 @@ exports.aiSearch = async (req, res) => {
       const intentText = intentResponse.choices[0].message.content;
       parsedIntent = JSON.parse(intentText);
     } catch (aiError) {
-      console.log('AI 의도 파싱 실패, 기본 검색 진행:', aiError.message);
+      logger.warn('AI 의도 파싱 실패, 기본 검색 진행:', aiError.message);
     }
 
     // 데이터베이스에서 모임 검색
@@ -99,7 +100,7 @@ exports.aiSearch = async (req, res) => {
       LIMIT 20
     `, params);
 
-    console.log(`✅ AI 검색 완료: ${meetupsResult.rows.length}개 결과`);
+    logger.info(`AI 검색 완료: ${meetupsResult.rows.length}개 결과`);
 
     res.json({
       success: true,
@@ -110,7 +111,7 @@ exports.aiSearch = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('AI 검색 오류:', error);
+    logger.error('AI 검색 오류:', error);
     res.status(500).json({
       success: false,
       error: 'AI 검색 중 오류가 발생했습니다.'
@@ -131,7 +132,7 @@ exports.chatbot = async (req, res) => {
       });
     }
 
-    console.log('🤖 챗봇 요청:', { userId, message });
+    logger.info('챗봇 요청:', { userId, message });
 
     const systemPrompt = `
       당신은 '잇테이블' 앱의 친절한 AI 어시스턴트입니다.
@@ -176,7 +177,7 @@ exports.chatbot = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('챗봇 오류:', error);
+    logger.error('챗봇 오류:', error);
     res.status(500).json({
       success: false,
       error: '챗봇 응답 생성 중 오류가 발생했습니다.'
@@ -240,7 +241,7 @@ exports.recommendMeetups = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('모임 추천 오류:', error);
+    logger.error('모임 추천 오류:', error);
     res.status(500).json({
       success: false,
       error: '밥약속 추천 중 오류가 발생했습니다.'

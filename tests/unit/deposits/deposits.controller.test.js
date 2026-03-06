@@ -113,7 +113,7 @@ describe('Deposits Controller', () => {
       expect(res.status).toHaveBeenCalledWith(400);
       expect(res.json).toHaveBeenCalledWith({
         success: false,
-        error: '이미 해당 모임의 약속금을 결제하셨습니다.',
+        error: '이미 해당 약속의 약속금을 결제하셨습니다.',
       });
     });
 

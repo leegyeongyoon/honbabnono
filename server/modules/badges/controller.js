@@ -1,4 +1,5 @@
 const pool = require('../../config/database');
+const logger = require('../../config/logger');
 
 // 전체 뱃지 목록
 exports.getAllBadges = async (req, res) => {
@@ -13,7 +14,7 @@ exports.getAllBadges = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('뱃지 목록 조회 오류:', error);
+    logger.error('뱃지 목록 조회 오류:', error);
     res.status(500).json({ error: '서버 오류가 발생했습니다' });
   }
 };
@@ -33,7 +34,7 @@ exports.getAvailableBadges = async (req, res) => {
       badges: result.rows
     });
   } catch (error) {
-    console.error('획득 가능한 뱃지 조회 오류:', error);
+    logger.error('획득 가능한 뱃지 조회 오류:', error);
     res.status(500).json({ error: '뱃지 목록 조회에 실패했습니다' });
   }
 };
@@ -95,7 +96,7 @@ exports.getBadgeProgress = async (req, res) => {
       progress
     });
   } catch (error) {
-    console.error('뱃지 진행률 조회 오류:', error);
+    logger.error('뱃지 진행률 조회 오류:', error);
     res.status(500).json({ error: '뱃지 진행률 조회에 실패했습니다' });
   }
 };
@@ -122,7 +123,7 @@ exports.getMyBadges = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('내 뱃지 조회 오류:', error);
+    logger.error('내 뱃지 조회 오류:', error);
     res.status(500).json({ error: '서버 오류가 발생했습니다' });
   }
 };
@@ -165,7 +166,7 @@ exports.earnBadge = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('뱃지 획득 오류:', error);
+    logger.error('뱃지 획득 오류:', error);
     res.status(500).json({ error: '서버 오류가 발생했습니다' });
   }
 };
@@ -203,7 +204,7 @@ exports.setFeaturedBadge = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('대표 뱃지 설정 오류:', error);
+    logger.error('대표 뱃지 설정 오류:', error);
     res.status(500).json({ error: '서버 오류가 발생했습니다' });
   }
 };
@@ -240,7 +241,7 @@ exports.checkBadgeEligibility = async (userId) => {
 
     return eligibleBadgesResult.rows;
   } catch (error) {
-    console.error('뱃지 획득 조건 체크 오류:', error);
+    logger.error('뱃지 획득 조건 체크 오류:', error);
     return [];
   }
 };

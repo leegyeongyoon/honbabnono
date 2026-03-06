@@ -3,6 +3,8 @@
  * 모임 추천 엔진을 위한 프롬프트와 카테고리 분류 체계
  */
 
+const logger = require('./logger');
+
 // 시스템 프롬프트 v12 - 100점 만점 스케일
 const SYSTEM_PROMPT = `
 스마트 밥약속 추천 엔진: 사용자 검색어와 밥약속 리스트를 매칭하여 최적 추천
@@ -231,7 +233,7 @@ module.exports = {
 
       return normalizedResponse;
     } catch (error) {
-      console.error('AI 응답 파싱 오류:', error);
+      logger.error('AI 응답 파싱 오류:', error);
       throw error;
     }
   }

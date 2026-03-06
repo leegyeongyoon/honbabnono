@@ -2,6 +2,7 @@
  * 모임 목록 조회 컨트롤러
  */
 const pool = require('../../../config/database');
+const logger = require('../../../config/logger');
 const { processImageUrl, calculateDistance } = require('../../../utils/helpers');
 const { extractUserId } = require('../helpers/auth.helper');
 const {
@@ -88,7 +89,7 @@ exports.getHomeMeetups = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('홈화면 모임 목록 조회 오류:', error);
+    logger.error('홈화면 모임 목록 조회 오류:', error);
     res.status(500).json({
       success: false,
       message: '약속 목록 조회에 실패했습니다.',
@@ -184,7 +185,7 @@ exports.getActiveMeetups = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('활성 모임 목록 조회 오류:', error);
+    logger.error('활성 모임 목록 조회 오류:', error);
     res.status(500).json({
       success: false,
       message: '약속 목록 조회에 실패했습니다.',
@@ -239,7 +240,7 @@ exports.getCompletedMeetups = async (req, res) => {
       meetups,
     });
   } catch (error) {
-    console.error('완료된 모임 목록 조회 오류:', error);
+    logger.error('완료된 모임 목록 조회 오류:', error);
     res.status(500).json({
       success: false,
       message: '약속 목록 조회에 실패했습니다.',
@@ -324,7 +325,7 @@ exports.getNearbyMeetups = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('주변 모임 조회 오류:', error);
+    logger.error('주변 모임 조회 오류:', error);
     res.status(500).json({
       success: false,
       message: '주변 약속 조회에 실패했습니다.',
@@ -389,7 +390,7 @@ exports.getMyMeetups = async (req, res) => {
       meetups,
     });
   } catch (error) {
-    console.error('내 모임 목록 조회 오류:', error);
+    logger.error('내 모임 목록 조회 오류:', error);
     res.status(500).json({
       success: false,
       message: '약속 목록 조회에 실패했습니다.',
@@ -475,7 +476,7 @@ exports.getMeetups = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('모임 목록 조회 오류:', error);
+    logger.error('모임 목록 조회 오류:', error);
     res.status(500).json({
       success: false,
       message: '약속 목록 조회에 실패했습니다.',

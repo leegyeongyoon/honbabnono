@@ -8,46 +8,45 @@ on:
 env:
   AWS_REGION: ap-northeast-2
   APP_NAME: honbabnono
-  OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
 
 jobs:
   deploy:
     name: Deploy to ECS
     runs-on: ubuntu-latest
-    
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-      
+
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v4
       with:
         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: ${{ env.AWS_REGION }}
-        
+
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v3
       with:
         terraform_version: 1.6.0
         terraform_wrapper: false
-        
+
     - name: Initialize Terraform and setup variables
       run: |
         cd terraform
-        
+
         # Create terraform.tfvars if it doesn't exist
         if [ ! -f terraform.tfvars ]; then
           echo "Creating terraform.tfvars from example..."
           cp terraform.tfvars.example terraform.tfvars
         fi
-        
+
         # Show the current configuration
         echo "Current terraform.tfvars:"
         cat terraform.tfvars
-        
+
         terraform init
-        
+
     - name: Check if infrastructure exists
       id: check-infra
       run: |
@@ -60,12 +59,12 @@ jobs:
           echo "exists=false" >> $GITHUB_OUTPUT
           echo "No infrastructure found, will create new"
         fi
-        
+
     # 이 단계는 더 이상 필요하지 않습니다 (Terraform state로 관리됨)
     # - name: Cleanup conflicting resources (if needed)
     #   run: |
     #     echo "📋 Skipping cleanup - using Terraform state management"
-        
+
     - name: Deploy infrastructure
       run: |
         cd terraform
@@ -74,14 +73,14 @@ jobs:
         terraform force-unlock -force 2b34077b-3020-23e6-d729-ef050b1fdcf7 2>/dev/null || echo "No lock to unlock or different lock ID"
         terraform plan
         terraform apply -auto-approve
-        
+
     - name: Get ECR repository URL
       id: ecr-url
       run: |
         cd terraform
         # Wait a moment for outputs to be available
         sleep 10
-        
+
         # Try to get ECR URL with error handling
         if ECR_URL=$(terraform output -raw ecr_repository_url 2>/dev/null); then
           echo "ecr_url=$ECR_URL" >> $GITHUB_OUTPUT
@@ -91,24 +90,22 @@ jobs:
           terraform show
           exit 1
         fi
-        
+
     - name: Login to Amazon ECR
       id: login-ecr
       uses: aws-actions/amazon-ecr-login@v2
-      
+
     - name: Build Docker image
       run: |
-        docker build -t ${{ env.APP_NAME }} \
-          --build-arg OPENAI_API_KEY="${{ secrets.OPENAI_API_KEY }}" \
-          .
-        
+        docker build -t ${{ env.APP_NAME }} .
+
     - name: Tag and push Docker image
       run: |
         docker tag ${{ env.APP_NAME }}:latest ${{ steps.ecr-url.outputs.ecr_url }}:latest
         docker tag ${{ env.APP_NAME }}:latest ${{ steps.ecr-url.outputs.ecr_url }}:${{ github.sha }}
         docker push ${{ steps.ecr-url.outputs.ecr_url }}:latest
         docker push ${{ steps.ecr-url.outputs.ecr_url }}:${{ github.sha }}
-        
+
     - name: Update ECS service
       run: |
         aws ecs update-service \
@@ -116,7 +113,7 @@ jobs:
           --service ${{ env.APP_NAME }}-service \
           --force-new-deployment \
           --region ${{ env.AWS_REGION }}
-          
+
     - name: Check ECS service status and debug
       run: |
         echo "🔍 Checking ECS service status..."
@@ -124,13 +121,13 @@ jobs:
           --cluster ${{ env.APP_NAME }}-cluster \
           --services ${{ env.APP_NAME }}-service \
           --region ${{ env.AWS_REGION }}
-        
+
         echo "🔍 Checking running tasks..."
         aws ecs list-tasks \
           --cluster ${{ env.APP_NAME }}-cluster \
           --service-name ${{ env.APP_NAME }}-service \
           --region ${{ env.AWS_REGION }}
-        
+
         echo "🔍 Getting task details..."
         TASK_ARNS=$(aws ecs list-tasks \
           --cluster ${{ env.APP_NAME }}-cluster \
@@ -138,7 +135,7 @@ jobs:
           --region ${{ env.AWS_REGION }} \
           --query 'taskArns' \
           --output text)
-        
+
         if [ ! -z "$TASK_ARNS" ]; then
           for task in $TASK_ARNS; do
             echo "📋 Task details for: $task"
@@ -148,7 +145,7 @@ jobs:
               --region ${{ env.AWS_REGION }}
           done
         fi
-        
+
     - name: Wait for deployment to complete (with timeout)
       run: |
         echo "⏳ Waiting for ECS service to stabilize (max 10 minutes)..."
@@ -164,7 +161,7 @@ jobs:
             --region ${{ env.AWS_REGION }}
           exit 1
         }
-          
+
     - name: Get application URL
       id: app-url
       run: |
@@ -173,7 +170,7 @@ jobs:
         DOMAIN_NAME=$(terraform output -raw domain_name)
         echo "app_url=$APP_URL" >> $GITHUB_OUTPUT
         echo "domain_name=$DOMAIN_NAME" >> $GITHUB_OUTPUT
-        
+
     - name: Get nameservers and domain info
       id: domain-info
       run: |
@@ -182,7 +179,7 @@ jobs:
         DOMAIN_INSTRUCTIONS=$(terraform output -raw domain_setup_instructions 2>/dev/null || echo "No domain configured")
         echo "nameservers=$NAMESERVERS" >> $GITHUB_OUTPUT
         echo "instructions=$DOMAIN_INSTRUCTIONS" >> $GITHUB_OUTPUT
-        
+
     - name: Deployment success notification
       run: |
         echo "🎉 Deployment completed successfully!"

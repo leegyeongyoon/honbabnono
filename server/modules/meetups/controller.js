@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const pool = require('../../config/database');
+const logger = require('../../config/logger');
 const { processImageUrl, calculateDistance } = require('../../utils/helpers');
 
 // 홈화면용 활성 모임 목록 (위치 기반 필터링 지원)
@@ -135,7 +136,7 @@ exports.getHomeMeetups = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ 홈화면 모임 목록 조회 오류:', error);
+    logger.error('홈화면 모임 목록 조회 오류:', error);
     res.status(500).json({
       success: false,
       message: '약속 목록 조회에 실패했습니다.'
@@ -148,7 +149,7 @@ exports.getActiveMeetups = async (req, res) => {
   try {
     const { category, location, priceRange, page = 1, limit = 10 } = req.query;
 
-    console.log('🏠 활성 모임 목록 조회:', { category, location, priceRange, page, limit });
+    logger.info('활성 모임 목록 조회:', { category, location, priceRange, page, limit });
 
     let currentUserId = null;
     const authHeader = req.headers.authorization;
@@ -226,7 +227,7 @@ exports.getActiveMeetups = async (req, res) => {
     const meetups = meetupsResult.rows;
     const total = parseInt(countResult.rows[0].total);
 
-    console.log(`✅ 활성 모임 조회 완료: ${meetups.length}개 (전체 ${total}개)`);
+    logger.info(`활성 모임 조회 완료: ${meetups.length}개 (전체 ${total}개)`);
 
     res.json({
       success: true,
@@ -240,7 +241,7 @@ exports.getActiveMeetups = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ 활성 모임 목록 조회 오류:', error);
+    logger.error('활성 모임 목록 조회 오류:', error);
     res.status(500).json({
       success: false,
       message: '약속 목록 조회에 실패했습니다.'
@@ -301,7 +302,7 @@ exports.getCompletedMeetups = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ 완료된 모임 조회 오류:', error);
+    logger.error('완료된 모임 조회 오류:', error);
     res.status(500).json({
       success: false,
       message: '완료된 약속 조회에 실패했습니다.'
@@ -332,7 +333,7 @@ exports.getNearbyMeetups = async (req, res) => {
     const centerLng = parseFloat(longitude);
     const searchRadius = parseInt(radius);
 
-    console.log(`📍 주변 모임 검색 요청: 중심(${centerLat}, ${centerLng}), 반경 ${searchRadius}m`);
+    logger.info(`주변 모임 검색 요청: 중심(${centerLat}, ${centerLng}), 반경 ${searchRadius}m`);
 
     let whereClause = `WHERE m.status = $1 AND m.latitude IS NOT NULL AND m.longitude IS NOT NULL`;
     const params = [status];
@@ -387,7 +388,7 @@ exports.getNearbyMeetups = async (req, res) => {
       .sort((a, b) => a.distance - b.distance)
       .slice(0, parseInt(limit));
 
-    console.log(`✅ 주변 모임 검색 완료: ${nearbyMeetups.length}개 (반경 ${searchRadius}m 내)`);
+    logger.info(`주변 모임 검색 완료: ${nearbyMeetups.length}개 (반경 ${searchRadius}m 내)`);
 
     res.json({
       success: true,
@@ -398,7 +399,7 @@ exports.getNearbyMeetups = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ 주변 모임 검색 오류:', error);
+    logger.error('주변 모임 검색 오류:', error);
     res.status(500).json({
       success: false,
       message: '주변 약속 검색에 실패했습니다.'
@@ -463,7 +464,7 @@ exports.getMyMeetups = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ 내 모임 조회 오류:', error);
+    logger.error('내 모임 조회 오류:', error);
     res.status(500).json({
       success: false,
       message: '내 약속 조회에 실패했습니다.'
@@ -516,7 +517,7 @@ exports.getMeetups = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ 모임 목록 조회 오류:', error);
+    logger.error('모임 목록 조회 오류:', error);
     res.status(500).json({
       success: false,
       message: '약속 목록 조회에 실패했습니다.'
@@ -534,7 +535,7 @@ exports.createMeetup = async (req, res) => {
       priceRange, ageRange, genderPreference, image
     } = req.body;
 
-    console.log('📝 모임 생성 요청:', { userId, title, category, location });
+    logger.info('모임 생성 요청:', { userId, title, category, location });
 
     const result = await pool.query(`
       INSERT INTO meetups (
@@ -560,7 +561,7 @@ exports.createMeetup = async (req, res) => {
       VALUES ($1, $2, '참가승인', NOW())
     `, [meetup.id, userId]);
 
-    console.log('✅ 모임 생성 완료:', meetup.id);
+    logger.info('모임 생성 완료:', meetup.id);
 
     res.status(201).json({
       success: true,
@@ -569,7 +570,7 @@ exports.createMeetup = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ 모임 생성 오류:', error);
+    logger.error('모임 생성 오류:', error);
     res.status(500).json({
       success: false,
       message: '약속 만들기에 실패했습니다.'
@@ -624,7 +625,7 @@ exports.getMeetupById = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ 모임 상세 조회 오류:', error);
+    logger.error('모임 상세 조회 오류:', error);
     res.status(500).json({
       success: false,
       message: '약속 조회에 실패했습니다.'
@@ -694,7 +695,7 @@ exports.updateMeetup = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ 모임 수정 오류:', error);
+    logger.error('모임 수정 오류:', error);
     res.status(500).json({
       success: false,
       message: '약속 수정에 실패했습니다.'
@@ -735,7 +736,7 @@ exports.deleteMeetup = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ 모임 삭제 오류:', error);
+    logger.error('모임 삭제 오류:', error);
     res.status(500).json({
       success: false,
       message: '약속 삭제에 실패했습니다.'
@@ -803,7 +804,7 @@ exports.joinMeetup = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ 모임 참가 오류:', error);
+    logger.error('모임 참가 오류:', error);
     res.status(500).json({
       success: false,
       message: '약속 참가에 실패했습니다.'
@@ -841,7 +842,7 @@ exports.leaveMeetup = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ 참가 취소 오류:', error);
+    logger.error('참가 취소 오류:', error);
     res.status(500).json({
       success: false,
       message: '참가 취소에 실패했습니다.'
@@ -868,7 +869,7 @@ exports.getParticipants = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ 참가자 목록 조회 오류:', error);
+    logger.error('참가자 목록 조회 오류:', error);
     res.status(500).json({
       success: false,
       message: '참가자 목록 조회에 실패했습니다.'
@@ -932,7 +933,7 @@ exports.updateParticipantStatus = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ 참가 상태 변경 오류:', error);
+    logger.error('참가 상태 변경 오류:', error);
     res.status(500).json({
       success: false,
       message: '참가 상태 변경에 실패했습니다.'
@@ -980,7 +981,7 @@ exports.updateMeetupStatus = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ 모임 상태 변경 오류:', error);
+    logger.error('모임 상태 변경 오류:', error);
     res.status(500).json({
       success: false,
       message: '약속 상태 변경에 실패했습니다.'
@@ -994,7 +995,7 @@ exports.addView = async (req, res) => {
     const { id: meetupId } = req.params;
     const userId = req.user.userId;
 
-    console.log('👀 최근 본 글 추가 요청:', { meetupId, userId });
+    logger.debug('최근 본 글 추가 요청:', { meetupId, userId });
 
     // 모임이 존재하는지 확인
     const meetupResult = await pool.query('SELECT id FROM meetups WHERE id = $1', [meetupId]);
@@ -1011,7 +1012,7 @@ exports.addView = async (req, res) => {
       [userId, meetupId]
     );
 
-    console.log('✅ 최근 본 글 추가 성공');
+    logger.info('최근 본 글 추가 성공');
 
     res.json({
       success: true,
@@ -1019,7 +1020,7 @@ exports.addView = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('최근 본 글 추가 오류:', error);
+    logger.error('최근 본 글 추가 오류:', error);
     res.status(500).json({
       success: false,
       message: '최근 본 글 추가 중 오류가 발생했습니다.'
@@ -1046,7 +1047,7 @@ exports.checkWishlist = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('찜 상태 확인 오류:', error);
+    logger.error('찜 상태 확인 오류:', error);
     res.status(500).json({
       success: false,
       message: '찜 상태 확인 중 오류가 발생했습니다.'
@@ -1061,7 +1062,7 @@ exports.createReview = async (req, res) => {
     const { rating, comment, tags } = req.body;
     const userId = req.user.userId;
 
-    console.log('✍️ 리뷰 작성 요청:', { meetupId, userId, rating });
+    logger.info('리뷰 작성 요청:', { meetupId, userId, rating });
 
     if (!rating || rating < 1 || rating > 5) {
       return res.status(400).json({ error: '평점은 1-5 사이의 값이어야 합니다' });
@@ -1129,7 +1130,7 @@ exports.createReview = async (req, res) => {
       [avgRating, meetup.host_id]
     );
 
-    console.log('✅ 리뷰 작성 완료:', { reviewId: review.id, rating, avgRating });
+    logger.info('리뷰 작성 완료:', { reviewId: review.id, rating, avgRating });
 
     res.status(201).json({
       success: true,
@@ -1139,7 +1140,7 @@ exports.createReview = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('리뷰 작성 오류:', error);
+    logger.error('리뷰 작성 오류:', error);
     res.status(500).json({ error: '서버 오류가 발생했습니다' });
   }
 };
@@ -1151,7 +1152,7 @@ exports.getReviews = async (req, res) => {
     const { page = 1, limit = 10 } = req.query;
     const offset = (page - 1) * limit;
 
-    console.log('📝 리뷰 목록 조회 요청:', { meetupId, page, limit });
+    logger.info('리뷰 목록 조회 요청:', { meetupId, page, limit });
 
     const reviewsResult = await pool.query(`
       SELECT
@@ -1184,7 +1185,7 @@ exports.getReviews = async (req, res) => {
     const total = parseInt(countResult.rows[0].total);
     const avgRating = parseFloat(avgRatingResult.rows[0].avg_rating) || 0;
 
-    console.log('✅ 리뷰 목록 조회 성공:', { count: reviews.length, avgRating });
+    logger.info('리뷰 목록 조회 성공:', { count: reviews.length, avgRating });
 
     res.json({
       success: true,
@@ -1198,7 +1199,7 @@ exports.getReviews = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('리뷰 목록 조회 오류:', error);
+    logger.error('리뷰 목록 조회 오류:', error);
     res.status(500).json({ error: '서버 오류가 발생했습니다' });
   }
 };
@@ -1210,7 +1211,7 @@ exports.confirmMeetup = async (req, res) => {
     const userId = req.user.userId;
     const { action } = req.body;
 
-    console.log('🎯 모임 확정/취소 요청:', { meetupId, userId, action });
+    logger.info('모임 확정/취소 요청:', { meetupId, userId, action });
 
     if (!action || !['confirm', 'cancel'].includes(action)) {
       return res.status(400).json({
@@ -1284,7 +1285,7 @@ exports.confirmMeetup = async (req, res) => {
       }
     }
 
-    console.log('✅ 모임 확정/취소 성공:', { meetupId, action, newStatus });
+    logger.info('모임 확정/취소 성공:', { meetupId, action, newStatus });
 
     res.json({
       success: true,
@@ -1292,7 +1293,7 @@ exports.confirmMeetup = async (req, res) => {
       status: newStatus
     });
   } catch (error) {
-    console.error('모임 확정/취소 오류:', error);
+    logger.error('모임 확정/취소 오류:', error);
     res.status(500).json({ success: false, error: '서버 오류가 발생했습니다' });
   }
 };
@@ -1304,7 +1305,7 @@ exports.gpsCheckin = async (req, res) => {
     const { latitude, longitude } = req.body;
     const userId = req.user.userId;
 
-    console.log('📍 GPS 체크인 요청:', { meetupId, userId, latitude, longitude });
+    logger.info('GPS 체크인 요청:', { meetupId, userId, latitude, longitude });
 
     if (!latitude || !longitude) {
       return res.status(400).json({ error: '위치 정보가 필요합니다' });
@@ -1339,7 +1340,7 @@ exports.gpsCheckin = async (req, res) => {
       parseFloat(meetup.longitude)
     );
 
-    console.log('📐 거리 계산:', { distance: `${distance}m` });
+    logger.debug('거리 계산:', { distance: `${distance}m` });
 
     const MAX_DISTANCE = 100;
     if (distance > MAX_DISTANCE) {
@@ -1380,7 +1381,7 @@ exports.gpsCheckin = async (req, res) => {
       [meetupId, userId]
     );
 
-    console.log('✅ GPS 체크인 성공:', { meetupId, userId, attendanceId, distance });
+    logger.info('GPS 체크인 성공:', { meetupId, userId, attendanceId, distance });
 
     res.json({
       success: true,
@@ -1392,7 +1393,7 @@ exports.gpsCheckin = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('GPS 체크인 오류:', error);
+    logger.error('GPS 체크인 오류:', error);
     res.status(500).json({ error: '서버 오류가 발생했습니다' });
   }
 };
@@ -1435,7 +1436,7 @@ exports.generateQRCode = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('QR 코드 생성 오류:', error);
+    logger.error('QR 코드 생성 오류:', error);
     res.status(500).json({ error: '서버 오류가 발생했습니다' });
   }
 };
@@ -1487,7 +1488,7 @@ exports.qrCheckin = async (req, res) => {
         [meetupId, userId]
       );
 
-      console.log('✅ QR 체크인 성공:', { meetupId, userId });
+      logger.info('QR 체크인 성공:', { meetupId, userId });
 
       res.json({
         success: true,
@@ -1497,7 +1498,7 @@ exports.qrCheckin = async (req, res) => {
       return res.status(400).json({ error: '잘못된 QR 코드 형식입니다' });
     }
   } catch (error) {
-    console.error('QR 체크인 오류:', error);
+    logger.error('QR 체크인 오류:', error);
     res.status(500).json({ error: '서버 오류가 발생했습니다' });
   }
 };
@@ -1572,7 +1573,7 @@ exports.getReviewableParticipants = async (req, res) => {
       participants: allParticipants
     });
   } catch (error) {
-    console.error('리뷰 가능 참가자 목록 조회 오류:', error);
+    logger.error('리뷰 가능 참가자 목록 조회 오류:', error);
     res.status(500).json({
       success: false,
       message: '참가자 목록을 불러올 수 없습니다.'
@@ -1587,7 +1588,7 @@ exports.hostConfirmAttendance = async (req, res) => {
     const { participantId } = req.body;
     const hostId = req.user.userId;
 
-    console.log('🏠 호스트 확인 요청:', { meetupId, participantId, hostId });
+    logger.info('호스트 확인 요청:', { meetupId, participantId, hostId });
 
     const meetupResult = await pool.query(
       'SELECT host_id FROM meetups WHERE id = $1',
@@ -1625,14 +1626,14 @@ exports.hostConfirmAttendance = async (req, res) => {
       [meetupId, participantId]
     );
 
-    console.log('✅ 호스트 출석 확인 완료');
+    logger.info('호스트 출석 확인 완료');
 
     res.json({
       success: true,
       message: '참가자의 출석이 확인되었습니다.'
     });
   } catch (error) {
-    console.error('호스트 출석 확인 오류:', error);
+    logger.error('호스트 출석 확인 오류:', error);
     res.status(500).json({ success: false, message: '호스트 출석 확인에 실패했습니다.' });
   }
 };
@@ -1694,7 +1695,7 @@ exports.getAttendanceParticipants = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('참가자 출석 상태 조회 오류:', error);
+    logger.error('참가자 출석 상태 조회 오류:', error);
     res.status(500).json({ success: false, message: '참가자 출석 상태 조회에 실패했습니다.' });
   }
 };
@@ -1706,7 +1707,7 @@ exports.mutualConfirmAttendance = async (req, res) => {
     const { targetUserId } = req.body;
     const confirmerId = req.user.userId;
 
-    console.log('🤝 상호 확인 요청:', { meetupId, targetUserId, confirmerId });
+    logger.info('상호 확인 요청:', { meetupId, targetUserId, confirmerId });
 
     // 두 사용자 모두 참가자인지 확인
     const participantsResult = await pool.query(
@@ -1734,14 +1735,14 @@ exports.mutualConfirmAttendance = async (req, res) => {
       [meetupId, targetUserId]
     );
 
-    console.log('✅ 상호 확인 완료');
+    logger.info('상호 확인 완료');
 
     res.json({
       success: true,
       message: '참가자의 출석이 상호 확인되었습니다.'
     });
   } catch (error) {
-    console.error('상호 확인 오류:', error);
+    logger.error('상호 확인 오류:', error);
     res.status(500).json({ success: false, message: '상호 확인에 실패했습니다.' });
   }
 };
@@ -1806,7 +1807,7 @@ exports.verifyLocation = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('모임 위치 인증 오류:', error);
+    logger.error('모임 위치 인증 오류:', error);
     res.status(500).json({ success: false, error: '서버 오류가 발생했습니다.' });
   }
 };
@@ -1875,7 +1876,7 @@ exports.getConfirmableParticipants = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('상호 확인 가능 참가자 조회 오류:', error);
+    logger.error('상호 확인 가능 참가자 조회 오류:', error);
     res.status(500).json({ success: false, message: '참가자 목록 조회에 실패했습니다.' });
   }
 };
@@ -1958,7 +1959,7 @@ exports.applyNoShowPenalties = async (req, res) => {
 
   } catch (error) {
     await client.query('ROLLBACK');
-    console.error('노쇼 패널티 적용 오류:', error);
+    logger.error('노쇼 패널티 적용 오류:', error);
     res.status(500).json({ success: false, message: '노쇼 패널티 적용에 실패했습니다.' });
   } finally {
     client.release();
@@ -1998,7 +1999,7 @@ exports.getQRCode = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('QR코드 생성 오류:', error);
+    logger.error('QR코드 생성 오류:', error);
     res.status(500).json({ success: false, message: 'QR코드 생성에 실패했습니다.' });
   }
 };
@@ -2059,7 +2060,7 @@ exports.qrScanCheckin = async (req, res) => {
 
   } catch (error) {
     await client.query('ROLLBACK');
-    console.error('QR 스캔 체크인 오류:', error);
+    logger.error('QR 스캔 체크인 오류:', error);
     res.status(500).json({ success: false, message: 'QR코드 체크인에 실패했습니다.' });
   } finally {
     client.release();
@@ -2117,7 +2118,7 @@ exports.progressCheck = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('모임 진행 확인 요청 오류:', error);
+    logger.error('모임 진행 확인 요청 오류:', error);
     res.status(500).json({ success: false, error: '진행 확인 요청 중 오류가 발생했습니다.' });
   }
 };
@@ -2151,7 +2152,7 @@ exports.progressResponse = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('모임 진행 응답 오류:', error);
+    logger.error('모임 진행 응답 오류:', error);
     res.status(500).json({ success: false, error: '진행 응답 처리 중 오류가 발생했습니다.' });
   }
 };
@@ -2189,7 +2190,7 @@ exports.addWishlist = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('찜 추가 오류:', error);
+    logger.error('찜 추가 오류:', error);
     res.status(500).json({ success: false, message: '찜 추가 중 오류가 발생했습니다.' });
   }
 };
@@ -2212,7 +2213,7 @@ exports.removeWishlist = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('찜 삭제 오류:', error);
+    logger.error('찜 삭제 오류:', error);
     res.status(500).json({ success: false, message: '찜 삭제 중 오류가 발생했습니다.' });
   }
 };
@@ -2254,7 +2255,7 @@ exports.leaveMeetupPost = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('모임 참가 취소 오류:', error);
+    logger.error('모임 참가 취소 오류:', error);
     res.status(500).json({ success: false, message: '참가 취소 중 오류가 발생했습니다.' });
   }
 };

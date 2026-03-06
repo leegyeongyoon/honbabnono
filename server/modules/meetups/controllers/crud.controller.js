@@ -2,6 +2,7 @@
  * 모임 CRUD 컨트롤러
  */
 const pool = require('../../../config/database');
+const logger = require('../../../config/logger');
 const { validateHostPermission } = require('../helpers/validation.helper');
 
 /**
@@ -57,7 +58,7 @@ exports.getMeetupById = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('모임 상세 조회 오류:', error);
+    logger.error('모임 상세 조회 오류:', error);
     res.status(500).json({
       success: false,
       message: '약속 조회에 실패했습니다.',
@@ -136,7 +137,7 @@ exports.createMeetup = async (req, res) => {
       meetup,
     });
   } catch (error) {
-    console.error('모임 생성 오류:', error);
+    logger.error('모임 생성 오류:', error);
     res.status(500).json({
       success: false,
       message: '약속 만들기에 실패했습니다.',
@@ -196,7 +197,7 @@ exports.updateMeetup = async (req, res) => {
       meetup: result.rows[0],
     });
   } catch (error) {
-    console.error('모임 수정 오류:', error);
+    logger.error('모임 수정 오류:', error);
     res.status(500).json({
       success: false,
       message: '약속 수정에 실패했습니다.',
@@ -225,7 +226,7 @@ exports.deleteMeetup = async (req, res) => {
       message: '약속이 삭제되었습니다.',
     });
   } catch (error) {
-    console.error('모임 삭제 오류:', error);
+    logger.error('모임 삭제 오류:', error);
     res.status(500).json({
       success: false,
       message: '약속 삭제에 실패했습니다.',
@@ -272,7 +273,7 @@ exports.updateMeetupStatus = async (req, res) => {
       meetup: result.rows[0],
     });
   } catch (error) {
-    console.error('모임 상태 변경 오류:', error);
+    logger.error('모임 상태 변경 오류:', error);
     res.status(500).json({
       success: false,
       message: '약속 상태 변경에 실패했습니다.',

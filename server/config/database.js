@@ -23,12 +23,18 @@ const dbConfig = {
   database: process.env.DB_NAME,
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
+  // Connection pool configuration
+  max: 20,
+  min: 2,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 5000,
+  allowExitOnIdle: true,
 };
 
 // SSL 설정을 환경변수에 따라 조건부로 추가
 if (process.env.DB_SSL !== 'false' && (process.env.NODE_ENV === 'production' || process.env.DB_HOST?.includes('amazonaws.com'))) {
   dbConfig.ssl = {
-    rejectUnauthorized: false
+    rejectUnauthorized: process.env.DB_SSL_REJECT_UNAUTHORIZED !== 'false'
   };
 }
 
@@ -40,7 +46,28 @@ pool.on('connect', () => {
 });
 
 pool.on('error', (err) => {
-  logger.error('Unexpected database error:', err);
+  logger.error('Unexpected database pool error', {
+    message: err.message,
+    code: err.code,
+    stack: err.stack,
+  });
 });
+
+// Graceful shutdown handler
+const gracefulShutdown = async (signal) => {
+  logger.info(`Received ${signal}. Closing database pool...`);
+  try {
+    await pool.end();
+    logger.info('Database pool closed successfully');
+  } catch (err) {
+    logger.error('Error closing database pool', {
+      message: err.message,
+      stack: err.stack,
+    });
+  }
+};
+
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 
 module.exports = pool;

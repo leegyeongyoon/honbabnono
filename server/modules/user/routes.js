@@ -32,6 +32,7 @@ router.get('/wishlists', authenticateToken, userController.getWishlists);
 
 // 최근 본 글 관련
 router.get('/recent-views', authenticateToken, userController.getRecentViews);
+router.post('/recent-views/:meetupId', authenticateToken, userController.addRecentView);
 router.delete('/recent-views', authenticateToken, userController.deleteAllRecentViews);
 router.delete('/recent-views/:viewId', authenticateToken, userController.deleteRecentView);
 

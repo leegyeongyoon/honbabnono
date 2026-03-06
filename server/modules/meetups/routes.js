@@ -10,6 +10,8 @@ const reviewController = require('./controllers/review.controller');
 const miscController = require('./controllers/misc.controller');
 
 const { authenticateToken } = require('../../middleware/auth');
+const validate = require('../../middleware/validate');
+const { createMeetupSchema } = require('../../middleware/schemas/meetups.schemas');
 
 // === 특수 엔드포인트 (/:id보다 먼저 정의해야 함) ===
 
@@ -34,7 +36,7 @@ router.get('/my', authenticateToken, listController.getMyMeetups);
 router.get('/', listController.getMeetups);
 
 // 모임 생성
-router.post('/', authenticateToken, crudController.createMeetup);
+router.post('/', authenticateToken, validate({ body: createMeetupSchema }), crudController.createMeetup);
 
 // 모임 상세 조회
 router.get('/:id', crudController.getMeetupById);

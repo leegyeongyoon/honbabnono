@@ -1,9 +1,10 @@
 const pool = require('../../config/database');
+const logger = require('../../config/logger');
 
 // FAQ 목록 조회
 exports.getFaq = async (req, res) => {
   try {
-    console.log('❓ FAQ 목록 조회 요청');
+    logger.debug('FAQ 목록 조회 요청');
     const { category } = req.query;
 
     let query = `
@@ -22,13 +23,13 @@ exports.getFaq = async (req, res) => {
 
     const result = await pool.query(query, queryParams);
 
-    console.log('✅ FAQ 목록 조회 성공');
+    logger.debug('FAQ 목록 조회 성공');
     res.json({
       success: true,
       data: result.rows
     });
   } catch (error) {
-    console.error('❌ FAQ 목록 조회 실패:', error);
+    logger.error('FAQ 목록 조회 실패:', error);
     res.status(500).json({
       success: false,
       error: 'FAQ 목록 조회 중 오류가 발생했습니다.'
@@ -39,7 +40,7 @@ exports.getFaq = async (req, res) => {
 // 문의하기
 exports.createInquiry = async (req, res) => {
   try {
-    console.log('💬 문의 접수 요청:', req.body);
+    logger.info('문의 접수 요청:', req.body);
     const userId = req.user.userId;
     const { subject, content, category } = req.body;
 
@@ -56,14 +57,14 @@ exports.createInquiry = async (req, res) => {
       RETURNING id, subject, category, status, created_at
     `, [userId, subject, content, category || '일반', '접수']);
 
-    console.log('✅ 문의 접수 성공');
+    logger.debug('문의 접수 성공');
     res.json({
       success: true,
       message: '문의가 성공적으로 접수되었습니다.',
       data: result.rows[0]
     });
   } catch (error) {
-    console.error('❌ 문의 접수 실패:', error);
+    logger.error('문의 접수 실패:', error);
     res.status(500).json({
       success: false,
       error: '문의 접수 중 오류가 발생했습니다.'
@@ -74,7 +75,7 @@ exports.createInquiry = async (req, res) => {
 // 내 문의 내역 조회
 exports.getMyInquiries = async (req, res) => {
   try {
-    console.log('📋 내 문의 내역 조회 요청');
+    logger.debug('내 문의 내역 조회 요청');
     const userId = req.user.userId;
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
@@ -94,7 +95,7 @@ exports.getMyInquiries = async (req, res) => {
       LIMIT $2 OFFSET $3
     `, [userId, limit, offset]);
 
-    console.log('✅ 내 문의 내역 조회 성공');
+    logger.debug('내 문의 내역 조회 성공');
     res.json({
       success: true,
       data: result.rows,
@@ -106,7 +107,7 @@ exports.getMyInquiries = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('❌ 내 문의 내역 조회 실패:', error);
+    logger.error('내 문의 내역 조회 실패:', error);
     res.status(500).json({
       success: false,
       error: '문의 내역 조회 중 오류가 발생했습니다.'
@@ -117,7 +118,7 @@ exports.getMyInquiries = async (req, res) => {
 // 이용약관 조회
 exports.getTerms = async (req, res) => {
   try {
-    console.log('📄 이용약관 조회 요청');
+    logger.debug('이용약관 조회 요청');
 
     const result = await pool.query(`
       SELECT version, content, effective_date, created_at
@@ -134,13 +135,13 @@ exports.getTerms = async (req, res) => {
       });
     }
 
-    console.log('✅ 이용약관 조회 성공');
+    logger.debug('이용약관 조회 성공');
     res.json({
       success: true,
       data: result.rows[0]
     });
   } catch (error) {
-    console.error('❌ 이용약관 조회 실패:', error);
+    logger.error('이용약관 조회 실패:', error);
     res.status(500).json({
       success: false,
       error: '이용약관 조회 중 오류가 발생했습니다.'
@@ -151,7 +152,7 @@ exports.getTerms = async (req, res) => {
 // 개인정보처리방침 조회
 exports.getPrivacyPolicy = async (req, res) => {
   try {
-    console.log('🔒 개인정보처리방침 조회 요청');
+    logger.debug('개인정보처리방침 조회 요청');
 
     const result = await pool.query(`
       SELECT version, content, effective_date, created_at
@@ -168,13 +169,13 @@ exports.getPrivacyPolicy = async (req, res) => {
       });
     }
 
-    console.log('✅ 개인정보처리방침 조회 성공');
+    logger.debug('개인정보처리방침 조회 성공');
     res.json({
       success: true,
       data: result.rows[0]
     });
   } catch (error) {
-    console.error('❌ 개인정보처리방침 조회 실패:', error);
+    logger.error('개인정보처리방침 조회 실패:', error);
     res.status(500).json({
       success: false,
       error: '개인정보처리방침 조회 중 오류가 발생했습니다.'
@@ -201,7 +202,7 @@ exports.getAppInfo = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('앱 정보 조회 오류:', error);
+    logger.error('앱 정보 조회 오류:', error);
     res.status(500).json({ success: false, message: '앱 정보를 불러올 수 없습니다.' });
   }
 };
@@ -229,7 +230,7 @@ exports.getNotices = async (req, res) => {
       notices: result.rows
     });
   } catch (error) {
-    console.error('공지사항 조회 오류:', error);
+    logger.error('공지사항 조회 오류:', error);
     res.status(500).json({ success: false, message: '공지사항을 불러올 수 없습니다.' });
   }
 };
@@ -272,7 +273,7 @@ exports.getNoticeById = async (req, res) => {
       notice: result.rows[0]
     });
   } catch (error) {
-    console.error('공지사항 상세 조회 오류:', error);
+    logger.error('공지사항 상세 조회 오류:', error);
     res.status(500).json({ success: false, message: '공지사항을 불러올 수 없습니다.' });
   }
 };

@@ -1,5 +1,6 @@
 const pool = require('../../config/database');
 const portone = require('../../config/portone');
+const logger = require('../../config/logger');
 
 // ============================================
 // PortOne 결제 연동 API
@@ -11,7 +12,7 @@ exports.preparePayment = async (req, res) => {
     const userId = req.user.userId;
     const { amount, meetupId, paymentMethod } = req.body;
 
-    console.log('💳 PortOne 결제 준비 요청:', { userId, amount, meetupId, paymentMethod });
+    logger.info('PortOne 결제 준비 요청:', { userId, amount, meetupId, paymentMethod });
 
     if (!amount || !meetupId) {
       return res.status(400).json({
@@ -86,7 +87,7 @@ exports.preparePayment = async (req, res) => {
 
     const depositId = depositResult.rows[0].id;
 
-    console.log('✅ 결제 준비 완료:', { depositId, merchantUid, actualMeetupId });
+    logger.info('결제 준비 완료:', { depositId, merchantUid, actualMeetupId });
 
     // 클라이언트 SDK에 필요한 데이터 반환
     res.json({
@@ -103,7 +104,7 @@ exports.preparePayment = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('❌ 결제 준비 실패:', error);
+    logger.error('결제 준비 실패:', error);
     res.status(500).json({
       success: false,
       error: '결제 준비 중 오류가 발생했습니다.'
@@ -117,7 +118,7 @@ exports.verifyPayment = async (req, res) => {
     const userId = req.user.userId;
     const { impUid, merchantUid, depositId } = req.body;
 
-    console.log('🔍 PortOne 결제 검증 요청:', { userId, impUid, merchantUid, depositId });
+    logger.info('PortOne 결제 검증 요청:', { userId, impUid, merchantUid, depositId });
 
     if (!impUid || !merchantUid) {
       return res.status(400).json({
@@ -146,7 +147,7 @@ exports.verifyPayment = async (req, res) => {
 
     // 금액 검증: DB에 저장된 금액과 실제 결제 금액이 일치하는지 확인
     if (paymentData.amount !== deposit.amount) {
-      console.error('❌ 결제 금액 불일치:', {
+      logger.error('결제 금액 불일치:', {
         expected: deposit.amount,
         actual: paymentData.amount,
         impUid,
@@ -157,7 +158,7 @@ exports.verifyPayment = async (req, res) => {
       try {
         await portone.cancelPayment(impUid, '결제 금액 불일치로 인한 자동 취소');
       } catch (cancelError) {
-        console.error('❌ 자동 취소 실패:', cancelError);
+        logger.error('자동 취소 실패:', cancelError);
       }
 
       return res.status(400).json({
@@ -185,7 +186,7 @@ exports.verifyPayment = async (req, res) => {
       WHERE id = $3
     `, [impUid, paymentData.pay_method || 'card', deposit.id]);
 
-    console.log('✅ 결제 검증 완료:', { depositId: deposit.id, impUid, amount: deposit.amount });
+    logger.info('결제 검증 완료:', { depositId: deposit.id, impUid, amount: deposit.amount });
 
     res.json({
       success: true,
@@ -199,7 +200,7 @@ exports.verifyPayment = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('❌ 결제 검증 실패:', error);
+    logger.error('결제 검증 실패:', error);
     res.status(500).json({
       success: false,
       error: '결제 검증 중 오류가 발생했습니다.'
@@ -208,21 +209,45 @@ exports.verifyPayment = async (req, res) => {
 };
 
 // PortOne 웹훅 핸들러 (결제 상태 변경 알림)
+// 보안: imp_uid로 PortOne API 직접 조회하여 위변조 방지 + 멱등성 보장
 exports.handleWebhook = async (req, res) => {
   try {
     const { imp_uid, merchant_uid, status } = req.body;
 
-    console.log('🔔 PortOne 웹훅 수신:', { imp_uid, merchant_uid, status });
+    logger.info('PortOne 웹훅 수신:', { imp_uid, merchant_uid, status });
 
     if (!imp_uid) {
+      logger.warn('웹훅: imp_uid 누락');
       return res.status(400).json({
         success: false,
         error: '웹훅 데이터가 올바르지 않습니다.'
       });
     }
 
-    // PortOne API로 실제 결제 정보 조회하여 검증
-    const paymentData = await portone.verifyPayment(imp_uid);
+    // merchant_uid 형식 검증 (위변조된 요청 차단)
+    if (merchant_uid && !portone.isValidMerchantUid(merchant_uid)) {
+      logger.warn('웹훅: merchant_uid 형식 불일치', { merchant_uid });
+      return res.status(200).json({
+        success: false,
+        error: 'merchant_uid 형식이 올바르지 않습니다.'
+      });
+    }
+
+    // PortOne API로 결제 정보를 직접 조회하여 서명 검증 (위변조 방지 핵심)
+    let paymentData;
+    try {
+      paymentData = await portone.verifyWebhookPayment(imp_uid, merchant_uid);
+    } catch (verifyError) {
+      logger.error('웹훅: 결제 검증 실패 - 위변조 가능성', {
+        imp_uid,
+        merchant_uid,
+        error: verifyError.message,
+      });
+      return res.status(200).json({
+        success: false,
+        error: '결제 검증에 실패했습니다.'
+      });
+    }
 
     // merchant_uid로 DB 레코드 조회
     const depositResult = await pool.query(`
@@ -231,8 +256,7 @@ exports.handleWebhook = async (req, res) => {
     `, [merchant_uid, imp_uid]);
 
     if (depositResult.rows.length === 0) {
-      console.warn('⚠️ 웹훅: 매칭되는 결제 레코드 없음:', { imp_uid, merchant_uid });
-      // 웹훅은 200을 반환해야 재시도를 멈춤
+      logger.warn('웹훅: 매칭되는 결제 레코드 없음', { imp_uid, merchant_uid });
       return res.status(200).json({
         success: false,
         error: '매칭되는 결제 레코드를 찾을 수 없습니다.'
@@ -241,75 +265,73 @@ exports.handleWebhook = async (req, res) => {
 
     const deposit = depositResult.rows[0];
 
+    // 멱등성 체크: 이미 처리 완료된 결제는 중복 처리하지 않음
+    if (paymentData.status === 'paid' && deposit.status === 'paid') {
+      logger.info('웹훅: 이미 처리 완료된 결제 (멱등성 스킵)', { depositId: deposit.id, imp_uid });
+      return res.status(200).json({ success: true, message: '이미 처리된 결제입니다.' });
+    }
+
+    if (paymentData.status === 'cancelled' && deposit.status === 'refunded') {
+      logger.info('웹훅: 이미 환불 처리된 결제 (멱등성 스킵)', { depositId: deposit.id, imp_uid });
+      return res.status(200).json({ success: true, message: '이미 처리된 환불입니다.' });
+    }
+
     // 결제 상태에 따른 처리
     switch (paymentData.status) {
       case 'paid':
-        // 결제 완료 확인 - 금액 검증
         if (paymentData.amount === deposit.amount) {
           await pool.query(`
             UPDATE promise_deposits
-            SET status = 'paid',
-                payment_id = $1,
-                paid_at = NOW(),
-                updated_at = NOW()
+            SET status = 'paid', payment_id = $1, paid_at = NOW(), updated_at = NOW()
             WHERE id = $2 AND status = 'pending'
           `, [imp_uid, deposit.id]);
-          console.log('✅ 웹훅: 결제 확정:', { depositId: deposit.id, imp_uid });
+          logger.info('웹훅: 결제 확정', { depositId: deposit.id, imp_uid });
         } else {
-          // 금액 불일치 - 결제 취소
-          console.error('❌ 웹훅: 금액 불일치, 결제 취소 시도:', {
-            expected: deposit.amount,
-            actual: paymentData.amount
+          logger.error('웹훅: 금액 불일치, 결제 취소 시도', {
+            expected: deposit.amount, actual: paymentData.amount, imp_uid,
           });
           try {
             await portone.cancelPayment(imp_uid, '결제 금액 불일치');
           } catch (cancelError) {
-            console.error('❌ 웹훅: 자동 취소 실패:', cancelError);
+            logger.error('웹훅: 자동 취소 실패', cancelError.message);
           }
         }
         break;
 
-      case 'cancelled':
-        // 결제 취소됨
+      case 'cancelled': {
+        const cancelAmount = paymentData.cancel_amount || deposit.amount;
+        if (cancelAmount > deposit.amount) {
+          logger.error('웹훅: 환불 금액이 원래 금액 초과', {
+            depositAmount: deposit.amount, cancelAmount, imp_uid,
+          });
+          break;
+        }
         await pool.query(`
           UPDATE promise_deposits
-          SET status = 'refunded',
-              refund_amount = $1,
-              cancellation_type = 'payment_cancelled',
-              cancelled_at = NOW(),
-              updated_at = NOW()
+          SET status = 'refunded', refund_amount = $1, cancellation_type = 'payment_cancelled',
+              cancelled_at = NOW(), updated_at = NOW()
           WHERE id = $2
-        `, [paymentData.cancel_amount || deposit.amount, deposit.id]);
-        console.log('✅ 웹훅: 결제 취소 반영:', { depositId: deposit.id, imp_uid });
+        `, [cancelAmount, deposit.id]);
+        logger.info('웹훅: 결제 취소 반영', { depositId: deposit.id, imp_uid });
         break;
+      }
 
       case 'failed':
-        // 결제 실패
         await pool.query(`
-          UPDATE promise_deposits
-          SET status = 'pending',
-              updated_at = NOW()
+          UPDATE promise_deposits SET status = 'pending', updated_at = NOW()
           WHERE id = $1 AND status = 'pending'
         `, [deposit.id]);
-        console.log('⚠️ 웹훅: 결제 실패:', { depositId: deposit.id, imp_uid });
+        logger.warn('웹훅: 결제 실패', { depositId: deposit.id, imp_uid });
         break;
 
       default:
-        console.log('ℹ️ 웹훅: 처리하지 않는 상태:', paymentData.status);
+        logger.info('웹훅: 처리하지 않는 상태', { status: paymentData.status });
     }
 
-    // 웹훅은 항상 200 응답
-    res.status(200).json({
-      success: true,
-      message: '웹훅 처리 완료'
-    });
+    res.status(200).json({ success: true, message: '웹훅 처리 완료' });
   } catch (error) {
-    console.error('❌ 웹훅 처리 실패:', error);
-    // 웹훅은 200을 반환해야 재시도를 멈춤
-    res.status(200).json({
-      success: false,
-      error: '웹훅 처리 중 오류가 발생했습니다.'
-    });
+    logger.error('웹훅 처리 실패:', error.message);
+    res.status(200).json({ success: false, error: '웹훅 처리 중 오류가 발생했습니다.' });
   }
 };
 
@@ -319,7 +341,7 @@ exports.refundDepositViaPortone = async (req, res) => {
     const userId = req.user.userId;
     const { depositId, reason } = req.body;
 
-    console.log('💰 PortOne 환불 요청:', { depositId, reason, userId });
+    logger.info('PortOne 환불 요청:', { depositId, reason, userId });
 
     if (!depositId) {
       return res.status(400).json({
@@ -400,7 +422,7 @@ exports.refundDepositViaPortone = async (req, res) => {
       WHERE id = $3
     `, [cancelResult.cancel_amount || deposit.amount, reason || '사용자 요청', depositId]);
 
-    console.log('✅ PortOne 환불 완료:', {
+    logger.info('PortOne 환불 완료:', {
       depositId,
       impUid,
       cancelAmount: cancelResult.cancel_amount
@@ -413,7 +435,7 @@ exports.refundDepositViaPortone = async (req, res) => {
       refundMethod: 'portone'
     });
   } catch (error) {
-    console.error('❌ PortOne 환불 실패:', error);
+    logger.error('PortOne 환불 실패:', error);
     res.status(500).json({
       success: false,
       error: '환불 처리 중 오류가 발생했습니다.'
@@ -427,7 +449,7 @@ exports.createPayment = async (req, res) => {
     const userId = req.user.userId;
     const { amount, meetupId, paymentMethod } = req.body;
 
-    console.log('💳 약속금 결제 요청:', { userId, amount, meetupId, paymentMethod });
+    logger.info('약속금 결제 요청:', { userId, amount, meetupId, paymentMethod });
 
     if (!amount || !meetupId || !paymentMethod) {
       return res.status(400).json({
@@ -473,7 +495,7 @@ exports.createPayment = async (req, res) => {
       `, [userId]);
 
       actualMeetupId = tempMeetupResult.rows[0].id;
-      console.log('🎫 임시 meetup 생성:', actualMeetupId);
+      logger.debug('임시 meetup 생성:', actualMeetupId);
     } else {
       // 이미 결제한 약속금이 있는지 확인
       const existingDeposit = await pool.query(
@@ -551,7 +573,7 @@ exports.createPayment = async (req, res) => {
 
     const depositId = depositResult.rows[0].id;
 
-    console.log('✅ 약속금 결제 완료:', { depositId, paymentId, actualMeetupId });
+    logger.info('약속금 결제 완료:', { depositId, paymentId, actualMeetupId });
 
     res.json({
       success: true,
@@ -560,7 +582,7 @@ exports.createPayment = async (req, res) => {
       redirectUrl
     });
   } catch (error) {
-    console.error('❌ 약속금 결제 실패:', error);
+    logger.error('약속금 결제 실패:', error);
     res.status(500).json({
       success: false,
       error: '결제 처리 중 오류가 발생했습니다.'
@@ -575,7 +597,7 @@ exports.refundDeposit = async (req, res) => {
     const { reason } = req.body;
     const userId = req.user.userId;
 
-    console.log('💰 약속금 환불 요청:', { depositId, reason, userId });
+    logger.info('약속금 환불 요청:', { depositId, reason, userId });
 
     const depositResult = await pool.query(`
       SELECT * FROM promise_deposits
@@ -618,7 +640,7 @@ exports.refundDeposit = async (req, res) => {
       VALUES ($1, 'earned', $2, $3, NOW())
     `, [userId, refundAmount, `약속금 환불 (보증금 ID: ${depositId})`]);
 
-    console.log('✅ 약속금 환불 완료:', { depositId, refundAmount });
+    logger.info('약속금 환불 완료:', { depositId, refundAmount });
 
     res.json({
       success: true,
@@ -626,7 +648,7 @@ exports.refundDeposit = async (req, res) => {
       refundAmount
     });
   } catch (error) {
-    console.error('❌ 약속금 환불 실패:', error);
+    logger.error('약속금 환불 실패:', error);
     res.status(500).json({
       success: false,
       error: '환불 처리 중 오류가 발생했습니다.'
@@ -640,7 +662,7 @@ exports.convertToPoints = async (req, res) => {
     const { id: depositId } = req.params;
     const userId = req.user.userId;
 
-    console.log('🎁 약속금 포인트 전환 요청:', { depositId, userId });
+    logger.info('약속금 포인트 전환 요청:', { depositId, userId });
 
     const depositResult = await pool.query(`
       SELECT * FROM promise_deposits
@@ -682,7 +704,7 @@ exports.convertToPoints = async (req, res) => {
       WHERE id = $1
     `, [depositId]);
 
-    console.log('✅ 약속금 포인트 전환 완료:', { depositId, pointAmount });
+    logger.info('약속금 포인트 전환 완료:', { depositId, pointAmount });
 
     res.json({
       success: true,
@@ -690,7 +712,7 @@ exports.convertToPoints = async (req, res) => {
       pointAmount
     });
   } catch (error) {
-    console.error('❌ 약속금 포인트 전환 실패:', error);
+    logger.error('약속금 포인트 전환 실패:', error);
     res.status(500).json({
       success: false,
       error: '포인트 전환 처리 중 오류가 발생했습니다.'
@@ -704,7 +726,7 @@ exports.refundPayment = async (req, res) => {
     const userId = req.user.userId;
     const { depositId, reason } = req.body;
 
-    console.log('💰 약속금 일반 환불 요청:', { depositId, reason, userId });
+    logger.info('약속금 일반 환불 요청:', { depositId, reason, userId });
 
     if (!depositId) {
       return res.status(400).json({
@@ -755,7 +777,7 @@ exports.refundPayment = async (req, res) => {
       VALUES ($1, 'earned', $2, $3, NOW())
     `, [userId, refundAmount, `약속금 환불 (보증금 ID: ${depositId})`]);
 
-    console.log('✅ 약속금 환불 완료:', { depositId, refundAmount });
+    logger.info('약속금 환불 완료:', { depositId, refundAmount });
 
     res.json({
       success: true,
@@ -763,7 +785,7 @@ exports.refundPayment = async (req, res) => {
       refundAmount
     });
   } catch (error) {
-    console.error('❌ 약속금 환불 실패:', error);
+    logger.error('약속금 환불 실패:', error);
     res.status(500).json({
       success: false,
       error: '환불 처리 중 오류가 발생했습니다.'
@@ -856,7 +878,7 @@ exports.getRefundPreview = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('❌ 환불 예상 금액 조회 실패:', error);
+    logger.error('환불 예상 금액 조회 실패:', error);
     res.status(500).json({
       success: false,
       error: '환불 예상 금액 조회 중 오류가 발생했습니다.'
@@ -875,7 +897,7 @@ exports.cancelParticipationWithRefund = async (req, res) => {
     const { reason } = req.body;
     const userId = req.user.userId;
 
-    console.log('🚫 참가 취소 요청:', { meetupId, userId, reason });
+    logger.info('참가 취소 요청:', { meetupId, userId, reason });
 
     // 약속금 및 모임 정보 조회
     const depositResult = await client.query(`
@@ -976,7 +998,7 @@ exports.cancelParticipationWithRefund = async (req, res) => {
 
     await client.query('COMMIT');
 
-    console.log('✅ 참가 취소 완료:', {
+    logger.info('참가 취소 완료:', {
       meetupId, userId, refundRate, refundAmount, forfeitedAmount, cancellationType
     });
 
@@ -993,7 +1015,7 @@ exports.cancelParticipationWithRefund = async (req, res) => {
     });
   } catch (error) {
     await client.query('ROLLBACK');
-    console.error('❌ 참가 취소 실패:', error);
+    logger.error('참가 취소 실패:', error);
     res.status(500).json({
       success: false,
       error: '참가 취소 처리 중 오류가 발생했습니다.'
@@ -1028,10 +1050,10 @@ const checkAndApplyRestriction = async (client, userId) => {
         updated_at = NOW()
     `, [userId, `잦은 직전 취소 (30일 내 ${cancelCount}회)`]);
 
-    console.log('⚠️ 이용 제한 적용:', { userId, cancelCount, days: 7 });
+    logger.warn('이용 제한 적용:', { userId, cancelCount, days: 7 });
   } else if (cancelCount >= 3) {
     // 경고만 기록 (알림 발송은 별도 처리)
-    console.log('⚠️ 직전 취소 경고:', { userId, cancelCount });
+    logger.warn('직전 취소 경고:', { userId, cancelCount });
   }
 };
 
@@ -1046,7 +1068,7 @@ exports.reportNoShow = async (req, res) => {
     const { reportedUserId, isHost } = req.body;
     const reporterId = req.user.userId;
 
-    console.log('🚨 노쇼 신고:', { meetupId, reportedUserId, reporterId, isHost });
+    logger.warn('노쇼 신고:', { meetupId, reportedUserId, reporterId, isHost });
 
     // 같은 모임 참가자인지 확인
     const participantCheck = await pool.query(`
@@ -1073,14 +1095,14 @@ exports.reportNoShow = async (req, res) => {
         updated_at = NOW()
     `, [meetupId, reporterId, reportedUserId]);
 
-    console.log('✅ 노쇼 신고 완료');
+    logger.info('노쇼 신고 완료');
 
     res.json({
       success: true,
       message: '노쇼 신고가 접수되었습니다.'
     });
   } catch (error) {
-    console.error('❌ 노쇼 신고 실패:', error);
+    logger.error('노쇼 신고 실패:', error);
     res.status(500).json({
       success: false,
       error: '노쇼 신고 처리 중 오류가 발생했습니다.'
@@ -1146,7 +1168,7 @@ exports.getNoShowStatus = async (req, res) => {
       }))
     });
   } catch (error) {
-    console.error('❌ 노쇼 현황 조회 실패:', error);
+    logger.error('노쇼 현황 조회 실패:', error);
     res.status(500).json({
       success: false,
       error: '노쇼 현황 조회 중 오류가 발생했습니다.'
@@ -1163,7 +1185,7 @@ exports.processNoShow = async (req, res) => {
 
     const { meetupId } = req.params;
 
-    console.log('🔍 노쇼 처리 시작:', { meetupId });
+    logger.info('노쇼 처리 시작:', { meetupId });
 
     // 1. GPS 미인증 + 노쇼 신고 2명 이상 또는 호스트 신고인 참가자 조회
     const noShowResult = await client.query(`
@@ -1310,7 +1332,7 @@ exports.processNoShow = async (req, res) => {
 
     await client.query('COMMIT');
 
-    console.log('✅ 노쇼 처리 완료:', { meetupId, processedCount: processedNoShows.length });
+    logger.info('노쇼 처리 완료:', { meetupId, processedCount: processedNoShows.length });
 
     res.json({
       success: true,
@@ -1320,7 +1342,7 @@ exports.processNoShow = async (req, res) => {
     });
   } catch (error) {
     await client.query('ROLLBACK');
-    console.error('❌ 노쇼 처리 실패:', error);
+    logger.error('노쇼 처리 실패:', error);
     res.status(500).json({
       success: false,
       error: '노쇼 처리 중 오류가 발생했습니다.'
@@ -1364,7 +1386,7 @@ const checkNoShowRestriction = async (client, userId) => {
         updated_at = NOW()
     `, [userId, restrictionType, reason, restrictionDays]);
 
-    console.log('⚠️ 노쇼 제재 적용:', { userId, noShowCount, restrictionDays });
+    logger.warn('노쇼 제재 적용:', { userId, noShowCount, restrictionDays });
   }
 };
 
@@ -1406,7 +1428,7 @@ exports.getMyCompensations = async (req, res) => {
       }))
     });
   } catch (error) {
-    console.error('❌ 배상금 내역 조회 실패:', error);
+    logger.error('배상금 내역 조회 실패:', error);
     res.status(500).json({
       success: false,
       error: '배상금 내역 조회 중 오류가 발생했습니다.'
@@ -1445,7 +1467,7 @@ exports.appealNoShow = async (req, res) => {
       message: '노쇼 이의 신청이 접수되었습니다. 검토 후 안내드리겠습니다.'
     });
   } catch (error) {
-    console.error('❌ 노쇼 이의 신청 실패:', error);
+    logger.error('노쇼 이의 신청 실패:', error);
     res.status(500).json({
       success: false,
       error: '이의 신청 처리 중 오류가 발생했습니다.'
@@ -1486,7 +1508,7 @@ exports.getMyCancellationHistory = async (req, res) => {
       }))
     });
   } catch (error) {
-    console.error('❌ 취소 이력 조회 실패:', error);
+    logger.error('취소 이력 조회 실패:', error);
     res.status(500).json({
       success: false,
       error: '취소 이력 조회 중 오류가 발생했습니다.'
@@ -1517,7 +1539,7 @@ exports.getMyRestrictions = async (req, res) => {
       isRestricted: result.rows.length > 0
     });
   } catch (error) {
-    console.error('❌ 제재 현황 조회 실패:', error);
+    logger.error('제재 현황 조회 실패:', error);
     res.status(500).json({
       success: false,
       error: '제재 현황 조회 중 오류가 발생했습니다.'

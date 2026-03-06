@@ -36,6 +36,7 @@ const { Server } = require('socket.io');
 const fs = require('fs');
 const multer = require('multer');
 const jwt = require('jsonwebtoken');
+const cookieParser = require('cookie-parser');
 const { loginLimiter, apiLimiter } = require('./middleware/rateLimiter');
 const { startScheduler } = require('./scheduler');
 
@@ -51,14 +52,14 @@ if (mode === 'production') {
   envFile = '.env.development';
 }
 
-console.log('🔧 Server mode:', mode);
-console.log('🔧 Loading env file:', envFile);
-
 dotenv.config({ path: envFile, override: true });
 
 // 설정 및 유틸리티
 const pool = require('./config/database');
 const logger = require('./config/logger');
+
+logger.info('Server mode: ' + mode);
+logger.info('Loading env file: ' + envFile);
 const { initializeS3Upload } = require('./config/s3Config');
 
 // S3 초기화
@@ -68,9 +69,9 @@ try {
   const s3Config = initializeS3Upload();
   uploadToMemory = s3Config.uploadToMemory;
   uploadToS3Direct = s3Config.uploadToS3Direct;
-  logger.info('✅ S3 업로드 설정 초기화 완료');
+  logger.info('S3 업로드 설정 초기화 완료');
 } catch (error) {
-  logger.error('❌ S3 업로드 설정 초기화 실패:', error.message);
+  logger.error('S3 업로드 설정 초기화 실패:', error.message);
 }
 
 // 모듈 라우터 임포트
@@ -148,6 +149,7 @@ app.use(cors({
 }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(cookieParser());
 
 // 정적 파일 제공
 app.use('/uploads', express.static(uploadDir));
@@ -155,7 +157,7 @@ app.use(express.static(path.join(__dirname, '../public')));
 
 // 요청 로깅
 app.use((req, res, next) => {
-  logger.debug(`📝 Request: ${req.method} ${req.url}`);
+  logger.debug(`Request: ${req.method} ${req.url}`);
   next();
 });
 
@@ -229,7 +231,7 @@ apiRouter.post('/upload/image', authenticateToken, upload.single('image'), async
         const s3Result = await uploadToS3Direct(req.file.buffer || require('fs').readFileSync(req.file.path), req.file.originalname, req.file.mimetype);
         imageUrl = s3Result.location;
       } catch (s3Error) {
-        console.error('S3 업로드 실패, 로컬 저장:', s3Error);
+        logger.error('S3 업로드 실패, 로컬 저장:', s3Error);
         imageUrl = `${process.env.API_URL || 'http://localhost:3001'}/uploads/${req.file.filename}`;
       }
     } else {
@@ -242,7 +244,7 @@ apiRouter.post('/upload/image', authenticateToken, upload.single('image'), async
       filename: req.file.filename || req.file.originalname
     });
   } catch (error) {
-    console.error('이미지 업로드 오류:', error);
+    logger.error('이미지 업로드 오류:', error);
     res.status(500).json({ error: '이미지 업로드 중 오류가 발생했습니다' });
   }
 });
@@ -265,7 +267,7 @@ apiRouter.post('/upload/document', authenticateToken, upload.single('document'),
       url: documentUrl
     });
   } catch (error) {
-    console.error('문서 업로드 오류:', error);
+    logger.error('문서 업로드 오류:', error);
     res.status(500).json({ success: false, error: '문서 업로드 실패' });
   }
 });
@@ -278,7 +280,7 @@ apiRouter.delete('/upload/:fileId', authenticateToken, async (req, res) => {
     // 여기서는 간단히 성공 응답
     res.json({ success: true, message: '파일이 삭제되었습니다.' });
   } catch (error) {
-    console.error('파일 삭제 오류:', error);
+    logger.error('파일 삭제 오류:', error);
     res.status(500).json({ success: false, error: '파일 삭제 실패' });
   }
 });
@@ -301,7 +303,7 @@ apiRouter.post('/test/chatbot/send', async (req, res) => {
       message: `챗봇 메시지가 전송되었습니다: ${triggerType} for meetup ${meetupId}`
     });
   } catch (error) {
-    console.error('테스트 챗봇 메시지 전송 실패:', error);
+    logger.error('테스트 챗봇 메시지 전송 실패:', error);
     res.status(500).json({
       success: false,
       error: '챗봇 메시지 전송에 실패했습니다.'
@@ -323,7 +325,7 @@ apiRouter.post('/internal/chatbot/trigger/:meetupId', async (req, res) => {
       triggerType
     });
   } catch (error) {
-    console.error('챗봇 트리거 오류:', error);
+    logger.error('챗봇 트리거 오류:', error);
     res.status(500).json({
       success: false,
       error: '챗봇 메시지 전송 중 오류가 발생했습니다.'
@@ -344,7 +346,7 @@ apiRouter.post('/internal/scheduled-notifications', async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('스케줄된 알림 처리 오류:', error);
+    logger.error('스케줄된 알림 처리 오류:', error);
     res.status(500).json({
       success: false,
       error: '스케줄된 알림 처리 중 오류가 발생했습니다.'
@@ -433,7 +435,7 @@ apiRouter.post('/search/ai', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('AI 검색 오류:', error);
+    logger.error('AI 검색 오류:', error);
     res.status(500).json({
       success: false,
       error: 'AI 검색 중 오류가 발생했습니다.'
@@ -474,7 +476,7 @@ apiRouter.get('/my-meetups', authenticateToken, async (req, res) => {
 
     res.json({ success: true, data: result.rows });
   } catch (error) {
-    console.error('내 모임 목록 조회 오류:', error);
+    logger.error('내 모임 목록 조회 오류:', error);
     res.status(500).json({ success: false, message: '약속 목록을 불러올 수 없습니다.' });
   }
 });
@@ -512,7 +514,7 @@ apiRouter.get('/geocode/reverse', async (req, res) => {
       data: response.data
     });
   } catch (error) {
-    console.error('Reverse geocoding 오류:', error);
+    logger.error('Reverse geocoding 오류:', error);
     res.status(500).json({
       success: false,
       error: 'Reverse geocoding 실패'
@@ -546,22 +548,26 @@ app.set('io', io);
 // 온라인 사용자 추적: userId -> Set<socketId>
 const onlineUsers = new Map();
 
-// Socket.IO JWT 인증 미들웨어
+// Socket.IO JWT 인증 미들웨어 - 유효한 토큰 필수
 io.use((socket, next) => {
   const token = socket.handshake.auth?.token || socket.handshake.query?.token;
 
   if (!token) {
-    // 인증 없이도 연결 허용 (하위 호환성), 단 userId 없음
-    socket.user = null;
-    return next();
+    logger.warn('Socket connection rejected: no token provided', {
+      socketId: socket.id,
+      ip: socket.handshake.address
+    });
+    return next(new Error('Authentication required'));
   }
 
   jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
     if (err) {
-      logger.warn('🔌 Socket 인증 실패:', err.message);
-      // 인증 실패해도 연결은 허용 (하위 호환성)
-      socket.user = null;
-      return next();
+      logger.warn('Socket connection rejected: invalid token', {
+        socketId: socket.id,
+        ip: socket.handshake.address,
+        reason: err.message
+      });
+      return next(new Error('Authentication failed: invalid token'));
     }
 
     socket.user = {
@@ -576,83 +582,44 @@ io.use((socket, next) => {
 // Socket.IO 설정
 io.on('connection', (socket) => {
   const user = socket.user;
-  console.log('🔌 Socket connected:', socket.id, user ? `(user: ${user.userId})` : '(anonymous)');
+  logger.info('Socket connected', { socketId: socket.id, userId: user.userId });
 
-  // 인증된 사용자 온라인 상태 등록
-  if (user) {
-    if (!onlineUsers.has(user.userId)) {
-      onlineUsers.set(user.userId, new Set());
-    }
-    onlineUsers.get(user.userId).add(socket.id);
-
-    // 첫 번째 소켓 연결이면 온라인 알림 브로드캐스트
-    if (onlineUsers.get(user.userId).size === 1) {
-      socket.broadcast.emit('user_online', {
-        userId: user.userId,
-        timestamp: new Date().toISOString()
-      });
-    }
+  // 인증된 사용자 온라인 상태 등록 (미들웨어에서 인증 보장됨)
+  if (!onlineUsers.has(user.userId)) {
+    onlineUsers.set(user.userId, new Set());
   }
+  onlineUsers.get(user.userId).add(socket.id);
 
-  // 레거시 authenticate 이벤트 지원 (하위 호환성)
-  socket.on('authenticate', (token) => {
-    if (socket.user) return; // 이미 인증됨
-
-    jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
-      if (err) {
-        socket.emit('auth_error', { message: '인증 실패' });
-        return;
-      }
-
-      socket.user = {
-        userId: decoded.userId || decoded.id,
-        email: decoded.email,
-        name: decoded.name
-      };
-
-      if (!onlineUsers.has(socket.user.userId)) {
-        onlineUsers.set(socket.user.userId, new Set());
-      }
-      onlineUsers.get(socket.user.userId).add(socket.id);
-
-      if (onlineUsers.get(socket.user.userId).size === 1) {
-        socket.broadcast.emit('user_online', {
-          userId: socket.user.userId,
-          timestamp: new Date().toISOString()
-        });
-      }
-
-      socket.emit('authenticated', { userId: socket.user.userId });
+  // 첫 번째 소켓 연결이면 온라인 알림 브로드캐스트
+  if (onlineUsers.get(user.userId).size === 1) {
+    socket.broadcast.emit('user_online', {
+      userId: user.userId,
+      timestamp: new Date().toISOString()
     });
-  });
+  }
 
   socket.on('join_room', (roomId) => {
     socket.join(`room:${roomId}`);
-    console.log(`User joined room: ${roomId} (socket: ${socket.id})`);
+    logger.debug('User joined room', { roomId, socketId: socket.id, userId: user.userId });
 
-    // 입장 알림 (인증된 사용자만)
-    if (socket.user) {
-      socket.to(`room:${roomId}`).emit('user_joined_room', {
-        userId: socket.user.userId,
-        userName: socket.user.name,
-        roomId,
-        timestamp: new Date().toISOString()
-      });
-    }
+    socket.to(`room:${roomId}`).emit('user_joined_room', {
+      userId: socket.user.userId,
+      userName: socket.user.name,
+      roomId,
+      timestamp: new Date().toISOString()
+    });
   });
 
   socket.on('leave_room', (roomId) => {
     socket.leave(`room:${roomId}`);
-    console.log(`User left room: ${roomId} (socket: ${socket.id})`);
+    logger.debug('User left room', { roomId, socketId: socket.id, userId: user.userId });
 
-    if (socket.user) {
-      socket.to(`room:${roomId}`).emit('user_left_room', {
-        userId: socket.user.userId,
-        userName: socket.user.name,
-        roomId,
-        timestamp: new Date().toISOString()
-      });
-    }
+    socket.to(`room:${roomId}`).emit('user_left_room', {
+      userId: socket.user.userId,
+      userName: socket.user.name,
+      roomId,
+      timestamp: new Date().toISOString()
+    });
   });
 
   // 레거시 send_message 이벤트 (하위 호환성)
@@ -662,7 +629,6 @@ io.on('connection', (socket) => {
 
   // 타이핑 인디케이터
   socket.on('typing_start', (data) => {
-    if (!socket.user) return;
     const { roomId } = data;
     socket.to(`room:${roomId}`).emit('user_typing', {
       userId: socket.user.userId,
@@ -674,7 +640,6 @@ io.on('connection', (socket) => {
   });
 
   socket.on('typing_stop', (data) => {
-    if (!socket.user) return;
     const { roomId } = data;
     socket.to(`room:${roomId}`).emit('user_typing', {
       userId: socket.user.userId,
@@ -689,8 +654,8 @@ io.on('connection', (socket) => {
   socket.on('typing', (data) => {
     const roomId = data.roomId;
     socket.to(`room:${roomId}`).emit('user_typing', {
-      userId: data.userId || socket.user?.userId,
-      userName: data.userName || socket.user?.name,
+      userId: data.userId || socket.user.userId,
+      userName: data.userName || socket.user.name,
       roomId,
       isTyping: data.isTyping,
       timestamp: new Date().toISOString()
@@ -699,7 +664,6 @@ io.on('connection', (socket) => {
 
   // 읽음 상태 실시간 동기화
   socket.on('mark_read', (data) => {
-    if (!socket.user) return;
     const { roomId } = data;
     socket.to(`room:${roomId}`).emit('messages_read', {
       userId: socket.user.userId,
@@ -728,10 +692,10 @@ io.on('connection', (socket) => {
   });
 
   socket.on('disconnect', () => {
-    console.log('🔌 Socket disconnected:', socket.id, user ? `(user: ${user.userId})` : '(anonymous)');
+    logger.info('Socket disconnected', { socketId: socket.id, userId: user.userId });
 
     // 온라인 상태 제거
-    if (user && onlineUsers.has(user.userId)) {
+    if (onlineUsers.has(user.userId)) {
       onlineUsers.get(user.userId).delete(socket.id);
 
       // 마지막 소켓이 끊어지면 오프라인 알림 브로드캐스트
@@ -766,24 +730,22 @@ app.use((req, res) => {
 // 서버 시작 (테스트 환경에서는 자동 시작하지 않음)
 if (mode !== 'test') {
   server.listen(PORT, () => {
-    console.log('');
-    console.log('═══════════════════════════════════════════════════');
-    console.log('   🍽️ 잇테이블 API 서버 (모듈화 버전)');
-    console.log('═══════════════════════════════════════════════════');
-    console.log(`   📍 포트: ${PORT}`);
-    console.log(`   🌍 환경: ${mode || 'development'}`);
-    console.log(`   📂 모듈 구조:`);
-    console.log(`      - auth, user, meetups, chat`);
-    console.log(`      - reviews, points, notifications, badges`);
-    console.log(`      - admin, ai`);
-    console.log('═══════════════════════════════════════════════════');
-    console.log('');
+    logger.system('===============================================');
+    logger.system('   잇테이블 API 서버 (모듈화 버전)');
+    logger.system('===============================================');
+    logger.system(`   포트: ${PORT}`);
+    logger.system(`   환경: ${mode || 'development'}`);
+    logger.system(`   모듈 구조:`);
+    logger.system(`      - auth, user, meetups, chat`);
+    logger.system(`      - reviews, points, notifications, badges`);
+    logger.system(`      - admin, ai`);
+    logger.system('===============================================');
 
     // 스케줄러 시작
     try {
       startScheduler();
     } catch (error) {
-      console.error('❌ 스케줄러 시작 실패:', error);
+      logger.error('스케줄러 시작 실패:', error);
     }
   });
 }

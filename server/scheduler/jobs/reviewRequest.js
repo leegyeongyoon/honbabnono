@@ -8,6 +8,7 @@
  */
 
 const pool = require('../../config/database');
+const logger = require('../../config/logger');
 const { sendMultiplePush } = require('../../modules/notifications/pushService');
 
 const JOB_NAME = '📝 [리뷰 요청]';
@@ -34,7 +35,7 @@ async function run() {
       return;
     }
 
-    console.log(`${JOB_NAME} ${endedMeetups.rows.length}개 모임 리뷰 요청 처리 시작`);
+    logger.info(`${JOB_NAME} ${endedMeetups.rows.length}개 모임 리뷰 요청 처리 시작`);
 
     let totalNotifications = 0;
 
@@ -84,18 +85,18 @@ async function run() {
           '⭐ 리뷰를 작성해주세요!',
           `"${meetup.title}" 밥약속은 어떠셨나요? 함께한 분들에 대한 리뷰를 남겨주세요.`,
           { type: 'review_request', meetupId: String(meetup.id) }
-        ).catch(err => console.error(`${JOB_NAME} 푸시 전송 실패:`, err.message));
+        ).catch(err => logger.error(`${JOB_NAME} 푸시 전송 실패:`, err.message));
 
         totalNotifications += participants.rows.length;
       }
     }
 
     if (totalNotifications > 0) {
-      console.log(`${JOB_NAME} 완료: ${totalNotifications}개 리뷰 요청 알림 생성 (푸시 포함)`);
+      logger.info(`${JOB_NAME} 완료: ${totalNotifications}개 리뷰 요청 알림 생성 (푸시 포함)`);
     }
 
   } catch (error) {
-    console.error(`${JOB_NAME} 오류:`, error);
+    logger.error(`${JOB_NAME} 오류:`, error);
   }
 }
 
