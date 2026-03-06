@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { useNavigate } from 'react-router-dom';
-import { COLORS, SHADOWS } from '../styles/colors';
+import { COLORS, SHADOWS, CARD_STYLE, withOpacity } from '../styles/colors';
+import { HEADER_STYLE } from '../styles/spacing';
 import { Icon } from '../components/Icon';
 import { NotificationBell } from '../components/NotificationBell';
 import apiClient from '../services/apiClient';
@@ -100,7 +101,7 @@ const JoinedMeetupsScreen: React.FC = () => {
   const renderMeetupItem = (meetup: JoinedMeetup) => (
     <div
       key={meetup.id}
-      onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'rgba(17,17,17,0.03)'; }}
+      onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = withOpacity(COLORS.neutral.black, 0.03); }}
       onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
       style={{ cursor: 'pointer', transition: 'background-color 200ms ease' }}
     >
@@ -249,12 +250,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    paddingTop: 20,
-    backgroundColor: COLORS.neutral.white,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(17,17,17,0.06)',
+    ...HEADER_STYLE.sub,
     ...SHADOWS.sticky,
     zIndex: 10,
   },
@@ -268,16 +264,13 @@ const styles = StyleSheet.create({
     transition: 'all 200ms ease',
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: COLORS.text.primary,
-    letterSpacing: -0.3,
+    ...HEADER_STYLE.subTitle,
   },
   tabContainer: {
     flexDirection: 'row',
     backgroundColor: COLORS.neutral.white,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(17,17,17,0.06)',
+    borderBottomColor: CARD_STYLE.borderColor,
   },
   tab: {
     flex: 1,
@@ -322,7 +315,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   exploreButton: {
-    backgroundColor: COLORS.primary.dark,
+    backgroundColor: COLORS.primary.main,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,
@@ -349,7 +342,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     paddingHorizontal: 20,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(17,17,17,0.06)',
+    borderBottomColor: CARD_STYLE.borderColor,
   },
   profileImage: {
     marginRight: 16,

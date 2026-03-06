@@ -219,7 +219,7 @@ const RouterApp: React.FC = () => {
           width: 48,
           height: 48,
           borderRadius: 24,
-          background: 'linear-gradient(135deg, #B8A090 0%, #C8B8AC 100%)',
+          background: `linear-gradient(135deg, ${COLORS.primary.main} 0%, ${COLORS.primary.gradient} 100%)`,
           display: 'flex',
           justifyContent: 'center',
           alignItems: 'center',
@@ -231,7 +231,7 @@ const RouterApp: React.FC = () => {
           width: 120,
           height: 8,
           borderRadius: 4,
-          backgroundColor: '#F5F5F5',
+          backgroundColor: COLORS.neutral.light,
           overflow: 'hidden',
           position: 'relative' as const,
         }}>

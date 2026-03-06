@@ -8,7 +8,8 @@ import {
   TouchableOpacity,
   Alert,
 } from 'react-native';
-import { COLORS, SHADOWS, LAYOUT } from '../styles/colors';
+import { COLORS, SHADOWS, CSS_SHADOWS, LAYOUT } from '../styles/colors';
+import { HEADER_STYLE } from '../styles/spacing';
 import { Icon } from '../components/Icon';
 import Toast from '../components/Toast';
 import { useToast } from '../hooks/useToast';
@@ -1305,7 +1306,7 @@ const CreateMeetupScreen: React.FC<CreateMeetupScreenProps> = ({ user }) => {
         <button
           style={{
             background: loading ? COLORS.neutral.grey400 : COLORS.gradient.ctaCSS,
-            color: '#FFFFFF',
+            color: COLORS.neutral.white,
             fontSize: '18px',
             fontWeight: '700',
             borderRadius: '8px',
@@ -1364,16 +1365,10 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.neutral.background,
   },
   header: {
-    height: LAYOUT.HEADER_HEIGHT,
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    backdropFilter: 'blur(20px)',
-    WebkitBackdropFilter: 'blur(20px)',
+    ...HEADER_STYLE.sub,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.neutral.grey100,
     ...SHADOWS.sticky,
     zIndex: 10,
   },
@@ -1387,10 +1382,7 @@ const styles = StyleSheet.create({
     transition: 'all 200ms ease',
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: COLORS.text.primary,
-    letterSpacing: -0.3,
+    ...HEADER_STYLE.subTitle,
   },
   content: {
     flex: 1,
@@ -1403,7 +1395,7 @@ const styles = StyleSheet.create({
     padding: 20,
     marginBottom: 20,
     ...SHADOWS.medium,
-    shadowColor: '#111111',
+    shadowColor: COLORS.neutral.black,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.05,
     shadowRadius: 12,
@@ -1472,7 +1464,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 20,
     ...SHADOWS.large,
-    shadowColor: '#9A7450',
+    shadowColor: COLORS.primary.dark,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 1,
     shadowRadius: 16,

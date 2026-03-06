@@ -27,9 +27,13 @@ interface UniversalMeetupDetailScreenProps {
   KakaoMapComponent?: React.ComponentType<any>;
 }
 
+const CATEGORY_EMOJI_MAP: Record<string, string> = {
+  '한식': '🍚', '중식': '🥢', '일식': '🍣', '양식': '🍕',
+  '고기/구이': '🥩', '해산물': '🦐', '찌개/전골': '🍲',
+  '카페': '☕', '술집': '🍺', '기타': '🍴',
+};
 const getCategoryEmoji = (categoryName: string) => {
-  const category = FOOD_CATEGORIES.find(cat => cat.name === categoryName);
-  return category ? category.emoji : '🍴';
+  return CATEGORY_EMOJI_MAP[categoryName] || '🍴';
 };
 
 const getCategoryColor = (categoryName: string) => {
@@ -434,9 +438,9 @@ const UniversalMeetupDetailScreen: React.FC<UniversalMeetupDetailScreenProps> = 
     : 0;
 
   const getProgressBarColor = () => {
-    if (participantRatio >= 0.8) return '#D32F2F';
-    if (participantRatio >= 0.5) return '#E69100';
-    return '#2E7D4F';
+    if (participantRatio >= 0.8) return COLORS.functional.error;
+    if (participantRatio >= 0.5) return COLORS.functional.warning;
+    return COLORS.functional.success;
   };
 
   const handleConfirmJoin = async () => {
@@ -581,9 +585,9 @@ const UniversalMeetupDetailScreen: React.FC<UniversalMeetupDetailScreenProps> = 
                   paddingTop: 5,
                   paddingBottom: 5,
                   borderRadius: BORDER_RADIUS.sm,
-                  backgroundColor: meetup.status === 'recruiting' || meetup.status === '모집중' ? '#2E7D4F'
+                  backgroundColor: meetup.status === 'recruiting' || meetup.status === '모집중' ? COLORS.functional.success
                     : meetup.status === 'confirmed' || meetup.status === '모집완료' ? COLORS.primary.main
-                    : meetup.status === '진행중' ? '#1976D2'
+                    : meetup.status === '진행중' ? COLORS.functional.info
                     : COLORS.neutral.grey500,
                 }}>
                   <span style={{ fontSize: 12, fontWeight: '700', color: COLORS.neutral.white }}>
@@ -631,9 +635,9 @@ const UniversalMeetupDetailScreen: React.FC<UniversalMeetupDetailScreenProps> = 
                 <View style={[
                   styles.heroStatusBadge,
                   {
-                    backgroundColor: meetup.status === 'recruiting' || meetup.status === '모집중' ? '#2E7D4F'
+                    backgroundColor: meetup.status === 'recruiting' || meetup.status === '모집중' ? COLORS.functional.success
                       : meetup.status === 'confirmed' || meetup.status === '모집완료' ? COLORS.primary.main
-                      : meetup.status === '진행중' ? '#1976D2'
+                      : meetup.status === '진행중' ? COLORS.functional.info
                       : COLORS.neutral.grey500,
                   }
                 ]}>
@@ -655,7 +659,7 @@ const UniversalMeetupDetailScreen: React.FC<UniversalMeetupDetailScreenProps> = 
             position: 'relative',
             zIndex: 2,
             backgroundColor: COLORS.neutral.white,
-            borderRadius: BORDER_RADIUS.lg,
+            borderRadius: BORDER_RADIUS.md,
             padding: 16,
             display: 'flex',
             flexDirection: 'row',
@@ -1194,7 +1198,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: SPACING.xl,
-    borderRadius: BORDER_RADIUS.lg,
+    borderRadius: BORDER_RADIUS.md,
     backgroundColor: COLORS.neutral.white,
     borderWidth: 1,
     borderColor: CARD_STYLE.borderColor,
@@ -1209,7 +1213,7 @@ const styles = StyleSheet.create({
   },
   skeletonCard: {
     padding: SPACING.xl,
-    borderRadius: BORDER_RADIUS.lg,
+    borderRadius: BORDER_RADIUS.md,
     backgroundColor: COLORS.neutral.white,
     borderWidth: 1,
     borderColor: CARD_STYLE.borderColor,
@@ -1255,7 +1259,7 @@ const styles = StyleSheet.create({
     marginTop: -32,
     marginBottom: SPACING.lg,
     padding: SPACING.lg,
-    borderRadius: BORDER_RADIUS.lg,
+    borderRadius: BORDER_RADIUS.md,
     backgroundColor: COLORS.neutral.white,
     borderWidth: 1,
     borderColor: CARD_STYLE.borderColor,
@@ -1301,7 +1305,7 @@ const styles = StyleSheet.create({
     marginHorizontal: SPACING.xl,
     marginBottom: SPACING.lg,
     padding: SPACING.xl,
-    borderRadius: BORDER_RADIUS.lg,
+    borderRadius: BORDER_RADIUS.md,
     borderWidth: 1,
     borderColor: CARD_STYLE.borderColor,
     ...SHADOWS.medium,
@@ -1429,7 +1433,7 @@ const styles = StyleSheet.create({
     marginHorizontal: SPACING.xl,
     marginBottom: SPACING.xl,
     backgroundColor: COLORS.neutral.white,
-    borderRadius: BORDER_RADIUS.lg,
+    borderRadius: BORDER_RADIUS.md,
     borderWidth: 1,
     borderColor: CARD_STYLE.borderColor,
     overflow: 'hidden',
@@ -1494,7 +1498,7 @@ const styles = StyleSheet.create({
     marginHorizontal: SPACING.xl,
     marginBottom: SPACING.lg,
     padding: SPACING.xl,
-    borderRadius: BORDER_RADIUS.lg,
+    borderRadius: BORDER_RADIUS.md,
     borderWidth: 1,
     borderColor: CARD_STYLE.borderColor,
     ...SHADOWS.small,

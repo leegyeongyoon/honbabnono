@@ -9,8 +9,9 @@ import {
   Alert,
 } from 'react-native';
 import { COLORS, SHADOWS } from '../styles/colors';
+import { HEADER_STYLE } from '../styles/spacing';
 import { Icon } from '../components/Icon';
-import CategoryIcon from '../components/CategoryIcon';
+// CategoryIcon replaced by DALL-E image icons
 import { useToast } from '../hooks/useToast';
 import { useRouterNavigation } from '../components/RouterNavigation';
 import { FOOD_CATEGORIES, PRICE_RANGES } from '../constants/categories';
@@ -121,7 +122,11 @@ const KakaoMapComponent: React.FC<KakaoMapComponentProps> = ({ onMapLoad, onLoca
     const script = document.createElement('script');
     script.async = true;
     // WebView 환경을 위한 JavaScript 키 사용 (REST API 키 대신)
-    const apiKey = process.env.REACT_APP_KAKAO_JS_KEY || process.env.REACT_APP_KAKAO_CLIENT_ID || '5a202bd90ab8dff01348f24cb1c37f3f';
+    const apiKey = process.env.REACT_APP_KAKAO_JS_KEY || process.env.REACT_APP_KAKAO_CLIENT_ID;
+    if (!apiKey) {
+      sendLogToNative('Kakao API 키가 설정되지 않았습니다. REACT_APP_KAKAO_JS_KEY 환경변수를 확인하세요.');
+      return;
+    }
     script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${apiKey}&libraries=services,clusterer,drawing&autoload=true`;
     
     sendLogToNative(`스크립트 생성: ${script.src}`);
@@ -283,7 +288,7 @@ const KakaoMapComponent: React.FC<KakaoMapComponentProps> = ({ onMapLoad, onLoca
         </div>
         <TouchableOpacity
           style={{
-            backgroundColor: COLORS.primary,
+            backgroundColor: COLORS.primary.main,
             padding: 10,
             borderRadius: 8,
             minWidth: 120,
@@ -732,7 +737,7 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
                 alignItems: 'center',
                 gap: 8,
                 flex: '0 0 auto',
-                minWidth: visibleSteps === 8 ? '52px' : '64px',
+                minWidth: '48px',
               }}>
                 {/* Step Circle */}
                 <div style={{
@@ -740,7 +745,7 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
                   height: 36,
                   borderRadius: 18,
                   background: isCompleted
-                    ? COLORS.primary.dark
+                    ? COLORS.primary.main
                     : isActive
                       ? COLORS.gradient.ctaCSS
                       : 'transparent',
@@ -753,9 +758,9 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
                   color: (isCompleted || isActive) ? COLORS.text.white : COLORS.text.tertiary,
                   transition: 'all 300ms cubic-bezier(0.4, 0, 0.2, 1)',
                   boxShadow: isActive
-                    ? `0 4px 12px rgba(196,154,112,0.25), 0 2px 4px rgba(196,154,112,0.15)`
+                    ? `0 4px 12px rgba(212,136,44,0.25), 0 2px 4px rgba(212,136,44,0.15)`
                     : isCompleted
-                      ? `0 2px 6px rgba(196,154,112,0.2)`
+                      ? `0 2px 6px rgba(212,136,44,0.2)`
                       : 'none',
                   transform: isActive ? 'scale(1.05)' : 'scale(1)',
                 }}>
@@ -768,13 +773,13 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
 
                 {/* Step Label */}
                 <span style={{
-                  fontSize: visibleSteps === 8 ? 9 : 11,
+                  fontSize: 10,
                   fontWeight: isActive ? 700 : isCompleted ? 600 : 400,
-                  color: isCompleted || isActive ? COLORS.primary.dark : COLORS.text.tertiary,
+                  color: isCompleted || isActive ? COLORS.primary.main : COLORS.text.tertiary,
                   whiteSpace: 'nowrap',
                   textAlign: 'center',
                   transition: 'all 250ms ease',
-                  letterSpacing: '-0.3px',
+                  letterSpacing: '-0.2px',
                 }}>
                   {stepLabels[idx]}
                 </span>
@@ -786,12 +791,12 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
                   flex: '1 1 auto',
                   height: 3,
                   background: step < currentStep
-                    ? COLORS.primary.dark
+                    ? COLORS.primary.main
                     : COLORS.neutral.grey200,
                   alignSelf: 'flex-start',
                   marginTop: 17,
-                  marginLeft: visibleSteps === 8 ? 2 : 4,
-                  marginRight: visibleSteps === 8 ? 2 : 4,
+                  marginLeft: 2,
+                  marginRight: 2,
                   borderRadius: 1.5,
                   transition: 'background 300ms cubic-bezier(0.4, 0, 0.2, 1)',
                   position: 'relative' as const,
@@ -808,36 +813,66 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
   const renderStep1 = () => (
     <View style={styles.stepContainer}>
       <Text style={styles.stepTitle}>어떤 메뉴를 드시고 싶으세요?</Text>
-      <View style={styles.homeCategorySection}>
-        <View style={styles.homeCategoryGrid}>
-          {FOOD_CATEGORIES.map((category) => (
-            <TouchableOpacity
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(5, 1fr)',
+        gap: '16px 0',
+        padding: '8px 12px',
+      }}>
+        {FOOD_CATEGORIES.map((category) => {
+          const isSelected = meetupData.category === category.name;
+          return (
+            <div
               key={category.id}
-              style={styles.homeCategoryItem}
-              onPress={() => updateMeetupData('category', category.name)}
+              onClick={() => updateMeetupData('category', category.name)}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: 8,
+                cursor: 'pointer',
+                transition: 'transform 150ms ease',
+              }}
             >
-              <View style={[
-                styles.homeCategoryBox,
-                { backgroundColor: meetupData.category === category.name ? COLORS.neutral.grey700 : category.bgColor }
-              ]}>
-                <CategoryIcon
-                  iconName={category.icon as any}
-                  image={category.image}
-                  size={56}
-                  color={meetupData.category === category.name ? COLORS.neutral.white : category.color}
-                  backgroundColor="transparent"
+              <div style={{
+                width: 64,
+                height: 64,
+                borderRadius: 16,
+                overflow: 'hidden',
+                backgroundColor: COLORS.neutral.white,
+                border: isSelected
+                  ? `2.5px solid ${COLORS.primary.main}`
+                  : '1px solid rgba(17,17,17,0.06)',
+                boxShadow: isSelected
+                  ? '0 4px 12px rgba(212,136,44,0.2)'
+                  : '0 1px 4px rgba(17,17,17,0.06)',
+                transition: 'all 200ms ease',
+              }}>
+                <img
+                  src={category.image}
+                  alt={category.name}
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',
+                    mixBlendMode: 'multiply' as any,
+                  }}
                 />
-              </View>
-              <Text style={[
-                styles.homeCategoryName,
-                meetupData.category === category.name ? styles.homeCategoryNameSelected : null
-              ]}>
+              </div>
+              <span style={{
+                fontSize: 12,
+                fontWeight: isSelected ? '700' : '500',
+                color: isSelected ? COLORS.primary.main : COLORS.text.secondary,
+                textAlign: 'center',
+                whiteSpace: 'nowrap',
+                transition: 'all 150ms ease',
+              }}>
                 {category.name}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </View>
+              </span>
+            </div>
+          );
+        })}
+      </div>
     </View>
   );
 
@@ -1370,7 +1405,7 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
                   styles.detailAddressInput,
                   focusedInput === 'detailAddress' && {
                     borderColor: COLORS.primary.main,
-                    boxShadow: '0 0 0 3px rgba(224, 146, 110, 0.15)',
+                    boxShadow: '0 0 0 3px rgba(212,136,44,0.2)',
                   } as any,
                 ]}
                 placeholder="건물명, 층수, 호수 등을 입력하세요"
@@ -1404,7 +1439,7 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
                   styles.locationSearchInput,
                   focusedInput === 'locationSearch' && {
                     borderColor: COLORS.primary.main,
-                    boxShadow: '0 0 0 3px rgba(224, 146, 110, 0.15)',
+                    boxShadow: '0 0 0 3px rgba(212,136,44,0.2)',
                   } as any,
                 ]}
                 placeholder="주소나 장소명을 검색하세요"
@@ -1520,7 +1555,7 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
             styles.titleInput,
             focusedInput === 'title' && {
               borderColor: COLORS.primary.main,
-              boxShadow: '0 0 0 3px rgba(224, 146, 110, 0.15)',
+              boxShadow: '0 0 0 3px rgba(212,136,44,0.2)',
             } as any,
           ]}
           placeholder="약속 제목을 입력하세요"
@@ -1538,7 +1573,7 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
             styles.descriptionInput,
             focusedInput === 'description' && {
               borderColor: COLORS.primary.main,
-              boxShadow: '0 0 0 3px rgba(224, 146, 110, 0.15)',
+              boxShadow: '0 0 0 3px rgba(212,136,44,0.2)',
             } as any,
           ]}
           placeholder="약속에 대해 자유롭게 소개해주세요"
@@ -1625,7 +1660,7 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
               styles.depositInput,
               focusedInput === 'deposit' && {
                 borderColor: COLORS.primary.main,
-                boxShadow: '0 0 0 3px rgba(224, 146, 110, 0.15)',
+                boxShadow: '0 0 0 3px rgba(212,136,44,0.2)',
               } as any,
             ]}
             placeholder="10,000"
@@ -1860,9 +1895,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: COLORS.neutral.white,
+    ...HEADER_STYLE.sub,
     ...SHADOWS.sticky,
     zIndex: 10,
   },
@@ -1907,7 +1940,7 @@ const styles = StyleSheet.create({
   },
   stepTitle: {
     fontSize: 24,
-    fontWeight: '800',
+    fontWeight: '700',
     color: COLORS.text.primary,
     marginBottom: 32,
     textAlign: 'center',
@@ -2019,7 +2052,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   selectedTimeToggleButton: {
-    backgroundColor: COLORS.primary.dark,
+    backgroundColor: COLORS.primary.main,
     ...SHADOWS.small,
   },
   timeToggleText: {
@@ -2097,15 +2130,15 @@ const styles = StyleSheet.create({
   },
   participantCard: {
     backgroundColor: COLORS.neutral.grey100,
-    borderRadius: 8,
+    borderRadius: 6,
     paddingVertical: 24,
     alignItems: 'center',
     borderWidth: 2,
     borderColor: COLORS.neutral.grey200,
   },
   participantCardSelected: {
-    backgroundColor: COLORS.primary.dark,
-    borderColor: COLORS.primary.dark,
+    backgroundColor: COLORS.primary.main,
+    borderColor: COLORS.primary.main,
   },
   participantCardText: {
     fontSize: 18,
@@ -2133,14 +2166,14 @@ const styles = StyleSheet.create({
   preferenceOption: {
     flex: 1,
     paddingVertical: 14,
-    borderRadius: 6,
+    borderRadius: 4,
     borderWidth: 1,
     borderColor: 'rgba(17,17,17,0.06)',
     backgroundColor: COLORS.neutral.white,
   },
   preferenceSelected: {
-    backgroundColor: COLORS.primary.dark,
-    borderColor: COLORS.primary.dark,
+    backgroundColor: COLORS.primary.main,
+    borderColor: COLORS.primary.main,
   },
   preferenceText: {
     fontSize: 14,
@@ -2159,15 +2192,15 @@ const styles = StyleSheet.create({
   ageOption: {
     paddingHorizontal: 16,
     paddingVertical: 12,
-    borderRadius: 6,
+    borderRadius: 4,
     borderWidth: 1,
     borderColor: 'rgba(17,17,17,0.06)',
     backgroundColor: COLORS.neutral.white,
     minWidth: 70,
   },
   ageSelected: {
-    backgroundColor: COLORS.primary.dark,
-    borderColor: COLORS.primary.dark,
+    backgroundColor: COLORS.primary.main,
+    borderColor: COLORS.primary.main,
   },
   ageText: {
     fontSize: 14,
@@ -2302,14 +2335,14 @@ const styles = StyleSheet.create({
   priceOption: {
     paddingHorizontal: 16,
     paddingVertical: 10,
-    borderRadius: 6,
+    borderRadius: 4,
     borderWidth: 1,
     borderColor: 'rgba(17,17,17,0.06)',
     backgroundColor: COLORS.neutral.white,
   },
   priceSelected: {
-    backgroundColor: COLORS.primary.dark,
-    borderColor: COLORS.primary.dark,
+    backgroundColor: COLORS.primary.main,
+    borderColor: COLORS.primary.main,
   },
   priceText: {
     fontSize: 14,
@@ -2327,13 +2360,13 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.neutral.white,
   },
   nextButton: {
-    backgroundColor: COLORS.primary.dark,
+    backgroundColor: COLORS.primary.main,
     borderRadius: 8,
     paddingVertical: 18,
     alignItems: 'center',
     marginHorizontal: 20,
     // @ts-ignore
-    backgroundImage: `linear-gradient(135deg, ${COLORS.primary.dark} 0%, ${COLORS.primary.main} 100%)`,
+    backgroundImage: `linear-gradient(135deg, ${COLORS.primary.main} 0%, ${COLORS.primary.gradient} 100%)`,
     ...SHADOWS.cta,
   },
   nextButtonDisabled: {
@@ -2344,7 +2377,7 @@ const styles = StyleSheet.create({
   },
   nextButtonText: {
     fontSize: 18,
-    fontWeight: '800',
+    fontWeight: '700',
     color: COLORS.text.white,
     letterSpacing: -0.3,
   },
@@ -2479,7 +2512,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 4,
   },
   timeScrollItemSelected: {
-    backgroundColor: COLORS.primary.dark,
+    backgroundColor: COLORS.primary.main,
   },
   timeScrollText: {
     fontSize: 16,
@@ -2643,7 +2676,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 12,
     paddingHorizontal: 16,
-    borderRadius: 8,
+    borderRadius: 4,
     borderWidth: 1,
     borderColor: COLORS.neutral.grey200,
     backgroundColor: COLORS.neutral.white,
@@ -2684,12 +2717,11 @@ const styles = StyleSheet.create({
   },
   paymentMethod: {
     backgroundColor: COLORS.neutral.white,
-    borderRadius: 12,
+    borderRadius: 4,
     borderWidth: 1,
     borderColor: COLORS.neutral.grey200,
     paddingVertical: 16,
     paddingHorizontal: 20,
-    ...SHADOWS.small,
   },
   paymentMethodText: {
     fontSize: 16,
@@ -2702,8 +2734,8 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   paymentMethodStep7Selected: {
-    backgroundColor: COLORS.primary.dark,
-    borderColor: COLORS.primary.dark,
+    backgroundColor: COLORS.primary.main,
+    borderColor: COLORS.primary.main,
   },
   paymentMethodSubText: {
     fontSize: 12,
@@ -2718,13 +2750,12 @@ const styles = StyleSheet.create({
   },
   ageRangeOption: {
     backgroundColor: COLORS.neutral.white,
-    borderRadius: 12,
+    borderRadius: 4,
     borderWidth: 1,
     borderColor: COLORS.neutral.grey200,
     paddingVertical: 16,
     paddingHorizontal: 20,
     marginBottom: 16,
-    ...SHADOWS.small,
   },
   ageRangeOptionSelected: {
     backgroundColor: COLORS.neutral.grey700,
@@ -2857,7 +2888,7 @@ const styles = StyleSheet.create({
   },
   popularLocationItem: {
     backgroundColor: COLORS.neutral.white,
-    borderRadius: 10,
+    borderRadius: 4,
     borderWidth: 1,
     borderColor: COLORS.neutral.grey200,
     paddingVertical: 8,
@@ -3035,13 +3066,13 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 16,
     backgroundColor: COLORS.neutral.white,
-    borderRadius: 8,
+    borderRadius: 4,
     borderWidth: 1,
     borderColor: COLORS.neutral.grey200,
   },
   ageQuickButtonSelected: {
-    backgroundColor: COLORS.primary.dark,
-    borderColor: COLORS.primary.dark,
+    backgroundColor: COLORS.primary.main,
+    borderColor: COLORS.primary.main,
   },
   ageQuickButtonText: {
     fontSize: 14,
@@ -3101,7 +3132,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     padding: 16,
     backgroundColor: COLORS.neutral.white,
-    borderRadius: 12,
+    borderRadius: 6,
     borderWidth: 2,
     borderColor: COLORS.neutral.grey200,
     marginBottom: 12,

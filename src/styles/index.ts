@@ -1,14 +1,14 @@
 // 잇테이블(EatTable) 디자인 토큰 통합 배럴 파일
 // Figma 와이어프레임 기반 디자인 시스템
 
-export { COLORS, LAYOUT, SHADOWS, CSS_SHADOWS, withOpacity, CARD_STYLE, CTA_STYLE, BADGE_STYLES, ANIMATION_TOKENS, Z_INDEX, TRANSITIONS, BREAKPOINTS } from './colors';
+export { COLORS, LAYOUT, SHADOWS, CSS_SHADOWS, withOpacity, CARD_STYLE, CTA_STYLE, BADGE_STYLES, ANIMATION_TOKENS, Z_INDEX, TRANSITIONS, BREAKPOINTS, CATEGORY_COLORS } from './colors';
 export { TYPOGRAPHY, FONT_WEIGHTS } from './typography';
-export { SPACING, BORDER_RADIUS } from './spacing';
+export { SPACING, BORDER_RADIUS, HEADER_STYLE, LIST_ITEM_STYLE } from './spacing';
 
 // ─── 통합 테마 객체 ───────────────────────────────────────────
-import { COLORS, LAYOUT, SHADOWS, CSS_SHADOWS, withOpacity, CARD_STYLE, CTA_STYLE, BADGE_STYLES, ANIMATION_TOKENS, Z_INDEX, TRANSITIONS, BREAKPOINTS } from './colors';
+import { COLORS, LAYOUT, SHADOWS, CSS_SHADOWS, withOpacity, CARD_STYLE, CTA_STYLE, BADGE_STYLES, ANIMATION_TOKENS, Z_INDEX, TRANSITIONS, BREAKPOINTS, CATEGORY_COLORS } from './colors';
 import { TYPOGRAPHY, FONT_WEIGHTS } from './typography';
-import { SPACING, BORDER_RADIUS } from './spacing';
+import { SPACING, BORDER_RADIUS, HEADER_STYLE, LIST_ITEM_STYLE } from './spacing';
 
 export const theme = {
   colors: COLORS,
@@ -26,6 +26,7 @@ export const theme = {
   zIndex: Z_INDEX,
   transitions: TRANSITIONS,
   breakpoints: BREAKPOINTS,
+  categoryColors: CATEGORY_COLORS,
   withOpacity,
 } as const;
 

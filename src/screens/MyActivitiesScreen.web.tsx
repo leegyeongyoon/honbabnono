@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
 import { useNavigate } from 'react-router-dom';
 import { COLORS, SHADOWS, CARD_STYLE, CSS_SHADOWS } from '../styles/colors';
+import { HEADER_STYLE } from '../styles/spacing';
 import { Icon } from '../components/Icon';
 import { FadeIn } from '../components/animated';
 import EmptyState from '../components/EmptyState';
@@ -67,11 +68,11 @@ const MyActivitiesScreen: React.FC = () => {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case '참가승인': return '#2E7D4F';
-      case '참가신청': return '#C49A70';
-      case '참가거절': return '#D32F2F';
-      case '참가취소': return '#8B7E72';
-      default: return '#5C4F42';
+      case '참가승인': return COLORS.functional.success;
+      case '참가신청': return COLORS.primary.main;
+      case '참가거절': return COLORS.functional.error;
+      case '참가취소': return COLORS.text.accent;
+      default: return COLORS.text.secondary;
     }
   };
 
@@ -81,7 +82,7 @@ const MyActivitiesScreen: React.FC = () => {
       case '참가신청': return 'rgba(224,146,110,0.08)';
       case '참가거절': return 'rgba(196, 60, 60, 0.08)';
       case '참가취소': return 'rgba(139, 126, 114, 0.08)';
-      default: return '#F7F5F3';
+      default: return COLORS.neutral.light;
     }
   };
 
@@ -97,15 +98,11 @@ const MyActivitiesScreen: React.FC = () => {
   const renderActivity = (activity: Activity, index: number) => (
     <div
       key={activity.id}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.transform = 'translateY(-2px)';
-        e.currentTarget.style.boxShadow = '0 4px 16px rgba(17,17,17,0.10)';
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.transform = 'translateY(0)';
-        e.currentTarget.style.boxShadow = '';
-      }}
-      style={{ cursor: 'pointer', transition: 'all 200ms ease' }}
+      onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = '#FAFAF8'; }}
+      onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent'; }}
+      onMouseDown={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = COLORS.neutral.grey100; }}
+      onMouseUp={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = '#FAFAF8'; }}
+      style={{ cursor: 'pointer', transition: 'background-color 150ms ease' }}
     >
       <TouchableOpacity
         style={styles.activityCard}
@@ -114,7 +111,7 @@ const MyActivitiesScreen: React.FC = () => {
       >
         <View style={styles.cardIconWrap}>
           <View style={styles.avatarCircle}>
-            <Icon name="utensils" size={20} color="#C49A70" />
+            <Icon name="utensils" size={20} color={COLORS.primary.main} />
           </View>
         </View>
 
@@ -123,11 +120,11 @@ const MyActivitiesScreen: React.FC = () => {
           <Text style={styles.activityCategory}>{activity.category}</Text>
           <View style={styles.activityMeta}>
             <View style={styles.metaItem}>
-              <Icon name="map-pin" size={12} color="#8B7E72" />
+              <Icon name="map-pin" size={12} color={COLORS.text.accent} />
               <Text style={styles.metaText}>{activity.location}</Text>
             </View>
             <View style={styles.metaItem}>
-              <Icon name="users" size={12} color="#8B7E72" />
+              <Icon name="users" size={12} color={COLORS.text.accent} />
               <Text style={styles.metaText}>
                 {activity.current_participants ?? 0}/{activity.max_participants ?? 4}명
               </Text>
@@ -149,7 +146,7 @@ const MyActivitiesScreen: React.FC = () => {
       <View style={styles.container}>
         <View style={styles.header}>
           <TouchableOpacity style={styles.backButton} onPress={() => navigate('/mypage')}>
-            <Icon name="arrow-left" size={24} color="#1A1714" />
+            <Icon name="arrow-left" size={24} color={COLORS.text.primary} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>내 활동</Text>
           <View style={styles.placeholder} />
@@ -171,7 +168,7 @@ const MyActivitiesScreen: React.FC = () => {
           style={styles.backButton}
           onPress={() => navigate('/mypage')}
         >
-          <Icon name="arrow-left" size={24} color="#1A1714" />
+          <Icon name="arrow-left" size={24} color={COLORS.text.primary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>내 활동</Text>
         <View style={styles.placeholder} />
@@ -224,23 +221,13 @@ const MyActivitiesScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#EFECEA',
+    backgroundColor: COLORS.neutral.grey100,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 16,
-    backgroundColor: COLORS.neutral.white,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(17,17,17,0.06)',
-    shadowColor: '#111111',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 3,
+    ...HEADER_STYLE.sub,
     zIndex: 10,
   },
   backButton: {
@@ -253,10 +240,7 @@ const styles = StyleSheet.create({
     transition: 'all 200ms ease',
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#1A1714',
-    letterSpacing: -0.3,
+    ...HEADER_STYLE.subTitle,
   },
   placeholder: {
     width: 32,
@@ -276,16 +260,16 @@ const styles = StyleSheet.create({
     cursor: 'pointer',
   },
   tabActive: {
-    borderBottomColor: '#9A7450',
+    borderBottomColor: COLORS.primary.main,
   },
   tabText: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#8B7E72',
+    color: COLORS.text.accent,
   },
   tabTextActive: {
     fontWeight: '600',
-    color: '#9A7450',
+    color: COLORS.primary.main,
   },
   content: {
     flex: 1,
@@ -302,21 +286,15 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
   },
   activitiesList: {
-    gap: 12,
+    backgroundColor: COLORS.neutral.white,
   },
   activityCard: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
-    backgroundColor: COLORS.neutral.white,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(17,17,17,0.06)',
-    shadowColor: '#111111',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 1,
+    backgroundColor: 'transparent',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(17,17,17,0.06)',
   },
   cardIconWrap: {
     marginRight: 14,
@@ -336,12 +314,12 @@ const styles = StyleSheet.create({
   activityTitle: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#1A1714',
+    color: COLORS.text.primary,
     marginBottom: 3,
   },
   activityCategory: {
     fontSize: 13,
-    color: '#8B7E72',
+    color: COLORS.text.accent,
     marginBottom: 6,
   },
   activityMeta: {
@@ -356,7 +334,7 @@ const styles = StyleSheet.create({
   },
   metaText: {
     fontSize: 12,
-    color: '#8B7E72',
+    color: COLORS.text.accent,
   },
   statusBadge: {
     paddingHorizontal: 10,

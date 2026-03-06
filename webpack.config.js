@@ -57,6 +57,7 @@ module.exports = {
             options: {
               name: 'images/[name].[hash].[ext]',
               publicPath: '/',
+              esModule: false,
             },
           },
         ],

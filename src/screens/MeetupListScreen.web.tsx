@@ -9,6 +9,7 @@ import {
 import { useRouterNavigation } from '../components/RouterNavigation';
 import MeetupCard from '../components/MeetupCard';
 import { COLORS, SHADOWS } from '../styles/colors';
+import { HEADER_STYLE } from '../styles/spacing';
 import { useMeetups } from '../hooks/useMeetups';
 import { formatKoreanDateTime } from '../utils/dateUtils';
 import { Icon } from '../components/Icon';
@@ -180,11 +181,11 @@ const MeetupListScreen = () => {
         onClick={() => navigation.navigate('CreateMeetup')}
         onMouseEnter={(e) => {
           e.currentTarget.style.transform = 'scale(1.08)';
-          e.currentTarget.style.boxShadow = '0 6px 20px rgba(196,154,112,0.35)';
+          e.currentTarget.style.boxShadow = '0 6px 20px rgba(212,136,44,0.35)';
         }}
         onMouseLeave={(e) => {
           e.currentTarget.style.transform = 'scale(1)';
-          e.currentTarget.style.boxShadow = '0 4px 12px rgba(196,154,112,0.25)';
+          e.currentTarget.style.boxShadow = '0 4px 12px rgba(212,136,44,0.25)';
         }}
         style={{
           position: 'absolute',
@@ -193,17 +194,17 @@ const MeetupListScreen = () => {
           width: 56,
           height: 56,
           borderRadius: 28,
-          background: 'linear-gradient(135deg, #C49A70 0%, #E4C8A4 100%)',
+          background: COLORS.gradient.ctaCSS,
           display: 'flex',
           justifyContent: 'center',
           alignItems: 'center',
           cursor: 'pointer',
           transition: 'all 200ms ease',
-          boxShadow: '0 4px 12px rgba(196,154,112,0.25)',
+          boxShadow: '0 4px 12px rgba(212,136,44,0.25)',
           zIndex: 10,
         }}
       >
-        <Icon name="plus" size={24} color="#FFFFFF" />
+        <Icon name="plus" size={24} color={COLORS.neutral.white} />
       </div>
     </View>
   );
@@ -222,12 +223,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: COLORS.neutral.white,
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    paddingTop: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(17,17,17,0.06)',
+    ...HEADER_STYLE.sub,
     ...SHADOWS.sticky,
     zIndex: 10,
   },
@@ -241,10 +237,7 @@ const styles = StyleSheet.create({
     transition: 'all 200ms ease',
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: COLORS.text.primary,
-    letterSpacing: -0.3,
+    ...HEADER_STYLE.subTitle,
   },
   filterContainer: {
     flexDirection: 'row',
@@ -264,7 +257,7 @@ const styles = StyleSheet.create({
     cursor: 'pointer',
   },
   activeFilter: {
-    backgroundColor: COLORS.primary.dark,
+    backgroundColor: COLORS.primary.main,
   },
   filterText: {
     fontSize: 14,

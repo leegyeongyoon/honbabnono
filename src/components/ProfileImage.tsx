@@ -26,7 +26,7 @@ const DefaultProfileImage: React.FC<{ size?: number; name?: string }> = ({ size 
           height: size,
           borderRadius: size / 2,
           backgroundColor: bgColor,
-          shadowColor: '#111111',
+          shadowColor: COLORS.neutral.black,
           shadowOffset: { width: 0, height: 1 },
           shadowOpacity: 0.1,
           shadowRadius: 4,
@@ -34,7 +34,7 @@ const DefaultProfileImage: React.FC<{ size?: number; name?: string }> = ({ size 
         }
       ]}
     >
-      <Text style={{ fontSize, fontWeight: '700', color: '#FFFFFF' }}>
+      <Text style={{ fontSize, fontWeight: '700', color: COLORS.neutral.white }}>
         {initial}
       </Text>
     </View>

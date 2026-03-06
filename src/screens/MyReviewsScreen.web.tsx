@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { useNavigate } from 'react-router-dom';
-import { COLORS, SHADOWS } from '../styles/colors';
+import { COLORS, SHADOWS, CSS_SHADOWS } from '../styles/colors';
+import { HEADER_STYLE } from '../styles/spacing';
 import { Icon } from '../components/Icon';
 import apiClient from '../services/apiClient';
 import EmptyState from '../components/EmptyState';
@@ -46,7 +47,7 @@ const MyReviewsScreen: React.FC = () => {
           key={i}
           name="star"
           size={16}
-          color={i <= rating ? "#C49A70" : COLORS.neutral.grey200}
+          color={i <= rating ? COLORS.primary.main : COLORS.neutral.grey200}
         />
       );
     }
@@ -60,7 +61,7 @@ const MyReviewsScreen: React.FC = () => {
     >
       <View style={styles.profileImage}>
         <View style={styles.avatarCircle}>
-          <Icon name="star" size={20} color="#C49A70" />
+          <Icon name="star" size={20} color={COLORS.primary.main} />
         </View>
       </View>
 
@@ -90,24 +91,24 @@ const MyReviewsScreen: React.FC = () => {
           <View style={{ width: 44 }} />
         </View>
         <View style={{ padding: 20, gap: 16 }}>
-          <View style={{ padding: 20, borderRadius: 8, backgroundColor: '#FAFAF8', gap: 12 }}>
-            <View style={{ width: '50%', height: 14, borderRadius: 7, backgroundColor: '#EFECEA' }} />
+          <View style={{ padding: 20, borderRadius: 8, backgroundColor: COLORS.neutral.grey50, gap: 12 }}>
+            <View style={{ width: '50%', height: 14, borderRadius: 7, backgroundColor: COLORS.neutral.grey100 }} />
             <View style={{ flexDirection: 'row', gap: 16 }}>
               {[0, 1, 2].map((i) => (
                 <View key={i} style={{ flex: 1, alignItems: 'center', gap: 6 }}>
-                  <View style={{ width: 32, height: 20, borderRadius: 10, backgroundColor: '#EFECEA' }} />
-                  <View style={{ width: 40, height: 10, borderRadius: 5, backgroundColor: '#EFECEA' }} />
+                  <View style={{ width: 32, height: 20, borderRadius: 10, backgroundColor: COLORS.neutral.grey100 }} />
+                  <View style={{ width: 40, height: 10, borderRadius: 5, backgroundColor: COLORS.neutral.grey100 }} />
                 </View>
               ))}
             </View>
           </View>
           {[0, 1, 2].map((i) => (
-            <View key={i} style={{ flexDirection: 'row', padding: 16, backgroundColor: '#FAFAF8', borderRadius: 8, gap: 12 }}>
-              <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: '#EFECEA' }} />
+            <View key={i} style={{ flexDirection: 'row', padding: 16, backgroundColor: COLORS.neutral.grey50, borderRadius: 8, gap: 12 }}>
+              <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: COLORS.neutral.grey100 }} />
               <View style={{ flex: 1, gap: 8 }}>
-                <View style={{ width: '70%', height: 14, borderRadius: 7, backgroundColor: '#EFECEA' }} />
-                <View style={{ width: '90%', height: 10, borderRadius: 5, backgroundColor: '#EFECEA' }} />
-                <View style={{ width: '40%', height: 10, borderRadius: 5, backgroundColor: '#EFECEA' }} />
+                <View style={{ width: '70%', height: 14, borderRadius: 7, backgroundColor: COLORS.neutral.grey100 }} />
+                <View style={{ width: '90%', height: 10, borderRadius: 5, backgroundColor: COLORS.neutral.grey100 }} />
+                <View style={{ width: '40%', height: 10, borderRadius: 5, backgroundColor: COLORS.neutral.grey100 }} />
               </View>
             </View>
           ))}
@@ -190,10 +191,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 16,
-    backgroundColor: COLORS.neutral.white,
+    ...HEADER_STYLE.sub,
     ...SHADOWS.sticky,
     zIndex: 10,
   },
@@ -205,10 +203,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: COLORS.text.primary,
-    letterSpacing: -0.3,
+    ...HEADER_STYLE.subTitle,
   },
   placeholder: {
     width: 32,
@@ -237,7 +232,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   exploreButton: {
-    backgroundColor: COLORS.primary.dark,
+    backgroundColor: COLORS.primary.main,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,
@@ -289,10 +284,6 @@ const styles = StyleSheet.create({
   },
   reviewsListContainer: {
     backgroundColor: COLORS.neutral.white,
-    borderRadius: 8,
-    ...SHADOWS.small,
-    borderWidth: 1,
-    borderColor: 'rgba(17,17,17,0.06)',
   },
   listSectionTitle: {
     fontSize: 18,

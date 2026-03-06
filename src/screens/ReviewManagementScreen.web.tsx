@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { useNavigate } from 'react-router-dom';
 import { COLORS, SHADOWS, CARD_STYLE, CSS_SHADOWS } from '../styles/colors';
+import { HEADER_STYLE } from '../styles/spacing';
 import { Icon } from '../components/Icon';
 import { FadeIn } from '../components/animated';
 import EmptyState from '../components/EmptyState';
@@ -109,7 +110,7 @@ const ReviewManagementScreen: React.FC = () => {
           key={i}
           name="star"
           size={14}
-          color={i <= rating ? '#C49A70' : '#DAD5CF'}
+          color={i <= rating ? COLORS.primary.main : COLORS.neutral.grey200}
         />
       );
     }
@@ -119,15 +120,11 @@ const ReviewManagementScreen: React.FC = () => {
   const renderReviewItem = (review: ManageableReview) => (
     <div
       key={review.id}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.transform = 'translateY(-2px)';
-        e.currentTarget.style.boxShadow = '0 4px 16px rgba(17,17,17,0.10)';
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.transform = 'translateY(0)';
-        e.currentTarget.style.boxShadow = '';
-      }}
-      style={{ cursor: 'pointer', transition: 'all 200ms ease' }}
+      onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = '#FAFAF8'; }}
+      onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent'; }}
+      onMouseDown={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = COLORS.neutral.grey100; }}
+      onMouseUp={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = '#FAFAF8'; }}
+      style={{ cursor: 'pointer', transition: 'background-color 150ms ease' }}
     >
       <TouchableOpacity
         style={styles.reviewCard}
@@ -141,7 +138,7 @@ const ReviewManagementScreen: React.FC = () => {
             <Icon
               name={review.is_featured ? 'star' : 'edit'}
               size={16}
-              color={review.is_featured ? '#C49A70' : '#C49A70'}
+              color={review.is_featured ? COLORS.primary.main : COLORS.primary.main}
             />
           </View>
           <View style={styles.titleWrap}>
@@ -165,7 +162,7 @@ const ReviewManagementScreen: React.FC = () => {
             <Icon
               name="star"
               size={14}
-              color={review.is_featured ? '#C49A70' : '#8B7E72'}
+              color={review.is_featured ? COLORS.primary.main : COLORS.text.accent}
             />
           </TouchableOpacity>
 
@@ -176,7 +173,7 @@ const ReviewManagementScreen: React.FC = () => {
               navigate(`/review/${review.id}/edit`);
             }}
           >
-            <Icon name="edit" size={14} color="#8B7E72" />
+            <Icon name="edit" size={14} color={COLORS.text.accent} />
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -186,7 +183,7 @@ const ReviewManagementScreen: React.FC = () => {
               handleDeleteReview(review.id);
             }}
           >
-            <Icon name="trash-2" size={14} color="#D32F2F" />
+            <Icon name="trash-2" size={14} color={COLORS.functional.error} />
           </TouchableOpacity>
         </View>
       </View>
@@ -203,12 +200,12 @@ const ReviewManagementScreen: React.FC = () => {
         </Text>
         <View style={styles.metaDivider} />
         <View style={styles.metaItem}>
-          <Icon name="heart" size={12} color="#8B7E72" />
+          <Icon name="heart" size={12} color={COLORS.text.accent} />
           <Text style={styles.metaText}>{review.like_count ?? 0}</Text>
         </View>
         <View style={styles.metaDivider} />
         <View style={styles.metaItem}>
-          <Icon name="message-circle" size={12} color="#8B7E72" />
+          <Icon name="message-circle" size={12} color={COLORS.text.accent} />
           <Text style={styles.metaText}>{review.reply_count ?? 0}</Text>
         </View>
       </View>
@@ -223,7 +220,7 @@ const ReviewManagementScreen: React.FC = () => {
       <View style={styles.container}>
         <View style={styles.header}>
           <TouchableOpacity style={styles.backButton} onPress={() => navigate('/mypage')}>
-            <Icon name="arrow-left" size={24} color="#1A1714" />
+            <Icon name="arrow-left" size={24} color={COLORS.text.primary} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>리뷰 관리</Text>
           <View style={styles.headerRight} />
@@ -245,14 +242,14 @@ const ReviewManagementScreen: React.FC = () => {
           style={styles.backButton}
           onPress={() => navigate('/mypage')}
         >
-          <Icon name="arrow-left" size={24} color="#1A1714" />
+          <Icon name="arrow-left" size={24} color={COLORS.text.primary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>리뷰 관리</Text>
         <TouchableOpacity
           style={styles.addButton}
           onPress={() => navigate('/write-review')}
         >
-          <Icon name="plus" size={20} color="#C49A70" />
+          <Icon name="plus" size={20} color={COLORS.primary.main} />
         </TouchableOpacity>
       </View>
 
@@ -308,23 +305,13 @@ const ReviewManagementScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#EFECEA',
+    backgroundColor: COLORS.neutral.grey100,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 16,
-    backgroundColor: COLORS.neutral.white,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(17,17,17,0.06)',
-    shadowColor: '#111111',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 3,
+    ...HEADER_STYLE.sub,
     zIndex: 10,
   },
   backButton: {
@@ -337,9 +324,7 @@ const styles = StyleSheet.create({
     transition: 'all 200ms ease',
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#1A1714',
+    ...HEADER_STYLE.subTitle,
   },
   headerRight: {
     width: 32,
@@ -348,37 +333,40 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 8,
-    backgroundColor: 'rgba(196,154,112,0.08)',
+    backgroundColor: 'rgba(212,136,44,0.08)',
     justifyContent: 'center',
     alignItems: 'center',
     cursor: 'pointer',
   },
   filterContainer: {
     flexDirection: 'row',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
     backgroundColor: COLORS.neutral.white,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(17,17,17,0.06)',
-    gap: 8,
+    borderBottomColor: 'rgba(212,136,44,0.08)',
+    paddingHorizontal: 4,
   },
   filterButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 6,
-    backgroundColor: '#F7F5F3',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+    minHeight: 48,
+    borderBottomWidth: 3,
+    borderBottomColor: 'transparent',
     cursor: 'pointer',
-  },
+  } as any,
   activeFilterButton: {
-    backgroundColor: '#9A7450',
+    borderBottomColor: COLORS.primary.main,
   },
   filterText: {
-    fontSize: 13,
-    color: '#5C4F42',
-    fontWeight: '600',
+    fontSize: 15,
+    color: COLORS.text.tertiary,
+    fontWeight: '500',
   },
   activeFilterText: {
-    color: '#FFFFFF',
+    color: COLORS.text.primary,
+    fontWeight: '700',
   },
   content: {
     flex: 1,
@@ -395,19 +383,13 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
   },
   reviewsList: {
-    gap: 12,
+    backgroundColor: COLORS.neutral.white,
   },
   reviewCard: {
-    backgroundColor: COLORS.neutral.white,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(17,17,17,0.06)',
+    backgroundColor: 'transparent',
     padding: 16,
-    shadowColor: '#111111',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 1,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(17,17,17,0.06)',
   },
   reviewHeader: {
     flexDirection: 'row',
@@ -425,13 +407,13 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(196,154,112,0.08)',
+    backgroundColor: 'rgba(212,136,44,0.08)',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
   },
   featuredAvatar: {
-    backgroundColor: 'rgba(196,154,112,0.12)',
+    backgroundColor: 'rgba(212,136,44,0.12)',
   },
   titleWrap: {
     flex: 1,
@@ -439,7 +421,7 @@ const styles = StyleSheet.create({
   reviewTitle: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#1A1714',
+    color: COLORS.text.primary,
     marginBottom: 4,
   },
   ratingContainer: {
@@ -453,12 +435,12 @@ const styles = StyleSheet.create({
   },
   ratingText: {
     fontSize: 12,
-    color: '#8B7E72',
+    color: COLORS.text.accent,
     fontWeight: '500',
   },
   reviewContent: {
     fontSize: 15,
-    color: '#1A1714',
+    color: COLORS.text.primary,
     lineHeight: 22,
     marginBottom: 12,
   },
@@ -477,12 +459,12 @@ const styles = StyleSheet.create({
   metaDivider: {
     width: 1,
     height: 12,
-    backgroundColor: '#DAD5CF',
+    backgroundColor: COLORS.neutral.grey200,
     marginHorizontal: 10,
   },
   metaText: {
     fontSize: 12,
-    color: '#8B7E72',
+    color: COLORS.text.accent,
   },
   actionContainer: {
     flexDirection: 'row',
@@ -492,11 +474,11 @@ const styles = StyleSheet.create({
   actionButton: {
     padding: 8,
     borderRadius: 6,
-    backgroundColor: '#F7F5F3',
+    backgroundColor: COLORS.neutral.light,
     cursor: 'pointer',
   },
   featuredButton: {
-    backgroundColor: 'rgba(196,154,112,0.10)',
+    backgroundColor: 'rgba(212,136,44,0.10)',
   },
 });
 

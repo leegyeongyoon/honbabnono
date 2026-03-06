@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-nati
 import { useNavigate } from 'react-router-dom';
 import { COLORS, SHADOWS, CSS_SHADOWS, CARD_STYLE, LAYOUT } from '../styles/colors';
 import { TYPOGRAPHY } from '../styles/typography';
-import { SPACING, BORDER_RADIUS } from '../styles/spacing';
+import { SPACING, BORDER_RADIUS, HEADER_STYLE } from '../styles/spacing';
 import { useUserStore } from '../store/userStore';
 import { Icon, IconName } from '../components/Icon';
 import userApiService from '../services/userApiService';
@@ -198,10 +198,12 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ user: propsUser }) => {
       </View>
 
       <ScrollView style={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* 프로필 히어로 (딥 차콜 그라데이션) */}
+        {/* 프로필 히어로 (이미지 배경) */}
         <FadeIn delay={0}>
           <div style={{
-            background: COLORS.gradient.heroCSS,
+            backgroundImage: 'linear-gradient(to right, rgba(139,82,22,0.85), rgba(212,136,44,0.75)), url(/profile-hero.png)',
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
             paddingLeft: 20,
             paddingRight: 20,
             paddingTop: 28,
@@ -261,7 +263,7 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ user: propsUser }) => {
                   backgroundColor: COLORS.surface.primary,
                   paddingTop: 16,
                   paddingBottom: 16,
-                  borderRadius: BORDER_RADIUS.lg,
+                  borderRadius: BORDER_RADIUS.md,
                   border: `1px solid ${COLORS.neutral.grey100}`,
                   transition: 'border-color 150ms ease',
                   cursor: 'default',
@@ -445,14 +447,10 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.neutral.background,
   },
   header: {
-    height: LAYOUT.HEADER_HEIGHT,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: SPACING.xl,
-    backgroundColor: COLORS.surface.primary,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.neutral.grey100,
+    ...HEADER_STYLE.main,
     // @ts-ignore
     position: 'sticky',
     top: 0,
@@ -460,8 +458,7 @@ const styles = StyleSheet.create({
     boxShadow: CSS_SHADOWS.stickyHeader,
   },
   headerTitle: {
-    ...TYPOGRAPHY.heading.h2,
-    color: COLORS.text.primary,
+    ...HEADER_STYLE.title,
   },
   scrollContent: {
     flex: 1,
@@ -549,7 +546,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surface.primary,
     marginHorizontal: SPACING.xl,
     marginTop: 12,
-    borderRadius: BORDER_RADIUS.lg,
+    borderRadius: BORDER_RADIUS.md,
     borderWidth: 1,
     borderColor: COLORS.neutral.grey100,
     paddingHorizontal: 16,
@@ -585,7 +582,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surface.primary,
     marginHorizontal: SPACING.xl,
     marginTop: 12,
-    borderRadius: BORDER_RADIUS.lg,
+    borderRadius: BORDER_RADIUS.md,
     borderWidth: 1,
     borderColor: COLORS.neutral.grey100,
     padding: 16,
@@ -641,7 +638,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     paddingHorizontal: 8,
     backgroundColor: COLORS.surface.primary,
-    borderRadius: BORDER_RADIUS.lg,
+    borderRadius: BORDER_RADIUS.md,
     borderWidth: 1,
     borderColor: COLORS.neutral.grey100,
     // @ts-ignore
@@ -651,7 +648,7 @@ const styles = StyleSheet.create({
   quickMenuIconBox: {
     width: 40,
     height: 40,
-    borderRadius: BORDER_RADIUS.lg,
+    borderRadius: BORDER_RADIUS.md,
     backgroundColor: COLORS.neutral.background,
     justifyContent: 'center',
     alignItems: 'center',

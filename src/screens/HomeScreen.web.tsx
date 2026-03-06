@@ -12,13 +12,13 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { COLORS, SHADOWS, LAYOUT, CSS_SHADOWS } from '../styles/colors';
 import { TYPOGRAPHY, FONT_WEIGHTS } from '../styles/typography';
-import { SPACING, BORDER_RADIUS } from '../styles/spacing';
+import { SPACING, BORDER_RADIUS, LIST_ITEM_STYLE, HEADER_STYLE } from '../styles/spacing';
 import { Icon } from '../components/Icon';
 import { NotificationBell } from '../components/NotificationBell';
 import CreateMeetupWizard from './CreateMeetupWizard.web';
 import NeighborhoodSelector from '../components/NeighborhoodSelector';
 import MeetupCard from '../components/MeetupCard';
-import CategoryIcon from '../components/CategoryIcon';
+// CategoryIcon no longer used — categories now use emoji + gradient
 import FadeIn from '../components/animated/FadeIn';
 import MeetupCardSkeleton from '../components/skeleton/MeetupCardSkeleton';
 import locationService from '../services/locationService';
@@ -273,8 +273,9 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
         <View style={styles.header}>
           <View style={styles.headerLogoWrap}>
             <Image
-              source={require('../assets/logo/logo-v2-table-e.png')}
+              source={{ uri: require('../assets/logo/logo-v2-table-e.png') }}
               style={styles.headerLogoImage}
+              accessibilityLabel="잇테이블 로고"
             />
             <Text style={styles.headerLogo}>잇테이블</Text>
           </View>
@@ -315,58 +316,39 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
         onScroll={handleScroll}
         scrollEventThrottle={100}
       >
-        {/* ─── 히어로 섹션 — 딥 차콜 그라데이션 ─── */}
+        {/* ─── 히어로 섹션 — 이미지 배경 ─── */}
         <div
           className="animate-fadeIn"
           style={{
-            background: COLORS.gradient.heroCSS,
-            paddingTop: 40,
-            paddingBottom: 48,
+            backgroundImage: 'linear-gradient(to bottom, rgba(139,82,22,0.7), rgba(212,136,44,0.6)), url(/home-hero.png)',
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            paddingTop: 32,
+            paddingBottom: 40,
             paddingLeft: 24,
             paddingRight: 24,
             position: 'relative',
             overflow: 'hidden',
           }}
         >
-          {/* 장식 — 미니멀 기하학적 요소 */}
-          <div style={{
-            position: 'absolute',
-            top: -30,
-            right: -20,
-            width: 140,
-            height: 140,
-            borderRadius: 70,
-            background: 'radial-gradient(circle, rgba(196,154,112,0.12) 0%, transparent 70%)',
-            pointerEvents: 'none',
-          }} />
-          <div style={{
-            position: 'absolute',
-            bottom: -20,
-            left: -30,
-            width: 100,
-            height: 100,
-            borderRadius: 50,
-            background: 'radial-gradient(circle, rgba(255,255,255,0.06) 0%, transparent 70%)',
-            pointerEvents: 'none',
-          }} />
-
           {/* 인사 텍스트 */}
-          <div style={{ marginBottom: 6 }}>
+          <div>
             <div style={{
-              fontSize: 28,
+              fontSize: 24,
               fontWeight: '700',
-              lineHeight: '36px',
-              letterSpacing: -0.5,
-              color: '#FFFFFF',
+              lineHeight: '32px',
+              letterSpacing: -0.3,
+              color: COLORS.neutral.white,
+              textShadow: '0 1px 3px rgba(17,17,17,0.2)',
             }}>
               {greeting}
             </div>
             <div style={{
-              fontSize: 15,
+              fontSize: 14,
               fontWeight: '400',
-              lineHeight: '22px',
-              color: 'rgba(255,255,255,0.7)',
-              marginTop: 6,
+              lineHeight: '20px',
+              color: 'rgba(255,255,255,0.85)',
+              marginTop: 4,
             }}>
               {subtitle}
             </div>
@@ -456,26 +438,24 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
           )}
         </div>
 
-        {/* 카테고리 그리드 (4x2) with CategoryIcon */}
+        {/* 카테고리 — DALL-E 이미지 아이콘 그리드 (5열 2행) */}
         <FadeIn delay={100}>
           <div
             className="animate-fadeInUp stagger-1"
             style={{
               backgroundColor: COLORS.neutral.white,
-              paddingTop: SPACING.md,
-              paddingBottom: SPACING.xxl,
-              paddingLeft: SPACING.xl,
-              paddingRight: SPACING.xl,
+              paddingTop: 16,
+              paddingBottom: 20,
               marginBottom: SPACING.sm,
+              borderBottom: `1px solid ${COLORS.neutral.grey100}`,
             }}
           >
             <div style={{
-              display: 'flex',
-              flexDirection: 'row',
-              flexWrap: 'wrap',
-              justifyContent: 'space-between',
-              rowGap: SPACING.xl,
-              gap: SPACING.lg,
+              display: 'grid',
+              gridTemplateColumns: 'repeat(5, 1fr)',
+              gap: '14px 0',
+              paddingLeft: 16,
+              paddingRight: 16,
             }}>
               {FOOD_CATEGORIES.map((category) => (
                 <div
@@ -484,48 +464,46 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
                   onMouseEnter={() => setHoveredCategoryId(category.id)}
                   onMouseLeave={() => setHoveredCategoryId(null)}
                   style={{
-                    width: '21%',
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
+                    gap: 6,
                     cursor: 'pointer',
+                    transition: 'transform 150ms ease',
+                    transform: hoveredCategoryId === category.id ? 'scale(1.06)' : 'none',
                   }}
                   role="button"
                   aria-label={category.name}
                 >
                   <div style={{
-                    width: 64,
-                    height: 64,
-                    borderRadius: BORDER_RADIUS.lg,
-                    display: 'flex',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    marginBottom: SPACING.sm,
-                    backgroundColor: hoveredCategoryId === category.id ? COLORS.surface.secondary : category.bgColor,
-                    border: `1px solid ${hoveredCategoryId === category.id ? COLORS.neutral.grey200 : 'rgba(17,17,17,0.06)'}`,
-                    transition: 'all 200ms ease',
-                    boxShadow: hoveredCategoryId === category.id ? CSS_SHADOWS.small : 'none',
-                    transform: hoveredCategoryId === category.id ? 'translateY(-2px)' : 'translateY(0)',
+                    width: 52,
+                    height: 52,
+                    borderRadius: BORDER_RADIUS.md,
+                    overflow: 'hidden',
+                    backgroundColor: COLORS.neutral.white,
+                    boxShadow: hoveredCategoryId === category.id
+                      ? '0 4px 12px rgba(17,17,17,0.12)'
+                      : '0 1px 4px rgba(17,17,17,0.06)',
+                    transition: 'box-shadow 150ms ease',
                   }}>
-                    <CategoryIcon
-                      iconName={category.icon}
-                      image={category.image}
-                      size={48}
-                      color={category.color}
-                      backgroundColor={hoveredCategoryId === category.id ? COLORS.surface.secondary : category.bgColor}
+                    <img
+                      src={category.image}
+                      alt={category.name}
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover',
+                        mixBlendMode: 'multiply' as any,
+                      }}
                     />
                   </div>
                   <span style={{
-                    fontSize: 12,
+                    fontSize: 11,
                     fontWeight: '500',
-                    lineHeight: '16px',
-                    letterSpacing: 0.1,
+                    lineHeight: '14px',
                     color: COLORS.text.secondary,
                     textAlign: 'center',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
                     whiteSpace: 'nowrap',
-                    maxWidth: '100%',
                   }}>{category.name}</span>
                 </div>
               ))}
@@ -536,7 +514,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
         {/* 광고 배너 */}
         <AdvertisementBanner position="home_banner" navigation={navigation} />
 
-        {/* 섹션 1: 곧 시작하는 밥약속 */}
+        {/* 섹션 1: 곧 시작하는 밥약속 — 가로 스크롤 */}
         {(isLoading || soonMeetups.length > 0) && (
           <FadeIn delay={200}>
             <div
@@ -582,11 +560,11 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
                         onMouseEnter={() => setHoveredCardId(`soon-${meetup.id}`)}
                         onMouseLeave={() => setHoveredCardId(null)}
                         style={{
-                          width: 240,
+                          width: 200,
                           transition: 'all 200ms ease',
                           transform: hoveredCardId === `soon-${meetup.id}` ? 'translateY(-3px)' : 'none',
                           boxShadow: hoveredCardId === `soon-${meetup.id}` ? CSS_SHADOWS.cardHover : 'none',
-                          borderRadius: BORDER_RADIUS.lg,
+                          borderRadius: BORDER_RADIUS.md,
                         }}
                       >
                         <MeetupCard
@@ -649,11 +627,11 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
                         onMouseEnter={() => setHoveredCardId(`new-${meetup.id}`)}
                         onMouseLeave={() => setHoveredCardId(null)}
                         style={{
-                          width: 240,
+                          width: 200,
                           transition: 'all 200ms ease',
                           transform: hoveredCardId === `new-${meetup.id}` ? 'translateY(-3px)' : 'none',
                           boxShadow: hoveredCardId === `new-${meetup.id}` ? CSS_SHADOWS.cardHover : 'none',
-                          borderRadius: BORDER_RADIUS.lg,
+                          borderRadius: BORDER_RADIUS.md,
                         }}
                       >
                         <MeetupCard
@@ -703,23 +681,12 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
                   {recruitingMeetups.map((meetup) => {
                     if (!meetup.id) return null;
                     return (
-                      <div
+                      <MeetupCard
                         key={meetup.id}
-                        onMouseEnter={() => setHoveredCardId(`rec-${meetup.id}`)}
-                        onMouseLeave={() => setHoveredCardId(null)}
-                        style={{
-                          transition: 'all 200ms ease',
-                          transform: hoveredCardId === `rec-${meetup.id}` ? 'translateY(-2px)' : 'none',
-                          boxShadow: hoveredCardId === `rec-${meetup.id}` ? CSS_SHADOWS.cardHover : 'none',
-                          borderRadius: BORDER_RADIUS.lg,
-                        }}
-                      >
-                        <MeetupCard
-                          meetup={meetup}
-                          onPress={handleMeetupClick}
-                          variant="compact"
-                        />
-                      </div>
+                        meetup={meetup}
+                        onPress={handleMeetupClick}
+                        variant="compact"
+                      />
                     );
                   })}
                 </View>
@@ -875,12 +842,15 @@ const styles = StyleSheet.create({
 
   // ─── 헤더 — 미니멀 에디토리얼 ──────────────────────────
   header: {
-    height: LAYOUT.HEADER_HEIGHT,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: SPACING.xl,
-    backgroundColor: COLORS.neutral.white,
+    ...HEADER_STYLE.main,
     gap: SPACING.md,
+    // @ts-ignore
+    position: 'sticky',
+    top: 0,
+    zIndex: 10,
+    boxShadow: CSS_SHADOWS.stickyHeader,
   },
   headerLogoWrap: {
     flexDirection: 'row' as const,
@@ -893,11 +863,9 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   headerLogo: {
-    fontSize: 22,
-    fontWeight: FONT_WEIGHTS.bold as any,
-    letterSpacing: -0.5,
+    ...HEADER_STYLE.title,
     color: COLORS.primary.main,
-    lineHeight: 30,
+    lineHeight: 28,
   },
   locationButton: {
     flexDirection: 'row',
@@ -995,13 +963,13 @@ const styles = StyleSheet.create({
     gap: SPACING.lg,
   },
   horizontalCardWrapper: {
-    width: 240,
+    width: 200,
   },
 
   // ─── 세로 리스트 ─────────────────────────────────────
   verticalList: {
-    paddingHorizontal: SPACING.xl,
-    gap: SPACING.md,
+    paddingHorizontal: 0,
+    gap: 0,
   },
   verticalListItem: {
     marginBottom: SPACING.md,

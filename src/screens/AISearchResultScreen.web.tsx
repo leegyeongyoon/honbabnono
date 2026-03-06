@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { COLORS, CSS_SHADOWS, CARD_STYLE } from '../styles/colors';
+import { HEADER_STYLE } from '../styles/spacing';
 import MeetupCard from '../components/MeetupCard';
 import { useMeetupStore } from '../store/meetupStore';
 import { Icon } from '../components/Icon';
@@ -1379,9 +1380,11 @@ return (
     {/* AI 검색 헤더 */}
     <div style={{
       background: `linear-gradient(135deg, ${COLORS.primary.main} 0%, ${COLORS.primary.dark} 100%)`,
-      padding: '16px 20px',
-      paddingTop: '20px',
-      borderBottom: '1px solid rgba(17,17,17,0.06)',
+      paddingLeft: HEADER_STYLE.sub.paddingHorizontal,
+      paddingRight: HEADER_STYLE.sub.paddingHorizontal,
+      paddingTop: HEADER_STYLE.sub.paddingTop,
+      paddingBottom: HEADER_STYLE.sub.paddingBottom,
+      borderBottom: `${HEADER_STYLE.sub.borderBottomWidth}px solid ${HEADER_STYLE.sub.borderBottomColor}`,
       color: 'white'
     }}>
       {/* 헤더 상단 - AI 검색 타이틀 */}
@@ -1437,7 +1440,7 @@ return (
                 fontSize: '20px', 
                 fontWeight: '700', 
                 margin: 0,
-                background: 'linear-gradient(45deg, #FFFFFF, #EEF4F8)',
+                background: 'linear-gradient(45deg, #FFFFFF, #FFF8F0)',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent'
               }}>
@@ -1536,16 +1539,16 @@ return (
             fontSize: '14px',
             fontWeight: '600',
             cursor: 'pointer',
-            boxShadow: '0 4px 12px rgba(196,154,112,0.3)',
+            boxShadow: '0 4px 12px rgba(212,136,44,0.3)',
             transition: 'all 0.2s'
           }}
           onMouseEnter={(e) => {
             (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(-1px)';
-            (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 6px 20px rgba(196,154,112,0.35)';
+            (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 6px 20px rgba(212,136,44,0.35)';
           }}
           onMouseLeave={(e) => {
             (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(0)';
-            (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 4px 12px rgba(196,154,112,0.3)';
+            (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 4px 12px rgba(212,136,44,0.3)';
           }}
         >
           🔍 AI 검색
@@ -1587,7 +1590,7 @@ return (
               alignItems: 'center',
               justifyContent: 'center',
               animation: 'aiPulse 2s ease-in-out infinite',
-              boxShadow: '0 4px 20px rgba(196,154,112,0.25)'
+              boxShadow: '0 4px 20px rgba(212,136,44,0.25)'
             }}>
               <img 
                 src={riceCharacterImage} 
@@ -1627,7 +1630,7 @@ return (
               <div style={{
                 width: '100%',
                 height: '6px',
-                backgroundColor: 'rgba(196,154,112,0.08)',
+                backgroundColor: 'rgba(212,136,44,0.08)',
                 borderRadius: '10px',
                 overflow: 'hidden'
               }}>
@@ -1678,7 +1681,7 @@ return (
             borderRadius: '8px',
             fontSize: '11px',
             fontWeight: '600',
-            boxShadow: '0 4px 12px rgba(196,154,112,0.25)'
+            boxShadow: '0 4px 12px rgba(212,136,44,0.25)'
           }}>
             🍚 AI 분석 결과
           </div>
@@ -1693,7 +1696,7 @@ return (
               alignItems: 'center',
               justifyContent: 'center',
               flexShrink: 0,
-              boxShadow: '0 4px 16px rgba(196,154,112,0.25)'
+              boxShadow: '0 4px 16px rgba(212,136,44,0.25)'
             }}>
               <img 
                 src={riceCharacterImage} 
@@ -1953,18 +1956,18 @@ return (
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.transform = 'scale(1)';
-              e.currentTarget.style.boxShadow = '0 4px 12px rgba(196,154,112,0.25)';
+              e.currentTarget.style.boxShadow = '0 4px 12px rgba(212,136,44,0.25)';
             }}
             style={{
               padding: '12px 32px',
               background: COLORS.gradient.ctaCSS,
-              color: '#FFFFFF',
+              color: COLORS.neutral.white,
               border: 'none',
               borderRadius: '6px',
               fontSize: '15px',
               fontWeight: '600',
               cursor: 'pointer',
-              boxShadow: '0 4px 12px rgba(196,154,112,0.25)',
+              boxShadow: '0 4px 12px rgba(212,136,44,0.25)',
               transition: 'all 200ms ease',
             }}
           >

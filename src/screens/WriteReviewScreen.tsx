@@ -140,7 +140,7 @@ const WriteReviewScreen = () => {
             <Icon
               name="star"
               size={32}
-              color={star <= rating ? '#C49A70' : COLORS.neutral.grey200}
+              color={star <= rating ? COLORS.primary.main : COLORS.neutral.grey200}
             />
           </TouchableOpacity>
         ))}

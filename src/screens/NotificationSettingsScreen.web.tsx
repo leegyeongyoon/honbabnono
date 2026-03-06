@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch } from 'react-native';
 import { useNavigate } from 'react-router-dom';
-import { COLORS, SHADOWS, CARD_STYLE } from '../styles/colors';
+import { COLORS, SHADOWS, CARD_STYLE, CSS_SHADOWS } from '../styles/colors';
+import { HEADER_STYLE } from '../styles/spacing';
 import { Icon } from '../components/Icon';
 import apiClient from '../services/apiClient';
 
@@ -106,7 +107,7 @@ const NotificationSettingsScreen: React.FC = () => {
     return (
       <View key={key} style={styles.settingItem}>
         <View style={styles.settingIconContainer}>
-          <Icon name={icon} size={20} color="#C49A70" />
+          <Icon name={icon} size={20} color={COLORS.primary.main} />
         </View>
         <View style={styles.settingInfo}>
           <Text style={styles.settingTitle}>{title}</Text>
@@ -115,8 +116,8 @@ const NotificationSettingsScreen: React.FC = () => {
         <Switch
           value={settingValue}
           onValueChange={(value) => handleSettingChange(key, value)}
-          trackColor={{ false: '#DAD5CF', true: 'rgba(196,154,112,0.3)' }}
-          thumbColor={settingValue ? '#C49A70' : '#B0A89E'}
+          trackColor={{ false: COLORS.neutral.grey200, true: 'rgba(212,136,44,0.3)' }}
+          thumbColor={settingValue ? COLORS.primary.main : COLORS.neutral.grey400}
         />
       </View>
     );
@@ -127,22 +128,22 @@ const NotificationSettingsScreen: React.FC = () => {
       <View style={styles.container}>
         <View style={styles.header}>
           <TouchableOpacity style={styles.backButton} onPress={() => navigate('/mypage')}>
-            <Icon name="arrow-left" size={24} color="#1A1714" />
+            <Icon name="arrow-left" size={24} color={COLORS.text.primary} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>알림 설정</Text>
           <View style={styles.placeholder} />
         </View>
         <View style={{ padding: 20, gap: 16 }}>
           {[0, 1, 2].map((section) => (
-            <View key={section} className="animate-shimmer" style={{ backgroundColor: '#FAFAF8', borderRadius: 8, padding: 20, gap: 16 }}>
-              <View style={{ width: '30%', height: 14, borderRadius: 7, backgroundColor: '#EFECEA' }} />
+            <View key={section} className="animate-shimmer" style={{ backgroundColor: COLORS.neutral.grey50, borderRadius: 8, padding: 20, gap: 16 }}>
+              <View style={{ width: '30%', height: 14, borderRadius: 7, backgroundColor: COLORS.neutral.grey100 }} />
               {[0, 1, 2].map((row) => (
                 <View key={row} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                   <View style={{ gap: 6, flex: 1 }}>
-                    <View style={{ width: '60%', height: 14, borderRadius: 7, backgroundColor: '#EFECEA' }} />
-                    <View style={{ width: '80%', height: 10, borderRadius: 5, backgroundColor: '#EFECEA' }} />
+                    <View style={{ width: '60%', height: 14, borderRadius: 7, backgroundColor: COLORS.neutral.grey100 }} />
+                    <View style={{ width: '80%', height: 10, borderRadius: 5, backgroundColor: COLORS.neutral.grey100 }} />
                   </View>
-                  <View style={{ width: 48, height: 28, borderRadius: 14, backgroundColor: '#EFECEA' }} />
+                  <View style={{ width: 48, height: 28, borderRadius: 14, backgroundColor: COLORS.neutral.grey100 }} />
                 </View>
               ))}
             </View>
@@ -160,7 +161,7 @@ const NotificationSettingsScreen: React.FC = () => {
           style={styles.backButton}
           onPress={() => navigate('/mypage')}
         >
-          <Icon name="arrow-left" size={24} color="#1A1714" />
+          <Icon name="arrow-left" size={24} color={COLORS.text.primary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>알림 설정</Text>
         <View style={styles.placeholder} />
@@ -228,7 +229,7 @@ const NotificationSettingsScreen: React.FC = () => {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>알림 시간 설정</Text>
           <View style={styles.infoCard}>
-            <Icon name="info" size={20} color="#C49A70" />
+            <Icon name="info" size={20} color={COLORS.primary.main} />
             <Text style={styles.infoText}>
               약속 리마인더는 약속 시작 30분 전, 10분 전에 발송됩니다.
             </Text>
@@ -242,7 +243,7 @@ const NotificationSettingsScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#EFECEA',
+    backgroundColor: COLORS.neutral.grey100,
   },
   centerContent: {
     justifyContent: 'center',
@@ -250,23 +251,13 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 16,
-    color: '#5C4F42',
+    color: COLORS.text.secondary,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 16,
-    backgroundColor: COLORS.neutral.white,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(17,17,17,0.06)',
-    shadowColor: '#111111',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 3,
+    ...HEADER_STYLE.sub,
     zIndex: 10,
   },
   backButton: {
@@ -279,9 +270,7 @@ const styles = StyleSheet.create({
     transition: 'all 200ms ease',
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#1A1714',
+    ...HEADER_STYLE.subTitle,
   },
   placeholder: {
     width: 32,
@@ -295,10 +284,10 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1A1714',
+    color: COLORS.text.primary,
     paddingHorizontal: 20,
     paddingVertical: 16,
-    backgroundColor: '#EFECEA',
+    backgroundColor: COLORS.neutral.grey100,
   },
   settingsContainer: {
     backgroundColor: COLORS.neutral.white,
@@ -306,7 +295,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     borderColor: 'rgba(17,17,17,0.06)',
-    shadowColor: '#111111',
+    shadowColor: COLORS.neutral.black,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.04,
     shadowRadius: 4,
@@ -326,7 +315,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#F7F5F3',
+    backgroundColor: COLORS.neutral.light,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -337,28 +326,28 @@ const styles = StyleSheet.create({
   settingTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1A1714',
+    color: COLORS.text.primary,
     marginBottom: 2,
   },
   settingDescription: {
     fontSize: 13,
-    color: '#5C4F42',
+    color: COLORS.text.secondary,
   },
   infoCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(196,154,112,0.06)',
+    backgroundColor: 'rgba(212,136,44,0.06)',
     marginHorizontal: 16,
     padding: 16,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: 'rgba(196,154,112,0.10)',
+    borderColor: 'rgba(212,136,44,0.10)',
   },
   infoText: {
     flex: 1,
     marginLeft: 12,
     fontSize: 14,
-    color: '#5C4F42',
+    color: COLORS.text.secondary,
     lineHeight: 20,
   },
 });

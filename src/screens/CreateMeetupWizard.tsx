@@ -133,7 +133,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   selectLocationButton: {
-    backgroundColor: '#9A7450',
+    backgroundColor: COLORS.primary.dark,
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 8,
@@ -149,7 +149,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(13,13,12,0.6)',
+    backgroundColor: COLORS.surface.overlay,
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 1000,
@@ -171,13 +171,13 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   datePickerButton: {
-    backgroundColor: '#9A7450',
+    backgroundColor: COLORS.primary.dark,
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 8,
   },
   cancelButton: {
-    backgroundColor: '#C45050',
+    backgroundColor: COLORS.functional.error,
   },
   datePickerButtonText: {
     color: COLORS.text.white,
@@ -195,7 +195,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.neutral.background,
     borderWidth: 1,
     borderColor: COLORS.primary.main,
-    borderRadius: 12,
+    borderRadius: 6,
     padding: 16,
   },
   selectedLocationInfo: {
@@ -238,7 +238,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.neutral.white,
     borderWidth: 1,
     borderColor: COLORS.neutral.grey200,
-    borderRadius: 12,
+    borderRadius: 6,
     padding: 16,
   },
   openMapButtonText: {

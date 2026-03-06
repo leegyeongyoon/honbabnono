@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
 import { useNavigate } from 'react-router-dom';
-import { COLORS, SHADOWS, CARD_STYLE } from '../styles/colors';
+import { COLORS, SHADOWS, CSS_SHADOWS, CARD_STYLE } from '../styles/colors';
+import { HEADER_STYLE } from '../styles/spacing';
 import { Icon } from '../components/Icon';
 import apiClient from '../services/apiClient';
 import EmptyState from '../components/EmptyState';
@@ -47,13 +48,13 @@ const NoticesScreen: React.FC = () => {
   const getTypeStyle = (type: Notice['type']) => {
     switch (type) {
       case 'important':
-        return { backgroundColor: '#D32F2F', label: '중요' };
+        return { backgroundColor: COLORS.functional.error, label: '중요' };
       case 'maintenance':
-        return { backgroundColor: '#C4883C', label: '점검' };
+        return { backgroundColor: COLORS.functional.warning, label: '점검' };
       case 'event':
-        return { backgroundColor: '#2E7D4F', label: '이벤트' };
+        return { backgroundColor: COLORS.functional.success, label: '이벤트' };
       default:
-        return { backgroundColor: '#9A7450', label: '일반' };
+        return { backgroundColor: COLORS.primary.dark, label: '일반' };
     }
   };
 
@@ -91,7 +92,7 @@ const NoticesScreen: React.FC = () => {
                   <Text style={styles.typeTagText}>{typeStyle.label}</Text>
                 </View>
                 {notice.is_pinned && (
-                  <Icon name="pin" size={16} color="#C49A70" />
+                  <Icon name="pin" size={16} color={COLORS.primary.main} />
                 )}
                 <Text style={styles.noticeDate}>{formatDate(notice.created_at)}</Text>
               </View>
@@ -107,7 +108,7 @@ const NoticesScreen: React.FC = () => {
           </Text>
 
           <View style={styles.noticeActions}>
-            <Icon name="chevron-right" size={16} color="#5C4F42" />
+            <Icon name="chevron-right" size={16} color={COLORS.text.secondary} />
           </View>
         </View>
       </div>
@@ -119,20 +120,20 @@ const NoticesScreen: React.FC = () => {
       <View style={styles.container}>
         <View style={styles.header}>
           <TouchableOpacity style={styles.backButton} onPress={() => navigate('/mypage')}>
-            <Icon name="arrow-left" size={24} color="#1A1714" />
+            <Icon name="arrow-left" size={24} color={COLORS.text.primary} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>공지사항</Text>
           <View style={{ width: 44 }} />
         </View>
         <View style={{ padding: 20, gap: 12 }}>
           {[0, 1, 2, 3, 4].map((i) => (
-            <View key={i} className="animate-shimmer" style={{ padding: 16, backgroundColor: '#FAFAF8', borderRadius: 8, gap: 10 }}>
+            <View key={i} className="animate-shimmer" style={{ padding: 16, backgroundColor: COLORS.neutral.grey50, borderRadius: 8, gap: 10 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <View style={{ width: 48, height: 20, borderRadius: 4, backgroundColor: '#EFECEA' }} />
-                <View style={{ width: 80, height: 12, borderRadius: 6, backgroundColor: '#EFECEA' }} />
+                <View style={{ width: 48, height: 20, borderRadius: 4, backgroundColor: COLORS.neutral.grey100 }} />
+                <View style={{ width: 80, height: 12, borderRadius: 6, backgroundColor: COLORS.neutral.grey100 }} />
               </View>
-              <View style={{ width: '80%', height: 14, borderRadius: 7, backgroundColor: '#EFECEA' }} />
-              <View style={{ width: '50%', height: 10, borderRadius: 5, backgroundColor: '#EFECEA' }} />
+              <View style={{ width: '80%', height: 14, borderRadius: 7, backgroundColor: COLORS.neutral.grey100 }} />
+              <View style={{ width: '50%', height: 10, borderRadius: 5, backgroundColor: COLORS.neutral.grey100 }} />
             </View>
           ))}
         </View>
@@ -147,7 +148,7 @@ const NoticesScreen: React.FC = () => {
           style={styles.backButton}
           onPress={() => navigate('/mypage')}
         >
-          <Icon name="arrow-left" size={24} color="#1A1714" />
+          <Icon name="arrow-left" size={24} color={COLORS.text.primary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>공지사항</Text>
         <View style={styles.placeholder} />
@@ -178,30 +179,30 @@ const NoticesScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#EFECEA' },
+  container: { flex: 1, backgroundColor: COLORS.neutral.grey100 },
   centerContent: { justifyContent: 'center', alignItems: 'center' },
-  loadingText: { fontSize: 16, color: '#5C4F42' },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingTop: 20, paddingBottom: 16, backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: 'rgba(17,17,17,0.06)', shadowColor: '#111111', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 3, zIndex: 10 },
+  loadingText: { fontSize: 16, color: COLORS.text.secondary },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', ...HEADER_STYLE.sub, zIndex: 10 },
   backButton: { padding: 10, minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 200ms ease' },
-  headerTitle: { fontSize: 20, fontWeight: '700', color: '#1A1714' },
+  headerTitle: { ...HEADER_STYLE.subTitle },
   placeholder: { width: 32 },
   content: { flex: 1 },
   noticesList: { padding: 16 },
-  noticeItem: { backgroundColor: '#FFFFFF', borderRadius: 8, padding: 20, borderWidth: 1, borderColor: 'rgba(17,17,17,0.06)', shadowColor: '#111111', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 4, elevation: 1 },
-  pinnedNotice: { borderWidth: 1.5, borderColor: 'rgba(224,146,110,0.20)', backgroundColor: '#FAFAF8' },
+  noticeItem: { backgroundColor: COLORS.neutral.white, borderRadius: 8, padding: 20, borderWidth: 1, borderColor: 'rgba(17,17,17,0.06)', shadowColor: COLORS.neutral.black, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 4, elevation: 1 },
+  pinnedNotice: { borderWidth: 1.5, borderColor: 'rgba(224,146,110,0.20)', backgroundColor: COLORS.neutral.grey50 },
   noticeHeader: { marginBottom: 12 },
   noticeInfo: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   noticeMeta: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   typeTag: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 4 },
-  typeTagText: { fontSize: 11, fontWeight: '700', color: '#FFFFFF' },
-  noticeDate: { fontSize: 13, color: '#8B7E72' },
-  noticeTitle: { fontSize: 16, fontWeight: '600', color: '#1A1714', marginBottom: 8, lineHeight: 22 },
-  pinnedTitle: { color: '#C49A70' },
-  noticePreview: { fontSize: 14, color: '#5C4F42', lineHeight: 20, marginBottom: 8 },
+  typeTagText: { fontSize: 11, fontWeight: '700', color: COLORS.neutral.white },
+  noticeDate: { fontSize: 13, color: COLORS.text.accent },
+  noticeTitle: { fontSize: 16, fontWeight: '600', color: COLORS.text.primary, marginBottom: 8, lineHeight: 22 },
+  pinnedTitle: { color: COLORS.primary.main },
+  noticePreview: { fontSize: 14, color: COLORS.text.secondary, lineHeight: 20, marginBottom: 8 },
   noticeActions: { alignItems: 'flex-end' },
   emptyState: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 80 },
-  emptyTitle: { fontSize: 18, fontWeight: '600', color: '#1A1714', marginTop: 16, marginBottom: 8 },
-  emptySubtitle: { fontSize: 14, color: '#5C4F42', textAlign: 'center' },
+  emptyTitle: { fontSize: 18, fontWeight: '600', color: COLORS.text.primary, marginTop: 16, marginBottom: 8 },
+  emptySubtitle: { fontSize: 14, color: COLORS.text.secondary, textAlign: 'center' },
 });
 
 export default NoticesScreen;

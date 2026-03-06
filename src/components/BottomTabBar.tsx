@@ -150,7 +150,7 @@ const styles = StyleSheet.create({
     borderTopColor: COLORS.neutral.grey100,
     ...(Platform.OS === 'web' ? {
       // @ts-ignore: web-only boxShadow
-      boxShadow: '0 -1px 0 rgba(13,13,12,0.04)',
+      boxShadow: '0 -1px 0 rgba(17,17,17,0.04)',
     } : {}),
   },
   tabItem: {

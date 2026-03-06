@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { COLORS, SHADOWS, CSS_SHADOWS, CARD_STYLE } from '../styles/colors';
-import { BORDER_RADIUS } from '../styles/spacing';
+import { BORDER_RADIUS, LIST_ITEM_STYLE, HEADER_STYLE } from '../styles/spacing';
 import { Icon } from '../components/Icon';
 import WebKakaoMap, { MapMarker } from '../components/WebKakaoMap';
 import MeetupCard from '../components/MeetupCard';
@@ -70,6 +70,7 @@ const injectHoverStyles = () => {
     }
     .explore-category-chip-active:hover {
       background-color: ${COLORS.primary.dark} !important;
+      opacity: 0.9;
     }
     .explore-radius-chip:hover {
       border-color: ${COLORS.primary.main} !important;
@@ -78,8 +79,10 @@ const injectHoverStyles = () => {
       border-color: ${COLORS.primary.main} !important;
     }
     .explore-meetup-card:hover {
-      transform: translateY(-2px) !important;
-      box-shadow: ${CSS_SHADOWS.medium} !important;
+      background-color: ${COLORS.neutral.grey50} !important;
+    }
+    .explore-meetup-card:active {
+      background-color: ${COLORS.neutral.grey100} !important;
     }
     .explore-popup-card:hover {
       box-shadow: ${CSS_SHADOWS.hover} !important;
@@ -89,6 +92,7 @@ const injectHoverStyles = () => {
     }
     .explore-toggle-btn-active:hover {
       background-color: ${COLORS.primary.dark} !important;
+      opacity: 0.9;
     }
     .explore-search-clear:hover {
       color: ${COLORS.text.secondary} !important;
@@ -233,7 +237,7 @@ const ExploreScreen: React.FC = () => {
               paddingHorizontal: 8,
               paddingVertical: 2,
               borderWidth: 1,
-              borderColor: 'rgba(17,17,17,0.08)',
+              borderColor: COLORS.neutral.grey100,
             }}>
               <Text style={{ fontSize: 12, fontWeight: '700' as any, color: COLORS.primary.main }}>
                 {displayMeetups.length}
@@ -474,7 +478,7 @@ const ExploreScreen: React.FC = () => {
                   marginTop: 14,
                   padding: '13px 0',
                   textAlign: 'center',
-                  background: 'linear-gradient(135deg, #C49A70 0%, #E4C8A4 100%)',
+                  background: COLORS.gradient.ctaCSS,
                   color: COLORS.text.white,
                   borderRadius: 6,
                   fontSize: 15,
@@ -482,7 +486,7 @@ const ExploreScreen: React.FC = () => {
                   cursor: 'pointer',
                   letterSpacing: '0.3px',
                   transition: 'all 200ms ease',
-                  boxShadow: '0 4px 12px rgba(196,154,112,0.25)',
+                  boxShadow: CSS_SHADOWS.cta,
                 }}
                 onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.transform = 'scale(1.02)'; }}
                 onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.transform = 'scale(1)'; }}
@@ -605,20 +609,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    paddingTop: 20,
-    backgroundColor: COLORS.neutral.white,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.neutral.grey100,
-    ...SHADOWS.sticky,
+    ...HEADER_STYLE.main,
+    // @ts-ignore
+    position: 'sticky',
+    top: 0,
     zIndex: 10,
+    boxShadow: CSS_SHADOWS.stickyHeader,
   },
   headerTitle: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: COLORS.text.primary,
-    letterSpacing: -0.3,
+    ...HEADER_STYLE.title,
   },
 
   // View Toggle (pill 형태)
@@ -639,7 +638,7 @@ const styles = StyleSheet.create({
     transition: 'all 200ms ease',
   },
   toggleButtonActive: {
-    backgroundColor: COLORS.primary.dark,
+    backgroundColor: COLORS.primary.main,
     ...SHADOWS.small,
   },
   toggleText: {
@@ -657,7 +656,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.neutral.white,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(17,17,17,0.06)',
+    borderBottomColor: CARD_STYLE.borderColor,
   },
   categoryTabScroll: {
     paddingLeft: 20,
@@ -675,7 +674,7 @@ const styles = StyleSheet.create({
     cursor: 'pointer',
   },
   categoryChipActive: {
-    backgroundColor: COLORS.primary.dark,
+    backgroundColor: COLORS.primary.main,
     ...SHADOWS.small,
   },
   categoryChipText: {
@@ -695,7 +694,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     backgroundColor: COLORS.neutral.white,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(17,17,17,0.06)',
+    borderBottomColor: CARD_STYLE.borderColor,
   },
   searchBar: {
     flexDirection: 'row',
@@ -809,17 +808,14 @@ const styles = StyleSheet.create({
 
   // Meetup List
   meetupList: {
-    paddingHorizontal: 20,
-    gap: 12,
+    paddingHorizontal: 0,
+    gap: 0,
   },
   meetupItemWrapper: {
     position: 'relative',
-    backgroundColor: COLORS.neutral.white,
-    borderRadius: 8,
     overflow: 'hidden',
-    ...CARD_STYLE,
-    ...SHADOWS.small,
-    transition: 'box-shadow 200ms ease, transform 200ms ease',
+    ...LIST_ITEM_STYLE,
+    transition: 'background-color 200ms ease',
     cursor: 'pointer',
   },
 

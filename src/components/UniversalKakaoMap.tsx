@@ -119,7 +119,7 @@ const UniversalKakaoMap: React.FC<UniversalKakaoMapProps> = ({
         .address-display {
             margin-bottom: 10px;
             padding: 10px;
-            background: #f8f8f8;
+            background: #FAFAF8;
             border-radius: 8px;
             font-size: 14px;
             color: #1A1714;
@@ -141,11 +141,11 @@ const UniversalKakaoMap: React.FC<UniversalKakaoMapProps> = ({
             cursor: pointer;
         }
         .btn-primary {
-            background: #FE6847;
+            background: ${COLORS.primary.main};
             color: white;
         }
         .btn-secondary {
-            background: #f0f0f0;
+            background: #EFECEA;
             color: #1A1714;
         }
         .loading {

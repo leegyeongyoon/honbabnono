@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Animated } from 'react-native';
 import { useNavigate } from 'react-router-dom';
-import { COLORS, SHADOWS, CARD_STYLE, TRANSITIONS, withOpacity } from '../styles/colors';
+import { COLORS, SHADOWS, CSS_SHADOWS, CARD_STYLE, TRANSITIONS, withOpacity } from '../styles/colors';
+import { HEADER_STYLE } from '../styles/spacing';
 import { NotificationBell } from '../components/NotificationBell';
 import MeetupCard from '../components/MeetupCard';
 import EmptyState from '../components/EmptyState';
@@ -428,27 +429,22 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    paddingTop: 20,
-    backgroundColor: COLORS.neutral.white,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.neutral.grey100,
-    ...SHADOWS.sticky,
+    ...HEADER_STYLE.main,
+    // @ts-ignore
+    position: 'sticky',
+    top: 0,
     zIndex: 10,
+    boxShadow: CSS_SHADOWS.stickyHeader,
   },
   headerTitle: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: COLORS.text.primary,
-    letterSpacing: -0.3,
+    ...HEADER_STYLE.title,
   },
   // Tabs
   tabContainer: {
     flexDirection: 'row',
     backgroundColor: COLORS.neutral.white,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(224,146,110,0.08)',
+    borderBottomColor: withOpacity(COLORS.primary.main, 0.08),
     paddingHorizontal: 4,
   },
   tabButton: {
@@ -484,7 +480,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
   },
   activeTabCountBadge: {
-    backgroundColor: COLORS.primary.dark,
+    backgroundColor: COLORS.primary.main,
   },
   tabCountText: {
     fontSize: 12,

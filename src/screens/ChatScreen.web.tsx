@@ -10,7 +10,7 @@ import {
   Image,
 } from 'react-native';
 import { useNavigate, useParams } from 'react-router-dom';
-import { COLORS, SHADOWS, CSS_SHADOWS, LAYOUT, CARD_STYLE, TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../styles';
+import { COLORS, SHADOWS, CSS_SHADOWS, LAYOUT, CARD_STYLE, TYPOGRAPHY, SPACING, BORDER_RADIUS, HEADER_STYLE } from '../styles';
 import { Icon } from '../components/Icon';
 import chatService from '../services/chatService';
 import chatApiService, { ChatRoom, ChatMessage } from '../services/chatApiService';
@@ -351,7 +351,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation }) => {
           </div>
           <View style={styles.chatInfo}>
             <View style={styles.chatTitleRow}>
-              <Text style={[styles.chatTitle, hasUnread && { fontWeight: '800' as any }]} numberOfLines={1}>
+              <Text style={[styles.chatTitle, hasUnread && { fontWeight: '700' as any }]} numberOfLines={1}>
                 {displayTitle}
               </Text>
               {participantCount && (
@@ -566,7 +566,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation }) => {
                   <View>
                     <div
                       style={{
-                        backgroundColor: '#2D2926',
+                        backgroundColor: COLORS.neutral.grey900,
                         padding: SPACING.lg,
                         borderRadius: BORDER_RADIUS.md,
                         borderBottomRightRadius: BORDER_RADIUS.xs,
@@ -811,19 +811,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: SPACING.xl,
-    paddingVertical: SPACING.lg,
-    paddingTop: SPACING.xl,
-    backgroundColor: COLORS.surface.primary,
+    ...HEADER_STYLE.main,
     ...SHADOWS.sticky,
     // @ts-ignore — web CSS shadow
     boxShadow: CSS_SHADOWS.stickyHeader,
     zIndex: 10,
   },
   headerTitle: {
-    ...TYPOGRAPHY.heading.h1,
-    fontSize: 22,
-    letterSpacing: -0.3,
+    ...HEADER_STYLE.title,
   },
   headerIcons: {
     flexDirection: 'row',
@@ -837,36 +832,37 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
 
-  // === 탭 네비게이션 (pill 칩 스타일) ===
+  // === 탭 네비게이션 (언더라인 스타일) ===
   tabNavigation: {
     flexDirection: 'row',
     backgroundColor: COLORS.surface.primary,
-    paddingHorizontal: SPACING.xl,
-    paddingVertical: SPACING.md,
-    gap: SPACING.md,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.neutral.grey100,
+    paddingHorizontal: 4,
   },
   tabButton: {
-    paddingVertical: SPACING.sm,
-    paddingHorizontal: SPACING.lg,
-    borderRadius: BORDER_RADIUS.md,
-    backgroundColor: COLORS.neutral.grey100,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+    minHeight: 48,
+    borderBottomWidth: 3,
+    borderBottomColor: 'transparent',
+    gap: 6,
     transition: 'all 200ms ease',
   } as any,
   selectedTabButton: {
-    backgroundColor: COLORS.primary.main,
+    borderBottomColor: COLORS.primary.main,
   },
   tabButtonText: {
-    ...TYPOGRAPHY.body.small,
-    fontWeight: '600',
-    color: COLORS.text.secondary,
+    fontSize: 15,
+    fontWeight: '500',
+    color: COLORS.text.tertiary,
     transition: 'color 200ms ease',
   } as any,
   selectedTabButtonText: {
-    color: COLORS.text.white,
+    color: COLORS.text.primary,
     fontWeight: '700',
   },
 
@@ -1060,7 +1056,7 @@ const styles = StyleSheet.create({
 
   // === 말풍선 ===
   messageBubble: {
-    backgroundColor: '#F5F3F0',
+    backgroundColor: COLORS.neutral.light,
     padding: SPACING.lg,
     borderRadius: BORDER_RADIUS.md,
     borderTopLeftRadius: BORDER_RADIUS.xs,

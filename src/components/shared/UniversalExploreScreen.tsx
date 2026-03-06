@@ -12,7 +12,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { COLORS, SHADOWS, CARD_STYLE } from '../../styles/colors';
-import { BORDER_RADIUS } from '../../styles/spacing';
+import { BORDER_RADIUS, LIST_ITEM_STYLE } from '../../styles/spacing';
 import { Icon } from '../Icon';
 import MeetupCard from '../MeetupCard';
 import MeetupMapView from '../MeetupMapView';
@@ -724,16 +724,13 @@ const styles = StyleSheet.create({
 
   // Meetup List
   meetupList: {
-    paddingHorizontal: 20,
-    gap: 12,
+    paddingHorizontal: 0,
+    gap: 0,
   },
   meetupItemWrapper: {
     position: 'relative',
-    backgroundColor: COLORS.neutral.white,
-    borderRadius: 10,
     overflow: 'hidden',
-    ...CARD_STYLE,
-    ...SHADOWS.small,
+    ...LIST_ITEM_STYLE,
   },
 
   // Distance Badge

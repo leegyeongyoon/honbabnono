@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { useNavigate } from 'react-router-dom';
-import { COLORS, SHADOWS, CARD_STYLE } from '../styles/colors';
+import { COLORS, SHADOWS, CSS_SHADOWS, CARD_STYLE } from '../styles/colors';
+import { HEADER_STYLE } from '../styles/spacing';
 import { Icon } from '../components/Icon';
 import EmptyState from '../components/EmptyState';
 import ErrorState from '../components/ErrorState';
@@ -57,11 +58,11 @@ const PointHistoryScreen: React.FC = () => {
 
   const getTransactionColor = (type: string) => {
     switch (type) {
-      case 'charge': return '#2E7D4F';
-      case 'use': return '#D32F2F';
-      case 'refund': return '#2E7D4F';
-      case 'reward': return '#2E7D4F';
-      default: return '#5C4F42';
+      case 'charge': return COLORS.functional.success;
+      case 'use': return COLORS.functional.error;
+      case 'refund': return COLORS.functional.success;
+      case 'reward': return COLORS.functional.success;
+      default: return COLORS.text.secondary;
     }
   };
 
@@ -129,7 +130,7 @@ const PointHistoryScreen: React.FC = () => {
             style={styles.backButton}
             onPress={() => navigate('/mypage')}
           >
-            <Icon name="arrow-left" size={24} color="#1A1714" />
+            <Icon name="arrow-left" size={24} color={COLORS.text.primary} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>포인트 내역</Text>
           <View style={{ width: 28 }} />
@@ -151,7 +152,7 @@ const PointHistoryScreen: React.FC = () => {
             style={styles.backButton}
             onPress={() => navigate('/mypage')}
           >
-            <Icon name="arrow-left" size={24} color="#1A1714" />
+            <Icon name="arrow-left" size={24} color={COLORS.text.primary} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>포인트 내역</Text>
           <View style={{ width: 28 }} />
@@ -173,21 +174,21 @@ const PointHistoryScreen: React.FC = () => {
           style={styles.backButton}
           onPress={() => navigate('/mypage')}
         >
-          <Icon name="arrow-left" size={24} color="#1A1714" />
+          <Icon name="arrow-left" size={24} color={COLORS.text.primary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>포인트 내역</Text>
         <TouchableOpacity
           style={styles.chargeButton}
           onPress={() => navigate('/point-charge')}
         >
-          <Icon name="plus" size={20} color="#C49A70" />
+          <Icon name="plus" size={20} color={COLORS.primary.main} />
         </TouchableOpacity>
       </View>
 
       {/* 현재 보유 포인트 */}
       <View style={styles.currentPointsContainer}>
         <div style={{
-          background: 'linear-gradient(135deg, #9A7450 0%, #C49A70 100%)',
+          background: COLORS.gradient.heroCSS,
           borderRadius: 8,
           padding: 28,
           alignItems: 'center',
@@ -215,7 +216,7 @@ const PointHistoryScreen: React.FC = () => {
               transition: 'all 200ms ease',
             }}
           >
-            <Icon name="plus" size={16} color="#FFFFFF" />
+            <Icon name="plus" size={16} color={COLORS.neutral.white} />
             <Text style={styles.chargeButtonText}>포인트 충전</Text>
           </div>
         </div>
@@ -244,7 +245,7 @@ const PointHistoryScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#EFECEA',
+    backgroundColor: COLORS.neutral.grey100,
   },
   skeletonWrap: {
     paddingTop: 8,
@@ -257,17 +258,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 16,
-    backgroundColor: COLORS.neutral.white,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(17,17,17,0.06)',
-    shadowColor: '#111111',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 3,
+    ...HEADER_STYLE.sub,
     zIndex: 10,
   },
   backButton: {
@@ -280,9 +271,7 @@ const styles = StyleSheet.create({
     transition: 'all 200ms ease',
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#1A1714',
+    ...HEADER_STYLE.subTitle,
   },
   chargeButton: {
     padding: 4,
@@ -294,20 +283,20 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
   },
   pointsCard: {
-    backgroundColor: '#9A7450',
+    backgroundColor: COLORS.primary.main,
     borderRadius: 8,
     padding: 24,
     alignItems: 'center',
   },
   pointsLabel: {
     fontSize: 14,
-    color: '#FFFFFF',
+    color: COLORS.neutral.white,
     marginBottom: 8,
   },
   pointsAmount: {
     fontSize: 36,
-    fontWeight: '800',
-    color: '#FFFFFF',
+    fontWeight: '700',
+    color: COLORS.neutral.white,
     marginBottom: 16,
   },
   chargeButtonFull: {
@@ -320,7 +309,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   chargeButtonText: {
-    color: '#FFFFFF',
+    color: COLORS.neutral.white,
     fontSize: 14,
     fontWeight: '600',
   },
@@ -330,21 +319,12 @@ const styles = StyleSheet.create({
   transactionsList: {
     backgroundColor: COLORS.neutral.white,
     marginTop: 8,
-    marginHorizontal: 16,
     marginBottom: 16,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(17,17,17,0.06)',
-    shadowColor: '#111111',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 1,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1A1714',
+    color: COLORS.text.primary,
     padding: 20,
     paddingBottom: 0,
   },
@@ -363,7 +343,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#F7F5F3',
+    backgroundColor: COLORS.neutral.light,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -373,17 +353,17 @@ const styles = StyleSheet.create({
   transactionDescription: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1A1714',
+    color: COLORS.text.primary,
     marginBottom: 4,
   },
   meetupTitle: {
     fontSize: 14,
-    color: '#5C4F42',
+    color: COLORS.text.secondary,
     marginBottom: 4,
   },
   transactionDate: {
     fontSize: 13,
-    color: '#8B7E72',
+    color: COLORS.text.accent,
   },
   amountContainer: {
     alignItems: 'flex-end',
@@ -395,7 +375,7 @@ const styles = StyleSheet.create({
   },
   transactionType: {
     fontSize: 12,
-    color: '#5C4F42',
+    color: COLORS.text.secondary,
   },
 });
 

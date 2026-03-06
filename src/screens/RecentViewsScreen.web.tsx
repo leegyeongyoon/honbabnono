@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
 import { useNavigate } from 'react-router-dom';
-import { COLORS, SHADOWS, CARD_STYLE } from '../styles/colors';
+import { COLORS, SHADOWS, CSS_SHADOWS, CARD_STYLE } from '../styles/colors';
+import { HEADER_STYLE } from '../styles/spacing';
 import { Icon } from '../components/Icon';
 import EmptyState from '../components/EmptyState';
 import { ArrowLeft, Clock, Users, MapPin, Trash2 } from 'lucide-react';
@@ -289,12 +290,12 @@ const RecentViewsScreen: React.FC = () => {
         </View>
         <View style={{ padding: 20, gap: 12 }}>
           {[0, 1, 2, 3, 4].map((i) => (
-            <View key={i} className="animate-shimmer" style={{ flexDirection: 'row', padding: 16, backgroundColor: '#FAFAF8', borderRadius: 8, gap: 12 }}>
-              <View style={{ width: 80, height: 80, borderRadius: 12, backgroundColor: '#EFECEA' }} />
+            <View key={i} className="animate-shimmer" style={{ flexDirection: 'row', padding: 16, backgroundColor: COLORS.neutral.grey50, borderRadius: 8, gap: 12 }}>
+              <View style={{ width: 80, height: 80, borderRadius: 12, backgroundColor: COLORS.neutral.grey100 }} />
               <View style={{ flex: 1, gap: 8, justifyContent: 'center' }}>
-                <View style={{ width: '70%', height: 14, borderRadius: 7, backgroundColor: '#EFECEA' }} />
-                <View style={{ width: '50%', height: 10, borderRadius: 5, backgroundColor: '#EFECEA' }} />
-                <View style={{ width: '40%', height: 10, borderRadius: 5, backgroundColor: '#EFECEA' }} />
+                <View style={{ width: '70%', height: 14, borderRadius: 7, backgroundColor: COLORS.neutral.grey100 }} />
+                <View style={{ width: '50%', height: 10, borderRadius: 5, backgroundColor: COLORS.neutral.grey100 }} />
+                <View style={{ width: '40%', height: 10, borderRadius: 5, backgroundColor: COLORS.neutral.grey100 }} />
               </View>
             </View>
           ))}
@@ -379,12 +380,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 16,
-    backgroundColor: COLORS.neutral.white,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(17,17,17,0.06)',
+    ...HEADER_STYLE.sub,
     ...SHADOWS.sticky,
     zIndex: 10,
   },
@@ -394,9 +390,7 @@ const styles = StyleSheet.create({
     transition: 'all 200ms ease',
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: COLORS.text.primary,
+    ...HEADER_STYLE.subTitle,
   },
   clearAllButton: {
     paddingHorizontal: 12,
@@ -433,7 +427,7 @@ const styles = StyleSheet.create({
   },
   statNumber: {
     fontSize: 28,
-    fontWeight: '800',
+    fontWeight: '700',
     color: COLORS.primary.dark,
     marginBottom: 4,
   },

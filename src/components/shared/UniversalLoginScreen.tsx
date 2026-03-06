@@ -208,11 +208,11 @@ const UniversalLoginScreen: React.FC<UniversalLoginScreenProps> = ({
           left: 0,
           right: 0,
           height: '100%',
-          background: 'linear-gradient(135deg, #A88068 0%, #C4A08A 50%, #D8BCA8 100%)',
+          background: `linear-gradient(135deg, ${COLORS.primary.dark} 0%, ${COLORS.primary.main} 50%, ${COLORS.primary.gradient} 100%)`,
         }} />
       ) : (
         <LinearGradient
-          colors={['#A88068', '#C4A08A', '#D8BCA8']}
+          colors={[COLORS.primary.dark, COLORS.primary.main, COLORS.primary.gradient]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.backgroundGradient}

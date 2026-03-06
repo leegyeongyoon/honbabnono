@@ -1,5 +1,5 @@
 .datetime-input:focus {
-  border-color: #8C7565 !important;
+  border-color: var(--color-primary-dark) !important;
   box-shadow: 0 0 0 2px rgba(140, 117, 101, 0.1) !important;
 }
 

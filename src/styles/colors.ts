@@ -1,41 +1,42 @@
-// 잇테이블 디자인 시스템 v10.1 — "토프 그레이지"
-// 벤치마크: 캐치테이블(프리미엄) + 에어비앤비(따뜻함) + 토스(깔끔함)
-// 키워드: 세련됨, 모던, 순백 화이트 베이스, 미니멀 프리미엄
-// 팔레트: 쿨톤 토프/그레이지 + 클린 화이트 — 여백이 만드는 프리미엄
+// 잇테이블 디자인 시스템 v13 — "웜 앰버"
+// 벤치마크: 캐치테이블(프리미엄) + 토스(깔끔함) + 크래프트 푸드 브랜딩
+// 키워드: 따뜻함, 식욕자극, 프리미엄, 크래프트, 골든
+// 팔레트: 웜 앰버 + 클린 화이트 — 식사 앱에 최적화된 꿀빛 골든
+// 차별화: 당근(비비드 오렌지) vs 잇테이블(깊고 따뜻한 골든 앰버)
 
 export const COLORS = {
-  // 메인 컬러 (토프 그레이지 — 쿨톤이 섞인 세련된 브라운)
+  // 메인 컬러 (웜 앰버 — 꿀빛 골든, 식욕자극)
   primary: {
-    main: '#B8A090',      // 소프트 토프 — 쿨톤 섞인 모던 브라운
-    light: '#F7F4F2',     // 토프 틴트 (표면)
-    dark: '#8C7565',      // 딥 토프 (CTA, 강조 — 화이트 대비 4.6:1)
-    accent: '#B8A090',    // 활성 상태 (=main)
-    gradient: '#C8B8AC',  // 라이트 토프 (그라데이션 끝)
+    main: '#D4882C',      // 리치 앰버 — 메인 브랜드 컬러
+    light: '#FFF8F0',     // 웜 크림 (표면/배경)
+    dark: '#8B5216',      // 딥 앰버 (CTA, 강조 — 화이트 대비 6.3:1)
+    accent: '#D4882C',    // 활성 상태 (=main)
+    gradient: '#E9A84A',  // 라이트 골든 (그라데이션 끝)
   },
 
   // 보조 컬러
   secondary: {
-    main: '#888888',      // 뉴트럴 그레이
-    light: '#F5F5F5',     // 소프트 배경
-    dark: '#666666',      // 딥 그레이
-    warm: '#EBEBEB',      // 라이트 보더
+    main: '#6B7280',      // 쿨 그레이 (Tailwind Gray-500)
+    light: '#F3F4F6',     // 소프트 배경
+    dark: '#4B5563',      // 딥 그레이
+    warm: '#E5E7EB',      // 라이트 보더
   },
 
-  // 중성 컬러 (클린 뉴트럴 — 웜 틴트 제거)
+  // 중성 컬러 (웜 뉴트럴 — 브랜드 톤 통일)
   neutral: {
     white: '#FFFFFF',
-    grey50: '#FAFAFA',    // 카드 배경
-    light: '#F5F5F5',     // 섹션 배경
+    grey50: '#FAFAF8',    // 카드 배경 (웜)
+    light: '#F7F5F3',     // 섹션 배경 (웜)
     background: '#FFFFFF', // 메인 배경 (순백)
-    grey100: '#E8E8E8',   // 보더
+    grey100: '#EFECEA',   // 보더/스켈레톤 (웜)
     grey200: '#D9D9D9',   // 디바이더
     grey300: '#BDBDBD',   // 비활성
     grey400: '#9E9E9E',   // 플레이스홀더
     grey500: '#757575',   // 서브텍스트
-    grey600: '#616161',   // 세컨더리 텍스트
+    grey600: '#5C4F42',   // 세컨더리 텍스트 (웜)
     grey700: '#424242',   // 강조 텍스트
     grey800: '#212121',   // 프라이머리 텍스트
-    grey900: '#171717',   // 헤딩
+    grey900: '#1A1714',   // 헤딩 (웜)
     black: '#111111',     // 퓨어 다크
   },
 
@@ -53,11 +54,12 @@ export const COLORS = {
 
   // 텍스트 컬러
   text: {
-    primary: '#171717',   // 다크 (높은 대비)
-    secondary: '#616161', // 그레이
+    primary: '#1A1714',   // 웜 다크 (높은 대비)
+    secondary: '#5C4F42', // 웜 그레이
     tertiary: '#9E9E9E',  // 뮤트
+    accent: '#704412',    // 웜 브라운 (날짜, 소제목 등)
     white: '#FFFFFF',
-    light: '#E8E8E8',
+    light: '#EFECEA',
     error: '#D32F2F',
   },
 
@@ -67,7 +69,7 @@ export const COLORS = {
     kakaoBrown: '#191919',
     naver: '#03C75A',
     google: '#4285F4',
-    new: '#B8A090',       // 브랜드 토프 (일관성)
+    new: '#D4882C',       // 브랜드 앰버
     hot: '#D32F2F',
     premium: '#7B5EA7',
     deposit: '#2E7D4F',
@@ -84,18 +86,18 @@ export const COLORS = {
 
   // 그라데이션
   gradient: {
-    primary: ['#8C7565', '#B8A090'],
-    secondary: ['#B8A090', '#C8B8AC'],
-    warm: ['#8C7565', '#B8A090'],
+    primary: ['#8B5216', '#D4882C'],
+    secondary: ['#D4882C', '#E9A84A'],
+    warm: ['#8B5216', '#D4882C'],
     sunset: ['#FAFAFA', '#F5F5F5', '#FFFFFF'],
-    accent: ['#8C7565', '#B8A090'],
-    cta: ['#B8A090', '#C8B8AC'],
-    hero: ['rgba(140,117,101,0.95)', 'rgba(140,117,101,0.6)', 'transparent'],
-    heroCSS: 'linear-gradient(135deg, #8C7565 0%, #A28B7B 50%, #B8A090 100%)',
-    heroBg: 'linear-gradient(135deg, #8C7565 0%, #A28B7B 50%, #B8A090 100%)',
+    accent: ['#8B5216', '#D4882C'],
+    cta: ['#D4882C', '#E9A84A'],
+    hero: ['rgba(139,82,22,0.95)', 'rgba(139,82,22,0.6)', 'transparent'],
+    heroCSS: 'linear-gradient(135deg, #8B5216 0%, #A86A20 50%, #D4882C 100%)',
+    heroBg: 'linear-gradient(135deg, #8B5216 0%, #A86A20 50%, #D4882C 100%)',
     cardOverlay: ['transparent', 'rgba(17,17,17,0.65)'],
-    ctaCSS: 'linear-gradient(135deg, #B8A090 0%, #C8B8AC 100%)',
-    subtleGold: 'linear-gradient(180deg, #F7F4F2 0%, #FFFFFF 100%)',
+    ctaCSS: 'linear-gradient(135deg, #D4882C 0%, #E9A84A 100%)',
+    subtleGold: 'linear-gradient(180deg, #FFF8F0 0%, #FFFFFF 100%)',
   },
 } as const;
 
@@ -113,7 +115,7 @@ export const LAYOUT = {
   BOTTOM_NAV_HEIGHT: 60,
   CONTENT_PADDING_HORIZONTAL: 20,
   CONTENT_PADDING_VERTICAL: 16,
-  CARD_RADIUS: 10,       // 8 → 10 (모던 라운딩)
+  CARD_RADIUS: 10,
   TAB_HEIGHT: 48,
 } as const;
 
@@ -144,7 +146,7 @@ export const BREAKPOINTS = {
   wide: 1280,
 } as const;
 
-// 그림자 스타일 (뉴트럴, 플랫+모던)
+// 그림자 스타일
 export const SHADOWS = {
   small: {
     shadowColor: '#111111',
@@ -175,14 +177,14 @@ export const SHADOWS = {
     elevation: 12,
   },
   focused: {
-    shadowColor: '#B8A090',
+    shadowColor: '#D4882C',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.2,
     shadowRadius: 8,
     elevation: 6,
   },
   cta: {
-    shadowColor: '#8C7565',
+    shadowColor: '#8B5216',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.18,
     shadowRadius: 12,
@@ -204,14 +206,14 @@ export const SHADOWS = {
   },
 };
 
-// CSS 그림자 (플랫+모던)
+// CSS 그림자
 export const CSS_SHADOWS = {
   small: '0 1px 2px rgba(17,17,17,0.04), 0 1px 4px rgba(17,17,17,0.03)',
   medium: '0 2px 4px rgba(17,17,17,0.04), 0 4px 16px rgba(17,17,17,0.05)',
   large: '0 4px 8px rgba(17,17,17,0.04), 0 12px 32px rgba(17,17,17,0.06)',
   hover: '0 8px 16px rgba(17,17,17,0.05), 0 16px 40px rgba(17,17,17,0.08)',
-  focused: '0 0 0 2px rgba(184,160,144,0.2)',
-  cta: '0 4px 12px rgba(140,117,101,0.18), 0 8px 20px rgba(140,117,101,0.08)',
+  focused: '0 0 0 2px rgba(212,136,44,0.2)',
+  cta: '0 4px 12px rgba(139,82,22,0.18), 0 8px 20px rgba(139,82,22,0.08)',
   fab: '0 4px 12px rgba(17,17,17,0.08), 0 8px 24px rgba(17,17,17,0.06)',
   sticky: '0 1px 0 rgba(17,17,17,0.03), 0 1px 6px rgba(17,17,17,0.02)',
   card: '0 1px 2px rgba(17,17,17,0.03), 0 2px 12px rgba(17,17,17,0.04)',
@@ -240,6 +242,75 @@ export const ANIMATION_TOKENS = {
   },
 } as const;
 
+// 카테고리별 컬러 토큰
+export const CATEGORY_COLORS = {
+  korean: {
+    accent: '#D4704A',    // 따뜻한 테라코타
+    bg: '#FDF3EF',
+    bgHover: '#F8E6DE',
+  },
+  chinese: {
+    accent: '#C27C5A',    // 딥 앰버
+    bg: '#FAF1EB',
+    bgHover: '#F3E4DA',
+  },
+  japanese: {
+    accent: '#5A9B8E',    // 세이지 그린
+    bg: '#EEF6F3',
+    bgHover: '#E0EDE8',
+  },
+  western: {
+    accent: '#D4825E',    // 웜 오렌지
+    bg: '#FBF2ED',
+    bgHover: '#F3E5DB',
+  },
+  seafood: {
+    accent: '#4A92A8',    // 오션 틸
+    bg: '#ECF4F7',
+    bgHover: '#DCF0F3',
+  },
+  cafe: {
+    accent: '#A0866E',    // 라떼 브라운
+    bg: '#F6F2EE',
+    bgHover: '#EDE6DF',
+  },
+  bar: {
+    accent: '#8E6B8A',    // 뮤트 플럼
+    bg: '#F4EFF4',
+    bgHover: '#EAE2EA',
+  },
+  bbq: {
+    accent: '#C97B65',    // 차콜 엠버
+    bg: '#FAF0EC',
+    bgHover: '#F3E3DB',
+  },
+  hotpot: {
+    accent: '#B8845E',    // 골든 브로스
+    bg: '#F8F1EA',
+    bgHover: '#F0E5DA',
+  },
+  buffet: {
+    accent: '#7A9B6E',    // 올리브 그린
+    bg: '#F0F4ED',
+    bgHover: '#E4EADD',
+  },
+  course: {
+    accent: '#7B6E9A',    // 뮤트 바이올렛
+    bg: '#F2F0F6',
+    bgHover: '#E6E3EF',
+  },
+  party: {
+    accent: '#D4917A',    // 코랄 피치
+    bg: '#FBF2EF',
+    bgHover: '#F5E5DF',
+  },
+  etc: {
+    accent: '#8C9196',    // 쿨 그레이
+    bg: '#F3F4F5',
+    bgHover: '#E8EAEB',
+  },
+} as const;
+
 // 카드 스타일
 export const CARD_STYLE = {
   borderWidth: 1,
@@ -247,17 +318,17 @@ export const CARD_STYLE = {
   borderRadius: 10,
 } as const;
 
-// CTA 버튼 스타일 — 딥 토프
+// CTA 버튼 스타일 — 골든 앰버
 export const CTA_STYLE = {
   primary: {
-    backgroundColor: '#8C7565',
+    backgroundColor: '#D4882C',
     borderRadius: 8,
     paddingVertical: 14,
     paddingHorizontal: 24,
     minHeight: 48,
   },
   primaryLarge: {
-    backgroundColor: '#8C7565',
+    backgroundColor: '#D4882C',
     borderRadius: 10,
     paddingVertical: 16,
     paddingHorizontal: 32,
@@ -276,7 +347,7 @@ export const BADGE_STYLES = {
     color: '#FFFFFF',
   },
   new: {
-    backgroundColor: '#B8A090',
+    backgroundColor: '#D4882C',
     color: '#FFFFFF',
   },
   deposit: {

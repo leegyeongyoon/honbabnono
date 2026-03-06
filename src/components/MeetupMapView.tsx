@@ -167,7 +167,7 @@ const MeetupMapView: React.FC<MeetupMapViewProps> = ({
       justify-content: center;
     }
     .zoom-btn:active {
-      background: #f0f0f0;
+      background: #EFECEA;
     }
   </style>
 </head>

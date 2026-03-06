@@ -10,10 +10,11 @@ import {
 } from 'react-native';
 import { COLORS, SHADOWS, CSS_SHADOWS, CARD_STYLE } from '../styles/colors';
 import { TYPOGRAPHY } from '../styles/typography';
-import { SPACING, BORDER_RADIUS } from '../styles/spacing';
+import { SPACING, BORDER_RADIUS, LIST_ITEM_STYLE } from '../styles/spacing';
 import { processImageUrl } from '../utils/imageUtils';
 import { formatMeetupDateTime } from '../utils/dateUtils';
-import { FOOD_CATEGORIES } from '../constants/categories';
+import { FOOD_CATEGORIES, getCategoryByName } from '../constants/categories';
+import { CATEGORY_COLORS } from '../styles/colors';
 import { Icon } from './Icon';
 import { getAvatarColor, getInitials } from '../utils/avatarColor';
 
@@ -84,6 +85,7 @@ interface MeetupCardProps {
 
 const MeetupCard: React.FC<MeetupCardProps> = ({ meetup, onPress, variant = 'list' }) => {
   const [isHovered, setIsHovered] = useState(false);
+  const [isPressed, setIsPressed] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
@@ -203,7 +205,7 @@ const MeetupCard: React.FC<MeetupCardProps> = ({ meetup, onPress, variant = 'lis
                 width: '100%',
                 height: '100%',
                 objectFit: 'cover',
-                borderRadius: BORDER_RADIUS.md,
+                borderRadius: 8,
               }}
               alt={meetup.title}
             />
@@ -235,80 +237,51 @@ const MeetupCard: React.FC<MeetupCardProps> = ({ meetup, onPress, variant = 'lis
               </View>
             )}
           </View>
-          {/* 2행: 날짜/시간 + 위치 */}
+          {/* 2행: 날짜 · 위치 · 인원 (한 줄로 통합) */}
           <View style={compactStyles.metaRow}>
-            <Icon name="calendar" size={11} color={COLORS.neutral.grey400} />
             <Text style={compactStyles.metaText} numberOfLines={1}>
               {formatMeetupDateTime(meetup.date, meetup.time)}
             </Text>
-            <Text style={compactStyles.metaDot}> · </Text>
-            <Icon name="map-pin" size={11} color={COLORS.neutral.grey400} />
+            <Text style={compactStyles.metaDot}>·</Text>
             <Text style={compactStyles.metaText} numberOfLines={1}>
               {meetup.location || '위치 미정'}
             </Text>
-          </View>
-          {/* 3행: 호스트 + 가격대 + 보증금 */}
-          <View style={compactStyles.metaRow}>
-            {meetup.hostName ? (
-              <Text style={compactStyles.hostText}>{meetup.hostName}</Text>
-            ) : (
-              <Text style={compactStyles.hostText}>{meetup.category}</Text>
-            )}
-            {meetup.priceRange ? (
-              <>
-                <Text style={compactStyles.metaDot}> · </Text>
-                <Text style={compactStyles.priceText}>{meetup.priceRange}</Text>
-              </>
-            ) : null}
-            {meetup.promiseDepositAmount ? (
-              <>
-                <Text style={compactStyles.metaDot}> · </Text>
-                <Text style={compactStyles.depositText}>보증금 {meetup.promiseDepositAmount.toLocaleString()}원</Text>
-              </>
-            ) : null}
-          </View>
-          {/* 4행: 인원수 + 소형 프로그레스바 */}
-          <View style={compactStyles.participantRow}>
-            <Icon name="users" size={11} color={COLORS.neutral.grey500} />
-            <Text style={compactStyles.participantText}> {participantText}</Text>
-            <View style={compactStyles.progressBg}>
-              <View
-                style={[
-                  compactStyles.progressFill,
-                  {
-                    width: `${Math.min(participantRatio * 100, 100)}%` as unknown as number,
-                    backgroundColor:
-                      currentP >= maxP
-                        ? COLORS.functional.error
-                        : participantRatio > 0.8
-                          ? COLORS.functional.warning
-                          : COLORS.primary.accent,
-                  },
-                ]}
-              />
-            </View>
+            <Text style={compactStyles.metaDot}>·</Text>
+            <Text style={[compactStyles.metaText, { color: COLORS.text.secondary, fontWeight: '600' as any }]}>
+              {participantText}
+            </Text>
           </View>
         </View>
       </View>
     );
+
+    // Left accent for recruiting or hot meetups
+    const showLeftAccent = meetup.status === 'recruiting' || !!urgencyInfo;
 
     if (Platform.OS === 'web') {
       return (
         <div
           onClick={() => onPress(meetup)}
           onMouseEnter={() => setIsHovered(true)}
-          onMouseLeave={() => setIsHovered(false)}
+          onMouseLeave={() => { setIsHovered(false); setIsPressed(false); }}
+          onMouseDown={() => setIsPressed(true)}
+          onMouseUp={() => setIsPressed(false)}
           role="article"
           aria-label={`${meetup.title}, ${meetup.category}, ${participantText}`}
           style={{
             display: 'flex',
             flexDirection: 'row',
             alignItems: 'center',
-            padding: '12px 20px',
-            backgroundColor: isHovered ? COLORS.neutral.grey50 : COLORS.neutral.white,
+            padding: '16px 16px',
+            backgroundColor: isPressed
+              ? COLORS.neutral.grey100
+              : isHovered
+                ? COLORS.neutral.grey50
+                : COLORS.neutral.white,
             cursor: 'pointer',
             transition: 'background-color 120ms ease',
             borderBottom: `1px solid ${COLORS.neutral.grey100}`,
+            borderLeft: showLeftAccent ? `3px solid ${COLORS.primary.main}` : '3px solid transparent',
           }}
         >
           {compactContent}
@@ -320,7 +293,10 @@ const MeetupCard: React.FC<MeetupCardProps> = ({ meetup, onPress, variant = 'lis
       <TouchableOpacity
         activeOpacity={0.7}
         onPress={() => onPress(meetup)}
-        style={compactStyles.card}
+        style={[
+          compactStyles.card,
+          showLeftAccent && { borderLeftWidth: 3, borderLeftColor: COLORS.primary.main },
+        ]}
       >
         {compactContent}
       </TouchableOpacity>
@@ -331,7 +307,7 @@ const MeetupCard: React.FC<MeetupCardProps> = ({ meetup, onPress, variant = 'lis
   if (variant === 'grid') {
     const gridContent = (
       <>
-        {/* 이미지 */}
+        {/* 이미지 (컴팩트) */}
         <View style={gridStyles.imageContainer}>
           {!imageLoaded && (
             Platform.OS === 'web' ? (
@@ -342,8 +318,8 @@ const MeetupCard: React.FC<MeetupCardProps> = ({ meetup, onPress, variant = 'lis
                 right: 0,
                 bottom: 0,
                 backgroundColor: COLORS.neutral.grey100,
-                borderTopLeftRadius: BORDER_RADIUS.lg,
-                borderTopRightRadius: BORDER_RADIUS.lg,
+                borderTopLeftRadius: 8,
+                borderTopRightRadius: 8,
                 overflow: 'hidden',
               }}>
                 <div style={{
@@ -372,8 +348,8 @@ const MeetupCard: React.FC<MeetupCardProps> = ({ meetup, onPress, variant = 'lis
                 objectFit: 'cover',
                 opacity: imageLoaded ? 1 : 0,
                 transition: 'opacity 300ms ease',
-                borderTopLeftRadius: BORDER_RADIUS.lg,
-                borderTopRightRadius: BORDER_RADIUS.lg,
+                borderTopLeftRadius: 8,
+                borderTopRightRadius: 8,
               }}
               alt={meetup.title}
             />
@@ -384,122 +360,58 @@ const MeetupCard: React.FC<MeetupCardProps> = ({ meetup, onPress, variant = 'lis
               onLoad={() => setImageLoaded(true)}
             />
           )}
-          {/* 하단 그라데이션 오버레이 */}
+          {/* 하단 그라데이션 */}
           {Platform.OS === 'web' && (
             <div style={{
               position: 'absolute',
               bottom: 0,
               left: 0,
               right: 0,
-              height: '40%',
-              background: 'linear-gradient(transparent, rgba(17,17,17,0.25))',
+              height: '50%',
+              background: 'linear-gradient(transparent, rgba(17,17,17,0.4))',
               pointerEvents: 'none' as const,
+              borderBottomLeftRadius: 0,
+              borderBottomRightRadius: 0,
             }} />
           )}
-          {/* 상태 뱃지 오버레이 */}
-          {statusConfig && (
-            <View style={[gridStyles.statusOverlay, { backgroundColor: statusConfig.bg }]}>
-              <Text style={gridStyles.statusText}>{statusConfig.label}</Text>
+          {/* 상태 + 카테고리 뱃지 (이미지 위) */}
+          <View style={{ position: 'absolute', top: 6, left: 6, flexDirection: 'row', gap: 4 }}>
+            {statusConfig && (
+              <View style={[gridStyles.statusOverlay, { backgroundColor: statusConfig.bg }]}>
+                <Text style={gridStyles.statusText}>{statusConfig.label}</Text>
+              </View>
+            )}
+            {urgencyInfo && (
+              <View style={[gridStyles.statusOverlay, { backgroundColor: urgencyInfo.color }]}>
+                <Text style={gridStyles.statusText}>{urgencyInfo.label}</Text>
+              </View>
+            )}
+          </View>
+          {/* 하단: 인원 뱃지 (이미지 위) */}
+          <View style={{ position: 'absolute', bottom: 6, right: 6 }}>
+            <View style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 3,
+              backgroundColor: 'rgba(17,17,17,0.55)',
+              paddingHorizontal: 6,
+              paddingVertical: 3,
+              borderRadius: 6,
+            }}>
+              <Icon name="users" size={9} color={COLORS.text.white} />
+              <Text style={{ fontSize: 10, fontWeight: '600' as any, color: COLORS.text.white }}>{participantText}</Text>
             </View>
-          )}
-          {/* 긴급 뱃지 */}
-          {urgencyInfo && (
-            <View style={[gridStyles.urgencyOverlay, { backgroundColor: urgencyInfo.color }]}>
-              <Text style={gridStyles.urgencyText}>{urgencyInfo.label}</Text>
-            </View>
-          )}
-          {/* 보증금 태그 (이미지 위) */}
-          {meetup.promiseDepositAmount ? (
-            <View style={gridStyles.depositOverlay}>
-              <Text style={gridStyles.depositText}>보증금 {meetup.promiseDepositAmount.toLocaleString()}원</Text>
-            </View>
-          ) : null}
+          </View>
         </View>
 
-        {/* 컨텐츠 영역 */}
+        {/* 컨텐츠 영역 (컴팩트) */}
         <View style={gridStyles.content}>
-          {/* 카테고리 태그 */}
-          <View style={gridStyles.categoryTag}>
-            <Text style={gridStyles.categoryTagText}>{meetup.category}</Text>
-          </View>
-
-          {/* 제목 */}
-          <Text style={gridStyles.title} numberOfLines={2}>
+          <Text style={gridStyles.title} numberOfLines={1}>
             {meetup.title}
           </Text>
-
-          {/* 호스트 정보 */}
-          {meetup.hostName && (
-            <View style={gridStyles.hostRow}>
-              {meetup.hostImage ? (
-                Platform.OS === 'web' ? (
-                  <img
-                    src={meetup.hostImage}
-                    style={{ width: 16, height: 16, borderRadius: 8, objectFit: 'cover' }}
-                    alt={meetup.hostName}
-                  />
-                ) : (
-                  <Image source={{ uri: meetup.hostImage }} style={{ width: 16, height: 16, borderRadius: 8 }} />
-                )
-              ) : (
-                <View style={{
-                  width: 16, height: 16, borderRadius: 8,
-                  backgroundColor: getAvatarColor(meetup.hostName),
-                  justifyContent: 'center', alignItems: 'center',
-                }}>
-                  <Text style={{ fontSize: 7, fontWeight: '600', color: COLORS.text.white }}>
-                    {getInitials(meetup.hostName)}
-                  </Text>
-                </View>
-              )}
-              <Text style={gridStyles.hostName} numberOfLines={1}>{meetup.hostName}</Text>
-              {meetup.hostRating != null && (
-                <>
-                  <Icon name="star" size={10} color={COLORS.functional.warning} solid />
-                  <Text style={gridStyles.hostRating}>{meetup.hostRating.toFixed(1)}</Text>
-                </>
-              )}
-            </View>
-          )}
-
-          {/* 날짜 + 위치 */}
-          <View style={gridStyles.metaRow}>
-            <Icon name="calendar" size={11} color={COLORS.neutral.grey400} />
-            <Text style={gridStyles.metaText}>
-              {' '}{formatMeetupDateTime(meetup.date, meetup.time)}
-            </Text>
-          </View>
-
-          <View style={gridStyles.metaRow}>
-            <Icon name="map-pin" size={11} color={COLORS.neutral.grey400} />
-            <Text style={gridStyles.metaText} numberOfLines={1}>
-              {' '}{locationText}
-            </Text>
-          </View>
-
-          {/* 참가자 프로그레스바 */}
-          <View style={gridStyles.participantSection}>
-            <View style={gridStyles.participantRow}>
-              <Icon name="users" size={11} color={COLORS.neutral.grey500} />
-              <Text style={gridStyles.participantText}>{' '}{participantText}</Text>
-            </View>
-            <View style={gridStyles.progressBg}>
-              <View
-                style={[
-                  gridStyles.progressFill,
-                  {
-                    width: `${Math.min(participantRatio * 100, 100)}%` as unknown as number,
-                    backgroundColor:
-                      currentP >= maxP
-                        ? COLORS.functional.error
-                        : participantRatio > 0.8
-                          ? COLORS.functional.warning
-                          : COLORS.primary.accent,
-                  },
-                ]}
-              />
-            </View>
-          </View>
+          <Text style={gridStyles.metaText} numberOfLines={1}>
+            {formatMeetupDateTime(meetup.date, meetup.time)} · {meetup.location || '위치 미정'}
+          </Text>
         </View>
       </>
     );
@@ -514,7 +426,7 @@ const MeetupCard: React.FC<MeetupCardProps> = ({ meetup, onPress, variant = 'lis
           aria-label={`${meetup.title}, ${meetup.category}, ${participantText}`}
           style={{
             backgroundColor: COLORS.neutral.white,
-            borderRadius: BORDER_RADIUS.lg,
+            borderRadius: 8,
             overflow: 'hidden',
             boxShadow: isHovered ? CSS_SHADOWS.cardHover || CSS_SHADOWS.hover : CSS_SHADOWS.card,
             transform: isHovered ? 'translateY(-2px)' : 'translateY(0)',
@@ -564,7 +476,7 @@ const MeetupCard: React.FC<MeetupCardProps> = ({ meetup, onPress, variant = 'lis
               right: 0,
               bottom: 0,
               backgroundColor: COLORS.neutral.grey100,
-              borderRadius: BORDER_RADIUS.lg,
+              borderRadius: BORDER_RADIUS.md,
               overflow: 'hidden',
             }}>
               <div style={{
@@ -642,11 +554,16 @@ const MeetupCard: React.FC<MeetupCardProps> = ({ meetup, onPress, variant = 'lis
         )}
 
         <View style={styles.tagRow}>
-          <View style={styles.categoryTag}>
-            <Text style={styles.categoryTagText}>
-              {meetup.category}
-            </Text>
-          </View>
+          {(() => {
+            const cat = getCategoryByName(meetup.category);
+            return (
+              <View style={[styles.categoryTag, cat && { backgroundColor: cat.color }]}>
+                <Text style={styles.categoryTagText}>
+                  {meetup.category}
+                </Text>
+              </View>
+            );
+          })()}
           {meetup.priceRange && (
             <View style={styles.priceTag}>
               <Text style={styles.priceTagText}>{meetup.priceRange}</Text>
@@ -718,36 +635,34 @@ const MeetupCard: React.FC<MeetupCardProps> = ({ meetup, onPress, variant = 'lis
     </>
   );
 
+  // Left accent for recruiting or hot meetups (list variant)
+  const showListLeftAccent = meetup.status === 'recruiting' || !!urgencyInfo;
+
   if (Platform.OS === 'web') {
     return (
       <div
         onClick={() => onPress(meetup)}
         onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
-        onMouseDown={(e) => {
-          e.currentTarget.style.transform = 'scale(0.99)';
-          e.currentTarget.style.boxShadow = CSS_SHADOWS.small;
-        }}
-        onMouseUp={(e) => {
-          e.currentTarget.style.transform = isHovered ? 'translateY(-1px)' : 'none';
-          e.currentTarget.style.boxShadow = isHovered ? CSS_SHADOWS.medium : CSS_SHADOWS.card;
-        }}
+        onMouseLeave={() => { setIsHovered(false); setIsPressed(false); }}
+        onMouseDown={() => setIsPressed(true)}
+        onMouseUp={() => setIsPressed(false)}
         role="article"
         aria-label={`${meetup.title}, ${meetup.category}, ${participantText}`}
         style={{
-          backgroundColor: COLORS.neutral.white,
-          borderRadius: BORDER_RADIUS.lg,
-          padding: SPACING.card.padding,
-          marginBottom: SPACING.md,
+          backgroundColor: isPressed
+            ? COLORS.neutral.grey100
+            : isHovered
+              ? COLORS.neutral.grey50
+              : COLORS.neutral.white,
+          padding: `${LIST_ITEM_STYLE.paddingVertical}px ${LIST_ITEM_STYLE.paddingHorizontal}px`,
           display: 'flex',
           flexDirection: 'row' as const,
           alignItems: 'flex-start',
           gap: 14,
-          boxShadow: isHovered ? CSS_SHADOWS.medium : CSS_SHADOWS.card,
-          transform: isHovered ? 'translateY(-1px)' : 'none',
-          transition: 'transform 200ms ease, box-shadow 200ms ease',
+          transition: 'background-color 120ms ease',
           cursor: 'pointer',
-          border: `1px solid ${CARD_STYLE.borderColor}`,
+          borderBottom: `1px solid ${LIST_ITEM_STYLE.borderBottomColor}`,
+          borderLeft: showListLeftAccent ? `3px solid ${COLORS.primary.main}` : '3px solid transparent',
         }}
       >
         {cardContent}
@@ -778,8 +693,8 @@ const MeetupCard: React.FC<MeetupCardProps> = ({ meetup, onPress, variant = 'lis
 // ─── Compact Variant Styles ─────────────────────────────────
 const compactStyles = StyleSheet.create({
   card: {
-    paddingHorizontal: SPACING.xl,
-    paddingVertical: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
     backgroundColor: COLORS.neutral.white,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.neutral.grey100,
@@ -790,8 +705,8 @@ const compactStyles = StyleSheet.create({
     gap: 12,
   },
   imageContainer: {
-    width: 68,
-    height: 68,
+    width: 52,
+    height: 52,
     borderRadius: BORDER_RADIUS.md,
     overflow: 'hidden',
     backgroundColor: COLORS.neutral.grey100,
@@ -806,21 +721,20 @@ const compactStyles = StyleSheet.create({
   },
   statusOverlay: {
     position: 'absolute',
-    top: 4,
-    left: 4,
-    paddingHorizontal: 5,
-    paddingVertical: 2,
-    borderRadius: BORDER_RADIUS.xs,
+    top: 3,
+    left: 3,
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+    borderRadius: 4,
   },
   statusOverlayText: {
-    fontSize: 9,
+    fontSize: 8,
     fontWeight: '600',
     color: COLORS.text.white,
-    letterSpacing: 0.2,
   },
   textArea: {
     flex: 1,
-    gap: 3,
+    gap: 2,
   },
   title: {
     fontSize: 14,
@@ -832,14 +746,13 @@ const compactStyles = StyleSheet.create({
   urgencyBadge: {
     paddingHorizontal: 5,
     paddingVertical: 2,
-    borderRadius: BORDER_RADIUS.xs,
+    borderRadius: 4,
     flexShrink: 0,
   },
   urgencyText: {
     fontSize: 9,
     fontWeight: '700',
     color: COLORS.text.white,
-    letterSpacing: 0.1,
   },
   metaRow: {
     flexDirection: 'row',
@@ -849,52 +762,12 @@ const compactStyles = StyleSheet.create({
   metaText: {
     fontSize: 12,
     color: COLORS.text.tertiary,
-    marginLeft: 3,
     flexShrink: 1,
-    letterSpacing: 0,
   },
   metaDot: {
     fontSize: 12,
     color: COLORS.neutral.grey300,
-  },
-  hostText: {
-    fontSize: 12,
-    color: COLORS.text.secondary,
-    fontWeight: '500',
-  },
-  priceText: {
-    fontSize: 12,
-    color: COLORS.text.primary,
-    fontWeight: '600',
-  },
-  depositText: {
-    fontSize: 11,
-    color: COLORS.functional.success,
-    fontWeight: '600',
-  },
-  participantRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 2,
-    marginTop: 2,
-  },
-  participantText: {
-    fontSize: 12,
-    color: COLORS.text.secondary,
-    fontWeight: '600',
-  },
-  progressBg: {
-    flex: 1,
-    height: 3,
-    borderRadius: 1.5,
-    backgroundColor: COLORS.neutral.grey100,
-    overflow: 'hidden',
-    marginLeft: 6,
-    maxWidth: 72,
-  },
-  progressFill: {
-    height: '100%',
-    borderRadius: 1.5,
+    marginHorizontal: 4,
   },
 });
 
@@ -902,7 +775,7 @@ const compactStyles = StyleSheet.create({
 const gridStyles = StyleSheet.create({
   card: {
     backgroundColor: COLORS.neutral.white,
-    borderRadius: BORDER_RADIUS.lg,
+    borderRadius: BORDER_RADIUS.md,
     overflow: 'hidden',
     borderWidth: CARD_STYLE.borderWidth,
     borderColor: CARD_STYLE.borderColor,
@@ -910,7 +783,7 @@ const gridStyles = StyleSheet.create({
   },
   imageContainer: {
     width: '100%',
-    height: 170,
+    height: 120,
     overflow: 'hidden',
     position: 'relative',
     backgroundColor: COLORS.neutral.grey100,
@@ -929,122 +802,28 @@ const gridStyles = StyleSheet.create({
     backgroundColor: COLORS.neutral.grey100,
   },
   statusOverlay: {
-    position: 'absolute',
-    top: 8,
-    left: 8,
-    paddingHorizontal: 7,
-    paddingVertical: 3,
-    borderRadius: BORDER_RADIUS.xs,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
   },
   statusText: {
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '600',
     color: COLORS.text.white,
-    letterSpacing: 0.2,
-  },
-  urgencyOverlay: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    paddingHorizontal: 7,
-    paddingVertical: 3,
-    borderRadius: BORDER_RADIUS.xs,
-  },
-  urgencyText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: COLORS.text.white,
-    letterSpacing: 0.1,
-  },
-  depositOverlay: {
-    position: 'absolute',
-    bottom: 8,
-    left: 8,
-    paddingHorizontal: 7,
-    paddingVertical: 3,
-    borderRadius: BORDER_RADIUS.xs,
-    backgroundColor: 'rgba(61,139,94,0.9)',
-  },
-  depositText: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: COLORS.text.white,
-    letterSpacing: 0,
   },
   content: {
-    padding: 14,
-    gap: 5,
-  },
-  categoryTag: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: BORDER_RADIUS.sm,
-    backgroundColor: COLORS.neutral.light,
-    borderWidth: 1,
-    borderColor: COLORS.neutral.grey100,
-  },
-  categoryTagText: {
-    fontSize: 11,
-    fontWeight: '500',
-    color: COLORS.text.secondary,
-    letterSpacing: 0.1,
+    padding: 10,
+    gap: 3,
   },
   title: {
-    ...TYPOGRAPHY.card.gridTitle,
-    marginTop: 2,
+    fontSize: 13,
     fontWeight: '600',
+    color: COLORS.text.primary,
     letterSpacing: -0.2,
-  },
-  hostRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  hostName: {
-    fontSize: 11,
-    color: COLORS.text.tertiary,
-    fontWeight: '500',
-    flex: 1,
-  },
-  hostRating: {
-    fontSize: 11,
-    color: COLORS.text.secondary,
-    fontWeight: '600',
-    marginLeft: 2,
-  },
-  metaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
   },
   metaText: {
     fontSize: 11,
     color: COLORS.text.tertiary,
-    letterSpacing: 0,
-  },
-  participantSection: {
-    marginTop: 4,
-    gap: 4,
-  },
-  participantRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 2,
-  },
-  participantText: {
-    fontSize: 12,
-    color: COLORS.text.secondary,
-    fontWeight: '600',
-  },
-  progressBg: {
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: COLORS.neutral.grey100,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    borderRadius: 2,
   },
 });
 
@@ -1052,20 +831,18 @@ const gridStyles = StyleSheet.create({
 const styles = StyleSheet.create({
   card: {
     backgroundColor: COLORS.neutral.white,
-    borderRadius: BORDER_RADIUS.lg,
-    padding: SPACING.card.padding,
-    marginBottom: SPACING.md,
+    paddingVertical: LIST_ITEM_STYLE.paddingVertical,
+    paddingHorizontal: LIST_ITEM_STYLE.paddingHorizontal,
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 14,
-    borderWidth: CARD_STYLE.borderWidth,
-    borderColor: CARD_STYLE.borderColor,
-    ...SHADOWS.small,
+    borderBottomWidth: LIST_ITEM_STYLE.borderBottomWidth,
+    borderBottomColor: LIST_ITEM_STYLE.borderBottomColor,
   },
   imageContainer: {
     width: 96,
     height: 96,
-    borderRadius: BORDER_RADIUS.lg,
+    borderRadius: BORDER_RADIUS.md,
     overflow: 'hidden',
     position: 'relative',
     backgroundColor: COLORS.neutral.grey100,
@@ -1082,7 +859,7 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     backgroundColor: COLORS.neutral.grey100,
-    borderRadius: BORDER_RADIUS.lg,
+    borderRadius: BORDER_RADIUS.md,
   },
   content: {
     flex: 1,

@@ -147,7 +147,7 @@ const LoginScreen = () => {
               <span style={{
                 fontSize: 32,
                 fontWeight: '700',
-                color: '#FFFFFF',
+                color: COLORS.neutral.white,
                 letterSpacing: -1,
                 lineHeight: '32px',
               }}>E</span>

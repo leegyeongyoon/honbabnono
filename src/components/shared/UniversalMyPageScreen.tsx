@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, Ani
 import LinearGradient from 'react-native-linear-gradient';
 import { COLORS, SHADOWS, CARD_STYLE, LAYOUT } from '../../styles/colors';
 import { TYPOGRAPHY } from '../../styles/typography';
-import { SPACING, BORDER_RADIUS } from '../../styles/spacing';
+import { SPACING, BORDER_RADIUS, HEADER_STYLE } from '../../styles/spacing';
 import { useUserStore } from '../../store/userStore';
 import { useAuth } from '../../contexts/AuthContext';
 import { Icon, IconName } from '../Icon';
@@ -204,7 +204,7 @@ const UniversalMyPageScreen: React.FC<UniversalMyPageScreenProps> = ({
           <FadeIn delay={0}>
             {Platform.OS === 'web' ? (
               <div style={{
-                background: `linear-gradient(135deg, #A88068 0%, #C4A08A 100%)`,
+                background: `linear-gradient(135deg, ${COLORS.primary.dark} 0%, ${COLORS.primary.main} 100%)`,
                 paddingLeft: 20,
                 paddingRight: 20,
                 paddingTop: 28,
@@ -239,7 +239,7 @@ const UniversalMyPageScreen: React.FC<UniversalMyPageScreenProps> = ({
               </div>
             ) : (
               <LinearGradient
-                colors={['#A88068', '#C4A08A']}
+                colors={COLORS.gradient.primary}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={styles.profileHero}
@@ -477,8 +477,7 @@ const styles = StyleSheet.create({
     borderBottomColor: COLORS.neutral.grey100,
   },
   headerTitle: {
-    ...TYPOGRAPHY.heading.h2,
-    color: COLORS.text.primary,
+    ...HEADER_STYLE.title,
   },
   content: {
     flex: 1,
@@ -552,7 +551,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: COLORS.surface.primary,
     paddingVertical: 16,
-    borderRadius: BORDER_RADIUS.lg,
+    borderRadius: BORDER_RADIUS.md,
     borderWidth: 1,
     borderColor: COLORS.neutral.grey100,
   },
@@ -578,7 +577,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surface.primary,
     marginHorizontal: SPACING.xl,
     marginTop: 12,
-    borderRadius: BORDER_RADIUS.lg,
+    borderRadius: BORDER_RADIUS.md,
     borderWidth: 1,
     borderColor: COLORS.neutral.grey100,
     paddingHorizontal: 16,
@@ -611,7 +610,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surface.primary,
     marginHorizontal: SPACING.xl,
     marginTop: 12,
-    borderRadius: BORDER_RADIUS.lg,
+    borderRadius: BORDER_RADIUS.md,
     borderWidth: 1,
     borderColor: COLORS.neutral.grey100,
     padding: 16,
@@ -681,14 +680,14 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     paddingHorizontal: 8,
     backgroundColor: COLORS.surface.primary,
-    borderRadius: BORDER_RADIUS.lg,
+    borderRadius: BORDER_RADIUS.md,
     borderWidth: 1,
     borderColor: COLORS.neutral.grey100,
   },
   quickMenuIconBox: {
     width: 40,
     height: 40,
-    borderRadius: BORDER_RADIUS.lg,
+    borderRadius: BORDER_RADIUS.md,
     backgroundColor: COLORS.neutral.background,
     justifyContent: 'center',
     alignItems: 'center',

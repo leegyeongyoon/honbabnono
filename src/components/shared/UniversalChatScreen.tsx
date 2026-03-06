@@ -14,7 +14,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import { COLORS, SHADOWS, CARD_STYLE, BORDER_RADIUS, SPACING, TYPOGRAPHY } from '../../styles';
+import { COLORS, SHADOWS, CARD_STYLE, BORDER_RADIUS, SPACING, TYPOGRAPHY, HEADER_STYLE } from '../../styles';
 import {Icon} from '../Icon';
 import chatService from '../../services/chatService';
 import chatApiService, {ChatRoom, ChatMessage} from '../../services/chatApiService';
@@ -314,7 +314,7 @@ const UniversalChatScreen: React.FC<UniversalChatScreenProps> = ({
           </View>
           <View style={styles.chatInfo}>
             <View style={styles.chatTitleRow}>
-              <Text style={[styles.chatTitle, hasUnread && { fontWeight: '800' }]} numberOfLines={1}>
+              <Text style={[styles.chatTitle, hasUnread && { fontWeight: '700' }]} numberOfLines={1}>
                 {displayTitle}
               </Text>
               {participantCount != null && participantCount > 0 && (
@@ -674,17 +674,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: SPACING.xl,
-    paddingVertical: 14,
-    backgroundColor: COLORS.neutral.white,
+    ...HEADER_STYLE.main,
     ...SHADOWS.sticky,
     zIndex: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: CARD_STYLE.borderColor,
   },
   headerTitle: {
-    ...TYPOGRAPHY.heading.h1,
-    color: COLORS.text.primary,
+    ...HEADER_STYLE.title,
   },
   headerIcons: {
     flexDirection: 'row',
@@ -698,29 +693,32 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
 
-  // === 탭 네비게이션 ===
+  // === 탭 네비게이션 (언더라인 스타일) ===
   tabNavigation: {
     flexDirection: 'row',
     backgroundColor: COLORS.neutral.white,
-    paddingHorizontal: SPACING.xl,
-    paddingVertical: 10,
-    gap: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.neutral.grey100,
+    paddingHorizontal: 4,
   },
   tabButtonWrapper: {
     position: 'relative',
   },
   tabButton: {
-    paddingVertical: 7,
-    paddingHorizontal: 16,
-    borderRadius: BORDER_RADIUS.md,
-    backgroundColor: COLORS.neutral.light,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+    minHeight: 48,
+    borderBottomWidth: 3,
+    borderBottomColor: 'transparent',
+    gap: 6,
   },
   tabUnreadDot: {
     position: 'absolute',
-    top: -2,
-    right: -4,
+    top: 6,
+    right: 4,
     width: 8,
     height: 8,
     borderRadius: 4,
@@ -729,16 +727,16 @@ const styles = StyleSheet.create({
     borderColor: COLORS.neutral.white,
   },
   selectedTabButton: {
-    backgroundColor: COLORS.primary.main,
+    borderBottomColor: COLORS.primary.main,
   },
   tabButtonText: {
-    fontSize: 13,
+    fontSize: 15,
     fontWeight: '500',
     color: COLORS.text.tertiary,
   },
   selectedTabButtonText: {
-    color: COLORS.text.white,
-    fontWeight: '600',
+    color: COLORS.text.primary,
+    fontWeight: '700',
   },
 
   // === 채팅방 목록 ===
@@ -925,7 +923,7 @@ const styles = StyleSheet.create({
 
   // === 말풍선 ===
   messageBubble: {
-    backgroundColor: '#F5F3F0',
+    backgroundColor: COLORS.neutral.light,
     padding: 12,
     borderTopLeftRadius: BORDER_RADIUS.md,
     borderTopRightRadius: BORDER_RADIUS.md,
@@ -933,7 +931,7 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: BORDER_RADIUS.md,
   },
   myMessageBubble: {
-    backgroundColor: '#2D2926',
+    backgroundColor: COLORS.neutral.grey900,
     borderTopLeftRadius: BORDER_RADIUS.md,
     borderTopRightRadius: BORDER_RADIUS.md,
     borderBottomLeftRadius: BORDER_RADIUS.md,

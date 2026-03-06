@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView } from 'react-native';
-import { COLORS, SHADOWS, CARD_STYLE } from '../styles/colors';
+import { COLORS, SHADOWS, CSS_SHADOWS, CARD_STYLE } from '../styles/colors';
+import { HEADER_STYLE } from '../styles/spacing';
 import { useNavigate } from 'react-router-dom';
 import { Icon } from '../components/Icon';
 import { useToast } from '../hooks/useToast';
@@ -96,7 +97,7 @@ const PaymentScreen: React.FC = () => {
           if (returnUrl && isFromMeetup) { sessionStorage.removeItem('returnUrl'); sessionStorage.removeItem('requiredPoints'); navigate(returnUrl); }
           else navigate(-1);
         }} style={styles.backButton}>
-          <Icon name="arrow-left" size={20} color="#1A1714" />
+          <Icon name="arrow-left" size={20} color={COLORS.text.primary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{isFromMeetup ? '약속 참여비 충전' : '포인트 충전'}</Text>
       </View>
@@ -112,12 +113,12 @@ const PaymentScreen: React.FC = () => {
             </View>
             <View style={styles.meetupInfoRow}>
               <Text style={styles.meetupInfoLabel}>현재 포인트</Text>
-              <Text style={[styles.meetupInfoAmount, { color: user.points >= requiredAmount ? '#2E7D4F' : '#D32F2F' }]}>{user.points.toLocaleString()}원</Text>
+              <Text style={[styles.meetupInfoAmount, { color: user.points >= requiredAmount ? COLORS.functional.success : COLORS.functional.error }]}>{user.points.toLocaleString()}원</Text>
             </View>
             {user.points < requiredAmount && (
               <View style={styles.meetupInfoRow}>
                 <Text style={styles.meetupInfoLabel}>부족한 포인트</Text>
-                <Text style={[styles.meetupInfoAmount, { color: '#D32F2F' }]}>{(requiredAmount - user.points).toLocaleString()}원</Text>
+                <Text style={[styles.meetupInfoAmount, { color: COLORS.functional.error }]}>{(requiredAmount - user.points).toLocaleString()}원</Text>
               </View>
             )}
           </View>
@@ -143,7 +144,7 @@ const PaymentScreen: React.FC = () => {
           </View>
           <View style={styles.customAmountSection}>
             <Text style={styles.customAmountLabel}>직접 입력</Text>
-            <TextInput style={[styles.customAmountInput, customAmountFocused && { borderColor: '#C49A70', boxShadow: '0 0 0 3px rgba(196,154,112,0.12)' } as any]}
+            <TextInput style={[styles.customAmountInput, customAmountFocused && { borderColor: COLORS.primary.main, boxShadow: '0 0 0 3px rgba(212,136,44,0.12)' } as any]}
               placeholder="원하는 금액을 입력하세요" value={customAmount} onChangeText={handleCustomAmountChange}
               keyboardType="numeric" onFocus={() => setCustomAmountFocused(true)} onBlur={() => setCustomAmountFocused(false)} />
           </View>
@@ -159,12 +160,12 @@ const PaymentScreen: React.FC = () => {
             <Text style={styles.paymentMethodSubtext}>신용카드, 체크카드로 포인트 충전</Text>
           </TouchableOpacity>
           <TouchableOpacity style={[styles.paymentMethodButton, false && styles.selectedPaymentMethod]} disabled={true}>
-            <View style={styles.paymentMethodRow}><View style={styles.radioButton} /><Text style={[styles.paymentMethodText, { color: '#B0A89E' }]}>계좌이체</Text></View>
-            <Text style={[styles.paymentMethodSubtext, { color: '#B0A89E' }]}>준비 중입니다</Text>
+            <View style={styles.paymentMethodRow}><View style={styles.radioButton} /><Text style={[styles.paymentMethodText, { color: COLORS.neutral.grey400 }]}>계좌이체</Text></View>
+            <Text style={[styles.paymentMethodSubtext, { color: COLORS.neutral.grey400 }]}>준비 중입니다</Text>
           </TouchableOpacity>
           <TouchableOpacity style={[styles.paymentMethodButton, false && styles.selectedPaymentMethod]} disabled={true}>
-            <View style={styles.paymentMethodRow}><View style={styles.radioButton} /><Text style={[styles.paymentMethodText, { color: '#B0A89E' }]}>간편결제</Text></View>
-            <Text style={[styles.paymentMethodSubtext, { color: '#B0A89E' }]}>카카오페이, 네이버페이 등 (준비 중)</Text>
+            <View style={styles.paymentMethodRow}><View style={styles.radioButton} /><Text style={[styles.paymentMethodText, { color: COLORS.neutral.grey400 }]}>간편결제</Text></View>
+            <Text style={[styles.paymentMethodSubtext, { color: COLORS.neutral.grey400 }]}>카카오페이, 네이버페이 등 (준비 중)</Text>
           </TouchableOpacity>
         </View>
 
@@ -180,9 +181,9 @@ const PaymentScreen: React.FC = () => {
 
       <View style={styles.footer}>
         <div style={{
-          background: (getCurrentAmount() === 0 || loading) ? '#B0A89E' : 'linear-gradient(135deg, #9A7450 0%, #C49A70 100%)',
+          background: (getCurrentAmount() === 0 || loading) ? COLORS.neutral.grey400 : COLORS.gradient.heroCSS,
           borderRadius: 6,
-          boxShadow: (getCurrentAmount() === 0 || loading) ? 'none' : '0 4px 12px rgba(196,154,112,0.25), 0 8px 24px rgba(196,154,112,0.12)',
+          boxShadow: (getCurrentAmount() === 0 || loading) ? 'none' : '0 4px 12px rgba(212,136,44,0.25), 0 8px 24px rgba(212,136,44,0.12)',
           cursor: (getCurrentAmount() === 0 || loading) ? 'not-allowed' : 'pointer',
           transition: 'all 200ms ease',
           transform: payButtonHovered && getCurrentAmount() > 0 && !loading ? 'scale(1.02)' : payButtonPressed ? 'scale(0.98)' : 'scale(1)',
@@ -204,46 +205,46 @@ const PaymentScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FAFAF8' },
-  header: { flexDirection: 'row', alignItems: 'center', padding: 16, paddingVertical: 18, backgroundColor: '#FFFFFF', shadowColor: '#111111', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 3, zIndex: 10 },
+  container: { flex: 1, backgroundColor: COLORS.neutral.grey50 },
+  header: { flexDirection: 'row', alignItems: 'center', ...HEADER_STYLE.sub, zIndex: 10 },
   backButton: { marginRight: 16, padding: 10, minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
-  backButtonText: { fontSize: 20, color: '#1A1714' },
-  headerTitle: { fontSize: 18, fontWeight: '700', color: '#1A1714' },
+  backButtonText: { fontSize: 20, color: COLORS.text.primary },
+  headerTitle: { ...HEADER_STYLE.subTitle },
   content: { flex: 1, padding: 16 },
-  pointsSection: { backgroundColor: '#9A7450', borderRadius: 8, padding: 24, marginBottom: 24, alignItems: 'center', shadowColor: '#111111', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.12, shadowRadius: 12, elevation: 5 },
-  pointsTitle: { fontSize: 14, fontWeight: '500', color: '#FFFFFF', opacity: 0.9, marginBottom: 8 },
-  pointsAmount: { fontSize: 36, fontWeight: '800', color: '#FFFFFF', marginBottom: 8 },
-  pointsSubtext: { fontSize: 13, color: '#FFFFFF', opacity: 0.8 },
+  pointsSection: { backgroundColor: COLORS.primary.main, borderRadius: 8, padding: 24, marginBottom: 24, alignItems: 'center', shadowColor: COLORS.neutral.black, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.12, shadowRadius: 12, elevation: 5 },
+  pointsTitle: { fontSize: 14, fontWeight: '500', color: COLORS.neutral.white, opacity: 0.9, marginBottom: 8 },
+  pointsAmount: { fontSize: 36, fontWeight: '800', color: COLORS.neutral.white, marginBottom: 8 },
+  pointsSubtext: { fontSize: 13, color: COLORS.neutral.white, opacity: 0.8 },
   section: { marginBottom: 24 },
-  sectionTitle: { fontSize: 17, fontWeight: '700', color: '#1A1714', marginBottom: 16 },
+  sectionTitle: { fontSize: 17, fontWeight: '700', color: COLORS.text.primary, marginBottom: 16 },
   amountGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 20 },
-  amountButton: { width: '100%', backgroundColor: '#FFFFFF', borderRadius: 8, padding: 16, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(17,17,17,0.06)', shadowColor: '#111111', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 4, elevation: 1 },
-  selectedAmountButton: { backgroundColor: 'rgba(196,154,112,0.06)', borderColor: '#C49A70', borderWidth: 2 },
-  amountButtonText: { fontSize: 15, fontWeight: '600', color: '#1A1714' },
-  selectedAmountButtonText: { color: '#C49A70', fontWeight: '700' },
+  amountButton: { width: '100%', backgroundColor: COLORS.neutral.white, borderRadius: 8, padding: 16, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(17,17,17,0.06)', shadowColor: COLORS.neutral.black, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 4, elevation: 1 },
+  selectedAmountButton: { backgroundColor: 'rgba(212,136,44,0.06)', borderColor: COLORS.primary.main, borderWidth: 2 },
+  amountButtonText: { fontSize: 15, fontWeight: '600', color: COLORS.text.primary },
+  selectedAmountButtonText: { color: COLORS.primary.main, fontWeight: '700' },
   customAmountSection: { marginTop: 12 },
-  customAmountLabel: { fontSize: 16, fontWeight: '500', color: '#1A1714', marginBottom: 8 },
-  customAmountInput: { borderWidth: 1, borderColor: 'rgba(17,17,17,0.06)', borderRadius: 8, padding: 16, fontSize: 16, backgroundColor: '#FFFFFF', transition: 'border-color 150ms ease, box-shadow 150ms ease' },
-  paymentMethodButton: { backgroundColor: '#FFFFFF', borderRadius: 8, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: 'rgba(17,17,17,0.06)' },
-  selectedPaymentMethod: { borderColor: '#C49A70', backgroundColor: 'rgba(196,154,112,0.04)' },
+  customAmountLabel: { fontSize: 16, fontWeight: '500', color: COLORS.text.primary, marginBottom: 8 },
+  customAmountInput: { borderWidth: 1, borderColor: 'rgba(17,17,17,0.06)', borderRadius: 8, padding: 16, fontSize: 16, backgroundColor: COLORS.neutral.white, transition: 'border-color 150ms ease, box-shadow 150ms ease' },
+  paymentMethodButton: { backgroundColor: COLORS.neutral.white, borderRadius: 8, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: 'rgba(17,17,17,0.06)' },
+  selectedPaymentMethod: { borderColor: COLORS.primary.main, backgroundColor: 'rgba(212,136,44,0.04)' },
   paymentMethodRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
-  radioButton: { width: 20, height: 20, borderRadius: 10, borderWidth: 2, borderColor: '#B0A89E', marginRight: 12, alignItems: 'center', justifyContent: 'center' },
-  radioButtonInner: { width: 10, height: 10, borderRadius: 5, backgroundColor: '#C49A70' },
-  paymentMethodText: { fontSize: 16, fontWeight: '500', color: '#1A1714' },
-  paymentMethodSubtext: { fontSize: 14, color: '#5C4F42', marginLeft: 32 },
-  paymentInfo: { backgroundColor: '#FFFFFF', borderRadius: 8, padding: 20, marginBottom: 24, borderWidth: 1, borderColor: 'rgba(17,17,17,0.06)', shadowColor: '#111111', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 4, elevation: 1 },
-  paymentInfoTitle: { fontSize: 16, fontWeight: '700', color: '#1A1714', marginBottom: 12, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: 'rgba(17,17,17,0.06)' },
+  radioButton: { width: 20, height: 20, borderRadius: 10, borderWidth: 2, borderColor: COLORS.neutral.grey400, marginRight: 12, alignItems: 'center', justifyContent: 'center' },
+  radioButtonInner: { width: 10, height: 10, borderRadius: 5, backgroundColor: COLORS.primary.main },
+  paymentMethodText: { fontSize: 16, fontWeight: '500', color: COLORS.text.primary },
+  paymentMethodSubtext: { fontSize: 14, color: COLORS.text.secondary, marginLeft: 32 },
+  paymentInfo: { backgroundColor: COLORS.neutral.white, borderRadius: 8, padding: 20, marginBottom: 24, borderWidth: 1, borderColor: 'rgba(17,17,17,0.06)', shadowColor: COLORS.neutral.black, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 4, elevation: 1 },
+  paymentInfoTitle: { fontSize: 16, fontWeight: '700', color: COLORS.text.primary, marginBottom: 12, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: 'rgba(17,17,17,0.06)' },
   paymentInfoRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
-  paymentInfoLabel: { fontSize: 14, color: '#5C4F42' },
-  paymentInfoValue: { fontSize: 15, fontWeight: '600', color: '#1A1714' },
-  footer: { padding: 16, borderTopWidth: 1, borderTopColor: 'rgba(17,17,17,0.06)', backgroundColor: '#FFFFFF' },
+  paymentInfoLabel: { fontSize: 14, color: COLORS.text.secondary },
+  paymentInfoValue: { fontSize: 15, fontWeight: '600', color: COLORS.text.primary },
+  footer: { padding: 16, borderTopWidth: 1, borderTopColor: 'rgba(17,17,17,0.06)', backgroundColor: COLORS.neutral.white },
   payButton: { paddingVertical: 16, paddingHorizontal: 24, alignItems: 'center' },
-  payButtonText: { fontSize: 17, fontWeight: '700', color: '#FFFFFF' },
-  meetupInfoSection: { backgroundColor: 'rgba(196,154,112,0.06)', borderRadius: 8, padding: 20, marginBottom: 24, borderWidth: 1, borderColor: 'rgba(196,154,112,0.15)' },
-  meetupInfoTitle: { fontSize: 15, fontWeight: '700', color: '#C49A70', marginBottom: 12, textAlign: 'center' },
+  payButtonText: { fontSize: 17, fontWeight: '700', color: COLORS.neutral.white },
+  meetupInfoSection: { backgroundColor: 'rgba(212,136,44,0.06)', borderRadius: 8, padding: 20, marginBottom: 24, borderWidth: 1, borderColor: 'rgba(212,136,44,0.15)' },
+  meetupInfoTitle: { fontSize: 15, fontWeight: '700', color: COLORS.primary.main, marginBottom: 12, textAlign: 'center' },
   meetupInfoRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-  meetupInfoLabel: { fontSize: 14, color: '#5C4F42', fontWeight: '500' },
-  meetupInfoAmount: { fontSize: 16, fontWeight: '700', color: '#1A1714' },
+  meetupInfoLabel: { fontSize: 14, color: COLORS.text.secondary, fontWeight: '500' },
+  meetupInfoAmount: { fontSize: 16, fontWeight: '700', color: COLORS.text.primary },
 });
 
 export default PaymentScreen;

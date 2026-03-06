@@ -210,7 +210,7 @@ const DepositPaymentScreen = ({ navigation, user, route }: any) => {
             height: 100vh;
             margin: 0;
             font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-            background-color: #F5F3F0;
+            background-color: #F7F5F3;
           }
           .loading {
             text-align: center;

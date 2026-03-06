@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
 import { useNavigate } from 'react-router-dom';
-import { COLORS, SHADOWS } from '../styles/colors';
+import { COLORS, SHADOWS, CARD_STYLE, withOpacity } from '../styles/colors';
+import { LIST_ITEM_STYLE, HEADER_STYLE } from '../styles/spacing';
 import { Icon } from '../components/Icon';
 import { Heart, ArrowLeft, Clock, Users, MapPin } from 'lucide-react';
 import apiClient from '../services/apiClient';
@@ -122,24 +123,34 @@ const WishlistScreen: React.FC = () => {
     }
   };
 
-  const renderWishlistItem = (item: WishlistItem) => (
+  const renderWishlistItem = (item: WishlistItem) => {
+    const isRecruiting = item.status === '모집중' && !item.is_ended;
+
+    return (
     <div
       key={item.wishlist_id}
       style={{
-        transition: 'all 200ms ease',
-        borderRadius: 8,
+        transition: 'background-color 200ms ease',
         cursor: 'pointer',
-        marginBottom: 16,
+        borderLeft: isRecruiting ? `3px solid ${COLORS.primary.main}` : '3px solid transparent',
       }}
       onMouseEnter={(e) => {
         if (!item.is_ended) {
-          (e.currentTarget as HTMLElement).style.transform = 'translateY(-3px)';
-          (e.currentTarget as HTMLElement).style.boxShadow = '0 8px 24px rgba(17,17,17,0.08), 0 4px 12px rgba(17,17,17,0.05)';
+          (e.currentTarget as HTMLElement).style.backgroundColor = '#FAFAF8';
         }
       }}
       onMouseLeave={(e) => {
-        (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
-        (e.currentTarget as HTMLElement).style.boxShadow = 'none';
+        (e.currentTarget as HTMLElement).style.backgroundColor = '#FFFFFF';
+      }}
+      onMouseDown={(e) => {
+        if (!item.is_ended) {
+          (e.currentTarget as HTMLElement).style.backgroundColor = COLORS.neutral.grey100;
+        }
+      }}
+      onMouseUp={(e) => {
+        if (!item.is_ended) {
+          (e.currentTarget as HTMLElement).style.backgroundColor = '#FAFAF8';
+        }
       }}
     >
     <TouchableOpacity
@@ -259,7 +270,8 @@ const WishlistScreen: React.FC = () => {
       </View>
     </TouchableOpacity>
     </div>
-  );
+    );
+  };
 
   if (loading) {
     return (
@@ -371,12 +383,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: COLORS.neutral.white,
+    ...HEADER_STYLE.sub,
     ...SHADOWS.sticky,
     zIndex: 10,
-    paddingTop: 20,
   },
   backButton: {
     padding: 10,
@@ -386,10 +395,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: COLORS.text.primary,
-    letterSpacing: -0.3,
+    ...HEADER_STYLE.subTitle,
   },
   placeholder: {
     width: 40,
@@ -406,18 +412,17 @@ const styles = StyleSheet.create({
   statCard: {
     flex: 1,
     backgroundColor: COLORS.neutral.white,
-    borderRadius: 8,
+    borderRadius: 6,
     padding: 16,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(17,17,17,0.08)',
-    ...SHADOWS.small,
+    borderColor: withOpacity(COLORS.neutral.black, 0.08),
     // @ts-ignore
     backgroundImage: `linear-gradient(145deg, ${COLORS.primary.light} 0%, ${COLORS.neutral.white} 100%)`,
   },
   statNumber: {
     fontSize: 28,
-    fontWeight: '800',
+    fontWeight: '700',
     color: COLORS.primary.dark,
     marginBottom: 4,
     letterSpacing: -0.5,
@@ -454,7 +459,7 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   exploreButton: {
-    backgroundColor: COLORS.primary.dark,
+    backgroundColor: COLORS.primary.main,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,
@@ -467,24 +472,27 @@ const styles = StyleSheet.create({
 
   // 찜 목록
   wishlistGrid: {
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingHorizontal: 0,
+    paddingVertical: 0,
   },
   sectionTitle: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
-    color: COLORS.text.primary,
-    marginBottom: 16,
+    color: COLORS.text.secondary,
+    marginBottom: 0,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    backgroundColor: '#FAFAF8',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(17,17,17,0.06)',
   },
 
   // 찜 카드
   wishlistCard: {
     backgroundColor: COLORS.neutral.white,
-    borderRadius: 8,
     overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: 'rgba(17,17,17,0.06)',
-    ...SHADOWS.medium,
+    borderBottomWidth: 1,
+    borderBottomColor: LIST_ITEM_STYLE.borderBottomColor,
   },
   endedCard: {
     opacity: 0.7,
@@ -510,7 +518,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(17,17,17,0.6)',
+    backgroundColor: COLORS.surface.overlay,
     justifyContent: 'center',
     alignItems: 'center',
   },

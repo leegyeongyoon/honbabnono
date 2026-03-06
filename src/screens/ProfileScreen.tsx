@@ -10,7 +10,8 @@ import {
   TextInput,
   Modal,
 } from 'react-native';
-import { COLORS, SHADOWS, LAYOUT } from '../styles/colors';
+import { COLORS, SHADOWS, LAYOUT, CARD_STYLE } from '../styles/colors';
+import { SPACING, BORDER_RADIUS } from '../styles/spacing';
 import BabAlIndex from '../components/BabAlIndex';
 import { Icon } from '../components/Icon';
 import type { IconName } from '../components/SimpleIcon';
@@ -502,7 +503,7 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(15,14,12,0.6)',
+    backgroundColor: COLORS.surface.overlay,
     justifyContent: 'center',
     alignItems: 'center',
   },

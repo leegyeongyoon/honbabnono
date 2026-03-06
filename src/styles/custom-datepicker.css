@@ -6,10 +6,10 @@
   padding: 20px 24px !important;
   font-size: 18px !important;
   font-weight: 600 !important;
-  border: 2px solid #E8E8E8 !important;
+  border: 2px solid var(--color-neutral-grey100) !important;
   border-radius: 16px !important;
-  background-color: #FFFFFF !important;
-  color: #212121 !important;
+  background-color: var(--color-neutral-white) !important;
+  color: var(--color-text-primary) !important;
   text-align: center !important;
   box-shadow: 0 4px 12px rgba(17, 17, 17, 0.1) !important;
   transition: all 0.3s ease !important;
@@ -18,13 +18,13 @@
 }
 
 .custom-datepicker:focus {
-  border-color: #8C7565 !important;
+  border-color: var(--color-primary-dark) !important;
   box-shadow: 0 0 0 4px rgba(140, 117, 101, 0.1), 0 8px 24px rgba(17, 17, 17, 0.15) !important;
   transform: translateY(-2px) !important;
 }
 
 .custom-datepicker::placeholder {
-  color: #9E9E9E !important;
+  color: var(--color-placeholder) !important;
   font-size: 16px !important;
 }
 
@@ -39,7 +39,7 @@
   border: none !important;
   border-radius: 24px !important;
   box-shadow: 0 20px 60px rgba(17, 17, 17, 0.12), 0 8px 24px rgba(17, 17, 17, 0.08) !important;
-  background: #FFFFFF !important;
+  background: var(--color-neutral-white) !important;
   padding: 24px !important;
   font-family: inherit !important;
   width: 420px !important;
@@ -48,7 +48,7 @@
 
 /* 헤더 (월/년도 선택) */
 .react-datepicker__header {
-  background-color: #8C7565 !important;
+  background-color: var(--color-primary-dark) !important;
   border-bottom: none !important;
   border-radius: 16px 16px 0 0 !important;
   padding: 20px !important;
@@ -56,7 +56,7 @@
 }
 
 .react-datepicker__current-month {
-  color: #FFFFFF !important;
+  color: var(--color-neutral-white) !important;
   font-size: 20px !important;
   font-weight: 700 !important;
   margin-bottom: 16px !important;
@@ -90,7 +90,7 @@
 }
 
 .react-datepicker__navigation-icon::before {
-  border-color: #FFFFFF !important;
+  border-color: var(--color-neutral-white) !important;
   border-width: 2px 2px 0 0 !important;
   width: 8px !important;
   height: 8px !important;
@@ -104,7 +104,7 @@
 }
 
 .react-datepicker__day-name {
-  color: #FFFFFF !important;
+  color: var(--color-neutral-white) !important;
   font-size: 14px !important;
   font-weight: 600 !important;
   width: 44px !important;
@@ -121,7 +121,7 @@
 .react-datepicker__month {
   margin: 0 !important;
   padding: 16px !important;
-  background-color: #FFFFFF !important;
+  background-color: var(--color-neutral-white) !important;
   border-radius: 0 0 16px 16px !important;
 }
 
@@ -134,7 +134,7 @@
 
 /* 날짜 */
 .react-datepicker__day {
-  color: #212121 !important;
+  color: var(--color-text-primary) !important;
   font-size: 16px !important;
   font-weight: 500 !important;
   width: 44px !important;
@@ -150,27 +150,27 @@
 }
 
 .react-datepicker__day:hover {
-  background-color: #F5F5F5 !important;
+  background-color: var(--color-neutral-light) !important;
   transform: scale(1.05) !important;
-  border-color: #E8E8E8 !important;
+  border-color: var(--color-neutral-grey100) !important;
 }
 
 .react-datepicker__day--selected {
-  background-color: #8C7565 !important;
-  color: #FFFFFF !important;
+  background-color: var(--color-primary-dark) !important;
+  color: var(--color-neutral-white) !important;
   font-weight: 700 !important;
   transform: scale(1.1) !important;
   box-shadow: 0 4px 12px rgba(140, 117, 101, 0.3) !important;
 }
 
 .react-datepicker__day--today {
-  border-color: #9E9E9E !important;
-  background-color: #F7F4F2 !important;
+  border-color: var(--color-placeholder) !important;
+  background-color: var(--color-primary-light) !important;
   font-weight: 600 !important;
 }
 
 .react-datepicker__day--disabled {
-  color: #BDBDBD !important;
+  color: var(--color-disabled) !important;
   cursor: not-allowed !important;
   background-color: transparent !important;
 }
@@ -184,18 +184,18 @@
 /* 시간 선택 부분 */
 .react-datepicker__time-container {
   width: 120px !important;
-  border-left: 2px solid #E8E8E8 !important;
+  border-left: 2px solid var(--color-neutral-grey100) !important;
 }
 
 .react-datepicker__header--time {
-  background-color: #F5F5F5 !important;
+  background-color: var(--color-neutral-light) !important;
   padding: 16px !important;
   border-radius: 0 !important;
 }
 
 .react-datepicker__time-box {
   width: 120px !important;
-  background-color: #FFFFFF !important;
+  background-color: var(--color-neutral-white) !important;
   border-radius: 0 0 16px 0 !important;
 }
 
@@ -207,7 +207,7 @@
 .react-datepicker__time-list-item {
   padding: 12px 16px !important;
   font-size: 14px !important;
-  color: #212121 !important;
+  color: var(--color-text-primary) !important;
   cursor: pointer !important;
   transition: all 0.2s ease !important;
   border-radius: 8px !important;
@@ -215,20 +215,20 @@
 }
 
 .react-datepicker__time-list-item:hover {
-  background-color: #F5F5F5 !important;
+  background-color: var(--color-neutral-light) !important;
 }
 
 .react-datepicker__time-list-item--selected {
-  background-color: #8C7565 !important;
-  color: #FFFFFF !important;
+  background-color: var(--color-primary-dark) !important;
+  color: var(--color-neutral-white) !important;
   font-weight: 600 !important;
 }
 
 /* Today 버튼 */
 .react-datepicker__today-button {
-  background-color: #B8A090 !important;
+  background-color: var(--color-primary-main) !important;
   border: none !important;
-  color: #FFFFFF !important;
+  color: var(--color-neutral-white) !important;
   padding: 12px 24px !important;
   border-radius: 12px !important;
   font-weight: 600 !important;
@@ -238,13 +238,13 @@
 }
 
 .react-datepicker__today-button:hover {
-  background-color: #8C7565 !important;
+  background-color: var(--color-primary-dark) !important;
   transform: translateY(-2px) !important;
 }
 
 /* Clear 버튼 */
 .react-datepicker__close-icon {
-  background-color: #E8E8E8 !important;
+  background-color: var(--color-neutral-grey100) !important;
   border-radius: 50% !important;
   right: 16px !important;
   top: 50% !important;
@@ -259,12 +259,12 @@
 }
 
 .react-datepicker__close-icon:hover {
-  background-color: #9E9E9E !important;
+  background-color: var(--color-placeholder) !important;
   transform: translateY(-50%) scale(1.1) !important;
 }
 
 .react-datepicker__close-icon::after {
-  color: #212121 !important;
+  color: var(--color-text-primary) !important;
   font-size: 14px !important;
   font-weight: bold !important;
 }

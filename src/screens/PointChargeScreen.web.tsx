@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput } from 'react-native';
 import { useNavigate } from 'react-router-dom';
-import { COLORS, SHADOWS, CARD_STYLE } from '../styles/colors';
+import { COLORS, SHADOWS, CARD_STYLE, CSS_SHADOWS } from '../styles/colors';
+import { HEADER_STYLE } from '../styles/spacing';
 import { Icon } from '../components/Icon';
 import apiClient from '../services/apiClient';
 import { useToast } from '../hooks/useToast';
@@ -62,7 +63,7 @@ const PointChargeScreen: React.FC = () => {
           style={styles.backButton}
           onPress={() => navigate('/point-history')}
         >
-          <Icon name="arrow-left" size={24} color="#1A1714" />
+          <Icon name="arrow-left" size={24} color={COLORS.text.primary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>포인트 충전</Text>
         <View style={styles.backButton} />
@@ -71,7 +72,7 @@ const PointChargeScreen: React.FC = () => {
       <View style={styles.content}>
         {/* 충전 안내 */}
         <View style={styles.infoCard}>
-          <Icon name="info" size={24} color="#C49A70" />
+          <Icon name="info" size={24} color={COLORS.primary.main} />
           <Text style={styles.infoText}>
             충전된 포인트는 약속 참가비로 사용할 수 있습니다.
           </Text>
@@ -128,7 +129,7 @@ const PointChargeScreen: React.FC = () => {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>결제 방법</Text>
           <View style={styles.paymentMethodCard}>
-            <Icon name="credit-card" size={24} color="#C49A70" />
+            <Icon name="credit-card" size={24} color={COLORS.primary.main} />
             <View style={styles.paymentMethodInfo}>
               <Text style={styles.paymentMethodTitle}>카카오페이</Text>
               <Text style={styles.paymentMethodDescription}>
@@ -144,8 +145,8 @@ const PointChargeScreen: React.FC = () => {
         <div
           style={{
             background: (!amount || parseInt(amount) < 1000 || loading)
-              ? '#DAD5CF'
-              : 'linear-gradient(135deg, #9A7450 0%, #C49A70 100%)',
+              ? COLORS.neutral.grey200
+              : COLORS.gradient.heroCSS,
             borderRadius: 6,
             boxShadow: (!amount || parseInt(amount) < 1000 || loading)
               ? 'none'
@@ -177,23 +178,13 @@ const PointChargeScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#EFECEA',
+    backgroundColor: COLORS.neutral.grey100,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 16,
-    backgroundColor: COLORS.neutral.white,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(17,17,17,0.06)',
-    shadowColor: '#111111',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 3,
+    ...HEADER_STYLE.sub,
     zIndex: 10,
   },
   backButton: {
@@ -204,9 +195,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#1A1714',
+    ...HEADER_STYLE.subTitle,
   },
   content: {
     flex: 1,
@@ -215,18 +204,18 @@ const styles = StyleSheet.create({
   infoCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(196,154,112,0.06)',
+    backgroundColor: 'rgba(212,136,44,0.06)',
     padding: 16,
     borderRadius: 8,
     marginBottom: 24,
     borderWidth: 1,
-    borderColor: 'rgba(196,154,112,0.10)',
+    borderColor: 'rgba(212,136,44,0.10)',
   },
   infoText: {
     flex: 1,
     marginLeft: 12,
     fontSize: 14,
-    color: '#5C4F42',
+    color: COLORS.text.secondary,
     lineHeight: 20,
   },
   section: {
@@ -235,7 +224,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1A1714',
+    color: COLORS.text.primary,
     marginBottom: 12,
   },
   amountInput: {
@@ -245,10 +234,10 @@ const styles = StyleSheet.create({
     padding: 20,
     fontSize: 28,
     fontWeight: '700',
-    color: '#1A1714',
+    color: COLORS.text.primary,
     backgroundColor: COLORS.neutral.white,
     textAlign: 'center',
-    shadowColor: '#111111',
+    shadowColor: COLORS.neutral.black,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.04,
     shadowRadius: 4,
@@ -256,7 +245,7 @@ const styles = StyleSheet.create({
   },
   amountHint: {
     fontSize: 12,
-    color: '#5C4F42',
+    color: COLORS.text.secondary,
     textAlign: 'center',
     marginTop: 8,
   },
@@ -274,24 +263,24 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.neutral.white,
     minWidth: 90,
     alignItems: 'center',
-    shadowColor: '#111111',
+    shadowColor: COLORS.neutral.black,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.04,
     shadowRadius: 4,
     elevation: 1,
   },
   presetButtonSelected: {
-    borderColor: '#C49A70',
-    backgroundColor: 'rgba(196,154,112,0.06)',
+    borderColor: COLORS.primary.main,
+    backgroundColor: 'rgba(212,136,44,0.06)',
     borderWidth: 1.5,
   },
   presetButtonText: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#5C4F42',
+    color: COLORS.text.secondary,
   },
   presetButtonTextSelected: {
-    color: '#C49A70',
+    color: COLORS.primary.main,
     fontWeight: '700',
   },
   paymentMethodCard: {
@@ -302,7 +291,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     borderColor: 'rgba(17,17,17,0.06)',
-    shadowColor: '#111111',
+    shadowColor: COLORS.neutral.black,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.04,
     shadowRadius: 4,
@@ -315,17 +304,17 @@ const styles = StyleSheet.create({
   paymentMethodTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1A1714',
+    color: COLORS.text.primary,
     marginBottom: 4,
   },
   paymentMethodDescription: {
     fontSize: 13,
-    color: '#5C4F42',
+    color: COLORS.text.secondary,
   },
   bottomContainer: {
     padding: 20,
     backgroundColor: COLORS.neutral.white,
-    shadowColor: '#111111',
+    shadowColor: COLORS.neutral.black,
     shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.06,
     shadowRadius: 8,
@@ -338,7 +327,7 @@ const styles = StyleSheet.create({
   chargeButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: COLORS.neutral.white,
   },
 });
 

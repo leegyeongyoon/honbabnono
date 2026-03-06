@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput } from 'react-native';
 import { useNavigate } from 'react-router-dom';
-import { COLORS, SHADOWS } from '../styles/colors';
+import { COLORS, SHADOWS, CSS_SHADOWS } from '../styles/colors';
+import { HEADER_STYLE } from '../styles/spacing';
 import { Icon } from '../components/Icon';
 import { useUserStore } from '../store/userStore';
 import apiClient from '../services/apiClient';
@@ -94,13 +95,13 @@ const PrivacySettingsScreen: React.FC = () => {
       onPress={onPress}
     >
       <View style={styles.menuIconContainer}>
-        <Icon name={iconName} size={18} color={danger ? '#D32F2F' : '#C49A70'} />
+        <Icon name={iconName} size={18} color={danger ? COLORS.functional.error : COLORS.primary.main} />
       </View>
       <View style={styles.menuInfo}>
         <Text style={[styles.menuTitle, danger && styles.dangerText]}>{title}</Text>
         <Text style={styles.menuDescription}>{description}</Text>
       </View>
-      <Icon name="chevron-right" size={16} color="#5C4F42" />
+      <Icon name="chevron-right" size={16} color={COLORS.text.secondary} />
     </TouchableOpacity>
   );
 
@@ -112,7 +113,7 @@ const PrivacySettingsScreen: React.FC = () => {
           style={styles.backButton}
           onPress={() => navigate('/mypage')}
         >
-          <Icon name="arrow-left" size={24} color="#1A1714" />
+          <Icon name="arrow-left" size={24} color={COLORS.text.primary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>개인정보 설정</Text>
         <View style={styles.placeholder} />
@@ -198,7 +199,7 @@ const PrivacySettingsScreen: React.FC = () => {
           <View style={styles.passwordModal}>
             <View style={styles.modalHeader}>
               <TouchableOpacity onPress={() => setShowPasswordChange(false)}>
-                <Icon name="x" size={24} color="#1A1714" />
+                <Icon name="x" size={24} color={COLORS.text.primary} />
               </TouchableOpacity>
               <Text style={styles.modalTitle}>비밀번호 변경</Text>
               <TouchableOpacity
@@ -258,23 +259,13 @@ const PrivacySettingsScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#EFECEA',
+    backgroundColor: COLORS.neutral.grey100,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 16,
-    backgroundColor: COLORS.neutral.white,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(17,17,17,0.06)',
-    shadowColor: '#111111',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 3,
+    ...HEADER_STYLE.sub,
     zIndex: 10,
   },
   backButton: {
@@ -287,9 +278,7 @@ const styles = StyleSheet.create({
     transition: 'all 200ms ease',
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#1A1714',
+    ...HEADER_STYLE.subTitle,
   },
   placeholder: {
     width: 32,
@@ -303,10 +292,10 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1A1714',
+    color: COLORS.text.primary,
     paddingHorizontal: 20,
     paddingVertical: 16,
-    backgroundColor: '#EFECEA',
+    backgroundColor: COLORS.neutral.grey100,
   },
   accountCard: {
     backgroundColor: COLORS.neutral.white,
@@ -315,7 +304,7 @@ const styles = StyleSheet.create({
     padding: 20,
     borderWidth: 1,
     borderColor: 'rgba(17,17,17,0.06)',
-    shadowColor: '#111111',
+    shadowColor: COLORS.neutral.black,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.04,
     shadowRadius: 4,
@@ -327,17 +316,17 @@ const styles = StyleSheet.create({
   accountName: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1A1714',
+    color: COLORS.text.primary,
     marginBottom: 4,
   },
   accountEmail: {
     fontSize: 16,
-    color: '#5C4F42',
+    color: COLORS.text.secondary,
     marginBottom: 8,
   },
   accountProvider: {
     fontSize: 14,
-    color: '#C49A70',
+    color: COLORS.primary.main,
     fontWeight: '500',
   },
   menuContainer: {
@@ -346,7 +335,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     borderColor: 'rgba(17,17,17,0.06)',
-    shadowColor: '#111111',
+    shadowColor: COLORS.neutral.black,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.04,
     shadowRadius: 4,
@@ -366,7 +355,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#F7F5F3',
+    backgroundColor: COLORS.neutral.light,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -380,15 +369,15 @@ const styles = StyleSheet.create({
   menuTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1A1714',
+    color: COLORS.text.primary,
     marginBottom: 2,
   },
   menuDescription: {
     fontSize: 13,
-    color: '#5C4F42',
+    color: COLORS.text.secondary,
   },
   dangerText: {
-    color: '#D32F2F',
+    color: COLORS.functional.error,
   },
   modalOverlay: {
     position: 'absolute',
@@ -406,7 +395,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     width: '90%',
     maxWidth: 400,
-    shadowColor: '#111111',
+    shadowColor: COLORS.neutral.black,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.15,
     shadowRadius: 24,
@@ -423,15 +412,15 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1A1714',
+    color: COLORS.text.primary,
   },
   saveText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#C49A70',
+    color: COLORS.primary.main,
   },
   disabledText: {
-    color: '#8B7E72',
+    color: COLORS.text.accent,
   },
   modalContent: {
     padding: 20,
@@ -442,7 +431,7 @@ const styles = StyleSheet.create({
   inputLabel: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1A1714',
+    color: COLORS.text.primary,
     marginBottom: 8,
   },
   passwordInput: {
@@ -452,8 +441,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     fontSize: 16,
-    color: '#1A1714',
-    backgroundColor: '#FAFAF8',
+    color: COLORS.text.primary,
+    backgroundColor: COLORS.neutral.grey50,
     transition: 'all 200ms ease',
   },
 });

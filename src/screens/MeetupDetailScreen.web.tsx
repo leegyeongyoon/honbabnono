@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
-import { COLORS, SHADOWS, CARD_STYLE, CSS_SHADOWS, LAYOUT, TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../styles';
+import { COLORS, SHADOWS, CARD_STYLE, CSS_SHADOWS, LAYOUT, TYPOGRAPHY, SPACING, BORDER_RADIUS, HEADER_STYLE } from '../styles';
 import { getAvatarColor, getInitials } from '../utils/avatarColor';
 import { useUserStore } from '../store/userStore';
 import { useMeetupStore } from '../store/meetupStore';
@@ -270,7 +270,7 @@ const KakaoMap: React.FC<{
           width: '100%',
           height: '200px',
           backgroundColor: COLORS.neutral.background,
-          borderRadius: BORDER_RADIUS.lg,
+          borderRadius: BORDER_RADIUS.md,
           marginBottom: 12,
           display: mapError ? 'flex' : 'block',
           alignItems: 'center',
@@ -719,7 +719,7 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
                   paddingTop: 5,
                   paddingBottom: 5,
                   borderRadius: BORDER_RADIUS.sm,
-                  backgroundColor: 'rgba(61,139,94,0.9)',
+                  backgroundColor: 'rgba(46,125,79,0.9)',
                 }}>
                   <span style={{ fontSize: 12, fontWeight: '700', color: COLORS.neutral.white }}>
                     보증금 {meetup.promiseDepositAmount.toLocaleString()}원
@@ -738,7 +738,7 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
           position: 'relative',
           zIndex: 2,
           backgroundColor: COLORS.neutral.white,
-          borderRadius: BORDER_RADIUS.lg,
+          borderRadius: BORDER_RADIUS.md,
           padding: 16,
           display: 'flex',
           flexDirection: 'row',
@@ -923,7 +923,7 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
               gap: 8,
               padding: 16,
               backgroundColor: COLORS.neutral.background,
-              borderRadius: BORDER_RADIUS.lg,
+              borderRadius: BORDER_RADIUS.md,
             }}>
               <Icon name="map-pin" size={18} color={COLORS.primary.accent} />
               <Text style={{ fontSize: 15, color: COLORS.text.primary, flex: 1 }}>
@@ -1217,12 +1217,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: SPACING.xl,
-    paddingVertical: SPACING.lg,
-    paddingTop: SPACING.xl,
-    backgroundColor: COLORS.surface.primary,
-    borderBottomWidth: 1,
-    borderBottomColor: CARD_STYLE.borderColor,
+    ...HEADER_STYLE.sub,
     ...SHADOWS.sticky,
     // @ts-ignore — web CSS shadow
     boxShadow: CSS_SHADOWS.stickyHeader,
@@ -1286,7 +1281,7 @@ const styles = StyleSheet.create({
     marginTop: SPACING.lg,
     marginBottom: SPACING.lg,
     padding: SPACING.xl,
-    borderRadius: BORDER_RADIUS.lg,
+    borderRadius: BORDER_RADIUS.md,
     borderWidth: 1,
     borderColor: CARD_STYLE.borderColor,
     ...SHADOWS.medium,
@@ -1339,7 +1334,7 @@ const styles = StyleSheet.create({
   },
   locationCard: {
     backgroundColor: COLORS.surface.primary,
-    borderRadius: BORDER_RADIUS.lg,
+    borderRadius: BORDER_RADIUS.md,
     padding: 16,
     borderWidth: 1,
     borderColor: CARD_STYLE.borderColor,
@@ -1434,7 +1429,7 @@ const styles = StyleSheet.create({
     marginHorizontal: SPACING.xl,
     marginBottom: SPACING.lg,
     padding: SPACING.xl,
-    borderRadius: BORDER_RADIUS.lg,
+    borderRadius: BORDER_RADIUS.md,
     borderWidth: 1,
     borderColor: CARD_STYLE.borderColor,
     ...SHADOWS.medium,
@@ -1648,7 +1643,7 @@ const styles = StyleSheet.create({
   },
   pastMeetupContainer: {
     backgroundColor: COLORS.neutral.background,
-    borderRadius: BORDER_RADIUS.lg,
+    borderRadius: BORDER_RADIUS.md,
     paddingVertical: 16,
     paddingHorizontal: 20,
     alignItems: 'center',
@@ -1752,7 +1747,7 @@ const styles = StyleSheet.create({
     marginHorizontal: SPACING.xl,
     marginBottom: SPACING.xl,
     backgroundColor: COLORS.surface.primary,
-    borderRadius: BORDER_RADIUS.lg,
+    borderRadius: BORDER_RADIUS.md,
     borderWidth: 1,
     borderColor: CARD_STYLE.borderColor,
     ...SHADOWS.small,

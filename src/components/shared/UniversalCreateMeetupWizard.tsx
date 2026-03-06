@@ -348,7 +348,6 @@ const UniversalCreateMeetupWizard: React.FC<UniversalCreateMeetupWizardProps> = 
               ]}>
                 <CategoryIcon
                   iconName={category.icon as any}
-                  image={category.image}
                   size={48}
                   color={meetupData.category === category.name ? COLORS.neutral.white : category.color}
                   backgroundColor="transparent"
@@ -1315,7 +1314,7 @@ const UniversalCreateMeetupWizard: React.FC<UniversalCreateMeetupWizardProps> = 
               ]}
               onPress={() => setPaymentMethod('kakao')}
             >
-              <Icon name="message-circle" size={20} color={paymentMethod === 'kakao' ? '#FEE500' : COLORS.text.secondary} />
+              <Icon name="message-circle" size={20} color={paymentMethod === 'kakao' ? COLORS.special.kakao : COLORS.text.secondary} />
               <View style={styles.depositPaymentOptionInfo}>
                 <Text style={[
                   styles.depositPaymentOptionTitle,
@@ -1390,7 +1389,7 @@ const UniversalCreateMeetupWizard: React.FC<UniversalCreateMeetupWizardProps> = 
           onPress={() => setPaymentMethod('kakao')}
         >
           <View style={styles.paymentOptionIcon}>
-            <Icon name="message-circle" size={24} color="#FEE500" />
+            <Icon name="message-circle" size={24} color={COLORS.special.kakao} />
           </View>
           <View style={styles.paymentOptionInfo}>
             <Text style={styles.paymentOptionTitle}>카카오페이</Text>
@@ -2668,9 +2667,8 @@ const styles = StyleSheet.create({
   // 참가자 설정 스타일
   participantCard: {
     backgroundColor: COLORS.neutral.white,
-    borderRadius: 12,
+    borderRadius: 6,
     padding: 20,
-    ...SHADOWS.small,
   },
   participantHeader: {
     flexDirection: 'row',
@@ -2719,9 +2717,8 @@ const styles = StyleSheet.create({
   // 필터 설정 스타일
   filterCard: {
     backgroundColor: COLORS.neutral.white,
-    borderRadius: 12,
+    borderRadius: 6,
     padding: 20,
-    ...SHADOWS.small,
   },
   filterSection: {
     marginBottom: 20,
@@ -2748,7 +2745,7 @@ const styles = StyleSheet.create({
   filterButton: {
     paddingHorizontal: 16,
     paddingVertical: 10,
-    borderRadius: 10,
+    borderRadius: 4,
     backgroundColor: COLORS.neutral.grey100,
   },
   filterButtonSelected: {
@@ -2785,7 +2782,7 @@ const styles = StyleSheet.create({
   preferenceOption: {
     flex: 1,
     paddingVertical: 14,
-    borderRadius: 12,
+    borderRadius: 4,
     borderWidth: 2,
     borderColor: COLORS.neutral.grey200,
     alignItems: 'center',
@@ -2811,7 +2808,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 14,
     paddingHorizontal: 16,
-    borderRadius: 12,
+    borderRadius: 4,
     borderWidth: 2,
     borderColor: COLORS.neutral.grey200,
     backgroundColor: COLORS.neutral.white,
@@ -2832,7 +2829,7 @@ const styles = StyleSheet.create({
   ageRangeOption: {
     paddingVertical: 14,
     paddingHorizontal: 16,
-    borderRadius: 12,
+    borderRadius: 4,
     borderWidth: 1,
     borderColor: COLORS.neutral.grey200,
     alignItems: 'center',

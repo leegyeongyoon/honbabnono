@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import {COLORS, SHADOWS, LAYOUT, CARD_STYLE, CTA_STYLE} from '../../styles/colors';
-import {SPACING, BORDER_RADIUS} from '../../styles/spacing';
+import {SPACING, BORDER_RADIUS, LIST_ITEM_STYLE, HEADER_STYLE} from '../../styles/spacing';
 import {TYPOGRAPHY, FONT_WEIGHTS} from '../../styles/typography';
 import {Icon} from '../Icon';
 import { NotificationBell } from '../NotificationBell';
@@ -369,20 +369,19 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
             />
           }
         >
-          {/* 히어로 배너 — 그라데이션 인사말 */}
+          {/* 히어로 배너 — 컴팩트 클린 */}
           <FadeIn delay={0}>
-            <LinearGradient
-              colors={['#8C7565', '#A28B7B', '#B8A090']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.heroBanner}
-            >
-              {/* 장식 — 미니멀 기하학적 요소 */}
-              <View style={styles.heroDecorCircle1} />
-              <View style={styles.heroDecorCircle2} />
+            <View style={styles.heroBanner}>
+              {/* 상단 틸 악센트 라인 */}
+              <LinearGradient
+                colors={COLORS.gradient.cta}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.heroAccentLine}
+              />
               <Text style={styles.heroGreeting}>{greeting}</Text>
               <Text style={styles.heroSubtitle}>{greetingSubtitle}</Text>
-            </LinearGradient>
+            </View>
           </FadeIn>
 
           {/* 검색 바 — 히어로 아래 겹쳐서 배치 */}
@@ -463,31 +462,33 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
           </View>
 
           {/* 카테고리 그리드 (4x2) with CategoryIcon */}
+          {/* 카테고리 — 가로 스크롤 칩 */}
           <FadeIn delay={100}>
           <View style={styles.categorySection}>
-            <View style={styles.categoryGrid}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.categoryScrollContent}
+            >
               {FOOD_CATEGORIES.map((category) => (
                 <TouchableOpacity
                   key={category.id}
-                  style={styles.categoryItem}
+                  style={[styles.categoryChip, { backgroundColor: category.bgColor, borderColor: 'rgba(17,17,17,0.06)' }]}
                   onPress={() => navigation.navigate('MeetupList', { category: category.name })}
                   activeOpacity={0.7}
                   accessibilityLabel={`${category.name} 카테고리`}
                   accessibilityRole="button"
                 >
-                  <View style={[styles.categoryIconBox, { backgroundColor: category.bgColor }]}>
-                    <CategoryIcon
-                      iconName={category.icon}
-                      image={category.image}
-                      size={48}
-                      color={category.color}
-                      backgroundColor="transparent"
-                    />
-                  </View>
-                  <Text style={styles.categoryName} numberOfLines={1} ellipsizeMode="tail">{category.name}</Text>
+                  <CategoryIcon
+                    iconName={category.icon}
+                    size={24}
+                    color={category.color}
+                    backgroundColor="transparent"
+                  />
+                  <Text style={styles.categoryChipText}>{category.name}</Text>
                 </TouchableOpacity>
               ))}
-            </View>
+            </ScrollView>
           </View>
           </FadeIn>
 
@@ -665,7 +666,7 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
             accessibilityRole="button"
           >
             <LinearGradient
-              colors={['#B8A090', '#C8B8AC']}
+              colors={COLORS.gradient.cta}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={styles.allMeetupsButton}
@@ -711,7 +712,7 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
           accessibilityRole="button"
         >
           <LinearGradient
-            colors={['#B8A090', '#C8B8AC']}
+            colors={COLORS.gradient.cta}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.fab}
@@ -816,11 +817,11 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   headerLogo: {
-    fontSize: 22,
-    fontWeight: FONT_WEIGHTS.bold as any,
-    letterSpacing: -0.5,
+    fontSize: 20,
+    fontWeight: '700' as any,
+    letterSpacing: -0.3,
     color: COLORS.primary.main,
-    lineHeight: 30,
+    lineHeight: 28,
   },
   locationButton: {
     flexDirection: 'row',
@@ -856,52 +857,44 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 
-  // ─── 히어로 배너 ───────────────────────────────────────
+  // ─── 히어로 배너 (컴팩트 클린) ───────────────────────────
   heroBanner: {
-    paddingTop: 40,
-    paddingBottom: 48,
+    paddingTop: 20,
+    paddingBottom: 24,
     paddingHorizontal: 24,
+    backgroundColor: COLORS.neutral.white,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.neutral.grey100,
     position: 'relative',
-    overflow: 'hidden',
   },
-  heroDecorCircle1: {
+  heroAccentLine: {
     position: 'absolute',
-    top: -30,
-    right: -20,
-    width: 140,
-    height: 140,
-    borderRadius: 70,
-    backgroundColor: 'rgba(196,154,112,0.12)',
-  },
-  heroDecorCircle2: {
-    position: 'absolute',
-    bottom: -20,
-    left: -30,
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 3,
   },
   heroGreeting: {
-    fontSize: 28,
+    fontSize: 22,
     fontWeight: '700' as any,
-    lineHeight: 36,
-    letterSpacing: -0.5,
-    color: '#FFFFFF',
+    lineHeight: 30,
+    letterSpacing: -0.3,
+    color: COLORS.text.primary,
   },
   heroSubtitle: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '400' as any,
-    lineHeight: 22,
-    color: 'rgba(255,255,255,0.7)',
-    marginTop: 6,
+    lineHeight: 20,
+    color: COLORS.text.tertiary,
+    marginTop: 4,
   },
 
-  // ─── 검색 바 (히어로 아래 겹쳐서 배치) ─────────────────
+  // ─── 검색 바 ───────────────────────────────────────────
   searchSection: {
     paddingHorizontal: SPACING.xl,
-    marginTop: -24,
-    paddingBottom: SPACING.xl,
+    paddingTop: SPACING.lg,
+    paddingBottom: SPACING.lg,
+    backgroundColor: COLORS.neutral.white,
     position: 'relative',
     zIndex: 5,
   },
@@ -977,42 +970,32 @@ const styles = StyleSheet.create({
     color: COLORS.text.primary,
   },
 
-  // ─── 카테고리 그리드 (정제된 그리드) ────────────────────
+  // ─── 카테고리 가로 스크롤 칩 ────────────────────────────
   categorySection: {
     backgroundColor: COLORS.neutral.white,
-    paddingTop: SPACING.md,
-    paddingBottom: SPACING.xxl,
+    paddingTop: SPACING.sm,
+    paddingBottom: SPACING.lg,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.neutral.grey100,
+  },
+  categoryScrollContent: {
     paddingHorizontal: SPACING.xl,
-    marginBottom: 0,
+    gap: SPACING.sm,
   },
-  categoryGrid: {
+  categoryChip: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    rowGap: SPACING.xl,
-    gap: SPACING.lg,
-  },
-  categoryItem: {
-    width: '21%',
     alignItems: 'center',
-  },
-  categoryIconBox: {
-    width: 64,
-    height: 64,
-    borderRadius: BORDER_RADIUS.lg,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: SPACING.sm,
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: 'rgba(17,17,17,0.06)',
   },
-  categoryName: {
-    fontSize: 12,
+  categoryChipText: {
+    fontSize: 13,
     fontWeight: FONT_WEIGHTS.medium as any,
-    lineHeight: 16,
-    letterSpacing: 0.1,
+    lineHeight: 18,
     color: COLORS.text.secondary,
-    textAlign: 'center',
   },
 
   // ─── 콘텐츠 섹션 (에디토리얼 깔끔한 구분) ──────────────

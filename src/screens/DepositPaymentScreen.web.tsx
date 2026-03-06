@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView } from 'react-na
 import { useNavigate, useParams } from 'react-router-dom';
 import { Icon } from '../components/Icon';
 import { COLORS, SHADOWS, CARD_STYLE } from '../styles/colors';
+import { HEADER_STYLE } from '../styles/spacing';
 import { useToast } from '../hooks/useToast';
 import Toast from '../components/Toast';
 import { FadeIn } from '../components/animated';
@@ -353,7 +354,7 @@ const DepositPaymentScreen: React.FC = () => {
       <View style={styles.bottomSection}>
         <div
           style={{
-            background: loading ? COLORS.neutral.grey300 : 'linear-gradient(135deg, #9A7450 0%, #C49A70 100%)',
+            background: loading ? COLORS.neutral.grey300 : COLORS.gradient.heroCSS,
             borderRadius: 8,
             boxShadow: loading ? 'none' : '0 4px 12px rgba(224,146,110,0.3), 0 8px 24px rgba(224,146,110,0.15)',
             cursor: loading ? 'not-allowed' : 'pointer',
@@ -417,11 +418,7 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 20,
-    paddingTop: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(224,146,110,0.08)',
-    backgroundColor: COLORS.neutral.white,
+    ...HEADER_STYLE.sub,
     ...SHADOWS.sticky,
     zIndex: 10,
   },
@@ -434,9 +431,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: COLORS.text.primary,
+    ...HEADER_STYLE.subTitle,
     lineHeight: 26,
   },
   amountSection: {
@@ -457,7 +452,7 @@ const styles = StyleSheet.create({
   },
   amountValue: {
     fontSize: 40,
-    fontWeight: '800',
+    fontWeight: '700',
     color: COLORS.primary.main,
     marginBottom: 16,
   },
@@ -628,7 +623,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 14,
     borderRadius: 6,
-    backgroundColor: COLORS.primary.dark,
+    backgroundColor: COLORS.primary.main,
     alignItems: 'center',
     ...SHADOWS.cta,
   },

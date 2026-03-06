@@ -12,7 +12,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { COLORS, SHADOWS, LAYOUT, CSS_SHADOWS, CARD_STYLE } from '../styles/colors';
 import { TYPOGRAPHY, FONT_WEIGHTS } from '../styles/typography';
-import { SPACING, BORDER_RADIUS } from '../styles/spacing';
+import { SPACING, BORDER_RADIUS, HEADER_STYLE } from '../styles/spacing';
 import { Icon } from '../components/Icon';
 import EmptyState from '../components/EmptyState';
 import { useMeetups } from '../hooks/useMeetups';
@@ -367,7 +367,7 @@ const SearchScreen: React.FC<SearchScreenProps> = ({ navigation, user }) => {
                 onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.opacity = '1'; }}
                 role="button"
               >
-                <span style={{ fontSize: 15, fontWeight: '600', color: '#FFFFFF' }}>필터 적용</span>
+                <span style={{ fontSize: 15, fontWeight: '600', color: COLORS.neutral.white }}>필터 적용</span>
               </div>
             </View>
           </ScrollView>
@@ -577,12 +577,7 @@ const styles = StyleSheet.create({
 
   // 검색 헤더
   searchHeader: {
-    backgroundColor: COLORS.surface.primary,
-    paddingHorizontal: SPACING.xl,
-    paddingTop: 12,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.neutral.grey100,
+    ...HEADER_STYLE.sub,
     zIndex: 10,
     // @ts-ignore
     position: 'sticky',

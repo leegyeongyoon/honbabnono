@@ -1,98 +1,119 @@
 import type { IconName } from '../components/SimpleIcon';
+import { CATEGORY_COLORS } from '../styles/colors';
 
-// 카테고리 이미지 (DALL-E 생성 일러스트)
-export const CATEGORY_IMAGES: Record<string, any> = {
-  bbq: require('../assets/categories/bbq.png'),
-  hotpot: require('../assets/categories/hotpot.png'),
-  buffet: require('../assets/categories/buffet.png'),
-  seafood: require('../assets/categories/seafood.png'),
-  pizza: require('../assets/categories/pizza.png'),
-  bar: require('../assets/categories/bar.png'),
-  course: require('../assets/categories/course.png'),
-  party: require('../assets/categories/party.png'),
-};
-
-// 카테고리 관련 상수 (혼밥하기 어려운 카테고리 중심)
-export const FOOD_CATEGORIES: {
+// 카테고리 타입 정의
+export interface FoodCategory {
   id: string;
   name: string;
   icon: IconName;
-  image: any;
   desc: string;
   color: string;
   bgColor: string;
-}[] = [
+  bgHover: string;
+  image: string; // DALL-E generated icon path (web: /categories/ID.png)
+}
+
+// 카테고리 (10개 — 핵심 식사 카테고리)
+export const FOOD_CATEGORIES: FoodCategory[] = [
+  {
+    id: 'korean',
+    name: '한식',
+    icon: 'flame',
+    desc: '김치찌개/비빔밥/한정식',
+    color: CATEGORY_COLORS.korean.accent,
+    bgColor: CATEGORY_COLORS.korean.bg,
+    bgHover: CATEGORY_COLORS.korean.bgHover,
+    image: '/categories/korean.png',
+  },
+  {
+    id: 'chinese',
+    name: '중식',
+    icon: 'soup',
+    desc: '짜장면/마라탕/양꼬치',
+    color: CATEGORY_COLORS.chinese.accent,
+    bgColor: CATEGORY_COLORS.chinese.bg,
+    bgHover: CATEGORY_COLORS.chinese.bgHover,
+    image: '/categories/chinese.png',
+  },
+  {
+    id: 'japanese',
+    name: '일식',
+    icon: 'fish',
+    desc: '초밥/라멘/오마카세',
+    color: CATEGORY_COLORS.japanese.accent,
+    bgColor: CATEGORY_COLORS.japanese.bg,
+    bgHover: CATEGORY_COLORS.japanese.bgHover,
+    image: '/categories/japanese.png',
+  },
+  {
+    id: 'western',
+    name: '양식',
+    icon: 'pizza',
+    desc: '파스타/스테이크/피자',
+    color: CATEGORY_COLORS.western.accent,
+    bgColor: CATEGORY_COLORS.western.bg,
+    bgHover: CATEGORY_COLORS.western.bgHover,
+    image: '/categories/pizza.png',
+  },
   {
     id: 'bbq',
     name: '고기/구이',
-    icon: 'flame',
-    image: CATEGORY_IMAGES.bbq,
+    icon: 'meat',
     desc: '삼겹살/갈비/곱창',
-    color: '#8C7565',
-    bgColor: '#F7F4F2'
-  },
-  {
-    id: 'hotpot',
-    name: '전골/찌개',
-    icon: 'soup',
-    image: CATEGORY_IMAGES.hotpot,
-    desc: '부대찌개/김치찌개',
-    color: '#8C7565',
-    bgColor: '#F7F4F2'
-  },
-  {
-    id: 'buffet',
-    name: '뷔페/무한리필',
-    icon: 'utensils',
-    image: CATEGORY_IMAGES.buffet,
-    desc: '고기뷔페/샐러드바',
-    color: '#8C7565',
-    bgColor: '#F7F4F2'
+    color: CATEGORY_COLORS.bbq.accent,
+    bgColor: CATEGORY_COLORS.bbq.bg,
+    bgHover: CATEGORY_COLORS.bbq.bgHover,
+    image: '/categories/bbq.png',
   },
   {
     id: 'seafood',
-    name: '해산물/회',
+    name: '해산물',
     icon: 'fish',
-    image: CATEGORY_IMAGES.seafood,
     desc: '회/조개구이/랍스터',
-    color: '#8C7565',
-    bgColor: '#F7F4F2'
+    color: CATEGORY_COLORS.seafood.accent,
+    bgColor: CATEGORY_COLORS.seafood.bg,
+    bgHover: CATEGORY_COLORS.seafood.bgHover,
+    image: '/categories/seafood.png',
   },
   {
-    id: 'pizza',
-    name: '피자/치킨',
-    icon: 'pizza',
-    image: CATEGORY_IMAGES.pizza,
-    desc: '피자/후라이드치킨',
-    color: '#8C7565',
-    bgColor: '#F7F4F2'
+    id: 'hotpot',
+    name: '찌개/전골',
+    icon: 'pot',
+    desc: '부대찌개/샤브샤브',
+    color: CATEGORY_COLORS.hotpot.accent,
+    bgColor: CATEGORY_COLORS.hotpot.bg,
+    bgHover: CATEGORY_COLORS.hotpot.bgHover,
+    image: '/categories/hotpot.png',
+  },
+  {
+    id: 'cafe',
+    name: '카페',
+    icon: 'coffee',
+    desc: '브런치/커피/케이크',
+    color: CATEGORY_COLORS.cafe.accent,
+    bgColor: CATEGORY_COLORS.cafe.bg,
+    bgHover: CATEGORY_COLORS.cafe.bgHover,
+    image: '/categories/cafe.png',
   },
   {
     id: 'bar',
-    name: '주점/술집',
+    name: '술집',
     icon: 'wine',
-    image: CATEGORY_IMAGES.bar,
-    desc: '호프집/이자카야',
-    color: '#8C7565',
-    bgColor: '#F7F4F2'
+    desc: '호프/이자카야/와인바',
+    color: CATEGORY_COLORS.bar.accent,
+    bgColor: CATEGORY_COLORS.bar.bg,
+    bgHover: CATEGORY_COLORS.bar.bgHover,
+    image: '/categories/bar.png',
   },
   {
-    id: 'course',
-    name: '코스요리',
-    icon: 'award',
-    image: CATEGORY_IMAGES.course,
-    desc: '오마카세/프렌치',
-    color: '#8C7565',
-    bgColor: '#F7F4F2'
-  },
-  {
-    id: 'party',
-    name: '파티룸',
-    icon: 'birthday-cake',
-    image: CATEGORY_IMAGES.party,
-    desc: '생일파티/회식',
-    color: '#8C7565',
-    bgColor: '#F7F4F2'
+    id: 'etc',
+    name: '기타',
+    icon: 'compass',
+    desc: '분식/야식/기타',
+    color: CATEGORY_COLORS.etc.accent,
+    bgColor: CATEGORY_COLORS.etc.bg,
+    bgHover: CATEGORY_COLORS.etc.bgHover,
+    image: '/categories/etc.png',
   },
 ];
 
@@ -100,6 +121,26 @@ export const FOOD_CATEGORY_NAMES = FOOD_CATEGORIES.map(cat => cat.name);
 
 // 검색용 카테고리 (전체 포함)
 export const SEARCH_CATEGORIES = ['전체', ...FOOD_CATEGORY_NAMES];
+
+// ID로 카테고리 조회 헬퍼
+export const getCategoryById = (id: string): FoodCategory | undefined =>
+  FOOD_CATEGORIES.find(cat => cat.id === id);
+
+// 이름으로 카테고리 조회 헬퍼
+export const getCategoryByName = (name: string): FoodCategory | undefined =>
+  FOOD_CATEGORIES.find(cat => cat.name === name);
+
+// 이전 카테고리명→새 카테고리 매핑 (하위 호환)
+export const LEGACY_CATEGORY_MAP: Record<string, string> = {
+  '고기/구이': 'bbq',
+  '전골/찌개': 'hotpot',
+  '뷔페/무한리필': 'buffet',
+  '해산물/회': 'seafood',
+  '피자/치킨': 'western',
+  '주점/술집': 'bar',
+  '코스요리': 'course',
+  '파티룸': 'party',
+};
 
 // 지역 관련 상수
 export const LOCATIONS = [
