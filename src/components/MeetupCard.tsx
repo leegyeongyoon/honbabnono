@@ -237,7 +237,30 @@ const MeetupCard: React.FC<MeetupCardProps> = ({ meetup, onPress, variant = 'lis
               </View>
             )}
           </View>
-          {/* 2행: 날짜 · 위치 · 인원 (한 줄로 통합) */}
+          {/* 2행: 필수 성향 태그 */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
+            {meetup.genderPreference && !['무관', '상관없음', '혼성'].includes(meetup.genderPreference) && (
+              <View style={[styles.genderTag, { minHeight: 18, paddingHorizontal: 5, paddingVertical: 1 }]}>
+                <Text style={[styles.genderTagText, { fontSize: 9 }]}>{meetup.genderPreference}</Text>
+              </View>
+            )}
+            {meetup.ageRange && !['무관', '상관없음'].includes(meetup.ageRange) && (
+              <View style={[styles.ageTag, { minHeight: 18, paddingHorizontal: 5, paddingVertical: 1 }]}>
+                <Text style={[styles.ageTagText, { fontSize: 9 }]}>{meetup.ageRange}</Text>
+              </View>
+            )}
+            {meetup.priceRange && (
+              <View style={[styles.priceTag, { minHeight: 18, paddingHorizontal: 5, paddingVertical: 1 }]}>
+                <Text style={[styles.priceTagText, { fontSize: 9 }]}>{meetup.priceRange}</Text>
+              </View>
+            )}
+            {meetup.promiseDepositAmount ? (
+              <View style={[styles.depositTag, { minHeight: 18, paddingHorizontal: 5, paddingVertical: 1 }]}>
+                <Text style={[styles.depositTagText, { fontSize: 9 }]}>보증금 {meetup.promiseDepositAmount.toLocaleString()}원</Text>
+              </View>
+            ) : null}
+          </View>
+          {/* 3행: 날짜 · 위치 · 인원 */}
           <View style={compactStyles.metaRow}>
             <Text style={compactStyles.metaText} numberOfLines={1}>
               {formatMeetupDateTime(meetup.date, meetup.time)}
@@ -409,6 +432,28 @@ const MeetupCard: React.FC<MeetupCardProps> = ({ meetup, onPress, variant = 'lis
           <Text style={gridStyles.title} numberOfLines={1}>
             {meetup.title}
           </Text>
+          <View style={{ flexDirection: 'row', gap: 3, flexWrap: 'wrap', marginTop: 2 }}>
+            {meetup.genderPreference && !['무관', '상관없음', '혼성'].includes(meetup.genderPreference) && (
+              <View style={[styles.genderTag, { minHeight: 16, paddingHorizontal: 4, paddingVertical: 0 }]}>
+                <Text style={[styles.genderTagText, { fontSize: 9 }]}>{meetup.genderPreference}</Text>
+              </View>
+            )}
+            {meetup.ageRange && !['무관', '상관없음'].includes(meetup.ageRange) && (
+              <View style={[styles.ageTag, { minHeight: 16, paddingHorizontal: 4, paddingVertical: 0 }]}>
+                <Text style={[styles.ageTagText, { fontSize: 9 }]}>{meetup.ageRange}</Text>
+              </View>
+            )}
+            {meetup.priceRange && (
+              <View style={[styles.priceTag, { minHeight: 16, paddingHorizontal: 4, paddingVertical: 0 }]}>
+                <Text style={[styles.priceTagText, { fontSize: 9 }]}>{meetup.priceRange}</Text>
+              </View>
+            )}
+            {meetup.promiseDepositAmount ? (
+              <View style={[styles.depositTag, { minHeight: 16, paddingHorizontal: 4, paddingVertical: 0 }]}>
+                <Text style={[styles.depositTagText, { fontSize: 9 }]}>보증금 {meetup.promiseDepositAmount.toLocaleString()}원</Text>
+              </View>
+            ) : null}
+          </View>
           <Text style={gridStyles.metaText} numberOfLines={1}>
             {formatMeetupDateTime(meetup.date, meetup.time)} · {meetup.location || '위치 미정'}
           </Text>
@@ -569,7 +614,12 @@ const MeetupCard: React.FC<MeetupCardProps> = ({ meetup, onPress, variant = 'lis
               <Text style={styles.priceTagText}>{meetup.priceRange}</Text>
             </View>
           )}
-          {meetup.ageRange && (
+          {meetup.genderPreference && !['무관', '상관없음', '혼성'].includes(meetup.genderPreference) && (
+            <View style={styles.genderTag}>
+              <Text style={styles.genderTagText}>{meetup.genderPreference}</Text>
+            </View>
+          )}
+          {meetup.ageRange && !['무관', '상관없음'].includes(meetup.ageRange) && (
             <View style={styles.ageTag}>
               <Text style={styles.ageTagText}>{meetup.ageRange}</Text>
             </View>
@@ -941,6 +991,21 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '500',
     color: COLORS.text.secondary,
+  },
+  genderTag: {
+    minHeight: 24,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: BORDER_RADIUS.sm,
+    backgroundColor: '#FFF0F5',
+    borderWidth: 1,
+    borderColor: 'rgba(219,112,147,0.15)',
+    justifyContent: 'center',
+  },
+  genderTagText: {
+    fontSize: 11,
+    fontWeight: '500',
+    color: '#C7254E',
   },
   ageTag: {
     minHeight: 24,

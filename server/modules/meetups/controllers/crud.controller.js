@@ -11,12 +11,21 @@ const { validateHostPermission } = require('../helpers/validation.helper');
 exports.getMeetupById = async (req, res) => {
   try {
     const { id } = req.params;
+    const { processImageUrl } = require('../../../utils/helpers');
 
     const result = await pool.query(
       `
-      SELECT m.*,
-        u.id as host_id, u.name as host_name,
-        u.profile_image as host_profile_image, u.rating as host_rating
+      SELECT m.id, m.title, m.description, m.location, m.address,
+        m.latitude, m.longitude, m.date, m.time,
+        m.max_participants, m.current_participants,
+        m.category, m.price_range, m.image, m.status,
+        m.age_range, m.gender_preference, m.host_id,
+        m.dining_preferences, m.promise_deposit_amount, m.promise_deposit_required,
+        m.requirements, m.tags, m.created_at, m.updated_at,
+        u.id as host_user_id, u.name as host_name,
+        u.profile_image as host_profile_image,
+        u.rating as host_rating,
+        u.babal_score as host_babal_score
       FROM meetups m
       LEFT JOIN users u ON m.host_id = u.id
       WHERE m.id = $1
@@ -31,11 +40,13 @@ exports.getMeetupById = async (req, res) => {
       });
     }
 
-    const meetup = result.rows[0];
+    const row = result.rows[0];
 
+    // 참가자 조회
     const participantsResult = await pool.query(
       `
-      SELECT mp.*, u.name, u.profile_image, u.rating
+      SELECT mp.user_id, mp.status, mp.joined_at,
+        u.name, u.profile_image, u.rating, u.babal_score
       FROM meetup_participants mp
       JOIN users u ON mp.user_id = u.id
       WHERE mp.meetup_id = $1
@@ -44,17 +55,72 @@ exports.getMeetupById = async (req, res) => {
       [id]
     );
 
+    // 선택 성향 필터 조회
+    const prefsResult = await pool.query(
+      `SELECT * FROM meetup_preference_filters WHERE meetup_id = $1 LIMIT 1`,
+      [id]
+    );
+    const preferenceFilters = prefsResult.rows[0] || null;
+
+    // 조회수 증가
+    await pool.query(
+      `UPDATE meetups SET view_count = COALESCE(view_count, 0) + 1 WHERE id = $1`,
+      [id]
+    ).catch(() => {});
+
     res.json({
       success: true,
       meetup: {
-        ...meetup,
+        id: row.id,
+        title: row.title,
+        description: row.description,
+        location: row.location,
+        address: row.address,
+        latitude: row.latitude ? parseFloat(row.latitude) : null,
+        longitude: row.longitude ? parseFloat(row.longitude) : null,
+        date: row.date,
+        time: row.time,
+        maxParticipants: row.max_participants,
+        currentParticipants: row.current_participants,
+        category: row.category,
+        priceRange: row.price_range,
+        ageRange: row.age_range,
+        genderPreference: row.gender_preference,
+        image: processImageUrl(row.image, row.category),
+        status: row.status,
+        hostId: row.host_id,
+        requirements: row.requirements,
+        tags: row.tags,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at,
+        diningPreferences: row.dining_preferences || {},
+        promiseDepositAmount: row.promise_deposit_amount || 0,
+        promiseDepositRequired: row.promise_deposit_required || false,
+        viewCount: row.view_count || 0,
         host: {
-          id: meetup.host_id,
-          name: meetup.host_name,
-          profileImage: meetup.host_profile_image,
-          rating: meetup.host_rating,
+          id: row.host_user_id,
+          name: row.host_name,
+          profileImage: row.host_profile_image,
+          rating: row.host_rating,
+          babAlScore: parseFloat(row.host_babal_score) || 36.5,
         },
-        participants: participantsResult.rows,
+        preferenceFilters: preferenceFilters ? {
+          eatingSpeed: preferenceFilters.eating_speed !== 'no_preference' ? preferenceFilters.eating_speed : null,
+          conversationDuringMeal: preferenceFilters.conversation_during_meal !== 'no_preference' ? preferenceFilters.conversation_during_meal : null,
+          talkativeness: preferenceFilters.talkativeness !== 'no_preference' ? preferenceFilters.talkativeness : null,
+          mealPurpose: preferenceFilters.meal_purpose !== 'no_preference' ? preferenceFilters.meal_purpose : null,
+          specificRestaurant: preferenceFilters.specific_restaurant || null,
+          interests: (preferenceFilters.interests || []).filter(i => i),
+        } : null,
+        participants: participantsResult.rows.map(p => ({
+          id: p.user_id,
+          name: p.name,
+          profileImage: p.profile_image,
+          rating: p.rating,
+          status: p.status,
+          joinedAt: p.joined_at,
+          babAlScore: parseFloat(p.babal_score) || 36.5,
+        })),
       },
     });
   } catch (error) {

@@ -138,7 +138,8 @@ exports.kakaoCallback = async (req, res) => {
       id: user.id,
       name: user.name,
       email: user.email,
-      profileImage: user.profileImage
+      profileImage: user.profileImage,
+      gender: user.gender
     }))}`);
 
   } catch (error) {
@@ -259,7 +260,7 @@ exports.verifyToken = async (req, res) => {
 
     // 사용자 정보 조회 (삭제되지 않은 계정만)
     const userResult = await pool.query(`
-      SELECT id, email, name, profile_image, provider, is_verified, created_at
+      SELECT id, email, name, profile_image, provider, is_verified, gender, created_at
       FROM users
       WHERE id = $1
     `, [userId]);
@@ -288,6 +289,7 @@ exports.verifyToken = async (req, res) => {
         profileImage: user.profile_image,
         provider: user.provider,
         isVerified: user.is_verified,
+        gender: user.gender,
         createdAt: user.created_at
       },
       token: token // 기존 토큰 재사용

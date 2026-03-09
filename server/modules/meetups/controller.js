@@ -1266,14 +1266,14 @@ exports.confirmMeetup = async (req, res) => {
           await pool.query(`
             UPDATE user_points
             SET available_points = available_points + $1,
-                total_used = total_used - $1,
+                used_points = used_points - $1,
                 updated_at = NOW()
             WHERE user_id = $2
           `, [participant.amount, participant.user_id]);
 
           await pool.query(`
             INSERT INTO point_transactions
-            (user_id, transaction_type, amount, description, created_at)
+            (user_id, type, amount, description, created_at)
             VALUES ($1, 'earned', $2, $3, NOW())
           `, [participant.user_id, participant.amount, `약속 취소로 인한 약속금 환불: ${meetup.title}`]);
 
@@ -1926,17 +1926,17 @@ exports.applyNoShowPenalties = async (req, res) => {
     for (const participant of noShowParticipants) {
       const existingPenalty = await client.query(`
         SELECT id FROM point_transactions
-        WHERE user_id = $1 AND meetup_id = $2 AND type = 'penalty' AND description LIKE '%노쇼%'
-      `, [participant.user_id, meetupId]);
+        WHERE user_id = $1 AND type = 'penalty' AND description LIKE '%노쇼%' AND description LIKE $2
+      `, [participant.user_id, `%${meetupId}%`]);
 
       if (existingPenalty.rows.length === 0) {
         await client.query(`
           INSERT INTO point_transactions (
-            id, user_id, type, amount, description, meetup_id, status, created_at
+            user_id, type, amount, description, created_at
           ) VALUES (
-            gen_random_uuid(), $1, 'penalty', $2, '노쇼 패널티', $3, 'completed', NOW()
+            $1, 'penalty', $2, $3, NOW()
           )
-        `, [participant.user_id, penaltyAmount, meetupId]);
+        `, [participant.user_id, penaltyAmount, `노쇼 패널티 (약속 ID: ${meetupId})`]);
 
         await client.query(
           'UPDATE users SET points = GREATEST(COALESCE(points, 0) - $1, 0) WHERE id = $2',

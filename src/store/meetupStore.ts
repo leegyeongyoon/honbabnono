@@ -19,6 +19,15 @@ export interface Host {
   babAlScore: number;
 }
 
+export interface PreferenceFilters {
+  eatingSpeed?: string | null;
+  conversationDuringMeal?: string | null;
+  talkativeness?: string | null;
+  mealPurpose?: string | null;
+  specificRestaurant?: string | null;
+  interests?: string[];
+}
+
 export interface Meetup {
   id: string;
   title: string;
@@ -48,7 +57,12 @@ export interface Meetup {
   participants: Participant[];
   lastChatTime?: string;
   lastChatMessage?: string;
-  distance?: number | null; // 사용자 위치로부터의 거리 (미터)
+  distance?: number | null;
+  diningPreferences?: Record<string, any>;
+  preferenceFilters?: PreferenceFilters | null;
+  promiseDepositAmount?: number;
+  promiseDepositRequired?: boolean;
+  viewCount?: number;
 }
 
 // 위치 기반 검색 파라미터
@@ -172,36 +186,41 @@ const transformMeetupData = (meetupData: any): Meetup => {
     time: actualData.time || '',
     maxParticipants: actualData.maxParticipants ?? actualData.max_participants ?? 4,
     currentParticipants: actualData.currentParticipants ?? actualData.current_participants ?? 0,
-    priceRange: actualData.priceRange,
-    ageRange: actualData.ageRange,
-    genderPreference: actualData.genderPreference,
+    priceRange: actualData.priceRange ?? actualData.price_range,
+    ageRange: actualData.ageRange ?? actualData.age_range,
+    genderPreference: actualData.genderPreference ?? actualData.gender_preference,
     image: actualData.image,
     status: mapKoreanStatus(actualData.status),
-    hostId: actualData.hostId || actualData.host?.id || 'unknown',
-    hostName: actualData.host?.name || actualData.hostName || '익명',
-    hostBabAlScore: actualData.host?.babAlScore || actualData.hostBabAlScore || 98,
+    hostId: actualData.hostId ?? actualData.host_id ?? actualData.host?.id ?? 'unknown',
+    hostName: actualData.host?.name || actualData.hostName || actualData.host_name || '익명',
+    hostBabAlScore: actualData.host?.babAlScore ?? actualData.hostBabAlScore ?? 36.5,
     host: actualData.host ? {
-      id: actualData.host.id || actualData.hostId || 'unknown',
+      id: actualData.host.id || actualData.hostId || actualData.host_id || 'unknown',
       name: actualData.host.name || '익명',
-      profileImage: actualData.host.profileImage,
+      profileImage: actualData.host.profileImage || actualData.host.profile_image,
       rating: actualData.host.rating,
-      babAlScore: actualData.host.babAlScore || 98,
+      babAlScore: actualData.host.babAlScore ?? actualData.host.babal_score ?? 36.5,
     } : undefined,
     requirements: actualData.requirements,
     tags: actualData.tags || [],
-    createdAt: actualData.createdAt,
-    updatedAt: actualData.updatedAt,
+    createdAt: actualData.createdAt ?? actualData.created_at,
+    updatedAt: actualData.updatedAt ?? actualData.updated_at,
     participants: actualData.participants?.map((p: any) => ({
-      id: p.id,
+      id: p.id ?? p.user_id,
       name: p.name,
-      profileImage: p.profileImage,
+      profileImage: p.profileImage ?? p.profile_image,
       status: p.status === '참가승인' ? 'approved' : p.status === '참가신청' ? 'pending' : 'rejected',
-      joinedAt: p.joinedAt,
-      babAlScore: p.babAlScore || 50,
+      joinedAt: p.joinedAt ?? p.joined_at,
+      babAlScore: p.babAlScore ?? p.babal_score ?? 36.5,
     })) || [],
     lastChatTime: actualData.lastChatTime,
     lastChatMessage: actualData.lastChatMessage,
-    distance: actualData.distance ?? null, // 거리 정보 (미터)
+    distance: actualData.distance ?? null,
+    diningPreferences: actualData.diningPreferences ?? actualData.dining_preferences ?? {},
+    preferenceFilters: actualData.preferenceFilters ?? null,
+    promiseDepositAmount: actualData.promiseDepositAmount ?? actualData.promise_deposit_amount ?? 0,
+    promiseDepositRequired: actualData.promiseDepositRequired ?? actualData.promise_deposit_required ?? false,
+    viewCount: actualData.viewCount ?? actualData.view_count ?? 0,
   };
 };
 
@@ -364,15 +383,17 @@ export const useMeetupStore = create<MeetupState>()(
     // Participant Actions
     joinMeetup: async (meetupId: string, userId: string) => {
       try {
-        await apiCall(`/meetups/${meetupId}/join`, {
+        const result = await apiCall(`/meetups/${meetupId}/join`, {
           method: 'POST',
           body: JSON.stringify({ userId }),
         });
-        
+
         // 모임 데이터 새로고침
         await get().fetchMeetupById(meetupId);
+        return result;
       } catch (error) {
         set({ error: (error as Error).message });
+        throw error;
       }
     },
     

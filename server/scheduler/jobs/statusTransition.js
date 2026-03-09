@@ -8,6 +8,7 @@
 
 const pool = require('../../config/database');
 const logger = require('../../config/logger');
+const { updateBabalScore } = require('../../utils/babalScore');
 
 const JOB_NAME = '🔄 [상태 전환]';
 
@@ -43,6 +44,18 @@ async function run() {
         `${JOB_NAME} ${toCompletedResult.rows.length}개 모임 '종료'로 전환:`,
         toCompletedResult.rows.map(m => m.title).join(', ')
       );
+
+      // 호스트 밥알지수 보너스 (모임 성공 완료)
+      const completedIds = toCompletedResult.rows.map(m => m.id);
+      const hostsResult = await pool.query(
+        'SELECT id, host_id FROM meetups WHERE id = ANY($1)',
+        [completedIds]
+      );
+      for (const meetup of hostsResult.rows) {
+        updateBabalScore(meetup.host_id, 'HOST_MEETUP_COMPLETED', { meetupId: meetup.id }).catch(
+          (err) => logger.error(`${JOB_NAME} 호스트 밥알지수 보너스 오류:`, err)
+        );
+      }
     }
 
     const totalTransitions = toInProgressResult.rows.length + toCompletedResult.rows.length;

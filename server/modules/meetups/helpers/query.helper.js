@@ -44,6 +44,8 @@ const transformMeetupData = (row, options = {}) => {
     genderPreference: row.gender_preference,
     image: processImageUrl(row.image, row.category),
     status: row.status,
+    promiseDepositAmount: row.promise_deposit_amount || 0,
+    promiseDepositRequired: row.promise_deposit_required || false,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     host: row['host.name'] ? {
@@ -51,7 +53,7 @@ const transformMeetupData = (row, options = {}) => {
       name: row['host.name'],
       profileImage: row['host.profileImage'],
       rating: row['host.rating'],
-      babAlScore: row['host.babAlScore'] || 50,
+      babAlScore: parseFloat(row['host.babAlScore']) || 36.5,
     } : null,
     distance: null,
   };
@@ -145,6 +147,7 @@ const MEETUP_BASE_SELECT = `
     m.date, m.time, m.max_participants, m.current_participants,
     m.category, m.price_range, m.image, m.status,
     m.age_range, m.gender_preference, m.host_id,
+    m.promise_deposit_amount, m.promise_deposit_required,
     m.created_at, m.updated_at,
     h.name as "host.name",
     h.profile_image as "host.profileImage",
@@ -164,6 +167,7 @@ const MEETUP_WITH_TIME_SELECT = `
     m.date, m.time, m.max_participants, m.current_participants,
     m.category, m.price_range, m.image, m.status,
     m.age_range, m.gender_preference, m.host_id,
+    m.promise_deposit_amount, m.promise_deposit_required,
     m.created_at, m.updated_at,
     h.name as "host.name",
     h.profile_image as "host.profileImage",

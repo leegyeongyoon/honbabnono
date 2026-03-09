@@ -3,6 +3,7 @@
  */
 const pool = require('../../../config/database');
 const logger = require('../../../config/logger');
+const { updateBabalScore } = require('../../../utils/babalScore');
 const {
   validateMeetupExists,
   validateHostPermission,
@@ -36,6 +37,74 @@ exports.joinMeetup = async (req, res) => {
       });
     }
 
+    // 성별/나이 필수 필터 검증
+    const userResult = await pool.query(
+      'SELECT gender, birth_date FROM users WHERE id = $1',
+      [userId]
+    );
+    const user = userResult.rows[0];
+
+    // 성별 제한 검증
+    const openGenderValues = ['무관', '상관없음', '혼성'];
+    if (meetup.gender_preference && !openGenderValues.includes(meetup.gender_preference)) {
+      if (!user.gender) {
+        return res.status(400).json({
+          success: false,
+          error: '프로필에서 성별을 설정해야 이 약속에 참가할 수 있습니다.',
+        });
+      }
+      const genderMap = { male: '남성', female: '여성' };
+      const userGenderLabel = genderMap[user.gender] || user.gender;
+      const requiredGender = meetup.gender_preference.replace('만', '');
+      if (requiredGender !== userGenderLabel && requiredGender !== user.gender) {
+        return res.status(400).json({
+          success: false,
+          error: `이 약속은 ${meetup.gender_preference} 전용입니다.`,
+        });
+      }
+    }
+
+    // 나이 제한 검증
+    const openAgeValues = ['무관', '상관없음', '전연령'];
+    if (meetup.age_range && !openAgeValues.includes(meetup.age_range)) {
+      if (!user.birth_date) {
+        return res.status(400).json({
+          success: false,
+          error: '프로필에서 생년월일을 설정해야 이 약속에 참가할 수 있습니다.',
+        });
+      }
+      const today = new Date();
+      const birth = new Date(user.birth_date);
+      let age = today.getFullYear() - birth.getFullYear();
+      const monthDiff = today.getMonth() - birth.getMonth();
+      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+        age--;
+      }
+
+      // age_range 파싱: "20대", "30대", "20-30", "20대~30대" 등
+      const rangeStr = meetup.age_range;
+      let minAge = 0;
+      let maxAge = 99;
+
+      const decadeMatch = rangeStr.match(/(\d+)대/);
+      const rangeMatch = rangeStr.match(/(\d+)\s*[-~]\s*(\d+)/);
+
+      if (rangeMatch) {
+        minAge = parseInt(rangeMatch[1]);
+        maxAge = parseInt(rangeMatch[2]) + 9; // "20-30" → 20~39
+      } else if (decadeMatch) {
+        minAge = parseInt(decadeMatch[1]);
+        maxAge = minAge + 9; // "20대" → 20~29
+      }
+
+      if (age < minAge || age > maxAge) {
+        return res.status(400).json({
+          success: false,
+          error: `이 약속은 ${meetup.age_range} 대상입니다. (현재 나이: ${age}세)`,
+        });
+      }
+    }
+
     // 이미 참가 여부 확인
     const existingResult = await pool.query(
       'SELECT * FROM meetup_participants WHERE meetup_id = $1 AND user_id = $2',
@@ -52,15 +121,67 @@ exports.joinMeetup = async (req, res) => {
     // 참가 신청
     await pool.query(
       `
-      INSERT INTO meetup_participants (meetup_id, user_id, status, joined_at)
-      VALUES ($1, $2, '참가신청', NOW())
+      INSERT INTO meetup_participants (id, meetup_id, user_id, status, joined_at, created_at, updated_at)
+      VALUES (gen_random_uuid(), $1, $2, '참가승인', NOW(), NOW(), NOW())
     `,
       [id, userId]
     );
 
+    // current_participants 증가
+    await pool.query(
+      'UPDATE meetups SET current_participants = current_participants + 1 WHERE id = $1',
+      [id]
+    );
+
+    // 채팅방 확인 및 생성
+    let chatRoomId;
+    const existingRoom = await pool.query(
+      'SELECT id FROM chat_rooms WHERE "meetupId" = $1',
+      [id]
+    );
+
+    if (existingRoom.rows.length > 0) {
+      chatRoomId = existingRoom.rows[0].id;
+    } else {
+      // 채팅방 생성
+      const roomResult = await pool.query(`
+        INSERT INTO chat_rooms (
+          "meetupId", title, type, "createdBy", "isActive",
+          "maxParticipants", "createdAt", "updatedAt"
+        ) VALUES ($1, $2, 'meetup', $3, true, $4, NOW(), NOW())
+        RETURNING id
+      `, [id, meetup.title, meetup.host_id, meetup.max_participants]);
+      chatRoomId = roomResult.rows[0].id;
+
+      // 호스트를 채팅방에 추가
+      const hostUser = await pool.query('SELECT name FROM users WHERE id = $1', [meetup.host_id]);
+      await pool.query(`
+        INSERT INTO chat_participants (
+          "chatRoomId", "userId", "userName", role, "isActive",
+          "unreadCount", "joinedAt", "createdAt", "updatedAt"
+        ) VALUES ($1, $2, $3, 'owner', true, 0, NOW(), NOW(), NOW())
+      `, [chatRoomId, meetup.host_id, hostUser.rows[0]?.name || '호스트']);
+    }
+
+    // 참가자를 채팅방에 추가
+    const alreadyInChat = await pool.query(
+      'SELECT id FROM chat_participants WHERE "chatRoomId" = $1 AND "userId" = $2',
+      [chatRoomId, userId]
+    );
+    if (alreadyInChat.rows.length === 0) {
+      const participantUser = await pool.query('SELECT name FROM users WHERE id = $1', [userId]);
+      await pool.query(`
+        INSERT INTO chat_participants (
+          "chatRoomId", "userId", "userName", role, "isActive",
+          "unreadCount", "joinedAt", "createdAt", "updatedAt"
+        ) VALUES ($1, $2, $3, 'member', true, 0, NOW(), NOW(), NOW())
+      `, [chatRoomId, userId, participantUser.rows[0]?.name || '참가자']);
+    }
+
     res.json({
       success: true,
-      message: '참가 신청이 완료되었습니다.',
+      message: '참가가 완료되었습니다.',
+      chatRoomId,
     });
   } catch (error) {
     logger.error('모임 참가 오류:', error);
@@ -112,6 +233,17 @@ exports.leaveMeetup = async (req, res) => {
     }
 
     const wasApproved = participantResult.rows[0].status === '참가승인';
+
+    // 24시간 내 취소 시 밥알지수 패널티
+    if (wasApproved && meetup.date && meetup.time) {
+      const meetupDateTime = new Date(`${meetup.date}T${meetup.time}`);
+      const hoursUntil = (meetupDateTime - new Date()) / (1000 * 60 * 60);
+      if (hoursUntil >= 0 && hoursUntil <= 24) {
+        await updateBabalScore(userId, 'LATE_CANCEL', { meetupId: id }).catch(
+          (err) => logger.error('밥알지수 취소 패널티 오류:', err)
+        );
+      }
+    }
 
     // 참가자 삭제
     const result = await pool.query(

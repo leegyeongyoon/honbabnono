@@ -86,14 +86,13 @@ export const DepositSelector: React.FC<DepositSelectorProps> = ({
       const paymentRequest: PaymentRequest = {
         amount: defaultPolicy.amount,
         userId: user.id,
-        meetupId,
+        meetupId: meetupId || `temp-${Date.now()}`,
         paymentMethod: selectedPaymentMethod,
       };
 
       const response = await depositService.processPayment(paymentRequest);
 
       if (response.success) {
-        // 실제로는 DB에서 생성된 약속금 ID를 받아와야 함
         const depositId = response.paymentId || `temp_${Date.now()}`;
 
         // 결제 완료 상태 설정
@@ -115,6 +114,10 @@ export const DepositSelector: React.FC<DepositSelectorProps> = ({
           setIsPaymentComplete(false);
           setCompletedPaymentId(null);
         }, 3000);
+      } else if (response.errorMessage?.includes('이미')) {
+        // 이미 결제한 경우 → 바로 참가 처리
+        onDepositPaid(`existing_${Date.now()}`, defaultPolicy.amount);
+        onClose();
       } else {
         Alert.alert('결제 실패', response.errorMessage || '결제 처리 중 오류가 발생했습니다.');
       }

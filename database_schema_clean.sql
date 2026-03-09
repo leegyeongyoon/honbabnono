@@ -35,7 +35,9 @@ CREATE TABLE users (
     rating NUMERIC(2,1) DEFAULT 5.0, -- 평점 (1.0~5.0)
     meetups_joined INTEGER DEFAULT 0, -- 참가한 모임 수
     meetups_hosted INTEGER DEFAULT 0, -- 주최한 모임 수
-    babal_score INTEGER DEFAULT 40, -- 밥알 점수 (0~100, 기본값 40점 시작)
+    gender VARCHAR(10), -- 성별 (male, female, other)
+    birth_date DATE, -- 생년월일
+    babal_score NUMERIC(4,1) DEFAULT 36.5, -- 밥알지수 (0~99, 당근 매너온도 스타일, 36.5 시작)
     preferences JSONB, -- 사용자 모임 선호도 (JSON)
     last_login_at TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),

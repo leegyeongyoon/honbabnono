@@ -11,11 +11,9 @@
 const pool = require('../../config/database');
 const logger = require('../../config/logger');
 const { sendPushNotification } = require('../../modules/notifications/pushService');
+const { updateBabalScore } = require('../../utils/babalScore');
 
 const JOB_NAME = '🚫 [노쇼 처리]';
-
-// 노쇼 시 밥알 점수 차감량
-const NOSHOW_SCORE_PENALTY = 10;
 
 async function run() {
   const client = await pool.connect();
@@ -75,16 +73,14 @@ async function run() {
             WHERE meetup_id = $1 AND user_id = $2
           `, [meetup.id, participant.user_id]);
 
-          // 2. 밥알 점수 차감
-          const newScore = Math.max((participant.babal_score || 40) - NOSHOW_SCORE_PENALTY, 0);
-          await client.query(`
-            UPDATE users
-            SET babal_score = $1, updated_at = NOW()
-            WHERE id = $2
-          `, [newScore, participant.user_id]);
+          // 2. 밥알지수 차감 (통합 알고리즘)
+          await updateBabalScore(participant.user_id, 'NO_SHOW', {
+            meetupId: meetup.id,
+            client,
+          });
 
           // 3. 노쇼 알림 생성
-          const noShowMessage = `"${meetup.title}" 약속에 출석하지 않아 노쇼로 처리되었습니다. 밥알 점수가 ${NOSHOW_SCORE_PENALTY}점 차감되었습니다.`;
+          const noShowMessage = `"${meetup.title}" 약속에 출석하지 않아 노쇼로 처리되었습니다. 밥알지수가 2.0 차감되었습니다.`;
           await client.query(`
             INSERT INTO notifications (user_id, type, title, message, meetup_id, is_read, created_at)
             VALUES ($1, $2, $3, $4, $5, false, NOW())

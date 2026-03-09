@@ -5,8 +5,9 @@ const pool = require('../../../config/database');
 const logger = require('../../../config/logger');
 const { calculateDistance } = require('../../../utils/helpers');
 const { validateMeetupExists, validateHostPermission, validateParticipant } = require('../helpers/validation.helper');
+const { updateBabalScore } = require('../../../utils/babalScore');
 
-const MAX_CHECKIN_DISTANCE = 100; // 체크인 가능 최대 거리 (미터)
+const MAX_CHECKIN_DISTANCE = 200; // 체크인 가능 최대 거리 (미터) - 200m 통일
 
 /**
  * GPS 체크인
@@ -70,6 +71,11 @@ exports.gpsCheckin = async (req, res) => {
     await pool.query(
       'UPDATE meetup_participants SET attended = true, attended_at = NOW() WHERE meetup_id = $1 AND user_id = $2',
       [meetupId, userId]
+    );
+
+    // 밥알지수 출석 보너스
+    await updateBabalScore(userId, 'MEETUP_ATTENDED', { meetupId }).catch(
+      (err) => logger.error('밥알지수 출석 보너스 오류:', err)
     );
 
     res.json({
@@ -214,6 +220,11 @@ exports.qrCheckin = async (req, res) => {
       [meetupId, userId]
     );
 
+    // 밥알지수 출석 보너스
+    await updateBabalScore(userId, 'MEETUP_ATTENDED', { meetupId }).catch(
+      (err) => logger.error('밥알지수 QR 출석 보너스 오류:', err)
+    );
+
     res.json({
       success: true,
       message: 'QR 코드 체크인이 완료되었습니다!',
@@ -254,6 +265,11 @@ exports.hostConfirmAttendance = async (req, res) => {
     await pool.query(
       'UPDATE meetup_participants SET attended = true, attended_at = NOW() WHERE meetup_id = $1 AND user_id = $2',
       [meetupId, participantId]
+    );
+
+    // 밥알지수 출석 보너스 (호스트 확인)
+    await updateBabalScore(participantId, 'MEETUP_ATTENDED', { meetupId }).catch(
+      (err) => logger.error('밥알지수 호스트확인 출석 보너스 오류:', err)
     );
 
     res.json({

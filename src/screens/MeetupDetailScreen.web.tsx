@@ -420,20 +420,51 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
   const meetupDateTime = new Date(`${meetup.date} ${meetup.time}`);
   const isTimeExpired = now > meetupDateTime;
 
+  // 참가 불가 사유 계산
+  const getJoinDisabledReason = (): string | null => {
+    if (!user) {return '로그인이 필요합니다';}
+    if (!meetup) {return null;}
+
+    // 인원 마감
+    if (meetup.currentParticipants >= meetup.maxParticipants) {
+      return '인원이 마감되었습니다';
+    }
+
+    // 성별 제한
+    const openGenderValues = ['무관', '상관없음', '혼성'];
+    if (meetup.genderPreference && !openGenderValues.includes(meetup.genderPreference)) {
+      const genderMap: Record<string, string> = { male: '남성', female: '여성' };
+      const userGenderLabel = genderMap[user.gender || ''] || user.gender;
+      const requiredGender = meetup.genderPreference.replace('만', '');
+      if (userGenderLabel !== requiredGender && user.gender !== requiredGender) {
+        return `${meetup.genderPreference} 전용 약속입니다`;
+      }
+    }
+
+    return null;
+  };
+
+  const joinDisabledReason = getJoinDisabledReason();
+  const canJoin = !joinDisabledReason;
+
   // 모임 참여하기
   const handleJoinMeetup = async () => {
-    if (!user || !id) {return;}
+    if (!user || !id || !canJoin) {return;}
 
     try {
       if (participants.some(p => p.id === user.id)) {
-        // 이미 참여중이면 탈퇴 확인 모달 표시
         setShowLeaveModal(true);
-      } else {
-        // 참여하기 - 약속금 결제 모달 표시
-        setShowDepositSelector(true);
+        return;
       }
-    } catch (error) {
-      // 모임 참여/탈퇴 실패 - 무시
+
+      if (meetup?.promiseDepositRequired && meetup?.promiseDepositAmount > 0) {
+        setShowDepositSelector(true);
+      } else {
+        await joinMeetup(id, user.id);
+        alert('약속에 참여되었습니다!');
+      }
+    } catch (_error) {
+      alert('약속 참여에 실패했습니다. 다시 시도해주세요.');
     }
   };
 
@@ -477,10 +508,13 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
     }
 
     try {
-      // 실제 모임 참여 처리
-      await joinMeetup(id, user.id);
+      const result = await joinMeetup(id, user.id);
 
-      showSuccess('약속금 ' + amount.toLocaleString() + '원이 결제되었습니다! 약속에 참여되었습니다.');
+      if (amount > 0) {
+        showSuccess('약속금 ' + amount.toLocaleString() + '원이 결제되었습니다! 약속에 참여되었습니다.');
+      } else {
+        showSuccess('약속에 참여되었습니다!');
+      }
     } catch (error) {
       showError('약속 참여에 실패했습니다. 다시 시도해주세요.');
     }
@@ -761,17 +795,32 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
               </View>
             </View>
           </View>
-          <div style={{
-            background: COLORS.gradient.subtleGold,
-            paddingLeft: 12,
-            paddingRight: 12,
-            paddingTop: 6,
-            paddingBottom: 6,
-            borderRadius: BORDER_RADIUS.md,
-            border: `1px solid ${CARD_STYLE.borderColor}`,
-          }}>
-            <Text style={styles.riceText}>{meetup.hostBabAlScore || userRiceIndex} 밥알</Text>
-          </div>
+          {(() => {
+            const score = meetup.hostBabAlScore || userRiceIndex || 36.5;
+            const scoreNum = typeof score === 'number' ? score : parseFloat(score) || 36.5;
+            const color = scoreNum >= 60 ? '#D4482C' : scoreNum >= 50 ? '#FF6B35' : scoreNum >= 42 ? '#4CAF50' : scoreNum >= 36.5 ? '#2196F3' : scoreNum >= 30 ? '#9E9E9E' : '#F44336';
+            return (
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: 2,
+              }}>
+                <div style={{
+                  background: `${color}15`,
+                  paddingLeft: 12,
+                  paddingRight: 12,
+                  paddingTop: 6,
+                  paddingBottom: 6,
+                  borderRadius: BORDER_RADIUS.md,
+                  border: `1px solid ${color}30`,
+                }}>
+                  <span style={{ fontSize: 14, fontWeight: '700', color }}>{scoreNum}</span>
+                  <span style={{ fontSize: 11, fontWeight: '500', color: COLORS.text.tertiary, marginLeft: 2 }}>밥알</span>
+                </div>
+              </div>
+            );
+          })()}
         </div>
 
         {/* 메인 카드 */}
@@ -800,16 +849,16 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
                 </View>
               )}
 
-              {/* 연령대 필터 - API 데이터가 있을 때만 표시 */}
-              {meetup.ageRange && (
+              {/* 연령대 필터 */}
+              {meetup.ageRange && !['무관', '상관없음'].includes(meetup.ageRange) && (
                 <View style={styles.ageBadge}>
                   <Icon name="user" size={14} color={COLORS.text.secondary} />
                   <Text style={styles.ageBadgeText}>{meetup.ageRange}</Text>
                 </View>
               )}
 
-              {/* 성별 필터 - API 데이터가 있을 때만 표시 */}
-              {meetup.genderPreference && (
+              {/* 성별 필터 */}
+              {meetup.genderPreference && !['무관', '상관없음', '혼성'].includes(meetup.genderPreference) && (
                 <View style={styles.genderBadge}>
                   <Icon name="users" size={14} color={COLORS.primary.accent} />
                   <Text style={styles.genderBadgeText}>{meetup.genderPreference}</Text>
@@ -818,35 +867,72 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
             </View>
           </View>
 
-          {/* 선택 성향 필터 뱃지 */}
-          <View style={styles.filterBadgeContainer}>
-            <Text style={styles.filterBadgeTitle}>선택 성향</Text>
-            <View style={styles.filterBadges}>
-              {/* 기분 조건 */}
-              <View style={styles.optionalBadge}>
-                <Icon name="smile" size={14} color={COLORS.primary.accent} />
-                <Text style={styles.optionalBadgeText}>분위기 좋은 곳</Text>
-              </View>
+          {/* 선택 성향 필터 뱃지 - DB 데이터 기반 */}
+          {(() => {
+            const pf = meetup.preferenceFilters;
+            const dp = meetup.diningPreferences || {};
+            const eatingSpeed = pf?.eatingSpeed || dp?.eatingSpeed;
+            const conversation = pf?.conversationDuringMeal || dp?.conversationDuringMeal;
+            const talkativeness = pf?.talkativeness || dp?.talkativeness;
+            const mealPurpose = pf?.mealPurpose || dp?.mealPurpose;
+            const specificRestaurant = pf?.specificRestaurant || dp?.specificRestaurant;
+            const interests = pf?.interests || dp?.interests || [];
+            const hasAny = eatingSpeed || conversation || talkativeness || mealPurpose || specificRestaurant || interests.length > 0;
 
-              {/* 위치 조건 */}
-              <View style={styles.optionalBadge}>
-                <Icon name="map" size={14} color={COLORS.functional.warning} />
-                <Text style={styles.optionalBadgeText}>역 근처</Text>
-              </View>
+            if (!hasAny) return null;
 
-              {/* 시간 조건 */}
-              <View style={styles.optionalBadge}>
-                <Icon name="clock" size={14} color={COLORS.text.secondary} />
-                <Text style={styles.optionalBadgeText}>1-2시간</Text>
-              </View>
+            const LABEL_MAP: Record<string, string> = {
+              fast: '빠르게', slow: '천천히', moderate: '보통',
+              quiet: '조용히', no_talk: '대화 없이', chatty: '수다스럽게',
+              talkative: '수다쟁이', listener: '경청형',
+              networking: '네트워킹', info_sharing: '정보 공유', hobby_friendship: '취미/친목', just_meal: '식사만',
+            };
+            const label = (val: string) => LABEL_MAP[val] || val;
 
-              {/* 음료 조건 */}
-              <View style={styles.optionalBadge}>
-                <Icon name="coffee" size={14} color={COLORS.primary.main} />
-                <Text style={styles.optionalBadgeText}>무알코올</Text>
+            return (
+              <View style={styles.filterBadgeContainer}>
+                <Text style={styles.filterBadgeTitle}>선택 성향</Text>
+                <View style={styles.filterBadges}>
+                  {eatingSpeed && (
+                    <View style={styles.optionalBadge}>
+                      <Icon name="utensils" size={14} color={COLORS.primary.accent} />
+                      <Text style={styles.optionalBadgeText}>{label(eatingSpeed)}</Text>
+                    </View>
+                  )}
+                  {conversation && (
+                    <View style={styles.optionalBadge}>
+                      <Icon name="message-circle" size={14} color={COLORS.functional.warning} />
+                      <Text style={styles.optionalBadgeText}>{label(conversation)}</Text>
+                    </View>
+                  )}
+                  {talkativeness && (
+                    <View style={styles.optionalBadge}>
+                      <Icon name="megaphone" size={14} color={COLORS.text.secondary} />
+                      <Text style={styles.optionalBadgeText}>{label(talkativeness)}</Text>
+                    </View>
+                  )}
+                  {mealPurpose && (
+                    <View style={styles.optionalBadge}>
+                      <Icon name="navigation" size={14} color={COLORS.primary.main} />
+                      <Text style={styles.optionalBadgeText}>{label(mealPurpose)}</Text>
+                    </View>
+                  )}
+                  {specificRestaurant && (
+                    <View style={styles.optionalBadge}>
+                      <Icon name="building" size={14} color={COLORS.functional.success} />
+                      <Text style={styles.optionalBadgeText}>{specificRestaurant}</Text>
+                    </View>
+                  )}
+                  {interests.map((interest: string, idx: number) => (
+                    <View key={idx} style={styles.optionalBadge}>
+                      <Icon name="smile" size={14} color={COLORS.primary.accent} />
+                      <Text style={styles.optionalBadgeText}>{interest}</Text>
+                    </View>
+                  ))}
+                </View>
               </View>
-            </View>
-          </View>
+            );
+          })()}
 
           <View style={styles.infoGrid}>
             <View style={styles.infoRow}>
@@ -1048,38 +1134,52 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
                 )}
               </View>
             ) : (
-              /* 미참여자 - 참여하기 버튼 (테라코타 CTA) */
-              <div
-                onClick={() => handleJoinMeetup()}
-                onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)';
-                  (e.currentTarget as HTMLElement).style.boxShadow = CSS_SHADOWS.hover;
-                }}
-                onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
-                  (e.currentTarget as HTMLElement).style.boxShadow = CSS_SHADOWS.cta;
-                }}
-                style={{
-                  background: COLORS.gradient.ctaCSS,
-                  borderRadius: BORDER_RADIUS.md,
-                  paddingTop: 16,
-                  paddingBottom: 16,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer',
-                  boxShadow: CSS_SHADOWS.cta,
-                  transition: 'all 200ms ease',
-                }}
-                role="button"
-                aria-label="같이먹기"
-              >
-                <span style={{
-                  fontSize: 18,
-                  fontWeight: '700',
-                  color: COLORS.neutral.white,
-                  letterSpacing: 0.5,
-                }}>같이먹기</span>
+              /* 미참여자 - 참여하기 버튼 */
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {joinDisabledReason && (
+                  <span style={{
+                    fontSize: 13,
+                    color: COLORS.functional.error,
+                    textAlign: 'center',
+                    fontWeight: '600',
+                  }}>{joinDisabledReason}</span>
+                )}
+                <div
+                  onClick={() => canJoin && handleJoinMeetup()}
+                  onMouseEnter={(e) => {
+                    if (!canJoin) {return;}
+                    (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)';
+                    (e.currentTarget as HTMLElement).style.boxShadow = CSS_SHADOWS.hover;
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!canJoin) {return;}
+                    (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
+                    (e.currentTarget as HTMLElement).style.boxShadow = canJoin ? CSS_SHADOWS.cta : 'none';
+                  }}
+                  style={{
+                    background: canJoin ? COLORS.gradient.ctaCSS : COLORS.neutral.grey300,
+                    borderRadius: BORDER_RADIUS.md,
+                    paddingTop: 16,
+                    paddingBottom: 16,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: canJoin ? 'pointer' : 'not-allowed',
+                    boxShadow: canJoin ? CSS_SHADOWS.cta : 'none',
+                    transition: 'all 200ms ease',
+                    opacity: canJoin ? 1 : 0.7,
+                  }}
+                  role="button"
+                  aria-label={canJoin ? '같이먹기' : joinDisabledReason || '참가 불가'}
+                  aria-disabled={!canJoin}
+                >
+                  <span style={{
+                    fontSize: 18,
+                    fontWeight: '700',
+                    color: COLORS.neutral.white,
+                    letterSpacing: 0.5,
+                  }}>{canJoin ? '같이먹기' : joinDisabledReason}</span>
+                </div>
               </div>
             )}
           </>

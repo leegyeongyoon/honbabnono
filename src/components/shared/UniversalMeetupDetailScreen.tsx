@@ -288,21 +288,52 @@ const UniversalMeetupDetailScreen: React.FC<UniversalMeetupDetailScreenProps> = 
   const meetupDateTime = new Date(meetup.date + ' ' + meetup.time);
   const isTimeExpired = now > meetupDateTime;
 
+  // 참가 불가 사유 계산
+  const getJoinDisabledReason = (): string | null => {
+    if (!user) {return '로그인이 필요합니다';}
+    if (!meetup) {return null;}
+
+    if (meetup.currentParticipants >= meetup.maxParticipants) {
+      return '인원이 마감되었습니다';
+    }
+
+    const openGenderValues = ['무관', '상관없음', '혼성'];
+    if (meetup.genderPreference && !openGenderValues.includes(meetup.genderPreference)) {
+      const genderMap: Record<string, string> = { male: '남성', female: '여성' };
+      const userGenderLabel = genderMap[user.gender || ''] || user.gender;
+      const requiredGender = meetup.genderPreference.replace('만', '');
+      if (userGenderLabel !== requiredGender && user.gender !== requiredGender) {
+        return `${meetup.genderPreference} 전용 약속입니다`;
+      }
+    }
+
+    return null;
+  };
+
+  const joinDisabledReason = getJoinDisabledReason();
+  const canJoin = !joinDisabledReason;
+
   const handleJoinMeetup = async () => {
-    if (!user || !meetupId) {return;}
+    if (!user || !meetupId || !canJoin) {return;}
 
     try {
       if (participants.some(p => p.id === user.id)) {
         setShowLeaveModal(true);
-      } else {
+        return;
+      }
+
+      if (meetup.promiseDepositRequired && meetup.promiseDepositAmount > 0) {
         if (DepositSelectorComponent) {
           setShowDepositSelector(true);
         } else {
           setShowPromiseModal(true);
         }
+      } else {
+        await joinMeetup(meetupId, user.id);
+        Alert.alert('성공', '약속에 참여되었습니다.');
       }
     } catch (_error) {
-      // silent: join/leave error handled by UI
+      Alert.alert('오류', '약속 참여에 실패했습니다. 다시 시도해주세요.');
     }
   };
 
@@ -344,9 +375,13 @@ const UniversalMeetupDetailScreen: React.FC<UniversalMeetupDetailScreenProps> = 
     }
 
     try {
-      await joinMeetup(meetupId, user.id);
+      const result = await joinMeetup(meetupId, user.id);
 
-      Alert.alert('성공', '약속금 ' + amount.toLocaleString() + '원이 결제되었습니다! 약속에 참여되었습니다.');
+      if (amount > 0) {
+        Alert.alert('성공', '약속금 ' + amount.toLocaleString() + '원이 결제되었습니다! 약속에 참여되었습니다.');
+      } else {
+        Alert.alert('성공', '약속에 참여되었습니다!');
+      }
     } catch (_error) {
       Alert.alert('오류', '약속 참여에 실패했습니다. 다시 시도해주세요.');
     }
@@ -973,12 +1008,27 @@ const UniversalMeetupDetailScreen: React.FC<UniversalMeetupDetailScreenProps> = 
                 )}
               </View>
             ) : (
-              <TouchableOpacity
-                onPress={() => handleJoinMeetup()}
-                style={styles.joinButton}
-              >
-                <Text style={styles.joinButtonText}>같이먹기</Text>
-              </TouchableOpacity>
+              <View>
+                {joinDisabledReason && (
+                  <Text style={{
+                    fontSize: 13,
+                    color: COLORS.functional.error,
+                    textAlign: 'center',
+                    fontWeight: '600',
+                    marginBottom: 6,
+                  }}>{joinDisabledReason}</Text>
+                )}
+                <TouchableOpacity
+                  onPress={() => handleJoinMeetup()}
+                  style={[
+                    styles.joinButton,
+                    !canJoin && { backgroundColor: COLORS.neutral.grey300, opacity: 0.7 },
+                  ]}
+                  disabled={!canJoin}
+                >
+                  <Text style={styles.joinButtonText}>{canJoin ? '같이먹기' : joinDisabledReason}</Text>
+                </TouchableOpacity>
+              </View>
             )}
           </>
         )}

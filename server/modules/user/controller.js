@@ -1,6 +1,7 @@
 const pool = require('../../config/database');
 const { processImageUrl } = require('../../utils/helpers');
 const logger = require('../../config/logger');
+const { getBabalLevel, BABAL_INITIAL } = require('../../utils/babalScore');
 
 // 현재 사용자 정보 조회
 exports.getMe = async (req, res) => {
@@ -8,7 +9,8 @@ exports.getMe = async (req, res) => {
     const userId = req.user.userId || req.user.id;
 
     const userResult = await pool.query(`
-      SELECT id, email, name, profile_image, provider, is_verified, created_at, rating
+      SELECT id, email, name, profile_image, provider, is_verified, created_at, rating,
+             gender, birth_date, babal_score
       FROM users
       WHERE id = $1
     `, [userId]);
@@ -22,6 +24,9 @@ exports.getMe = async (req, res) => {
 
     const user = userResult.rows[0];
 
+    const babalScore = parseFloat(user.babal_score) || BABAL_INITIAL;
+    const babalLevel = getBabalLevel(babalScore);
+
     res.json({
       success: true,
       user: {
@@ -32,6 +37,10 @@ exports.getMe = async (req, res) => {
         provider: user.provider,
         isVerified: user.is_verified,
         rating: user.rating,
+        gender: user.gender,
+        birthDate: user.birth_date,
+        babalScore,
+        babalLevel,
         createdAt: user.created_at
       }
     });
@@ -77,12 +86,22 @@ exports.getStats = async (req, res) => {
       WHERE reviewer_id = $1
     `, [userId]);
 
+    // 밥알지수 DB에서 직접 조회 (통합 알고리즘 사용)
+    const babalResult = await pool.query(
+      'SELECT babal_score FROM users WHERE id = $1',
+      [userId]
+    );
+    const babalScore = parseFloat(babalResult.rows[0]?.babal_score) || BABAL_INITIAL;
+    const babalLevel = getBabalLevel(babalScore);
+
     const stats = {
       availablePoints: pointsResult.rows[0]?.available_points || 0,
       totalMeetups: parseInt(meetupsResult.rows[0]?.total_meetups || 0),
       hostedMeetups: parseInt(hostedMeetupsResult.rows[0]?.hosted_meetups || 0),
       reviewCount: parseInt(reviewsResult.rows[0]?.review_count || 0),
-      riceIndex: Math.min(70 + parseInt(meetupsResult.rows[0]?.total_meetups || 0) * 2, 100)
+      babalScore,
+      babalLevel,
+      riceIndex: babalScore, // 하위호환용 alias
     };
 
     res.json({ stats });
@@ -287,110 +306,76 @@ exports.toggleWishlist = async (req, res) => {
   }
 };
 
-// 밥알지수 조회
+// 밥알지수 조회 (통합 알고리즘)
 exports.getRiceIndex = async (req, res) => {
   try {
     const userId = req.user.userId;
-    logger.debug('밥알지수 계산 요청:', { userId });
 
-    // 사용자 활동 데이터 조회
-    const [
-      hostedResult,
-      joinedResult,
-      completedResult,
-      reviews,
-      averageRating
-    ] = await Promise.all([
-      // 호스팅한 모임 수
+    // 밥알지수 + 활동 통계 병렬 조회
+    const [userResult, statsResults, historyResult] = await Promise.all([
+      pool.query('SELECT babal_score FROM users WHERE id = $1', [userId]),
+
+      Promise.all([
+        pool.query('SELECT COUNT(*) as count FROM meetups WHERE host_id = $1', [userId]),
+        pool.query(`
+          SELECT COUNT(*) as count FROM meetup_participants mp
+          JOIN meetups m ON mp.meetup_id = m.id
+          WHERE mp.user_id = $1 AND m.host_id != $1
+        `, [userId]),
+        pool.query(`
+          SELECT COUNT(*) as count FROM meetup_participants
+          WHERE user_id = $1 AND attended = true
+        `, [userId]),
+        pool.query('SELECT COUNT(*) as count FROM reviews WHERE reviewer_id = $1', [userId]),
+        pool.query(`
+          SELECT COALESCE(AVG(rating), 0) as avg_rating
+          FROM reviews WHERE reviewee_id = $1
+        `, [userId]),
+        pool.query(`
+          SELECT COUNT(*) as count FROM meetup_participants
+          WHERE user_id = $1 AND no_show = true
+        `, [userId]),
+      ]),
+
+      // 최근 밥알지수 변동 이력 (최근 10건)
       pool.query(`
-        SELECT COUNT(*) as count
-        FROM meetups
-        WHERE host_id = $1
+        SELECT change_amount, reason, created_at
+        FROM babal_score_history
+        WHERE user_id = $1
+        ORDER BY created_at DESC
+        LIMIT 10
       `, [userId]),
-
-      // 참가한 모임 수 (호스트로 참여한 것 제외)
-      pool.query(`
-        SELECT COUNT(*) as count
-        FROM meetup_participants mp
-        JOIN meetups m ON mp.meetup_id = m.id
-        WHERE mp.user_id = $1 AND m.host_id != $2
-      `, [userId, userId]),
-
-      // 과거 모임 참가 수 (완료된 모임)
-      pool.query(`
-        SELECT COUNT(*) as count
-        FROM meetup_participants mp
-        JOIN meetups m ON mp.meetup_id = m.id
-        WHERE mp.user_id = $1 AND m.date < CURRENT_DATE
-      `, [userId]),
-
-      // 작성한 리뷰 수
-      pool.query(`
-        SELECT COUNT(*) as count
-        FROM reviews
-        WHERE reviewer_id = $1
-      `, [userId]),
-
-      // 받은 평균 평점 (호스트로서)
-      pool.query(`
-        SELECT AVG(r.rating) as avg_rating
-        FROM reviews r
-        JOIN meetups m ON r.meetup_id = m.id
-        WHERE m.host_id = $1
-      `, [userId])
     ]);
 
+    const babalScore = parseFloat(userResult.rows[0]?.babal_score) || BABAL_INITIAL;
+    const levelInfo = getBabalLevel(babalScore);
+
     const stats = {
-      joinedMeetups: parseInt(joinedResult.rows[0].count),
-      hostedMeetups: parseInt(hostedResult.rows[0].count),
-      completedMeetups: parseInt(completedResult.rows[0].count),
-      reviewsWritten: parseInt(reviews.rows[0].count),
-      averageRating: parseFloat(averageRating.rows[0].avg_rating || 0)
+      hostedMeetups: parseInt(statsResults[0].rows[0].count),
+      joinedMeetups: parseInt(statsResults[1].rows[0].count),
+      attendedMeetups: parseInt(statsResults[2].rows[0].count),
+      reviewsWritten: parseInt(statsResults[3].rows[0].count),
+      averageRating: parseFloat(statsResults[4].rows[0].avg_rating).toFixed(1),
+      noShowCount: parseInt(statsResults[5].rows[0].count),
     };
-
-    // 사용자의 저장된 밥알지수 조회
-    const userResult = await pool.query(`
-      SELECT babal_score FROM users WHERE id = $1
-    `, [userId]);
-
-    let riceIndex = userResult.rows[0]?.babal_score || 40.0;
-
-    // 밥알지수 레벨 계산
-    const getRiceLevel = (score) => {
-      if (score >= 98.1) {
-        return { level: "밥神 (밥신)", emoji: "🍚🍚🍚🍚🍚🍚🍚", description: "전설적인 유저", color: "#FFD700" };
-      } else if (score >= 90.0) {
-        return { level: "찰밥대장", emoji: "🍚🍚🍚🍚🍚🍚", description: "거의 완벽한 활동 이력", color: "#FF6B35" };
-      } else if (score >= 80.0) {
-        return { level: "밥도둑 밥상", emoji: "🍚🍚🍚🍚🍚", description: "상위권, 최고의 매너 보유", color: "#F7931E" };
-      } else if (score >= 70.0) {
-        return { level: "고봉밥", emoji: "🍚🍚🍚🍚", description: "후기 품질도 높고 꾸준한 출석", color: "#4CAF50" };
-      } else if (score >= 60.0) {
-        return { level: "따끈한 밥그릇", emoji: "🍚🍚🍚", description: "후기와 출석률 모두 양호", color: "#2196F3" };
-      } else if (score >= 40.0) {
-        return { level: "밥 한 숟갈", emoji: "🍚", description: "일반 유저, 평균적인 활동", color: "#9E9E9E" };
-      } else {
-        return { level: "티스푼", emoji: "🍚🍚", description: "반복된 신고/노쇼, 신뢰 낮음", color: "#F44336" };
-      }
-    };
-
-    const levelInfo = getRiceLevel(riceIndex);
-
-    logger.info('밥알지수 계산 완료:', { userId, riceIndex, level: levelInfo.level });
 
     res.json({
       success: true,
-      riceIndex,
-      calculatedIndex: riceIndex,
+      babalScore,
+      riceIndex: babalScore, // 하위호환
       level: levelInfo,
-      stats
+      stats,
+      recentHistory: historyResult.rows.map((h) => ({
+        change: parseFloat(h.change_amount),
+        reason: h.reason,
+        date: h.created_at,
+      })),
     });
-
   } catch (error) {
-    logger.error('밥알지수 계산 실패:', error);
+    logger.error('밥알지수 조회 실패:', error);
     res.status(500).json({
       success: false,
-      error: '밥알지수를 계산할 수 없습니다.'
+      error: '밥알지수를 조회할 수 없습니다.',
     });
   }
 };
@@ -399,18 +384,38 @@ exports.getRiceIndex = async (req, res) => {
 exports.updateProfile = async (req, res) => {
   try {
     const userId = req.user.userId;
-    const { name, phone, gender, profileImage } = req.body;
+    const { name, phone, gender, birthDate, profileImage } = req.body;
+
+    // gender 유효성 검증
+    if (gender && !['male', 'female', 'other'].includes(gender)) {
+      return res.status(400).json({
+        success: false,
+        error: '성별은 male, female, other 중 하나여야 합니다.',
+      });
+    }
+
+    // birthDate 유효성 검증
+    if (birthDate) {
+      const parsed = new Date(birthDate);
+      if (isNaN(parsed.getTime())) {
+        return res.status(400).json({
+          success: false,
+          error: '올바른 날짜 형식이 아닙니다. (YYYY-MM-DD)',
+        });
+      }
+    }
 
     const result = await pool.query(`
       UPDATE users
       SET name = COALESCE($1, name),
           phone = COALESCE($2, phone),
           gender = COALESCE($3, gender),
-          profile_image = COALESCE($4, profile_image),
+          birth_date = COALESCE($4, birth_date),
+          profile_image = COALESCE($5, profile_image),
           updated_at = NOW()
-      WHERE id = $5
+      WHERE id = $6
       RETURNING *
-    `, [name, phone, gender, profileImage, userId]);
+    `, [name, phone, gender, birthDate || null, profileImage, userId]);
 
     if (result.rows.length === 0) {
       return res.status(404).json({
@@ -430,6 +435,7 @@ exports.updateProfile = async (req, res) => {
         email: user.email,
         phone: user.phone,
         gender: user.gender,
+        birthDate: user.birth_date,
         profileImage: user.profile_image
       }
     });
@@ -1389,9 +1395,10 @@ exports.getUserPoints = async (req, res) => {
 
     const userResult = await pool.query(`
       SELECT u.id, u.name, u.email,
-             COALESCE(up.total_earned, 0) as total_earned,
+             COALESCE(up.total_points, 0) as total_points,
              COALESCE(up.available_points, 0) as available_points,
-             COALESCE(up.total_used, 0) as total_used
+             COALESCE(up.used_points, 0) as used_points,
+             COALESCE(up.expired_points, 0) as expired_points
       FROM users u
       LEFT JOIN user_points up ON u.id = up.user_id
       WHERE u.id = $1
@@ -1409,10 +1416,10 @@ exports.getUserPoints = async (req, res) => {
       data: {
         id: user.id,
         userId: user.id,
-        totalPoints: user.total_earned,
-        availablePoints: user.available_points,
-        usedPoints: user.total_used,
-        expiredPoints: 0,
+        totalPoints: parseInt(user.total_points),
+        availablePoints: parseInt(user.available_points),
+        usedPoints: parseInt(user.used_points),
+        expiredPoints: parseInt(user.expired_points),
         lastUpdatedAt: new Date().toISOString()
       }
     });
@@ -1805,13 +1812,13 @@ exports.usePoints = async (req, res) => {
     // 포인트 차감
     await pool.query(`
       UPDATE user_points
-      SET available_points = available_points - $1, total_used = total_used + $1, updated_at = NOW()
+      SET available_points = available_points - $1, used_points = used_points + $1, updated_at = NOW()
       WHERE user_id = $2 AND available_points >= $1
     `, [amount, userId]);
 
     // 거래 내역 기록
     await pool.query(`
-      INSERT INTO point_transactions (user_id, amount, transaction_type, description, created_at)
+      INSERT INTO point_transactions (user_id, amount, type, description, created_at)
       VALUES ($1, $2, 'use', $3, NOW())
     `, [userId, -amount, purpose]);
 
@@ -1834,17 +1841,17 @@ exports.refundPoints = async (req, res) => {
 
     // 포인트 환불
     await pool.query(`
-      INSERT INTO user_points (id, user_id, total_earned, available_points, total_used, created_at, updated_at)
+      INSERT INTO user_points (id, user_id, total_points, available_points, used_points, created_at, updated_at)
       VALUES (gen_random_uuid(), $1, $2, $2, 0, NOW(), NOW())
       ON CONFLICT (user_id) DO UPDATE SET
-        total_earned = user_points.total_earned + $2,
+        total_points = user_points.total_points + $2,
         available_points = user_points.available_points + $2,
         updated_at = NOW()
     `, [userId, amount]);
 
     // 거래 내역 기록
     await pool.query(`
-      INSERT INTO point_transactions (user_id, amount, transaction_type, description, created_at)
+      INSERT INTO point_transactions (user_id, amount, type, description, created_at)
       VALUES ($1, $2, 'refund', $3, NOW())
     `, [userId, amount, reason]);
 
@@ -2128,10 +2135,8 @@ exports.getPointHistory = async (req, res) => {
 
     const transactionsResult = await pool.query(`
       SELECT
-        pt.id, pt.transaction_type, pt.amount, pt.description, pt.created_at,
-        m.title as meetup_title
+        pt.id, pt.type, pt.amount, pt.description, pt.created_at
       FROM point_transactions pt
-      LEFT JOIN meetups m ON pt.related_meetup_id = m.id
       WHERE pt.user_id = $1
       ORDER BY pt.created_at DESC
       LIMIT 50
@@ -2249,9 +2254,9 @@ exports.getPointStats = async (req, res) => {
     // user_points 테이블에서 통계 조회
     const statsResult = await pool.query(`
       SELECT
-        COALESCE(total_earned, 0) as total_earned,
+        COALESCE(total_points, 0) as total_points,
         COALESCE(available_points, 0) as current_balance,
-        COALESCE(total_used, 0) as total_spent
+        COALESCE(used_points, 0) as total_spent
       FROM user_points
       WHERE user_id = $1
     `, [userId]);
@@ -2267,7 +2272,7 @@ exports.getPointStats = async (req, res) => {
     const stats = statsResult.rows[0];
     res.json({
       currentBalance: parseInt(stats.current_balance) || 0,
-      totalEarned: parseInt(stats.total_earned) || 0,
+      totalEarned: parseInt(stats.total_points) || 0,
       totalSpent: parseInt(stats.total_spent) || 0
     });
   } catch (error) {
@@ -2410,10 +2415,10 @@ exports.chargeLegacyPoints = async (req, res) => {
 
     // user_points 테이블에 포인트 업데이트 또는 생성
     await pool.query(`
-      INSERT INTO user_points (id, user_id, total_earned, available_points, total_used, created_at, updated_at)
+      INSERT INTO user_points (id, user_id, total_points, available_points, used_points, created_at, updated_at)
       VALUES (gen_random_uuid(), $1, $2, $2, 0, NOW(), NOW())
       ON CONFLICT (user_id) DO UPDATE SET
-        total_earned = user_points.total_earned + $3,
+        total_points = user_points.total_points + $3,
         available_points = user_points.available_points + $3,
         updated_at = NOW()
     `, [userId, newPoints, finalAmount]);
@@ -2421,7 +2426,7 @@ exports.chargeLegacyPoints = async (req, res) => {
     // 포인트 충전 기록 저장
     try {
       await pool.query(`
-        INSERT INTO point_transactions (user_id, amount, transaction_type, description, created_at)
+        INSERT INTO point_transactions (user_id, amount, type, description, created_at)
         VALUES ($1, $2, 'charge', $3, NOW())
       `, [userId, finalAmount, isDevAccount ? '개발자 계정 보너스 충전' : '포인트 충전']);
     } catch (transactionError) {

@@ -1,5 +1,6 @@
 const pool = require('../../config/database');
 const logger = require('../../config/logger');
+const { updateBabalScore, getReviewScoreEvent } = require('../../utils/babalScore');
 
 // 모임 리뷰 목록 조회
 exports.getMeetupReviews = async (req, res) => {
@@ -83,7 +84,7 @@ exports.createReview = async (req, res) => {
       });
     }
 
-    // 참가 확인
+    // 참가 + 출석 확인 (출석 완료한 사람만 리뷰 가능)
     const participantResult = await pool.query(
       'SELECT * FROM meetup_participants WHERE meetup_id = $1 AND user_id = $2',
       [meetupId, userId]
@@ -96,19 +97,33 @@ exports.createReview = async (req, res) => {
       });
     }
 
+    if (!participantResult.rows[0].attended) {
+      return res.status(400).json({
+        success: false,
+        error: '출석 확인이 완료된 약속에만 리뷰를 작성할 수 있습니다.'
+      });
+    }
+
     const result = await pool.query(`
       INSERT INTO reviews (meetup_id, reviewer_id, reviewee_id, rating, content)
       VALUES ($1, $2, $3, $4, $5)
       RETURNING *
     `, [meetupId, userId, targetRevieweeId, rating, content]);
 
-    // 리뷰 대상의 밥알지수 자동 갱신
-    await pool.query(`
-      UPDATE users SET babal_score = (
-        SELECT COALESCE(AVG(rating) * 20, 50)
-        FROM reviews WHERE reviewee_id = $1
-      ) WHERE id = $1
-    `, [targetRevieweeId]);
+    // 리뷰 대상의 밥알지수 변동 (통합 알고리즘)
+    const scoreEvent = getReviewScoreEvent(rating);
+    await updateBabalScore(targetRevieweeId, scoreEvent, {
+      meetupId,
+      reviewId: result.rows[0].id,
+    });
+
+    // 양질의 리뷰 작성자 보너스 (30자 이상)
+    if (content && content.length >= 30) {
+      await updateBabalScore(userId, 'REVIEW_WRITTEN_QUALITY', {
+        meetupId,
+        reviewId: result.rows[0].id,
+      });
+    }
 
     res.status(201).json({
       success: true,
@@ -206,6 +221,12 @@ exports.rateParticipant = async (req, res) => {
       )
       WHERE id = $1
     `, [targetUserId]);
+
+    // 밥알지수 변동 (참가자 평가도 반영)
+    const scoreEvent = getReviewScoreEvent(rating);
+    await updateBabalScore(targetUserId, scoreEvent, { meetupId }).catch(
+      (err) => logger.error('참가자 평가 밥알지수 오류:', err)
+    );
 
     res.json({
       success: true,

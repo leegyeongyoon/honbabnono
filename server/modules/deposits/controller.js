@@ -181,7 +181,7 @@ exports.verifyPayment = async (req, res) => {
       SET status = 'paid',
           payment_id = $1,
           payment_method = $2,
-          paid_at = NOW(),
+          deposited_at = NOW(),
           updated_at = NOW()
       WHERE id = $3
     `, [impUid, paymentData.pay_method || 'card', deposit.id]);
@@ -282,7 +282,7 @@ exports.handleWebhook = async (req, res) => {
         if (paymentData.amount === deposit.amount) {
           await pool.query(`
             UPDATE promise_deposits
-            SET status = 'paid', payment_id = $1, paid_at = NOW(), updated_at = NOW()
+            SET status = 'paid', payment_id = $1, deposited_at = NOW(), updated_at = NOW()
             WHERE id = $2 AND status = 'pending'
           `, [imp_uid, deposit.id]);
           logger.info('웹훅: 결제 확정', { depositId: deposit.id, imp_uid });
@@ -383,7 +383,7 @@ exports.refundDepositViaPortone = async (req, res) => {
 
       // 포인트로 환불
       await pool.query(`
-        INSERT INTO user_points (user_id, total_earned, available_points, total_used)
+        INSERT INTO user_points (user_id, total_points, available_points, used_points)
         VALUES ($1, $2, $2, 0)
         ON CONFLICT (user_id)
         DO UPDATE SET
@@ -392,7 +392,7 @@ exports.refundDepositViaPortone = async (req, res) => {
       `, [userId, refundAmount]);
 
       await pool.query(`
-        INSERT INTO point_transactions (user_id, transaction_type, amount, description, created_at)
+        INSERT INTO point_transactions (user_id, type, amount, description, created_at)
         VALUES ($1, 'earned', $2, $3, NOW())
       `, [userId, refundAmount, `약속금 환불 (보증금 ID: ${depositId})`]);
 
@@ -480,6 +480,31 @@ exports.createPayment = async (req, res) => {
     const isTemporaryMeetupId = meetupId.startsWith('temp-');
     let actualMeetupId = meetupId;
 
+    // 실제 모임인 경우 성별/나이 제한 사전 검증
+    if (!isTemporaryMeetupId) {
+      const meetupCheck = await pool.query(
+        'SELECT gender_preference, age_range, status FROM meetups WHERE id = $1',
+        [meetupId]
+      );
+      if (meetupCheck.rows.length > 0) {
+        const meetup = meetupCheck.rows[0];
+        const openGenderValues = ['무관', '상관없음', '혼성'];
+        if (meetup.gender_preference && !openGenderValues.includes(meetup.gender_preference)) {
+          const userCheck = await pool.query('SELECT gender, birth_date FROM users WHERE id = $1', [userId]);
+          const userInfo = userCheck.rows[0];
+          if (!userInfo?.gender) {
+            return res.status(400).json({ success: false, error: '프로필에서 성별을 설정해야 결제할 수 있습니다.' });
+          }
+          const genderMap = { male: '남성', female: '여성' };
+          const userGenderLabel = genderMap[userInfo.gender] || userInfo.gender;
+          const requiredGender = meetup.gender_preference.replace('만', '');
+          if (requiredGender !== userGenderLabel && requiredGender !== userInfo.gender) {
+            return res.status(400).json({ success: false, error: `이 약속은 ${meetup.gender_preference} 전용입니다.` });
+          }
+        }
+      }
+    }
+
     if (isTemporaryMeetupId) {
       const tempMeetupResult = await pool.query(`
         INSERT INTO meetups (
@@ -497,9 +522,9 @@ exports.createPayment = async (req, res) => {
       actualMeetupId = tempMeetupResult.rows[0].id;
       logger.debug('임시 meetup 생성:', actualMeetupId);
     } else {
-      // 이미 결제한 약속금이 있는지 확인
+      // 이미 결제한 약속금이 있는지 확인 (활성 상태만)
       const existingDeposit = await pool.query(
-        'SELECT id FROM promise_deposits WHERE meetup_id = $1 AND user_id = $2',
+        "SELECT id FROM promise_deposits WHERE meetup_id = $1 AND user_id = $2 AND status IN ('pending', 'paid')",
         [meetupId, userId]
       );
 
@@ -540,7 +565,7 @@ exports.createPayment = async (req, res) => {
         await pool.query(`
           UPDATE user_points
           SET available_points = available_points - $1,
-              total_used = total_used + $1,
+              used_points = used_points + $1,
               updated_at = NOW()
           WHERE user_id = $2
         `, [amount, userId]);
@@ -550,7 +575,7 @@ exports.createPayment = async (req, res) => {
           ? '약속금 결제 (임시 결제)'
           : `약속금 결제 (약속 ID: ${meetupId})`;
         await pool.query(`
-          INSERT INTO point_transactions (user_id, transaction_type, amount, description, created_at)
+          INSERT INTO point_transactions (user_id, type, amount, description, created_at)
           VALUES ($1, 'used', $2, $3, NOW())
         `, [userId, amount, description]);
 
@@ -566,7 +591,7 @@ exports.createPayment = async (req, res) => {
     // 약속금 기록 저장
     const depositResult = await pool.query(`
       INSERT INTO promise_deposits (
-        meetup_id, user_id, amount, status, payment_method, payment_id, paid_at, created_at, updated_at
+        meetup_id, user_id, amount, status, payment_method, payment_id, deposited_at, created_at, updated_at
       ) VALUES ($1, $2, $3, 'paid', $4, $5, NOW(), NOW(), NOW())
       RETURNING id
     `, [actualMeetupId, userId, amount, paymentMethod, paymentId]);
@@ -626,7 +651,7 @@ exports.refundDeposit = async (req, res) => {
 
     // 포인트로 환불
     await pool.query(`
-      INSERT INTO user_points (user_id, total_earned, available_points, total_used)
+      INSERT INTO user_points (user_id, total_points, available_points, used_points)
       VALUES ($1, $2, $2, 0)
       ON CONFLICT (user_id)
       DO UPDATE SET
@@ -636,7 +661,7 @@ exports.refundDeposit = async (req, res) => {
 
     // 포인트 거래 내역 추가
     await pool.query(`
-      INSERT INTO point_transactions (user_id, transaction_type, amount, description, created_at)
+      INSERT INTO point_transactions (user_id, type, amount, description, created_at)
       VALUES ($1, 'earned', $2, $3, NOW())
     `, [userId, refundAmount, `약속금 환불 (보증금 ID: ${depositId})`]);
 
@@ -681,20 +706,20 @@ exports.convertToPoints = async (req, res) => {
 
     // 포인트 적립
     await pool.query(`
-      INSERT INTO user_points (user_id, total_earned, available_points, total_used)
+      INSERT INTO user_points (user_id, total_points, available_points, used_points)
       VALUES ($1, $2, $2, 0)
       ON CONFLICT (user_id)
       DO UPDATE SET
-        total_earned = user_points.total_earned + $2,
+        total_points = user_points.total_points + $2,
         available_points = user_points.available_points + $2,
         updated_at = NOW()
     `, [userId, pointAmount]);
 
     // 포인트 거래 내역 추가
     await pool.query(`
-      INSERT INTO point_transactions (user_id, transaction_type, amount, description, related_meetup_id, created_at)
-      VALUES ($1, 'earned', $2, $3, $4, NOW())
-    `, [userId, pointAmount, `약속금 포인트 전환 (약속 ID: ${deposit.meetup_id})`, deposit.meetup_id]);
+      INSERT INTO point_transactions (user_id, type, amount, description, created_at)
+      VALUES ($1, 'earned', $2, $3, NOW())
+    `, [userId, pointAmount, `약속금 포인트 전환 (약속 ID: ${deposit.meetup_id})`]);
 
     // 약속금 상태 업데이트
     await pool.query(`
@@ -763,7 +788,7 @@ exports.refundPayment = async (req, res) => {
 
     // 포인트로 환불
     await pool.query(`
-      INSERT INTO user_points (user_id, total_earned, available_points, total_used)
+      INSERT INTO user_points (user_id, total_points, available_points, used_points)
       VALUES ($1, $2, $2, 0)
       ON CONFLICT (user_id)
       DO UPDATE SET
@@ -773,7 +798,7 @@ exports.refundPayment = async (req, res) => {
 
     // 포인트 거래 내역 추가
     await pool.query(`
-      INSERT INTO point_transactions (user_id, transaction_type, amount, description, created_at)
+      INSERT INTO point_transactions (user_id, type, amount, description, created_at)
       VALUES ($1, 'earned', $2, $3, NOW())
     `, [userId, refundAmount, `약속금 환불 (보증금 ID: ${depositId})`]);
 
@@ -948,7 +973,7 @@ exports.cancelParticipationWithRefund = async (req, res) => {
     // 2. 환불금이 있으면 포인트로 환불
     if (refundAmount > 0) {
       await client.query(`
-        INSERT INTO user_points (user_id, total_earned, available_points, total_used)
+        INSERT INTO user_points (user_id, total_points, available_points, used_points)
         VALUES ($1, $2, $2, 0)
         ON CONFLICT (user_id)
         DO UPDATE SET
@@ -957,7 +982,7 @@ exports.cancelParticipationWithRefund = async (req, res) => {
       `, [userId, refundAmount]);
 
       await client.query(`
-        INSERT INTO point_transactions (user_id, transaction_type, amount, description, created_at)
+        INSERT INTO point_transactions (user_id, type, amount, description, created_at)
         VALUES ($1, 'earned', $2, $3, NOW())
       `, [userId, refundAmount, `참가 취소 환불 (${refundRate}%)`]);
     }
@@ -1275,23 +1300,23 @@ exports.processNoShow = async (req, res) => {
             INSERT INTO noshow_compensations (
               meetup_id, noshow_user_id, victim_user_id,
               deposit_amount, compensation_amount, platform_fee,
-              status, paid_at, created_at
+              status, deposited_at, created_at
             ) VALUES ($1, $2, $3, $4, $5, $6, 'paid', NOW(), NOW())
           `, [meetupId, noShow.user_id, victimId, forfeitedAmount, compensationPerPerson, Math.floor(platformFee / attendedUsers.length)]);
 
           // 포인트 지급
           await client.query(`
-            INSERT INTO user_points (user_id, total_earned, available_points, total_used)
+            INSERT INTO user_points (user_id, total_points, available_points, used_points)
             VALUES ($1, $2, $2, 0)
             ON CONFLICT (user_id)
             DO UPDATE SET
-              total_earned = user_points.total_earned + $2,
+              total_points = user_points.total_points + $2,
               available_points = user_points.available_points + $2,
               updated_at = NOW()
           `, [victimId, compensationPerPerson]);
 
           await client.query(`
-            INSERT INTO point_transactions (user_id, transaction_type, amount, description, created_at)
+            INSERT INTO point_transactions (user_id, type, amount, description, created_at)
             VALUES ($1, 'earned', $2, $3, NOW())
           `, [victimId, compensationPerPerson, `노쇼 배상금 (약속 ID: ${meetupId})`]);
         }
@@ -1423,7 +1448,7 @@ exports.getMyCompensations = async (req, res) => {
         depositAmount: c.deposit_amount,
         compensationAmount: c.compensation_amount,
         status: c.status,
-        paidAt: c.paid_at,
+        paidAt: c.deposited_at,
         createdAt: c.created_at
       }))
     });

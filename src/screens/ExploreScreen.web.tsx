@@ -28,6 +28,20 @@ const RADIUS_OPTIONS = [
   { label: '10km', value: 10000 },
 ];
 
+const GENDER_OPTIONS = [
+  { label: '전체', value: '' },
+  { label: '남성', value: '남성' },
+  { label: '여성', value: '여성' },
+];
+
+const AGE_OPTIONS = [
+  { label: '전체', value: '' },
+  { label: '20대', value: '20대' },
+  { label: '30대', value: '30대' },
+  { label: '40대', value: '40대' },
+  { label: '50대+', value: '50대' },
+];
+
 const formatDistance = (meters: number | null | undefined): string => {
   if (meters == null) return '';
   if (meters < 1000) return `${Math.round(meters)}m`;
@@ -47,6 +61,8 @@ interface Meetup {
   maxParticipants: number;
   currentParticipants: number;
   priceRange?: string;
+  ageRange?: string;
+  genderPreference?: string;
   status?: string;
   image?: string;
   hostName?: string;
@@ -123,6 +139,9 @@ const ExploreScreen: React.FC = () => {
   const [selectedMeetup, setSelectedMeetup] = useState<Meetup | null>(null);
   const [radius, setRadius] = useState(3000);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(categoryFromUrl);
+  const [selectedGender, setSelectedGender] = useState('');
+  const [selectedAge, setSelectedAge] = useState('');
+  const [showFilters, setShowFilters] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
 
   // 사용자 현재 위치 가져오기
@@ -208,10 +227,13 @@ const ExploreScreen: React.FC = () => {
     }
   };
 
-  // 카테고리 필터링
-  const displayMeetups = selectedCategory
-    ? meetups.filter(m => m.category === selectedCategory)
-    : meetups;
+  // 카테고리 + 성별 + 나이 필터링
+  const displayMeetups = meetups.filter(m => {
+    if (selectedCategory && m.category !== selectedCategory) return false;
+    if (selectedGender && m.genderPreference && !['무관', '상관없음', '혼성'].includes(m.genderPreference) && m.genderPreference !== selectedGender) return false;
+    if (selectedAge && m.ageRange && !['무관', '상관없음'].includes(m.ageRange) && !m.ageRange.includes(selectedAge.replace('+', ''))) return false;
+    return true;
+  });
 
   // 마커 데이터 변환 (필터링된 것만)
   const mapMarkers: MapMarker[] = displayMeetups
@@ -327,7 +349,7 @@ const ExploreScreen: React.FC = () => {
             </TouchableOpacity>
           )}
         </View>
-        {/* 거리 필터 */}
+        {/* 거리 필터 + 필터 토글 */}
         <View style={styles.radiusRow}>
           <Icon name="map-pin" size={14} color={COLORS.text.secondary} />
           <Text style={styles.radiusLabel}>반경</Text>
@@ -353,7 +375,61 @@ const ExploreScreen: React.FC = () => {
               </Text>
             </TouchableOpacity>
           ))}
+          <View style={{ flex: 1 }} />
+          <TouchableOpacity
+            style={[styles.filterToggleButton, showFilters && styles.filterToggleButtonActive]}
+            onPress={() => setShowFilters(!showFilters)}
+            activeOpacity={0.7}
+          >
+            <Icon name="sliders-h" size={14} color={showFilters ? COLORS.primary.main : COLORS.text.tertiary} />
+            <Text style={[styles.filterToggleText, showFilters && styles.filterToggleTextActive]}>필터</Text>
+            {(selectedGender || selectedAge) && (
+              <View style={styles.filterActiveDot} />
+            )}
+          </TouchableOpacity>
         </View>
+
+        {/* 성별/나이 필터 (토글) */}
+        {showFilters && (
+          <View style={styles.filterSection}>
+            {/* 성별 */}
+            <View style={styles.filterRow}>
+              <Text style={styles.filterLabel}>성별</Text>
+              <View style={styles.filterChips}>
+                {GENDER_OPTIONS.map((opt) => (
+                  <TouchableOpacity
+                    key={opt.value}
+                    style={[styles.filterChip, selectedGender === opt.value && styles.filterChipActive]}
+                    onPress={() => setSelectedGender(selectedGender === opt.value ? '' : opt.value)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={[styles.filterChipText, selectedGender === opt.value && styles.filterChipTextActive]}>
+                      {opt.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+            {/* 나이 */}
+            <View style={styles.filterRow}>
+              <Text style={styles.filterLabel}>나이</Text>
+              <View style={styles.filterChips}>
+                {AGE_OPTIONS.map((opt) => (
+                  <TouchableOpacity
+                    key={opt.value}
+                    style={[styles.filterChip, selectedAge === opt.value && styles.filterChipActive]}
+                    onPress={() => setSelectedAge(selectedAge === opt.value ? '' : opt.value)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={[styles.filterChipText, selectedAge === opt.value && styles.filterChipTextActive]}>
+                      {opt.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          </View>
+        )}
       </View>
 
       {viewMode === 'map' ? (
@@ -762,6 +838,90 @@ const styles = StyleSheet.create({
     color: COLORS.text.tertiary,
   },
   radiusChipTextActive: {
+    color: COLORS.primary.main,
+  },
+
+  // Filter Toggle
+  filterToggleButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1.5,
+    borderColor: COLORS.neutral.grey300,
+    backgroundColor: 'transparent',
+    cursor: 'pointer',
+    position: 'relative',
+  },
+  filterToggleButtonActive: {
+    borderColor: COLORS.primary.main,
+    backgroundColor: COLORS.primary.light,
+  },
+  filterToggleText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: COLORS.text.tertiary,
+  },
+  filterToggleTextActive: {
+    color: COLORS.primary.main,
+  },
+  filterActiveDot: {
+    position: 'absolute',
+    top: -3,
+    right: -3,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: COLORS.primary.main,
+    borderWidth: 1.5,
+    borderColor: COLORS.neutral.white,
+  },
+
+  // Filter Section
+  filterSection: {
+    marginTop: 12,
+    gap: 10,
+  },
+  filterRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  filterLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: COLORS.text.secondary,
+    width: 36,
+    flexShrink: 0,
+  },
+  filterChips: {
+    flexDirection: 'row',
+    gap: 6,
+    flexWrap: 'wrap',
+  },
+  filterChip: {
+    height: 32,
+    minHeight: 44,
+    justifyContent: 'center',
+    paddingHorizontal: 14,
+    borderRadius: 8,
+    backgroundColor: 'transparent',
+    borderWidth: 1.5,
+    borderColor: COLORS.neutral.grey300,
+    cursor: 'pointer',
+  },
+  filterChipActive: {
+    backgroundColor: COLORS.primary.light,
+    borderColor: COLORS.primary.main,
+  },
+  filterChipText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: COLORS.text.tertiary,
+  },
+  filterChipTextActive: {
     color: COLORS.primary.main,
   },
 

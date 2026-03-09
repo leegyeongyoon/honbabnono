@@ -9,8 +9,8 @@ exports.getPoints = async (req, res) => {
     const result = await pool.query(`
       SELECT
         COALESCE(available_points, 0) as available_points,
-        COALESCE(total_earned, 0) as total_earned,
-        COALESCE(total_used, 0) as total_used
+        COALESCE(total_points, 0) as total_points,
+        COALESCE(used_points, 0) as used_points
       FROM user_points
       WHERE user_id = $1
     `, [userId]);
@@ -18,7 +18,7 @@ exports.getPoints = async (req, res) => {
     if (result.rows.length === 0) {
       // 포인트 레코드 생성
       await pool.query(`
-        INSERT INTO user_points (user_id, available_points, total_earned, total_used)
+        INSERT INTO user_points (user_id, available_points, total_points, used_points)
         VALUES ($1, 0, 0, 0)
       `, [userId]);
 
@@ -36,8 +36,8 @@ exports.getPoints = async (req, res) => {
       success: true,
       points: {
         available: result.rows[0].available_points,
-        totalEarned: result.rows[0].total_earned,
-        totalUsed: result.rows[0].total_used
+        totalEarned: result.rows[0].total_points,
+        totalUsed: result.rows[0].used_points
       }
     });
 
@@ -59,7 +59,7 @@ exports.getPointHistory = async (req, res) => {
 
     if (type) {
       params.push(type);
-      whereClause += ` AND transaction_type = $${params.length}`;
+      whereClause += ` AND type = $${params.length}`;
     }
 
     const result = await pool.query(`
@@ -98,17 +98,17 @@ exports.earnPoints = async (req, res) => {
 
       // 포인트 증가
       await client.query(`
-        INSERT INTO user_points (user_id, available_points, total_earned)
+        INSERT INTO user_points (user_id, available_points, total_points)
         VALUES ($1, $2, $2)
         ON CONFLICT (user_id)
         DO UPDATE SET
           available_points = user_points.available_points + $2,
-          total_earned = user_points.total_earned + $2
+          total_points = user_points.total_points + $2
       `, [userId, amount]);
 
       // 거래 내역 기록
       await client.query(`
-        INSERT INTO point_transactions (user_id, transaction_type, amount, description, related_meetup_id, created_at)
+        INSERT INTO point_transactions (user_id, type, amount, description, related_deposit_id, created_at)
         VALUES ($1, 'earn', $2, $3, $4, NOW())
       `, [userId, amount, reason, relatedMeetupId]);
 
@@ -160,13 +160,13 @@ exports.usePoints = async (req, res) => {
       await client.query(`
         UPDATE user_points
         SET available_points = available_points - $2,
-            total_used = total_used + $2
+            used_points = used_points + $2
         WHERE user_id = $1
       `, [userId, amount]);
 
       // 거래 내역 기록
       await client.query(`
-        INSERT INTO point_transactions (user_id, transaction_type, amount, description, related_meetup_id, created_at)
+        INSERT INTO point_transactions (user_id, type, amount, description, related_deposit_id, created_at)
         VALUES ($1, 'use', $2, $3, $4, NOW())
       `, [userId, amount, reason, relatedMeetupId]);
 
@@ -223,7 +223,7 @@ exports.payDeposit = async (req, res) => {
 
       // 약속금 기록
       await client.query(`
-        INSERT INTO promise_deposits (meetup_id, user_id, amount, status, paid_at, created_at)
+        INSERT INTO promise_deposits (meetup_id, user_id, amount, status, deposited_at, created_at)
         VALUES ($1, $2, $3, 'paid', NOW(), NOW())
       `, [meetupId, userId, amount]);
 
@@ -283,7 +283,7 @@ exports.refundDeposit = async (req, res) => {
       // 약속금 상태 변경
       await client.query(`
         UPDATE promise_deposits
-        SET status = 'refunded', refunded_at = NOW()
+        SET status = 'refunded', returned_at = NOW()
         WHERE meetup_id = $1 AND user_id = $2
       `, [meetupId, userId]);
 

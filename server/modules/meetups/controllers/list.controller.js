@@ -32,10 +32,11 @@ exports.getHomeMeetups = async (req, res) => {
         m.latitude, m.longitude,
         m.date, m.time, m.max_participants, m.current_participants,
         m.category, m.price_range, m.image, m.status,
-        m.age_range, m.gender_preference, m.created_at,
+        m.age_range, m.gender_preference, m.promise_deposit_amount, m.promise_deposit_required, m.created_at,
         h.name as "host.name",
         h.profile_image as "host.profileImage",
         h.rating as "host.rating",
+        h.babal_score as "host.babAlScore",
         EXTRACT(EPOCH FROM (m.date::date + m.time::time - NOW())) / 3600 as hours_until_start
       FROM meetups m
       LEFT JOIN users h ON m.host_id = h.id
@@ -102,7 +103,7 @@ exports.getHomeMeetups = async (req, res) => {
  */
 exports.getActiveMeetups = async (req, res) => {
   try {
-    const { category, location, priceRange, page = 1, limit = 10 } = req.query;
+    const { category, location, priceRange, genderPreference, ageRange, hasDeposit, sortBy, page = 1, limit = 10 } = req.query;
     const currentUserId = extractUserId(req);
 
     const whereConditions = [
@@ -140,6 +141,20 @@ exports.getActiveMeetups = async (req, res) => {
       paramIndex++;
     }
 
+    // 성별 필터 (선택 필터)
+    if (genderPreference && genderPreference !== '무관') {
+      whereConditions.push(`(m.gender_preference = $${paramIndex} OR m.gender_preference IS NULL OR m.gender_preference IN ('무관', '상관없음', '혼성'))`);
+      queryParams.push(genderPreference);
+      paramIndex++;
+    }
+
+    // 나이 필터 (선택 필터)
+    if (ageRange && ageRange !== '무관') {
+      whereConditions.push(`(m.age_range = $${paramIndex} OR m.age_range IS NULL OR m.age_range = '무관')`);
+      queryParams.push(ageRange);
+      paramIndex++;
+    }
+
     const { offset, limit: parsedLimit } = buildPagination(page, limit);
 
     const countQuery = `
@@ -154,10 +169,11 @@ exports.getActiveMeetups = async (req, res) => {
         m.latitude, m.longitude,
         m.date, m.time, m.max_participants, m.current_participants,
         m.category, m.price_range, m.image, m.status,
-        m.age_range, m.gender_preference, m.created_at,
+        m.age_range, m.gender_preference, m.promise_deposit_amount, m.promise_deposit_required, m.created_at,
         h.name as "host.name",
         h.profile_image as "host.profileImage",
         h.rating as "host.rating",
+        h.babal_score as "host.babAlScore",
         EXTRACT(EPOCH FROM (m.date::date + m.time::time - NOW())) / 3600 as hours_until_start
       FROM meetups m
       LEFT JOIN users h ON m.host_id = h.id
@@ -350,7 +366,8 @@ exports.getMyMeetups = async (req, res) => {
         SELECT
           m.id, m.title, m.description, m.location, m.address,
           m.date, m.time, m.max_participants, m.current_participants,
-          m.category, m.price_range, m.image, m.status, m.created_at
+          m.category, m.price_range, m.image, m.status,
+          m.age_range, m.gender_preference, m.promise_deposit_amount, m.promise_deposit_required, m.created_at
         FROM meetups m
         WHERE m.host_id = $1
         ORDER BY m.date DESC, m.time DESC
@@ -361,7 +378,8 @@ exports.getMyMeetups = async (req, res) => {
         SELECT
           m.id, m.title, m.description, m.location, m.address,
           m.date, m.time, m.max_participants, m.current_participants,
-          m.category, m.price_range, m.image, m.status, m.created_at
+          m.category, m.price_range, m.image, m.status,
+          m.age_range, m.gender_preference, m.promise_deposit_amount, m.promise_deposit_required, m.created_at
         FROM meetups m
         INNER JOIN meetup_participants mp ON m.id = mp.meetup_id
         WHERE mp.user_id = $1 AND mp.status = '참가승인' AND m.host_id != $1
@@ -373,7 +391,8 @@ exports.getMyMeetups = async (req, res) => {
         SELECT DISTINCT
           m.id, m.title, m.description, m.location, m.address,
           m.date, m.time, m.max_participants, m.current_participants,
-          m.category, m.price_range, m.image, m.status, m.created_at
+          m.category, m.price_range, m.image, m.status,
+          m.age_range, m.gender_preference, m.promise_deposit_amount, m.promise_deposit_required, m.created_at
         FROM meetups m
         LEFT JOIN meetup_participants mp ON m.id = mp.meetup_id AND mp.user_id = $1
         WHERE m.host_id = $1 OR (mp.user_id = $1 AND mp.status = '참가승인')
@@ -441,10 +460,12 @@ exports.getMeetups = async (req, res) => {
         m.date, m.time, m.max_participants, m.current_participants,
         m.category, m.price_range, m.image, m.status,
         m.age_range, m.gender_preference, m.host_id,
+        m.promise_deposit_amount, m.promise_deposit_required,
         m.created_at, m.updated_at,
         u.name as "host.name",
         u.profile_image as "host.profileImage",
-        u.rating as "host.rating"
+        u.rating as "host.rating",
+        u.babal_score as "host.babAlScore"
       FROM meetups m
       LEFT JOIN users u ON m.host_id = u.id
       ${whereClause}

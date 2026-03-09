@@ -10,6 +10,7 @@ export interface User {
   profileImage?: string;
   provider: string;
   isVerified: boolean;
+  gender?: string;
   babAlScore: number; // 밥알지수 (0-100)
   meetupsHosted: number;
   meetupsJoined: number;
@@ -193,9 +194,10 @@ export const useUserStore = create<UserState>()(
           ]);
           
           if (profileResponse.ok) {
-            const userData = await profileResponse.json();
+            const profileJson = await profileResponse.json();
+            const userData = profileJson.data || profileJson;
             let babAlScore = calculateBabAlFromStats(userData); // 기본값
-            
+
             // DB에서 가져온 밥알지수가 있으면 우선 사용
             if (riceIndexResponse.ok) {
               const riceData = await riceIndexResponse.json();
@@ -203,7 +205,7 @@ export const useUserStore = create<UserState>()(
                 babAlScore = riceData.riceIndex;
               }
             }
-            
+
             const updatedUser = { ...userData, babAlScore };
             set({ user: updatedUser });
           }
