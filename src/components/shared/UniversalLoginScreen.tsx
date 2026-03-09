@@ -33,7 +33,7 @@ const UniversalLoginScreen: React.FC<UniversalLoginScreenProps> = ({
   useEffect(() => {
     // Web-specific OAuth result handling
     if (Platform.OS === 'web' && typeof window !== 'undefined') {
-      const urlParams = new URLSearchParams(window.location.hash);
+      const urlParams = new URLSearchParams(window.location.search);
       const token = urlParams.get('token');
       const success = urlParams.get('success');
       const error = urlParams.get('error');

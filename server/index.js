@@ -181,10 +181,11 @@ apiRouter.get('/health', (req, res) => {
 // (아래 standalone routes에서 처리됨)
 
 // 로그인 관련 라우트에 Rate Limiting 적용 (분당 5회)
+// 주의: /auth/kakao/callback은 카카오 서버에서 호출되므로 제외
 apiRouter.use('/auth/login', loginLimiter);
 apiRouter.use('/auth/register', loginLimiter);
-apiRouter.use('/auth/kakao', loginLimiter);
 apiRouter.use('/auth/test-login', loginLimiter);
+apiRouter.use('/auth/kakao/login', loginLimiter);
 
 // 모듈 라우트 연결
 apiRouter.use('/auth', authRoutes);

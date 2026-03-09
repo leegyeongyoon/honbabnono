@@ -4,18 +4,19 @@ const authController = require('./controller');
 const { authenticateToken } = require('../../middleware/auth');
 const validate = require('../../middleware/validate');
 const { registerSchema, loginSchema } = require('../../middleware/schemas/auth.schemas');
+const { loginLimiter } = require('../../middleware/rateLimiter');
 
-// 카카오 로그인 시작 (인증 페이지로 리다이렉트)
-router.get('/kakao', authController.kakaoAuthRedirect);
+// 카카오 로그인 시작 (인증 페이지로 리다이렉트) — rate limited
+router.get('/kakao', loginLimiter, authController.kakaoAuthRedirect);
 
-// 카카오 로그인 시작 (레거시 경로)
-router.get('/kakao/login', authController.kakaoAuthRedirect);
+// 카카오 로그인 시작 (레거시 경로) — rate limited
+router.get('/kakao/login', loginLimiter, authController.kakaoAuthRedirect);
 
-// 카카오 로그인 콜백 처리
+// 카카오 로그인 콜백 처리 (카카오 서버에서 호출 — rate limit 없음)
 router.get('/kakao/callback', authController.kakaoCallback);
 
-// 카카오 로그인 API (웹 앱용)
-router.post('/kakao', authController.kakaoLogin);
+// 카카오 로그인 API (웹 앱용) — rate limited
+router.post('/kakao', loginLimiter, authController.kakaoLogin);
 
 // 토큰 검증 및 자동 로그인 API
 router.post('/verify-token', authController.verifyToken);

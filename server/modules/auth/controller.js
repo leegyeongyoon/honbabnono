@@ -62,12 +62,14 @@ exports.kakaoCallback = async (req, res) => {
 
   if (error) {
     logger.error('카카오 로그인 에러:', error);
-    return res.redirect('/#/login?error=kakao_auth_failed');
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    return res.redirect(`${frontendUrl}/login?error=kakao_auth_failed`);
   }
 
   if (!code) {
     logger.error('카카오 로그인 코드 없음');
-    return res.redirect('/#/login?error=no_auth_code');
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    return res.redirect(`${frontendUrl}/login?error=no_auth_code`);
   }
 
   try {

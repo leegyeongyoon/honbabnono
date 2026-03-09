@@ -23,8 +23,8 @@ const LoginScreen = () => {
   const { login } = useUserStore();
 
   useEffect(() => {
-    // URL에서 OAuth 결과 확인
-    const urlParams = new URLSearchParams(window.location.hash);
+    // URL에서 OAuth 결과 확인 (서버가 query string으로 리다이렉트)
+    const urlParams = new URLSearchParams(window.location.search);
     const token = urlParams.get('token');
     const success = urlParams.get('success');
     const error = urlParams.get('error');
