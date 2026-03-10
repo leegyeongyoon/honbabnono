@@ -1,9 +1,11 @@
 const rateLimit = require('express-rate-limit');
 
-// 로그인 라우트 Rate Limiter: 분당 5회
+const isDev = process.env.NODE_ENV !== 'production';
+
+// 로그인 라우트 Rate Limiter: 프로덕션 분당 5회, 개발 분당 30회
 const loginLimiter = rateLimit({
   windowMs: 60 * 1000, // 1분
-  max: 5,
+  max: isDev ? 30 : 5,
   standardHeaders: true,
   legacyHeaders: false,
   message: {
@@ -12,10 +14,10 @@ const loginLimiter = rateLimit({
   }
 });
 
-// 일반 API Rate Limiter: 분당 100회
+// 일반 API Rate Limiter: 프로덕션 분당 100회, 개발 분당 500회
 const apiLimiter = rateLimit({
   windowMs: 60 * 1000, // 1분
-  max: 100,
+  max: isDev ? 500 : 100,
   standardHeaders: true,
   legacyHeaders: false,
   message: {

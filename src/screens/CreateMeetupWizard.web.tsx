@@ -1628,18 +1628,18 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
         <View style={styles.priceOptions}>
           {PRICE_RANGES.map((range) => (
             <TouchableOpacity
-              key={range}
+              key={range.id}
               style={[
                 styles.priceOption,
-                meetupData.priceRange === range ? styles.priceSelected : null
+                meetupData.priceRange === range.label ? styles.priceSelected : null
               ]}
-              onPress={() => updateMeetupData('priceRange', range)}
+              onPress={() => updateMeetupData('priceRange', range.label)}
             >
               <Text style={[
                 styles.priceText,
-                meetupData.priceRange === range ? styles.priceTextSelected : null
+                meetupData.priceRange === range.label ? styles.priceTextSelected : null
               ]}>
-                {range}
+                {range.label}
               </Text>
             </TouchableOpacity>
           ))}

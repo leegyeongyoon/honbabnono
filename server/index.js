@@ -184,7 +184,7 @@ apiRouter.get('/health', (req, res) => {
 // 주의: /auth/kakao/callback은 카카오 서버에서 호출되므로 제외
 apiRouter.use('/auth/login', loginLimiter);
 apiRouter.use('/auth/register', loginLimiter);
-apiRouter.use('/auth/test-login', loginLimiter);
+// test-login은 개발 모드 전용이므로 rate limit 제외
 apiRouter.use('/auth/kakao/login', loginLimiter);
 
 // 모듈 라우트 연결

@@ -158,12 +158,12 @@ exports.createMeetup = async (req, res) => {
     const result = await pool.query(
       `
       INSERT INTO meetups (
-        host_id, title, description, category, location, address,
+        id, host_id, title, description, category, location, address,
         latitude, longitude, date, time, max_participants,
         price_range, age_range, gender_preference, image,
         status, current_participants, created_at, updated_at
       ) VALUES (
-        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15,
+        gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15,
         '모집중', 1, NOW(), NOW()
       ) RETURNING *
     `,
@@ -191,8 +191,8 @@ exports.createMeetup = async (req, res) => {
     // 호스트를 참가자로 자동 추가
     await pool.query(
       `
-      INSERT INTO meetup_participants (meetup_id, user_id, status, joined_at)
-      VALUES ($1, $2, '참가승인', NOW())
+      INSERT INTO meetup_participants (id, meetup_id, user_id, status, joined_at, created_at, updated_at)
+      VALUES (gen_random_uuid(), $1, $2, '참가승인', NOW(), NOW(), NOW())
     `,
       [meetup.id, userId]
     );

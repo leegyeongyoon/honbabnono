@@ -321,11 +321,11 @@ exports.sendMessage = async (req, res) => {
 
     const result = await pool.query(`
       INSERT INTO chat_messages (
-        id, "chatRoomId", "senderId", "senderName", message,
+        "chatRoomId", "senderId", "senderName", message,
         "messageType", "createdAt", "updatedAt"
       )
       VALUES (
-        gen_random_uuid(), $1, $2, $3, $4, $5, NOW(), NOW()
+        $1, $2, $3, $4, $5, NOW(), NOW()
       )
       RETURNING *
     `, [id, userId, userName, message, messageType]);

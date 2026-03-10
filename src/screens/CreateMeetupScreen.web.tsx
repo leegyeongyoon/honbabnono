@@ -906,18 +906,18 @@ const CreateMeetupScreen: React.FC<CreateMeetupScreenProps> = ({ user }) => {
               <View style={styles.categoryContainer}>
                 {priceRanges.map((range) => (
                   <TouchableOpacity
-                    key={range}
+                    key={range.id}
                     style={[
                       styles.categoryButton,
-                      formData.priceRange === range && styles.categoryButtonSelected
+                      formData.priceRange === range.label && styles.categoryButtonSelected
                     ]}
-                    onPress={() => handleInputChange('priceRange', range)}
+                    onPress={() => handleInputChange('priceRange', range.label)}
                   >
                     <Text style={[
                       styles.categoryText,
-                      formData.priceRange === range && styles.categoryTextSelected
+                      formData.priceRange === range.label && styles.categoryTextSelected
                     ]}>
-                      {range}
+                      {range.label}
                     </Text>
                   </TouchableOpacity>
                 ))}
