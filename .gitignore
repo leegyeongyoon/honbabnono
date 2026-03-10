@@ -100,3 +100,10 @@ venv/
 
 # YouTube transcript output
 yt_transcripts/
+
+# Playwright
+playwright-report/
+test-results/
+
+# Figma
+.figma-use.json

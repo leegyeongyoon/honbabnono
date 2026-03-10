@@ -421,21 +421,21 @@ exports.testLogin = async (req, res) => {
   }
 
   try {
-    const { email } = req.body;
-    logger.debug('테스트 로그인 요청:', { email });
+    const { email, userId } = req.body;
+    logger.debug('테스트 로그인 요청:', { email, userId });
 
-    if (!email) {
+    if (!email && !userId) {
       return res.status(400).json({
         success: false,
-        error: '이메일이 필요합니다.'
+        error: '이메일 또는 userId가 필요합니다.'
       });
     }
 
     const userResult = await pool.query(`
-      SELECT id, name, email, provider, is_verified, profile_image, rating, created_at
+      SELECT id, name, email, provider, is_verified, profile_image, rating, gender, created_at
       FROM users
-      WHERE email = $1
-    `, [email]);
+      WHERE ${userId ? 'id = $1' : 'email = $1'}
+    `, [userId || email]);
 
     if (userResult.rows.length === 0) {
       return res.status(404).json({
@@ -467,6 +467,7 @@ exports.testLogin = async (req, res) => {
         provider: user.provider,
         isVerified: user.is_verified,
         profileImage: user.profile_image,
+        gender: user.gender,
         rating: user.rating,
         createdAt: user.created_at
       }
