@@ -81,6 +81,9 @@ router.get('/point-history', authenticateToken, userController.getPointHistory);
 // 리뷰 관리
 router.get('/reviews/manage', authenticateToken, userController.getReviewsManage);
 
+// 받은 리뷰 조회
+router.get('/reviews/received', authenticateToken, userController.getReceivedReviews);
+
 // 참가자 평가 조회 (다른 사용자)
 router.get('/:userId/participant-reviews', userController.getParticipantReviews);
 

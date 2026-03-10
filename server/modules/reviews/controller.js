@@ -283,6 +283,71 @@ exports.getUserReviewStats = async (req, res) => {
   }
 };
 
+// 리뷰 답변 (호스트만 가능)
+exports.replyToReview = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.userId;
+    const { reply } = req.body;
+
+    if (!reply || !reply.trim()) {
+      return res.status(400).json({
+        success: false,
+        error: '답변 내용을 입력해주세요.',
+      });
+    }
+
+    // 리뷰 조회 + 모임 호스트 확인
+    const reviewResult = await pool.query(`
+      SELECT r.id, r.reviewee_id, r.reply, m.host_id
+      FROM reviews r
+      INNER JOIN meetups m ON r.meetup_id = m.id
+      WHERE r.id = $1
+    `, [id]);
+
+    if (reviewResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: '리뷰를 찾을 수 없습니다.',
+      });
+    }
+
+    const review = reviewResult.rows[0];
+
+    // 리뷰 대상자(호스트)만 답변 가능
+    if (review.host_id !== userId && review.reviewee_id !== userId) {
+      return res.status(403).json({
+        success: false,
+        error: '답변 권한이 없습니다.',
+      });
+    }
+
+    if (review.reply) {
+      return res.status(400).json({
+        success: false,
+        error: '이미 답변이 작성되어 있습니다.',
+      });
+    }
+
+    const updateResult = await pool.query(`
+      UPDATE reviews
+      SET reply = $1, reply_at = NOW(), updated_at = NOW()
+      WHERE id = $2
+      RETURNING *
+    `, [reply.trim(), id]);
+
+    res.json({
+      success: true,
+      message: '답변이 등록되었습니다.',
+      review: updateResult.rows[0],
+    });
+
+  } catch (error) {
+    logger.error('리뷰 답변 오류:', error);
+    res.status(500).json({ error: '서버 오류가 발생했습니다' });
+  }
+};
+
 // 리뷰 피처링 (관리자 기능 - 추천 리뷰로 표시)
 exports.featureReview = async (req, res) => {
   try {

@@ -2061,7 +2061,6 @@ exports.getReviewsManage = async (req, res) => {
         r.is_anonymous,
         r.created_at,
         r.updated_at,
-        COALESCE(r.is_featured, false) as is_featured,
         m.title as meetup_title,
         m.date as meetup_date,
         m.location as meetup_location
@@ -2079,6 +2078,53 @@ exports.getReviewsManage = async (req, res) => {
   } catch (error) {
     logger.error('리뷰 관리 목록 조회 오류:', error);
     res.status(500).json({ success: false, message: '리뷰 목록을 불러올 수 없습니다.' });
+  }
+};
+
+// 받은 리뷰 목록 조회
+exports.getReceivedReviews = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+
+    const reviewsResult = await pool.query(`
+      SELECT
+        r.id,
+        r.rating,
+        r.content as comment,
+        r.tags,
+        r.is_anonymous,
+        r.reply,
+        r.reply_at,
+        r.created_at,
+        r.updated_at,
+        m.title as meetup_title,
+        m.date as meetup_date,
+        m.id as meetup_id,
+        m.host_id,
+        CASE
+          WHEN r.is_anonymous THEN '익명'
+          ELSE u.name
+        END as reviewer_name
+      FROM reviews r
+      INNER JOIN meetups m ON r.meetup_id = m.id
+      INNER JOIN users u ON r.reviewer_id = u.id
+      WHERE r.reviewee_id = $1
+      ORDER BY r.created_at DESC
+    `, [userId]);
+
+    const reviews = reviewsResult.rows.map(row => ({
+      ...row,
+      can_reply: row.host_id === userId && !row.reply,
+    }));
+
+    res.json({
+      success: true,
+      reviews,
+    });
+
+  } catch (error) {
+    logger.error('받은 리뷰 목록 조회 오류:', error);
+    res.status(500).json({ success: false, message: '받은 리뷰 목록을 불러올 수 없습니다.' });
   }
 };
 

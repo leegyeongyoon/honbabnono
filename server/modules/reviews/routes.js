@@ -15,6 +15,9 @@ router.put('/:id', authenticateToken, reviewController.updateReview);
 // 리뷰 삭제
 router.delete('/:id', authenticateToken, reviewController.deleteReview);
 
+// 리뷰 답변 (호스트/리뷰 대상자)
+router.post('/:id/reply', authenticateToken, reviewController.replyToReview);
+
 // 리뷰 피처링 (관리자)
 router.patch('/:reviewId/feature', authenticateToken, reviewController.featureReview);
 
