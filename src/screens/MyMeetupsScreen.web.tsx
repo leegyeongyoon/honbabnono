@@ -10,7 +10,7 @@ import { useUserStore } from '../store/userStore';
 import userApiService, { JoinedMeetup, HostedMeetup } from '../services/userApiService';
 import { FadeIn } from '../components/animated';
 
-// Web hover wrapper for tab buttons
+// Web hover wrapper for tab buttons (segmented control style)
 const WebTabButton: React.FC<{
   isActive: boolean;
   onPress: () => void;
@@ -31,7 +31,11 @@ const WebTabButton: React.FC<{
         {
           transition: `all ${TRANSITIONS.normal}`,
           cursor: 'pointer',
-          backgroundColor: hovered && !isActive ? withOpacity(COLORS.neutral.grey100, 0.25) : 'transparent',
+          backgroundColor: isActive
+            ? COLORS.neutral.white
+            : hovered
+              ? 'rgba(0,0,0,0.03)'
+              : 'transparent',
         },
       ]}
       onPress={onPress}
@@ -370,33 +374,35 @@ const MyMeetupsScreen: React.FC<MyMeetupsScreenProps> = ({ user: propsUser }) =>
         />
       </View>
 
-      {/* 탭 바 */}
-      <View style={styles.tabContainer} accessibilityRole="tablist">
-        {TAB_ITEMS.map((tab) => {
-          const isActive = activeTab === tab.key;
-          const count = getTabCount(tab.key);
-          return (
-            <WebTabButton
-              key={tab.key}
-              isActive={isActive}
-              onPress={() => setActiveTab(tab.key)}
-              ariaLabel={`${tab.label} ${count > 0 ? `${count}개` : ''}`}
-            >
-              {/* @ts-ignore web-specific style */}
-              <Text style={[styles.tabButtonText, isActive && styles.activeTabButtonText, { transition: `color ${TRANSITIONS.normal}` }]}>
-                {tab.label}
-              </Text>
-              {count > 0 && (
-                // @ts-ignore web-specific style
-                <View style={[styles.tabCountBadge, isActive && styles.activeTabCountBadge, { transition: `all ${TRANSITIONS.normal}` }]}>
-                  <Text style={[styles.tabCountText, isActive && styles.activeTabCountText]}>
-                    {count}
-                  </Text>
-                </View>
-              )}
-            </WebTabButton>
-          );
-        })}
+      {/* 세그먼트 컨트롤 탭 */}
+      <View style={styles.tabOuterContainer}>
+        <View style={styles.tabContainer} accessibilityRole="tablist">
+          {TAB_ITEMS.map((tab) => {
+            const isActive = activeTab === tab.key;
+            const count = getTabCount(tab.key);
+            return (
+              <WebTabButton
+                key={tab.key}
+                isActive={isActive}
+                onPress={() => setActiveTab(tab.key)}
+                ariaLabel={`${tab.label} ${count > 0 ? `${count}개` : ''}`}
+              >
+                {/* @ts-ignore web-specific style */}
+                <Text style={[styles.tabButtonText, isActive && styles.activeTabButtonText, { transition: `color ${TRANSITIONS.normal}` }]}>
+                  {tab.label}
+                </Text>
+                {count > 0 && (
+                  // @ts-ignore web-specific style
+                  <View style={[styles.tabCountBadge, isActive && styles.activeTabCountBadge, { transition: `all ${TRANSITIONS.normal}` }]}>
+                    <Text style={[styles.tabCountText, isActive && styles.activeTabCountText]}>
+                      {count}
+                    </Text>
+                  </View>
+                )}
+              </WebTabButton>
+            );
+          })}
+        </View>
       </View>
 
       {/* 컨텐츠 */}
@@ -429,7 +435,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    ...HEADER_STYLE.main,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    backgroundColor: COLORS.neutral.white,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.neutral.grey100,
     // @ts-ignore
     position: 'sticky',
     top: 0,
@@ -437,53 +447,61 @@ const styles = StyleSheet.create({
     boxShadow: CSS_SHADOWS.stickyHeader,
   },
   headerTitle: {
-    ...HEADER_STYLE.title,
+    fontSize: 18,
+    fontWeight: '700',
+    letterSpacing: -0.3,
+    color: COLORS.text.primary,
   },
-  // Tabs
+  // Segmented control tabs
+  tabOuterContainer: {
+    backgroundColor: COLORS.neutral.white,
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 12,
+  },
   tabContainer: {
     flexDirection: 'row',
-    backgroundColor: COLORS.neutral.white,
-    borderBottomWidth: 1,
-    borderBottomColor: withOpacity(COLORS.primary.main, 0.08),
-    paddingHorizontal: 4,
+    backgroundColor: COLORS.neutral.grey100,
+    borderRadius: 10,
+    padding: 3,
   },
   tabButton: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 24,
-    paddingVertical: 14,
-    minHeight: 48,
-    borderBottomWidth: 3,
-    borderBottomColor: 'transparent',
-    gap: 6,
+    paddingVertical: 8,
+    borderRadius: 8,
+    gap: 5,
   },
   activeTabButton: {
-    borderBottomColor: COLORS.primary.main,
+    backgroundColor: COLORS.neutral.white,
+    // @ts-ignore
+    boxShadow: '0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06)',
   },
   tabButtonText: {
-    fontSize: 15,
+    fontSize: 14,
     color: COLORS.text.tertiary,
     fontWeight: '500',
   },
   activeTabButtonText: {
     color: COLORS.text.primary,
-    fontWeight: '700',
+    fontWeight: '600',
   },
   tabCountBadge: {
-    backgroundColor: COLORS.neutral.grey100,
-    borderRadius: 11,
-    minWidth: 22,
-    height: 22,
+    backgroundColor: COLORS.neutral.grey200,
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 6,
+    paddingHorizontal: 5,
   },
   activeTabCountBadge: {
     backgroundColor: COLORS.primary.main,
   },
   tabCountText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '700',
     color: COLORS.text.tertiary,
   },

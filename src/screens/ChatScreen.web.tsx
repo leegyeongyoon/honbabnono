@@ -10,7 +10,7 @@ import {
   Image,
 } from 'react-native';
 import { useNavigate, useParams } from 'react-router-dom';
-import { COLORS, SHADOWS, CSS_SHADOWS, LAYOUT, CARD_STYLE, TYPOGRAPHY, SPACING, BORDER_RADIUS, HEADER_STYLE } from '../styles';
+import { COLORS, CSS_SHADOWS, TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../styles';
 import { Icon } from '../components/Icon';
 import chatService from '../services/chatService';
 import chatApiService, { ChatRoom, ChatMessage } from '../services/chatApiService';
@@ -20,7 +20,7 @@ import { useUserStore } from '../store/userStore';
 import Toast from '../components/Toast';
 import { useToast } from '../hooks/useToast';
 import EmptyState from '../components/EmptyState';
-import { FadeIn } from '../components/animated';
+
 import { ChatListSkeleton } from '../components/skeleton';
 import { getAvatarColor, getInitials } from '../utils/avatarColor';
 
@@ -300,24 +300,13 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation }) => {
           cursor: 'pointer',
           position: 'relative',
           borderBottom: `1px solid ${COLORS.neutral.grey100}`,
+          backgroundColor: hasUnread ? COLORS.neutral.grey50 : 'transparent',
         }}
         onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = COLORS.neutral.light; }}
-        onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent'; }}
+        onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = hasUnread ? COLORS.neutral.grey50 : 'transparent'; }}
         role="button"
         aria-label={`${displayTitle} 채팅방${hasUnread ? `, 읽지 않은 메시지 ${item.unreadCount}개` : ''}`}
       >
-        {/* 읽지 않은 메시지 좌측 액센트 라인 */}
-        {hasUnread && (
-          <div style={{
-            position: 'absolute',
-            left: 0,
-            top: 8,
-            bottom: 8,
-            width: 3,
-            borderRadius: 2,
-            backgroundColor: COLORS.primary.accent,
-          }} />
-        )}
         <TouchableOpacity
           style={styles.chatItem}
           onPress={() => selectChatRoom(item.id)}
@@ -335,23 +324,23 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation }) => {
               position: 'absolute',
               bottom: -2,
               right: -2,
-              width: 22,
-              height: 22,
-              borderRadius: 11,
+              width: 20,
+              height: 20,
+              borderRadius: 10,
               backgroundColor: item.type === 'meetup' ? COLORS.primary.main : COLORS.neutral.grey400,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               border: `2px solid ${COLORS.surface.primary}`,
             }}>
-              <span style={{ fontSize: 11, color: COLORS.neutral.white }}>
+              <span style={{ fontSize: 10, lineHeight: '20px' }}>
                 {item.type === 'meetup' ? '👥' : '💬'}
               </span>
             </div>
           </div>
           <View style={styles.chatInfo}>
             <View style={styles.chatTitleRow}>
-              <Text style={[styles.chatTitle, hasUnread && { fontWeight: '700' as any }]} numberOfLines={1}>
+              <Text style={[styles.chatTitle, hasUnread && styles.chatTitleUnread]} numberOfLines={1}>
                 {displayTitle}
               </Text>
               {participantCount && (
@@ -360,12 +349,12 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation }) => {
                 </View>
               )}
             </View>
-            <Text style={[styles.lastMessage, hasUnread && { color: COLORS.text.secondary, fontWeight: '500' as any }]} numberOfLines={1}>
+            <Text style={[styles.lastMessage, hasUnread && styles.lastMessageUnread]} numberOfLines={1}>
               {item.lastMessage || '아직 메시지가 없습니다'}
             </Text>
           </View>
           <View style={styles.chatMeta}>
-            <Text style={[styles.chatTime, hasUnread && { color: COLORS.primary.accent, fontWeight: '600' as any }]}>
+            <Text style={[styles.chatTime, hasUnread && styles.chatTimeUnread]}>
               {getDetailedDateFormat(item.lastTime)}
             </Text>
             {hasUnread && (
@@ -403,8 +392,8 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation }) => {
         <EmptyState
           icon="message-circle"
           iconSize={56}
-          title={selectedTab === '개인' ? '1:1 채팅이 없어요' : '아직 대화가 없어요'}
-          description="약속에 참여하고 대화를 시작해보세요!"
+          title={selectedTab === '개인' ? '1:1 채팅이 없어요' : '아직 채팅이 없어요'}
+          description="밥약속에 참가하면 채팅이 시작돼요"
         />
       );
     }
@@ -487,24 +476,22 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation }) => {
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  margin: '20px 0',
+                  margin: '24px 0 16px',
                   gap: 12,
                 }}>
-                  <div style={{ flex: 1, height: 1, backgroundColor: COLORS.neutral.grey200 }} />
+                  <div style={{ flex: 1, height: 1, backgroundColor: COLORS.neutral.grey100 }} />
                   <div style={{
                     fontSize: 12,
-                    fontWeight: '600',
-                    color: COLORS.text.secondary,
-                    backgroundColor: COLORS.surface.primary,
-                    padding: '6px 16px',
-                    borderRadius: BORDER_RADIUS.md,
-                    boxShadow: CSS_SHADOWS.small,
-                    border: `1px solid ${COLORS.neutral.grey100}`,
+                    fontWeight: '500',
+                    color: COLORS.text.tertiary,
+                    backgroundColor: COLORS.neutral.white,
+                    padding: '4px 14px',
                     whiteSpace: 'nowrap',
+                    letterSpacing: 0.1,
                   }}>
                     {getChatDateHeader(message.timestamp)}
                   </div>
-                  <div style={{ flex: 1, height: 1, backgroundColor: COLORS.neutral.grey200 }} />
+                  <div style={{ flex: 1, height: 1, backgroundColor: COLORS.neutral.grey100 }} />
                 </div>
               )}
               <View
@@ -531,27 +518,23 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation }) => {
                       )}
                     </TouchableOpacity>
                     <View style={styles.messageContentWrapper}>
-                      <View style={styles.messageHeader}>
-                        <TouchableOpacity onPress={() => handleUserProfileClick(message)} activeOpacity={0.7}>
-                          <Text style={styles.senderName}>{message.senderName || '사용자'}</Text>
-                        </TouchableOpacity>
-                        {message.riceIndex && (
-                          <Text style={styles.riceIndex}>
-                            {message.riceIndex.level.emoji} {message.riceIndex.calculatedIndex}
-                          </Text>
-                        )}
-                      </View>
-                      <div
-                        style={{ transition: 'filter 150ms ease', borderRadius: BORDER_RADIUS.md }}
-                        onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.filter = 'brightness(0.97)'; }}
-                        onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.filter = 'none'; }}
-                      >
-                        <View style={[styles.messageBubble]}>
-                          <Text style={[styles.messageText]}>
-                            {message.message}
-                          </Text>
+                      {!isSameSender && (
+                        <View style={styles.messageHeader}>
+                          <TouchableOpacity onPress={() => handleUserProfileClick(message)} activeOpacity={0.7}>
+                            <Text style={styles.senderName}>{message.senderName || '사용자'}</Text>
+                          </TouchableOpacity>
+                          {message.riceIndex && (
+                            <Text style={styles.riceIndex}>
+                              {message.riceIndex.level.emoji} {message.riceIndex.calculatedIndex}
+                            </Text>
+                          )}
                         </View>
-                      </div>
+                      )}
+                      <View style={[styles.messageBubble]}>
+                        <Text style={[styles.messageText]}>
+                          {message.message}
+                        </Text>
+                      </View>
                       <Text style={[styles.messageTime]}>
                         {new Date(message.timestamp).toLocaleTimeString('ko-KR', {
                           hour: '2-digit',
@@ -564,23 +547,13 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation }) => {
                 )}
                 {message.isMe && (
                   <View>
-                    <div
-                      style={{
-                        backgroundColor: COLORS.neutral.grey900,
-                        padding: SPACING.lg,
-                        borderRadius: BORDER_RADIUS.md,
-                        borderBottomRightRadius: BORDER_RADIUS.xs,
-                        transition: 'filter 150ms ease',
-                        boxShadow: CSS_SHADOWS.small,
-                      }}
-                      onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.filter = 'brightness(1.1)'; }}
-                      onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.filter = 'none'; }}
-                    >
+                    <View style={styles.myMessageBubble}>
                       <Text style={[styles.messageText, styles.myMessageText]}>
                         {message.message}
                       </Text>
-                    </div>
+                    </View>
                     <View style={styles.myMessageMeta}>
+                      <Text style={styles.readReceipt}>읽음</Text>
                       <Text style={[styles.messageTime, styles.myMessageTime]}>
                         {new Date(message.timestamp).toLocaleTimeString('ko-KR', {
                           hour: '2-digit',
@@ -588,7 +561,6 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation }) => {
                           hour12: true
                         })}
                       </Text>
-                      <Text style={styles.readReceipt}>읽음</Text>
                     </View>
                   </View>
                 )}
@@ -601,33 +573,9 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation }) => {
       {/* 메시지 입력 */}
       <View style={styles.messageInput}>
         <View style={styles.inputRow}>
-          {/* 첨부 버튼 */}
-          <div
-            style={{
-              cursor: 'pointer',
-              borderRadius: 22,
-              transition: 'background-color 150ms ease',
-            }}
-            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = COLORS.neutral.grey100; }}
-            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent'; }}
-          >
-            <TouchableOpacity
-              style={styles.attachButton}
-              activeOpacity={0.7}
-              accessibilityRole="button"
-              accessibilityLabel="파일 첨부"
-            >
-              <Icon name="plus" size={20} color={COLORS.text.secondary} />
-            </TouchableOpacity>
-          </div>
           <View style={[
             styles.inputContainer,
-            messageInputFocused && {
-              backgroundColor: COLORS.surface.primary,
-              borderWidth: 1,
-              borderColor: COLORS.primary.accent,
-              boxShadow: CSS_SHADOWS.focused,
-            } as any,
+            messageInputFocused && styles.inputContainerFocused as any,
           ]}>
             <TextInput
               style={styles.textInput}
@@ -641,40 +589,40 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation }) => {
               onFocus={() => setMessageInputFocused(true)}
               onBlur={() => setMessageInputFocused(false)}
             />
-            <div
-              style={{
-                cursor: messageText.trim() && !isSending ? 'pointer' : 'default',
-                borderRadius: 20,
-                transition: 'all 200ms ease',
-              }}
-              onMouseEnter={(e) => {
-                if (messageText.trim() && !isSending) {
-                  (e.currentTarget as HTMLElement).style.transform = 'scale(1.08)';
-                }
-              }}
-              onMouseLeave={(e) => {
-                (e.currentTarget as HTMLElement).style.transform = 'scale(1)';
-              }}
-            >
-              <TouchableOpacity
-                style={[
-                  styles.sendButton,
-                  messageText.trim() && !isSending && styles.sendButtonActive,
-                ]}
-                onPress={sendMessage}
-                disabled={!messageText.trim() || isSending}
-                activeOpacity={0.7}
-                accessibilityRole="button"
-                accessibilityLabel="메시지 전송"
-              >
-                <Icon
-                  name="send"
-                  size={18}
-                  color={messageText.trim() && !isSending ? COLORS.text.white : COLORS.text.tertiary}
-                />
-              </TouchableOpacity>
-            </div>
           </View>
+          <div
+            style={{
+              cursor: messageText.trim() && !isSending ? 'pointer' : 'default',
+              borderRadius: 20,
+              transition: 'all 200ms ease',
+            }}
+            onMouseEnter={(e) => {
+              if (messageText.trim() && !isSending) {
+                (e.currentTarget as HTMLElement).style.transform = 'scale(1.05)';
+              }
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLElement).style.transform = 'scale(1)';
+            }}
+          >
+            <TouchableOpacity
+              style={[
+                styles.sendButton,
+                messageText.trim() && !isSending && styles.sendButtonActive,
+              ]}
+              onPress={sendMessage}
+              disabled={!messageText.trim() || isSending}
+              activeOpacity={0.7}
+              accessibilityRole="button"
+              accessibilityLabel="메시지 전송"
+            >
+              <Icon
+                name="send"
+                size={16}
+                color={messageText.trim() && !isSending ? COLORS.text.white : COLORS.text.tertiary}
+              />
+            </TouchableOpacity>
+          </div>
         </View>
       </View>
     </View>
@@ -689,19 +637,11 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation }) => {
     <View style={styles.container}>
       {/* 헤더 */}
       <View style={styles.header}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
           <Text style={styles.headerTitle}>채팅</Text>
           {chatRooms.filter(r => r.unreadCount > 0).length > 0 && (
-            <View style={{
-              backgroundColor: COLORS.primary.accent,
-              borderRadius: 10,
-              minWidth: 20,
-              height: 20,
-              paddingHorizontal: 6,
-              justifyContent: 'center',
-              alignItems: 'center',
-            }}>
-              <Text style={{ ...TYPOGRAPHY.caption, fontWeight: '700' as any, color: COLORS.neutral.white }}>
+            <View style={styles.headerUnreadBadge}>
+              <Text style={styles.headerUnreadText}>
                 {chatRooms.reduce((sum, r) => sum + r.unreadCount, 0)}
               </Text>
             </View>
@@ -720,47 +660,56 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation }) => {
         </View>
       </View>
 
-      {/* 탭 네비게이션 */}
+      {/* 탭 네비게이션 — 세그먼트 컨트롤 */}
       <View style={styles.tabNavigation}>
-        {tabs.map((tab) => {
-          const tabCount = chatRooms.filter(r => {
-            if (tab === '전체') return r.unreadCount > 0;
-            if (tab === '약속') return r.type === 'meetup' && r.unreadCount > 0;
-            return r.type === 'direct' && r.unreadCount > 0;
-          }).length;
+        <View style={styles.tabSegmentContainer}>
+          {tabs.map((tab) => {
+            const isActive = selectedTab === tab;
+            const tabCount = chatRooms.filter(r => {
+              if (tab === '전체') return r.unreadCount > 0;
+              if (tab === '약속') return r.type === 'meetup' && r.unreadCount > 0;
+              return r.type === 'direct' && r.unreadCount > 0;
+            }).length;
 
-          return (
-            <div key={tab} style={{ cursor: 'pointer', position: 'relative' }}>
-              <TouchableOpacity
-                style={[
-                  styles.tabButton,
-                  selectedTab === tab && styles.selectedTabButton,
-                ]}
-                onPress={() => setSelectedTab(tab)}
-                activeOpacity={0.7}
+            return (
+              <div
+                key={tab}
+                style={{
+                  cursor: 'pointer',
+                  position: 'relative',
+                  flex: 1,
+                }}
               >
-                <Text style={[
-                  styles.tabButtonText,
-                  selectedTab === tab && styles.selectedTabButtonText
-                ]}>
-                  {tab}
-                </Text>
-              </TouchableOpacity>
-              {tabCount > 0 && selectedTab !== tab && (
-                <div style={{
-                  position: 'absolute',
-                  top: -2,
-                  right: -4,
-                  width: 8,
-                  height: 8,
-                  borderRadius: 4,
-                  backgroundColor: COLORS.primary.accent,
-                  border: `2px solid ${COLORS.surface.primary}`,
-                }} />
-              )}
-            </div>
-          );
-        })}
+                <TouchableOpacity
+                  style={[
+                    styles.tabButton,
+                    isActive && styles.selectedTabButton,
+                  ]}
+                  onPress={() => setSelectedTab(tab)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[
+                    styles.tabButtonText,
+                    isActive && styles.selectedTabButtonText
+                  ]}>
+                    {tab}
+                  </Text>
+                </TouchableOpacity>
+                {tabCount > 0 && !isActive && (
+                  <div style={{
+                    position: 'absolute',
+                    top: 6,
+                    right: 10,
+                    width: 6,
+                    height: 6,
+                    borderRadius: 3,
+                    backgroundColor: COLORS.primary.main,
+                  }} />
+                )}
+              </div>
+            );
+          })}
+        </View>
       </View>
 
       {/* 채팅 목록 */}
@@ -803,7 +752,7 @@ const styles = StyleSheet.create({
   // === 전체 컨테이너 ===
   container: {
     flex: 1,
-    backgroundColor: COLORS.neutral.background,
+    backgroundColor: COLORS.neutral.white,
   },
 
   // === 채팅 리스트 헤더 ===
@@ -811,14 +760,35 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    ...HEADER_STYLE.main,
-    ...SHADOWS.sticky,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    backgroundColor: COLORS.neutral.white,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.neutral.grey100,
     // @ts-ignore — web CSS shadow
     boxShadow: CSS_SHADOWS.stickyHeader,
     zIndex: 10,
   },
   headerTitle: {
-    ...HEADER_STYLE.title,
+    fontSize: 18,
+    fontWeight: '700',
+    letterSpacing: -0.3,
+    color: COLORS.text.primary,
+  },
+  headerUnreadBadge: {
+    backgroundColor: COLORS.primary.main,
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    paddingHorizontal: 6,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerUnreadText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: COLORS.neutral.white,
+    lineHeight: 14,
   },
   headerIcons: {
     flexDirection: 'row',
@@ -832,71 +802,72 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
 
-  // === 탭 네비게이션 (언더라인 스타일) ===
+  // === 탭 네비게이션 (세그먼트 컨트롤) ===
   tabNavigation: {
+    backgroundColor: COLORS.neutral.white,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+  },
+  tabSegmentContainer: {
     flexDirection: 'row',
-    backgroundColor: COLORS.surface.primary,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.neutral.grey100,
-    paddingHorizontal: 4,
+    backgroundColor: COLORS.neutral.grey100,
+    borderRadius: BORDER_RADIUS.md,
+    padding: 3,
   },
   tabButton: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 24,
-    paddingVertical: 14,
-    minHeight: 48,
-    borderBottomWidth: 3,
-    borderBottomColor: 'transparent',
-    gap: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 6,
     transition: 'all 200ms ease',
   } as any,
   selectedTabButton: {
-    borderBottomColor: COLORS.primary.main,
+    backgroundColor: COLORS.neutral.white,
+    // @ts-ignore — web CSS shadow for segment
+    boxShadow: '0 1px 3px rgba(17,17,17,0.08), 0 1px 2px rgba(17,17,17,0.06)',
   },
   tabButtonText: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '500',
     color: COLORS.text.tertiary,
     transition: 'color 200ms ease',
   } as any,
   selectedTabButtonText: {
     color: COLORS.text.primary,
-    fontWeight: '700',
+    fontWeight: '600',
   },
 
   // === 채팅방 목록 ===
   chatList: {
     flex: 1,
-    backgroundColor: COLORS.surface.primary,
+    backgroundColor: COLORS.neutral.white,
   },
   chatListContainer: {
     paddingBottom: SPACING.xl,
   },
   chatListSkeletonContainer: {
     flex: 1,
-    backgroundColor: COLORS.surface.primary,
+    backgroundColor: COLORS.neutral.white,
     paddingTop: SPACING.md,
   },
   chatItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: SPACING.xl,
-    paddingVertical: SPACING.lg,
-    backgroundColor: COLORS.surface.primary,
+    paddingHorizontal: 20,
+    paddingVertical: 14,
   },
   chatAvatar: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: CARD_STYLE.borderColor,
+    borderColor: COLORS.neutral.grey100,
   },
   chatAvatarText: {
-    fontSize: 19,
+    fontSize: 18,
     fontWeight: '700',
     color: COLORS.text.white,
   },
@@ -907,55 +878,69 @@ const styles = StyleSheet.create({
   chatTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: SPACING.xs,
+    marginBottom: 3,
     gap: SPACING.sm,
   },
   chatTitle: {
-    ...TYPOGRAPHY.body.large,
-    fontWeight: '700',
+    fontSize: 15,
+    fontWeight: '600',
     letterSpacing: -0.2,
+    color: COLORS.text.primary,
     flexShrink: 1,
+  },
+  chatTitleUnread: {
+    fontWeight: '700',
   },
   chatParticipantBadge: {
     backgroundColor: COLORS.neutral.grey100,
     borderRadius: 10,
-    paddingHorizontal: SPACING.sm,
+    paddingHorizontal: 6,
     paddingVertical: 1,
   },
   chatParticipantCount: {
-    ...TYPOGRAPHY.caption,
+    fontSize: 11,
     fontWeight: '600',
     color: COLORS.text.tertiary,
   },
   lastMessage: {
-    ...TYPOGRAPHY.body.medium,
+    fontSize: 13,
     fontWeight: '400',
     color: COLORS.text.tertiary,
+    lineHeight: 18,
+  },
+  lastMessageUnread: {
+    color: COLORS.text.secondary,
+    fontWeight: '500',
   },
   chatMeta: {
     alignItems: 'flex-end',
     justifyContent: 'flex-start',
-    gap: SPACING.md,
+    gap: 8,
     paddingTop: 2,
   },
   chatTime: {
-    ...TYPOGRAPHY.caption,
+    fontSize: 11,
     color: COLORS.text.tertiary,
     fontWeight: '400',
   },
+  chatTimeUnread: {
+    color: COLORS.text.secondary,
+    fontWeight: '500',
+  },
   unreadBadge: {
-    backgroundColor: COLORS.primary.accent,
-    borderRadius: 11,
-    minWidth: 22,
-    height: 22,
+    backgroundColor: COLORS.primary.main,
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: SPACING.sm,
+    paddingHorizontal: 6,
   },
   unreadCount: {
-    ...TYPOGRAPHY.caption,
+    fontSize: 11,
     fontWeight: '700',
-    color: COLORS.text.white,
+    color: COLORS.neutral.white,
+    lineHeight: 14,
   },
 
   // === 빈 상태 / 로딩 ===
@@ -964,7 +949,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: SPACING.xxxl,
-    backgroundColor: COLORS.surface.primary,
+    backgroundColor: COLORS.neutral.white,
   },
   loadingText: {
     ...TYPOGRAPHY.body.medium,
@@ -975,7 +960,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: SPACING.xxxl,
-    backgroundColor: COLORS.surface.primary,
+    backgroundColor: COLORS.neutral.white,
   },
   emptyText: {
     ...TYPOGRAPHY.body.medium,
@@ -986,19 +971,18 @@ const styles = StyleSheet.create({
   // === 채팅방 내부 ===
   chatRoom: {
     flex: 1,
-    backgroundColor: COLORS.neutral.background,
+    backgroundColor: COLORS.neutral.grey50,
   },
   chatRoomHeader: {
-    minHeight: 60,
-    backgroundColor: COLORS.surface.primary,
+    minHeight: 56,
+    backgroundColor: COLORS.neutral.white,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.md,
+    paddingVertical: SPACING.sm,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.neutral.grey100,
-    ...SHADOWS.sticky,
     // @ts-ignore — web CSS shadow
     boxShadow: CSS_SHADOWS.stickyHeader,
     zIndex: 10,
@@ -1012,10 +996,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   chatRoomTitle: {
-    ...TYPOGRAPHY.body.large,
+    fontSize: 16,
     fontWeight: '700',
     letterSpacing: -0.2,
-    flex: 1,
+    color: COLORS.text.primary,
     textAlign: 'center',
   },
   menuButton: {
@@ -1029,10 +1013,10 @@ const styles = StyleSheet.create({
   // === 메시지 목록 ===
   messageList: {
     flex: 1,
-    backgroundColor: COLORS.neutral.background,
+    backgroundColor: COLORS.neutral.grey50,
   },
   messageListContainer: {
-    paddingHorizontal: SPACING.xl,
+    paddingHorizontal: 16,
     paddingVertical: SPACING.md,
   },
   messageItem: {
@@ -1046,32 +1030,40 @@ const styles = StyleSheet.create({
   messageHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: SPACING.xs,
+    marginBottom: 4,
   },
   senderName: {
-    ...TYPOGRAPHY.body.small,
+    fontSize: 12,
     color: COLORS.text.secondary,
     fontWeight: '600',
   },
 
   // === 말풍선 ===
   messageBubble: {
-    backgroundColor: COLORS.neutral.light,
-    padding: SPACING.lg,
-    borderRadius: BORDER_RADIUS.md,
-    borderTopLeftRadius: BORDER_RADIUS.xs,
-    borderWidth: 1,
-    borderColor: COLORS.neutral.grey100,
+    backgroundColor: COLORS.neutral.grey100,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 16,
+    borderTopLeftRadius: 4,
+  },
+  myMessageBubble: {
+    backgroundColor: COLORS.primary.main,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 16,
+    borderTopRightRadius: 4,
   },
   messageText: {
-    ...TYPOGRAPHY.body.large,
-    lineHeight: 22,
+    fontSize: 14,
+    fontWeight: '400',
+    lineHeight: 20,
+    color: COLORS.text.primary,
   },
   myMessageText: {
-    color: COLORS.text.white,
+    color: COLORS.neutral.white,
   },
   messageTime: {
-    ...TYPOGRAPHY.caption,
+    fontSize: 11,
     color: COLORS.text.tertiary,
     marginTop: 4,
   },
@@ -1083,70 +1075,66 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
     alignItems: 'center',
     marginTop: 4,
-    gap: 4,
+    gap: 6,
   },
   readReceipt: {
-    ...TYPOGRAPHY.caption,
+    fontSize: 11,
     color: COLORS.text.tertiary,
     fontWeight: '400',
   },
 
   // === 메시지 입력 바 ===
   messageInput: {
-    backgroundColor: COLORS.surface.primary,
+    backgroundColor: COLORS.neutral.white,
     borderTopWidth: 1,
-    borderTopColor: CARD_STYLE.borderColor,
-    paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.md,
-    height: 68,
+    borderTopColor: COLORS.neutral.grey100,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
     justifyContent: 'center',
-    // @ts-ignore — web CSS shadow for input bar
-    boxShadow: CSS_SHADOWS.bottomSheet,
   },
   inputRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-  },
-  attachButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    justifyContent: 'center',
-    alignItems: 'center',
+    gap: 10,
   },
   inputContainer: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.neutral.grey50,
-    borderRadius: 24,
-    paddingLeft: 18,
-    paddingRight: SPACING.xs,
-    height: 48,
+    backgroundColor: COLORS.neutral.grey100,
+    borderRadius: 20,
+    paddingLeft: 16,
+    paddingRight: 4,
+    height: 40,
     boxSizing: 'border-box',
+    transition: 'background-color 200ms ease, box-shadow 200ms ease',
+  },
+  inputContainerFocused: {
+    backgroundColor: COLORS.neutral.white,
     borderWidth: 1,
-    borderColor: CARD_STYLE.borderColor,
-    transition: 'border-color 200ms ease, box-shadow 200ms ease',
+    borderColor: COLORS.primary.main,
+    // @ts-ignore — web CSS shadow for focused input
+    boxShadow: CSS_SHADOWS.focused,
   },
   textInput: {
     flex: 1,
-    ...TYPOGRAPHY.input,
-    maxHeight: 100,
+    fontSize: 14,
+    fontWeight: '400',
+    color: COLORS.text.primary,
+    maxHeight: 80,
     paddingVertical: 0,
   },
   sendButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
     backgroundColor: COLORS.neutral.grey200,
     justifyContent: 'center',
     alignItems: 'center',
-    marginLeft: 8,
     transition: 'background-color 150ms ease',
   } as any,
   sendButtonActive: {
-    backgroundColor: COLORS.primary.accent,
+    backgroundColor: COLORS.primary.main,
   },
 
   // === 메시지 프로필 ===
@@ -1156,32 +1144,32 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   profileImageContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
     overflow: 'hidden',
     backgroundColor: COLORS.neutral.grey200,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: CARD_STYLE.borderColor,
+    borderColor: COLORS.neutral.grey100,
   },
   profileImage: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
     resizeMode: 'cover',
   },
   defaultProfileImage: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
     backgroundColor: COLORS.primary.main,
     justifyContent: 'center',
     alignItems: 'center',
   },
   defaultProfileText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '700',
     color: COLORS.text.white,
   },
@@ -1190,7 +1178,7 @@ const styles = StyleSheet.create({
   },
   riceIndex: {
     ...TYPOGRAPHY.caption,
-    color: COLORS.primary.accent,
+    color: COLORS.primary.main,
     marginLeft: 8,
     fontWeight: '600',
   },
@@ -1208,13 +1196,14 @@ const styles = StyleSheet.create({
     zIndex: 1000,
   },
   modalContent: {
-    backgroundColor: COLORS.surface.primary,
-    borderRadius: BORDER_RADIUS.lg,
+    backgroundColor: COLORS.neutral.white,
+    borderRadius: BORDER_RADIUS.xl,
     padding: 28,
     margin: 20,
     maxWidth: 360,
     width: '85%',
-    ...SHADOWS.large,
+    // @ts-ignore — web CSS shadow for modal
+    boxShadow: CSS_SHADOWS.large,
   },
   modalTitle: {
     ...TYPOGRAPHY.heading.h2,
@@ -1248,7 +1237,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 16,
     borderRadius: BORDER_RADIUS.md,
-    backgroundColor: COLORS.primary.accent,
+    backgroundColor: COLORS.primary.main,
     alignItems: 'center',
   },
   modalButtonConfirmText: {

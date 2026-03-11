@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { COLORS, SHADOWS, CSS_SHADOWS, CARD_STYLE } from '../styles/colors';
-import { BORDER_RADIUS, LIST_ITEM_STYLE, HEADER_STYLE } from '../styles/spacing';
+import { BORDER_RADIUS, LIST_ITEM_STYLE, HEADER_STYLE, SPACING } from '../styles/spacing';
 import { Icon } from '../components/Icon';
 import WebKakaoMap, { MapMarker } from '../components/WebKakaoMap';
 import MeetupCard from '../components/MeetupCard';
@@ -73,60 +73,7 @@ interface Meetup {
 
 const CATEGORY_NAMES = FOOD_CATEGORIES.map(c => c.name);
 
-// Inject hover styles for web
-const HOVER_STYLE_ID = 'explore-hover-styles';
-const injectHoverStyles = () => {
-  if (typeof document === 'undefined') return;
-  if (document.getElementById(HOVER_STYLE_ID)) return;
-  const style = document.createElement('style');
-  style.id = HOVER_STYLE_ID;
-  style.textContent = `
-    .explore-category-chip:hover {
-      background-color: ${COLORS.neutral.grey200} !important;
-    }
-    .explore-category-chip-active:hover {
-      background-color: ${COLORS.primary.dark} !important;
-      opacity: 0.9;
-    }
-    .explore-radius-chip:hover {
-      border-color: ${COLORS.primary.main} !important;
-    }
-    .explore-radius-chip-active:hover {
-      border-color: ${COLORS.primary.main} !important;
-    }
-    .explore-meetup-card:hover {
-      background-color: ${COLORS.neutral.grey50} !important;
-    }
-    .explore-meetup-card:active {
-      background-color: ${COLORS.neutral.grey100} !important;
-    }
-    .explore-popup-card:hover {
-      box-shadow: ${CSS_SHADOWS.hover} !important;
-    }
-    .explore-toggle-btn:hover {
-      background-color: ${COLORS.neutral.grey200} !important;
-    }
-    .explore-toggle-btn-active:hover {
-      background-color: ${COLORS.primary.dark} !important;
-      opacity: 0.9;
-    }
-    .explore-search-clear:hover {
-      color: ${COLORS.text.secondary} !important;
-    }
-    .explore-popup-close:hover {
-      background-color: ${COLORS.neutral.grey100} !important;
-    }
-    .explore-popup-detail:hover {
-      background-color: ${COLORS.primary.dark} !important;
-    }
-  `;
-  document.head.appendChild(style);
-};
-
 const ExploreScreen: React.FC = () => {
-  // Inject hover CSS on mount
-  useEffect(() => { injectHoverStyles(); }, []);
-
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const categoryFromUrl = searchParams.get('category');
@@ -143,6 +90,8 @@ const ExploreScreen: React.FC = () => {
   const [selectedAge, setSelectedAge] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
+  const [popupCloseHovered, setPopupCloseHovered] = useState(false);
+  const [popupDetailHovered, setPopupDetailHovered] = useState(false);
 
   // 사용자 현재 위치 가져오기
   useEffect(() => {
@@ -250,18 +199,11 @@ const ExploreScreen: React.FC = () => {
     <View style={styles.container}>
       {/* 헤더 */}
       <View style={styles.header}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+        <View style={styles.headerLeft}>
           <Text style={styles.headerTitle}>탐색</Text>
           {!loading && displayMeetups.length > 0 && (
-            <View style={{
-              backgroundColor: COLORS.primary.light,
-              borderRadius: 10,
-              paddingHorizontal: 8,
-              paddingVertical: 2,
-              borderWidth: 1,
-              borderColor: COLORS.neutral.grey100,
-            }}>
-              <Text style={{ fontSize: 12, fontWeight: '700' as any, color: COLORS.primary.main }}>
+            <View style={styles.countBadge}>
+              <Text style={styles.countBadgeText}>
                 {displayMeetups.length}
               </Text>
             </View>
@@ -269,9 +211,7 @@ const ExploreScreen: React.FC = () => {
         </View>
         {/* 뷰 모드 토글 */}
         <View style={styles.viewToggle}>
-          {/* @ts-ignore className for web */}
           <TouchableOpacity
-            className={viewMode === 'map' ? 'explore-toggle-btn-active' : 'explore-toggle-btn'}
             style={[styles.toggleButton, viewMode === 'map' && styles.toggleButtonActive]}
             onPress={() => setViewMode('map')}
             activeOpacity={0.7}
@@ -279,9 +219,7 @@ const ExploreScreen: React.FC = () => {
             <Icon name="map" size={16} color={viewMode === 'map' ? COLORS.text.white : COLORS.text.secondary} />
             <Text style={[styles.toggleText, viewMode === 'map' && styles.toggleTextActive]}>지도</Text>
           </TouchableOpacity>
-          {/* @ts-ignore className for web */}
           <TouchableOpacity
-            className={viewMode === 'list' ? 'explore-toggle-btn-active' : 'explore-toggle-btn'}
             style={[styles.toggleButton, viewMode === 'list' && styles.toggleButtonActive]}
             onPress={() => setViewMode('list')}
             activeOpacity={0.7}
@@ -299,9 +237,7 @@ const ExploreScreen: React.FC = () => {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.categoryTabScroll}
         >
-          {/* @ts-ignore className for web */}
           <TouchableOpacity
-            className={!selectedCategory ? 'explore-category-chip-active' : 'explore-category-chip'}
             style={[styles.categoryChip, !selectedCategory && styles.categoryChipActive]}
             onPress={() => handleCategoryChange(null)}
             activeOpacity={0.7}
@@ -309,10 +245,8 @@ const ExploreScreen: React.FC = () => {
             <Text style={[styles.categoryChipText, !selectedCategory && styles.categoryChipTextActive]}>전체</Text>
           </TouchableOpacity>
           {CATEGORY_NAMES.map((name) => (
-            // @ts-ignore className for web
             <TouchableOpacity
               key={name}
-              className={selectedCategory === name ? 'explore-category-chip-active' : 'explore-category-chip'}
               style={[styles.categoryChip, selectedCategory === name && styles.categoryChipActive]}
               onPress={() => handleCategoryChange(name)}
               activeOpacity={0.7}
@@ -327,7 +261,20 @@ const ExploreScreen: React.FC = () => {
 
       {/* 검색바 + 반경 필터 */}
       <View style={styles.searchSection}>
-        <View style={[styles.searchBar, searchFocused && styles.searchBarFocused]}>
+        <div style={{
+          display: 'flex',
+          flexDirection: 'row',
+          alignItems: 'center',
+          height: 48,
+          backgroundColor: COLORS.neutral.white,
+          borderRadius: BORDER_RADIUS.lg,
+          paddingLeft: SPACING.lg,
+          paddingRight: SPACING.lg,
+          gap: SPACING.md,
+          border: searchFocused ? `1.5px solid ${COLORS.primary.accent}` : `1.5px solid ${COLORS.neutral.grey100}`,
+          boxShadow: searchFocused ? `${CSS_SHADOWS.medium}, ${CSS_SHADOWS.focused}` : CSS_SHADOWS.medium,
+          transition: 'border-color 200ms ease, box-shadow 200ms ease',
+        }}>
           <Icon name="search" size={16} color={searchFocused ? COLORS.primary.main : COLORS.text.tertiary} />
           <TextInput
             style={styles.searchInput}
@@ -348,16 +295,14 @@ const ExploreScreen: React.FC = () => {
               <Icon name="times" size={14} color={COLORS.text.tertiary} />
             </TouchableOpacity>
           )}
-        </View>
+        </div>
         {/* 거리 필터 + 필터 토글 */}
         <View style={styles.radiusRow}>
           <Icon name="map-pin" size={14} color={COLORS.text.secondary} />
           <Text style={styles.radiusLabel}>반경</Text>
           {RADIUS_OPTIONS.map((opt) => (
-            // @ts-ignore className for web
             <TouchableOpacity
               key={opt.value}
-              className={radius === opt.value ? 'explore-radius-chip-active' : 'explore-radius-chip'}
               style={[
                 styles.radiusChip,
                 radius === opt.value && styles.radiusChipActive,
@@ -448,18 +393,16 @@ const ExploreScreen: React.FC = () => {
           {/* 선택된 모임 팝업 카드 */}
           {selectedMeetup && (
             <div
-              className="explore-popup-card"
               style={{
                 position: 'absolute',
-                bottom: 16,
-                left: 16,
-                right: 16,
+                bottom: SPACING.lg,
+                left: SPACING.lg,
+                right: SPACING.lg,
                 backgroundColor: COLORS.neutral.white,
-                borderRadius: 10,
-                padding: 16,
+                borderRadius: BORDER_RADIUS.xl,
+                padding: SPACING.lg,
                 boxShadow: CSS_SHADOWS.large,
                 zIndex: 20,
-                transition: `box-shadow 200ms ease, transform 200ms ease`,
               }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -486,7 +429,7 @@ const ExploreScreen: React.FC = () => {
                       color: COLORS.primary.main,
                       backgroundColor: COLORS.primary.light,
                       padding: '3px 8px',
-                      borderRadius: 10,
+                      borderRadius: BORDER_RADIUS.pill,
                     }}>
                       {selectedMeetup.category}
                     </span>
@@ -513,7 +456,7 @@ const ExploreScreen: React.FC = () => {
                           fontWeight: '600',
                           backgroundColor: COLORS.primary.light,
                           padding: '2px 8px',
-                          borderRadius: 10,
+                          borderRadius: BORDER_RADIUS.pill,
                           fontSize: 12,
                         }}>{formatDistance(selectedMeetup.distance)}</span>
                       </>
@@ -521,26 +464,25 @@ const ExploreScreen: React.FC = () => {
                   </div>
                 </div>
                 <div
-                  className="explore-popup-close"
                   onClick={() => setSelectedMeetup(null)}
+                  onMouseEnter={() => setPopupCloseHovered(true)}
+                  onMouseLeave={() => setPopupCloseHovered(false)}
                   style={{
                     cursor: 'pointer',
                     padding: 8,
                     color: COLORS.text.tertiary,
                     fontSize: 14,
                     lineHeight: '14px',
-                    borderRadius: 8,
+                    borderRadius: BORDER_RADIUS.md,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     width: 36,
                     height: 36,
-                    backgroundColor: COLORS.neutral.grey100,
-                    transition: 'all 150ms ease',
+                    backgroundColor: popupCloseHovered ? COLORS.neutral.grey200 : COLORS.neutral.grey100,
+                    transition: 'background-color 150ms ease',
                     flexShrink: 0,
                   }}
-                  onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = COLORS.neutral.grey200; }}
-                  onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = COLORS.neutral.grey100; }}
                   role="button"
                   aria-label="닫기"
                 >
@@ -548,24 +490,24 @@ const ExploreScreen: React.FC = () => {
                 </div>
               </div>
               <div
-                className="explore-popup-detail"
                 onClick={() => handleMeetupClick(selectedMeetup)}
+                onMouseEnter={() => setPopupDetailHovered(true)}
+                onMouseLeave={() => setPopupDetailHovered(false)}
                 style={{
                   marginTop: 14,
                   padding: '13px 0',
                   textAlign: 'center',
                   background: COLORS.gradient.ctaCSS,
                   color: COLORS.text.white,
-                  borderRadius: 6,
+                  borderRadius: BORDER_RADIUS.md,
                   fontSize: 15,
                   fontWeight: '700',
                   cursor: 'pointer',
                   letterSpacing: '0.3px',
-                  transition: 'all 200ms ease',
+                  transition: 'transform 200ms ease',
                   boxShadow: CSS_SHADOWS.cta,
+                  transform: popupDetailHovered ? 'scale(1.02)' : 'scale(1)',
                 }}
-                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.transform = 'scale(1.02)'; }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.transform = 'scale(1)'; }}
               >
                 상세보기
               </div>
@@ -600,8 +542,7 @@ const ExploreScreen: React.FC = () => {
               <FadeIn>
                 <View style={styles.meetupList}>
                   {displayMeetups.map(meetup => (
-                    // @ts-ignore className for web
-                    <View key={meetup.id} className="explore-meetup-card" style={styles.meetupItemWrapper}>
+                    <View key={meetup.id} style={styles.meetupItemWrapper}>
                       <MeetupCard
                         meetup={meetup}
                         onPress={handleMeetupClick}
@@ -651,8 +592,7 @@ const ExploreScreen: React.FC = () => {
             <FadeIn>
               <View style={styles.meetupList}>
                 {displayMeetups.map(meetup => (
-                  // @ts-ignore className for web
-                  <View key={meetup.id} className="explore-meetup-card" style={styles.meetupItemWrapper}>
+                  <View key={meetup.id} style={styles.meetupItemWrapper}>
                     <MeetupCard
                       meetup={meetup}
                       onPress={handleMeetupClick}
@@ -694,15 +634,33 @@ const styles = StyleSheet.create({
     zIndex: 10,
     boxShadow: CSS_SHADOWS.stickyHeader,
   },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+  },
   headerTitle: {
     ...HEADER_STYLE.title,
+  },
+  countBadge: {
+    backgroundColor: COLORS.primary.light,
+    borderRadius: BORDER_RADIUS.pill,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: 2,
+    borderWidth: 1,
+    borderColor: COLORS.neutral.grey100,
+  },
+  countBadgeText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: COLORS.primary.main,
   },
 
   // View Toggle (pill 형태)
   viewToggle: {
     flexDirection: 'row',
     backgroundColor: COLORS.neutral.grey100,
-    borderRadius: 12,
+    borderRadius: BORDER_RADIUS.xl,
     padding: 3,
   },
   toggleButton: {
@@ -711,7 +669,7 @@ const styles = StyleSheet.create({
     gap: 5,
     paddingHorizontal: 14,
     paddingVertical: 7,
-    borderRadius: 10,
+    borderRadius: BORDER_RADIUS.lg,
     cursor: 'pointer',
     transition: 'all 200ms ease',
   },
@@ -732,21 +690,21 @@ const styles = StyleSheet.create({
   // Category Tabs (배민 스타일 pill 칩)
   categoryTabBar: {
     backgroundColor: COLORS.neutral.white,
-    paddingVertical: 12,
+    paddingVertical: SPACING.md,
     borderBottomWidth: 1,
     borderBottomColor: CARD_STYLE.borderColor,
   },
   categoryTabScroll: {
-    paddingLeft: 20,
-    paddingRight: 12,
-    gap: 8,
+    paddingLeft: SPACING.screen.horizontal,
+    paddingRight: SPACING.md,
+    gap: SPACING.sm,
   },
   categoryChip: {
     height: 40,
     minHeight: 44,
     justifyContent: 'center',
     paddingHorizontal: 18,
-    borderRadius: 10,
+    borderRadius: BORDER_RADIUS.lg,
     backgroundColor: COLORS.neutral.grey100,
     transition: 'all 200ms ease',
     cursor: 'pointer',
@@ -768,25 +726,11 @@ const styles = StyleSheet.create({
 
   // Search Section
   searchSection: {
-    paddingVertical: 12,
-    paddingHorizontal: 20,
+    paddingVertical: SPACING.md,
+    paddingHorizontal: SPACING.screen.horizontal,
     backgroundColor: COLORS.neutral.white,
     borderBottomWidth: 1,
     borderBottomColor: CARD_STYLE.borderColor,
-  },
-  searchBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    height: 56,
-    backgroundColor: COLORS.neutral.grey100,
-    borderRadius: 6,
-    paddingHorizontal: 20,
-    gap: 10,
-    transition: 'background-color 200ms ease, box-shadow 200ms ease',
-  },
-  searchBarFocused: {
-    backgroundColor: COLORS.neutral.white,
-    boxShadow: CSS_SHADOWS.focused,
   },
   searchInput: {
     flex: 1,
@@ -798,7 +742,7 @@ const styles = StyleSheet.create({
   },
   searchClearButton: {
     cursor: 'pointer',
-    padding: 10,
+    padding: 8,
     minWidth: 44,
     minHeight: 44,
     justifyContent: 'center',
@@ -809,8 +753,8 @@ const styles = StyleSheet.create({
   radiusRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    marginTop: 12,
+    gap: SPACING.sm,
+    marginTop: SPACING.md,
   },
   radiusLabel: {
     fontSize: 13,
@@ -823,7 +767,7 @@ const styles = StyleSheet.create({
     minHeight: 44,
     justifyContent: 'center',
     paddingHorizontal: 14,
-    borderRadius: 8,
+    borderRadius: BORDER_RADIUS.md,
     backgroundColor: 'transparent',
     borderWidth: 1.5,
     borderColor: COLORS.neutral.grey300,
@@ -848,9 +792,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    paddingHorizontal: 12,
+    paddingHorizontal: SPACING.md,
     paddingVertical: 6,
-    borderRadius: 8,
+    borderRadius: BORDER_RADIUS.md,
     borderWidth: 1.5,
     borderColor: COLORS.neutral.grey300,
     backgroundColor: 'transparent',
@@ -875,7 +819,7 @@ const styles = StyleSheet.create({
     right: -3,
     width: 8,
     height: 8,
-    borderRadius: 4,
+    borderRadius: BORDER_RADIUS.full,
     backgroundColor: COLORS.primary.main,
     borderWidth: 1.5,
     borderColor: COLORS.neutral.white,
@@ -883,7 +827,7 @@ const styles = StyleSheet.create({
 
   // Filter Section
   filterSection: {
-    marginTop: 12,
+    marginTop: SPACING.md,
     gap: 10,
   },
   filterRow: {
@@ -908,7 +852,7 @@ const styles = StyleSheet.create({
     minHeight: 44,
     justifyContent: 'center',
     paddingHorizontal: 14,
-    borderRadius: 8,
+    borderRadius: BORDER_RADIUS.md,
     backgroundColor: 'transparent',
     borderWidth: 1.5,
     borderColor: COLORS.neutral.grey300,
@@ -943,9 +887,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'baseline',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 8,
+    paddingHorizontal: SPACING.screen.horizontal,
+    paddingTop: SPACING.lg,
+    paddingBottom: SPACING.sm,
   },
   mapListTitle: {
     fontSize: 16,
@@ -977,18 +921,17 @@ const styles = StyleSheet.create({
     position: 'relative',
     overflow: 'hidden',
     ...LIST_ITEM_STYLE,
-    transition: 'background-color 200ms ease',
     cursor: 'pointer',
   },
 
   // Distance Badge
   distanceBadge: {
     position: 'absolute',
-    top: 12,
-    right: 12,
+    top: SPACING.md,
+    right: SPACING.md,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: SPACING.xs,
     backgroundColor: COLORS.primary.light,
     paddingHorizontal: 10,
     paddingVertical: 4,
@@ -1002,7 +945,7 @@ const styles = StyleSheet.create({
 
   // Skeleton Loading
   skeletonPadding: {
-    padding: 20,
+    padding: SPACING.screen.horizontal,
   },
 });
 

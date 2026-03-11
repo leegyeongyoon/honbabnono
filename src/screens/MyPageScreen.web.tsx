@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { useNavigate } from 'react-router-dom';
-import { COLORS, SHADOWS, CSS_SHADOWS, CARD_STYLE, LAYOUT } from '../styles/colors';
-import { TYPOGRAPHY } from '../styles/typography';
-import { SPACING, BORDER_RADIUS, HEADER_STYLE } from '../styles/spacing';
+import { COLORS, CSS_SHADOWS } from '../styles/colors';
+import { SPACING, BORDER_RADIUS } from '../styles/spacing';
 import { useUserStore } from '../store/userStore';
 import { Icon, IconName } from '../components/Icon';
 import userApiService from '../services/userApiService';
@@ -62,8 +61,8 @@ const QUICK_MENUS: QuickMenuItem[] = [
 // 고객지원 메뉴
 const SUPPORT_MENUS = [
   { id: 'notices', label: '공지사항', path: '/notices' },
-  { id: 'faq', label: '자주 묻는 질문', path: '/faq' },
-  { id: 'terms', label: '이용약관', path: '/terms' },
+  { id: 'faq', label: 'FAQ', path: '/faq' },
+  { id: 'inquiry', label: '문의하기', path: '/inquiry' },
 ];
 
 // 호버 가능한 퀵메뉴 아이템
@@ -76,7 +75,6 @@ const HoverQuickMenuItem: React.FC<{ menu: QuickMenuItem; onPress: () => void }>
         styles.quickMenuItem,
         hovered && {
           // @ts-ignore
-          borderColor: COLORS.neutral.grey200,
           backgroundColor: COLORS.neutral.grey50,
         },
       ]}
@@ -92,7 +90,7 @@ const HoverQuickMenuItem: React.FC<{ menu: QuickMenuItem; onPress: () => void }>
   );
 };
 
-// 호버 가능한 설정(고객지원) 메뉴 아이템
+// 호버 가능한 고객지원 메뉴 아이템
 const HoverSupportItem: React.FC<{
   menu: { id: string; label: string; path: string };
   isLast: boolean;
@@ -130,7 +128,6 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ user: propsUser }) => {
   });
   const [loading, setLoading] = useState(true);
   const [userProfileImageUrl, setUserProfileImageUrl] = useState(null);
-  const [supportExpanded, setSupportExpanded] = useState(false);
   const { dialog, confirmDanger, confirm } = useConfirmDialog();
 
   // 호버 상태
@@ -205,7 +202,7 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ user: propsUser }) => {
             paddingLeft: 20,
             paddingRight: 20,
             paddingTop: 28,
-            paddingBottom: 28,
+            paddingBottom: 40,
             position: 'relative',
             overflow: 'hidden',
           }}>
@@ -236,7 +233,7 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ user: propsUser }) => {
                 <ProfileImage
                   profileImage={userProfileImageUrl}
                   name={user?.name || '사용자'}
-                  size={72}
+                  size={64}
                 />
               </View>
               <View style={styles.profileInfo}>
@@ -263,45 +260,52 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ user: propsUser }) => {
           </div>
         </FadeIn>
 
-        {/* 통계 카드 (클린 화이트) */}
+        {/* 통계 카드 (3-column, 히어로와 겹침) */}
         <FadeIn delay={50}>
-          <View style={styles.statsRow}>
+          <div style={{
+            marginLeft: 20,
+            marginRight: 20,
+            marginTop: -20,
+            backgroundColor: COLORS.surface.primary,
+            borderRadius: 12,
+            boxShadow: CSS_SHADOWS.medium,
+            display: 'flex',
+            flexDirection: 'row',
+            position: 'relative',
+            zIndex: 2,
+          }}>
             {[
               { value: userStats.totalMeetups, label: '참여' },
               { value: userStats.hostedMeetups, label: '주최' },
               { value: userStats.reviewCount, label: '리뷰' },
             ].map((stat, idx) => (
-              <div
-                key={stat.label}
-                style={{
+              <React.Fragment key={stat.label}>
+                <div style={{
                   flex: 1,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   flexDirection: 'column',
-                  backgroundColor: COLORS.surface.primary,
-                  paddingTop: 16,
-                  paddingBottom: 16,
-                  borderRadius: BORDER_RADIUS.md,
-                  border: `1px solid ${COLORS.neutral.grey100}`,
-                  transition: 'border-color 150ms ease',
-                  cursor: 'default',
-                }}
-                onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLElement).style.borderColor = COLORS.neutral.grey200;
-                }}
-                onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLElement).style.borderColor = COLORS.neutral.grey100;
-                }}
-              >
-                <Text style={styles.statValue}>{stat.value}</Text>
-                <Text style={styles.statLabel}>{stat.label}</Text>
-              </div>
+                  paddingTop: 18,
+                  paddingBottom: 18,
+                }}>
+                  <Text style={styles.statValue}>{stat.value}</Text>
+                  <Text style={styles.statLabel}>{stat.label}</Text>
+                </div>
+                {idx < 2 && (
+                  <div style={{
+                    width: 1,
+                    height: 32,
+                    backgroundColor: 'rgba(0,0,0,0.08)',
+                    alignSelf: 'center',
+                  }} />
+                )}
+              </React.Fragment>
             ))}
-          </View>
+          </div>
         </FadeIn>
 
-        {/* 포인트 배너 */}
+        {/* 포인트 카드 */}
         <FadeIn delay={75}>
           <TouchableOpacity
             style={[
@@ -316,12 +320,16 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ user: propsUser }) => {
             {...pointBannerHover.bind}
           >
             <View style={styles.pointBannerLeft}>
-              <Icon name="credit-card" size={18} color={COLORS.primary.accent} />
+              <View style={styles.pointIconCircle}>
+                <Icon name="credit-card" size={16} color={COLORS.primary.accent} />
+              </View>
               <Text style={styles.pointBannerLabel}>보유 포인트</Text>
             </View>
             <View style={styles.pointBannerRight}>
               <Text style={styles.pointBannerValue}>{userStats.availablePoints.toLocaleString()}P</Text>
-              <Icon name="chevron-right" size={14} color={COLORS.text.tertiary} />
+              <View style={styles.chargeButton}>
+                <Text style={styles.chargeButtonText}>충전</Text>
+              </View>
             </View>
           </TouchableOpacity>
         </FadeIn>
@@ -330,7 +338,12 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ user: propsUser }) => {
         <FadeIn delay={100}>
           <View style={styles.riceCard}>
             <View style={styles.riceHeader}>
-              <Text style={styles.riceLabel}>밥알지수</Text>
+              <View style={styles.riceHeaderLeft}>
+                <View style={styles.riceIconCircle}>
+                  <Text style={{ fontSize: 14 }}>🍚</Text>
+                </View>
+                <Text style={styles.riceLabel}>밥알지수</Text>
+              </View>
               <Text style={styles.riceScore}>{userStats.riceIndex}점</Text>
             </View>
             <div style={{ position: 'relative' }}>
@@ -384,36 +397,20 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ user: propsUser }) => {
           </View>
         </FadeIn>
 
-        {/* 구분선 */}
-        <View style={styles.sectionDivider} />
-
-        {/* 고객지원 (접힌 목록) */}
+        {/* 고객지원 */}
         <FadeIn delay={200}>
           <View style={styles.supportSection}>
-            <TouchableOpacity
-              style={styles.supportHeader}
-              onPress={() => setSupportExpanded(!supportExpanded)}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.supportTitle}>고객지원</Text>
-              <Icon
-                name={supportExpanded ? 'chevron-up' : 'chevron-down'}
-                size={16}
-                color={COLORS.text.tertiary}
-              />
-            </TouchableOpacity>
-            {supportExpanded && (
-              <View style={styles.supportList}>
-                {SUPPORT_MENUS.map((menu, idx) => (
-                  <HoverSupportItem
-                    key={menu.id}
-                    menu={menu}
-                    isLast={idx === SUPPORT_MENUS.length - 1}
-                    onPress={() => navigate(menu.path)}
-                  />
-                ))}
-              </View>
-            )}
+            <Text style={styles.supportTitle}>고객지원</Text>
+            <View style={styles.supportList}>
+              {SUPPORT_MENUS.map((menu, idx) => (
+                <HoverSupportItem
+                  key={menu.id}
+                  menu={menu}
+                  isLast={idx === SUPPORT_MENUS.length - 1}
+                  onPress={() => navigate(menu.path)}
+                />
+              ))}
+            </View>
           </View>
         </FadeIn>
 
@@ -425,8 +422,7 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ user: propsUser }) => {
                 styles.logoutButton,
                 logoutHover.hovered && {
                   // @ts-ignore
-                  borderColor: COLORS.neutral.grey300,
-                  backgroundColor: COLORS.neutral.grey50,
+                  opacity: 0.7,
                 },
               ]}
               onPress={handleLogout}
@@ -434,7 +430,6 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ user: propsUser }) => {
               accessibilityLabel="로그아웃"
               {...logoutHover.bind}
             >
-              <Icon name="log-out" size={16} color={COLORS.text.tertiary} />
               <Text style={styles.logoutText}>로그아웃</Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -469,7 +464,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    ...HEADER_STYLE.main,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    backgroundColor: COLORS.neutral.white,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.neutral.grey100,
     // @ts-ignore
     position: 'sticky',
     top: 0,
@@ -477,7 +476,10 @@ const styles = StyleSheet.create({
     boxShadow: CSS_SHADOWS.stickyHeader,
   },
   headerTitle: {
-    ...HEADER_STYLE.title,
+    fontSize: 18,
+    fontWeight: '700',
+    letterSpacing: -0.3,
+    color: COLORS.text.primary,
   },
   scrollContent: {
     flex: 1,
@@ -494,16 +496,16 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   profileImageWrapper: {
-    borderRadius: 36,
+    borderRadius: 32,
     borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.2)',
+    borderColor: COLORS.neutral.white,
     overflow: 'hidden',
   },
   profileInfo: {
     flex: 1,
   },
   userName: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '700',
     color: COLORS.text.white,
     marginBottom: 2,
@@ -512,7 +514,7 @@ const styles = StyleSheet.create({
   userEmail: {
     fontSize: 13,
     fontWeight: '400',
-    color: 'rgba(255,255,255,0.6)',
+    color: 'rgba(255,255,255,0.7)',
     marginBottom: 12,
   },
   editProfileButton: {
@@ -521,10 +523,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 4,
     paddingHorizontal: 14,
-    paddingVertical: 7,
-    borderRadius: BORDER_RADIUS.md,
+    paddingVertical: 6,
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.25)',
+    borderColor: 'rgba(255,255,255,0.3)',
     backgroundColor: 'rgba(255,255,255,0.1)',
     // @ts-ignore
     transition: 'background-color 150ms ease',
@@ -537,12 +539,6 @@ const styles = StyleSheet.create({
   },
 
   // 통계 카드
-  statsRow: {
-    flexDirection: 'row',
-    paddingHorizontal: SPACING.xl,
-    paddingTop: 16,
-    gap: 10,
-  },
   statValue: {
     fontSize: 22,
     fontWeight: '700',
@@ -550,21 +546,20 @@ const styles = StyleSheet.create({
     letterSpacing: -0.3,
   },
   statLabel: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '500',
     color: COLORS.text.tertiary,
     marginTop: 4,
-    letterSpacing: 0.2,
   },
 
-  // 포인트 배너
+  // 포인트 카드
   pointBanner: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     backgroundColor: COLORS.surface.primary,
-    marginHorizontal: SPACING.xl,
-    marginTop: 12,
+    marginHorizontal: 20,
+    marginTop: 16,
     borderRadius: BORDER_RADIUS.md,
     borderWidth: 1,
     borderColor: COLORS.neutral.grey100,
@@ -579,6 +574,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
   },
+  pointIconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: COLORS.primary.light,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   pointBannerLabel: {
     fontSize: 14,
     fontWeight: '600',
@@ -587,7 +590,7 @@ const styles = StyleSheet.create({
   pointBannerRight: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 8,
   },
   pointBannerValue: {
     fontSize: 16,
@@ -595,11 +598,22 @@ const styles = StyleSheet.create({
     color: COLORS.primary.accent,
     letterSpacing: -0.2,
   },
+  chargeButton: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: BORDER_RADIUS.sm,
+    backgroundColor: COLORS.primary.light,
+  },
+  chargeButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: COLORS.primary.main,
+  },
 
   // 밥알지수 카드
   riceCard: {
     backgroundColor: COLORS.surface.primary,
-    marginHorizontal: SPACING.xl,
+    marginHorizontal: 20,
     marginTop: 12,
     borderRadius: BORDER_RADIUS.md,
     borderWidth: 1,
@@ -611,6 +625,19 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 12,
+  },
+  riceHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  riceIconCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: COLORS.primary.light,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   riceLabel: {
     fontSize: 14,
@@ -643,32 +670,30 @@ const styles = StyleSheet.create({
 
   // 빠른 메뉴
   quickMenuSection: {
-    paddingHorizontal: SPACING.xl,
-    marginTop: 20,
+    paddingHorizontal: 20,
+    marginTop: 24,
   },
   quickMenuGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 10,
+    gap: 12,
   },
   quickMenuItem: {
-    width: '31%',
+    width: '30.5%',
     alignItems: 'center',
     paddingVertical: 16,
     paddingHorizontal: 8,
     backgroundColor: COLORS.surface.primary,
     borderRadius: BORDER_RADIUS.md,
-    borderWidth: 1,
-    borderColor: COLORS.neutral.grey100,
     // @ts-ignore
     cursor: 'pointer',
-    transition: 'all 150ms ease',
+    transition: 'background-color 150ms ease',
   },
   quickMenuIconBox: {
-    width: 40,
-    height: 40,
-    borderRadius: BORDER_RADIUS.md,
-    backgroundColor: COLORS.neutral.background,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: COLORS.primary.light,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -680,43 +705,23 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
 
-  // 구분선
-  sectionDivider: {
-    height: 1,
-    backgroundColor: COLORS.neutral.grey100,
-    marginHorizontal: SPACING.xl,
-    marginTop: 20,
-  },
-
   // 고객지원
   supportSection: {
-    marginHorizontal: SPACING.xl,
-    marginTop: 16,
-  },
-  supportHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 14,
-    // @ts-ignore
-    cursor: 'pointer',
+    marginHorizontal: 20,
+    marginTop: 28,
   },
   supportTitle: {
     fontSize: 13,
     fontWeight: '600',
-    color: COLORS.text.tertiary,
-    letterSpacing: 0.3,
-    textTransform: 'uppercase',
+    color: COLORS.text.secondary,
+    marginBottom: 4,
   },
-  supportList: {
-    borderTopWidth: 1,
-    borderTopColor: COLORS.neutral.grey100,
-  },
+  supportList: {},
   supportItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    height: 48,
+    paddingVertical: 16,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.neutral.grey100,
     // @ts-ignore
@@ -732,34 +737,24 @@ const styles = StyleSheet.create({
   // 하단 액션
   bottomActions: {
     alignItems: 'center',
-    marginTop: 24,
-    paddingHorizontal: SPACING.xl,
+    marginTop: 32,
+    paddingHorizontal: 20,
     paddingBottom: 20,
   },
   logoutButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 12,
-    borderRadius: BORDER_RADIUS.md,
-    borderWidth: 1,
-    borderColor: COLORS.neutral.grey200,
-    width: '100%',
+    paddingVertical: 10,
     // @ts-ignore
     cursor: 'pointer',
-    transition: 'all 150ms ease',
+    transition: 'opacity 150ms ease',
   },
   logoutText: {
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: '400',
     color: COLORS.text.tertiary,
   },
   deleteButton: {
-    marginTop: 12,
-    paddingVertical: 8,
-    minHeight: 44,
-    justifyContent: 'center',
+    marginTop: 8,
+    paddingVertical: 6,
     // @ts-ignore
     cursor: 'pointer',
     transition: 'opacity 150ms ease',
@@ -768,7 +763,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '400',
     color: COLORS.text.tertiary,
-    textDecorationLine: 'underline',
   },
 });
 
