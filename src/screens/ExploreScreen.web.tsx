@@ -584,7 +584,7 @@ const ExploreScreen: React.FC = () => {
             </View>
             {loading ? (
               <View style={styles.skeletonPadding}>
-                {[1, 2, 3].map(i => <MeetupCardSkeleton key={i} />)}
+                {[1, 2, 3].map(i => <MeetupCardSkeleton key={i} variant="compact" />)}
               </View>
             ) : displayMeetups.length === 0 ? (
               <FadeIn>
@@ -593,6 +593,7 @@ const ExploreScreen: React.FC = () => {
                   icon="search"
                   title={selectedCategory ? `${selectedCategory} 약속이 없어요` : searchQuery ? '조건에 맞는 약속이 없어요' : '주변에 약속이 없어요'}
                   description={selectedCategory ? '다른 카테고리를 선택해보세요' : '검색 조건을 변경해보세요'}
+                  context="explore"
                 />
               </FadeIn>
             ) : (
@@ -635,7 +636,7 @@ const ExploreScreen: React.FC = () => {
           </View>
           {loading ? (
             <View style={styles.skeletonPadding}>
-              {[1, 2, 3, 4, 5].map(i => <MeetupCardSkeleton key={i} />)}
+              {[1, 2, 3, 4, 5].map(i => <MeetupCardSkeleton key={i} variant="compact" />)}
             </View>
           ) : displayMeetups.length === 0 ? (
             <FadeIn>
@@ -643,6 +644,7 @@ const ExploreScreen: React.FC = () => {
                 icon={searchQuery ? 'search' : 'map-pin'}
                 title={selectedCategory ? `${selectedCategory} 약속이 없어요` : searchQuery ? '조건에 맞는 약속이 없어요' : '주변에 약속이 없어요'}
                 description={selectedCategory ? '다른 카테고리를 선택해보세요' : searchQuery ? '검색어를 변경하거나 조건을 변경해보세요' : '반경을 넓히거나 위치를 변경해보세요'}
+                context="explore"
               />
             </FadeIn>
           ) : (

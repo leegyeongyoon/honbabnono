@@ -30,6 +30,7 @@ import EmptyState from '../components/EmptyState';
 import ErrorState from '../components/ErrorState';
 import { useMeetups } from '../hooks/useMeetups';
 import HeroBannerCarousel from '../components/HeroBannerCarousel.web';
+import SectionHeader from '../components/SectionHeader';
 
 interface HomeScreenProps {
   navigateToLogin?: () => void;
@@ -66,8 +67,6 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
   const [showScrollTop, setShowScrollTop] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
   const [hoveredCategoryId, setHoveredCategoryId] = useState<string | null>(null);
-  const [hoveredSeeAll, setHoveredSeeAll] = useState<string | null>(null);
-  const [hoveredCardId, setHoveredCardId] = useState<string | null>(null);
   const [hoveredAllMeetups, setHoveredAllMeetups] = useState(false);
 
   const handleMeetupClick = useCallback((meetup: any) => {
@@ -184,83 +183,9 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
 
   const recruitingMeetups = meetups
     .filter((m) => m.status === 'recruiting')
-    .slice(0, 10);
+    .slice(0, 5);
 
   const { greeting, subtitle } = getGreeting();
-
-  // ─── 섹션 헤더 컴포넌트 (에디토리얼 — 클린 타이포그래피) ────
-  const SectionHeader = ({ title, subtitle: sub, onSeeAll, seeAllKey }: {
-    emoji?: string; title: string; subtitle?: string; onSeeAll: () => void; seeAllKey: string;
-  }) => (
-    <div style={{
-      display: 'flex',
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      padding: `0 ${SPACING.xl}px`,
-      marginBottom: SPACING.md,
-    }}>
-      <div>
-        <div style={{
-          display: 'flex',
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: 10,
-        }}>
-          <div style={{
-            width: 3,
-            height: 18,
-            backgroundColor: COLORS.primary.accent,
-            borderRadius: 2,
-          }} />
-          <div style={{
-            fontSize: 18,
-            fontWeight: '700',
-            lineHeight: '26px',
-            letterSpacing: -0.3,
-            color: COLORS.text.primary,
-          }}>
-            {title}
-          </div>
-        </div>
-        {sub && (
-          <div style={{
-            fontSize: 13,
-            fontWeight: '400',
-            lineHeight: '18px',
-            color: COLORS.text.tertiary,
-            marginTop: 4,
-            marginLeft: 13,
-          }}>
-            {sub}
-          </div>
-        )}
-      </div>
-      <div
-        onClick={onSeeAll}
-        onMouseEnter={() => setHoveredSeeAll(seeAllKey)}
-        onMouseLeave={() => setHoveredSeeAll(null)}
-        style={{
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 2,
-          minHeight: 44,
-          paddingLeft: 8,
-        }}
-        role="link"
-        aria-label={`${title} 더보기`}
-      >
-        <span style={{
-          fontSize: 13,
-          fontWeight: '500',
-          color: hoveredSeeAll === seeAllKey ? COLORS.primary.accent : COLORS.text.tertiary,
-          transition: 'color 150ms ease',
-        }}>더보기</span>
-        <Icon name="chevron-right" size={14} color={hoveredSeeAll === seeAllKey ? COLORS.primary.accent : COLORS.text.tertiary} />
-      </div>
-    </div>
-  );
 
   return (
     <View style={styles.container}>
@@ -524,7 +449,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
                 title="곧 시작하는 밥약속"
                 subtitle="2시간 이내 시작"
                 onSeeAll={() => navigate('/explore')}
-                seeAllKey="soon"
+                emoji="🕐"
               />
               {isLoading ? (
                 <ScrollView
@@ -549,24 +474,14 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
                   {soonMeetups.map((meetup) => {
                     if (!meetup.id) return null;
                     return (
-                      <div
-                        key={meetup.id}
-                        onMouseEnter={() => setHoveredCardId(`soon-${meetup.id}`)}
-                        onMouseLeave={() => setHoveredCardId(null)}
-                        style={{
-                          width: 200,
-                          transition: 'all 200ms ease',
-                          transform: hoveredCardId === `soon-${meetup.id}` ? 'translateY(-3px)' : 'none',
-                          boxShadow: hoveredCardId === `soon-${meetup.id}` ? CSS_SHADOWS.cardHover : 'none',
-                          borderRadius: BORDER_RADIUS.md,
-                        }}
-                      >
+                      <View key={meetup.id} style={styles.horizontalCardWrapper}>
                         <MeetupCard
                           meetup={meetup}
                           onPress={handleMeetupClick}
                           variant="grid"
+                          width={240}
                         />
-                      </div>
+                      </View>
                     );
                   })}
                 </ScrollView>
@@ -584,14 +499,14 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
                 paddingTop: SPACING.section?.paddingTop || 28,
                 paddingBottom: SPACING.lg,
                 marginBottom: SPACING.sm,
-                backgroundColor: COLORS.surface.secondary,
+                backgroundColor: COLORS.primary.light,
               }}
             >
               <SectionHeader
                 title="새로 올라온 밥약속"
                 subtitle="방금 등록된 새 밥약속"
                 onSeeAll={() => navigate('/explore')}
-                seeAllKey="new"
+                emoji="✨"
               />
               {isLoading ? (
                 <ScrollView
@@ -616,24 +531,14 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
                   {newMeetups.map((meetup) => {
                     if (!meetup.id) return null;
                     return (
-                      <div
-                        key={meetup.id}
-                        onMouseEnter={() => setHoveredCardId(`new-${meetup.id}`)}
-                        onMouseLeave={() => setHoveredCardId(null)}
-                        style={{
-                          width: 200,
-                          transition: 'all 200ms ease',
-                          transform: hoveredCardId === `new-${meetup.id}` ? 'translateY(-3px)' : 'none',
-                          boxShadow: hoveredCardId === `new-${meetup.id}` ? CSS_SHADOWS.cardHover : 'none',
-                          borderRadius: BORDER_RADIUS.md,
-                        }}
-                      >
+                      <View key={meetup.id} style={styles.horizontalCardWrapper}>
                         <MeetupCard
                           meetup={meetup}
                           onPress={handleMeetupClick}
                           variant="grid"
+                          width={240}
                         />
-                      </div>
+                      </View>
                     );
                   })}
                 </ScrollView>
@@ -658,13 +563,13 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
                 title="모집중인 밥약속"
                 subtitle="함께할 사람을 찾고 있어요"
                 onSeeAll={() => navigate('/explore')}
-                seeAllKey="recruiting"
+                emoji="🙋"
               />
               {isLoading ? (
                 <View style={styles.verticalList}>
                   {[1, 2, 3].map((i) => (
                     <View key={i} style={styles.verticalListItem}>
-                      <MeetupCardSkeleton variant="list" />
+                      <MeetupCardSkeleton variant="compact" />
                     </View>
                   ))}
                 </View>
@@ -697,6 +602,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
             description="첫 번째 밥약속을 만들어보세요!"
             actionLabel="약속 만들기"
             onAction={() => setShowCreateMeetup(true)}
+            context="home"
           />
         )}
 
@@ -957,7 +863,7 @@ const styles = StyleSheet.create({
     gap: SPACING.lg,
   },
   horizontalCardWrapper: {
-    width: 200,
+    width: 240,
   },
 
   // ─── 세로 리스트 ─────────────────────────────────────

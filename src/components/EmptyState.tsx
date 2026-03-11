@@ -6,11 +6,21 @@ import { SPACING, BORDER_RADIUS } from '../styles/spacing';
 import { Icon } from './Icon';
 import type { IconName } from './SimpleIcon';
 
+type EmptyStateContext = 'home' | 'explore' | 'search' | 'category' | 'default';
+
 const VARIANT_DEFAULTS: Record<string, { icon: IconName; title: string }> = {
   'no-data': { icon: 'mail-open', title: '데이터가 없습니다' },
   'no-results': { icon: 'search', title: '검색 결과가 없습니다' },
   'error': { icon: 'alert-triangle', title: '문제가 발생했습니다' },
   'offline': { icon: 'smartphone', title: '인터넷 연결을 확인해주세요' },
+};
+
+const CONTEXT_DEFAULTS: Record<EmptyStateContext, { emoji: string; hint: string }> = {
+  home: { emoji: '\uD83C\uDF7D\uFE0F', hint: '새로운 모임을 만들어보세요' },
+  explore: { emoji: '\uD83D\uDCCD', hint: '반경을 넓혀보세요' },
+  search: { emoji: '\uD83D\uDD0D', hint: '다른 검색어를 시도해보세요' },
+  category: { emoji: '\uD83C\uDF72', hint: '다른 카테고리를 둘러보세요' },
+  default: { emoji: '', hint: '' },
 };
 
 interface EmptyStateProps {
@@ -25,6 +35,8 @@ interface EmptyStateProps {
   iconSize?: number;
   secondaryActionLabel?: string;
   onSecondaryAction?: () => void;
+  context?: EmptyStateContext;
+  categoryEmoji?: string;
 }
 
 const isIconName = (icon: string): icon is IconName => {
@@ -42,13 +54,30 @@ const EmptyState: React.FC<EmptyStateProps> = ({
   iconSize = 64,
   secondaryActionLabel,
   onSecondaryAction,
+  context,
+  categoryEmoji,
 }) => {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(12)).current;
 
   const defaults = variant ? VARIANT_DEFAULTS[variant] : undefined;
-  const resolvedIcon = icon ?? defaults?.icon ?? 'mail-open';
+  const contextDefaults = context ? CONTEXT_DEFAULTS[context] : undefined;
+
+  // Resolve icon: explicit icon > context emoji > variant icon > fallback
+  const resolvedIcon = (() => {
+    if (icon) return icon;
+    if (context === 'category' && categoryEmoji) return categoryEmoji;
+    if (contextDefaults && contextDefaults.emoji) return contextDefaults.emoji;
+    return defaults?.icon ?? 'mail-open';
+  })();
+
   const resolvedTitle = title ?? defaults?.title ?? '';
+
+  // Resolve description: explicit description > context hint > nothing
+  const resolvedDescription = description ?? (contextDefaults?.hint || undefined);
+
+  // For context-based emoji icons, always use 40px size
+  const resolvedIconSize = (context && !icon && isEmojiString(resolvedIcon)) ? 40 : iconSize;
 
   useEffect(() => {
     Animated.parallel([
@@ -77,7 +106,7 @@ const EmptyState: React.FC<EmptyStateProps> = ({
         </View>
       );
     }
-    return <Text style={[styles.emojiIcon, { fontSize: iconSize }]}>{resolvedIcon}</Text>;
+    return <Text style={[styles.emojiIcon, { fontSize: resolvedIconSize }]}>{resolvedIcon}</Text>;
   };
 
   return (
@@ -90,7 +119,7 @@ const EmptyState: React.FC<EmptyStateProps> = ({
     >
       {renderIcon()}
       <Text style={styles.title}>{resolvedTitle}</Text>
-      {description && <Text style={styles.description}>{description}</Text>}
+      {resolvedDescription ? <Text style={styles.description}>{resolvedDescription}</Text> : null}
       {actionLabel && onAction && (
         <TouchableOpacity
           style={styles.actionButton}
@@ -113,6 +142,11 @@ const EmptyState: React.FC<EmptyStateProps> = ({
   );
 };
 
+/** Check if a string contains emoji characters (not an icon name) */
+function isEmojiString(str: string): boolean {
+  return !!str.match(/[\u{1F000}-\u{1FFFF}\u{2600}-\u{27FF}\u{FE00}-\u{FEFF}]/u);
+}
+
 const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
@@ -122,6 +156,7 @@ const styles = StyleSheet.create({
   },
   compact: {
     paddingVertical: SPACING.xl,
+    minHeight: 160,
   },
   iconContainer: {
     width: 80,

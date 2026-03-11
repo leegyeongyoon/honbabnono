@@ -336,6 +336,23 @@ export const CTA_STYLE = {
   },
 } as const;
 
+// 카드 변형별 스타일 토큰
+export const CARD_VARIANTS = {
+  grid: {
+    shadow: '0 2px 8px rgba(17,17,17,0.06)',
+    hoverShadow: '0 8px 24px rgba(17,17,17,0.1)',
+    borderRadius: 12,
+  },
+  compact: {
+    hoverBg: '#FAFAF8',
+    borderRadius: 10,
+  },
+  list: {
+    shadow: '0 1px 4px rgba(17,17,17,0.04)',
+    borderRadius: 10,
+  },
+} as const;
+
 // 뱃지 스타일
 export const BADGE_STYLES = {
   recruiting: {

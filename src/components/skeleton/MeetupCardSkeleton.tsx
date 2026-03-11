@@ -5,7 +5,7 @@ import { SPACING, BORDER_RADIUS } from '../../styles/spacing';
 import SkeletonLoader from './SkeletonLoader';
 
 interface MeetupCardSkeletonProps {
-  variant?: 'list' | 'grid';
+  variant?: 'list' | 'grid' | 'compact';
 }
 
 const MeetupCardSkeleton: React.FC<MeetupCardSkeletonProps> = ({ variant = 'list' }) => {
@@ -15,7 +15,7 @@ const MeetupCardSkeleton: React.FC<MeetupCardSkeletonProps> = ({ variant = 'list
         <SkeletonLoader
           variant="rectangle"
           width="100%"
-          height={120}
+          height={140}
           borderRadius={0}
         />
         <View style={gridStyles.content}>
@@ -34,12 +34,40 @@ const MeetupCardSkeleton: React.FC<MeetupCardSkeletonProps> = ({ variant = 'list
     );
   }
 
+  if (variant === 'compact') {
+    return (
+      <View style={compactStyles.container}>
+        <SkeletonLoader
+          variant="rectangle"
+          width={80}
+          height={80}
+          borderRadius={BORDER_RADIUS.md}
+        />
+        <View style={compactStyles.content}>
+          <SkeletonLoader variant="text" width="75%" height={14} />
+          <SkeletonLoader
+            variant="text"
+            width="55%"
+            height={12}
+            style={compactStyles.line}
+          />
+          <SkeletonLoader
+            variant="text"
+            width="40%"
+            height={12}
+            style={compactStyles.line}
+          />
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <SkeletonLoader
         variant="rectangle"
-        width={60}
-        height={60}
+        width={100}
+        height={100}
         borderRadius={BORDER_RADIUS.md}
       />
       <View style={styles.content}>
@@ -77,6 +105,7 @@ const MeetupCardSkeleton: React.FC<MeetupCardSkeletonProps> = ({ variant = 'list
 
 const gridStyles = StyleSheet.create({
   container: {
+    width: 240,
     backgroundColor: COLORS.neutral.white,
     borderRadius: CARD_STYLE.borderRadius,
     overflow: 'hidden',
@@ -85,6 +114,24 @@ const gridStyles = StyleSheet.create({
   content: {
     padding: 12,
     gap: 6,
+  },
+});
+
+const compactStyles = StyleSheet.create({
+  container: {
+    backgroundColor: COLORS.neutral.white,
+    borderRadius: BORDER_RADIUS.lg,
+    padding: SPACING.md,
+    flexDirection: 'row',
+    ...SHADOWS.small,
+  },
+  content: {
+    flex: 1,
+    marginLeft: SPACING.md,
+    justifyContent: 'center',
+  },
+  line: {
+    marginTop: SPACING.xs,
   },
 });
 

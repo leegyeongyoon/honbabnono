@@ -75,6 +75,26 @@ export const LIST_ITEM_STYLE = {
   backgroundColor: '#FFFFFF',
 } as const;
 
+// 카드 변형별 간격 토큰
+export const CARD_SPACING = {
+  grid: {
+    width: 240,
+    imageHeight: 140,
+    padding: 12,
+    gap: 14,
+  },
+  compact: {
+    thumbnailSize: 80,
+    padding: 16,
+    gap: 12,
+  },
+  list: {
+    imageSize: 100,
+    padding: 16,
+    gap: 12,
+  },
+} as const;
+
 // 통일 헤더 스타일 — 메인 탭 (홈, 탐색, 채팅, 마이페이지)
 export const HEADER_STYLE = {
   main: {
