@@ -29,6 +29,7 @@ import AdvertisementBanner from '../components/AdvertisementBanner';
 import EmptyState from '../components/EmptyState';
 import ErrorState from '../components/ErrorState';
 import { useMeetups } from '../hooks/useMeetups';
+import HeroBannerCarousel from '../components/HeroBannerCarousel.web';
 
 interface HomeScreenProps {
   navigateToLogin?: () => void;
@@ -316,49 +317,42 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
         onScroll={handleScroll}
         scrollEventThrottle={100}
       >
-        {/* ─── 히어로 섹션 — 이미지 배경 ─── */}
-        <div
-          className="animate-fadeIn"
-          style={{
-            backgroundImage: 'linear-gradient(to bottom, rgba(139,82,22,0.7), rgba(212,136,44,0.6)), url(/home-hero.png)',
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-            paddingTop: 32,
-            paddingBottom: 40,
-            paddingLeft: 24,
-            paddingRight: 24,
-            position: 'relative',
-            overflow: 'hidden',
-          }}
-        >
-          {/* 인사 텍스트 */}
-          <div>
-            <div style={{
-              fontSize: 24,
-              fontWeight: '700',
-              lineHeight: '32px',
-              letterSpacing: -0.3,
-              color: COLORS.neutral.white,
-              textShadow: '0 1px 3px rgba(17,17,17,0.2)',
-            }}>
-              {greeting}
-            </div>
-            <div style={{
-              fontSize: 14,
-              fontWeight: '400',
-              lineHeight: '20px',
-              color: 'rgba(255,255,255,0.85)',
-              marginTop: 4,
-            }}>
-              {subtitle}
-            </div>
+        {/* ─── 인사 텍스트 ─── */}
+        <div className="animate-fadeIn" style={{
+          paddingTop: 20,
+          paddingBottom: 8,
+          paddingLeft: SPACING.xl,
+          paddingRight: SPACING.xl,
+        }}>
+          <div style={{
+            fontSize: 22,
+            fontWeight: 700,
+            lineHeight: '30px',
+            letterSpacing: -0.3,
+            color: COLORS.text.primary,
+          }}>
+            {greeting}
+          </div>
+          <div style={{
+            fontSize: 14,
+            fontWeight: 400,
+            lineHeight: '20px',
+            color: COLORS.text.secondary,
+            marginTop: 2,
+          }}>
+            {subtitle}
           </div>
         </div>
 
-        {/* 검색바 (히어로 아래 겹쳐서 배치) */}
+        {/* ─── 히어로 배너 캐러셀 ─── */}
+        <div className="animate-fadeIn" style={{ marginTop: 12 }}>
+          <HeroBannerCarousel />
+        </div>
+
+        {/* 검색바 */}
         <div style={{
           padding: `0 ${SPACING.xl}px`,
-          marginTop: -24,
+          marginTop: SPACING.md,
           marginBottom: SPACING.lg,
           position: 'relative',
           zIndex: 5,

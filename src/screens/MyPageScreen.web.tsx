@@ -198,17 +198,36 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ user: propsUser }) => {
       </View>
 
       <ScrollView style={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* 프로필 히어로 (이미지 배경) */}
+        {/* 프로필 히어로 (브랜드 그라디언트) */}
         <FadeIn delay={0}>
           <div style={{
-            backgroundImage: 'linear-gradient(to right, rgba(139,82,22,0.85), rgba(212,136,44,0.75)), url(/profile-hero.png)',
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
+            background: COLORS.gradient.heroCSS,
             paddingLeft: 20,
             paddingRight: 20,
             paddingTop: 28,
             paddingBottom: 28,
+            position: 'relative',
+            overflow: 'hidden',
           }}>
+            {/* 장식 원형 */}
+            <div style={{
+              position: 'absolute',
+              top: -30,
+              right: -20,
+              width: 120,
+              height: 120,
+              borderRadius: 60,
+              background: 'rgba(255,255,255,0.06)',
+            }} />
+            <div style={{
+              position: 'absolute',
+              bottom: -40,
+              left: -10,
+              width: 90,
+              height: 90,
+              borderRadius: 45,
+              background: 'rgba(255,255,255,0.04)',
+            }} />
             <View style={styles.profileRow}>
               <View
                 style={styles.profileImageWrapper}
