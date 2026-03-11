@@ -2,6 +2,8 @@ const express = require('express');
 const router = express.Router();
 const userController = require('./controller');
 const { authenticateToken } = require('../../middleware/auth');
+const validate = require('../../middleware/validate');
+const { updateProfileSchema, changePasswordSchema } = require('../../middleware/schemas/user.schemas');
 
 // 현재 사용자 정보 조회 (토큰 검증용)
 router.get('/me', authenticateToken, userController.getMe);
@@ -40,7 +42,7 @@ router.delete('/recent-views/:viewId', authenticateToken, userController.deleteR
 router.get('/blocked-users', authenticateToken, userController.getBlockedUsers);
 
 // 프로필 업데이트
-router.put('/profile', authenticateToken, userController.updateProfile);
+router.put('/profile', authenticateToken, validate({ body: updateProfileSchema }), userController.updateProfile);
 
 // 참가한 모임 조회
 router.get('/joined-meetups', authenticateToken, userController.getJoinedMeetups);
@@ -51,7 +53,7 @@ router.put('/notification-settings', authenticateToken, userController.updateNot
 
 // 계정 관리
 router.delete('/account', authenticateToken, userController.deleteAccount);
-router.put('/password', authenticateToken, userController.changePassword);
+router.put('/password', authenticateToken, validate({ body: changePasswordSchema }), userController.changePassword);
 router.get('/profile', authenticateToken, userController.getProfile);
 
 // 포인트

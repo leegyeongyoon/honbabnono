@@ -31,7 +31,7 @@ const AdvertisementDetailScreen: React.FC<AdvertisementDetailScreenProps> = ({
       setAdvertisement(detail);
     } catch (_error) {
       Alert.alert('오류', '광고 정보를 불러오는데 실패했습니다.');
-      window.history.back();
+      navigation.goBack();
     } finally {
       setLoading(false);
     }

@@ -12,6 +12,7 @@ const miscController = require('./controllers/misc.controller');
 const { authenticateToken } = require('../../middleware/auth');
 const validate = require('../../middleware/validate');
 const { createMeetupSchema } = require('../../middleware/schemas/meetups.schemas');
+const { createReviewSchema } = require('../../middleware/schemas/reviews.schemas');
 
 // === 특수 엔드포인트 (/:id보다 먼저 정의해야 함) ===
 
@@ -78,7 +79,7 @@ router.post('/:id/wishlist', authenticateToken, miscController.addWishlist);
 router.delete('/:id/wishlist', authenticateToken, miscController.removeWishlist);
 
 // 모임 리뷰 작성
-router.post('/:id/reviews', authenticateToken, reviewController.createReview);
+router.post('/:id/reviews', authenticateToken, validate({ body: createReviewSchema }), reviewController.createReview);
 
 // 리뷰 목록 조회
 router.get('/:id/reviews', reviewController.getReviews);

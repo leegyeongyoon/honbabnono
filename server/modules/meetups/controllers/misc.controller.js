@@ -4,6 +4,7 @@
 const pool = require('../../../config/database');
 const logger = require('../../../config/logger');
 const { validateMeetupExists, validateHostPermission } = require('../helpers/validation.helper');
+const { updateBabalScore } = require('../../../utils/babalScore');
 
 /**
  * 최근 본 글 추가 (조회수 기록)
@@ -210,27 +211,23 @@ exports.applyNoShowPenalties = async (req, res) => {
 
     const penalties = [];
     for (const noShow of noShowsResult.rows) {
-      // 밥알 점수 차감
-      const newScore = Math.max(0, (noShow.babal_score || 50) - 10);
-      await client.query('UPDATE users SET babal_score = $1, updated_at = NOW() WHERE id = $2', [
-        newScore,
-        noShow.user_id,
-      ]);
+      // 밥알 점수 차감 (통합 알고리즘 사용)
+      const scoreResult = await updateBabalScore(noShow.user_id, 'NO_SHOW', { meetupId, client });
 
       // 노쇼 기록
       await client.query(
         `
         INSERT INTO user_penalties (user_id, meetup_id, penalty_type, penalty_amount, reason, created_at)
-        VALUES ($1, $2, 'no_show', 10, '약속 노쇼', NOW())
+        VALUES ($1, $2, 'no_show', $3, '약속 노쇼', NOW())
       `,
-        [noShow.user_id, meetupId]
+        [noShow.user_id, meetupId, Math.abs(scoreResult.changeAmount)]
       );
 
       penalties.push({
         userId: noShow.user_id,
         name: noShow.name,
-        previousScore: noShow.babal_score,
-        newScore,
+        previousScore: scoreResult.previousScore,
+        newScore: scoreResult.newScore,
       });
     }
 

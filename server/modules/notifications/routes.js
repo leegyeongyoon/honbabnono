@@ -2,6 +2,8 @@ const express = require('express');
 const router = express.Router();
 const notificationController = require('./controller');
 const { authenticateToken } = require('../../middleware/auth');
+const validate = require('../../middleware/validate');
+const { registerDeviceTokenSchema, updateSettingsSchema } = require('../../middleware/schemas/notification.schemas');
 
 // 알림 목록 조회
 router.get('/', authenticateToken, notificationController.getNotifications);
@@ -25,13 +27,13 @@ router.delete('/:id', authenticateToken, notificationController.deleteNotificati
 router.get('/settings', authenticateToken, notificationController.getSettings);
 
 // 알림 설정 변경
-router.put('/settings', authenticateToken, notificationController.updateSettings);
+router.put('/settings', authenticateToken, validate({ body: updateSettingsSchema }), notificationController.updateSettings);
 
 // 테스트 알림 생성
 router.post('/test', authenticateToken, notificationController.createTestNotification);
 
 // 디바이스 FCM 토큰 등록
-router.post('/device-token', authenticateToken, notificationController.registerToken);
+router.post('/device-token', authenticateToken, validate({ body: registerDeviceTokenSchema }), notificationController.registerToken);
 
 // 디바이스 FCM 토큰 해제
 router.delete('/device-token', authenticateToken, notificationController.unregisterToken);

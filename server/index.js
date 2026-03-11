@@ -112,6 +112,9 @@ if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
 
+// 허용된 이미지 확장자 목록
+const ALLOWED_IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
+
 // Multer 설정
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -119,7 +122,11 @@ const storage = multer.diskStorage({
   },
   filename: (req, file, cb) => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    const fileExtension = path.extname(file.originalname);
+    // 파일 확장자를 원본에서 추출 후 소문자 변환
+    const rawExt = path.extname(file.originalname).toLowerCase();
+    // 허용된 확장자만 사용, 그 외에는 빈 문자열
+    const fileExtension = ALLOWED_IMAGE_EXTENSIONS.includes(rawExt) ? rawExt : '';
+    // 파일명에서 경로 구분자 및 특수문자 제거 (path traversal 방지)
     cb(null, `upload-${uniqueSuffix}${fileExtension}`);
   }
 });
@@ -127,11 +134,21 @@ const storage = multer.diskStorage({
 const upload = multer({
   storage: storage,
   fileFilter: (req, file, cb) => {
-    if (file.mimetype.startsWith('image/')) {
-      cb(null, true);
-    } else {
-      cb(new Error('이미지 파일만 업로드 가능합니다.'), false);
+    // MIME 타입 검사
+    if (!file.mimetype.startsWith('image/')) {
+      return cb(new Error('이미지 파일만 업로드 가능합니다.'), false);
     }
+    // 파일 확장자 화이트리스트 검사
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (!ALLOWED_IMAGE_EXTENSIONS.includes(ext)) {
+      return cb(new Error(`허용되지 않는 파일 형식입니다. 허용: ${ALLOWED_IMAGE_EXTENSIONS.join(', ')}`), false);
+    }
+    // 원본 파일명에서 경로 구분자 포함 여부 검사 (path traversal 방지)
+    const basename = path.basename(file.originalname);
+    if (basename !== file.originalname) {
+      return cb(new Error('파일명에 경로 구분자를 포함할 수 없습니다.'), false);
+    }
+    cb(null, true);
   },
   limits: {
     fileSize: 10 * 1024 * 1024, // 10MB
@@ -141,7 +158,21 @@ const upload = multer({
 // 미들웨어 설정
 app.use(helmet({
   crossOriginResourcePolicy: { policy: 'cross-origin' },
-  contentSecurityPolicy: false // CSP는 프론트엔드 리소스 로딩과 충돌할 수 있으므로 비활성화
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://dapi.kakao.com", "https://t1.daumcdn.net"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      imgSrc: ["'self'", "data:", "blob:", "https://*.amazonaws.com", "https://t1.daumcdn.net", "https://map.daumcdn.net", "https://dapi.kakao.com", "https://k.kakaocdn.net"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com", "data:"],
+      connectSrc: ["'self'", "https://dapi.kakao.com", "https://kauth.kakao.com", "https://kapi.kakao.com", "https://*.amazonaws.com", "ws:", "wss:"],
+      frameSrc: ["'self'", "https://dapi.kakao.com"],
+      objectSrc: ["'none'"],
+      baseUri: ["'self'"],
+      formAction: ["'self'"],
+      upgradeInsecureRequests: []
+    }
+  }
 }));
 app.use(cors({
   origin: ['http://localhost:3000', 'https://honbabnono.com', 'https://admin.honbabnono.com', 'http://localhost:3002', 'http://localhost:3003'],

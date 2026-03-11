@@ -5,6 +5,8 @@ const pool = require('../../../config/database');
 const logger = require('../../../config/logger');
 const { validateMeetupExists, validateParticipant, validateRating } = require('../helpers/validation.helper');
 const { buildPagination } = require('../helpers/query.helper');
+const { updateBabalScore, getReviewScoreEvent } = require('../../../utils/babalScore');
+const { checkBadgeEligibility } = require('../../badges/controller');
 
 /**
  * 모임 리뷰 작성
@@ -67,6 +69,21 @@ exports.createReview = async (req, res) => {
 
     const review = reviewResult.rows[0];
 
+    // 리뷰 대상의 밥알지수 변동 (통합 알고리즘)
+    const scoreEvent = getReviewScoreEvent(rating);
+    await updateBabalScore(meetup.host_id, scoreEvent, {
+      meetupId,
+      reviewId: review.id,
+    });
+
+    // 양질의 리뷰 작성자 보너스 (30자 이상)
+    if (comment && comment.length >= 30) {
+      await updateBabalScore(userId, 'REVIEW_WRITTEN_QUALITY', {
+        meetupId,
+        reviewId: review.id,
+      });
+    }
+
     // 호스트의 평균 평점 업데이트
     const avgRatingResult = await pool.query(
       `
@@ -84,6 +101,11 @@ exports.createReview = async (req, res) => {
       avgRating,
       meetup.host_id,
     ]);
+
+    // 뱃지 획득 조건 체크 (비동기, 실패해도 리뷰 작성에 영향 없음)
+    checkBadgeEligibility(userId).catch(
+      (err) => logger.error('리뷰 작성 뱃지 체크 오류:', err)
+    );
 
     res.status(201).json({
       success: true,
@@ -220,17 +242,17 @@ exports.getReviewableParticipants = async (req, res) => {
       [meetupId, userId]
     );
 
-    // 아직 리뷰하지 않은 참가자만 필터링
-    const reviewableParticipants = participantsResult.rows.filter(p => !p.already_reviewed);
-
+    // 모든 참가자를 반환하되 이미 리뷰한 여부를 표시
     res.json({
       success: true,
-      participants: reviewableParticipants.map((p) => ({
+      participants: participantsResult.rows.map((p) => ({
         id: p.id,
         name: p.name,
         profileImage: p.profile_image,
-        babalScore: p.babal_score,
+        rating: p.babal_score,
         isHost: p.is_host,
+        attended: true,
+        alreadyReviewed: p.already_reviewed,
       })),
     });
   } catch (error) {
@@ -318,6 +340,21 @@ exports.createUserReview = async (req, res) => {
 
     const review = reviewResult.rows[0];
 
+    // 리뷰 대상의 밥알지수 변동 (통합 알고리즘)
+    const scoreEvent = getReviewScoreEvent(rating);
+    await updateBabalScore(reviewedUserId, scoreEvent, {
+      meetupId,
+      reviewId: review.id,
+    });
+
+    // 양질의 리뷰 작성자 보너스 (30자 이상)
+    if (comment && comment.length >= 30) {
+      await updateBabalScore(reviewerId, 'REVIEW_WRITTEN_QUALITY', {
+        meetupId,
+        reviewId: review.id,
+      });
+    }
+
     // 리뷰 대상자의 평균 평점 업데이트
     const avgRatingResult = await pool.query(
       'SELECT AVG(rating) as avg_rating FROM user_reviews WHERE reviewed_user_id = $1',
@@ -329,6 +366,11 @@ exports.createUserReview = async (req, res) => {
     await pool.query(
       'UPDATE users SET rating = $1, updated_at = NOW() WHERE id = $2',
       [Math.round(avgRating * 10) / 10, reviewedUserId]
+    );
+
+    // 뱃지 획득 조건 체크 (비동기, 실패해도 리뷰 작성에 영향 없음)
+    checkBadgeEligibility(reviewerId).catch(
+      (err) => logger.error('참가자 리뷰 뱃지 체크 오류:', err)
     );
 
     res.status(201).json({

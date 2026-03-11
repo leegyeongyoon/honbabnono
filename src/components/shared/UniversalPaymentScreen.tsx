@@ -46,9 +46,83 @@ const UniversalPaymentScreen: React.FC<{navigation: NavigationAdapter, user?: an
         headers: { 'Authorization': `Bearer ${token}` },
       });
       const data = await response.json();
-      setUserPoints(data.points || 0);
+      // Backend returns { success, data: { availablePoints } }
+      const points = data.data?.availablePoints ?? data.points ?? 0;
+      setUserPoints(points);
     } catch (_error) {
+      // Points fetch failed silently - user will see 0 balance
     }
+  };
+
+  const processPointsPayment = async (token: string) => {
+    if (userPoints < amount) {
+      Alert.alert('포인트 부족', '보유 포인트가 부족합니다. 포인트를 충전해주세요.');
+      return;
+    }
+
+    if (type === 'deposit' && meetupId) {
+      // Deposit payment via points: use /deposits/payment
+      const response = await fetch(`${getApiUrl()}/deposits/payment`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          amount,
+          meetupId,
+          paymentMethod: 'points',
+        }),
+      });
+      return response.json();
+    }
+
+    // General points usage: use /points/use
+    const response = await fetch(`${getApiUrl()}/points/use`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        amount,
+        reason: description || '포인트 사용',
+        relatedMeetupId: meetupId,
+      }),
+    });
+    return response.json();
+  };
+
+  const processCardPayment = async (token: string) => {
+    if (type === 'deposit' && meetupId) {
+      // Card deposit payment: use /deposits/prepare for PortOne flow
+      const response = await fetch(`${getApiUrl()}/deposits/prepare`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          amount,
+          meetupId,
+          paymentMethod: 'card',
+        }),
+      });
+      const data = await response.json();
+      if (data.success && data.paymentData) {
+        // PortOne flow - for now, alert the user to use points instead
+        Alert.alert(
+          '카드 결제 준비 중',
+          'PortOne 카드 결제 연동이 아직 완료되지 않았습니다. 포인트 결제를 이용해주세요.'
+        );
+        return null;
+      }
+      return data;
+    }
+
+    // General card payment not yet supported
+    Alert.alert('알림', '카드 결제는 현재 준비 중입니다. 포인트 결제를 이용해주세요.');
+    return null;
   };
 
   const processPayment = async () => {
@@ -61,29 +135,30 @@ const UniversalPaymentScreen: React.FC<{navigation: NavigationAdapter, user?: an
 
     try {
       const token = await AsyncStorage.getItem('authToken');
-      const response = await fetch(`${getApiUrl()}/payments/process`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          amount,
-          paymentMethod: selectedMethod,
-          description,
-          meetupId,
-          type,
-        }),
-      });
+      let data = null;
 
-      const data = await response.json();
+      if (selectedMethod === 'points') {
+        data = await processPointsPayment(token || '');
+      } else if (selectedMethod === 'card') {
+        data = await processCardPayment(token || '');
+      } else {
+        // kakao, bank - not yet supported
+        Alert.alert('알림', '해당 결제 수단은 현재 준비 중입니다. 포인트 결제를 이용해주세요.');
+        setProcessing(false);
+        return;
+      }
+
+      if (!data) {
+        setProcessing(false);
+        return;
+      }
 
       if (data.success) {
         Alert.alert('결제 완료', '결제가 성공적으로 완료되었습니다.', [
           { text: '확인', onPress: () => navigation.goBack() },
         ]);
       } else {
-        Alert.alert('결제 실패', data.message || '결제에 실패했습니다.');
+        Alert.alert('결제 실패', data.error || data.message || '결제에 실패했습니다.');
       }
     } catch (_error) {
       Alert.alert('오류', '결제 처리 중 오류가 발생했습니다.');

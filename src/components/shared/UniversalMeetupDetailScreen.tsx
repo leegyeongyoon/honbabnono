@@ -495,7 +495,10 @@ const UniversalMeetupDetailScreen: React.FC<UniversalMeetupDetailScreenProps> = 
               text: '충전하기',
               onPress: () => {
                 setShowPromiseModal(false);
-                navigation.navigate('DepositPayment', { meetupId });
+                navigation.navigate('DepositPayment', {
+                  meetupId,
+                  depositAmount: meetup.promiseDepositAmount || meetup.deposit || 3000,
+                });
               }
             }
           ]

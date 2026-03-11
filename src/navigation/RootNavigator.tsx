@@ -46,7 +46,7 @@ export type RootStackParamList = {
   Chat: { chatId?: string };
   Notification: undefined;
   Payment: { meetupId?: string };
-  DepositPayment: { meetupId?: string };
+  DepositPayment: { meetupId?: string; depositAmount?: number };
   NotificationSettings: undefined;
   PrivacySettings: undefined;
   MyReviews: undefined;

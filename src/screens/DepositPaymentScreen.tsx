@@ -20,18 +20,42 @@ interface PaymentData {
 
 const DepositPaymentScreen = ({ navigation, user, route }: any) => {
   const meetupId = route?.params?.meetupId || route?.params?.id;
+  const routeDepositAmount = route?.params?.depositAmount;
   const [loading, setLoading] = useState(false);
   const [showWebView, setShowWebView] = useState(false);
   const [paymentData, setPaymentData] = useState<PaymentData | null>(null);
   const [selectedMethod, setSelectedMethod] = useState<'points' | 'card'>('card');
   const [userPoints, setUserPoints] = useState(0);
+  const [depositAmount, setDepositAmount] = useState<number>(routeDepositAmount || 0);
+  const [loadingMeetup, setLoadingMeetup] = useState(!routeDepositAmount);
   const webViewRef = useRef<WebView>(null);
-
-  const depositAmount = 3000;
 
   useEffect(() => {
     fetchUserPoints();
+    if (!routeDepositAmount && meetupId) {
+      fetchMeetupDepositAmount();
+    }
   }, []);
+
+  const fetchMeetupDepositAmount = async () => {
+    try {
+      const token = await AsyncStorage.getItem('authToken');
+      const response = await fetch(`${API_URL}/meetups/${meetupId}`, {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      const data = await response.json();
+      const meetup = data.data || data.meetup || data;
+      const amount = meetup.promiseDepositAmount
+        ?? meetup.promise_deposit_amount
+        ?? 3000;
+      setDepositAmount(amount);
+    } catch (_error) {
+      // Fallback to default deposit amount
+      setDepositAmount(3000);
+    } finally {
+      setLoadingMeetup(false);
+    }
+  };
 
   const fetchUserPoints = async () => {
     try {
@@ -40,13 +64,16 @@ const DepositPaymentScreen = ({ navigation, user, route }: any) => {
         headers: { 'Authorization': `Bearer ${token}` },
       });
       const data = await response.json();
-      if (data.success || data.points !== undefined) {
-        setUserPoints(data.points || data.data?.points || 0);
-        if ((data.points || data.data?.points || 0) >= depositAmount) {
+      // Backend returns { success, data: { availablePoints } }
+      const points = data.data?.availablePoints ?? data.points ?? 0;
+      if (data.success || points > 0) {
+        setUserPoints(points);
+        if (points >= (routeDepositAmount || depositAmount || 3000)) {
           setSelectedMethod('points');
         }
       }
     } catch (_error) {
+      // Points fetch failed silently
     }
   };
 
@@ -285,6 +312,8 @@ const DepositPaymentScreen = ({ navigation, user, route }: any) => {
     );
   }
 
+  const isPaymentDisabled = loading || loadingMeetup || depositAmount <= 0;
+
   // 메인 결제 선택 화면
   return (
     <SafeAreaView style={styles.container}>
@@ -298,7 +327,11 @@ const DepositPaymentScreen = ({ navigation, user, route }: any) => {
 
       <View style={styles.amountSection}>
         <Text style={styles.amountLabel}>약속금</Text>
-        <Text style={styles.amountValue}>{depositAmount.toLocaleString()}원</Text>
+        {loadingMeetup ? (
+          <ActivityIndicator size="small" color={COLORS.primary.accent} style={{ marginVertical: 12 }} />
+        ) : (
+          <Text style={styles.amountValue}>{depositAmount.toLocaleString()}원</Text>
+        )}
         <Text style={styles.amountDescription}>
           노쇼 방지 목적이며, 1일 이내 다시 입금됩니다.
         </Text>
@@ -340,15 +373,15 @@ const DepositPaymentScreen = ({ navigation, user, route }: any) => {
 
       <View style={styles.bottomSection}>
         <TouchableOpacity
-          style={[styles.paymentButton, loading && styles.disabledButton]}
+          style={[styles.paymentButton, isPaymentDisabled && styles.disabledButton]}
           onPress={handlePayment}
-          disabled={loading}
+          disabled={isPaymentDisabled}
         >
           {loading ? (
             <ActivityIndicator size="small" color={COLORS.neutral.white} />
           ) : (
             <Text style={styles.paymentButtonText}>
-              {depositAmount.toLocaleString()}원 결제하기
+              {depositAmount > 0 ? `${depositAmount.toLocaleString()}원 결제하기` : '금액 확인 중...'}
             </Text>
           )}
         </TouchableOpacity>

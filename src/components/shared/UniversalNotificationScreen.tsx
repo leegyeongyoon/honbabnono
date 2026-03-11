@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -9,15 +9,14 @@ import {
   SafeAreaView,
   Platform,
   RefreshControl,
+  ActivityIndicator,
 } from 'react-native';
 import { COLORS, SHADOWS, LAYOUT } from '../../styles/colors';
 import { TYPOGRAPHY } from '../../styles/typography';
 import { SPACING, BORDER_RADIUS } from '../../styles/spacing';
 import { Icon } from '../Icon';
-import { NotificationList } from '../NotificationList';
+import { useNotificationStore } from '../../store/notificationStore';
 import { Notification } from '../../types/notification';
-import notificationApiService from '../../services/notificationApiService';
-import { getTimeDifference } from '../../utils/timeUtils';
 
 interface UniversalNotificationScreenProps {
   navigation?: any;
@@ -26,27 +25,51 @@ interface UniversalNotificationScreenProps {
   onGoBack?: () => void;
 }
 
-interface NotificationItem {
-  id: number;
-  type: 'meetup_invite' | 'meetup_approved' | 'meetup_cancelled' | 'system' | 'chat' | 'meetup_join_request' | 'meetup_join_approved' | 'meetup_join_rejected' | 'direct_chat_request' | 'chat_message';
-  title: string;
-  message: string;
-  time: string;
-  isRead: boolean;
-  actionRequired?: boolean;
-  imageUrl?: string;
-  data?: any; // For additional notification data
-}
+// Map API snake_case response to camelCase Notification type
+const mapApiNotification = (raw: any): Notification => ({
+  id: raw.id,
+  userId: raw.user_id || raw.userId,
+  type: raw.type,
+  title: raw.title,
+  message: raw.message,
+  meetupId: raw.meetup_id || raw.meetupId,
+  relatedUserId: raw.related_user_id || raw.relatedUserId,
+  data: typeof raw.data === 'string' ? JSON.parse(raw.data) : raw.data,
+  isRead: raw.is_read ?? raw.isRead ?? false,
+  isSent: raw.is_sent ?? raw.isSent ?? false,
+  scheduledAt: raw.scheduled_at || raw.scheduledAt,
+  sentAt: raw.sent_at || raw.sentAt,
+  createdAt: raw.created_at || raw.createdAt,
+  updatedAt: raw.updated_at || raw.updatedAt,
+  meetup: raw.meetup,
+  relatedUser: raw.related_user || raw.relatedUser,
+});
 
-const formatNotificationTime = (time?: string): string => {
-  if (!time) return '';
+const formatNotificationTime = (timestamp?: string): string => {
+  if (!timestamp) return '';
   // Already formatted (e.g. "5분 전", "1시간 전") - pass through
-  if (time.includes('전') || time.includes('후') || time.includes('방금')) {
-    return time;
+  if (timestamp.includes('전') || timestamp.includes('후') || timestamp.includes('방금')) {
+    return timestamp;
   }
-  // ISO timestamp - convert using getTimeDifference
-  const result = getTimeDifference(time);
-  return result || time;
+  // ISO timestamp - convert to relative time
+  const now = new Date();
+  const date = new Date(timestamp);
+  const diffMs = now.getTime() - date.getTime();
+  const diffMinutes = Math.floor(diffMs / (1000 * 60));
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  if (diffMinutes < 1) return '방금 전';
+  if (diffMinutes < 60) return `${diffMinutes}분 전`;
+  if (diffHours < 24) return `${diffHours}시간 전`;
+  if (diffDays < 7) return `${diffDays}일 전`;
+
+  return date.toLocaleDateString('ko-KR', {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 };
 
 const UniversalNotificationScreen: React.FC<UniversalNotificationScreenProps> = ({
@@ -57,72 +80,32 @@ const UniversalNotificationScreen: React.FC<UniversalNotificationScreenProps> = 
 }) => {
   const [showUnreadOnly, setShowUnreadOnly] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [loading, setLoading] = useState(true);
 
-  // Mock data - in real app this would come from API/store
-  const [notifications, setNotifications] = useState<NotificationItem[]>([
-    {
-      id: 1,
-      type: 'meetup_approved',
-      title: '약속 승인 완료',
-      message: '강남역 파스타 맛집 탐방 약속이 승인되었습니다.',
-      time: '5분 전',
-      isRead: false,
-      actionRequired: false,
-    },
-    {
-      id: 2,
-      type: 'meetup_invite',
-      title: '새로운 약속 초대',
-      message: '홍대 술집 호핑 약속에 초대되었습니다.',
-      time: '1시간 전',
-      isRead: false,
-      actionRequired: true,
-    },
-    {
-      id: 3,
-      type: 'chat_message',
-      title: '새로운 메시지',
-      message: '김혼밥: 7시에 만나요!',
-      time: '2시간 전',
-      isRead: true,
-      actionRequired: false,
-    },
-    {
-      id: 4,
-      type: 'meetup_cancelled',
-      title: '약속 취소 알림',
-      message: '신촌 브런치 약속이 취소되었습니다.',
-      time: '1일 전',
-      isRead: true,
-      actionRequired: false,
-    },
-    {
-      id: 5,
-      type: 'system',
-      title: '새로운 기능 업데이트',
-      message: '안전 가이드라인이 업데이트되었습니다.',
-      time: '2일 전',
-      isRead: true,
-      actionRequired: false,
-    },
-  ]);
+  const {
+    notifications: storeNotifications,
+    loading,
+    error,
+    fetchNotifications,
+    markAsRead,
+    markAllAsRead,
+    fetchUnreadCount,
+  } = useNotificationStore();
+
+  // Map store notifications (may have snake_case fields from API) to consistent format
+  const notifications: Notification[] = storeNotifications.map(mapApiNotification);
 
   useEffect(() => {
     loadNotifications();
   }, []);
 
-  const loadNotifications = async () => {
-    setLoading(true);
-    try {
-      // In a real app, load notifications from API
-      // const notifications = await notificationApiService.getNotifications();
-      // setNotifications(notifications);
-    } catch (_error) {
-    } finally {
-      setLoading(false);
-    }
-  };
+  useEffect(() => {
+    loadNotifications();
+  }, [showUnreadOnly]);
+
+  const loadNotifications = useCallback(async () => {
+    await fetchNotifications(1, 50, showUnreadOnly);
+    await fetchUnreadCount();
+  }, [fetchNotifications, fetchUnreadCount, showUnreadOnly]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -148,97 +131,104 @@ const UniversalNotificationScreen: React.FC<UniversalNotificationScreenProps> = 
     }
   };
 
-  const handleNotificationPress = (notification: NotificationItem) => {
-    // Mark as read
-    setNotifications(prev =>
-      prev.map(n =>
-        n.id === notification.id ? { ...n, isRead: true } : n
-      )
-    );
+  const handleNotificationPress = async (notification: Notification) => {
+    // Mark as read via API
+    if (!notification.isRead) {
+      try {
+        await markAsRead(notification.id);
+      } catch (_err) {
+        // Continue with navigation even if mark-as-read fails
+      }
+    }
+
+    const notifData = notification.data || {};
 
     // Navigation logic based on notification type
     switch (notification.type) {
       case 'chat_message':
         handleNavigate('ChatRoom', {
-          meetupId: notification.data?.meetupId,
-          meetupTitle: notification.data?.meetupTitle
+          meetupId: notifData.meetupId || notifData.meetup_id || notification.meetupId,
+          meetupTitle: notifData.meetupTitle || notifData.meetup_title
         });
         break;
       case 'meetup_join_request':
       case 'meetup_join_approved':
       case 'meetup_join_rejected':
-      case 'meetup_approved':
+      case 'meetup_cancelled':
+      case 'meetup_updated':
+      case 'meetup_start':
+      case 'meetup_reminder':
+      case 'attendance_check':
+      case 'review_request':
         handleNavigate('MeetupDetail', {
-          meetupId: notification.data?.meetupId
+          meetupId: notifData.meetupId || notifData.meetup_id || notification.meetupId
         });
         break;
       case 'direct_chat_request':
         handleNavigate('ChatRoom', {
-          userId: notification.data?.userId,
-          userName: notification.data?.userName
+          userId: notifData.userId || notifData.user_id || notification.relatedUserId,
+          userName: notifData.userName || notifData.user_name
         });
         break;
-      case 'meetup_invite':
-        if (notification.actionRequired) {
-          Alert.alert(
-            '약속 초대',
-            notification.message + '\n참여하시겠습니까?',
-            [
-              { text: '거절', style: 'cancel' },
-              {
-                text: '수락',
-                onPress: () => {
-                  handleNavigate('MeetupDetail', {
-                    meetupId: notification.data?.meetupId
-                  });
-                }
-              },
-            ]
-          );
-        }
+      case 'payment_success':
+      case 'payment_failed':
+      case 'point_penalty':
+      case 'point_refund':
+        handleNavigate('PointHistory');
         break;
       default:
+        // For system_announcement, app_update, etc. - no specific navigation
         break;
     }
   };
 
   const handleMarkAllAsRead = async () => {
     try {
-      if (Platform.OS === 'web') {
-        await notificationApiService.markAllAsRead();
-      }
-
-      setNotifications(prev =>
-        prev.map(n => ({ ...n, isRead: true }))
-      );
-
+      await markAllAsRead();
       Alert.alert('알림', '모든 알림을 읽음으로 표시했습니다.');
-    } catch (error) {
+    } catch (_err) {
       Alert.alert('오류', '알림 읽음 처리에 실패했습니다.');
     }
   };
 
   const getNotificationIcon = (type: string): { name: string; color: string } => {
     switch (type) {
-      case 'meetup_invite':
-        return { name: 'mail', color: COLORS.primary.accent };
-      case 'meetup_approved':
-        return { name: 'check-circle', color: COLORS.functional.success };
-      case 'meetup_cancelled':
-        return { name: 'x-circle', color: COLORS.functional.error };
-      case 'chat':
-      case 'chat_message':
-        return { name: 'message-circle', color: COLORS.functional.info };
-      case 'system':
-        return { name: 'bell', color: COLORS.text.tertiary };
       case 'meetup_join_request':
         return { name: 'user-plus', color: COLORS.primary.accent };
       case 'meetup_join_approved':
         return { name: 'check-circle', color: COLORS.functional.success };
       case 'meetup_join_rejected':
         return { name: 'x-circle', color: COLORS.functional.error };
+      case 'meetup_cancelled':
+        return { name: 'x-circle', color: COLORS.functional.error };
+      case 'meetup_updated':
+        return { name: 'edit', color: COLORS.primary.accent };
+      case 'meetup_start':
+      case 'meetup_reminder':
+        return { name: 'clock', color: COLORS.primary.accent };
+      case 'attendance_check':
+        return { name: 'check-circle', color: COLORS.functional.success };
+      case 'chat_message':
+      case 'new_chat_room':
       case 'direct_chat_request':
         return { name: 'message-circle', color: COLORS.functional.info };
+      case 'review_request':
+        return { name: 'star', color: COLORS.primary.accent };
+      case 'payment_success':
+        return { name: 'check-circle', color: COLORS.functional.success };
+      case 'payment_failed':
+        return { name: 'x-circle', color: COLORS.functional.error };
+      case 'point_penalty':
+        return { name: 'alert-circle', color: COLORS.functional.error };
+      case 'point_refund':
+        return { name: 'check-circle', color: COLORS.functional.success };
+      case 'system_announcement':
+      case 'app_update':
+        return { name: 'bell', color: COLORS.text.tertiary };
+      case 'safety_check':
+        return { name: 'shield', color: COLORS.functional.info };
+      case 'weekly_summary':
+        return { name: 'bar-chart', color: COLORS.primary.accent };
       default:
         return { name: 'bell', color: COLORS.text.tertiary };
     }
@@ -248,6 +238,12 @@ const UniversalNotificationScreen: React.FC<UniversalNotificationScreenProps> = 
   const filteredNotifications = showUnreadOnly
     ? notifications.filter(n => !n.isRead)
     : notifications;
+
+  const isActionRequired = (notification: Notification): boolean => {
+    return notification.type === 'meetup_join_request' ||
+           notification.type === 'attendance_check' ||
+           notification.type === 'review_request';
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -297,89 +293,102 @@ const UniversalNotificationScreen: React.FC<UniversalNotificationScreenProps> = 
       </View>
 
       {/* 알림 목록 */}
-      {Platform.OS === 'web' && typeof NotificationList !== 'undefined' ? (
-        // Use web component if available
-        <NotificationList
-          onNotificationPress={handleNotificationPress}
-          showUnreadOnly={showUnreadOnly}
-        />
-      ) : (
-        // Fallback to custom implementation
-        <ScrollView
-          style={styles.notificationList}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-          }
-          showsVerticalScrollIndicator={false}
-        >
-          {filteredNotifications.length === 0 ? (
-            <View style={styles.emptyState}>
-              <Icon name="bell-off" size={48} color={COLORS.neutral.grey300} />
-              <Text style={styles.emptyTitle}>
-                {showUnreadOnly ? '읽지 않은 알림이 없습니다' : '알림이 없습니다'}
-              </Text>
-              <Text style={styles.emptySubtitle}>
-                {showUnreadOnly
-                  ? '모든 알림을 확인했습니다'
-                  : '새로운 알림이 오면 여기에 표시됩니다'
-                }
-              </Text>
-            </View>
-          ) : (
-            filteredNotifications.map((notification, index) => {
-              const iconInfo = getNotificationIcon(notification.type);
-              return (
-                <TouchableOpacity
-                  key={notification.id}
-                  style={[
-                    styles.notificationItem,
-                    index < filteredNotifications.length - 1 && styles.notificationItemBorder,
-                  ]}
-                  onPress={() => handleNotificationPress(notification)}
-                  activeOpacity={0.6}
-                >
-                  {/* 아이콘 */}
-                  <View style={[
-                    styles.iconContainer,
-                    { backgroundColor: `${iconInfo.color}10` },
-                  ]}>
-                    <Icon name={iconInfo.name as any} size={18} color={iconInfo.color} />
-                  </View>
+      <ScrollView
+        style={styles.notificationList}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+        showsVerticalScrollIndicator={false}
+      >
+        {/* 로딩 상태 */}
+        {loading && notifications.length === 0 ? (
+          <View style={styles.loadingState}>
+            <ActivityIndicator size="large" color={COLORS.primary.accent} />
+            <Text style={styles.loadingText}>알림을 불러오는 중...</Text>
+          </View>
+        ) : error && notifications.length === 0 ? (
+          /* 에러 상태 */
+          <View style={styles.emptyState}>
+            <Icon name="alert-circle" size={48} color={COLORS.functional.error} />
+            <Text style={styles.emptyTitle}>알림을 불러올 수 없습니다</Text>
+            <Text style={styles.emptySubtitle}>
+              네트워크 연결을 확인하고 다시 시도해 주세요
+            </Text>
+            <TouchableOpacity
+              style={styles.retryButton}
+              onPress={loadNotifications}
+            >
+              <Text style={styles.retryButtonText}>다시 시도</Text>
+            </TouchableOpacity>
+          </View>
+        ) : filteredNotifications.length === 0 ? (
+          /* 빈 상태 */
+          <View style={styles.emptyState}>
+            <Icon name="bell-off" size={48} color={COLORS.neutral.grey300} />
+            <Text style={styles.emptyTitle}>
+              {showUnreadOnly ? '읽지 않은 알림이 없습니다' : '알림이 없습니다'}
+            </Text>
+            <Text style={styles.emptySubtitle}>
+              {showUnreadOnly
+                ? '모든 알림을 확인했습니다'
+                : '새로운 알림이 오면 여기에 표시됩니다'
+              }
+            </Text>
+          </View>
+        ) : (
+          filteredNotifications.map((notification, index) => {
+            const iconInfo = getNotificationIcon(notification.type);
+            return (
+              <TouchableOpacity
+                key={notification.id}
+                style={[
+                  styles.notificationItem,
+                  index < filteredNotifications.length - 1 && styles.notificationItemBorder,
+                ]}
+                onPress={() => handleNotificationPress(notification)}
+                activeOpacity={0.6}
+              >
+                {/* 아이콘 */}
+                <View style={[
+                  styles.iconContainer,
+                  { backgroundColor: `${iconInfo.color}10` },
+                ]}>
+                  <Icon name={iconInfo.name as any} size={18} color={iconInfo.color} />
+                </View>
 
-                  {/* 콘텐츠 */}
-                  <View style={styles.notificationContent}>
-                    <View style={styles.notificationTitleRow}>
-                      <Text style={[
-                        styles.notificationTitle,
-                        !notification.isRead && styles.unreadTitle
-                      ]} numberOfLines={1}>
-                        {notification.title}
-                      </Text>
-                      {notification.actionRequired && (
-                        <View style={styles.actionBadge}>
-                          <Text style={styles.actionBadgeText}>답변필요</Text>
-                        </View>
-                      )}
-                    </View>
-                    <Text style={styles.notificationMessage} numberOfLines={2}>
-                      {notification.message}
+                {/* 콘텐츠 */}
+                <View style={styles.notificationContent}>
+                  <View style={styles.notificationTitleRow}>
+                    <Text style={[
+                      styles.notificationTitle,
+                      !notification.isRead && styles.unreadTitle
+                    ]} numberOfLines={1}>
+                      {notification.title}
                     </Text>
-                    <Text style={styles.notificationTime}>
-                      {formatNotificationTime(notification.time)}
-                    </Text>
+                    {isActionRequired(notification) && !notification.isRead && (
+                      <View style={styles.actionBadge}>
+                        <Text style={styles.actionBadgeText}>답변필요</Text>
+                      </View>
+                    )}
                   </View>
+                  <Text style={styles.notificationMessage} numberOfLines={2}>
+                    {notification.message}
+                  </Text>
+                  <Text style={styles.notificationTime}>
+                    {formatNotificationTime(notification.createdAt)}
+                  </Text>
+                </View>
 
-                  {/* 읽지 않음 도트 (테라코타) */}
-                  {!notification.isRead && (
-                    <View style={styles.unreadDot} />
-                  )}
-                </TouchableOpacity>
-              );
-            })
-          )}
-          <View style={{ height: 40 }} />
-        </ScrollView>
-      )}
+                {/* 읽지 않음 도트 (테라코타) */}
+                {!notification.isRead && (
+                  <View style={styles.unreadDot} />
+                )}
+              </TouchableOpacity>
+            );
+          })
+        )}
+        <View style={{ height: 40 }} />
+      </ScrollView>
     </SafeAreaView>
   );
 };
@@ -535,6 +544,19 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
 
+  // 로딩 상태
+  loadingState: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingTop: 100,
+  },
+  loadingText: {
+    fontSize: 14,
+    color: COLORS.text.tertiary,
+    marginTop: 12,
+  },
+
   // 빈 상태
   emptyState: {
     flex: 1,
@@ -556,6 +578,18 @@ const styles = StyleSheet.create({
     color: COLORS.text.tertiary,
     textAlign: 'center',
     lineHeight: 18,
+  },
+  retryButton: {
+    marginTop: 16,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    backgroundColor: COLORS.primary.accent,
+    borderRadius: BORDER_RADIUS.md,
+  },
+  retryButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.text.white,
   },
 });
 

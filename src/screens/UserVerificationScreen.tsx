@@ -7,15 +7,28 @@ import {
   TouchableOpacity,
   TextInput,
   Alert,
-  Image,
+  ActivityIndicator,
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { COLORS, SHADOWS } from '../styles/colors';
+import userApiService from '../services/userApiService';
+
+type GenderType = 'male' | 'female' | 'other' | '';
+
+const GENDER_OPTIONS: { value: GenderType; label: string }[] = [
+  { value: 'male', label: '남성' },
+  { value: 'female', label: '여성' },
+  { value: 'other', label: '기타' },
+];
 
 const UserVerificationScreen = () => {
+  const navigation = useNavigation();
   const [step, setStep] = useState(1);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
-    age: '',
+    gender: '' as GenderType,
+    birthDate: '',
     bio: '',
     interests: [] as string[],
     phoneNumber: '',
@@ -37,8 +50,19 @@ const UserVerificationScreen = () => {
 
   const handleNextStep = () => {
     if (step === 1) {
-      if (!formData.name || !formData.age) {
-        Alert.alert('오류', '이름과 나이를 입력해주세요.');
+      if (!formData.name || !formData.gender || !formData.birthDate) {
+        Alert.alert('오류', '이름, 성별, 생년월일을 모두 입력해주세요.');
+        return;
+      }
+      // Validate birthDate format (YYYY-MM-DD)
+      const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+      if (!dateRegex.test(formData.birthDate)) {
+        Alert.alert('오류', '생년월일을 YYYY-MM-DD 형식으로 입력해주세요.\n예: 1995-03-15');
+        return;
+      }
+      const parsed = new Date(formData.birthDate);
+      if (isNaN(parsed.getTime())) {
+        Alert.alert('오류', '올바른 날짜를 입력해주세요.');
         return;
       }
     } else if (step === 2) {
@@ -60,12 +84,44 @@ const UserVerificationScreen = () => {
     }
   };
 
-  const handleSubmit = () => {
-    Alert.alert(
-      '인증 신청 완료',
-      '회원 인증 신청이 완료되었습니다.\n검토 후 24시간 내에 결과를 알려드립니다.',
-      [{ text: '확인' }]
-    );
+  const handleSubmit = async () => {
+    if (isSubmitting) {
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await userApiService.updateProfile({
+        name: formData.name,
+        gender: formData.gender as 'male' | 'female' | 'other',
+        birthDate: formData.birthDate,
+        phone: formData.phoneNumber,
+      });
+
+      Alert.alert(
+        '인증 완료',
+        '회원 정보가 저장되었습니다.',
+        [
+          {
+            text: '확인',
+            onPress: () => navigation.goBack(),
+          },
+        ]
+      );
+    } catch (error: any) {
+      const errorMessage =
+        error?.response?.data?.error ||
+        error?.message ||
+        '서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
+      Alert.alert('오류', errorMessage);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const getGenderLabel = (gender: GenderType): string => {
+    const found = GENDER_OPTIONS.find(opt => opt.value === gender);
+    return found ? found.label : '';
   };
 
   const renderStep1 = () => (
@@ -86,13 +142,39 @@ const UserVerificationScreen = () => {
       </View>
 
       <View style={styles.formGroup}>
-        <Text style={styles.label}>나이 *</Text>
+        <Text style={styles.label}>성별 *</Text>
+        <View style={styles.genderContainer}>
+          {GENDER_OPTIONS.map((option) => (
+            <TouchableOpacity
+              key={option.value}
+              style={[
+                styles.genderOption,
+                formData.gender === option.value && styles.selectedGenderOption,
+              ]}
+              onPress={() => setFormData(prev => ({ ...prev, gender: option.value }))}
+            >
+              <Text
+                style={[
+                  styles.genderOptionText,
+                  formData.gender === option.value && styles.selectedGenderOptionText,
+                ]}
+              >
+                {option.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+
+      <View style={styles.formGroup}>
+        <Text style={styles.label}>생년월일 *</Text>
         <TextInput
           style={styles.input}
-          placeholder="만 나이를 입력해주세요"
-          value={formData.age}
-          onChangeText={(text) => setFormData(prev => ({ ...prev, age: text }))}
-          keyboardType="numeric"
+          placeholder="YYYY-MM-DD (예: 1995-03-15)"
+          value={formData.birthDate}
+          onChangeText={(text) => setFormData(prev => ({ ...prev, birthDate: text }))}
+          keyboardType="numbers-and-punctuation"
+          maxLength={10}
         />
       </View>
 
@@ -145,9 +227,9 @@ const UserVerificationScreen = () => {
 
   const renderStep3 = () => (
     <View style={styles.stepContainer}>
-      <Text style={styles.stepTitle}>전화번호 인증</Text>
+      <Text style={styles.stepTitle}>전화번호 입력</Text>
       <Text style={styles.stepDescription}>
-        안전한 약속을 위해 전화번호 인증이 필요합니다
+        안전한 약속을 위해 전화번호를 입력해주세요
       </Text>
 
       <View style={styles.formGroup}>
@@ -161,16 +243,12 @@ const UserVerificationScreen = () => {
         />
       </View>
 
-      <TouchableOpacity style={styles.verifyButton}>
-        <Text style={styles.verifyButtonText}>인증번호 발송</Text>
-      </TouchableOpacity>
-
       <View style={styles.safetyNotice}>
-        <Text style={styles.safetyTitle}>🛡️ 개인정보 보호</Text>
+        <Text style={styles.safetyTitle}>개인정보 보호</Text>
         <Text style={styles.safetyText}>
-          • 전화번호는 인증 목적으로만 사용됩니다{'\n'}
-          • 다른 사용자에게 공개되지 않습니다{'\n'}
-          • 언제든지 계정 삭제 시 함께 삭제됩니다
+          {'\u2022'} 전화번호는 본인 확인 목적으로만 사용됩니다{'\n'}
+          {'\u2022'} 다른 사용자에게 공개되지 않습니다{'\n'}
+          {'\u2022'} 언제든지 계정 삭제 시 함께 삭제됩니다
         </Text>
       </View>
     </View>
@@ -178,7 +256,7 @@ const UserVerificationScreen = () => {
 
   const renderStep4 = () => (
     <View style={styles.stepContainer}>
-      <Text style={styles.stepTitle}>인증 완료</Text>
+      <Text style={styles.stepTitle}>정보 확인</Text>
       <Text style={styles.stepDescription}>
         모든 정보가 입력되었습니다. 최종 확인해주세요.
       </Text>
@@ -190,8 +268,12 @@ const UserVerificationScreen = () => {
           <Text style={styles.summaryValue}>{formData.name}</Text>
         </View>
         <View style={styles.summaryItem}>
-          <Text style={styles.summaryLabel}>나이:</Text>
-          <Text style={styles.summaryValue}>{formData.age}세</Text>
+          <Text style={styles.summaryLabel}>성별:</Text>
+          <Text style={styles.summaryValue}>{getGenderLabel(formData.gender)}</Text>
+        </View>
+        <View style={styles.summaryItem}>
+          <Text style={styles.summaryLabel}>생년월일:</Text>
+          <Text style={styles.summaryValue}>{formData.birthDate}</Text>
         </View>
         <View style={styles.summaryItem}>
           <Text style={styles.summaryLabel}>관심사:</Text>
@@ -206,11 +288,11 @@ const UserVerificationScreen = () => {
       </View>
 
       <View style={styles.termsNotice}>
-        <Text style={styles.termsTitle}>⚖️ 이용 약관 동의</Text>
+        <Text style={styles.termsTitle}>이용 약관 동의</Text>
         <Text style={styles.termsText}>
-          • 잇테이블 서비스 이용약관{'\n'}
-          • 개인정보처리방침{'\n'}
-          • 위치기반서비스 이용약관
+          {'\u2022'} 잇테이블 서비스 이용약관{'\n'}
+          {'\u2022'} 개인정보처리방침{'\n'}
+          {'\u2022'} 위치기반서비스 이용약관
         </Text>
       </View>
     </View>
@@ -248,17 +330,27 @@ const UserVerificationScreen = () => {
           <TouchableOpacity
             style={styles.backButton}
             onPress={() => setStep(step - 1)}
+            disabled={isSubmitting}
           >
             <Text style={styles.backButtonText}>이전</Text>
           </TouchableOpacity>
         )}
         <TouchableOpacity
-          style={[styles.nextButton, step === 1 && styles.fullWidthButton]}
+          style={[
+            styles.nextButton,
+            step === 1 && styles.fullWidthButton,
+            isSubmitting && styles.disabledButton,
+          ]}
           onPress={handleNextStep}
+          disabled={isSubmitting}
         >
-          <Text style={styles.nextButtonText}>
-            {step === 4 ? '인증 신청' : '다음'}
-          </Text>
+          {isSubmitting ? (
+            <ActivityIndicator color={COLORS.text.white} />
+          ) : (
+            <Text style={styles.nextButtonText}>
+              {step === 4 ? '인증 완료' : '다음'}
+            </Text>
+          )}
         </TouchableOpacity>
       </View>
     </View>
@@ -342,6 +434,33 @@ const styles = StyleSheet.create({
     height: 80,
     textAlignVertical: 'top',
   },
+  genderContainer: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  genderOption: {
+    flex: 1,
+    backgroundColor: COLORS.neutral.white,
+    borderWidth: 2,
+    borderColor: COLORS.neutral.grey300,
+    borderRadius: 8,
+    paddingVertical: 12,
+    alignItems: 'center',
+    ...SHADOWS.small,
+  },
+  selectedGenderOption: {
+    borderColor: COLORS.primary.accent,
+    backgroundColor: COLORS.primary.light,
+  },
+  genderOptionText: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: COLORS.text.primary,
+  },
+  selectedGenderOptionText: {
+    color: COLORS.primary.dark,
+    fontWeight: '700',
+  },
   interestGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -374,20 +493,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: COLORS.text.secondary,
     textAlign: 'center',
-  },
-  verifyButton: {
-    backgroundColor: COLORS.primary.accent,
-    borderRadius: 6,
-    padding: 16,
-    alignItems: 'center',
-    marginTop: 16,
-    marginBottom: 20,
-    ...SHADOWS.small,
-  },
-  verifyButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: COLORS.neutral.white,
   },
   safetyNotice: {
     backgroundColor: COLORS.secondary.light,
@@ -482,6 +587,9 @@ const styles = StyleSheet.create({
   },
   fullWidthButton: {
     flex: 1,
+  },
+  disabledButton: {
+    opacity: 0.6,
   },
   nextButtonText: {
     fontSize: 16,

@@ -1,219 +1,418 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, ActivityIndicator } from 'react-native';
 import { useNavigate } from 'react-router-dom';
-import { COLORS, SHADOWS, CARD_STYLE, CSS_SHADOWS } from '../styles/colors';
+import { COLORS, SHADOWS } from '../styles/colors';
 import { HEADER_STYLE } from '../styles/spacing';
 import { Icon } from '../components/Icon';
 import { FadeIn } from '../components/animated';
 import EmptyState from '../components/EmptyState';
 import { ListItemSkeleton } from '../components/skeleton';
-import apiClient from '../services/apiClient';
+import reviewApiService, { ReceivedReview } from '../services/reviewApiService';
 
-interface ManageableReview {
+interface WrittenReview {
   id: string;
   rating: number;
   content: string;
-  images: string[];
+  tags?: string[];
+  is_anonymous?: boolean;
   created_at: string;
-  updated_at: string;
+  updated_at?: string;
   meetup_title: string;
-  meetup_date: string;
-  meetup_location: string;
-  is_featured: boolean;
-  like_count: number;
-  reply_count: number;
+  meetup_date?: string;
+  meetup_location?: string;
 }
 
 const ReviewManagementScreen: React.FC = () => {
   const navigate = useNavigate();
-  const [reviews, setReviews] = useState<ManageableReview[]>([]);
+  const [writtenReviews, setWrittenReviews] = useState<WrittenReview[]>([]);
+  const [receivedReviews, setReceivedReviews] = useState<ReceivedReview[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedFilter, setSelectedFilter] = useState<'all' | 'featured' | 'recent'>('all');
+  const [selectedFilter, setSelectedFilter] = useState<'written' | 'received'>('written');
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchManageableReviews = async () => {
-      try {
-        setLoading(true);
-        const response = await apiClient.get('/user/reviews/manage');
-        setReviews(response.data.reviews || []);
-      } catch (error) {
-        // silently handle error
-        setReviews([]);
-      } finally {
-        setLoading(false);
-      }
-    };
+  // Edit state
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editRating, setEditRating] = useState(0);
+  const [editContent, setEditContent] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
-    fetchManageableReviews();
+  // Reply state
+  const [replyingId, setReplyingId] = useState<string | null>(null);
+  const [replyContent, setReplyContent] = useState('');
+
+  const fetchReviews = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const [writtenRes, receivedRes] = await Promise.all([
+        reviewApiService.getWrittenReviews(),
+        reviewApiService.getReceivedReviews(),
+      ]);
+      setWrittenReviews(writtenRes.reviews || []);
+      setReceivedReviews(receivedRes.reviews || []);
+    } catch (_error) {
+      setError('리뷰를 불러오는데 실패했습니다');
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  const handleDeleteReview = async (reviewId: string) => {
-    Alert.alert(
-      '리뷰 삭제',
-      '정말로 이 리뷰를 삭제하시겠습니까?',
-      [
-        { text: '취소', style: 'cancel' },
-        {
-          text: '삭제',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await apiClient.delete(`/reviews/${reviewId}`);
-              setReviews(prev => prev.filter(review => review.id !== reviewId));
-              Alert.alert('성공', '리뷰가 삭제되었습니다.');
-            } catch (error) {
-              // silently handle error
-              Alert.alert('오류', '리뷰 삭제에 실패했습니다.');
-            }
-          }
-        }
-      ]
-    );
+  useEffect(() => {
+    fetchReviews();
+  }, [fetchReviews]);
+
+  const handleStartEdit = (review: WrittenReview) => {
+    setEditingId(review.id);
+    setEditRating(review.rating);
+    setEditContent(review.content || '');
   };
 
-  const handleToggleFeatured = async (reviewId: string) => {
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    setEditRating(0);
+    setEditContent('');
+  };
+
+  const handleSubmitEdit = async () => {
+    if (!editingId || editRating === 0) {return;}
+
+    setSubmitting(true);
     try {
-      const review = reviews.find(r => r.id === reviewId);
-      await apiClient.patch(`/reviews/${reviewId}/feature`, {
-        featured: !review?.is_featured
+      await reviewApiService.updateReview(editingId, {
+        rating: editRating,
+        content: editContent.trim(),
       });
 
-      setReviews(prev =>
-        prev.map(review =>
-          review.id === reviewId
-            ? { ...review, is_featured: !review.is_featured }
-            : review
+      setWrittenReviews(prev =>
+        prev.map(r =>
+          r.id === editingId
+            ? { ...r, rating: editRating, content: editContent.trim() }
+            : r
         )
       );
-    } catch (error) {
-      // silently handle error
-      Alert.alert('오류', '리뷰 추천 상태 변경에 실패했습니다.');
+      handleCancelEdit();
+    } catch (_error) {
+      setError('리뷰 수정에 실패했습니다');
+    } finally {
+      setSubmitting(false);
     }
   };
 
-  const getFilteredReviews = () => {
-    switch (selectedFilter) {
-      case 'featured':
-        return reviews.filter(review => review.is_featured);
-      case 'recent':
-        return [...reviews].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).slice(0, 10);
-      default:
-        return reviews;
+  const handleDeleteReview = async (reviewId: string) => {
+    if (!window.confirm('정말로 이 리뷰를 삭제하시겠습니까?\n삭제된 리뷰는 복구할 수 없습니다.')) {
+      return;
+    }
+
+    try {
+      await reviewApiService.deleteReview(reviewId);
+      setWrittenReviews(prev => prev.filter(r => r.id !== reviewId));
+    } catch (_error) {
+      setError('리뷰 삭제에 실패했습니다');
     }
   };
 
-  const renderStars = (rating: number) => {
-    const stars = [];
-    for (let i = 1; i <= 5; i++) {
-      stars.push(
-        <Icon
-          key={i}
-          name="star"
-          size={14}
-          color={i <= rating ? COLORS.primary.main : COLORS.neutral.grey200}
-        />
+  const handleStartReply = (reviewId: string) => {
+    setReplyingId(reviewId);
+    setReplyContent('');
+  };
+
+  const handleCancelReply = () => {
+    setReplyingId(null);
+    setReplyContent('');
+  };
+
+  const handleSubmitReply = async () => {
+    if (!replyingId || !replyContent.trim()) {return;}
+
+    setSubmitting(true);
+    try {
+      await reviewApiService.replyToReview(replyingId, replyContent.trim());
+
+      setReceivedReviews(prev =>
+        prev.map(r =>
+          r.id === replyingId
+            ? { ...r, reply: replyContent.trim(), can_reply: false }
+            : r
+        )
       );
+      handleCancelReply();
+    } catch (_error) {
+      setError('답변 등록에 실패했습니다');
+    } finally {
+      setSubmitting(false);
     }
-    return <View style={styles.starsContainer}>{stars}</View>;
   };
 
-  const renderReviewItem = (review: ManageableReview) => (
-    <div
-      key={review.id}
-      onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = '#FAFAF8'; }}
-      onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent'; }}
-      onMouseDown={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = COLORS.neutral.grey100; }}
-      onMouseUp={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = '#FAFAF8'; }}
-      style={{ cursor: 'pointer', transition: 'background-color 150ms ease' }}
-    >
-      <TouchableOpacity
-        style={styles.reviewCard}
-        onPress={() => navigate(`/review/${review.id}`)}
-        activeOpacity={0.7}
-      >
-      {/* 상단: 모임 제목 + 별점 */}
-      <View style={styles.reviewHeader}>
-        <View style={styles.reviewTitleRow}>
-          <View style={[styles.avatarCircle, review.is_featured && styles.featuredAvatar]}>
-            <Icon
-              name={review.is_featured ? 'star' : 'edit'}
-              size={16}
-              color={review.is_featured ? COLORS.primary.main : COLORS.primary.main}
-            />
-          </View>
-          <View style={styles.titleWrap}>
-            <Text style={styles.reviewTitle} numberOfLines={1}>{review.meetup_title || '약속'}</Text>
-            <View style={styles.ratingContainer}>
-              {renderStars(review.rating ?? 0)}
-              <Text style={styles.ratingText}>{review.rating ?? 0}.0</Text>
-            </View>
-          </View>
-        </View>
-
-        {/* 액션 버튼 */}
-        <View style={styles.actionContainer}>
-          <TouchableOpacity
-            style={[styles.actionButton, review.is_featured && styles.featuredButton]}
-            onPress={(e) => {
-              e.stopPropagation();
-              handleToggleFeatured(review.id);
+  const renderStars = (rating: number, size: number = 14, interactive?: boolean, onSelect?: (star: number) => void) => {
+    const numRating = Number(rating) || 0;
+    return (
+      <View style={styles.starsContainer}>
+        {[1, 2, 3, 4, 5].map(i => (
+          <div
+            key={i}
+            onClick={() => interactive && onSelect?.(i)}
+            style={{
+              cursor: interactive ? 'pointer' : 'default',
+              padding: interactive ? 2 : 0,
             }}
           >
             <Icon
               name="star"
-              size={14}
-              color={review.is_featured ? COLORS.primary.main : COLORS.text.accent}
+              size={size}
+              color={i <= numRating ? COLORS.primary.main : COLORS.neutral.grey200}
             />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={(e) => {
-              e.stopPropagation();
-              navigate(`/review/${review.id}/edit`);
-            }}
-          >
-            <Icon name="edit" size={14} color={COLORS.text.accent} />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={(e) => {
-              e.stopPropagation();
-              handleDeleteReview(review.id);
-            }}
-          >
-            <Icon name="trash-2" size={14} color={COLORS.functional.error} />
-          </TouchableOpacity>
-        </View>
+          </div>
+        ))}
       </View>
+    );
+  };
 
-      {/* 리뷰 내용 */}
-      <Text style={styles.reviewContent} numberOfLines={2}>
-        {review.content}
-      </Text>
+  const renderWrittenReviewItem = (review: WrittenReview) => {
+    const isEditing = editingId === review.id;
 
-      {/* 하단: 메타 정보 */}
-      <View style={styles.reviewFooter}>
-        <Text style={styles.metaText}>
-          {new Date(review.created_at).toLocaleDateString('ko-KR')}
-        </Text>
-        <View style={styles.metaDivider} />
-        <View style={styles.metaItem}>
-          <Icon name="heart" size={12} color={COLORS.text.accent} />
-          <Text style={styles.metaText}>{review.like_count ?? 0}</Text>
+    return (
+      <div
+        key={review.id}
+        onMouseEnter={(e) => { if (!isEditing) {(e.currentTarget as HTMLElement).style.backgroundColor = '#FAFAF8';} }}
+        onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent'; }}
+        style={{ transition: 'background-color 150ms ease' }}
+      >
+        <View style={styles.reviewCard}>
+          <View style={styles.reviewHeader}>
+            <View style={styles.reviewTitleRow}>
+              <View style={styles.avatarCircle}>
+                <Icon name="edit" size={16} color={COLORS.primary.main} />
+              </View>
+              <View style={styles.titleWrap}>
+                <Text style={styles.reviewTitle} numberOfLines={1}>{review.meetup_title || '약속'}</Text>
+                {isEditing ? (
+                  <View style={styles.editStarsRow}>
+                    {renderStars(editRating, 20, true, setEditRating)}
+                  </View>
+                ) : (
+                  <View style={styles.ratingContainer}>
+                    {renderStars(review.rating ?? 0)}
+                    <Text style={styles.ratingText}>{review.rating ?? 0}.0</Text>
+                  </View>
+                )}
+              </View>
+            </View>
+
+            {!isEditing && (
+              <View style={styles.actionContainer}>
+                <div
+                  onClick={() => handleStartEdit(review)}
+                  style={{ cursor: 'pointer', padding: 8, borderRadius: 6, backgroundColor: COLORS.neutral.light }}
+                >
+                  <Icon name="edit" size={14} color={COLORS.text.accent} />
+                </div>
+                <div
+                  onClick={() => handleDeleteReview(review.id)}
+                  style={{ cursor: 'pointer', padding: 8, borderRadius: 6, backgroundColor: COLORS.neutral.light }}
+                >
+                  <Icon name="trash-2" size={14} color={COLORS.functional.error} />
+                </div>
+              </View>
+            )}
+          </View>
+
+          {isEditing ? (
+            <View style={styles.editForm}>
+              <TextInput
+                style={styles.editTextInput}
+                value={editContent}
+                onChangeText={setEditContent}
+                placeholder="후기를 수정해주세요"
+                placeholderTextColor={COLORS.text.tertiary}
+                multiline
+                numberOfLines={4}
+                maxLength={500}
+              />
+              <Text style={styles.charCounter}>{editContent.length}/500</Text>
+              <View style={styles.editActions}>
+                <div
+                  onClick={handleCancelEdit}
+                  style={{
+                    cursor: 'pointer', padding: '8px 16px', borderRadius: 8,
+                    border: `1px solid ${COLORS.neutral.grey200}`, display: 'inline-flex',
+                    alignItems: 'center', justifyContent: 'center',
+                  }}
+                >
+                  <Text style={styles.cancelText}>취소</Text>
+                </div>
+                <div
+                  onClick={handleSubmitEdit}
+                  style={{
+                    cursor: submitting || editRating === 0 ? 'not-allowed' : 'pointer',
+                    padding: '8px 16px', borderRadius: 8,
+                    backgroundColor: editRating === 0 ? COLORS.neutral.grey200 : COLORS.primary.main,
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                    opacity: submitting || editRating === 0 ? 0.5 : 1,
+                  }}
+                >
+                  {submitting ? (
+                    <ActivityIndicator size="small" color={COLORS.neutral.white} />
+                  ) : (
+                    <Text style={styles.submitText}>수정 완료</Text>
+                  )}
+                </div>
+              </View>
+            </View>
+          ) : (
+            <Text style={styles.reviewContent} numberOfLines={2}>
+              {review.content}
+            </Text>
+          )}
+
+          {!isEditing && review.tags && review.tags.length > 0 && (
+            <View style={styles.tagsRow}>
+              {review.tags.map((tag, idx) => (
+                <View key={idx} style={styles.tagChip}>
+                  <Text style={styles.tagChipText}>{String(tag).replace(/[\[\]"]/g, '').trim()}</Text>
+                </View>
+              ))}
+            </View>
+          )}
+
+          {!isEditing && (
+            <View style={styles.reviewFooter}>
+              <Text style={styles.metaText}>
+                {new Date(review.created_at).toLocaleDateString('ko-KR')}
+              </Text>
+              {review.meetup_location && (
+                <>
+                  <View style={styles.metaDivider} />
+                  <Text style={styles.metaText}>{review.meetup_location}</Text>
+                </>
+              )}
+            </View>
+          )}
         </View>
-        <View style={styles.metaDivider} />
-        <View style={styles.metaItem}>
-          <Icon name="message-circle" size={12} color={COLORS.text.accent} />
-          <Text style={styles.metaText}>{review.reply_count ?? 0}</Text>
-        </View>
-      </View>
-    </TouchableOpacity>
-    </div>
-  );
+      </div>
+    );
+  };
 
-  const filteredReviews = getFilteredReviews();
+  const renderReceivedReviewItem = (review: ReceivedReview) => {
+    const isReplying = replyingId === review.id;
+
+    return (
+      <div
+        key={review.id}
+        onMouseEnter={(e) => { if (!isReplying) {(e.currentTarget as HTMLElement).style.backgroundColor = '#FAFAF8';} }}
+        onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent'; }}
+        style={{ transition: 'background-color 150ms ease' }}
+      >
+        <View style={styles.reviewCard}>
+          <View style={styles.reviewHeader}>
+            <View style={styles.reviewTitleRow}>
+              <View style={styles.avatarCircle}>
+                <Icon name="star" size={16} color={COLORS.primary.main} />
+              </View>
+              <View style={styles.titleWrap}>
+                <Text style={styles.reviewTitle} numberOfLines={1}>{review.meetup_title || '약속'}</Text>
+                <View style={styles.ratingContainer}>
+                  <Text style={styles.reviewerLabel}>{review.reviewer_name}</Text>
+                  <View style={styles.ratingDot} />
+                  {renderStars(review.rating ?? 0)}
+                  <Text style={styles.ratingText}>{review.rating ?? 0}.0</Text>
+                </View>
+              </View>
+            </View>
+          </View>
+
+          <Text style={styles.reviewContent} numberOfLines={3}>
+            {review.comment}
+          </Text>
+
+          {review.tags && review.tags.length > 0 && (
+            <View style={styles.tagsRow}>
+              {review.tags.map((tag, idx) => (
+                <View key={idx} style={styles.tagChip}>
+                  <Text style={styles.tagChipText}>{String(tag).replace(/[\[\]"]/g, '').trim()}</Text>
+                </View>
+              ))}
+            </View>
+          )}
+
+          {review.reply ? (
+            <View style={styles.replyContainer}>
+              <Icon name="corner-down-right" size={14} color={COLORS.text.tertiary} />
+              <View style={styles.replyBody}>
+                <Text style={styles.replyLabel}>내 답변</Text>
+                <Text style={styles.replyText}>{review.reply}</Text>
+              </View>
+            </View>
+          ) : isReplying ? (
+            <View style={styles.replyForm}>
+              <TextInput
+                style={styles.replyTextInput}
+                value={replyContent}
+                onChangeText={setReplyContent}
+                placeholder="리뷰에 대한 답변을 작성해주세요"
+                placeholderTextColor={COLORS.text.tertiary}
+                multiline
+                numberOfLines={3}
+                maxLength={300}
+              />
+              <Text style={styles.charCounter}>{replyContent.length}/300</Text>
+              <View style={styles.editActions}>
+                <div
+                  onClick={handleCancelReply}
+                  style={{
+                    cursor: 'pointer', padding: '8px 16px', borderRadius: 8,
+                    border: `1px solid ${COLORS.neutral.grey200}`, display: 'inline-flex',
+                    alignItems: 'center', justifyContent: 'center',
+                  }}
+                >
+                  <Text style={styles.cancelText}>취소</Text>
+                </div>
+                <div
+                  onClick={handleSubmitReply}
+                  style={{
+                    cursor: submitting || !replyContent.trim() ? 'not-allowed' : 'pointer',
+                    padding: '8px 16px', borderRadius: 8,
+                    backgroundColor: !replyContent.trim() ? COLORS.neutral.grey200 : COLORS.primary.main,
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                    opacity: submitting || !replyContent.trim() ? 0.5 : 1,
+                  }}
+                >
+                  {submitting ? (
+                    <ActivityIndicator size="small" color={COLORS.neutral.white} />
+                  ) : (
+                    <Text style={styles.submitText}>답변 등록</Text>
+                  )}
+                </div>
+              </View>
+            </View>
+          ) : review.can_reply ? (
+            <div
+              onClick={() => handleStartReply(review.id)}
+              style={{
+                cursor: 'pointer', display: 'flex', flexDirection: 'row',
+                alignItems: 'center', justifyContent: 'center',
+                border: `1px solid ${COLORS.primary.accent}`,
+                borderRadius: 8, padding: '10px 0', marginTop: 12, gap: 6,
+                transition: 'background-color 150ms ease',
+              }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = 'rgba(212,136,44,0.04)'; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent'; }}
+            >
+              <Icon name="message-circle" size={16} color={COLORS.primary.accent} />
+              <Text style={styles.replyButtonText}>답변하기</Text>
+            </div>
+          ) : null}
+
+          <View style={styles.reviewFooter}>
+            <Text style={styles.metaText}>
+              {new Date(review.created_at).toLocaleDateString('ko-KR')}
+            </Text>
+          </View>
+        </View>
+      </div>
+    );
+  };
+
+  const currentReviews = selectedFilter === 'written' ? writtenReviews : receivedReviews;
 
   if (loading) {
     return (
@@ -236,7 +435,6 @@ const ReviewManagementScreen: React.FC = () => {
 
   return (
     <FadeIn style={styles.container}>
-      {/* 헤더 */}
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
@@ -245,56 +443,68 @@ const ReviewManagementScreen: React.FC = () => {
           <Icon name="arrow-left" size={24} color={COLORS.text.primary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>리뷰 관리</Text>
-        <TouchableOpacity
-          style={styles.addButton}
-          onPress={() => navigate('/write-review')}
-        >
-          <Icon name="plus" size={20} color={COLORS.primary.main} />
-        </TouchableOpacity>
+        <View style={styles.headerRight} />
       </View>
 
-      {/* 필터 탭 */}
+      {/* Filter tabs */}
       <View style={styles.filterContainer}>
-        <TouchableOpacity
-          style={[styles.filterButton, selectedFilter === 'all' && styles.activeFilterButton]}
-          onPress={() => setSelectedFilter('all')}
+        <div
+          onClick={() => setSelectedFilter('written')}
+          style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: '14px 24px', cursor: 'pointer', minHeight: 48,
+            borderBottom: selectedFilter === 'written' ? `3px solid ${COLORS.primary.main}` : '3px solid transparent',
+            transition: 'border-color 200ms ease',
+          }}
         >
-          <Text style={[styles.filterText, selectedFilter === 'all' && styles.activeFilterText]}>
-            전체 ({reviews.length})
+          <Text style={[styles.filterText, selectedFilter === 'written' && styles.activeFilterText]}>
+            작성한 리뷰 ({writtenReviews.length})
           </Text>
-        </TouchableOpacity>
+        </div>
 
-        <TouchableOpacity
-          style={[styles.filterButton, selectedFilter === 'featured' && styles.activeFilterButton]}
-          onPress={() => setSelectedFilter('featured')}
+        <div
+          onClick={() => setSelectedFilter('received')}
+          style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: '14px 24px', cursor: 'pointer', minHeight: 48,
+            borderBottom: selectedFilter === 'received' ? `3px solid ${COLORS.primary.main}` : '3px solid transparent',
+            transition: 'border-color 200ms ease',
+          }}
         >
-          <Text style={[styles.filterText, selectedFilter === 'featured' && styles.activeFilterText]}>
-            추천 ({reviews.filter(r => r.is_featured).length})
+          <Text style={[styles.filterText, selectedFilter === 'received' && styles.activeFilterText]}>
+            받은 리뷰 ({receivedReviews.length})
           </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.filterButton, selectedFilter === 'recent' && styles.activeFilterButton]}
-          onPress={() => setSelectedFilter('recent')}
-        >
-          <Text style={[styles.filterText, selectedFilter === 'recent' && styles.activeFilterText]}>
-            최근 작성
-          </Text>
-        </TouchableOpacity>
+        </div>
       </View>
 
       <ScrollView style={styles.content} contentContainerStyle={styles.contentInner}>
-        {filteredReviews.length === 0 ? (
+        {error && (
+          <View style={styles.errorBanner}>
+            <Icon name="alert-circle" size={16} color={COLORS.functional.error} />
+            <Text style={styles.errorText}>{error}</Text>
+            <div onClick={() => setError(null)} style={{ cursor: 'pointer', padding: 4 }}>
+              <Icon name="x" size={16} color={COLORS.text.secondary} />
+            </div>
+          </View>
+        )}
+
+        {currentReviews.length === 0 ? (
           <EmptyState
             icon="star"
-            title={selectedFilter === 'featured' ? '추천 리뷰가 없습니다' : '작성한 리뷰가 없습니다'}
-            description="참여한 약속에 대한 리뷰를 작성해보세요!"
-            actionLabel="내 약속 보기"
-            onAction={() => navigate('/my-meetups')}
+            title={selectedFilter === 'written' ? '작성한 리뷰가 없습니다' : '받은 리뷰가 없습니다'}
+            description={
+              selectedFilter === 'written'
+                ? '참여한 약속에 대한 리뷰를 작성해보세요!'
+                : '약속을 호스팅하면 리뷰를 받을 수 있어요'
+            }
+            actionLabel={selectedFilter === 'written' ? '내 약속 보기' : undefined}
+            onAction={selectedFilter === 'written' ? () => navigate('/my-meetups') : undefined}
           />
         ) : (
           <View style={styles.reviewsList}>
-            {filteredReviews.map(renderReviewItem)}
+            {selectedFilter === 'written'
+              ? writtenReviews.map(renderWrittenReviewItem)
+              : receivedReviews.map(renderReceivedReviewItem)}
           </View>
         )}
       </ScrollView>
@@ -320,23 +530,12 @@ const styles = StyleSheet.create({
     minHeight: 44,
     alignItems: 'center',
     justifyContent: 'center',
-    cursor: 'pointer',
-    transition: 'all 200ms ease',
   },
   headerTitle: {
     ...HEADER_STYLE.subTitle,
   },
   headerRight: {
-    width: 32,
-  },
-  addButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 8,
-    backgroundColor: 'rgba(212,136,44,0.08)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    cursor: 'pointer',
+    width: 44,
   },
   filterContainer: {
     flexDirection: 'row',
@@ -344,20 +543,6 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(212,136,44,0.08)',
     paddingHorizontal: 4,
-  },
-  filterButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 24,
-    paddingVertical: 14,
-    minHeight: 48,
-    borderBottomWidth: 3,
-    borderBottomColor: 'transparent',
-    cursor: 'pointer',
-  } as any,
-  activeFilterButton: {
-    borderBottomColor: COLORS.primary.main,
   },
   filterText: {
     fontSize: 15,
@@ -382,8 +567,24 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginHorizontal: 16,
   },
+  errorBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(220,38,38,0.08)',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 16,
+    gap: 8,
+  },
+  errorText: {
+    flex: 1,
+    fontSize: 14,
+    color: COLORS.functional.error,
+  },
   reviewsList: {
     backgroundColor: COLORS.neutral.white,
+    borderRadius: 8,
+    overflow: 'hidden',
   },
   reviewCard: {
     backgroundColor: 'transparent',
@@ -412,9 +613,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginRight: 12,
   },
-  featuredAvatar: {
-    backgroundColor: 'rgba(212,136,44,0.12)',
-  },
   titleWrap: {
     flex: 1,
   },
@@ -437,6 +635,25 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: COLORS.text.accent,
     fontWeight: '500',
+    marginLeft: 4,
+  },
+  reviewerLabel: {
+    fontSize: 13,
+    color: COLORS.text.secondary,
+    fontWeight: '500',
+    marginRight: 6,
+  },
+  ratingDot: {
+    width: 3,
+    height: 3,
+    borderRadius: 1.5,
+    backgroundColor: COLORS.neutral.grey300,
+    marginRight: 6,
+  },
+  actionContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
   reviewContent: {
     fontSize: 15,
@@ -444,17 +661,28 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     marginBottom: 12,
   },
+  tagsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginBottom: 12,
+  },
+  tagChip: {
+    backgroundColor: COLORS.neutral.grey100,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  tagChipText: {
+    fontSize: 12,
+    color: COLORS.text.secondary,
+  },
   reviewFooter: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingTop: 12,
     borderTopWidth: 1,
     borderTopColor: 'rgba(17,17,17,0.04)',
-  },
-  metaItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
   },
   metaDivider: {
     width: 1,
@@ -466,19 +694,87 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: COLORS.text.accent,
   },
-  actionContainer: {
+  // Edit form
+  editForm: {
+    marginBottom: 12,
+  },
+  editStarsRow: {
+    marginBottom: 8,
+  },
+  editTextInput: {
+    borderWidth: 1,
+    borderColor: COLORS.neutral.grey200,
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 14,
+    color: COLORS.text.primary,
+    minHeight: 80,
+    backgroundColor: COLORS.neutral.grey100,
+  },
+  charCounter: {
+    fontSize: 12,
+    color: COLORS.text.tertiary,
+    textAlign: 'right',
+    marginTop: 4,
+    marginBottom: 8,
+  },
+  editActions: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
+    justifyContent: 'flex-end',
+    gap: 8,
   },
-  actionButton: {
-    padding: 8,
-    borderRadius: 6,
-    backgroundColor: COLORS.neutral.light,
-    cursor: 'pointer',
+  cancelText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: COLORS.text.secondary,
   },
-  featuredButton: {
-    backgroundColor: 'rgba(212,136,44,0.10)',
+  submitText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.neutral.white,
+  },
+  // Reply styles
+  replyContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: COLORS.neutral.background,
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 12,
+    gap: 8,
+  },
+  replyBody: {
+    flex: 1,
+  },
+  replyLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: COLORS.text.tertiary,
+    marginBottom: 4,
+  },
+  replyText: {
+    fontSize: 14,
+    color: COLORS.text.secondary,
+    lineHeight: 20,
+  },
+  replyButtonText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: COLORS.primary.accent,
+  },
+  replyForm: {
+    marginTop: 12,
+    marginBottom: 12,
+  },
+  replyTextInput: {
+    borderWidth: 1,
+    borderColor: COLORS.neutral.grey200,
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 14,
+    color: COLORS.text.primary,
+    minHeight: 60,
+    backgroundColor: COLORS.neutral.grey100,
   },
 });
 

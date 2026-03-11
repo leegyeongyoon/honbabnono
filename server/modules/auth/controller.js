@@ -127,9 +127,9 @@ exports.kakaoCallback = async (req, res) => {
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      sameSite: 'Strict',
       maxAge: 7 * 24 * 60 * 60 * 1000,
-      path: '/'
+      path: '/api/auth'
     });
 
     // 6. 프론트엔드로 액세스 토큰과 함께 리다이렉트 (리프레시 토큰은 쿠키로 전달)
@@ -334,8 +334,8 @@ exports.logout = async (req, res) => {
     res.clearCookie('refreshToken', {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      path: '/'
+      sameSite: 'Strict',
+      path: '/api/auth'
     });
 
     res.json({
@@ -698,9 +698,9 @@ exports.refreshToken = async (req, res) => {
     res.cookie('refreshToken', newRefreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      sameSite: 'Strict',
       maxAge: 7 * 24 * 60 * 60 * 1000,
-      path: '/'
+      path: '/api/auth'
     });
 
     logger.info('토큰 갱신 성공:', { userId: user.id, email: user.email });

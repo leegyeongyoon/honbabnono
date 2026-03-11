@@ -6,6 +6,7 @@ const logger = require('../../../config/logger');
 const { calculateDistance } = require('../../../utils/helpers');
 const { validateMeetupExists, validateHostPermission, validateParticipant } = require('../helpers/validation.helper');
 const { updateBabalScore } = require('../../../utils/babalScore');
+const { checkBadgeEligibility } = require('../../badges/controller');
 
 const MAX_CHECKIN_DISTANCE = 200; // 체크인 가능 최대 거리 (미터) - 200m 통일
 
@@ -76,6 +77,11 @@ exports.gpsCheckin = async (req, res) => {
     // 밥알지수 출석 보너스
     await updateBabalScore(userId, 'MEETUP_ATTENDED', { meetupId }).catch(
       (err) => logger.error('밥알지수 출석 보너스 오류:', err)
+    );
+
+    // 뱃지 획득 조건 체크 (비동기, 실패해도 체크인 성공에 영향 없음)
+    checkBadgeEligibility(userId).catch(
+      (err) => logger.error('GPS 체크인 뱃지 체크 오류:', err)
     );
 
     res.json({
@@ -225,6 +231,11 @@ exports.qrCheckin = async (req, res) => {
       (err) => logger.error('밥알지수 QR 출석 보너스 오류:', err)
     );
 
+    // 뱃지 획득 조건 체크 (비동기, 실패해도 체크인 성공에 영향 없음)
+    checkBadgeEligibility(userId).catch(
+      (err) => logger.error('QR 체크인 뱃지 체크 오류:', err)
+    );
+
     res.json({
       success: true,
       message: 'QR 코드 체크인이 완료되었습니다!',
@@ -270,6 +281,11 @@ exports.hostConfirmAttendance = async (req, res) => {
     // 밥알지수 출석 보너스 (호스트 확인)
     await updateBabalScore(participantId, 'MEETUP_ATTENDED', { meetupId }).catch(
       (err) => logger.error('밥알지수 호스트확인 출석 보너스 오류:', err)
+    );
+
+    // 뱃지 획득 조건 체크 (비동기, 실패해도 출석 확인에 영향 없음)
+    checkBadgeEligibility(participantId).catch(
+      (err) => logger.error('호스트확인 뱃지 체크 오류:', err)
     );
 
     res.json({

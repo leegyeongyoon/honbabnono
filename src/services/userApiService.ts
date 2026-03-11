@@ -164,9 +164,15 @@ const userApiService = {
   },
 
   // 프로필 업데이트
-  updateProfile: async (profileData: { name?: string; profileImage?: string }): Promise<any> => {
+  updateProfile: async (profileData: {
+    name?: string;
+    profileImage?: string;
+    gender?: 'male' | 'female' | 'other';
+    birthDate?: string;
+    phone?: string;
+  }): Promise<any> => {
     try {
-      const response = await apiClient.put('/users/profile', profileData);
+      const response = await apiClient.put('/user/profile', profileData);
 
       return response.data;
     } catch (error) {
@@ -184,11 +190,11 @@ const userApiService = {
     }
   },
 
-  // 사용자 뱃지 조회
+  // 사용자 뱃지 조회 (진행률 포함)
   getUserBadges: async (): Promise<any> => {
     try {
-      const response = await apiClient.get('/user/badges');
-      return response.data.badges;
+      const response = await apiClient.get('/badges/progress');
+      return response.data.progress || [];
     } catch (error) {
       throw error;
     }
@@ -386,10 +392,10 @@ const userApiService = {
 
   // ==================== 리뷰 관련 ====================
 
-  // 내 리뷰 목록 조회
+  // 내 리뷰 목록 조회 (작성한 리뷰)
   getMyReviews: async (page: number = 1, limit: number = 20): Promise<any> => {
     try {
-      const response = await apiClient.get('/users/my-reviews', { params: { page, limit } });
+      const response = await apiClient.get('/user/reviews/manage', { params: { page, limit } });
       return response.data;
     } catch (error) {
       throw error;
@@ -399,7 +405,7 @@ const userApiService = {
   // 리뷰 수정
   updateReview: async (reviewId: string, data: { rating?: number; content?: string }): Promise<any> => {
     try {
-      const response = await apiClient.put(`/users/my-reviews/${reviewId}`, data);
+      const response = await apiClient.put(`/reviews/${reviewId}`, data);
       return response.data;
     } catch (error) {
       throw error;
@@ -409,7 +415,7 @@ const userApiService = {
   // 리뷰 삭제
   deleteReview: async (reviewId: string): Promise<any> => {
     try {
-      const response = await apiClient.delete(`/users/my-reviews/${reviewId}`);
+      const response = await apiClient.delete(`/reviews/${reviewId}`);
       return response.data;
     } catch (error) {
       throw error;

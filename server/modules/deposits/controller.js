@@ -212,6 +212,31 @@ exports.verifyPayment = async (req, res) => {
 // 보안: imp_uid로 PortOne API 직접 조회하여 위변조 방지 + 멱등성 보장
 exports.handleWebhook = async (req, res) => {
   try {
+    // PortOne 웹훅 서명 검증 (PORTONE_WEBHOOK_SECRET 설정 시 활성화)
+    // PortOne은 웹훅 요청 시 X-Portone-Signature 헤더에 HMAC-SHA256 서명을 포함합니다.
+    // 프로덕션 환경에서는 반드시 PORTONE_WEBHOOK_SECRET을 설정하여 서명 검증을 활성화하세요.
+    if (process.env.PORTONE_WEBHOOK_SECRET) {
+      const crypto = require('crypto');
+      const signature = req.headers['x-portone-signature'];
+      const body = JSON.stringify(req.body);
+      const expectedSignature = crypto
+        .createHmac('sha256', process.env.PORTONE_WEBHOOK_SECRET)
+        .update(body)
+        .digest('hex');
+
+      if (!signature || signature !== expectedSignature) {
+        logger.warn('웹훅: 서명 검증 실패', {
+          hasSignature: !!signature,
+          ip: req.ip
+        });
+        return res.status(401).json({
+          success: false,
+          error: '웹훅 서명 검증에 실패했습니다.'
+        });
+      }
+      logger.info('웹훅: 서명 검증 성공');
+    }
+
     const { imp_uid, merchant_uid, status } = req.body;
 
     logger.info('PortOne 웹훅 수신:', { imp_uid, merchant_uid, status });

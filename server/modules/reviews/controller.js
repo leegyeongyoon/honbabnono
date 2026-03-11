@@ -1,6 +1,7 @@
 const pool = require('../../config/database');
 const logger = require('../../config/logger');
 const { updateBabalScore, getReviewScoreEvent } = require('../../utils/babalScore');
+const { checkBadgeEligibility } = require('../badges/controller');
 
 // 모임 리뷰 목록 조회
 exports.getMeetupReviews = async (req, res) => {
@@ -125,6 +126,11 @@ exports.createReview = async (req, res) => {
       });
     }
 
+    // 뱃지 획득 조건 체크 (비동기, 실패해도 리뷰 작성에 영향 없음)
+    checkBadgeEligibility(userId).catch(
+      (err) => logger.error('리뷰 작성 뱃지 체크 오류:', err)
+    );
+
     res.status(201).json({
       success: true,
       message: '리뷰가 작성되었습니다.',
@@ -226,6 +232,11 @@ exports.rateParticipant = async (req, res) => {
     const scoreEvent = getReviewScoreEvent(rating);
     await updateBabalScore(targetUserId, scoreEvent, { meetupId }).catch(
       (err) => logger.error('참가자 평가 밥알지수 오류:', err)
+    );
+
+    // 뱃지 획득 조건 체크 (비동기, 실패해도 평가 완료에 영향 없음)
+    checkBadgeEligibility(userId).catch(
+      (err) => logger.error('참가자 평가 뱃지 체크 오류:', err)
     );
 
     res.json({

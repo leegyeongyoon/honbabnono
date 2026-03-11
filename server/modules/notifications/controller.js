@@ -6,16 +6,39 @@ const pushService = require('./pushService');
 exports.getNotifications = async (req, res) => {
   try {
     const userId = req.user.userId;
-    const { page = 1, limit = 20, type } = req.query;
+    const { page = 1, limit = 20, type, unreadOnly } = req.query;
     const offset = (page - 1) * limit;
 
     let whereClause = 'WHERE user_id = $1';
     const params = [userId, parseInt(limit), offset];
+    let paramIndex = 4;
 
     if (type) {
-      whereClause += ' AND type = $4';
+      whereClause += ` AND type = $${paramIndex}`;
       params.push(type);
+      paramIndex++;
     }
+
+    if (unreadOnly === 'true') {
+      whereClause += ' AND is_read = false';
+    }
+
+    // Count total matching notifications for pagination
+    const countParams = [userId];
+    let countWhere = 'WHERE user_id = $1';
+    if (type) {
+      countWhere += ' AND type = $2';
+      countParams.push(type);
+    }
+    if (unreadOnly === 'true') {
+      countWhere += ' AND is_read = false';
+    }
+
+    const countResult = await pool.query(
+      `SELECT COUNT(*) as count FROM notifications ${countWhere}`,
+      countParams
+    );
+    const total = parseInt(countResult.rows[0].count);
 
     const result = await pool.query(`
       SELECT *
@@ -25,13 +48,16 @@ exports.getNotifications = async (req, res) => {
       LIMIT $2 OFFSET $3
     `, params);
 
+    const parsedLimit = parseInt(limit);
+
     res.json({
       success: true,
       notifications: result.rows,
       pagination: {
         page: parseInt(page),
-        limit: parseInt(limit),
-        total: result.rowCount
+        limit: parsedLimit,
+        total,
+        totalPages: Math.ceil(total / parsedLimit)
       }
     });
 
