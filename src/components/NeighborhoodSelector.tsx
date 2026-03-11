@@ -7,7 +7,8 @@ import {
   Modal,
   Platform,
 } from 'react-native';
-import { COLORS, SHADOWS } from '../styles/colors';
+import { COLORS, CSS_SHADOWS, SHADOWS } from '../styles/colors';
+import { BORDER_RADIUS, SPACING } from '../styles/spacing';
 import { Icon } from './Icon';
 import KakaoMapModal from './KakaoMapModal';
 
@@ -16,9 +17,8 @@ interface NeighborhoodSelectorProps {
   onClose: () => void;
   onSelect: (district: string, neighborhood: string) => void;
   currentNeighborhood?: { district: string; neighborhood: string } | null;
-  onOpenMapModal?: () => void;  // 부모 컴포넌트에서 지도 모달을 열기 위한 콜백
+  onOpenMapModal?: () => void;
 }
-
 
 const NeighborhoodSelector: React.FC<NeighborhoodSelectorProps> = ({
   visible,
@@ -27,29 +27,24 @@ const NeighborhoodSelector: React.FC<NeighborhoodSelectorProps> = ({
   currentNeighborhood,
   onOpenMapModal,
 }) => {
-  // 웹용 로컬 지도 모달 상태 (웹에서만 사용)
   const [showWebMapModal, setShowWebMapModal] = useState(false);
 
-  // 지도 모달 열기
   const handleOpenMap = () => {
-    console.log('🗺️ [NeighborhoodSelector] 지도 모달 열기 버튼 클릭됨');
-    console.log('🗺️ [NeighborhoodSelector] Platform.OS:', Platform.OS);
-
     if (Platform.OS === 'web') {
-      // 웹에서는 내부 모달 사용
       setShowWebMapModal(true);
-    } else {
-      // iOS/Android에서는 부모 컴포넌트에서 NativeMapModal 열도록 콜백 호출
-      if (onOpenMapModal) {
-        console.log('🗺️ [NeighborhoodSelector] 부모 컴포넌트에 지도 모달 열기 요청');
-        onOpenMapModal();
-      }
+    } else if (onOpenMapModal) {
+      onOpenMapModal();
     }
   };
 
-  // 웹용 카카오 지도에서 위치 선택 처리
-  const handleWebMapLocationSelect = (district: string, neighborhood: string, lat: number, lng: number, address: string, radius?: number) => {
-    console.log('🗺️ 웹 카카오 지도에서 위치 선택됨:', { district, neighborhood, lat, lng, address, radius });
+  const handleWebMapLocationSelect = (
+    district: string,
+    neighborhood: string,
+    _lat: number,
+    _lng: number,
+    _address: string,
+    _radius?: number,
+  ) => {
     setShowWebMapModal(false);
     setTimeout(() => {
       onSelect(district, neighborhood);
@@ -57,69 +52,75 @@ const NeighborhoodSelector: React.FC<NeighborhoodSelectorProps> = ({
     }, 100);
   };
 
-
-  const renderCurrentLocationTab = () => (
-    <View style={styles.tabContent}>
-      {/* 카카오 지도로 위치 선택 */}
-      <TouchableOpacity
-        style={styles.locationButton}
-        onPress={handleOpenMap}
-      >
-        <Icon name="map" size={24} color={COLORS.primary.main} />
-        <View style={styles.locationButtonText}>
-          <Text style={styles.locationButtonTitle}>
-            🗺️지도에서 위치 선택
-          </Text>
-          <Text style={styles.locationButtonSubtitle}>
-            GPS로 현재 위치를 자동 표시하고 지도에서 세밀하게 조정할 수 있어요
-          </Text>
-        </View>
-        <Icon name="chevron-right" size={20} color={COLORS.text.secondary} />
-      </TouchableOpacity>
-
-      {currentNeighborhood && (
-        <View style={styles.currentNeighborhoodContainer}>
-          <Text style={styles.currentNeighborhoodTitle}>현재 설정된 동네</Text>
-          <Text style={styles.currentNeighborhoodText}>
-            {currentNeighborhood.district} {currentNeighborhood.neighborhood}
-          </Text>
-        </View>
-      )}
-    </View>
-  );
-
-
   return (
     <>
-    <Modal
-      visible={visible}
-      animationType="slide"
-      presentationStyle="pageSheet"
-      onRequestClose={onClose}
-    >
-      <View style={styles.container}>
-        {/* 헤더 */}
-        <View style={styles.header}>
-          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-            <Icon name="x" size={24} color={COLORS.text.primary} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>동네 설정</Text>
-          <View style={styles.headerPlaceholder} />
+      <Modal
+        visible={visible}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={onClose}
+      >
+        <View style={styles.container}>
+          {/* 헤더 */}
+          <View style={styles.header}>
+            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+              <Icon name="x" size={22} color={COLORS.text.secondary} />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>동네 설정</Text>
+            <View style={styles.headerPlaceholder} />
+          </View>
+
+          {/* 본문 */}
+          <View style={styles.body}>
+            {/* 현재 동네 */}
+            {currentNeighborhood && (
+              <View style={styles.currentCard}>
+                <View style={styles.currentDot} />
+                <View style={styles.currentTextWrap}>
+                  <Text style={styles.currentLabel}>현재 동네</Text>
+                  <Text style={styles.currentValue}>
+                    {currentNeighborhood.district} {currentNeighborhood.neighborhood}
+                  </Text>
+                </View>
+              </View>
+            )}
+
+            {/* 지도에서 선택 버튼 */}
+            <TouchableOpacity
+              style={styles.mapButton}
+              onPress={handleOpenMap}
+              activeOpacity={0.7}
+            >
+              <View style={styles.mapIconWrap}>
+                <Icon name="map-pin" size={20} color={COLORS.primary.main} />
+              </View>
+              <View style={styles.mapTextWrap}>
+                <Text style={styles.mapTitle}>지도에서 위치 선택</Text>
+                <Text style={styles.mapSubtitle}>
+                  GPS로 현재 위치를 찾고 지도에서 정확하게 설정해요
+                </Text>
+              </View>
+              <Icon name="chevron-right" size={18} color={COLORS.text.tertiary} />
+            </TouchableOpacity>
+
+            {/* 안내 */}
+            <View style={styles.guideWrap}>
+              <Text style={styles.guideText}>
+                동네 설정에 따라 주변 밥약속이 표시됩니다
+              </Text>
+            </View>
+          </View>
         </View>
 
-        {/* 메인 컨텐츠 */}
-        {renderCurrentLocationTab()}
-      </View>
-
-      {/* Web용 카카오 지도 모달 */}
-      {Platform.OS === 'web' && (
-        <KakaoMapModal
-          visible={showWebMapModal}
-          onClose={() => setShowWebMapModal(false)}
-          onLocationSelect={handleWebMapLocationSelect}
-        />
-      )}
-    </Modal>
+        {/* Web용 카카오 지도 모달 */}
+        {Platform.OS === 'web' && (
+          <KakaoMapModal
+            visible={showWebMapModal}
+            onClose={() => setShowWebMapModal(false)}
+            onLocationSelect={handleWebMapLocationSelect}
+          />
+        )}
+      </Modal>
     </>
   );
 };
@@ -133,259 +134,113 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    backgroundColor: 'white',
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    backgroundColor: COLORS.neutral.white,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.neutral.grey200,
+    borderBottomColor: COLORS.neutral.grey100,
   },
   closeButton: {
-    padding: 4,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: COLORS.neutral.grey50,
   },
   headerTitle: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '600',
     color: COLORS.text.primary,
+    letterSpacing: -0.2,
   },
   headerPlaceholder: {
-    width: 32,
+    width: 40,
   },
-  tabContent: {
-    flex: 1,
-    padding: 16,
+
+  // ─── 본문 ────────────────────────────────
+  body: {
+    padding: 20,
+    gap: 16,
   },
-  locationButton: {
+
+  // 현재 동네 카드
+  currentCard: {
     flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'white',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 16,
-    ...SHADOWS.small,
-  },
-  locationButtonDisabled: {
-    opacity: 0.6,
-  },
-  locationButtonText: {
-    flex: 1,
-    marginLeft: 12,
-  },
-  locationButtonTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: COLORS.text.primary,
-    marginBottom: 4,
-  },
-  locationButtonSubtitle: {
-    fontSize: 14,
-    color: COLORS.text.secondary,
-  },
-  currentNeighborhoodContainer: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 16,
-    ...SHADOWS.small,
-  },
-  currentNeighborhoodTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: COLORS.text.primary,
-    marginBottom: 12,
-  },
-  currentNeighborhoodItem: {
-    paddingVertical: 8,
-  },
-  currentNeighborhoodText: {
-    fontSize: 16,
-    color: COLORS.primary.main,
-    fontWeight: '500',
-  },
-  locationGuideContainer: {
-    backgroundColor: COLORS.secondary.light,
-    borderRadius: 8,
-    padding: 12,
-    marginVertical: 12,
-    borderLeftWidth: 4,
-    borderLeftColor: COLORS.primary.main,
-  },
-  locationGuideTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: COLORS.primary.dark,
-    marginBottom: 8,
-  },
-  locationGuideText: {
-    fontSize: 13,
-    color: COLORS.text.secondary,
-    lineHeight: 18,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: COLORS.text.primary,
-    marginBottom: 12,
-  },
-  popularList: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    maxHeight: 400,
-    ...SHADOWS.small,
-  },
-  popularItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.neutral.grey100,
-  },
-  popularItemText: {
-    fontSize: 16,
-    color: COLORS.text.primary,
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-    gap: 8,
-  },
-  searchInputContainer: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'white',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    ...SHADOWS.small,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 16,
-    color: COLORS.text.primary,
-    marginLeft: 8,
-  },
-  searchButton: {
-    backgroundColor: COLORS.primary.main,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 8,
-  },
-  searchButtonDisabled: {
-    opacity: 0.6,
-  },
-  searchButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: 'white',
-  },
-  searchResults: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    maxHeight: 400,
-    ...SHADOWS.small,
-  },
-  searchResultItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.neutral.grey100,
-  },
-  searchResultInfo: {
-    flex: 1,
-  },
-  searchResultTitle: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: COLORS.text.primary,
-    marginBottom: 4,
-  },
-  searchResultAddress: {
-    fontSize: 14,
-    color: COLORS.text.secondary,
-  },
-  quickSelectContainer: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    ...SHADOWS.small,
-  },
-  quickSelectTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: COLORS.text.primary,
-    marginBottom: 12,
-  },
-  quickSelectScroll: {
-    flexDirection: 'row',
-  },
-  quickSelectButton: {
     alignItems: 'center',
     backgroundColor: COLORS.primary.light,
-    borderRadius: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    marginRight: 8,
-    minWidth: 80,
+    borderRadius: BORDER_RADIUS.md,
+    padding: 16,
+    gap: 12,
     borderWidth: 1,
-    borderColor: COLORS.primary.main,
+    borderColor: 'rgba(212,136,44,0.12)',
   },
-  quickSelectEmoji: {
-    fontSize: 20,
-    marginBottom: 4,
+  currentDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: COLORS.primary.main,
   },
-  quickSelectText: {
+  currentTextWrap: {
+    flex: 1,
+    gap: 2,
+  },
+  currentLabel: {
     fontSize: 12,
     fontWeight: '500',
-    color: COLORS.primary.dark,
-    textAlign: 'center',
+    color: COLORS.text.tertiary,
   },
-  recommendedContainer: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    borderWidth: 2,
-    borderColor: COLORS.primary.main,
-    ...SHADOWS.medium,
-  },
-  recommendedTitle: {
+  currentValue: {
     fontSize: 16,
-    fontWeight: '700',
-    color: COLORS.primary.main,
-    marginBottom: 12,
-    textAlign: 'center',
+    fontWeight: '600',
+    color: COLORS.primary.dark,
+    letterSpacing: -0.2,
   },
-  recommendedButton: {
+
+  // 지도 버튼
+  mapButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.primary.light,
+    backgroundColor: COLORS.neutral.white,
+    borderRadius: BORDER_RADIUS.md,
+    padding: 18,
+    gap: 14,
+    ...SHADOWS.small,
+    borderWidth: 1,
+    borderColor: COLORS.neutral.grey100,
+  },
+  mapIconWrap: {
+    width: 44,
+    height: 44,
     borderRadius: 12,
-    padding: 16,
-    borderWidth: 2,
-    borderColor: COLORS.primary.main,
+    backgroundColor: COLORS.primary.light,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  recommendedEmoji: {
-    fontSize: 32,
-    marginRight: 16,
-  },
-  recommendedTextContainer: {
+  mapTextWrap: {
     flex: 1,
+    gap: 3,
   },
-  recommendedMainText: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: COLORS.primary.dark,
-    marginBottom: 4,
+  mapTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+    letterSpacing: -0.2,
   },
-  recommendedSubText: {
-    fontSize: 14,
-    color: COLORS.text.secondary,
+  mapSubtitle: {
+    fontSize: 13,
+    color: COLORS.text.tertiary,
+    lineHeight: 18,
+  },
+
+  // 안내
+  guideWrap: {
+    alignItems: 'center',
+    paddingTop: 8,
+  },
+  guideText: {
+    fontSize: 13,
+    color: COLORS.text.tertiary,
   },
 });
 

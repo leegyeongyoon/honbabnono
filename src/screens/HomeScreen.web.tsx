@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
-  Image,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
@@ -12,7 +11,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { COLORS, SHADOWS, LAYOUT, CSS_SHADOWS } from '../styles/colors';
 import { TYPOGRAPHY, FONT_WEIGHTS } from '../styles/typography';
-import { SPACING, BORDER_RADIUS, LIST_ITEM_STYLE, HEADER_STYLE } from '../styles/spacing';
+import { SPACING, BORDER_RADIUS, LIST_ITEM_STYLE } from '../styles/spacing';
 import { Icon } from '../components/Icon';
 import { NotificationBell } from '../components/NotificationBell';
 import CreateMeetupWizard from './CreateMeetupWizard.web';
@@ -197,25 +196,15 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
         borderBottom: `1px solid rgba(17,17,17,0.06)`,
       }}>
         <View style={styles.header}>
-          <View style={styles.headerLogoWrap}>
-            <Image
-              source={{ uri: require('../assets/logo/logo-v2-table-e.png') }}
-              style={styles.headerLogoImage}
-              accessibilityLabel="잇테이블 로고"
-            />
-            <Text style={styles.headerLogo}>잇테이블</Text>
-          </View>
-
           <TouchableOpacity
             style={[styles.locationButton, { cursor: 'pointer' } as any]}
             onPress={openNeighborhoodSelector}
             accessibilityLabel="동네 변경"
           >
-            <Icon name="map-pin" size={14} color={COLORS.primary.accent} />
             <Text style={styles.locationText}>
               {currentNeighborhood ? `${currentNeighborhood.neighborhood}` : '역삼동'}
             </Text>
-            <Icon name="chevron-down" size={14} color={COLORS.text.tertiary} />
+            <Icon name="chevron-down" size={16} color={COLORS.text.secondary} />
           </TouchableOpacity>
 
           <View style={styles.headerRight}>
@@ -740,52 +729,32 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.neutral.background,
   },
 
-  // ─── 헤더 — 미니멀 에디토리얼 ──────────────────────────
+  // ─── 헤더 ──────────────────────────────────────────────
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    ...HEADER_STYLE.main,
-    gap: SPACING.md,
+    justifyContent: 'space-between',
+    paddingHorizontal: SPACING.xl,
+    paddingVertical: 12,
+    backgroundColor: COLORS.neutral.white,
     // @ts-ignore
     position: 'sticky',
     top: 0,
     zIndex: 10,
-    boxShadow: CSS_SHADOWS.stickyHeader,
-  },
-  headerLogoWrap: {
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
-    gap: SPACING.sm,
-  },
-  headerLogoImage: {
-    width: 28,
-    height: 28,
-    borderRadius: 6,
-  },
-  headerLogo: {
-    ...HEADER_STYLE.title,
-    color: COLORS.primary.main,
-    lineHeight: 28,
   },
   locationButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: SPACING.sm,
+    gap: 4,
     minHeight: 44,
-    minWidth: 44,
-    paddingHorizontal: SPACING.lg,
-    paddingVertical: SPACING.sm,
-    backgroundColor: COLORS.surface.secondary,
-    borderRadius: BORDER_RADIUS.md,
-    borderWidth: 1,
-    borderColor: COLORS.neutral.grey100,
   },
   locationText: {
-    ...TYPOGRAPHY.location.primary,
-    fontWeight: FONT_WEIGHTS.semiBold as any,
+    fontSize: 18,
+    fontWeight: '700' as any,
+    color: COLORS.text.primary,
+    letterSpacing: -0.3,
   },
   headerRight: {
-    marginLeft: 'auto',
     flexDirection: 'row',
     alignItems: 'center',
     gap: SPACING.sm,
