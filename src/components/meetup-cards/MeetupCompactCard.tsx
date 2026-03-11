@@ -7,23 +7,23 @@ import {
   Image,
   Platform,
 } from 'react-native';
-import { COLORS } from '../../styles/colors';
-import { BORDER_RADIUS } from '../../styles/spacing';
+import { COLORS, CSS_SHADOWS } from '../../styles/colors';
+import { BORDER_RADIUS, SPACING } from '../../styles/spacing';
 import { processImageUrl } from '../../utils/imageUtils';
 import { formatMeetupDateTime } from '../../utils/dateUtils';
-import StatusBadge from './StatusBadge';
-import MeetupTags from './MeetupTags';
 import type { MeetupCardBaseProps } from './types';
 import { getUrgencyInfo, formatDistance } from './types';
+import { getCategoryByName } from '../../constants/categories';
 
 interface MeetupCompactCardProps extends MeetupCardBaseProps {
   distance?: number;
 }
 
+const GENDER_EXCLUDE = ['무관', '상관없음', '혼성'];
+
 const MeetupCompactCard: React.FC<MeetupCompactCardProps> = ({ meetup, onPress, distance }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [isPressed, setIsPressed] = useState(false);
-  const [imageLoaded, setImageLoaded] = useState(false);
 
   const currentP = meetup.currentParticipants ?? 0;
   const maxP = meetup.maxParticipants ?? 4;
@@ -32,8 +32,13 @@ const MeetupCompactCard: React.FC<MeetupCompactCardProps> = ({ meetup, onPress, 
     meetup.status === 'recruiting'
       ? getUrgencyInfo(meetup.date, meetup.time, currentP, maxP)
       : null;
-  const showLeftAccent = meetup.status === 'recruiting' || !!urgencyInfo;
   const distanceText = formatDistance(distance ?? meetup.distance);
+  const cat = getCategoryByName(meetup.category);
+  const catColor = cat?.color ?? COLORS.primary.main;
+
+  // 성별 표시 여부
+  const showGender =
+    meetup.genderPreference && !GENDER_EXCLUDE.includes(meetup.genderPreference);
 
   const compactContent = (
     <View style={styles.row}>
@@ -43,12 +48,11 @@ const MeetupCompactCard: React.FC<MeetupCompactCardProps> = ({ meetup, onPress, 
           <img
             src={processImageUrl(meetup.image, meetup.category)}
             loading="lazy"
-            onLoad={() => setImageLoaded(true)}
             style={{
               width: '100%',
               height: '100%',
               objectFit: 'cover',
-              borderRadius: 10,
+              borderRadius: 12,
             }}
             alt={meetup.title}
           />
@@ -56,53 +60,55 @@ const MeetupCompactCard: React.FC<MeetupCompactCardProps> = ({ meetup, onPress, 
           <Image
             source={{ uri: processImageUrl(meetup.image, meetup.category) }}
             style={styles.image}
-            onLoad={() => setImageLoaded(true)}
           />
-        )}
-        {/* StatusBadge 좌상단 */}
-        {meetup.status && (
-          <View style={styles.statusOverlay}>
-            <StatusBadge status={meetup.status} size="sm" />
-          </View>
         )}
       </View>
 
       {/* 텍스트 영역 */}
       <View style={styles.textArea}>
-        {/* 1행: 제목 */}
+        {/* 1행: 카테고리 + 성별 (인라인 태그) */}
+        <View style={styles.tagRow}>
+          <View style={[styles.categoryTag, { backgroundColor: catColor }]}>
+            <Text style={styles.categoryText}>{meetup.category}</Text>
+          </View>
+          {showGender && (
+            <View style={styles.genderTag}>
+              <Text style={styles.genderText}>{meetup.genderPreference}</Text>
+            </View>
+          )}
+          {urgencyInfo && (
+            <View style={[styles.urgencyTag, { backgroundColor: urgencyInfo.color }]}>
+              <Text style={styles.urgencyText}>{urgencyInfo.label}</Text>
+            </View>
+          )}
+        </View>
+
+        {/* 2행: 제목 */}
         <Text style={styles.title} numberOfLines={1}>
           {meetup.title}
         </Text>
 
-        {/* 2행: 호스트 */}
-        {meetup.hostName && (
-          <Text style={styles.hostName} numberOfLines={1}>
-            {meetup.hostName}
-          </Text>
-        )}
+        {/* 3행: 날짜 · 장소 */}
+        <Text style={styles.meta} numberOfLines={1}>
+          {formatMeetupDateTime(meetup.date, meetup.time)}
+          {meetup.location ? ` · ${meetup.location}` : ''}
+          {distanceText ? ` · ${distanceText}` : ''}
+        </Text>
 
-        {/* 3행: 태그 (최대 3개 sm) */}
-        <MeetupTags meetup={meetup} size="sm" maxTags={3} />
-
-        {/* 4행: 날짜 · 위치 · 참가자수 */}
-        <View style={styles.metaRow}>
-          <Text style={styles.metaText} numberOfLines={1}>
-            {formatMeetupDateTime(meetup.date, meetup.time)}
-          </Text>
-          <Text style={styles.metaDot}>·</Text>
-          <Text style={styles.metaText} numberOfLines={1}>
-            {meetup.location || '위치 미정'}
-          </Text>
-          {distanceText && (
-            <>
-              <Text style={styles.metaDot}>·</Text>
-              <Text style={styles.metaText}>{distanceText}</Text>
-            </>
+        {/* 4행: 참가자 + 가격 */}
+        <View style={styles.bottomRow}>
+          <View style={styles.participantWrap}>
+            <View style={[styles.participantDot, {
+              backgroundColor: currentP >= maxP ? COLORS.text.tertiary : COLORS.functional.success,
+            }]} />
+            <Text style={styles.participantText}>{participantText}</Text>
+          </View>
+          {meetup.priceRange && (
+            <Text style={styles.priceText}>{meetup.priceRange}</Text>
           )}
-          <Text style={styles.metaDot}>·</Text>
-          <Text style={[styles.metaText, styles.participantText]}>
-            {participantText}
-          </Text>
+          {meetup.promiseDepositAmount ? (
+            <Text style={styles.depositText}>보증금</Text>
+          ) : null}
         </View>
       </View>
     </View>
@@ -126,18 +132,16 @@ const MeetupCompactCard: React.FC<MeetupCompactCardProps> = ({ meetup, onPress, 
           display: 'flex',
           flexDirection: 'row',
           alignItems: 'center',
-          padding: '16px 16px',
+          padding: '14px 20px',
           backgroundColor: isPressed
             ? COLORS.neutral.grey100
             : isHovered
               ? COLORS.neutral.grey50
               : COLORS.neutral.white,
           cursor: 'pointer',
-          transition: 'background-color 120ms ease',
+          transition: 'background-color 120ms ease, box-shadow 120ms ease',
           borderBottom: `1px solid ${COLORS.neutral.grey100}`,
-          borderLeft: showLeftAccent
-            ? `3px solid ${COLORS.primary.main}`
-            : '3px solid transparent',
+          boxShadow: isHovered ? '0 1px 4px rgba(0,0,0,0.04)' : 'none',
         }}
       >
         {compactContent}
@@ -150,10 +154,7 @@ const MeetupCompactCard: React.FC<MeetupCompactCardProps> = ({ meetup, onPress, 
     <TouchableOpacity
       activeOpacity={0.7}
       onPress={() => onPress(meetup)}
-      style={[
-        styles.card,
-        showLeftAccent && { borderLeftWidth: 3, borderLeftColor: COLORS.primary.main },
-      ]}
+      style={styles.card}
     >
       {compactContent}
     </TouchableOpacity>
@@ -162,8 +163,8 @@ const MeetupCompactCard: React.FC<MeetupCompactCardProps> = ({ meetup, onPress, 
 
 const styles = StyleSheet.create({
   card: {
-    paddingHorizontal: 16,
-    paddingVertical: 16,
+    paddingHorizontal: 20,
+    paddingVertical: 14,
     backgroundColor: COLORS.neutral.white,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.neutral.grey100,
@@ -171,60 +172,113 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 14,
   },
   imageContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 10,
+    width: 88,
+    height: 88,
+    borderRadius: 12,
     overflow: 'hidden',
     backgroundColor: COLORS.neutral.grey100,
     flexShrink: 0,
-    position: 'relative',
   },
   image: {
     width: '100%',
     height: '100%',
     resizeMode: 'cover',
-    borderRadius: 10,
+    borderRadius: 12,
   },
-  statusOverlay: {
-    position: 'absolute',
-    top: 4,
-    left: 4,
-  },
+
+  // ─── 텍스트 ───────────────────────────────
   textArea: {
     flex: 1,
-    gap: 2,
+    gap: 4,
+  },
+  tagRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  categoryTag: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  categoryText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: COLORS.text.white,
+    letterSpacing: 0.1,
+  },
+  genderTag: {
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+    borderRadius: 4,
+    backgroundColor: '#FFF0F5',
+    borderWidth: 1,
+    borderColor: 'rgba(219,112,147,0.15)',
+  },
+  genderText: {
+    fontSize: 10,
+    fontWeight: '500',
+    color: '#C7254E',
+  },
+  urgencyTag: {
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  urgencyText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: COLORS.text.white,
   },
   title: {
     fontSize: 15,
     fontWeight: '600',
     color: COLORS.text.primary,
     letterSpacing: -0.2,
+    lineHeight: 21,
   },
-  hostName: {
-    fontSize: 12,
+  meta: {
+    fontSize: 13,
     color: COLORS.text.tertiary,
+    lineHeight: 18,
   },
-  metaRow: {
+  bottomRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    flexWrap: 'nowrap',
+    gap: 8,
+    marginTop: 1,
   },
-  metaText: {
-    fontSize: 12,
-    color: COLORS.text.tertiary,
-    flexShrink: 1,
+  participantWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
-  metaDot: {
-    fontSize: 12,
-    color: COLORS.neutral.grey300,
-    marginHorizontal: 4,
+  participantDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
   },
   participantText: {
-    color: COLORS.text.secondary,
+    fontSize: 12,
     fontWeight: '600',
+    color: COLORS.text.secondary,
+  },
+  priceText: {
+    fontSize: 12,
+    color: COLORS.text.tertiary,
+  },
+  depositText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: COLORS.special.deposit,
+    backgroundColor: COLORS.functional.successLight,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    borderRadius: 3,
+    overflow: 'hidden',
   },
 });
 
