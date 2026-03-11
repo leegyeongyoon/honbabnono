@@ -1,52 +1,16 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Animated } from 'react-native';
+import React, { useState, useEffect, useMemo } from 'react';
+import { View, Text, StyleSheet, ScrollView, RefreshControl } from 'react-native';
 import { useNavigate } from 'react-router-dom';
 import { COLORS, SHADOWS, CSS_SHADOWS, CARD_STYLE, TRANSITIONS, withOpacity } from '../styles/colors';
-import { HEADER_STYLE } from '../styles/spacing';
+import { HEADER_STYLE, SPACING, BORDER_RADIUS } from '../styles/spacing';
 import { NotificationBell } from '../components/NotificationBell';
 import MeetupCard from '../components/MeetupCard';
 import EmptyState from '../components/EmptyState';
+import SummaryHero from '../components/SummaryHero';
+import UnderlineTabBar from '../components/UnderlineTabBar';
 import { useUserStore } from '../store/userStore';
 import userApiService, { JoinedMeetup, HostedMeetup } from '../services/userApiService';
 import { FadeIn } from '../components/animated';
-
-// Web hover wrapper for tab buttons (segmented control style)
-const WebTabButton: React.FC<{
-  isActive: boolean;
-  onPress: () => void;
-  children: React.ReactNode;
-  ariaLabel: string;
-}> = ({ isActive, onPress, children, ariaLabel }) => {
-  const [hovered, setHovered] = useState(false);
-
-  return (
-    <TouchableOpacity
-      // @ts-ignore web-specific props
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      style={[
-        styles.tabButton,
-        isActive && styles.activeTabButton,
-        // @ts-ignore web-specific style
-        {
-          transition: `all ${TRANSITIONS.normal}`,
-          cursor: 'pointer',
-          backgroundColor: isActive
-            ? COLORS.neutral.white
-            : hovered
-              ? 'rgba(0,0,0,0.03)'
-              : 'transparent',
-        },
-      ]}
-      onPress={onPress}
-      // @ts-ignore web-specific
-      aria-label={ariaLabel}
-      accessibilityRole="tab"
-    >
-      {children}
-    </TouchableOpacity>
-  );
-};
 
 interface User {
   id: string;
@@ -64,30 +28,88 @@ const TAB_ITEMS = [
   { key: 'past' as const, label: '지난 약속' },
 ];
 
-const SkeletonPulse: React.FC<{ style?: any }> = ({ style }) => {
-  const pulseAnim = useRef(new Animated.Value(0.3)).current;
+// --- Date helpers ---
 
-  useEffect(() => {
-    const animation = Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulseAnim, {
-          toValue: 0.7,
-          duration: 1000,
-          useNativeDriver: true,
-        }),
-        Animated.timing(pulseAnim, {
-          toValue: 0.3,
-          duration: 1000,
-          useNativeDriver: true,
-        }),
-      ])
-    );
-    animation.start();
-    return () => animation.stop();
-  }, [pulseAnim]);
+const DAYS_KR = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'];
 
-  return <Animated.View style={[style, { opacity: pulseAnim }]} />;
+const toDateKey = (dateStr: string): string => {
+  const d = new Date(dateStr);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 };
+
+const formatDateHeader = (dateKey: string): string => {
+  const d = new Date(dateKey);
+  const month = d.getMonth() + 1;
+  const day = d.getDate();
+  const dayOfWeek = DAYS_KR[d.getDay()];
+  return `${month}월 ${day}일 ${dayOfWeek}`;
+};
+
+const isToday = (dateStr: string): boolean => {
+  const now = new Date();
+  const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  return toDateKey(dateStr) === todayKey;
+};
+
+type DateGroup<T> = {
+  dateKey: string;
+  label: string;
+  isToday: boolean;
+  meetups: T[];
+};
+
+function groupByDate<T extends { date: string }>(meetups: T[]): DateGroup<T>[] {
+  const map = new Map<string, T[]>();
+  for (const m of meetups) {
+    const key = toDateKey(m.date);
+    const arr = map.get(key);
+    if (arr) {
+      arr.push(m);
+    } else {
+      map.set(key, [m]);
+    }
+  }
+  const groups: DateGroup<T>[] = [];
+  for (const [dateKey, items] of map.entries()) {
+    groups.push({
+      dateKey,
+      label: formatDateHeader(dateKey),
+      isToday: isToday(items[0].date),
+      meetups: items,
+    });
+  }
+  groups.sort((a, b) => a.dateKey.localeCompare(b.dateKey));
+  return groups;
+}
+
+// --- Skeleton loader (CSS-based, no Animated) ---
+
+const SkeletonCard: React.FC<{ index: number }> = ({ index }) => (
+  <div
+    key={index}
+    style={{
+      display: 'flex',
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      backgroundColor: COLORS.neutral.white,
+      borderRadius: BORDER_RADIUS.lg,
+      padding: SPACING.lg,
+      border: `${CARD_STYLE.borderWidth}px solid ${CARD_STYLE.borderColor}`,
+      boxShadow: CSS_SHADOWS.small,
+    }}
+  >
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 10, marginRight: 16 }}>
+      <div style={{ height: 22, width: 56, borderRadius: BORDER_RADIUS.full, backgroundColor: COLORS.neutral.grey100, animation: 'skeleton-pulse 1.5s ease-in-out infinite' }} />
+      <div style={{ height: 18, width: '75%', borderRadius: 6, backgroundColor: COLORS.neutral.grey100, animation: 'skeleton-pulse 1.5s ease-in-out 0.1s infinite' }} />
+      <div style={{ height: 14, width: '55%', borderRadius: 4, backgroundColor: COLORS.neutral.grey100, animation: 'skeleton-pulse 1.5s ease-in-out 0.2s infinite' }} />
+      <div style={{ height: 14, width: '40%', borderRadius: 4, backgroundColor: COLORS.neutral.grey100, animation: 'skeleton-pulse 1.5s ease-in-out 0.3s infinite' }} />
+    </div>
+    <div style={{ width: 64, height: 64, borderRadius: BORDER_RADIUS.xl, backgroundColor: COLORS.neutral.grey100, animation: 'skeleton-pulse 1.5s ease-in-out 0.15s infinite' }} />
+  </div>
+);
+
+// --- Main component ---
 
 const MyMeetupsScreen: React.FC<MyMeetupsScreenProps> = ({ user: propsUser }) => {
   const navigate = useNavigate();
@@ -107,6 +129,17 @@ const MyMeetupsScreen: React.FC<MyMeetupsScreenProps> = ({ user: propsUser }) =>
       loadMeetupData();
     }
   }, [user]);
+
+  // Inject skeleton keyframes once
+  useEffect(() => {
+    const styleId = 'skeleton-pulse-keyframes';
+    if (!document.getElementById(styleId)) {
+      const style = document.createElement('style');
+      style.id = styleId;
+      style.textContent = `@keyframes skeleton-pulse { 0%, 100% { opacity: 0.3; } 50% { opacity: 0.7; } }`;
+      document.head.appendChild(style);
+    }
+  }, []);
 
   const loadMeetupData = async () => {
     if (!user) {
@@ -275,20 +308,95 @@ const MyMeetupsScreen: React.FC<MyMeetupsScreenProps> = ({ user: propsUser }) =>
     }
   };
 
+  // Date-grouped data for applied and created tabs
+  const appliedGroups = useMemo(() => groupByDate(appliedMeetups as any), [appliedMeetups]);
+  const createdGroups = useMemo(() => groupByDate(createdMeetups as any), [createdMeetups]);
+
+  const tabItems = TAB_ITEMS.map(tab => ({
+    key: tab.key,
+    label: tab.label,
+    badge: getTabCount(tab.key) || undefined,
+  }));
+
+  const renderTodayBadge = () => (
+    <span
+      style={{
+        display: 'inline-block',
+        fontSize: 11,
+        fontWeight: 700,
+        color: COLORS.primary.dark,
+        backgroundColor: withOpacity(COLORS.primary.main, 0.15),
+        borderRadius: BORDER_RADIUS.sm,
+        padding: '2px 8px',
+        marginLeft: 8,
+        letterSpacing: -0.2,
+      }}
+    >
+      오늘
+    </span>
+  );
+
+  const renderDateSection = <T extends JoinedMeetup | HostedMeetup>(
+    group: DateGroup<T>,
+    showHostInfo: boolean,
+    tabKey: string,
+  ) => (
+    <div key={group.dateKey} style={{ marginBottom: 4 }}>
+      {/* Date section header */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          paddingTop: 16,
+          paddingBottom: 8,
+          paddingLeft: 4,
+        }}
+      >
+        <span
+          style={{
+            fontSize: 13,
+            fontWeight: 600,
+            color: group.isToday ? COLORS.text.primary : COLORS.text.secondary,
+            letterSpacing: -0.2,
+          }}
+        >
+          {group.label}
+        </span>
+        {group.isToday && renderTodayBadge()}
+      </div>
+
+      {/* Meetup cards, with special today wrapper */}
+      {group.isToday ? (
+        <div
+          style={{
+            backgroundColor: COLORS.primary.light,
+            borderRadius: BORDER_RADIUS.xl,
+            padding: '12px 12px 4px 12px',
+            border: `1px solid ${withOpacity(COLORS.primary.main, 0.12)}`,
+          }}
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {group.meetups.map((meetup, idx) =>
+              renderMeetupItem(meetup, showHostInfo, `${tabKey}-${group.dateKey}-${idx}`)
+            )}
+          </div>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {group.meetups.map((meetup, idx) =>
+            renderMeetupItem(meetup, showHostInfo, `${tabKey}-${group.dateKey}-${idx}`)
+          )}
+        </div>
+      )}
+    </div>
+  );
+
   const renderSkeletonLoader = () => (
-    <View style={styles.skeletonContainer}>
-      {[1, 2, 3].map((i) => (
-        <View key={i} style={styles.skeletonCard}>
-          <View style={styles.skeletonLeft}>
-            <SkeletonPulse style={styles.skeletonBadge} />
-            <SkeletonPulse style={styles.skeletonTitle} />
-            <SkeletonPulse style={styles.skeletonMeta} />
-            <SkeletonPulse style={styles.skeletonMetaShort} />
-          </View>
-          <SkeletonPulse style={styles.skeletonImage} />
-        </View>
+    <div style={{ paddingLeft: 20, paddingRight: 20, paddingTop: 16, display: 'flex', flexDirection: 'column', gap: 14 }}>
+      {[0, 1, 2].map((i) => (
+        <SkeletonCard key={i} index={i} />
       ))}
-    </View>
+    </div>
   );
 
   const renderTabContent = () => {
@@ -300,55 +408,95 @@ const MyMeetupsScreen: React.FC<MyMeetupsScreenProps> = ({ user: propsUser }) =>
       case 'applied':
         return (
           <FadeIn>
-          <View style={styles.meetupsContainer}>
-            {appliedMeetups.length === 0 ? (
-              <EmptyState
-                icon="calendar"
-                title="아직 신청한 약속이 없어요"
-                description="홈에서 밥약속을 찾아보세요!"
-                actionLabel="약속 찾아보기"
-                onAction={() => navigate('/')}
-              />
-            ) : (
-              appliedMeetups.map((meetup, index) => renderMeetupItem(meetup, true, `applied-${index}`))
-            )}
-          </View>
+            <View style={styles.meetupsContainer}>
+              {appliedMeetups.length === 0 ? (
+                <EmptyState
+                  icon="calendar"
+                  title="아직 신청한 약속이 없어요"
+                  description="홈에서 밥약속을 찾아보세요!"
+                  actionLabel="약속 찾아보기"
+                  onAction={() => navigate('/')}
+                />
+              ) : (
+                appliedGroups.map((group) =>
+                  renderDateSection(group, true, 'applied')
+                )
+              )}
+            </View>
           </FadeIn>
         );
 
       case 'created':
         return (
           <FadeIn>
-          <View style={styles.meetupsContainer}>
-            {createdMeetups.length === 0 ? (
-              <EmptyState
-                icon="plus-circle"
-                title="약속을 만들어보세요!"
-                description="새로운 밥약속을 만들어보세요!"
-                actionLabel="약속 만들기"
-                onAction={() => navigate('/create')}
-              />
-            ) : (
-              createdMeetups.map((meetup, index) => renderMeetupItem(meetup, false, `created-${index}`))
-            )}
-          </View>
+            <View style={styles.meetupsContainer}>
+              {createdMeetups.length === 0 ? (
+                <EmptyState
+                  icon="plus-circle"
+                  title="약속을 만들어보세요!"
+                  description="새로운 밥약속을 만들어보세요!"
+                  actionLabel="약속 만들기"
+                  onAction={() => navigate('/create')}
+                />
+              ) : (
+                createdGroups.map((group) =>
+                  renderDateSection(group, false, 'created')
+                )
+              )}
+            </View>
           </FadeIn>
         );
 
       case 'past':
         return (
           <FadeIn>
-          <View style={styles.meetupsContainer}>
-            {pastMeetups.length === 0 ? (
-              <EmptyState
-                icon="clock"
-                title="아직 지난 약속이 없어요"
-                description="밥약속에 참여해보세요!"
-              />
-            ) : (
-              pastMeetups.map((meetup, index) => renderMeetupItem(meetup, !('hostName' in meetup), `past-${index}`))
-            )}
-          </View>
+            <View style={styles.meetupsContainer}>
+              {pastMeetups.length === 0 ? (
+                <EmptyState
+                  icon="clock"
+                  title="아직 지난 약속이 없어요"
+                  description="밥약속에 참여해보세요!"
+                />
+              ) : (
+                (pastMeetups as any[]).map((meetup, index) => {
+                  const meetupIsToday = isToday(meetup.date);
+                  if (meetupIsToday) {
+                    return (
+                      <div
+                        key={`past-today-${index}`}
+                        style={{
+                          backgroundColor: COLORS.primary.light,
+                          borderRadius: BORDER_RADIUS.xl,
+                          padding: 12,
+                          border: `1px solid ${withOpacity(COLORS.primary.main, 0.12)}`,
+                          position: 'relative',
+                        }}
+                      >
+                        <span
+                          style={{
+                            position: 'absolute',
+                            top: 8,
+                            right: 12,
+                            fontSize: 11,
+                            fontWeight: 700,
+                            color: COLORS.primary.dark,
+                            backgroundColor: withOpacity(COLORS.primary.main, 0.15),
+                            borderRadius: BORDER_RADIUS.sm,
+                            padding: '2px 8px',
+                            letterSpacing: -0.2,
+                            zIndex: 1,
+                          }}
+                        >
+                          오늘
+                        </span>
+                        {renderMeetupItem(meetup, !('hostName' in meetup), `past-${index}`)}
+                      </div>
+                    );
+                  }
+                  return renderMeetupItem(meetup, !('hostName' in meetup), `past-${index}`);
+                })
+              )}
+            </View>
           </FadeIn>
         );
 
@@ -374,36 +522,12 @@ const MyMeetupsScreen: React.FC<MyMeetupsScreenProps> = ({ user: propsUser }) =>
         />
       </View>
 
-      {/* 세그먼트 컨트롤 탭 */}
-      <View style={styles.tabOuterContainer}>
-        <View style={styles.tabContainer} accessibilityRole="tablist">
-          {TAB_ITEMS.map((tab) => {
-            const isActive = activeTab === tab.key;
-            const count = getTabCount(tab.key);
-            return (
-              <WebTabButton
-                key={tab.key}
-                isActive={isActive}
-                onPress={() => setActiveTab(tab.key)}
-                ariaLabel={`${tab.label} ${count > 0 ? `${count}개` : ''}`}
-              >
-                {/* @ts-ignore web-specific style */}
-                <Text style={[styles.tabButtonText, isActive && styles.activeTabButtonText, { transition: `color ${TRANSITIONS.normal}` }]}>
-                  {tab.label}
-                </Text>
-                {count > 0 && (
-                  // @ts-ignore web-specific style
-                  <View style={[styles.tabCountBadge, isActive && styles.activeTabCountBadge, { transition: `all ${TRANSITIONS.normal}` }]}>
-                    <Text style={[styles.tabCountText, isActive && styles.activeTabCountText]}>
-                      {count}
-                    </Text>
-                  </View>
-                )}
-              </WebTabButton>
-            );
-          })}
-        </View>
-      </View>
+      {/* 언더라인 탭바 */}
+      <UnderlineTabBar
+        tabs={tabItems}
+        activeKey={activeTab}
+        onTabChange={(key) => setActiveTab(key as 'applied' | 'created' | 'past')}
+      />
 
       {/* 컨텐츠 */}
       <ScrollView
@@ -419,6 +543,15 @@ const MyMeetupsScreen: React.FC<MyMeetupsScreenProps> = ({ user: propsUser }) =>
         }
         showsVerticalScrollIndicator={false}
       >
+        {/* Summary Hero */}
+        <SummaryHero
+          items={[
+            { label: '신청한', value: appliedMeetups.length, color: COLORS.primary.main },
+            { label: '만든', value: createdMeetups.length, color: COLORS.functional.info },
+            { label: '지난', value: pastMeetups.length, color: COLORS.text.tertiary },
+          ]}
+        />
+
         {renderTabContent()}
       </ScrollView>
     </View>
@@ -435,8 +568,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
+    paddingHorizontal: SPACING.screen.horizontal,
+    paddingVertical: SPACING.md,
     backgroundColor: COLORS.neutral.white,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.neutral.grey100,
@@ -452,125 +585,17 @@ const styles = StyleSheet.create({
     letterSpacing: -0.3,
     color: COLORS.text.primary,
   },
-  // Segmented control tabs
-  tabOuterContainer: {
-    backgroundColor: COLORS.neutral.white,
-    paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 12,
-  },
-  tabContainer: {
-    flexDirection: 'row',
-    backgroundColor: COLORS.neutral.grey100,
-    borderRadius: 10,
-    padding: 3,
-  },
-  tabButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 8,
-    borderRadius: 8,
-    gap: 5,
-  },
-  activeTabButton: {
-    backgroundColor: COLORS.neutral.white,
-    // @ts-ignore
-    boxShadow: '0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06)',
-  },
-  tabButtonText: {
-    fontSize: 14,
-    color: COLORS.text.tertiary,
-    fontWeight: '500',
-  },
-  activeTabButtonText: {
-    color: COLORS.text.primary,
-    fontWeight: '600',
-  },
-  tabCountBadge: {
-    backgroundColor: COLORS.neutral.grey200,
-    borderRadius: 10,
-    minWidth: 20,
-    height: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 5,
-  },
-  activeTabCountBadge: {
-    backgroundColor: COLORS.primary.main,
-  },
-  tabCountText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: COLORS.text.tertiary,
-  },
-  activeTabCountText: {
-    color: COLORS.text.white,
-  },
   // Content
   scrollView: {
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: 32,
+    paddingBottom: SPACING.xxl,
   },
   meetupsContainer: {
-    paddingHorizontal: 20,
-    paddingTop: 16,
+    paddingHorizontal: SPACING.screen.horizontal,
+    paddingTop: SPACING.lg,
     gap: 14,
-  },
-  // Skeleton
-  skeletonContainer: {
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    gap: 14,
-  },
-  skeletonCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: COLORS.neutral.white,
-    borderRadius: 8,
-    padding: 16,
-    borderWidth: CARD_STYLE.borderWidth,
-    borderColor: CARD_STYLE.borderColor,
-    ...SHADOWS.small,
-  },
-  skeletonLeft: {
-    flex: 1,
-    gap: 10,
-    marginRight: 16,
-  },
-  skeletonBadge: {
-    height: 22,
-    width: 56,
-    borderRadius: 9999,
-    backgroundColor: COLORS.neutral.grey100,
-  },
-  skeletonTitle: {
-    height: 18,
-    width: '75%',
-    borderRadius: 6,
-    backgroundColor: COLORS.neutral.grey100,
-  },
-  skeletonMeta: {
-    height: 14,
-    width: '55%',
-    borderRadius: 4,
-    backgroundColor: COLORS.neutral.grey100,
-  },
-  skeletonMetaShort: {
-    height: 14,
-    width: '40%',
-    borderRadius: 4,
-    backgroundColor: COLORS.neutral.grey100,
-  },
-  skeletonImage: {
-    width: 64,
-    height: 64,
-    borderRadius: 12,
-    backgroundColor: COLORS.neutral.grey100,
   },
 });
 

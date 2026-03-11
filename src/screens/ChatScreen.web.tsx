@@ -10,7 +10,7 @@ import {
   Image,
 } from 'react-native';
 import { useNavigate, useParams } from 'react-router-dom';
-import { COLORS, CSS_SHADOWS, TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../styles';
+import { COLORS, CSS_SHADOWS, TYPOGRAPHY, SPACING, BORDER_RADIUS, TRANSITIONS } from '../styles';
 import { Icon } from '../components/Icon';
 import chatService from '../services/chatService';
 import chatApiService, { ChatRoom, ChatMessage } from '../services/chatApiService';
@@ -20,9 +20,140 @@ import { useUserStore } from '../store/userStore';
 import Toast from '../components/Toast';
 import { useToast } from '../hooks/useToast';
 import EmptyState from '../components/EmptyState';
+import UnderlineTabBar from '../components/UnderlineTabBar';
 
 import { ChatListSkeleton } from '../components/skeleton';
 import { getAvatarColor, getInitials } from '../utils/avatarColor';
+
+// --- Hover-aware wrapper for header icon buttons ---
+const WebHoverButton: React.FC<{
+  borderRadius: number;
+  children: React.ReactNode;
+}> = ({ borderRadius, children }) => {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <div
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        cursor: 'pointer',
+        borderRadius,
+        transition: `background-color ${TRANSITIONS.normal}`,
+        backgroundColor: hovered ? COLORS.neutral.grey100 : 'transparent',
+      }}
+    >
+      {children}
+    </div>
+  );
+};
+
+// --- Hover-aware send button wrapper ---
+const WebSendButtonWrapper: React.FC<{
+  enabled: boolean;
+  children: React.ReactNode;
+}> = ({ enabled, children }) => {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <div
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        cursor: enabled ? 'pointer' : 'default',
+        borderRadius: 20,
+        transition: `all ${TRANSITIONS.normal}`,
+        transform: hovered && enabled ? 'scale(1.05)' : 'scale(1)',
+      }}
+    >
+      {children}
+    </div>
+  );
+};
+
+// --- Hover-aware chat list item ---
+const WebChatListItem: React.FC<{
+  item: ChatRoom;
+  onSelect: (id: number) => void;
+}> = ({ item, onSelect }) => {
+  const [hovered, setHovered] = useState(false);
+  const displayTitle = item.type === 'meetup' ? item.title : item.title;
+  const participantCount = item.type === 'meetup' ? item.participants.length : undefined;
+  const hasUnread = item.unreadCount > 0;
+
+  return (
+    <div
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        backgroundColor: hovered ? COLORS.neutral.light : hasUnread ? COLORS.primary.light : 'transparent',
+        transition: `background-color ${TRANSITIONS.normal}`,
+        cursor: 'pointer',
+        borderBottom: `1px solid ${COLORS.neutral.grey100}`,
+      }}
+      role="button"
+      aria-label={`${displayTitle} 채팅방${hasUnread ? `, 읽지 않은 메시지 ${item.unreadCount}개` : ''}`}
+    >
+      <TouchableOpacity
+        style={styles.chatItem}
+        onPress={() => onSelect(item.id)}
+        activeOpacity={0.7}
+      >
+        {/* 아바타 + 타입 뱃지 */}
+        <div style={{ position: 'relative', marginRight: 14 }}>
+          <View style={[styles.chatAvatar, { backgroundColor: getAvatarColor(displayTitle) }]}>
+            <Text style={styles.chatAvatarText}>
+              {getInitials(displayTitle)}
+            </Text>
+          </View>
+          {/* 채팅방 타입 뱃지 */}
+          <div style={{
+            position: 'absolute',
+            bottom: -2,
+            right: -2,
+            width: 20,
+            height: 20,
+            borderRadius: 10,
+            backgroundColor: item.type === 'meetup' ? COLORS.primary.main : COLORS.neutral.grey400,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            border: `2px solid ${COLORS.surface.primary}`,
+          }}>
+            <span style={{ fontSize: 10, lineHeight: '20px' }}>
+              {item.type === 'meetup' ? '👥' : '💬'}
+            </span>
+          </div>
+        </div>
+        <View style={styles.chatInfo}>
+          <View style={styles.chatTitleRow}>
+            <Text style={[styles.chatTitle, hasUnread && styles.chatTitleUnread]} numberOfLines={1}>
+              {displayTitle}
+            </Text>
+            {participantCount && (
+              <View style={styles.chatParticipantBadge}>
+                <Text style={styles.chatParticipantCount}>{participantCount}</Text>
+              </View>
+            )}
+          </View>
+          <Text style={[styles.lastMessage, hasUnread && styles.lastMessageUnread]} numberOfLines={1}>
+            {item.lastMessage || '아직 메시지가 없습니다'}
+          </Text>
+        </View>
+        <View style={styles.chatMeta}>
+          <Text style={[styles.chatTime, hasUnread && styles.chatTimeUnread]}>
+            {getDetailedDateFormat(item.lastTime)}
+          </Text>
+          {hasUnread && (
+            <View style={styles.unreadBadge}>
+              <Text style={styles.unreadCount}>
+                {item.unreadCount > 99 ? '99+' : item.unreadCount}
+              </Text>
+            </View>
+          )}
+        </View>
+      </TouchableOpacity>
+    </div>
+  );
+};
 
 interface ChatScreenProps {
   navigation?: any;
@@ -167,6 +298,18 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation }) => {
     }
   };
 
+  // 메시지 로드
+  const loadMessages = async (roomId: number) => {
+    try {
+      const { chatRoom, messages: roomMessages } = await chatApiService.getChatMessages(roomId, userId);
+      setCurrentChatRoom(chatRoom);
+      setMessages(roomMessages);
+    } catch (error) {
+      // silently handle error
+      showError('메시지를 불러올 수 없습니다.');
+    }
+  };
+
   // 실시간 메시지 수신 처리
   const handleNewMessage = (newMessage: ChatMessage) => {
     if (selectedChatId === newMessage.chatRoomId) {
@@ -288,88 +431,6 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation }) => {
     }
   };
 
-  const renderChatListItem = (item: ChatRoom) => {
-    const displayTitle = item.type === 'meetup' ? item.title : item.title;
-    const participantCount = item.type === 'meetup' ? item.participants.length : undefined;
-    const hasUnread = item.unreadCount > 0;
-
-    return (
-      <div
-        style={{
-          transition: 'background-color 150ms ease',
-          cursor: 'pointer',
-          position: 'relative',
-          borderBottom: `1px solid ${COLORS.neutral.grey100}`,
-          backgroundColor: hasUnread ? COLORS.neutral.grey50 : 'transparent',
-        }}
-        onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = COLORS.neutral.light; }}
-        onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = hasUnread ? COLORS.neutral.grey50 : 'transparent'; }}
-        role="button"
-        aria-label={`${displayTitle} 채팅방${hasUnread ? `, 읽지 않은 메시지 ${item.unreadCount}개` : ''}`}
-      >
-        <TouchableOpacity
-          style={styles.chatItem}
-          onPress={() => selectChatRoom(item.id)}
-          activeOpacity={0.7}
-        >
-          {/* 아바타 + 타입 뱃지 */}
-          <div style={{ position: 'relative', marginRight: 14 }}>
-            <View style={[styles.chatAvatar, { backgroundColor: getAvatarColor(displayTitle) }]}>
-              <Text style={styles.chatAvatarText}>
-                {getInitials(displayTitle)}
-              </Text>
-            </View>
-            {/* 채팅방 타입 뱃지 */}
-            <div style={{
-              position: 'absolute',
-              bottom: -2,
-              right: -2,
-              width: 20,
-              height: 20,
-              borderRadius: 10,
-              backgroundColor: item.type === 'meetup' ? COLORS.primary.main : COLORS.neutral.grey400,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              border: `2px solid ${COLORS.surface.primary}`,
-            }}>
-              <span style={{ fontSize: 10, lineHeight: '20px' }}>
-                {item.type === 'meetup' ? '👥' : '💬'}
-              </span>
-            </div>
-          </div>
-          <View style={styles.chatInfo}>
-            <View style={styles.chatTitleRow}>
-              <Text style={[styles.chatTitle, hasUnread && styles.chatTitleUnread]} numberOfLines={1}>
-                {displayTitle}
-              </Text>
-              {participantCount && (
-                <View style={styles.chatParticipantBadge}>
-                  <Text style={styles.chatParticipantCount}>{participantCount}</Text>
-                </View>
-              )}
-            </View>
-            <Text style={[styles.lastMessage, hasUnread && styles.lastMessageUnread]} numberOfLines={1}>
-              {item.lastMessage || '아직 메시지가 없습니다'}
-            </Text>
-          </View>
-          <View style={styles.chatMeta}>
-            <Text style={[styles.chatTime, hasUnread && styles.chatTimeUnread]}>
-              {getDetailedDateFormat(item.lastTime)}
-            </Text>
-            {hasUnread && (
-              <View style={styles.unreadBadge}>
-                <Text style={styles.unreadCount}>
-                  {item.unreadCount > 99 ? '99+' : item.unreadCount}
-                </Text>
-              </View>
-            )}
-          </View>
-        </TouchableOpacity>
-      </div>
-    );
-  };
-
   const renderChatList = () => {
     const filteredRooms = chatRooms.filter(room => {
       if (selectedTab === '전체') return true;
@@ -402,7 +463,9 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation }) => {
       <FlatList
         data={filteredRooms}
         keyExtractor={(item) => item.id.toString()}
-        renderItem={({ item }) => renderChatListItem(item)}
+        renderItem={({ item }) => (
+          <WebChatListItem item={item} onSelect={selectChatRoom} />
+        )}
         style={styles.chatList}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.chatListContainer}
@@ -417,11 +480,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation }) => {
     <View style={styles.chatRoom}>
       {/* 채팅 헤더 */}
       <View style={styles.chatRoomHeader}>
-        <div
-          style={{ cursor: 'pointer', borderRadius: 22, transition: 'background-color 150ms ease' }}
-          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = COLORS.neutral.grey100; }}
-          onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent'; }}
-        >
+        <WebHoverButton borderRadius={22}>
           <TouchableOpacity
             style={styles.backButton}
             onPress={() => {
@@ -433,7 +492,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation }) => {
           >
             <Icon name="chevron-left" size={20} color={COLORS.text.primary} />
           </TouchableOpacity>
-        </div>
+        </WebHoverButton>
         <View style={{ flex: 1, alignItems: 'center' }}>
           <Text style={styles.chatRoomTitle}>
             {currentChatRoom?.title || '채팅'}
@@ -444,15 +503,11 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation }) => {
             </Text>
           )}
         </View>
-        <div
-          style={{ cursor: 'pointer', borderRadius: 22, transition: 'background-color 150ms ease' }}
-          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = COLORS.neutral.grey100; }}
-          onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent'; }}
-        >
+        <WebHoverButton borderRadius={22}>
           <TouchableOpacity style={styles.menuButton} activeOpacity={0.7} accessibilityRole="button" accessibilityLabel="메뉴">
             <Icon name="more-vertical" size={20} color={COLORS.text.primary} />
           </TouchableOpacity>
-        </div>
+        </WebHoverButton>
       </View>
 
       {/* 메시지 목록 */}
@@ -590,21 +645,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation }) => {
               onBlur={() => setMessageInputFocused(false)}
             />
           </View>
-          <div
-            style={{
-              cursor: messageText.trim() && !isSending ? 'pointer' : 'default',
-              borderRadius: 20,
-              transition: 'all 200ms ease',
-            }}
-            onMouseEnter={(e) => {
-              if (messageText.trim() && !isSending) {
-                (e.currentTarget as HTMLElement).style.transform = 'scale(1.05)';
-              }
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLElement).style.transform = 'scale(1)';
-            }}
-          >
+          <WebSendButtonWrapper enabled={!!messageText.trim() && !isSending}>
             <TouchableOpacity
               style={[
                 styles.sendButton,
@@ -622,7 +663,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation }) => {
                 color={messageText.trim() && !isSending ? COLORS.text.white : COLORS.text.tertiary}
               />
             </TouchableOpacity>
-          </div>
+          </WebSendButtonWrapper>
         </View>
       </View>
     </View>
@@ -632,6 +673,16 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation }) => {
   if (selectedChatId && currentChatRoom) {
     return renderChatRoom();
   }
+
+  // UnderlineTabBar용 탭 아이템 생성
+  const tabItems = tabs.map(tab => {
+    const count = chatRooms.filter(r => {
+      if (tab === '전체') return r.unreadCount > 0;
+      if (tab === '약속') return r.type === 'meetup' && r.unreadCount > 0;
+      return r.type === 'direct' && r.unreadCount > 0;
+    }).length;
+    return { key: tab, label: tab, badge: count || undefined };
+  });
 
   return (
     <View style={styles.container}>
@@ -648,69 +699,16 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation }) => {
           )}
         </View>
         <View style={styles.headerIcons}>
-          <div
-            style={{ cursor: 'pointer', borderRadius: 20, transition: 'background-color 150ms ease' }}
-            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = COLORS.neutral.grey100; }}
-            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent'; }}
-          >
+          <WebHoverButton borderRadius={20}>
             <TouchableOpacity style={styles.headerIcon} activeOpacity={0.7}>
               <Icon name="bell" size={20} color={COLORS.text.primary} />
             </TouchableOpacity>
-          </div>
+          </WebHoverButton>
         </View>
       </View>
 
-      {/* 탭 네비게이션 — 세그먼트 컨트롤 */}
-      <View style={styles.tabNavigation}>
-        <View style={styles.tabSegmentContainer}>
-          {tabs.map((tab) => {
-            const isActive = selectedTab === tab;
-            const tabCount = chatRooms.filter(r => {
-              if (tab === '전체') return r.unreadCount > 0;
-              if (tab === '약속') return r.type === 'meetup' && r.unreadCount > 0;
-              return r.type === 'direct' && r.unreadCount > 0;
-            }).length;
-
-            return (
-              <div
-                key={tab}
-                style={{
-                  cursor: 'pointer',
-                  position: 'relative',
-                  flex: 1,
-                }}
-              >
-                <TouchableOpacity
-                  style={[
-                    styles.tabButton,
-                    isActive && styles.selectedTabButton,
-                  ]}
-                  onPress={() => setSelectedTab(tab)}
-                  activeOpacity={0.7}
-                >
-                  <Text style={[
-                    styles.tabButtonText,
-                    isActive && styles.selectedTabButtonText
-                  ]}>
-                    {tab}
-                  </Text>
-                </TouchableOpacity>
-                {tabCount > 0 && !isActive && (
-                  <div style={{
-                    position: 'absolute',
-                    top: 6,
-                    right: 10,
-                    width: 6,
-                    height: 6,
-                    borderRadius: 3,
-                    backgroundColor: COLORS.primary.main,
-                  }} />
-                )}
-              </div>
-            );
-          })}
-        </View>
-      </View>
+      {/* 탭 네비게이션 — UnderlineTabBar */}
+      <UnderlineTabBar tabs={tabItems} activeKey={selectedTab} onTabChange={setSelectedTab} />
 
       {/* 채팅 목록 */}
       {renderChatList()}
@@ -800,42 +798,6 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-
-  // === 탭 네비게이션 (세그먼트 컨트롤) ===
-  tabNavigation: {
-    backgroundColor: COLORS.neutral.white,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-  },
-  tabSegmentContainer: {
-    flexDirection: 'row',
-    backgroundColor: COLORS.neutral.grey100,
-    borderRadius: BORDER_RADIUS.md,
-    padding: 3,
-  },
-  tabButton: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 6,
-    transition: 'all 200ms ease',
-  } as any,
-  selectedTabButton: {
-    backgroundColor: COLORS.neutral.white,
-    // @ts-ignore — web CSS shadow for segment
-    boxShadow: '0 1px 3px rgba(17,17,17,0.08), 0 1px 2px rgba(17,17,17,0.06)',
-  },
-  tabButtonText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: COLORS.text.tertiary,
-    transition: 'color 200ms ease',
-  } as any,
-  selectedTabButtonText: {
-    color: COLORS.text.primary,
-    fontWeight: '600',
   },
 
   // === 채팅방 목록 ===

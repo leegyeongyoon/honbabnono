@@ -47,22 +47,31 @@ interface QuickMenuItem {
   label: string;
   icon: IconName;
   path: string;
+  iconBg: string;
+  iconColor: string;
 }
 
 const QUICK_MENUS: QuickMenuItem[] = [
-  { id: 'my-meetups', label: '내 약속', icon: 'calendar', path: '/my-meetups' },
-  { id: 'wishlist', label: '찜 목록', icon: 'heart', path: '/wishlist' },
-  { id: 'point-charge', label: '포인트', icon: 'credit-card', path: '/point-charge' },
-  { id: 'my-reviews', label: '리뷰', icon: 'star', path: '/my-reviews' },
-  { id: 'recent-views', label: '최근 본', icon: 'eye', path: '/recent-views' },
-  { id: 'notification-settings', label: '설정', icon: 'settings', path: '/notification-settings' },
+  { id: 'my-meetups', label: '내 약속', icon: 'calendar', path: '/my-meetups', iconBg: '#FFF3E0', iconColor: '#E65100' },
+  { id: 'wishlist', label: '찜 목록', icon: 'heart', path: '/wishlist', iconBg: '#FCE4EC', iconColor: '#C62828' },
+  { id: 'point-charge', label: '포인트', icon: 'credit-card', path: '/point-charge', iconBg: '#E8F5E9', iconColor: '#2E7D32' },
+  { id: 'my-reviews', label: '리뷰', icon: 'star', path: '/my-reviews', iconBg: '#FFF8E1', iconColor: '#F57F17' },
+  { id: 'recent-views', label: '최근 본', icon: 'eye', path: '/recent-views', iconBg: '#E3F2FD', iconColor: '#1565C0' },
+  { id: 'notification-settings', label: '설정', icon: 'settings', path: '/notification-settings', iconBg: '#F3E5F5', iconColor: '#6A1B9A' },
 ];
 
 // 고객지원 메뉴
-const SUPPORT_MENUS = [
-  { id: 'notices', label: '공지사항', path: '/notices' },
-  { id: 'faq', label: 'FAQ', path: '/faq' },
-  { id: 'inquiry', label: '문의하기', path: '/inquiry' },
+interface SupportMenuItem {
+  id: string;
+  label: string;
+  path: string;
+  icon: IconName;
+}
+
+const SUPPORT_MENUS: SupportMenuItem[] = [
+  { id: 'notices', label: '공지사항', path: '/notices', icon: 'bell' },
+  { id: 'faq', label: 'FAQ', path: '/faq', icon: 'info' },
+  { id: 'inquiry', label: '문의하기', path: '/inquiry', icon: 'message-circle' },
 ];
 
 // 호버 가능한 퀵메뉴 아이템
@@ -82,8 +91,8 @@ const HoverQuickMenuItem: React.FC<{ menu: QuickMenuItem; onPress: () => void }>
       activeOpacity={0.7}
       {...bind}
     >
-      <View style={styles.quickMenuIconBox}>
-        <Icon name={menu.icon} size={20} color={COLORS.primary.accent} />
+      <View style={[styles.quickMenuIconBox, { backgroundColor: menu.iconBg }]}>
+        <Icon name={menu.icon} size={20} color={menu.iconColor} />
       </View>
       <Text style={styles.quickMenuLabel} numberOfLines={1}>{menu.label}</Text>
     </TouchableOpacity>
@@ -92,7 +101,7 @@ const HoverQuickMenuItem: React.FC<{ menu: QuickMenuItem; onPress: () => void }>
 
 // 호버 가능한 고객지원 메뉴 아이템
 const HoverSupportItem: React.FC<{
-  menu: { id: string; label: string; path: string };
+  menu: SupportMenuItem;
   isLast: boolean;
   onPress: () => void;
 }> = ({ menu, isLast, onPress }) => {
@@ -108,7 +117,12 @@ const HoverSupportItem: React.FC<{
       activeOpacity={0.7}
       {...bind}
     >
-      <Text style={styles.supportItemText}>{menu.label}</Text>
+      <View style={styles.supportItemLeft}>
+        <View style={styles.supportIconCircle}>
+          <Icon name={menu.icon} size={16} color={COLORS.text.secondary} />
+        </View>
+        <Text style={styles.supportItemText}>{menu.label}</Text>
+      </View>
       <Icon name="chevron-right" size={14} color={COLORS.text.tertiary} />
     </TouchableOpacity>
   );
@@ -336,55 +350,66 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ user: propsUser }) => {
 
         {/* 밥알지수 카드 */}
         <FadeIn delay={100}>
-          <View style={styles.riceCard}>
-            <View style={styles.riceHeader}>
-              <View style={styles.riceHeaderLeft}>
-                <View style={styles.riceIconCircle}>
-                  <Text style={{ fontSize: 14 }}>🍚</Text>
+          <div style={{
+            marginLeft: 20,
+            marginRight: 20,
+            marginTop: 12,
+            borderRadius: 8,
+            background: COLORS.gradient.subtleGold,
+            overflow: 'hidden',
+          }}>
+            <View style={styles.riceCard}>
+              <View style={styles.riceHeader}>
+                <View style={styles.riceHeaderLeft}>
+                  <View style={styles.riceIconCircle}>
+                    <Text style={{ fontSize: 14 }}>🍚</Text>
+                  </View>
+                  <Text style={styles.riceLabel}>밥알지수</Text>
                 </View>
-                <Text style={styles.riceLabel}>밥알지수</Text>
+                <Text style={styles.riceScore}>{userStats.riceIndex}점</Text>
               </View>
-              <Text style={styles.riceScore}>{userStats.riceIndex}점</Text>
-            </View>
-            <div style={{ position: 'relative' }}>
-              <View style={styles.riceProgressBg}>
-                <div
-                  style={{
-                    height: '100%',
-                    borderRadius: 3,
-                    backgroundColor: COLORS.primary.accent,
-                    width: `${Math.min(userStats.riceIndex, 100)}%`,
-                    transition: 'width 800ms cubic-bezier(0, 0, 0.2, 1)',
-                  }}
-                />
-              </View>
-              {/* 마일스톤 마커 */}
-              <div style={{
-                display: 'flex',
-                flexDirection: 'row',
-                justifyContent: 'space-between',
-                paddingLeft: 2,
-                paddingRight: 2,
-                marginTop: 4,
-              }}>
-                {[0, 30, 60, 85, 100].map((milestone) => (
-                  <span key={milestone} style={{
-                    fontSize: 9,
-                    color: userStats.riceIndex >= milestone ? COLORS.text.secondary : COLORS.text.tertiary,
-                    fontWeight: userStats.riceIndex >= milestone ? 500 : 400,
-                  }}>{milestone}</span>
-                ))}
+              <div style={{ position: 'relative' }}>
+                <View style={styles.riceProgressBg}>
+                  <div
+                    style={{
+                      height: '100%',
+                      borderRadius: 4,
+                      backgroundColor: COLORS.primary.accent,
+                      width: `${Math.min(userStats.riceIndex, 100)}%`,
+                      transition: 'width 800ms cubic-bezier(0, 0, 0.2, 1)',
+                    }}
+                  />
+                </View>
+                {/* 마일스톤 마커 */}
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                  paddingLeft: 2,
+                  paddingRight: 2,
+                  marginTop: 4,
+                }}>
+                  {[0, 30, 60, 85, 100].map((milestone) => (
+                    <span key={milestone} style={{
+                      fontSize: 9,
+                      color: userStats.riceIndex >= milestone ? COLORS.text.secondary : COLORS.text.tertiary,
+                      fontWeight: userStats.riceIndex >= milestone ? 500 : 400,
+                    }}>{milestone}</span>
+                  ))}
+                </div>
               </div>
-            </div>
-            <Text style={styles.riceGradeText}>
-              {riceGrade.emoji} {riceGrade.label}
-            </Text>
-          </View>
+              <View style={styles.riceGradeRow}>
+                <Text style={styles.riceGradeEmoji}>{riceGrade.emoji}</Text>
+                <Text style={styles.riceGradeLabel}>{riceGrade.label}</Text>
+              </View>
+            </View>
+          </div>
         </FadeIn>
 
         {/* 빠른 메뉴 (3x2 그리드) */}
         <FadeIn delay={150}>
           <View style={styles.quickMenuSection}>
+            <Text style={styles.sectionTitle}>바로가기</Text>
             <View style={styles.quickMenuGrid}>
               {QUICK_MENUS.map((menu) => (
                 <HoverQuickMenuItem
@@ -400,7 +425,7 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ user: propsUser }) => {
         {/* 고객지원 */}
         <FadeIn delay={200}>
           <View style={styles.supportSection}>
-            <Text style={styles.supportTitle}>고객지원</Text>
+            <Text style={styles.sectionTitle}>고객지원</Text>
             <View style={styles.supportList}>
               {SUPPORT_MENUS.map((menu, idx) => (
                 <HoverSupportItem
@@ -487,6 +512,15 @@ const styles = StyleSheet.create({
   skeletonWrapper: {
     padding: SPACING.xl,
     backgroundColor: COLORS.surface.primary,
+  },
+
+  // 섹션 타이틀
+  sectionTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: COLORS.text.primary,
+    letterSpacing: -0.2,
+    marginBottom: 12,
   },
 
   // 프로필 히어로
@@ -612,12 +646,6 @@ const styles = StyleSheet.create({
 
   // 밥알지수 카드
   riceCard: {
-    backgroundColor: COLORS.surface.primary,
-    marginHorizontal: 20,
-    marginTop: 12,
-    borderRadius: BORDER_RADIUS.md,
-    borderWidth: 1,
-    borderColor: COLORS.neutral.grey100,
     padding: 16,
   },
   riceHeader: {
@@ -635,7 +663,7 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: COLORS.primary.light,
+    backgroundColor: 'rgba(212,136,44,0.12)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -650,22 +678,30 @@ const styles = StyleSheet.create({
     color: COLORS.primary.accent,
   },
   riceProgressBg: {
-    height: 6,
-    backgroundColor: COLORS.neutral.grey100,
-    borderRadius: 3,
+    height: 8,
+    backgroundColor: 'rgba(0,0,0,0.06)',
+    borderRadius: 4,
     overflow: 'hidden',
     marginBottom: 10,
   },
   riceProgressFill: {
     height: '100%',
-    borderRadius: 3,
+    borderRadius: 4,
     backgroundColor: COLORS.primary.accent,
   },
-  riceGradeText: {
-    fontSize: 13,
-    fontWeight: '500',
+  riceGradeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 6,
+  },
+  riceGradeEmoji: {
+    fontSize: 18,
+  },
+  riceGradeLabel: {
+    fontSize: 14,
+    fontWeight: '600',
     color: COLORS.text.secondary,
-    marginTop: 4,
   },
 
   // 빠른 메뉴
@@ -693,7 +729,6 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: COLORS.primary.light,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -710,23 +745,31 @@ const styles = StyleSheet.create({
     marginHorizontal: 20,
     marginTop: 28,
   },
-  supportTitle: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: COLORS.text.secondary,
-    marginBottom: 4,
-  },
   supportList: {},
   supportItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 4,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.neutral.grey100,
     // @ts-ignore
     cursor: 'pointer',
     transition: 'background-color 150ms ease',
+  },
+  supportItemLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  supportIconCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: COLORS.neutral.grey50,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   supportItemText: {
     fontSize: 14,

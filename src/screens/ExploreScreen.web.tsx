@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -8,25 +8,18 @@ import {
   TextInput,
 } from 'react-native';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { COLORS, SHADOWS, CSS_SHADOWS, CARD_STYLE } from '../styles/colors';
+import { COLORS, SHADOWS, CSS_SHADOWS, CARD_STYLE, TRANSITIONS } from '../styles/colors';
 import { BORDER_RADIUS, LIST_ITEM_STYLE, HEADER_STYLE, SPACING } from '../styles/spacing';
 import { Icon } from '../components/Icon';
 import WebKakaoMap, { MapMarker } from '../components/WebKakaoMap';
 import MeetupCard from '../components/MeetupCard';
+import CategoryTabBar from '../components/CategoryTabBar';
 import apiClient from '../services/apiClient';
 import EmptyState from '../components/EmptyState';
 import { FadeIn } from '../components/animated';
 import { MeetupCardSkeleton } from '../components/skeleton';
-import { FOOD_CATEGORIES } from '../constants/categories';
 
 const DEFAULT_CENTER = { lat: 37.498095, lng: 127.027610 };
-
-const RADIUS_OPTIONS = [
-  { label: '1km', value: 1000 },
-  { label: '3km', value: 3000 },
-  { label: '5km', value: 5000 },
-  { label: '10km', value: 10000 },
-];
 
 const GENDER_OPTIONS = [
   { label: '전체', value: '' },
@@ -71,8 +64,6 @@ interface Meetup {
   created_at?: string;
 }
 
-const CATEGORY_NAMES = FOOD_CATEGORIES.map(c => c.name);
-
 const ExploreScreen: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -84,7 +75,6 @@ const ExploreScreen: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [center, setCenter] = useState(DEFAULT_CENTER);
   const [selectedMeetup, setSelectedMeetup] = useState<Meetup | null>(null);
-  const [radius, setRadius] = useState(3000);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(categoryFromUrl);
   const [selectedGender, setSelectedGender] = useState('');
   const [selectedAge, setSelectedAge] = useState('');
@@ -92,6 +82,27 @@ const ExploreScreen: React.FC = () => {
   const [searchFocused, setSearchFocused] = useState(false);
   const [popupCloseHovered, setPopupCloseHovered] = useState(false);
   const [popupDetailHovered, setPopupDetailHovered] = useState(false);
+  const [filterButtonHovered, setFilterButtonHovered] = useState(false);
+
+  const filterDropdownRef = useRef<HTMLDivElement>(null);
+  const filterButtonRef = useRef<HTMLDivElement>(null);
+
+  // 필터 드롭다운 외부 클릭 시 닫기
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        showFilters &&
+        filterDropdownRef.current &&
+        filterButtonRef.current &&
+        !filterDropdownRef.current.contains(event.target as Node) &&
+        !filterButtonRef.current.contains(event.target as Node)
+      ) {
+        setShowFilters(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showFilters]);
 
   // 사용자 현재 위치 가져오기
   useEffect(() => {
@@ -108,15 +119,14 @@ const ExploreScreen: React.FC = () => {
     }
   }, []);
 
-  // 모임 목록 로드 (거리 기반)
-  const fetchNearbyMeetups = useCallback(async (lat?: number, lng?: number, searchRadius?: number) => {
+  // 모임 목록 로드
+  const fetchNearbyMeetups = useCallback(async (lat?: number, lng?: number) => {
     try {
       setLoading(true);
       const params = new URLSearchParams();
       if (lat && lng) {
         params.append('latitude', lat.toString());
         params.append('longitude', lng.toString());
-        params.append('radius', (searchRadius || radius).toString());
       }
       if (searchQuery.trim()) {
         params.append('search', searchQuery.trim());
@@ -136,28 +146,23 @@ const ExploreScreen: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [searchQuery, radius]);
+  }, [searchQuery]);
 
   useEffect(() => {
-    fetchNearbyMeetups(center.lat, center.lng, radius);
-  }, [center.lat, center.lng, radius]);
+    fetchNearbyMeetups(center.lat, center.lng);
+  }, [center.lat, center.lng]);
 
   const handleSearchSubmit = () => {
-    fetchNearbyMeetups(center.lat, center.lng, radius);
+    fetchNearbyMeetups(center.lat, center.lng);
   };
 
   const handleSearchHere = (newCenter: { lat: number; lng: number }) => {
     setCenter(newCenter);
-    fetchNearbyMeetups(newCenter.lat, newCenter.lng, radius);
-  };
-
-  const handleRadiusChange = (newRadius: number) => {
-    setRadius(newRadius);
+    fetchNearbyMeetups(newCenter.lat, newCenter.lng);
   };
 
   const handleCategoryChange = (category: string | null) => {
     setSelectedCategory(category);
-    // URL 업데이트 (뒤로가기 지원)
     if (category) {
       setSearchParams({ category });
     } else {
@@ -195,6 +200,9 @@ const ExploreScreen: React.FC = () => {
       category: m.category,
     }));
 
+  const hasActiveFilters = selectedGender !== '' || selectedAge !== '';
+  const listTitle = selectedCategory ? `${selectedCategory} 약속` : '전체 약속';
+
   return (
     <View style={styles.container}>
       {/* 헤더 */}
@@ -230,152 +238,218 @@ const ExploreScreen: React.FC = () => {
         </View>
       </View>
 
-      {/* 카테고리 탭 (배민 스타일 pill 칩) */}
-      <View style={styles.categoryTabBar}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.categoryTabScroll}
-        >
-          <TouchableOpacity
-            style={[styles.categoryChip, !selectedCategory && styles.categoryChipActive]}
-            onPress={() => handleCategoryChange(null)}
-            activeOpacity={0.7}
-          >
-            <Text style={[styles.categoryChipText, !selectedCategory && styles.categoryChipTextActive]}>전체</Text>
-          </TouchableOpacity>
-          {CATEGORY_NAMES.map((name) => (
-            <TouchableOpacity
-              key={name}
-              style={[styles.categoryChip, selectedCategory === name && styles.categoryChipActive]}
-              onPress={() => handleCategoryChange(name)}
-              activeOpacity={0.7}
-            >
-              <Text style={[styles.categoryChipText, selectedCategory === name && styles.categoryChipTextActive]}>
-                {name}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      </View>
+      {/* 카테고리 탭 (이미지 기반) */}
+      <CategoryTabBar
+        selectedCategory={selectedCategory}
+        onCategoryChange={handleCategoryChange}
+      />
 
-      {/* 검색바 + 반경 필터 */}
-      <View style={styles.searchSection}>
+      {/* 검색바 + 필터 버튼 */}
+      <div style={{
+        paddingTop: SPACING.md,
+        paddingBottom: SPACING.md,
+        paddingLeft: SPACING.screen.horizontal,
+        paddingRight: SPACING.screen.horizontal,
+        backgroundColor: COLORS.neutral.white,
+        borderBottom: `1px solid ${CARD_STYLE.borderColor}`,
+        position: 'relative',
+      }}>
         <div style={{
           display: 'flex',
           flexDirection: 'row',
           alignItems: 'center',
-          height: 48,
-          backgroundColor: COLORS.neutral.white,
-          borderRadius: BORDER_RADIUS.lg,
-          paddingLeft: SPACING.lg,
-          paddingRight: SPACING.lg,
-          gap: SPACING.md,
-          border: searchFocused ? `1.5px solid ${COLORS.primary.accent}` : `1.5px solid ${COLORS.neutral.grey100}`,
-          boxShadow: searchFocused ? `${CSS_SHADOWS.medium}, ${CSS_SHADOWS.focused}` : CSS_SHADOWS.medium,
-          transition: 'border-color 200ms ease, box-shadow 200ms ease',
+          gap: SPACING.sm,
         }}>
-          <Icon name="search" size={16} color={searchFocused ? COLORS.primary.main : COLORS.text.tertiary} />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="약속 검색 (제목, 위치, 카테고리)"
-            placeholderTextColor={COLORS.text.tertiary}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            onSubmitEditing={handleSearchSubmit}
-            onFocus={() => setSearchFocused(true)}
-            onBlur={() => setSearchFocused(false)}
-            returnKeyType="search"
-          />
-          {searchQuery.length > 0 && (
-            <TouchableOpacity
-              onPress={() => { setSearchQuery(''); fetchNearbyMeetups(center.lat, center.lng, radius); }}
-              style={styles.searchClearButton}
-            >
-              <Icon name="times" size={14} color={COLORS.text.tertiary} />
-            </TouchableOpacity>
-          )}
-        </div>
-        {/* 거리 필터 + 필터 토글 */}
-        <View style={styles.radiusRow}>
-          <Icon name="map-pin" size={14} color={COLORS.text.secondary} />
-          <Text style={styles.radiusLabel}>반경</Text>
-          {RADIUS_OPTIONS.map((opt) => (
-            <TouchableOpacity
-              key={opt.value}
-              style={[
-                styles.radiusChip,
-                radius === opt.value && styles.radiusChipActive,
-              ]}
-              onPress={() => handleRadiusChange(opt.value)}
-              activeOpacity={0.7}
-            >
-              <Text
-                style={[
-                  styles.radiusChipText,
-                  radius === opt.value && styles.radiusChipTextActive,
-                ]}
+          {/* 검색 인풋 */}
+          <div style={{
+            display: 'flex',
+            flexDirection: 'row',
+            alignItems: 'center',
+            flex: 1,
+            height: 48,
+            backgroundColor: COLORS.neutral.white,
+            borderRadius: BORDER_RADIUS.lg,
+            paddingLeft: SPACING.lg,
+            paddingRight: SPACING.lg,
+            gap: SPACING.md,
+            border: searchFocused ? `1.5px solid ${COLORS.primary.accent}` : `1.5px solid ${COLORS.neutral.grey100}`,
+            boxShadow: searchFocused ? `${CSS_SHADOWS.medium}, ${CSS_SHADOWS.focused}` : CSS_SHADOWS.medium,
+            transition: `border-color ${TRANSITIONS.normal}, box-shadow ${TRANSITIONS.normal}`,
+          }}>
+            <Icon name="search" size={16} color={searchFocused ? COLORS.primary.main : COLORS.text.tertiary} />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="약속 검색 (제목, 위치, 카테고리)"
+              placeholderTextColor={COLORS.text.tertiary}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              onSubmitEditing={handleSearchSubmit}
+              onFocus={() => setSearchFocused(true)}
+              onBlur={() => setSearchFocused(false)}
+              returnKeyType="search"
+            />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity
+                onPress={() => { setSearchQuery(''); fetchNearbyMeetups(center.lat, center.lng); }}
+                style={styles.searchClearButton}
               >
-                {opt.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
-          <View style={{ flex: 1 }} />
-          <TouchableOpacity
-            style={[styles.filterToggleButton, showFilters && styles.filterToggleButtonActive]}
-            onPress={() => setShowFilters(!showFilters)}
-            activeOpacity={0.7}
-          >
-            <Icon name="sliders-h" size={14} color={showFilters ? COLORS.primary.main : COLORS.text.tertiary} />
-            <Text style={[styles.filterToggleText, showFilters && styles.filterToggleTextActive]}>필터</Text>
-            {(selectedGender || selectedAge) && (
-              <View style={styles.filterActiveDot} />
+                <Icon name="times" size={14} color={COLORS.text.tertiary} />
+              </TouchableOpacity>
             )}
-          </TouchableOpacity>
-        </View>
+          </div>
 
-        {/* 성별/나이 필터 (토글) */}
+          {/* 필터 칩 버튼 */}
+          <div
+            ref={filterButtonRef}
+            onClick={() => setShowFilters(!showFilters)}
+            onMouseEnter={() => setFilterButtonHovered(true)}
+            onMouseLeave={() => setFilterButtonHovered(false)}
+            style={{
+              display: 'flex',
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 5,
+              height: 48,
+              paddingLeft: 14,
+              paddingRight: 14,
+              borderRadius: BORDER_RADIUS.lg,
+              border: showFilters || hasActiveFilters
+                ? `1.5px solid ${COLORS.primary.main}`
+                : `1.5px solid ${COLORS.neutral.grey100}`,
+              backgroundColor: showFilters || hasActiveFilters
+                ? COLORS.primary.light
+                : filterButtonHovered
+                  ? COLORS.neutral.grey50
+                  : COLORS.neutral.white,
+              cursor: 'pointer',
+              userSelect: 'none',
+              position: 'relative',
+              transition: `all ${TRANSITIONS.normal}`,
+              boxShadow: CSS_SHADOWS.small,
+              flexShrink: 0,
+            }}
+          >
+            <Icon
+              name="filter"
+              size={15}
+              color={showFilters || hasActiveFilters ? COLORS.primary.main : COLORS.text.tertiary}
+            />
+            <span style={{
+              fontSize: 14,
+              fontWeight: 600,
+              color: showFilters || hasActiveFilters ? COLORS.primary.main : COLORS.text.secondary,
+              whiteSpace: 'nowrap',
+              transition: `color ${TRANSITIONS.normal}`,
+            }}>
+              필터
+            </span>
+            {hasActiveFilters && (
+              <div style={{
+                position: 'absolute',
+                top: -3,
+                right: -3,
+                width: 8,
+                height: 8,
+                borderRadius: BORDER_RADIUS.full,
+                backgroundColor: COLORS.primary.main,
+                border: `1.5px solid ${COLORS.neutral.white}`,
+              }} />
+            )}
+          </div>
+        </div>
+
+        {/* 필터 드롭다운 패널 */}
         {showFilters && (
-          <View style={styles.filterSection}>
-            {/* 성별 */}
-            <View style={styles.filterRow}>
-              <Text style={styles.filterLabel}>성별</Text>
-              <View style={styles.filterChips}>
+          <div
+            ref={filterDropdownRef}
+            style={{
+              position: 'absolute',
+              top: '100%',
+              right: SPACING.screen.horizontal,
+              zIndex: 100,
+              minWidth: 280,
+              backgroundColor: COLORS.neutral.white,
+              borderRadius: BORDER_RADIUS.xl,
+              border: `1px solid ${COLORS.neutral.grey100}`,
+              boxShadow: CSS_SHADOWS.large,
+              padding: SPACING.lg,
+              marginTop: 4,
+            }}
+          >
+            {/* 성별 필터 */}
+            <div style={{ marginBottom: SPACING.lg }}>
+              <div style={{
+                fontSize: 13,
+                fontWeight: 700,
+                color: COLORS.text.secondary,
+                marginBottom: SPACING.sm,
+                letterSpacing: -0.1,
+              }}>
+                성별
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
                 {GENDER_OPTIONS.map((opt) => (
-                  <TouchableOpacity
-                    key={opt.value}
-                    style={[styles.filterChip, selectedGender === opt.value && styles.filterChipActive]}
+                  <FilterChip
+                    key={`gender-${opt.value}`}
+                    label={opt.label}
+                    isActive={selectedGender === opt.value}
                     onPress={() => setSelectedGender(selectedGender === opt.value ? '' : opt.value)}
-                    activeOpacity={0.7}
-                  >
-                    <Text style={[styles.filterChipText, selectedGender === opt.value && styles.filterChipTextActive]}>
-                      {opt.label}
-                    </Text>
-                  </TouchableOpacity>
+                  />
                 ))}
-              </View>
-            </View>
-            {/* 나이 */}
-            <View style={styles.filterRow}>
-              <Text style={styles.filterLabel}>나이</Text>
-              <View style={styles.filterChips}>
+              </div>
+            </div>
+
+            {/* 나이 필터 */}
+            <div>
+              <div style={{
+                fontSize: 13,
+                fontWeight: 700,
+                color: COLORS.text.secondary,
+                marginBottom: SPACING.sm,
+                letterSpacing: -0.1,
+              }}>
+                나이
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
                 {AGE_OPTIONS.map((opt) => (
-                  <TouchableOpacity
-                    key={opt.value}
-                    style={[styles.filterChip, selectedAge === opt.value && styles.filterChipActive]}
+                  <FilterChip
+                    key={`age-${opt.value}`}
+                    label={opt.label}
+                    isActive={selectedAge === opt.value}
                     onPress={() => setSelectedAge(selectedAge === opt.value ? '' : opt.value)}
-                    activeOpacity={0.7}
-                  >
-                    <Text style={[styles.filterChipText, selectedAge === opt.value && styles.filterChipTextActive]}>
-                      {opt.label}
-                    </Text>
-                  </TouchableOpacity>
+                  />
                 ))}
-              </View>
-            </View>
-          </View>
+              </div>
+            </div>
+
+            {/* 초기화 버튼 */}
+            {hasActiveFilters && (
+              <div
+                onClick={() => {
+                  setSelectedGender('');
+                  setSelectedAge('');
+                }}
+                style={{
+                  marginTop: SPACING.lg,
+                  paddingTop: SPACING.md,
+                  borderTop: `1px solid ${COLORS.neutral.grey100}`,
+                  display: 'flex',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                }}
+              >
+                <span style={{
+                  fontSize: 13,
+                  fontWeight: 600,
+                  color: COLORS.text.tertiary,
+                }}>
+                  필터 초기화
+                </span>
+              </div>
+            )}
+          </div>
         )}
-      </View>
+      </div>
 
       {viewMode === 'map' ? (
         /* 지도 뷰 */
@@ -480,7 +554,7 @@ const ExploreScreen: React.FC = () => {
                     width: 36,
                     height: 36,
                     backgroundColor: popupCloseHovered ? COLORS.neutral.grey200 : COLORS.neutral.grey100,
-                    transition: 'background-color 150ms ease',
+                    transition: `background-color ${TRANSITIONS.fast}`,
                     flexShrink: 0,
                   }}
                   role="button"
@@ -504,7 +578,7 @@ const ExploreScreen: React.FC = () => {
                   fontWeight: '700',
                   cursor: 'pointer',
                   letterSpacing: '0.3px',
-                  transition: 'transform 200ms ease',
+                  transition: `transform ${TRANSITIONS.normal}`,
                   boxShadow: CSS_SHADOWS.cta,
                   transform: popupDetailHovered ? 'scale(1.02)' : 'scale(1)',
                 }}
@@ -518,7 +592,7 @@ const ExploreScreen: React.FC = () => {
           <ScrollView style={styles.mapListBelow} showsVerticalScrollIndicator={false}>
             <View style={styles.listTitleRow}>
               <Text style={styles.mapListTitle}>
-                {selectedCategory ? `${selectedCategory}` : `반경 ${radius >= 1000 ? `${radius / 1000}km` : `${radius}m`}`} 약속
+                {listTitle}
               </Text>
               {displayMeetups.length > 0 && (
                 <Text style={styles.listCount}>총 {displayMeetups.length}개의 약속</Text>
@@ -568,7 +642,7 @@ const ExploreScreen: React.FC = () => {
           <View style={styles.listHeader}>
             <View style={styles.listTitleRow}>
               <Text style={styles.mapListTitle}>
-                {selectedCategory ? `${selectedCategory}` : `반경 ${radius >= 1000 ? `${radius / 1000}km` : `${radius}m`}`} 약속
+                {listTitle}
               </Text>
               {displayMeetups.length > 0 && (
                 <Text style={styles.listCount}>총 {displayMeetups.length}개의 약속</Text>
@@ -584,7 +658,7 @@ const ExploreScreen: React.FC = () => {
               <EmptyState
                 icon={searchQuery ? 'search' : 'map-pin'}
                 title={selectedCategory ? `${selectedCategory} 약속이 없어요` : searchQuery ? '조건에 맞는 약속이 없어요' : '주변에 약속이 없어요'}
-                description={selectedCategory ? '다른 카테고리를 선택해보세요' : searchQuery ? '검색어를 변경하거나 조건을 변경해보세요' : '반경을 넓히거나 위치를 변경해보세요'}
+                description={selectedCategory ? '다른 카테고리를 선택해보세요' : searchQuery ? '검색어를 변경하거나 조건을 변경해보세요' : '위치를 변경해보세요'}
                 context="explore"
               />
             </FadeIn>
@@ -613,6 +687,53 @@ const ExploreScreen: React.FC = () => {
         </ScrollView>
       )}
     </View>
+  );
+};
+
+/** Reusable filter chip for the dropdown panel */
+const FilterChip: React.FC<{
+  label: string;
+  isActive: boolean;
+  onPress: () => void;
+}> = ({ label, isActive, onPress }) => {
+  const [hovered, setHovered] = useState(false);
+
+  return (
+    <div
+      onClick={onPress}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        height: 34,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingLeft: 14,
+        paddingRight: 14,
+        borderRadius: BORDER_RADIUS.pill,
+        border: isActive
+          ? `1.5px solid ${COLORS.primary.main}`
+          : `1.5px solid ${COLORS.neutral.grey200}`,
+        backgroundColor: isActive
+          ? COLORS.primary.light
+          : hovered
+            ? COLORS.neutral.grey50
+            : 'transparent',
+        cursor: 'pointer',
+        userSelect: 'none',
+        transition: `all ${TRANSITIONS.normal}`,
+      }}
+    >
+      <span style={{
+        fontSize: 13,
+        fontWeight: isActive ? 700 : 500,
+        color: isActive ? COLORS.primary.main : COLORS.text.secondary,
+        whiteSpace: 'nowrap',
+        transition: `color ${TRANSITIONS.normal}`,
+      }}>
+        {label}
+      </span>
+    </div>
   );
 };
 
@@ -656,7 +777,7 @@ const styles = StyleSheet.create({
     color: COLORS.primary.main,
   },
 
-  // View Toggle (pill 형태)
+  // View Toggle (pill)
   viewToggle: {
     flexDirection: 'row',
     backgroundColor: COLORS.neutral.grey100,
@@ -671,7 +792,7 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
     borderRadius: BORDER_RADIUS.lg,
     cursor: 'pointer',
-    transition: 'all 200ms ease',
+    transition: `all ${TRANSITIONS.normal}`,
   },
   toggleButtonActive: {
     backgroundColor: COLORS.primary.main,
@@ -681,57 +802,13 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     color: COLORS.text.secondary,
-    transition: 'color 200ms ease',
+    transition: `color ${TRANSITIONS.normal}`,
   },
   toggleTextActive: {
     color: COLORS.text.white,
   },
 
-  // Category Tabs (배민 스타일 pill 칩)
-  categoryTabBar: {
-    backgroundColor: COLORS.neutral.white,
-    paddingVertical: SPACING.md,
-    borderBottomWidth: 1,
-    borderBottomColor: CARD_STYLE.borderColor,
-  },
-  categoryTabScroll: {
-    paddingLeft: SPACING.screen.horizontal,
-    paddingRight: SPACING.md,
-    gap: SPACING.sm,
-  },
-  categoryChip: {
-    height: 40,
-    minHeight: 44,
-    justifyContent: 'center',
-    paddingHorizontal: 18,
-    borderRadius: BORDER_RADIUS.lg,
-    backgroundColor: COLORS.neutral.grey100,
-    transition: 'all 200ms ease',
-    cursor: 'pointer',
-  },
-  categoryChipActive: {
-    backgroundColor: COLORS.primary.main,
-    ...SHADOWS.small,
-  },
-  categoryChipText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: COLORS.text.secondary,
-    whiteSpace: 'nowrap',
-  },
-  categoryChipTextActive: {
-    fontWeight: '600',
-    color: COLORS.text.white,
-  },
-
-  // Search Section
-  searchSection: {
-    paddingVertical: SPACING.md,
-    paddingHorizontal: SPACING.screen.horizontal,
-    backgroundColor: COLORS.neutral.white,
-    borderBottomWidth: 1,
-    borderBottomColor: CARD_STYLE.borderColor,
-  },
+  // Search
   searchInput: {
     flex: 1,
     fontSize: 15,
@@ -747,128 +824,6 @@ const styles = StyleSheet.create({
     minHeight: 44,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-
-  // Radius Filter
-  radiusRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.sm,
-    marginTop: SPACING.md,
-  },
-  radiusLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: COLORS.text.secondary,
-    marginRight: 2,
-  },
-  radiusChip: {
-    height: 32,
-    minHeight: 44,
-    justifyContent: 'center',
-    paddingHorizontal: 14,
-    borderRadius: BORDER_RADIUS.md,
-    backgroundColor: 'transparent',
-    borderWidth: 1.5,
-    borderColor: COLORS.neutral.grey300,
-    transition: 'all 200ms ease',
-    cursor: 'pointer',
-  },
-  radiusChipActive: {
-    backgroundColor: COLORS.primary.light,
-    borderColor: COLORS.primary.main,
-  },
-  radiusChipText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: COLORS.text.tertiary,
-  },
-  radiusChipTextActive: {
-    color: COLORS.primary.main,
-  },
-
-  // Filter Toggle
-  filterToggleButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: SPACING.md,
-    paddingVertical: 6,
-    borderRadius: BORDER_RADIUS.md,
-    borderWidth: 1.5,
-    borderColor: COLORS.neutral.grey300,
-    backgroundColor: 'transparent',
-    cursor: 'pointer',
-    position: 'relative',
-  },
-  filterToggleButtonActive: {
-    borderColor: COLORS.primary.main,
-    backgroundColor: COLORS.primary.light,
-  },
-  filterToggleText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: COLORS.text.tertiary,
-  },
-  filterToggleTextActive: {
-    color: COLORS.primary.main,
-  },
-  filterActiveDot: {
-    position: 'absolute',
-    top: -3,
-    right: -3,
-    width: 8,
-    height: 8,
-    borderRadius: BORDER_RADIUS.full,
-    backgroundColor: COLORS.primary.main,
-    borderWidth: 1.5,
-    borderColor: COLORS.neutral.white,
-  },
-
-  // Filter Section
-  filterSection: {
-    marginTop: SPACING.md,
-    gap: 10,
-  },
-  filterRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  filterLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: COLORS.text.secondary,
-    width: 36,
-    flexShrink: 0,
-  },
-  filterChips: {
-    flexDirection: 'row',
-    gap: 6,
-    flexWrap: 'wrap',
-  },
-  filterChip: {
-    height: 32,
-    minHeight: 44,
-    justifyContent: 'center',
-    paddingHorizontal: 14,
-    borderRadius: BORDER_RADIUS.md,
-    backgroundColor: 'transparent',
-    borderWidth: 1.5,
-    borderColor: COLORS.neutral.grey300,
-    cursor: 'pointer',
-  },
-  filterChipActive: {
-    backgroundColor: COLORS.primary.light,
-    borderColor: COLORS.primary.main,
-  },
-  filterChipText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: COLORS.text.tertiary,
-  },
-  filterChipTextActive: {
-    color: COLORS.primary.main,
   },
 
   // Map View
