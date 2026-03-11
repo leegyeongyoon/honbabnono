@@ -3,6 +3,10 @@ const router = express.Router();
 const supportController = require('./controller');
 const { authenticateToken } = require('../../middleware/auth');
 
+// 공지사항 조회
+router.get('/notices', supportController.getNotices);
+router.get('/notices/:id', supportController.getNoticeById);
+
 // FAQ 목록 조회
 router.get('/faq', supportController.getFaq);
 
