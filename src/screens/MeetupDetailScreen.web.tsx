@@ -305,6 +305,8 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
   const [userRiceIndex, setUserRiceIndex] = React.useState<number>(0);
   const [isWishlisted, setIsWishlisted] = React.useState<boolean>(false);
   const [wishlistLoading, setWishlistLoading] = React.useState<boolean>(false);
+  const [depositStatus, setDepositStatus] = React.useState<string | null>(null);
+  const [depositAmountState, setDepositAmountState] = React.useState<number>(0);
   const { toast, showSuccess, showError, showInfo, hideToast } = useToast();
   const { dialog, confirm, confirmDanger, hideDialog } = useConfirmDialog();
 
@@ -367,6 +369,34 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
     };
 
     checkWishlistStatus();
+  }, [currentMeetup, user]);
+
+  // 약속금 결제 상태 확인
+  React.useEffect(() => {
+    const checkDepositStatus = async () => {
+      if (!currentMeetup || !user) {return;}
+      const required = currentMeetup.promiseDepositRequired;
+      const amount = currentMeetup.promiseDepositAmount || 0;
+      setDepositAmountState(amount);
+
+      if (!required || amount <= 0) {
+        setDepositStatus(null);
+        return;
+      }
+
+      try {
+        const response = await apiClient.get(`/deposits/meetup/${currentMeetup.id}`);
+        if (response.data && response.data.success && response.data.deposit) {
+          setDepositStatus(response.data.deposit.status);
+        } else {
+          setDepositStatus(null);
+        }
+      } catch (_error) {
+        setDepositStatus(null);
+      }
+    };
+
+    checkDepositStatus();
   }, [currentMeetup, user]);
 
   // 찜 토글 함수
@@ -458,13 +488,15 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
       }
 
       if (meetup?.promiseDepositRequired && meetup?.promiseDepositAmount > 0) {
-        setShowDepositSelector(true);
+        // 약속금이 필요한 모임 - 결제 페이지로 이동
+        navigate(`/meetup/${id}/deposit-payment`);
       } else {
+        // 무료 모임 - 바로 참가
         await joinMeetup(id, user.id);
-        alert('약속에 참여되었습니다!');
+        showSuccess('약속에 참여되었습니다!');
       }
     } catch (_error) {
-      alert('약속 참여에 실패했습니다. 다시 시도해주세요.');
+      showError('약속 참여에 실패했습니다. 다시 시도해주세요.');
     }
   };
 
@@ -581,11 +613,12 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
       // 포인트 확인
       const hasEnoughPoints = await checkUserPoints();
 
+      const depositAmt = meetup.promiseDepositAmount || meetup.deposit || 3000;
+
       if (!hasEnoughPoints) {
-        const requiredPoints = meetup.deposit || 3000;
         const confirmed = await confirm(
           '포인트 부족',
-          `포인트가 부족합니다.\n필요한 포인트: ${requiredPoints.toLocaleString()}원\n충전 페이지로 이동하시겠습니까?`
+          `포인트가 부족합니다.\n필요한 포인트: ${depositAmt.toLocaleString()}원\n결제 페이지로 이동하시겠습니까?`
         );
 
         if (confirmed) {
@@ -600,7 +633,7 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
 
       // 포인트 사용 API 호출
       const usePointsResponse = await apiClient.post('/users/use-points', {
-        amount: meetup.deposit || 3000,
+        amount: depositAmt,
         description: `약속 참여비: ${meetup.title}`
       });
 
@@ -614,7 +647,7 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
       await joinMeetup(id, user.id);
       setShowPromiseModal(false);
 
-      showSuccess('약속 참여가 완료되었습니다! 사용된 포인트: ' + (meetup.deposit || 3000).toLocaleString() + '원');
+      showSuccess('약속 참여가 완료되었습니다! 사용된 포인트: ' + depositAmt.toLocaleString() + '원');
     } catch (error) {
       showError('약속 참여 중 오류가 발생했습니다.');
       setShowPromiseModal(false);
@@ -764,23 +797,28 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
           )}
         </div>
 
-        {/* 호스트 정보 카드 */}
-        <div style={{
-          marginLeft: SPACING.xl,
-          marginRight: SPACING.xl,
-          marginTop: -32,
-          position: 'relative',
-          zIndex: 2,
-          backgroundColor: COLORS.neutral.white,
-          borderRadius: BORDER_RADIUS.md,
-          padding: 16,
-          display: 'flex',
-          flexDirection: 'row',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          boxShadow: CSS_SHADOWS.card,
-          border: `1px solid ${CARD_STYLE.borderColor}`,
-        }}>
+        {/* 호스트 정보 카드 — 클릭 시 호스트 프로필 이동 */}
+        <div
+          style={{
+            marginLeft: SPACING.xl,
+            marginRight: SPACING.xl,
+            marginTop: -32,
+            position: 'relative',
+            zIndex: 2,
+            backgroundColor: COLORS.neutral.white,
+            borderRadius: BORDER_RADIUS.md,
+            padding: 16,
+            display: 'flex',
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            boxShadow: CSS_SHADOWS.card,
+            border: `1px solid ${CARD_STYLE.borderColor}`,
+            cursor: 'pointer',
+            transition: 'box-shadow 200ms ease',
+          }}
+          onClick={() => meetup.hostId && navigate(`/host-profile/${meetup.hostId}`)}
+        >
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
             <ProfileImage
               profileImage={meetup.host?.profileImage}
@@ -795,32 +833,35 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
               </View>
             </View>
           </View>
-          {(() => {
-            const score = meetup.hostBabAlScore || userRiceIndex || 36.5;
-            const scoreNum = typeof score === 'number' ? score : parseFloat(score) || 36.5;
-            const color = scoreNum >= 60 ? '#D4482C' : scoreNum >= 50 ? '#FF6B35' : scoreNum >= 42 ? '#4CAF50' : scoreNum >= 36.5 ? '#2196F3' : scoreNum >= 30 ? '#9E9E9E' : '#F44336';
-            return (
-              <div style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: 2,
-              }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            {(() => {
+              const score = meetup.hostBabAlScore || userRiceIndex || 36.5;
+              const scoreNum = typeof score === 'number' ? score : parseFloat(score) || 36.5;
+              const color = scoreNum >= 60 ? '#D4482C' : scoreNum >= 50 ? '#FF6B35' : scoreNum >= 42 ? '#4CAF50' : scoreNum >= 36.5 ? '#2196F3' : scoreNum >= 30 ? '#9E9E9E' : '#F44336';
+              return (
                 <div style={{
-                  background: `${color}15`,
-                  paddingLeft: 12,
-                  paddingRight: 12,
-                  paddingTop: 6,
-                  paddingBottom: 6,
-                  borderRadius: BORDER_RADIUS.md,
-                  border: `1px solid ${color}30`,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: 2,
                 }}>
-                  <span style={{ fontSize: 14, fontWeight: '700', color }}>{scoreNum}</span>
-                  <span style={{ fontSize: 11, fontWeight: '500', color: COLORS.text.tertiary, marginLeft: 2 }}>밥알</span>
+                  <div style={{
+                    background: `${color}15`,
+                    paddingLeft: 12,
+                    paddingRight: 12,
+                    paddingTop: 6,
+                    paddingBottom: 6,
+                    borderRadius: BORDER_RADIUS.md,
+                    border: `1px solid ${color}30`,
+                  }}>
+                    <span style={{ fontSize: 14, fontWeight: '700', color }}>{scoreNum}</span>
+                    <span style={{ fontSize: 11, fontWeight: '500', color: COLORS.text.tertiary, marginLeft: 2 }}>밥알</span>
+                  </div>
                 </div>
-              </div>
-            );
-          })()}
+              );
+            })()}
+            <Icon name="chevron-right" size={16} color={COLORS.text.tertiary} />
+          </View>
         </div>
 
         {/* 메인 카드 */}
@@ -1103,34 +1144,62 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
           <>
             {(participants.some(p => p.id === user?.id) || isHost) ? (
               <View style={styles.bottomButtonContainer}>
-                {/* 채팅방 가기 버튼 */}
-                <TouchableOpacity
-                  onPress={() => handleGoToChat()}
-                  style={styles.chatButton}
-                >
-                  <Text style={styles.chatButtonText}>채팅방</Text>
-                </TouchableOpacity>
+                {/* 약속금 미결제 참가자: 결제 버튼 표시 */}
+                {!isHost && meetup.promiseDepositRequired && depositAmountState > 0 && depositStatus !== 'paid' ? (
+                  <>
+                    <TouchableOpacity
+                      onPress={() => navigate(`/meetup/${id}/deposit-payment`)}
+                      style={styles.depositButton}
+                    >
+                      <Text style={styles.depositButtonText}>
+                        {`약속금 ${(meetup.promiseDepositAmount || 3000).toLocaleString()}원 결제하기`}
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => setShowLeaveModal(true)}
+                      style={styles.leaveButton}
+                    >
+                      <Text style={styles.leaveButtonText}>참여취소</Text>
+                    </TouchableOpacity>
+                  </>
+                ) : (
+                  <>
+                    {/* 결제 완료 표시 */}
+                    {!isHost && depositStatus === 'paid' && depositAmountState > 0 && (
+                      <View style={styles.depositPaidBadge}>
+                        <Text style={styles.depositPaidText}>약속금 결제완료</Text>
+                      </View>
+                    )}
+                    {/* 채팅방 가기 버튼 */}
+                    <TouchableOpacity
+                      onPress={() => handleGoToChat()}
+                      style={styles.chatButton}
+                    >
+                      <Text style={styles.chatButtonText}>채팅방</Text>
+                    </TouchableOpacity>
 
-                {/* 호스트 전용 버튼들 */}
-                {isHost && (
-                  <TouchableOpacity
-                    onPress={() => setShowHostModal(true)}
-                    style={styles.hostButton}
-                  >
-                    <Text style={styles.hostButtonText}>
-                      {meetup.status === 'confirmed' ? '약속취소' : '약속확정'}
-                    </Text>
-                  </TouchableOpacity>
-                )}
+                    {/* 호스트 전용 버튼들 */}
+                    {isHost && (
+                      <TouchableOpacity
+                        onPress={() => setShowHostModal(true)}
+                        style={styles.hostButton}
+                      >
+                        <Text style={styles.hostButtonText}>
+                          {meetup.status === 'confirmed' ? '약속취소' : '약속확정'}
+                        </Text>
+                      </TouchableOpacity>
+                    )}
 
-                {/* 참가자 탈퇴 버튼 — outlined style */}
-                {!isHost && (
-                  <TouchableOpacity
-                    onPress={() => setShowLeaveModal(true)}
-                    style={styles.leaveButton}
-                  >
-                    <Text style={styles.leaveButtonText}>참여취소</Text>
-                  </TouchableOpacity>
+                    {/* 참가자 탈퇴 버튼 — outlined style */}
+                    {!isHost && (
+                      <TouchableOpacity
+                        onPress={() => setShowLeaveModal(true)}
+                        style={styles.leaveButton}
+                      >
+                        <Text style={styles.leaveButtonText}>참여취소</Text>
+                      </TouchableOpacity>
+                    )}
+                  </>
                 )}
               </View>
             ) : (
@@ -1195,7 +1264,7 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
               노쇼 방지 약속금이며, 1일 이내에 다시 입금됩니다.
             </Text>
             <View style={styles.modalAmountContainer}>
-              <Text style={styles.modalAmount}>약속금 3000원</Text>
+              <Text style={styles.modalAmount}>{`약속금 ${(meetup.promiseDepositAmount || 3000).toLocaleString()}원`}</Text>
             </View>
             <View style={styles.modalButtonContainer}>
               <TouchableOpacity
@@ -1596,6 +1665,32 @@ const styles = StyleSheet.create({
     color: COLORS.neutral.white,
     fontSize: 18,
     fontWeight: '700',
+  },
+  depositButton: {
+    flex: 1,
+    backgroundColor: COLORS.special.deposit,
+    borderRadius: BORDER_RADIUS.md,
+    paddingVertical: 14,
+    alignItems: 'center',
+    ...SHADOWS.cta,
+  },
+  depositButtonText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: COLORS.neutral.white,
+  },
+  depositPaidBadge: {
+    backgroundColor: COLORS.functional.successLight,
+    borderRadius: BORDER_RADIUS.sm,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    alignSelf: 'center',
+    marginBottom: 4,
+  },
+  depositPaidText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: COLORS.functional.success,
   },
   modalOverlay: {
     position: 'absolute',

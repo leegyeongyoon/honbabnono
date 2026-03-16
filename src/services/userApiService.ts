@@ -210,6 +210,16 @@ const userApiService = {
     }
   },
 
+  // 호스트 통합 프로필 조회
+  getHostProfile: async (userId: string): Promise<any> => {
+    try {
+      const response = await apiClient.get(`/user/${userId}/host-profile`);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
   // ==================== 찜 목록 관련 ====================
 
   // 찜 목록 조회

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -9,12 +9,17 @@ import {
   Alert,
   SafeAreaView,
   ActivityIndicator,
+  Image,
+  Platform,
+  Modal,
 } from 'react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { COLORS, SHADOWS } from '../styles/colors';
 import { Icon } from '../components/Icon';
 import { ProfileImage } from '../components/ProfileImage';
 import apiClient from '../services/apiClient';
+
+const MAX_IMAGES = 3;
 
 interface Participant {
   id: string;
@@ -41,6 +46,7 @@ const WriteReviewScreen = () => {
   const route = useRoute<any>();
   const navigation = useNavigation();
   const { meetupId, meetupTitle } = route.params || {};
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [selectedParticipant, setSelectedParticipant] = useState<Participant | null>(null);
@@ -50,6 +56,12 @@ const WriteReviewScreen = () => {
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [selectedImages, setSelectedImages] = useState<string[]>([]);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [imagePreviewModal, setImagePreviewModal] = useState<{ visible: boolean; uri: string }>({
+    visible: false,
+    uri: '',
+  });
 
   useEffect(() => {
     fetchReviewableParticipants();
@@ -79,12 +91,124 @@ const WriteReviewScreen = () => {
     setRating(0);
     setContent('');
     setSelectedTags([]);
+    setSelectedImages([]);
   };
 
   const handleToggleTag = (tag: string) => {
     setSelectedTags((prev) =>
       prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
     );
+  };
+
+  // 이미지 업로드 함수
+  const uploadImage = async (file: File | Blob, fileName: string): Promise<string | null> => {
+    try {
+      const formData = new FormData();
+      formData.append('image', file, fileName);
+
+      const response = await apiClient.post('/upload/image', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+
+      if (response.data?.imageUrl) {
+        return response.data.imageUrl;
+      }
+      return null;
+    } catch (_error) {
+      return null;
+    }
+  };
+
+  // 웹 환경에서 파일 선택
+  const handlePickImage = () => {
+    if (selectedImages.length >= MAX_IMAGES) {
+      Alert.alert('알림', `사진은 최대 ${MAX_IMAGES}장까지 첨부할 수 있습니다.`);
+      return;
+    }
+
+    if (Platform.OS === 'web') {
+      // 웹: hidden input을 클릭
+      if (fileInputRef.current) {
+        fileInputRef.current.click();
+      }
+    } else {
+      // 네이티브: 갤러리 선택 (launchImageLibrary 사용)
+      handleNativeImagePick();
+    }
+  };
+
+  // 네이티브 이미지 선택
+  const handleNativeImagePick = async () => {
+    try {
+      const ImagePicker = require('react-native-image-picker');
+      const result = await ImagePicker.launchImageLibrary({
+        mediaType: 'photo',
+        maxWidth: 1024,
+        maxHeight: 1024,
+        quality: 0.8,
+      });
+
+      if (result.didCancel || !result.assets?.[0]) {
+        return;
+      }
+
+      const asset = result.assets[0];
+      setUploadingImage(true);
+
+      const formData = new FormData();
+      formData.append('image', {
+        uri: asset.uri,
+        type: asset.type || 'image/jpeg',
+        name: asset.fileName || 'photo.jpg',
+      } as any);
+
+      const response = await apiClient.post('/upload/image', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+
+      if (response.data?.imageUrl) {
+        setSelectedImages(prev => [...prev, response.data.imageUrl]);
+      }
+    } catch (_error) {
+      Alert.alert('오류', '이미지 업로드에 실패했습니다.');
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  // 웹 파일 선택 핸들러
+  const handleWebFileChange = async (event: any) => {
+    const file = event.target.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    if (selectedImages.length >= MAX_IMAGES) {
+      Alert.alert('알림', `사진은 최대 ${MAX_IMAGES}장까지 첨부할 수 있습니다.`);
+      return;
+    }
+
+    setUploadingImage(true);
+    try {
+      const imageUrl = await uploadImage(file, file.name);
+      if (imageUrl) {
+        setSelectedImages(prev => [...prev, imageUrl]);
+      } else {
+        Alert.alert('오류', '이미지 업로드에 실패했습니다.');
+      }
+    } catch (_error) {
+      Alert.alert('오류', '이미지 업로드에 실패했습니다.');
+    } finally {
+      setUploadingImage(false);
+      // input 초기화 (같은 파일 다시 선택 가능)
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const handleRemoveImage = (index: number) => {
+    setSelectedImages(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleSubmitReview = async () => {
@@ -105,6 +229,7 @@ const WriteReviewScreen = () => {
         rating,
         comment: content.trim() || null,
         tags: selectedTags,
+        images: selectedImages,
         isAnonymous,
       });
 
@@ -113,13 +238,12 @@ const WriteReviewScreen = () => {
           {
             text: '확인',
             onPress: () => {
-              // 목록 새로고침
               fetchReviewableParticipants();
-              // 폼 초기화
               setSelectedParticipant(null);
               setRating(0);
               setContent('');
               setSelectedTags([]);
+              setSelectedImages([]);
             },
           },
         ]);
@@ -147,6 +271,94 @@ const WriteReviewScreen = () => {
       </View>
     );
   };
+
+  const renderImagePicker = () => (
+    <View style={styles.imageSection}>
+      <Text style={styles.sectionTitle}>
+        사진 첨부 (선택, 최대 {MAX_IMAGES}장)
+      </Text>
+
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.imageScrollView}>
+        <View style={styles.imageRow}>
+          {selectedImages.map((uri, index) => (
+            <View key={index} style={styles.imagePreviewContainer}>
+              <TouchableOpacity
+                onPress={() => setImagePreviewModal({ visible: true, uri })}
+                activeOpacity={0.8}
+              >
+                <Image source={{ uri }} style={styles.imagePreview} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.imageRemoveButton}
+                onPress={() => handleRemoveImage(index)}
+              >
+                <Icon name="x" size={14} color={COLORS.neutral.white} />
+              </TouchableOpacity>
+            </View>
+          ))}
+
+          {selectedImages.length < MAX_IMAGES && (
+            <TouchableOpacity
+              style={styles.imageAddButton}
+              onPress={handlePickImage}
+              disabled={uploadingImage}
+            >
+              {uploadingImage ? (
+                <ActivityIndicator size="small" color={COLORS.primary.main} />
+              ) : (
+                <>
+                  <Icon name="camera" size={24} color={COLORS.primary.main} />
+                  <Text style={styles.imageAddText}>
+                    {selectedImages.length}/{MAX_IMAGES}
+                  </Text>
+                </>
+              )}
+            </TouchableOpacity>
+          )}
+        </View>
+      </ScrollView>
+
+      {/* 웹 hidden file input */}
+      {Platform.OS === 'web' && (
+        <input
+          ref={fileInputRef as any}
+          type="file"
+          accept="image/*"
+          onChange={handleWebFileChange}
+          style={{ display: 'none' }}
+        />
+      )}
+    </View>
+  );
+
+  const renderImagePreviewModal = () => (
+    <Modal
+      visible={imagePreviewModal.visible}
+      transparent
+      animationType="fade"
+      onRequestClose={() => setImagePreviewModal({ visible: false, uri: '' })}
+    >
+      <TouchableOpacity
+        style={styles.imageModalOverlay}
+        activeOpacity={1}
+        onPress={() => setImagePreviewModal({ visible: false, uri: '' })}
+      >
+        <View style={styles.imageModalContent}>
+          <Image
+            source={{ uri: imagePreviewModal.uri }}
+            style={styles.imageModalImage}
+            resizeMode="contain"
+          />
+          <TouchableOpacity
+            style={styles.imageModalClose}
+            onPress={() => setImagePreviewModal({ visible: false, uri: '' })}
+          >
+            <Icon name="x" size={24} color={COLORS.neutral.white} />
+          </TouchableOpacity>
+        </View>
+      </TouchableOpacity>
+    </Modal>
+  );
 
   const renderParticipantList = () => {
     if (loading) {
@@ -280,6 +492,8 @@ const WriteReviewScreen = () => {
           </Text>
         </View>
 
+        {renderImagePicker()}
+
         <TouchableOpacity
           style={styles.anonymousRow}
           onPress={() => setIsAnonymous(!isAnonymous)}
@@ -332,6 +546,8 @@ const WriteReviewScreen = () => {
 
         <View style={styles.bottomPadding} />
       </ScrollView>
+
+      {renderImagePreviewModal()}
     </SafeAreaView>
   );
 };
@@ -559,6 +775,78 @@ const styles = StyleSheet.create({
   },
   charCounterError: {
     color: COLORS.functional.error,
+  },
+  // Image picker styles
+  imageSection: {
+    marginBottom: 20,
+  },
+  imageScrollView: {
+    flexGrow: 0,
+  },
+  imageRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  imagePreviewContainer: {
+    position: 'relative',
+  },
+  imagePreview: {
+    width: 80,
+    height: 80,
+    borderRadius: 10,
+    backgroundColor: COLORS.neutral.grey100,
+  },
+  imageRemoveButton: {
+    position: 'absolute',
+    top: -6,
+    right: -6,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: COLORS.functional.error,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...SHADOWS.small,
+  },
+  imageAddButton: {
+    width: 80,
+    height: 80,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: COLORS.primary.main,
+    borderStyle: 'dashed',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.primary.light,
+  },
+  imageAddText: {
+    fontSize: 11,
+    color: COLORS.primary.main,
+    fontWeight: '600',
+    marginTop: 4,
+  },
+  // Image preview modal
+  imageModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  imageModalContent: {
+    width: '90%',
+    height: '70%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  imageModalImage: {
+    width: '100%',
+    height: '100%',
+  },
+  imageModalClose: {
+    position: 'absolute',
+    top: -40,
+    right: 0,
+    padding: 8,
   },
   anonymousRow: {
     flexDirection: 'row',

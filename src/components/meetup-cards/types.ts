@@ -72,6 +72,46 @@ export const getUrgencyInfo = (
   return null;
 };
 
+// ─── 참가 현황 상태 ────────────────────────────────────────
+export type ParticipantStatusType = 'open' | 'closing_soon' | 'closed';
+
+export interface ParticipantStatusInfo {
+  type: ParticipantStatusType;
+  label: string;
+  color: string;
+  bgColor: string;
+}
+
+export const getParticipantStatus = (
+  currentP: number,
+  maxP: number,
+): ParticipantStatusInfo => {
+  const ratio = maxP > 0 ? currentP / maxP : 0;
+
+  if (currentP >= maxP) {
+    return {
+      type: 'closed',
+      label: '마감',
+      color: COLORS.functional.error,
+      bgColor: COLORS.functional.errorLight,
+    };
+  }
+  if (ratio >= 0.8) {
+    return {
+      type: 'closing_soon',
+      label: '마감임박',
+      color: COLORS.functional.warning,
+      bgColor: COLORS.functional.warningLight,
+    };
+  }
+  return {
+    type: 'open',
+    label: `${currentP}/${maxP}명`,
+    color: COLORS.text.secondary,
+    bgColor: COLORS.neutral.grey100,
+  };
+};
+
 // ─── 거리 포맷 ─────────────────────────────────────────────
 export const formatDistance = (distanceInMeters: number | null | undefined): string | null => {
   if (distanceInMeters === null || distanceInMeters === undefined) {

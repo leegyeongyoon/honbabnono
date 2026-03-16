@@ -54,6 +54,7 @@ const transformMeetupData = (row, options = {}) => {
       profileImage: row['host.profileImage'],
       rating: row['host.rating'],
       babAlScore: parseFloat(row['host.babAlScore']) || 36.5,
+      isBestHost: row['host.isBestHost'] === true || row['host.isBestHost'] === 't',
     } : null,
     distance: null,
   };

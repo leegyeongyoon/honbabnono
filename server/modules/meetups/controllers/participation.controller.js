@@ -9,6 +9,11 @@ const {
   validateHostPermission,
   validateMeetupStatus,
 } = require('../helpers/validation.helper');
+const {
+  notifyMeetupCancelled,
+  refundDepositsForMeetup,
+  recordHostCancellationAndCheckPenalty,
+} = require('../helpers/notification.helper');
 
 /**
  * 모임 참가 신청
@@ -118,20 +123,44 @@ exports.joinMeetup = async (req, res) => {
       });
     }
 
-    // 참가 신청
-    await pool.query(
-      `
-      INSERT INTO meetup_participants (id, meetup_id, user_id, status, joined_at, created_at, updated_at)
-      VALUES (gen_random_uuid(), $1, $2, '참가승인', NOW(), NOW(), NOW())
-    `,
-      [id, userId]
-    );
+    // 트랜잭션으로 정원 재확인 + 참가자 등록 + 인원수 증가를 원자적으로 처리
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
 
-    // current_participants 증가
-    await pool.query(
-      'UPDATE meetups SET current_participants = current_participants + 1 WHERE id = $1',
-      [id]
-    );
+      // 정원 재확인 (FOR UPDATE로 race condition 방지)
+      const capacityCheck = await client.query(
+        'SELECT current_participants, max_participants FROM meetups WHERE id = $1 FOR UPDATE',
+        [id]
+      );
+      if (capacityCheck.rows.length === 0 || capacityCheck.rows[0].current_participants >= capacityCheck.rows[0].max_participants) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({
+          success: false,
+          error: '약속 정원이 가득 찼습니다.',
+        });
+      }
+
+      // 참가 신청
+      await client.query(
+        `INSERT INTO meetup_participants (id, meetup_id, user_id, status, joined_at, created_at, updated_at)
+         VALUES (gen_random_uuid(), $1, $2, '참가승인', NOW(), NOW(), NOW())`,
+        [id, userId]
+      );
+
+      // current_participants 증가
+      await client.query(
+        'UPDATE meetups SET current_participants = current_participants + 1 WHERE id = $1',
+        [id]
+      );
+
+      await client.query('COMMIT');
+    } catch (txError) {
+      await client.query('ROLLBACK');
+      throw txError;
+    } finally {
+      client.release();
+    }
 
     // 채팅방 확인 및 생성
     let chatRoomId;
@@ -147,20 +176,18 @@ exports.joinMeetup = async (req, res) => {
       const roomResult = await pool.query(`
         INSERT INTO chat_rooms (
           "meetupId", title, type, "createdBy", "isActive",
-          "maxParticipants", "createdAt", "updatedAt"
-        ) VALUES ($1, $2, 'meetup', $3, true, $4, NOW(), NOW())
+          "createdAt", "updatedAt"
+        ) VALUES ($1, $2, 'meetup', $3, true, NOW(), NOW())
         RETURNING id
-      `, [id, meetup.title, meetup.host_id, meetup.max_participants]);
+      `, [id, meetup.title, meetup.host_id]);
       chatRoomId = roomResult.rows[0].id;
 
       // 호스트를 채팅방에 추가
-      const hostUser = await pool.query('SELECT name FROM users WHERE id = $1', [meetup.host_id]);
       await pool.query(`
         INSERT INTO chat_participants (
-          "chatRoomId", "userId", "userName", role, "isActive",
-          "unreadCount", "joinedAt", "createdAt", "updatedAt"
-        ) VALUES ($1, $2, $3, 'owner', true, 0, NOW(), NOW(), NOW())
-      `, [chatRoomId, meetup.host_id, hostUser.rows[0]?.name || '호스트']);
+          "chatRoomId", "userId", "joinedAt"
+        ) VALUES ($1, $2, NOW())
+      `, [chatRoomId, meetup.host_id]);
     }
 
     // 참가자를 채팅방에 추가
@@ -169,13 +196,11 @@ exports.joinMeetup = async (req, res) => {
       [chatRoomId, userId]
     );
     if (alreadyInChat.rows.length === 0) {
-      const participantUser = await pool.query('SELECT name FROM users WHERE id = $1', [userId]);
       await pool.query(`
         INSERT INTO chat_participants (
-          "chatRoomId", "userId", "userName", role, "isActive",
-          "unreadCount", "joinedAt", "createdAt", "updatedAt"
-        ) VALUES ($1, $2, $3, 'member', true, 0, NOW(), NOW(), NOW())
-      `, [chatRoomId, userId, participantUser.rows[0]?.name || '참가자']);
+          "chatRoomId", "userId", "joinedAt"
+        ) VALUES ($1, $2, NOW())
+      `, [chatRoomId, userId]);
     }
 
     res.json({
@@ -212,6 +237,19 @@ exports.leaveMeetup = async (req, res) => {
         `UPDATE meetups SET status = '취소', updated_at = NOW() WHERE id = $1`,
         [id]
       );
+
+      // 참가자 전원에게 취소 알림 발송
+      notifyMeetupCancelled(meetup, 'host')
+        .catch(err => logger.error('모임 취소 알림 발송 오류:', err));
+
+      // 약속금 자동 환불 (비동기)
+      refundDepositsForMeetup(id)
+        .catch(err => logger.error('모임 취소 약속금 환불 오류:', err));
+
+      // 호스트 취소 이력 기록 및 반복 취소 패널티 확인
+      recordHostCancellationAndCheckPenalty(userId, id)
+        .catch(err => logger.error('호스트 취소 이력 기록 오류:', err));
+
       return res.json({
         success: true,
         message: '약속이 취소되었습니다.',
@@ -236,7 +274,8 @@ exports.leaveMeetup = async (req, res) => {
 
     // 24시간 내 취소 시 밥알지수 패널티
     if (wasApproved && meetup.date && meetup.time) {
-      const meetupDateTime = new Date(`${meetup.date}T${meetup.time}`);
+      const dateStr = typeof meetup.date === 'string' ? meetup.date : meetup.date.toISOString().split('T')[0];
+      const meetupDateTime = new Date(`${dateStr}T${meetup.time}`);
       const hoursUntil = (meetupDateTime - new Date()) / (1000 * 60 * 60);
       if (hoursUntil >= 0 && hoursUntil <= 24) {
         await updateBabalScore(userId, 'LATE_CANCEL', { meetupId: id }).catch(

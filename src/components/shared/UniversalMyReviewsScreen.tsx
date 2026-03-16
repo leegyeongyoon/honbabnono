@@ -10,6 +10,7 @@ import {
   Alert,
   TextInput,
   Modal,
+  Image,
 } from 'react-native';
 import { COLORS, SHADOWS } from '../../styles/colors';
 import { Icon } from '../Icon';
@@ -32,6 +33,7 @@ interface WrittenReview {
   meetup_id?: string;
   host_name?: string;
   tags?: string[];
+  images?: string[];
   is_anonymous?: boolean;
 }
 
@@ -69,6 +71,10 @@ const UniversalMyReviewsScreen: React.FC<{navigation: NavigationAdapter; user?: 
     reply: '',
   });
   const [submitting, setSubmitting] = useState(false);
+  const [imagePreviewModal, setImagePreviewModal] = useState<{ visible: boolean; uri: string }>({
+    visible: false,
+    uri: '',
+  });
 
   const fetchWrittenReviews = useCallback(async () => {
     try {
@@ -257,6 +263,17 @@ const UniversalMyReviewsScreen: React.FC<{navigation: NavigationAdapter; user?: 
             ))}
           </View>
         )}
+        {review.images && review.images.length > 0 && (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.reviewImagesScroll}>
+            <View style={styles.reviewImagesRow}>
+              {review.images.map((img, idx) => (
+                <TouchableOpacity key={idx} onPress={() => setImagePreviewModal({ visible: true, uri: img })}>
+                  <Image source={{ uri: img }} style={styles.reviewImageThumb} />
+                </TouchableOpacity>
+              ))}
+            </View>
+          </ScrollView>
+        )}
       </TouchableOpacity>
 
       <View style={styles.actionRow}>
@@ -306,6 +323,18 @@ const UniversalMyReviewsScreen: React.FC<{navigation: NavigationAdapter; user?: 
               </View>
             ))}
           </View>
+        )}
+
+        {review.images && review.images.length > 0 && (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.reviewImagesScroll}>
+            <View style={styles.reviewImagesRow}>
+              {review.images.map((img, idx) => (
+                <TouchableOpacity key={idx} onPress={() => setImagePreviewModal({ visible: true, uri: img })}>
+                  <Image source={{ uri: img }} style={styles.reviewImageThumb} />
+                </TouchableOpacity>
+              ))}
+            </View>
+          </ScrollView>
         )}
 
         {review.reply ? (
@@ -552,6 +581,34 @@ const UniversalMyReviewsScreen: React.FC<{navigation: NavigationAdapter; user?: 
 
       {renderEditModal()}
       {renderReplyModal()}
+
+      {/* Image preview modal */}
+      <Modal
+        visible={imagePreviewModal.visible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setImagePreviewModal({ visible: false, uri: '' })}
+      >
+        <TouchableOpacity
+          style={styles.imageModalOverlay}
+          activeOpacity={1}
+          onPress={() => setImagePreviewModal({ visible: false, uri: '' })}
+        >
+          <View style={styles.imageModalContent}>
+            <Image
+              source={{ uri: imagePreviewModal.uri }}
+              style={styles.imageModalImage}
+              resizeMode="contain"
+            />
+            <TouchableOpacity
+              style={styles.imageModalClose}
+              onPress={() => setImagePreviewModal({ visible: false, uri: '' })}
+            >
+              <Icon name="x" size={24} color="#FFFFFF" />
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 };
@@ -807,6 +864,44 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: COLORS.neutral.white,
+  },
+  // Review images
+  reviewImagesScroll: {
+    marginTop: 10,
+    flexGrow: 0,
+  },
+  reviewImagesRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  reviewImageThumb: {
+    width: 72,
+    height: 72,
+    borderRadius: 8,
+    backgroundColor: COLORS.neutral.grey100,
+  },
+  // Image preview modal
+  imageModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  imageModalContent: {
+    width: '90%',
+    height: '70%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  imageModalImage: {
+    width: '100%',
+    height: '100%',
+  },
+  imageModalClose: {
+    position: 'absolute',
+    top: -40,
+    right: 0,
+    padding: 8,
   },
   // Modal styles
   modalOverlay: {

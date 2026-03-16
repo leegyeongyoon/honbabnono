@@ -43,7 +43,11 @@ CREATE TABLE users (
     reset_token_expires TIMESTAMP, -- 비밀번호 재설정 토큰 만료
     email_verified BOOLEAN DEFAULT false, -- 이메일 인증 완료 여부
     email_verification_token VARCHAR(255), -- 이메일 인증 토큰
+    is_best_host BOOLEAN DEFAULT false, -- 월간 우수 호스트 여부
+    best_host_until TIMESTAMPTZ, -- 우수 호스트 자격 만료일
     last_login_at TIMESTAMP WITH TIME ZONE,
+    is_active BOOLEAN DEFAULT true,
+    deleted_at TIMESTAMPTZ, -- 계정 삭제(익명화) 시점
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
@@ -94,6 +98,8 @@ CREATE TABLE meetups (
     allow_direct_chat BOOLEAN DEFAULT true, -- 1:1 채팅 허용 여부
     age_range VARCHAR(50), -- 연령대 필터
     gender_preference VARCHAR(20), -- 성별 필터
+    qr_token VARCHAR(255), -- QR 체크인 토큰
+    qr_token_expires_at TIMESTAMP WITH TIME ZONE, -- QR 토큰 만료 시각
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
@@ -188,6 +194,7 @@ CREATE TABLE reviews (
     is_featured BOOLEAN DEFAULT false, -- 추천 리뷰
     reply TEXT, -- 리뷰 답변
     reply_at TIMESTAMP WITH TIME ZONE, -- 답변 시간
+    images JSONB DEFAULT '[]', -- 리뷰 사진 URL 배열 (최대 3장)
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     UNIQUE(meetup_id, reviewer_id, reviewee_id)
@@ -360,6 +367,7 @@ CREATE TABLE user_reviews (
     rating INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5),
     comment TEXT,
     tags TEXT[],
+    images JSONB DEFAULT '[]', -- 리뷰 사진 URL 배열 (최대 3장)
     is_anonymous BOOLEAN DEFAULT false,
     reported_noshow BOOLEAN DEFAULT false, -- 노쇼 여부 신고
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),

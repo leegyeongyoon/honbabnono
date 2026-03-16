@@ -4,16 +4,33 @@ import { COLORS } from '../../styles/colors';
 import { Icon } from '../Icon';
 import { getAvatarColor, getInitials } from '../../utils/avatarColor';
 import type { ParticipantVariant } from './types';
+import { getParticipantStatus } from './types';
 
 interface ParticipantIndicatorProps {
   current: number;
   max: number;
   variant: ParticipantVariant;
   avatars?: Array<{ name: string; profileImage?: string }>;
+  /** Show status badge (closed/closing soon) next to indicator */
+  showStatusBadge?: boolean;
 }
 
+// ─── Status Badge (마감임박/마감) ────────────────────────────
+const ParticipantStatusBadge: React.FC<{ current: number; max: number }> = ({ current, max }) => {
+  const status = getParticipantStatus(current, max);
+  if (status.type === 'open') return null;
+
+  return (
+    <View style={[statusBadgeStyles.badge, { backgroundColor: status.bgColor }]}>
+      <Text style={[statusBadgeStyles.text, { color: status.color }]}>
+        {status.label}
+      </Text>
+    </View>
+  );
+};
+
 // ─── Bar variant ───────────────────────────────────────────
-const BarIndicator: React.FC<{ current: number; max: number }> = ({ current, max }) => {
+const BarIndicator: React.FC<{ current: number; max: number; showStatusBadge?: boolean }> = ({ current, max, showStatusBadge }) => {
   const ratio = max > 0 ? current / max : 0;
   const fillColor =
     current >= max
@@ -27,6 +44,7 @@ const BarIndicator: React.FC<{ current: number; max: number }> = ({ current, max
       <View style={barStyles.row}>
         <Icon name="users" size={13} color={COLORS.neutral.grey500} />
         <Text style={barStyles.text}> {current}/{max}명</Text>
+        {showStatusBadge && <ParticipantStatusBadge current={current} max={max} />}
       </View>
       <View style={barStyles.track}>
         <View
@@ -136,10 +154,11 @@ const ParticipantIndicator: React.FC<ParticipantIndicatorProps> = ({
   max,
   variant,
   avatars = [],
+  showStatusBadge = true,
 }) => {
   switch (variant) {
     case 'bar':
-      return <BarIndicator current={current} max={max} />;
+      return <BarIndicator current={current} max={max} showStatusBadge={showStatusBadge} />;
     case 'text':
       return <TextIndicator current={current} max={max} />;
     case 'avatars':
@@ -150,6 +169,19 @@ const ParticipantIndicator: React.FC<ParticipantIndicatorProps> = ({
 };
 
 // ─── Styles ────────────────────────────────────────────────
+const statusBadgeStyles = StyleSheet.create({
+  badge: {
+    marginLeft: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: 4,
+  },
+  text: {
+    fontSize: 10,
+    fontWeight: '700',
+  },
+});
+
 const barStyles = StyleSheet.create({
   wrapper: { gap: 3 },
   row: { flexDirection: 'row', alignItems: 'center' },

@@ -37,13 +37,18 @@ import SearchScreen from '../screens/SearchScreen.web';
 import AISearchResultScreen from '../screens/AISearchResultScreen.web';
 import ExploreScreen from '../screens/ExploreScreen.web';
 import SettingsScreen from '../screens/SettingsScreen.web';
+import HostProfileScreen from '../screens/HostProfileScreen.web';
+import OnboardingScreen from '../screens/OnboardingScreen.web';
 
 // Components
 import BottomTabBar from './BottomTabBar';
 
+const ONBOARDING_STORAGE_KEY = 'has_seen_onboarding';
+
 const RouterApp: React.FC = () => {
   const { user, isLoggedIn, login, logout, setUser, setToken } = useUserStore();
   const [isLoading, setIsLoading] = useState(true);
+  const [hasSeenOnboarding, setHasSeenOnboarding] = useState(true);
   
   // 로그인 상태 확인
   useEffect(() => {
@@ -51,6 +56,14 @@ const RouterApp: React.FC = () => {
   }, []);
 
   const checkLoginStatus = async () => {
+    // 온보딩 확인
+    try {
+      const onboardingValue = localStorage.getItem(ONBOARDING_STORAGE_KEY);
+      setHasSeenOnboarding(onboardingValue === 'true');
+    } catch (_e) {
+      setHasSeenOnboarding(true);
+    }
+
     // URL에서 토큰과 사용자 정보 확인 (카카오 로그인 후 리다이렉트)
     const urlParams = new URLSearchParams(window.location.search);
     const token = urlParams.get('token');
@@ -191,6 +204,44 @@ const RouterApp: React.FC = () => {
         window.location.href = `/chat/${params.meetupId}?title=${encodeURIComponent(params.meetupTitle)}`;
       } else if (screenName === 'Settings') {
         window.location.href = '/settings';
+      } else if (screenName === 'HostProfile') {
+        window.location.href = `/host-profile/${params?.userId}`;
+      } else if (screenName === 'EditProfile' || screenName === 'Profile') {
+        window.location.href = '/mypage';
+      } else if (screenName === 'MyMeetups') {
+        window.location.href = '/my-meetups';
+      } else if (screenName === 'Wishlist') {
+        window.location.href = '/wishlist';
+      } else if (screenName === 'PointCharge') {
+        window.location.href = '/point-charge';
+      } else if (screenName === 'MyReviews') {
+        window.location.href = '/my-reviews';
+      } else if (screenName === 'RecentViews') {
+        window.location.href = '/recent-views';
+      } else if (screenName === 'Notices') {
+        window.location.href = '/notices';
+      } else if (screenName === 'FAQ') {
+        window.location.href = '/notices';
+      } else if (screenName === 'Terms') {
+        window.location.href = '/notices';
+      } else if (screenName === 'WriteReview') {
+        window.location.href = `/meetup/${params?.meetupId}`;
+      } else if (screenName === 'DepositPayment') {
+        window.location.href = `/meetup/${params?.meetupId}/deposit-payment`;
+      } else if (screenName === 'Explore') {
+        window.location.href = '/explore';
+      } else if (screenName === 'Payment') {
+        window.location.href = '/payment';
+      } else if (screenName === 'ReviewManagement') {
+        window.location.href = '/review-management';
+      } else if (screenName === 'UserVerification') {
+        window.location.href = '/mypage';
+      } else if (screenName === 'MyBadges') {
+        window.location.href = '/my-badges';
+      } else if (screenName === 'OnboardingScreen' || screenName === 'Onboarding') {
+        window.location.href = '/onboarding';
+      } else if (screenName === 'Home') {
+        window.location.href = '/home';
       }
     },
     navigateToNotifications: () => {
@@ -282,13 +333,23 @@ const RouterApp: React.FC = () => {
           <Route path="/point-balance" element={protectedElement(<PointBalanceScreen />)} />
           <Route path="/recent-views" element={protectedElement(<RecentViewsScreen />)} />
           <Route path="/blocked-users" element={protectedElement(<BlockedUsersScreen />)} />
+          <Route path="/host-profile/:userId" element={protectedElement(<HostProfileScreen />)} />
           <Route path="/settings" element={protectedElement(<SettingsScreen />)} />
+
+          {/* 온보딩 페이지 */}
+          <Route path="/onboarding" element={hasSeenOnboarding ? <Navigate to="/login" replace /> : <OnboardingScreen />} />
 
           {/* 로그인 페이지 */}
           <Route path="/login" element={loginRedirectElement(<LoginScreen />)} />
 
-          {/* 루트 경로 - 로그인 상태에 따라 리다이렉트 */}
-          <Route path="/" element={isLoggedIn ? <Navigate to="/home" replace /> : <Navigate to="/login" replace />} />
+          {/* 루트 경로 - 온보딩 → 로그인 → 홈 순서로 리다이렉트 */}
+          <Route path="/" element={
+            !hasSeenOnboarding
+              ? <Navigate to="/onboarding" replace />
+              : isLoggedIn
+                ? <Navigate to="/home" replace />
+                : <Navigate to="/login" replace />
+          } />
 
           {/* 404 — 로그인 안 됐으면 /login으로, 됐으면 /home으로 */}
           <Route path="*" element={isLoggedIn ? <Navigate to="/home" replace /> : <Navigate to="/login" replace />} />

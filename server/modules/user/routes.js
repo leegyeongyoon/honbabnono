@@ -86,6 +86,9 @@ router.get('/reviews/manage', authenticateToken, userController.getReviewsManage
 // 받은 리뷰 조회
 router.get('/reviews/received', authenticateToken, userController.getReceivedReviews);
 
+// 호스트 통합 프로필 조회
+router.get('/:userId/host-profile', authenticateToken, userController.getHostProfile);
+
 // 참가자 평가 조회 (다른 사용자)
 router.get('/:userId/participant-reviews', userController.getParticipantReviews);
 

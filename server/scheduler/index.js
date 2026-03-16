@@ -6,9 +6,11 @@
  *
  * 등록된 작업:
  * 1. 모임 리마인더 (매 1분)    - 30분 내 시작 모임 알림
- * 2. 상태 자동 전환 (매 5분)   - 모집중 -> 진행중 -> 완료
+ * 2. 상태 자동 전환 (매 5분)   - 모집중 -> 진행중 -> 완료 + 호스트 리워드
  * 3. 리뷰 요청 (매 10분)       - 종료 2시간 후 리뷰 요청 알림
  * 4. 노쇼 자동 처리 (매 1시간) - 미출석자 노쇼 처리 및 점수 차감
+ * 5. 최소인원 미달 자동취소 (매 5분) - 시작 2시간 전 최소인원 미달 모임 자동 취소
+ * 6. 월간 우수 호스트 (매월 1일) - 전월 우수 호스트 선정 및 보상
  */
 
 const cron = require('node-cron');
@@ -18,6 +20,8 @@ const meetupReminder = require('./jobs/meetupReminder');
 const reviewRequest = require('./jobs/reviewRequest');
 const statusTransition = require('./jobs/statusTransition');
 const noShowProcessing = require('./jobs/noShowProcessing');
+const autoCancelMinParticipants = require('./jobs/autoCancelMinParticipants');
+const monthlyBestHost = require('./jobs/monthlyBestHost');
 
 const scheduledJobs = [];
 
@@ -69,6 +73,28 @@ function startScheduler() {
   });
   scheduledJobs.push(noShowJob);
   logger.info('  [노쇼 자동 처리]: 매 1시간');
+
+  // 5. 최소인원 미달 자동취소 - 매 5분마다
+  const autoCancelJob = cron.schedule('*/5 * * * *', async () => {
+    try {
+      await autoCancelMinParticipants.run();
+    } catch (error) {
+      logger.error('[최소인원 자동취소] 실행 실패:', error);
+    }
+  });
+  scheduledJobs.push(autoCancelJob);
+  logger.info('  [최소인원 자동취소]: 매 5분');
+
+  // 6. 월간 우수 호스트 선정 - 매월 1일 00:00
+  const bestHostJob = cron.schedule('0 0 1 * *', async () => {
+    try {
+      await monthlyBestHost.run();
+    } catch (error) {
+      logger.error('[월간 우수 호스트] 실행 실패:', error);
+    }
+  });
+  scheduledJobs.push(bestHostJob);
+  logger.info('  [월간 우수 호스트]: 매월 1일');
 
   logger.system('===============================================');
 }

@@ -33,6 +33,7 @@ const SCORE_EVENTS = {
   REVIEW_RECEIVED_BAD:  { amount: -0.2,  reason: '나쁜 리뷰 수신 (1-2점)' },
   LATE_CANCEL:          { amount: -0.5,  reason: '24시간 내 참가 취소' },
   REPORT_CONFIRMED:     { amount: -3.0,  reason: '신고 확정' },
+  HOST_REPEATED_CANCEL: { amount: -3.0,  reason: '호스트 반복 취소 (3회 이상)' },
 };
 
 /*

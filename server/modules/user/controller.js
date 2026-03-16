@@ -124,6 +124,7 @@ exports.getMyReviews = async (req, res) => {
         r.id,
         r.rating,
         r.content,
+        r.images,
         r.created_at,
         m.title as meetup_title,
         m.date as meetup_date,
@@ -135,8 +136,13 @@ exports.getMyReviews = async (req, res) => {
       LIMIT $2 OFFSET $3
     `, [userId, limit, offset]);
 
+    const reviews = result.rows.map(row => ({
+      ...row,
+      images: typeof row.images === 'string' ? JSON.parse(row.images) : (row.images || []),
+    }));
+
     res.json({
-      reviews: result.rows,
+      reviews,
       pagination: {
         page: parseInt(page),
         limit: parseInt(limit),
@@ -250,11 +256,11 @@ exports.getWishlist = async (req, res) => {
 
     const result = await pool.query(`
       SELECT m.*, u.name as host_name, u.profile_image as host_profile_image
-      FROM user_favorites uf
-      JOIN meetups m ON uf.meetup_id = m.id
+      FROM meetup_wishlists mw
+      JOIN meetups m ON mw.meetup_id = m.id
       JOIN users u ON m.host_id = u.id
-      WHERE uf.user_id = $1
-      ORDER BY uf.created_at DESC
+      WHERE mw.user_id = $1
+      ORDER BY mw.created_at DESC
     `, [userId]);
 
     res.json({
@@ -275,7 +281,7 @@ exports.toggleWishlist = async (req, res) => {
 
     // 기존 찜 확인
     const existingResult = await pool.query(`
-      SELECT * FROM user_favorites WHERE user_id = $1 AND meetup_id = $2
+      SELECT * FROM meetup_wishlists WHERE user_id = $1 AND meetup_id = $2
     `, [userId, meetupId]);
 
     let isWishlisted;
@@ -283,13 +289,13 @@ exports.toggleWishlist = async (req, res) => {
     if (existingResult.rows.length > 0) {
       // 찜 제거
       await pool.query(`
-        DELETE FROM user_favorites WHERE user_id = $1 AND meetup_id = $2
+        DELETE FROM meetup_wishlists WHERE user_id = $1 AND meetup_id = $2
       `, [userId, meetupId]);
       isWishlisted = false;
     } else {
       // 찜 추가
       await pool.query(`
-        INSERT INTO user_favorites (user_id, meetup_id, created_at)
+        INSERT INTO meetup_wishlists (user_id, meetup_id, created_at)
         VALUES ($1, $2, NOW())
       `, [userId, meetupId]);
       isWishlisted = true;
@@ -771,7 +777,7 @@ exports.getBlockedUsers = async (req, res) => {
       SELECT
         ub.id as block_id,
         ub.reason,
-        ub.blocked_at,
+        ub.created_at,
         u.id,
         u.name,
         u.email,
@@ -779,7 +785,7 @@ exports.getBlockedUsers = async (req, res) => {
       FROM user_blocked_users ub
       LEFT JOIN users u ON ub.blocked_user_id = u.id
       WHERE ub.user_id = $1
-      ORDER BY ub.blocked_at DESC
+      ORDER BY ub.created_at DESC
       LIMIT $2 OFFSET $3
     `, [userId, limit, offset]);
 
@@ -1025,11 +1031,11 @@ exports.getNotificationSettings = async (req, res) => {
 
     const result = await pool.query(`
       SELECT
-        push_notifications,
-        email_notifications,
+        push_enabled,
+        email_enabled,
         meetup_reminders,
-        chat_notifications,
-        marketing_notifications,
+        chat_messages,
+        system_announcements,
         updated_at
       FROM user_notification_settings
       WHERE user_id = $1
@@ -1038,19 +1044,19 @@ exports.getNotificationSettings = async (req, res) => {
     let settings;
     if (result.rows.length === 0) {
       const defaultSettings = {
-        push_notifications: true,
-        email_notifications: true,
+        push_enabled: true,
+        email_enabled: true,
         meetup_reminders: true,
-        chat_notifications: true,
-        marketing_notifications: false
+        chat_messages: true,
+        system_announcements: true
       };
 
       await pool.query(`
         INSERT INTO user_notification_settings
-        (user_id, push_notifications, email_notifications, meetup_reminders, chat_notifications, marketing_notifications)
+        (user_id, push_enabled, email_enabled, meetup_reminders, chat_messages, system_announcements)
         VALUES ($1, $2, $3, $4, $5, $6)
-      `, [userId, defaultSettings.push_notifications, defaultSettings.email_notifications,
-          defaultSettings.meetup_reminders, defaultSettings.chat_notifications, defaultSettings.marketing_notifications]);
+      `, [userId, defaultSettings.push_enabled, defaultSettings.email_enabled,
+          defaultSettings.meetup_reminders, defaultSettings.chat_messages, defaultSettings.system_announcements]);
 
       settings = defaultSettings;
     } else {
@@ -1077,11 +1083,11 @@ exports.updateNotificationSettings = async (req, res) => {
     logger.debug('알림 설정 업데이트 요청:', req.body);
     const userId = req.user.userId;
     const {
-      push_notifications,
-      email_notifications,
+      push_enabled,
+      email_enabled,
       meetup_reminders,
-      chat_notifications,
-      marketing_notifications
+      chat_messages,
+      system_announcements
     } = req.body;
 
     const existingSettings = await pool.query(
@@ -1092,23 +1098,23 @@ exports.updateNotificationSettings = async (req, res) => {
     if (existingSettings.rows.length === 0) {
       await pool.query(`
         INSERT INTO user_notification_settings
-        (user_id, push_notifications, email_notifications, meetup_reminders, chat_notifications, marketing_notifications)
+        (user_id, push_enabled, email_enabled, meetup_reminders, chat_messages, system_announcements)
         VALUES ($1, $2, $3, $4, $5, $6)
-      `, [userId, push_notifications ?? true, email_notifications ?? true,
-          meetup_reminders ?? true, chat_notifications ?? true, marketing_notifications ?? false]);
+      `, [userId, push_enabled ?? true, email_enabled ?? true,
+          meetup_reminders ?? true, chat_messages ?? true, system_announcements ?? true]);
     } else {
       const updateFields = [];
       const updateValues = [];
       let valueIndex = 1;
 
-      if (push_notifications !== undefined) {
-        updateFields.push(`push_notifications = $${valueIndex}`);
-        updateValues.push(push_notifications);
+      if (push_enabled !== undefined) {
+        updateFields.push(`push_enabled = $${valueIndex}`);
+        updateValues.push(push_enabled);
         valueIndex++;
       }
-      if (email_notifications !== undefined) {
-        updateFields.push(`email_notifications = $${valueIndex}`);
-        updateValues.push(email_notifications);
+      if (email_enabled !== undefined) {
+        updateFields.push(`email_enabled = $${valueIndex}`);
+        updateValues.push(email_enabled);
         valueIndex++;
       }
       if (meetup_reminders !== undefined) {
@@ -1116,14 +1122,14 @@ exports.updateNotificationSettings = async (req, res) => {
         updateValues.push(meetup_reminders);
         valueIndex++;
       }
-      if (chat_notifications !== undefined) {
-        updateFields.push(`chat_notifications = $${valueIndex}`);
-        updateValues.push(chat_notifications);
+      if (chat_messages !== undefined) {
+        updateFields.push(`chat_messages = $${valueIndex}`);
+        updateValues.push(chat_messages);
         valueIndex++;
       }
-      if (marketing_notifications !== undefined) {
-        updateFields.push(`marketing_notifications = $${valueIndex}`);
-        updateValues.push(marketing_notifications);
+      if (system_announcements !== undefined) {
+        updateFields.push(`system_announcements = $${valueIndex}`);
+        updateValues.push(system_announcements);
         valueIndex++;
       }
 
@@ -1244,35 +1250,82 @@ exports.getFaq = async (req, res) => {
   }
 };
 
-// 계정 탈퇴
+// 계정 탈퇴 (개인정보 익명화)
 exports.deleteAccount = async (req, res) => {
+  const client = await pool.connect();
   try {
     logger.info('계정 탈퇴 요청');
     const userId = req.user.userId;
 
-    const result = await pool.query(
-      'DELETE FROM users WHERE id = $1 RETURNING id, email, name',
+    await client.query('BEGIN');
+
+    // 사용자 존재 확인
+    const userCheck = await client.query(
+      'SELECT id, email, is_active FROM users WHERE id = $1',
       [userId]
     );
 
-    if (result.rows.length === 0) {
+    if (userCheck.rows.length === 0) {
+      await client.query('ROLLBACK');
       return res.status(404).json({
         success: false,
-        error: '사용자를 찾을 수 없거나 이미 삭제된 계정입니다.'
+        error: '사용자를 찾을 수 없습니다.'
       });
     }
 
-    logger.info('계정 삭제 완료:', result.rows[0].email);
+    if (userCheck.rows[0].is_active === false) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({
+        success: false,
+        error: '이미 탈퇴한 계정입니다.'
+      });
+    }
+
+    // 개인정보 익명화 (완전삭제 대신)
+    await client.query(`
+      UPDATE users SET
+        email = 'deleted_' || id,
+        name = '탈퇴한 사용자',
+        password = NULL,
+        phone = NULL,
+        profile_image = NULL,
+        gender = NULL,
+        birth_date = NULL,
+        provider_id = NULL,
+        is_active = false,
+        deleted_at = NOW(),
+        updated_at = NOW()
+      WHERE id = $1
+    `, [userId]);
+
+    // refresh tokens 삭제
+    await client.query(
+      'DELETE FROM user_refresh_tokens WHERE user_id = $1',
+      [userId]
+    ).catch(() => { /* table may not exist */ });
+
+    // device tokens 삭제
+    await client.query(
+      'DELETE FROM device_tokens WHERE user_id = $1',
+      [userId]
+    ).catch(() => { /* table may not exist */ });
+
+    await client.query('COMMIT');
+
+    logger.info('계정 탈퇴 완료:', userCheck.rows[0].email);
     res.json({
       success: true,
-      message: '계정이 성공적으로 삭제되었습니다.'
+      message: '계정이 삭제되었습니다.'
     });
   } catch (error) {
+    await client.query('ROLLBACK');
     logger.error('계정 탈퇴 실패:', error);
     res.status(500).json({
       success: false,
       error: '계정 탈퇴 중 오류가 발생했습니다.'
     });
+  } finally {
+    client.release();
   }
 };
 
@@ -2058,6 +2111,7 @@ exports.getReviewsManage = async (req, res) => {
         r.rating,
         r.content,
         r.tags,
+        r.images,
         r.is_anonymous,
         r.created_at,
         r.updated_at,
@@ -2070,9 +2124,14 @@ exports.getReviewsManage = async (req, res) => {
       ORDER BY r.created_at DESC
     `, [userId]);
 
+    const reviews = reviewsResult.rows.map(row => ({
+      ...row,
+      images: typeof row.images === 'string' ? JSON.parse(row.images) : (row.images || []),
+    }));
+
     res.json({
       success: true,
-      reviews: reviewsResult.rows
+      reviews,
     });
 
   } catch (error) {
@@ -2092,6 +2151,7 @@ exports.getReceivedReviews = async (req, res) => {
         r.rating,
         r.content as comment,
         r.tags,
+        r.images,
         r.is_anonymous,
         r.reply,
         r.reply_at,
@@ -2114,6 +2174,7 @@ exports.getReceivedReviews = async (req, res) => {
 
     const reviews = reviewsResult.rows.map(row => ({
       ...row,
+      images: typeof row.images === 'string' ? JSON.parse(row.images) : (row.images || []),
       can_reply: row.host_id === userId && !row.reply,
     }));
 
@@ -2125,6 +2186,143 @@ exports.getReceivedReviews = async (req, res) => {
   } catch (error) {
     logger.error('받은 리뷰 목록 조회 오류:', error);
     res.status(500).json({ success: false, message: '받은 리뷰 목록을 불러올 수 없습니다.' });
+  }
+};
+
+// 호스트 통합 프로필 조회
+exports.getHostProfile = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    // 1. 기본 정보 + 호스팅 통계를 하나의 쿼리로
+    const profileResult = await pool.query(`
+      SELECT
+        u.id, u.name, u.profile_image, u.babal_score, u.created_at, u.gender,
+        -- 호스팅 통계 (서브쿼리)
+        (SELECT COUNT(*) FROM meetups WHERE host_id = u.id) AS total_hosted,
+        (SELECT COUNT(*) FROM meetups WHERE host_id = u.id AND status = '완료') AS completed_hosted,
+        (SELECT COUNT(*) FROM meetups WHERE host_id = u.id AND status = '취소') AS cancelled_hosted
+      FROM users u
+      WHERE u.id = $1
+    `, [userId]);
+
+    if (profileResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: '사용자를 찾을 수 없습니다.'
+      });
+    }
+
+    const profileRow = profileResult.rows[0];
+    const babalScore = parseFloat(profileRow.babal_score) || BABAL_INITIAL;
+    const babalLevel = getBabalLevel(babalScore);
+    const totalHosted = parseInt(profileRow.total_hosted) || 0;
+    const completedHosted = parseInt(profileRow.completed_hosted) || 0;
+    const cancelledHosted = parseInt(profileRow.cancelled_hosted) || 0;
+    const completionRate = totalHosted > 0
+      ? Math.round((completedHosted / totalHosted) * 100)
+      : 0;
+
+    // 2. 받은 리뷰 (최근 10개) + 평균 평점
+    const reviewsResult = await pool.query(`
+      SELECT
+        r.id, r.rating, r.content, r.tags, r.is_anonymous, r.created_at,
+        m.title AS meetup_title,
+        CASE
+          WHEN r.is_anonymous THEN '익명'
+          ELSE reviewer.name
+        END AS reviewer_name,
+        CASE
+          WHEN r.is_anonymous THEN NULL
+          ELSE reviewer.profile_image
+        END AS reviewer_profile_image,
+        CASE
+          WHEN r.is_anonymous THEN NULL
+          ELSE reviewer.id
+        END AS reviewer_id
+      FROM reviews r
+      JOIN meetups m ON r.meetup_id = m.id
+      JOIN users reviewer ON r.reviewer_id = reviewer.id
+      WHERE r.reviewee_id = $1
+      ORDER BY r.created_at DESC
+      LIMIT 10
+    `, [userId]);
+
+    const reviews = reviewsResult.rows.map(row => ({
+      ...row,
+      profile_image: row.reviewer_profile_image ? processImageUrl(row.reviewer_profile_image) : null,
+    }));
+
+    // 평균 평점 (전체 리뷰 기준)
+    const avgResult = await pool.query(`
+      SELECT AVG(rating) AS avg_rating, COUNT(*) AS total_reviews
+      FROM reviews
+      WHERE reviewee_id = $1
+    `, [userId]);
+
+    const avgRating = avgResult.rows[0].avg_rating
+      ? Math.round(parseFloat(avgResult.rows[0].avg_rating) * 10) / 10
+      : null;
+    const totalReviews = parseInt(avgResult.rows[0].total_reviews) || 0;
+
+    // 3. 획득 뱃지
+    const badgesResult = await pool.query(`
+      SELECT
+        b.id, b.name, b.description, b.icon, b.category,
+        ub.earned_at, ub.is_featured
+      FROM user_badges ub
+      JOIN badges b ON ub.badge_id = b.id
+      WHERE ub.user_id = $1
+      ORDER BY ub.earned_at DESC
+    `, [userId]);
+
+    // 4. 최근 주최 모임 (최근 5개)
+    const meetupsResult = await pool.query(`
+      SELECT
+        m.id, m.title, m.category, m.location, m.date, m.time,
+        m.max_participants, m.current_participants, m.status,
+        m.image, m.image_url, m.price_range
+      FROM meetups m
+      WHERE m.host_id = $1
+      ORDER BY m.date DESC, m.time DESC
+      LIMIT 5
+    `, [userId]);
+
+    const recentMeetups = meetupsResult.rows.map(row => ({
+      ...row,
+      image: row.image ? processImageUrl(row.image) : (row.image_url ? processImageUrl(row.image_url) : null),
+    }));
+
+    res.json({
+      success: true,
+      profile: {
+        id: profileRow.id,
+        name: profileRow.name,
+        profileImage: profileRow.profile_image ? processImageUrl(profileRow.profile_image) : null,
+        babalScore,
+        babalLevel,
+        gender: profileRow.gender,
+        createdAt: profileRow.created_at,
+      },
+      stats: {
+        totalHosted,
+        completedHosted,
+        cancelledHosted,
+        completionRate,
+        avgRating,
+        totalReviews,
+      },
+      reviews,
+      badges: badgesResult.rows,
+      recentMeetups,
+    });
+
+  } catch (error) {
+    logger.error('호스트 프로필 조회 오류:', error);
+    res.status(500).json({
+      success: false,
+      error: '호스트 프로필을 불러올 수 없습니다.'
+    });
   }
 };
 
@@ -2245,8 +2443,8 @@ exports.getLegacyNotificationSettings = async (req, res) => {
       // 기본 설정 생성
       await pool.query(`
         INSERT INTO user_notification_settings
-        (user_id, meetup_reminders, chat_messages, review_notifications, marketing_notifications)
-        VALUES ($1, true, true, true, false)
+        (user_id, meetup_reminders, chat_messages, system_announcements)
+        VALUES ($1, true, true, true)
       `, [userId]);
 
       result = await pool.query(`
@@ -2270,8 +2468,7 @@ exports.updateLegacyNotificationSettings = async (req, res) => {
     const {
       meetupReminders,
       chatMessages,
-      reviewNotifications,
-      marketingNotifications
+      systemAnnouncements
     } = req.body;
 
     await pool.query(`
@@ -2279,11 +2476,10 @@ exports.updateLegacyNotificationSettings = async (req, res) => {
       SET
         meetup_reminders = $1,
         chat_messages = $2,
-        review_notifications = $3,
-        marketing_notifications = $4,
+        system_announcements = $3,
         updated_at = NOW()
-      WHERE user_id = $5
-    `, [meetupReminders, chatMessages, reviewNotifications, marketingNotifications, userId]);
+      WHERE user_id = $4
+    `, [meetupReminders, chatMessages, systemAnnouncements, userId]);
 
     res.json({ success: true, message: '알림 설정이 업데이트되었습니다.' });
   } catch (error) {

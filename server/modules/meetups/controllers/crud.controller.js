@@ -4,6 +4,12 @@
 const pool = require('../../../config/database');
 const logger = require('../../../config/logger');
 const { validateHostPermission } = require('../helpers/validation.helper');
+const {
+  notifyMeetupCancelled,
+  notifyMeetupUpdated,
+  refundDepositsForMeetup,
+  recordHostCancellationAndCheckPenalty,
+} = require('../helpers/notification.helper');
 
 /**
  * 모임 상세 조회
@@ -21,7 +27,7 @@ exports.getMeetupById = async (req, res) => {
         m.category, m.price_range, m.image, m.status,
         m.age_range, m.gender_preference, m.host_id,
         m.dining_preferences, m.promise_deposit_amount, m.promise_deposit_required,
-        m.requirements, m.tags, m.created_at, m.updated_at,
+        m.requirements, m.tags, m.view_count, m.created_at, m.updated_at,
         u.id as host_user_id, u.name as host_name,
         u.profile_image as host_profile_image,
         u.rating as host_rating,
@@ -220,7 +226,7 @@ exports.updateMeetup = async (req, res) => {
     const userId = req.user.userId;
     const updates = req.body;
 
-    const { error } = await validateHostPermission(id, userId);
+    const { meetup: existingMeetup, error } = await validateHostPermission(id, userId);
     if (error) {
       const status = error.includes('찾을 수 없') ? 404 : 403;
       return res.status(status).json({ success: false, error });
@@ -230,12 +236,27 @@ exports.updateMeetup = async (req, res) => {
     const values = [];
     let paramIndex = 1;
 
+    // 허용된 수정 가능 필드 목록 (SQL injection 방지)
+    const allowedFields = ['title', 'description', 'location', 'address', 'latitude', 'longitude', 'date', 'time', 'maxParticipants', 'priceRange', 'category', 'image', 'ageRange', 'genderPreference', 'diningPreferences', 'tags'];
+
+    // 알림이 필요한 중요 변경 사항 추적
+    const notifiableFields = ['date', 'time', 'location', 'address', 'max_participants', 'maxParticipants'];
+    const importantChanges = {};
+
     for (const [key, value] of Object.entries(updates)) {
-      if (value !== undefined) {
+      if (value !== undefined && allowedFields.includes(key)) {
         const dbKey = key.replace(/([A-Z])/g, '_$1').toLowerCase();
         updateFields.push(`${dbKey} = $${paramIndex}`);
         values.push(value);
         paramIndex++;
+
+        // 중요 변경 사항 감지
+        if (notifiableFields.includes(key) || notifiableFields.includes(dbKey)) {
+          const oldValue = existingMeetup[dbKey];
+          if (String(oldValue) !== String(value)) {
+            importantChanges[dbKey] = { from: oldValue, to: value };
+          }
+        }
       }
     }
 
@@ -256,6 +277,14 @@ exports.updateMeetup = async (req, res) => {
     `,
       values
     );
+
+    // 중요 변경 사항이 있으면 참가자에게 알림 발송
+    if (Object.keys(importantChanges).length > 0) {
+      notifyMeetupUpdated(
+        { id, title: existingMeetup.title, host_id: userId },
+        importantChanges
+      ).catch(err => logger.error('모임 변경 알림 발송 오류:', err));
+    }
 
     res.json({
       success: true,
@@ -307,16 +336,16 @@ exports.updateMeetupStatus = async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.user.userId;
-    const { status } = req.body;
+    const { status: newStatus } = req.body;
 
-    const { error } = await validateHostPermission(id, userId);
+    const { meetup, error } = await validateHostPermission(id, userId);
     if (error) {
-      const status = error.includes('찾을 수 없') ? 404 : 403;
-      return res.status(status).json({ success: false, error });
+      const statusCode = error.includes('찾을 수 없') ? 404 : 403;
+      return res.status(statusCode).json({ success: false, error });
     }
 
     const validStatuses = ['모집중', '모집완료', '진행중', '종료', '취소'];
-    if (!validStatuses.includes(status)) {
+    if (!validStatuses.includes(newStatus)) {
       return res.status(400).json({
         success: false,
         error: '유효하지 않은 상태입니다.',
@@ -330,8 +359,20 @@ exports.updateMeetupStatus = async (req, res) => {
       WHERE id = $2
       RETURNING *
     `,
-      [status, id]
+      [newStatus, id]
     );
+
+    // 취소 상태로 변경 시 참가자 알림 + 약속금 환불 + 호스트 취소 이력
+    if (newStatus === '취소' && meetup.status !== '취소') {
+      notifyMeetupCancelled(meetup, 'host')
+        .catch(err => logger.error('모임 취소 알림 발송 오류:', err));
+
+      refundDepositsForMeetup(id)
+        .catch(err => logger.error('모임 취소 약속금 환불 오류:', err));
+
+      recordHostCancellationAndCheckPenalty(userId, id)
+        .catch(err => logger.error('호스트 취소 이력 기록 오류:', err));
+    }
 
     res.json({
       success: true,

@@ -1,5 +1,6 @@
-import React from 'react';
+import React, {useState, useEffect} from 'react';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import TabNavigator from './TabNavigator';
 import {COLORS} from '../styles/colors';
 
@@ -34,8 +35,13 @@ import AdvertisementDetailScreen from '../screens/AdvertisementDetailScreen';
 import AISearchResultScreen from '../screens/AISearchResultScreen';
 import WriteReviewScreen from '../screens/WriteReviewScreen';
 import SettingsScreen from '../screens/SettingsScreen';
+import HostProfileScreen from '../screens/HostProfileScreen';
+import OnboardingScreen from '../screens/OnboardingScreen';
+
+const ONBOARDING_STORAGE_KEY = 'has_seen_onboarding';
 
 export type RootStackParamList = {
+  Onboarding: undefined;
   Main: undefined;
   MeetupDetail: { meetupId?: string };
   MeetupList: { category?: string };
@@ -67,14 +73,35 @@ export type RootStackParamList = {
   AdvertisementDetail: { adId?: string };
   AISearchResult: { query?: string; autoSearch?: boolean };
   WriteReview: { meetupId: string; meetupTitle?: string };
+  HostProfile: { userId: string };
   Settings: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 const RootNavigator = () => {
+  const [hasSeenOnboarding, setHasSeenOnboarding] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    const checkOnboarding = async () => {
+      try {
+        const value = await AsyncStorage.getItem(ONBOARDING_STORAGE_KEY);
+        setHasSeenOnboarding(value === 'true');
+      } catch (_e) {
+        setHasSeenOnboarding(true); // 에러 시 온보딩 건너뛰기
+      }
+    };
+    checkOnboarding();
+  }, []);
+
+  // 온보딩 상태 확인 중 로딩
+  if (hasSeenOnboarding === null) {
+    return null;
+  }
+
   return (
     <Stack.Navigator
+      initialRouteName={hasSeenOnboarding ? 'Main' : 'Onboarding'}
       screenOptions={{
         headerStyle: {
           backgroundColor: COLORS.primary.light,
@@ -90,6 +117,13 @@ const RootNavigator = () => {
         animation: 'slide_from_right',
         animationDuration: 280,
       }}>
+      {!hasSeenOnboarding && (
+        <Stack.Screen
+          name="Onboarding"
+          component={OnboardingScreen}
+          options={{ headerShown: false }}
+        />
+      )}
       <Stack.Screen
         name="Main"
         component={TabNavigator}
@@ -246,6 +280,11 @@ const RootNavigator = () => {
         name="WriteReview"
         component={WriteReviewScreen}
         options={{ title: '리뷰 작성', headerShown: false }}
+      />
+      <Stack.Screen
+        name="HostProfile"
+        component={HostProfileScreen}
+        options={{ title: '호스트 프로필', headerShown: false }}
       />
       <Stack.Screen
         name="Settings"

@@ -14,7 +14,7 @@ const { checkBadgeEligibility } = require('../../badges/controller');
 exports.createReview = async (req, res) => {
   try {
     const { id: meetupId } = req.params;
-    const { rating, comment, tags } = req.body;
+    const { rating, comment, tags, images } = req.body;
     const userId = req.user.userId;
 
     // 평점 검증
@@ -56,15 +56,18 @@ exports.createReview = async (req, res) => {
       return res.status(400).json({ error: '이미 리뷰를 작성하셨습니다' });
     }
 
+    // images 검증 (최대 3장)
+    const reviewImages = Array.isArray(images) ? images.slice(0, 3) : [];
+
     // 리뷰 저장 (reviewee_id는 호스트로 설정)
     const reviewResult = await pool.query(
       `
       INSERT INTO reviews (
-        meetup_id, reviewer_id, reviewee_id, rating, content, tags, created_at, updated_at
-      ) VALUES ($1, $2, $3, $4, $5, $6::jsonb, NOW(), NOW())
-      RETURNING id, meetup_id, reviewer_id, reviewee_id, rating, content, tags, created_at
+        meetup_id, reviewer_id, reviewee_id, rating, content, tags, images, created_at, updated_at
+      ) VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7::jsonb, NOW(), NOW())
+      RETURNING id, meetup_id, reviewer_id, reviewee_id, rating, content, tags, images, created_at
     `,
-      [meetupId, userId, meetup.host_id, rating, comment || '', JSON.stringify(tags || [])]
+      [meetupId, userId, meetup.host_id, rating, comment || '', JSON.stringify(tags || []), JSON.stringify(reviewImages)]
     );
 
     const review = reviewResult.rows[0];
@@ -112,6 +115,7 @@ exports.createReview = async (req, res) => {
       data: {
         ...review,
         tags: typeof review.tags === 'string' ? JSON.parse(review.tags) : (review.tags || []),
+        images: typeof review.images === 'string' ? JSON.parse(review.images) : (review.images || []),
       },
     });
   } catch (error) {
@@ -135,7 +139,7 @@ exports.getReviews = async (req, res) => {
         SELECT
           r.id, r.meetup_id, r.reviewer_id,
           u.name as reviewer_name,
-          r.rating, r.content, r.tags, r.created_at,
+          r.rating, r.content, r.tags, r.images, r.created_at,
           u.profile_image as reviewer_profile_image
         FROM reviews r
         LEFT JOIN users u ON r.reviewer_id = u.id
@@ -158,6 +162,7 @@ exports.getReviews = async (req, res) => {
     const reviews = reviewsResult.rows.map((review) => ({
       ...review,
       tags: typeof review.tags === 'string' ? JSON.parse(review.tags) : (review.tags || []),
+      images: typeof review.images === 'string' ? JSON.parse(review.images) : (review.images || []),
     }));
 
     const total = parseInt(countResult.rows[0].total);
@@ -270,7 +275,7 @@ exports.getReviewableParticipants = async (req, res) => {
 exports.createUserReview = async (req, res) => {
   try {
     const { id: meetupId } = req.params;
-    const { reviewedUserId, rating, comment, tags, isAnonymous } = req.body;
+    const { reviewedUserId, rating, comment, tags, images, isAnonymous } = req.body;
     const reviewerId = req.user.userId;
 
     // 평점 검증
@@ -327,15 +332,18 @@ exports.createUserReview = async (req, res) => {
       return res.status(400).json({ error: '이미 해당 참가자에 대한 리뷰를 작성하셨습니다' });
     }
 
+    // images 검증 (최대 3장)
+    const reviewImages = Array.isArray(images) ? images.slice(0, 3) : [];
+
     // 리뷰 저장
     const reviewResult = await pool.query(
       `
       INSERT INTO user_reviews (
-        meetup_id, reviewer_id, reviewed_user_id, rating, comment, tags, is_anonymous, created_at, updated_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
-      RETURNING id, meetup_id, reviewer_id, reviewed_user_id, rating, comment, tags, is_anonymous, created_at
+        meetup_id, reviewer_id, reviewed_user_id, rating, comment, tags, images, is_anonymous, created_at, updated_at
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb, $8, NOW(), NOW())
+      RETURNING id, meetup_id, reviewer_id, reviewed_user_id, rating, comment, tags, images, is_anonymous, created_at
     `,
-      [meetupId, reviewerId, reviewedUserId, rating, comment || '', tags || [], isAnonymous || false]
+      [meetupId, reviewerId, reviewedUserId, rating, comment || '', tags || [], JSON.stringify(reviewImages), isAnonymous || false]
     );
 
     const review = reviewResult.rows[0];

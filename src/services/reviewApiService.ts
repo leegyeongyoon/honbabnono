@@ -9,6 +9,7 @@ export interface Review {
   comment: string;
   content: string;
   tags: string[];
+  images: string[];
   created_at: string;
   updated_at?: string;
   reviewer_profile_image?: string;
@@ -29,6 +30,7 @@ export interface UserReview {
   comment: string;
   content: string;
   tags: string[];
+  images: string[];
   created_at: string;
   updated_at?: string;
   meetup_title: string;
@@ -46,6 +48,7 @@ export interface ReceivedReview {
   rating: number;
   comment: string;
   tags: string[];
+  images: string[];
   created_at: string;
   can_reply: boolean;
   reply?: string;
@@ -73,6 +76,7 @@ export interface CreateReviewRequest {
   rating: number;
   comment?: string;
   tags?: string[];
+  images?: string[];
 }
 
 export interface UpdateReviewRequest {

@@ -422,11 +422,12 @@ exports.getMyMeetups = async (req, res) => {
  */
 exports.getMeetups = async (req, res) => {
   try {
-    const { category, status, latitude, longitude, radius, page = 1, limit = 10 } = req.query;
+    const { category, status, latitude, longitude, radius, south, north, west, east, search, page = 1, limit = 10 } = req.query;
     const hasLocationFilter = latitude && longitude;
     const userLat = hasLocationFilter ? parseFloat(latitude) : null;
     const userLng = hasLocationFilter ? parseFloat(longitude) : null;
     const searchRadius = radius ? parseInt(radius) : null;
+    const hasBoundsFilter = south && north && west && east;
     const { offset, limit: parsedLimit } = buildPagination(page, limit);
 
     const whereConditions = [];
@@ -447,6 +448,32 @@ exports.getMeetups = async (req, res) => {
       // status 파라미터 없으면 지난/취소 모임 제외
       whereConditions.push("m.status NOT IN ('종료', '취소')");
       whereConditions.push("(m.date::date + m.time::time) > NOW()");
+    }
+
+    // 지도 영역 기반 필터링 (bounds)
+    if (hasBoundsFilter) {
+      const parsedSouth = parseFloat(south);
+      const parsedNorth = parseFloat(north);
+      const parsedWest = parseFloat(west);
+      const parsedEast = parseFloat(east);
+
+      if (!isNaN(parsedSouth) && !isNaN(parsedNorth) && !isNaN(parsedWest) && !isNaN(parsedEast)) {
+        whereConditions.push(`m.latitude IS NOT NULL`);
+        whereConditions.push(`m.longitude IS NOT NULL`);
+        whereConditions.push(`m.latitude BETWEEN $${paramIndex} AND $${paramIndex + 1}`);
+        params.push(parsedSouth, parsedNorth);
+        paramIndex += 2;
+        whereConditions.push(`m.longitude BETWEEN $${paramIndex} AND $${paramIndex + 1}`);
+        params.push(parsedWest, parsedEast);
+        paramIndex += 2;
+      }
+    }
+
+    // 검색어 필터링
+    if (search && search.trim()) {
+      whereConditions.push(`(m.title ILIKE $${paramIndex} OR m.location ILIKE $${paramIndex} OR m.category ILIKE $${paramIndex} OR m.address ILIKE $${paramIndex})`);
+      params.push(`%${search.trim()}%`);
+      paramIndex++;
     }
 
     const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';

@@ -19,6 +19,13 @@ router.post('/verify', authenticateToken, validate({ body: verifyPaymentSchema }
 router.post('/portone-refund', authenticateToken, depositsController.refundDepositViaPortone);
 
 // ============================================
+// 약속금 조회 API
+// ============================================
+
+// 특정 모임의 내 약속금 상태 조회
+router.get('/meetup/:meetupId', authenticateToken, depositsController.getDepositByMeetup);
+
+// ============================================
 // 약속금 기본 API
 // ============================================
 

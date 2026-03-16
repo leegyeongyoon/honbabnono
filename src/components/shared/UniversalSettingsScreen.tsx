@@ -11,6 +11,7 @@ import {
 import { COLORS, SHADOWS, LAYOUT } from '../../styles/colors';
 import { Icon } from '../Icon';
 import { useUserStore } from '../../store/userStore';
+import userApiService from '../../services/userApiService';
 
 interface NavigationAdapter {
   navigate: (screen: string, params?: any) => void;
@@ -83,8 +84,18 @@ const UniversalSettingsScreen: React.FC<UniversalSettingsScreenProps> = ({
         {
           text: '탈퇴',
           style: 'destructive',
-          onPress: () => {
-            // TODO: 계정 삭제 API 호출
+          onPress: async () => {
+            try {
+              await userApiService.deleteAccount();
+              logout();
+              if (onLogout) {
+                onLogout();
+              } else {
+                navigation.navigate('Login');
+              }
+            } catch (_error) {
+              Alert.alert('오류', '계정 삭제에 실패했습니다. 다시 시도해주세요.');
+            }
           },
         },
       ]

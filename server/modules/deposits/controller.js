@@ -468,6 +468,60 @@ exports.refundDepositViaPortone = async (req, res) => {
   }
 };
 
+// 특정 모임의 내 약속금 상태 조회
+exports.getDepositByMeetup = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { meetupId } = req.params;
+
+    if (!meetupId) {
+      return res.status(400).json({
+        success: false,
+        error: '모임 ID가 필요합니다.'
+      });
+    }
+
+    const result = await pool.query(`
+      SELECT id, meetup_id, user_id, amount, status, payment_method,
+             payment_id, deposited_at, created_at, updated_at
+      FROM promise_deposits
+      WHERE meetup_id = $1 AND user_id = $2
+      ORDER BY created_at DESC
+      LIMIT 1
+    `, [meetupId, userId]);
+
+    if (result.rows.length === 0) {
+      return res.json({
+        success: true,
+        deposit: null
+      });
+    }
+
+    const row = result.rows[0];
+    res.json({
+      success: true,
+      deposit: {
+        id: row.id,
+        meetupId: row.meetup_id,
+        userId: row.user_id,
+        amount: row.amount,
+        status: row.status,
+        paymentMethod: row.payment_method,
+        paymentId: row.payment_id,
+        paidAt: row.deposited_at,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at,
+      }
+    });
+  } catch (error) {
+    logger.error('약속금 조회 실패:', error);
+    res.status(500).json({
+      success: false,
+      error: '약속금 조회 중 오류가 발생했습니다.'
+    });
+  }
+};
+
 // 약속금 결제
 exports.createPayment = async (req, res) => {
   try {

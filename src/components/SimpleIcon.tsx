@@ -10,7 +10,7 @@ import {
   Building2, Flame, Fish, Wine, Cake, Navigation, List, Compass,
   CheckCircle, XCircle, AlertTriangle, AlertCircle, Zap, ArrowUpLeft,
   ArrowRight, Smartphone, BellOff, Pizza, Beef, CookingPot, GlassWater,
-  Eye, LogOut, PlusCircle,
+  Eye, LogOut, PlusCircle, Share2,
   type LucideIcon,
 } from 'lucide-react';
 import { COLORS } from '../styles/colors';
@@ -30,7 +30,8 @@ export type IconName =
   | 'birthday-cake' | 'drumstick-bite' | 'flame' | 'navigation' | 'list'
   | 'check-circle' | 'x-circle' | 'alert-triangle' | 'alert-circle'
   | 'zap' | 'arrow-up-left' | 'arrow-right' | 'times' | 'smartphone'
-  | 'notifications-none' | 'compass' | 'eye' | 'log-out' | 'plus-circle';
+  | 'notifications-none' | 'compass' | 'eye' | 'log-out' | 'plus-circle'
+  | 'share-2';
 
 interface IconProps {
   name: IconName;
@@ -122,6 +123,7 @@ const iconMap: Record<IconName, LucideIcon> = {
   'eye': Eye,
   'log-out': LogOut,
   'plus-circle': PlusCircle,
+  'share-2': Share2,
 };
 
 const SimpleIcon: React.FC<IconProps> = ({

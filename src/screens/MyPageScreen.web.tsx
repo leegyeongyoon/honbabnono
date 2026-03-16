@@ -182,7 +182,13 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ user: propsUser }) => {
   const handleDeleteAccount = async () => {
     const confirmed = await confirmDanger('회원 탈퇴', '정말로 계정을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.');
     if (confirmed) {
-      // TODO: 계정 삭제 API 호출
+      try {
+        await userApiService.deleteAccount();
+        logout();
+        navigate('/login');
+      } catch (_error) {
+        // silently handle
+      }
     }
   };
 

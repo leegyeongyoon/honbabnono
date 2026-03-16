@@ -16,6 +16,7 @@ import { Icon } from '../Icon';
 import StatusBadge from './StatusBadge';
 import MeetupTags from './MeetupTags';
 import type { MeetupCardBaseProps } from './types';
+import { getParticipantStatus } from './types';
 
 interface MeetupGridCardProps extends MeetupCardBaseProps {
   width?: number;
@@ -29,6 +30,7 @@ const MeetupGridCard: React.FC<MeetupGridCardProps> = ({ meetup, onPress, width 
   const currentP = meetup.currentParticipants ?? 0;
   const maxP = meetup.maxParticipants ?? 4;
   const participantText = `${currentP}/${maxP}명`;
+  const participantStatus = getParticipantStatus(currentP, maxP);
 
   const handlePressIn = () => {
     if (Platform.OS !== 'web') {
@@ -135,11 +137,19 @@ const MeetupGridCard: React.FC<MeetupGridCardProps> = ({ meetup, onPress, width 
           </View>
         )}
 
-        {/* 우하단: 참가자수 pill */}
+        {/* 우하단: 참가자수 pill + 상태뱃지 */}
         <View style={styles.participantPill}>
-          <View style={styles.participantPillInner}>
+          <View style={[
+            styles.participantPillInner,
+            participantStatus.type === 'closed' && { backgroundColor: 'rgba(211,47,47,0.85)' },
+            participantStatus.type === 'closing_soon' && { backgroundColor: 'rgba(230,145,0,0.85)' },
+          ]}>
             <Icon name="users" size={9} color={COLORS.text.white} />
-            <Text style={styles.participantPillText}>{participantText}</Text>
+            <Text style={styles.participantPillText}>
+              {participantStatus.type === 'closed' ? '마감' :
+               participantStatus.type === 'closing_soon' ? `마감임박 ${participantText}` :
+               participantText}
+            </Text>
           </View>
         </View>
       </View>

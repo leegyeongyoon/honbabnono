@@ -13,10 +13,13 @@ export type {
   UrgencyInfo,
   TagSize,
   ParticipantVariant,
+  ParticipantStatusType,
+  ParticipantStatusInfo,
 } from './types';
 
 export {
   STATUS_CONFIG,
   getUrgencyInfo,
+  getParticipantStatus,
   formatDistance,
 } from './types';

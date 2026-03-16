@@ -1,6 +1,7 @@
 /**
  * 출석 관리 컨트롤러
  */
+const crypto = require('crypto');
 const pool = require('../../../config/database');
 const logger = require('../../../config/logger');
 const { calculateDistance } = require('../../../utils/helpers');
@@ -99,7 +100,7 @@ exports.gpsCheckin = async (req, res) => {
 };
 
 /**
- * QR 코드 생성 (호스트용)
+ * QR 코드 생성 (호스트용) — 암호학적으로 안전한 토큰 사용
  */
 exports.generateQRCode = async (req, res) => {
   try {
@@ -112,21 +113,25 @@ exports.generateQRCode = async (req, res) => {
       return res.status(status).json({ error });
     }
 
-    const qrData = {
-      meetupId,
-      hostId: userId,
-      timestamp: Date.now(),
-      expiresAt: Date.now() + 10 * 60 * 1000, // 10분 후 만료
-      type: 'checkin',
-    };
+    // 10분 유효한 암호학적 토큰 생성
+    const token = crypto.randomBytes(32).toString('hex');
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
-    const qrCodeData = Buffer.from(JSON.stringify(qrData)).toString('base64');
+    // DB에 토큰 저장
+    await pool.query(
+      'UPDATE meetups SET qr_token = $1, qr_token_expires_at = $2 WHERE id = $3',
+      [token, expiresAt, meetupId]
+    );
+
+    // QR에 인코딩할 데이터
+    const qrPayload = JSON.stringify({ meetupId, token });
 
     res.json({
       success: true,
       data: {
-        qrCodeData,
-        expiresAt: qrData.expiresAt,
+        qrCodeData: qrPayload,
+        token,
+        expiresAt: expiresAt.toISOString(),
         meetupTitle: meetup.title,
       },
     });
@@ -137,7 +142,7 @@ exports.generateQRCode = async (req, res) => {
 };
 
 /**
- * QR 코드 조회 (호스트용)
+ * QR 코드 조회 (호스트용) — DB에 저장된 토큰 조회
  */
 exports.getQRCode = async (req, res) => {
   try {
@@ -150,21 +155,40 @@ exports.getQRCode = async (req, res) => {
       return res.status(status).json({ error });
     }
 
-    const qrData = {
-      meetupId,
-      hostId: userId,
-      timestamp: Date.now(),
-      expiresAt: Date.now() + 10 * 60 * 1000,
-      type: 'checkin',
-    };
+    // 기존 토큰이 유효한지 확인
+    const hasValidToken = meetup.qr_token && meetup.qr_token_expires_at &&
+      new Date(meetup.qr_token_expires_at) > new Date();
 
-    const qrCodeData = Buffer.from(JSON.stringify(qrData)).toString('base64');
+    if (hasValidToken) {
+      const qrPayload = JSON.stringify({ meetupId, token: meetup.qr_token });
+      return res.json({
+        success: true,
+        data: {
+          qrCodeData: qrPayload,
+          token: meetup.qr_token,
+          expiresAt: meetup.qr_token_expires_at,
+          meetupTitle: meetup.title,
+        },
+      });
+    }
+
+    // 토큰이 만료됐거나 없으면 새로 생성
+    const token = crypto.randomBytes(32).toString('hex');
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+
+    await pool.query(
+      'UPDATE meetups SET qr_token = $1, qr_token_expires_at = $2 WHERE id = $3',
+      [token, expiresAt, meetupId]
+    );
+
+    const qrPayload = JSON.stringify({ meetupId, token });
 
     res.json({
       success: true,
       data: {
-        qrCodeData,
-        expiresAt: qrData.expiresAt,
+        qrCodeData: qrPayload,
+        token,
+        expiresAt: expiresAt.toISOString(),
         meetupTitle: meetup.title,
       },
     });
@@ -175,35 +199,58 @@ exports.getQRCode = async (req, res) => {
 };
 
 /**
- * QR 코드 스캔 체크인
+ * QR 코드 스캔 체크인 — DB 토큰 검증 방식
  */
 exports.qrCheckin = async (req, res) => {
   try {
     const { id: meetupId } = req.params;
-    const { qrCodeData } = req.body;
+    const { token, qrCodeData } = req.body;
     const userId = req.user.userId;
 
-    if (!qrCodeData) {
+    // token 직접 전달 또는 qrCodeData JSON에서 추출
+    let checkinToken = token;
+    if (!checkinToken && qrCodeData) {
+      try {
+        const parsed = JSON.parse(qrCodeData);
+        checkinToken = parsed.token;
+      } catch {
+        return res.status(400).json({ error: '잘못된 QR 코드 형식입니다' });
+      }
+    }
+
+    if (!checkinToken) {
       return res.status(400).json({ error: 'QR 코드 데이터가 필요합니다' });
     }
 
-    let qrData;
-    try {
-      qrData = JSON.parse(Buffer.from(qrCodeData, 'base64').toString());
-    } catch {
-      return res.status(400).json({ error: '잘못된 QR 코드 형식입니다' });
+    // DB에서 모임의 QR 토큰 검증
+    const meetupResult = await pool.query(
+      'SELECT id, qr_token, qr_token_expires_at FROM meetups WHERE id = $1',
+      [meetupId]
+    );
+
+    if (meetupResult.rows.length === 0) {
+      return res.status(404).json({ error: '약속을 찾을 수 없습니다' });
     }
 
-    if (qrData.meetupId !== meetupId) {
+    const meetup = meetupResult.rows[0];
+
+    // 토큰 일치 확인 (timing-safe comparison)
+    const tokenBuffer = Buffer.from(checkinToken);
+    const storedTokenBuffer = Buffer.from(meetup.qr_token || '');
+    if (!meetup.qr_token ||
+        tokenBuffer.length !== storedTokenBuffer.length ||
+        !crypto.timingSafeEqual(tokenBuffer, storedTokenBuffer)
+    ) {
       return res.status(400).json({ error: '잘못된 QR 코드입니다' });
     }
 
-    if (Date.now() > qrData.expiresAt) {
-      return res.status(400).json({ error: 'QR 코드가 만료되었습니다' });
+    // 만료 확인
+    if (!meetup.qr_token_expires_at || new Date() > new Date(meetup.qr_token_expires_at)) {
+      return res.status(400).json({ error: 'QR 코드가 만료되었습니다. 호스트에게 새로운 QR을 요청해주세요.' });
     }
 
     // 참가자 확인
-    const { isParticipant, error: participantError } = await validateParticipant(meetupId, userId, '참가승인');
+    const { isParticipant } = await validateParticipant(meetupId, userId, '참가승인');
     if (!isParticipant) {
       return res.status(403).json({ error: '약속 참가자만 체크인할 수 있습니다' });
     }
@@ -217,7 +264,7 @@ exports.qrCheckin = async (req, res) => {
         attendance_type = 'qr', qr_code_data = $3, status = 'confirmed',
         confirmed_at = NOW(), updated_at = NOW()
     `,
-      [meetupId, userId, qrCodeData]
+      [meetupId, userId, 'qr-token-verified']
     );
 
     // meetup_participants에 attended 업데이트

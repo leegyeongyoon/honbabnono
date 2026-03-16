@@ -11,8 +11,19 @@ import { processImageUrl } from '../../utils/imageUtils';
 import { Icon } from '../Icon';
 import { ProfileImage } from '../ProfileImage';
 import { FOOD_CATEGORIES } from '../../constants/categories';
-import { Heart } from 'lucide-react';
+let Heart: any = null;
+let Share2LucideIcon: any = null;
+if (Platform.OS === 'web') {
+  try {
+    const lucide = require('lucide-react');
+    Heart = lucide.Heart;
+    Share2LucideIcon = lucide.Share2;
+  } catch (_e) {
+    // lucide-react not available
+  }
+}
 import CheckInButton from '../CheckInButton';
+import { shareToKakao } from '../../utils/kakaoShare';
 
 interface NavigationAdapter {
   navigate: (screen: string, params?: any) => void;
@@ -26,6 +37,16 @@ interface UniversalMeetupDetailScreenProps {
   DepositSelectorComponent?: React.ComponentType<any>;
   KakaoMapComponent?: React.ComponentType<any>;
 }
+
+// 바발스코어 등급 계산 (서버 babalScore.js와 동기화)
+const getBabalLevelLabel = (score: number): { label: string; color: string } => {
+  if (score >= 60) return { label: '전설', color: '#D4482C' };
+  if (score >= 50) return { label: '고수', color: '#FF6B35' };
+  if (score >= 42) return { label: '단골', color: '#4CAF50' };
+  if (score >= 36.5) return { label: '밥친구', color: '#2196F3' };
+  if (score >= 30) return { label: '새싹', color: '#9E9E9E' };
+  return { label: '주의', color: '#F44336' };
+};
 
 const CATEGORY_EMOJI_MAP: Record<string, string> = {
   '한식': '🍚', '중식': '🥢', '일식': '🍣', '양식': '🍕',
@@ -180,6 +201,8 @@ const UniversalMeetupDetailScreen: React.FC<UniversalMeetupDetailScreenProps> = 
   const [userRiceIndex, setUserRiceIndex] = useState<number>(0);
   const [isWishlisted, setIsWishlisted] = useState<boolean>(false);
   const [wishlistLoading, setWishlistLoading] = useState<boolean>(false);
+  const [depositStatus, setDepositStatus] = useState<string | null>(null);
+  const [depositAmount, setDepositAmount] = useState<number>(0);
 
   useEffect(() => {
     if (meetupId) {
@@ -234,6 +257,35 @@ const UniversalMeetupDetailScreen: React.FC<UniversalMeetupDetailScreenProps> = 
     checkWishlistStatus();
   }, [currentMeetup, user]);
 
+  // 약속금 결제 상태 확인
+  useEffect(() => {
+    const checkDepositStatus = async () => {
+      if (!currentMeetup || !user) {return;}
+      // 약속금이 필요한 모임인지 확인
+      const required = currentMeetup.promiseDepositRequired;
+      const amount = currentMeetup.promiseDepositAmount || 0;
+      setDepositAmount(amount);
+
+      if (!required || amount <= 0) {
+        setDepositStatus(null);
+        return;
+      }
+
+      try {
+        const response = await apiClient.get('/deposits/meetup/' + currentMeetup.id);
+        if (response.data && response.data.success && response.data.deposit) {
+          setDepositStatus(response.data.deposit.status);
+        } else {
+          setDepositStatus(null);
+        }
+      } catch (_error) {
+        setDepositStatus(null);
+      }
+    };
+
+    checkDepositStatus();
+  }, [currentMeetup, user]);
+
   const toggleWishlist = async () => {
     if (!currentMeetup || !user || wishlistLoading) {return;}
 
@@ -255,6 +307,22 @@ const UniversalMeetupDetailScreen: React.FC<UniversalMeetupDetailScreenProps> = 
     } finally {
       setWishlistLoading(false);
     }
+  };
+
+  const handleShare = () => {
+    if (!currentMeetup) {return;}
+
+    shareToKakao({
+      id: currentMeetup.id,
+      title: currentMeetup.title,
+      description: currentMeetup.description,
+      location: currentMeetup.location,
+      date: currentMeetup.date,
+      time: currentMeetup.time,
+      imageUrl: processImageUrl(currentMeetup.image, currentMeetup.category),
+      currentParticipants: currentMeetup.currentParticipants,
+      maxParticipants: currentMeetup.maxParticipants,
+    });
   };
 
   if (loading || !currentMeetup) {
@@ -481,23 +549,24 @@ const UniversalMeetupDetailScreen: React.FC<UniversalMeetupDetailScreenProps> = 
   const handleConfirmJoin = async () => {
     if (!user || !meetupId) {return;}
 
+    const depositAmt = meetup.promiseDepositAmount || meetup.deposit || 3000;
+
     try {
       const hasEnoughPoints = await checkUserPoints();
 
       if (!hasEnoughPoints) {
-        const requiredPoints = meetup.deposit || 3000;
         Alert.alert(
           '포인트 부족',
-          '포인트가 부족합니다.\n필요한 포인트: ' + requiredPoints.toLocaleString() + '원\n충전 페이지로 이동하시겠습니까?',
+          '포인트가 부족합니다.\n필요한 포인트: ' + depositAmt.toLocaleString() + '원\n결제 페이지로 이동하시겠습니까?',
           [
             { text: '취소', onPress: () => setShowPromiseModal(false) },
             {
-              text: '충전하기',
+              text: '결제하기',
               onPress: () => {
                 setShowPromiseModal(false);
                 navigation.navigate('DepositPayment', {
                   meetupId,
-                  depositAmount: meetup.promiseDepositAmount || meetup.deposit || 3000,
+                  depositAmount: depositAmt,
                 });
               }
             }
@@ -507,7 +576,7 @@ const UniversalMeetupDetailScreen: React.FC<UniversalMeetupDetailScreenProps> = 
       }
 
       const usePointsResponse = await apiClient.post('/users/use-points', {
-        amount: meetup.deposit || 3000,
+        amount: depositAmt,
         description: '약속 참여비: ' + meetup.title
       });
 
@@ -520,7 +589,7 @@ const UniversalMeetupDetailScreen: React.FC<UniversalMeetupDetailScreenProps> = 
       await joinMeetup(meetupId, user.id);
       setShowPromiseModal(false);
 
-      Alert.alert('성공', '약속 참여가 완료되었습니다!\n사용된 포인트: ' + (meetup.deposit || 3000).toLocaleString() + '원');
+      Alert.alert('성공', '약속 참여가 완료되었습니다!\n사용된 포인트: ' + depositAmt.toLocaleString() + '원');
     } catch (_error) {
       Alert.alert('오류', '약속 참여 중 오류가 발생했습니다.');
       setShowPromiseModal(false);
@@ -582,28 +651,64 @@ const UniversalMeetupDetailScreen: React.FC<UniversalMeetupDetailScreenProps> = 
               paddingTop: 20,
             }}>
               <div style={{ width: 40, height: 40 }} />
-              <div
-                onClick={toggleWishlist}
-                style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: 20,
-                  backgroundColor: 'rgba(255,255,255,0.9)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer',
-                  boxShadow: CSS_SHADOWS.small,
-                  backdropFilter: 'blur(8px)',
-                }}
-                role="button"
-                aria-label={isWishlisted ? '찜 해제' : '찜하기'}
-              >
-                <Heart
-                  size={20}
-                  color={isWishlisted ? COLORS.functional.error : COLORS.text.secondary}
-                  fill={isWishlisted ? COLORS.functional.error : 'transparent'}
-                />
+              <div style={{ display: 'flex', flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+                <div
+                  onClick={handleShare}
+                  style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: 20,
+                    backgroundColor: 'rgba(255,255,255,0.9)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    boxShadow: CSS_SHADOWS.small,
+                    backdropFilter: 'blur(8px)',
+                    transition: 'transform 150ms ease',
+                  }}
+                  role="button"
+                  aria-label="공유하기"
+                  onMouseDown={(e: any) => { e.currentTarget.style.transform = 'scale(0.9)'; }}
+                  onMouseUp={(e: any) => { e.currentTarget.style.transform = 'scale(1)'; }}
+                  onMouseLeave={(e: any) => { e.currentTarget.style.transform = 'scale(1)'; }}
+                >
+                  {Share2LucideIcon ? (
+                    <Share2LucideIcon
+                      size={19}
+                      color={COLORS.text.secondary}
+                    />
+                  ) : (
+                    <Icon name="share-2" size={19} color={COLORS.text.secondary} />
+                  )}
+                </div>
+                <div
+                  onClick={toggleWishlist}
+                  style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: 20,
+                    backgroundColor: 'rgba(255,255,255,0.9)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    boxShadow: CSS_SHADOWS.small,
+                    backdropFilter: 'blur(8px)',
+                  }}
+                  role="button"
+                  aria-label={isWishlisted ? '찜 해제' : '찜하기'}
+                >
+                  {Heart ? (
+                    <Heart
+                      size={20}
+                      color={isWishlisted ? COLORS.functional.error : COLORS.text.secondary}
+                      fill={isWishlisted ? COLORS.functional.error : 'transparent'}
+                    />
+                  ) : (
+                    <Icon name="heart" size={20} color={isWishlisted ? COLORS.functional.error : COLORS.text.secondary} fill={isWishlisted ? COLORS.functional.error : undefined} />
+                  )}
+                </div>
               </div>
             </div>
             {/* 상태 뱃지 */}
@@ -659,13 +764,21 @@ const UniversalMeetupDetailScreen: React.FC<UniversalMeetupDetailScreenProps> = 
             {/* 오버레이 헤더 버튼들 */}
             <View style={styles.heroHeaderOverlay}>
               <View style={{ width: 40, height: 40 }} />
-              <TouchableOpacity
-                style={styles.heroIconButton}
-                onPress={toggleWishlist}
-                disabled={wishlistLoading}
-              >
-                <Text style={{ fontSize: 20 }}>{isWishlisted ? '❤️' : '🤍'}</Text>
-              </TouchableOpacity>
+              <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+                <TouchableOpacity
+                  style={styles.heroIconButton}
+                  onPress={handleShare}
+                >
+                  <Icon name="share-2" size={19} color={COLORS.text.secondary} />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.heroIconButton}
+                  onPress={toggleWishlist}
+                  disabled={wishlistLoading}
+                >
+                  <Text style={{ fontSize: 20 }}>{isWishlisted ? '❤️' : '🤍'}</Text>
+                </TouchableOpacity>
+              </View>
             </View>
             {/* 상태 뱃지 */}
             {meetup.status && (
@@ -688,24 +801,29 @@ const UniversalMeetupDetailScreen: React.FC<UniversalMeetupDetailScreenProps> = 
           </View>
         )}
 
-        {/* 호스트 정보 카드 (히어로 이미지 겹침) */}
+        {/* 호스트 정보 카드 (히어로 이미지 겹침) — 클릭 시 호스트 프로필 이동 */}
         {Platform.OS === 'web' ? (
-          <div style={{
-            marginLeft: SPACING.xl,
-            marginRight: SPACING.xl,
-            marginTop: -32,
-            position: 'relative',
-            zIndex: 2,
-            backgroundColor: COLORS.neutral.white,
-            borderRadius: BORDER_RADIUS.md,
-            padding: 16,
-            display: 'flex',
-            flexDirection: 'row',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            boxShadow: CSS_SHADOWS.card,
-            border: `1px solid ${CARD_STYLE.borderColor}`,
-          }}>
+          <div
+            style={{
+              marginLeft: SPACING.xl,
+              marginRight: SPACING.xl,
+              marginTop: -32,
+              position: 'relative',
+              zIndex: 2,
+              backgroundColor: COLORS.neutral.white,
+              borderRadius: BORDER_RADIUS.md,
+              padding: 16,
+              display: 'flex',
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              boxShadow: CSS_SHADOWS.card,
+              border: `1px solid ${CARD_STYLE.borderColor}`,
+              cursor: 'pointer',
+              transition: 'box-shadow 200ms ease',
+            }}
+            onClick={() => meetup.hostId && navigation.navigate('HostProfile', { userId: meetup.hostId })}
+          >
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
               <ProfileImage
                 profileImage={meetup.host?.profileImage}
@@ -720,12 +838,19 @@ const UniversalMeetupDetailScreen: React.FC<UniversalMeetupDetailScreenProps> = 
                 </View>
               </View>
             </View>
-            <View style={styles.riceIndicator}>
-              <Text style={styles.riceText}>{meetup.hostBabAlScore || userRiceIndex} 밥알</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <View style={styles.riceIndicator}>
+                <Text style={styles.riceText}>{meetup.hostBabAlScore || userRiceIndex} 밥알</Text>
+              </View>
+              <Icon name="chevron-right" size={16} color={COLORS.text.tertiary} />
             </View>
           </div>
         ) : (
-          <View style={styles.hostSection}>
+          <TouchableOpacity
+            style={styles.hostSection}
+            activeOpacity={0.7}
+            onPress={() => meetup.hostId && navigation.navigate('HostProfile', { userId: meetup.hostId })}
+          >
             <View style={styles.hostInfo}>
               <ProfileImage
                 profileImage={meetup.host?.profileImage}
@@ -741,10 +866,13 @@ const UniversalMeetupDetailScreen: React.FC<UniversalMeetupDetailScreenProps> = 
                 </View>
               </View>
             </View>
-            <View style={styles.riceIndicator}>
-              <Text style={styles.riceText}>{meetup.hostBabAlScore || userRiceIndex} 밥알</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <View style={styles.riceIndicator}>
+                <Text style={styles.riceText}>{meetup.hostBabAlScore || userRiceIndex} 밥알</Text>
+              </View>
+              <Icon name="chevron-right" size={16} color={COLORS.text.tertiary} />
             </View>
-          </View>
+          </TouchableOpacity>
         )}
 
         <View style={styles.mainCard}>
@@ -876,7 +1004,7 @@ const UniversalMeetupDetailScreen: React.FC<UniversalMeetupDetailScreenProps> = 
           promiseDepositAmount={meetup.promiseDepositAmount}
         />
 
-        {/* GPS 체크인 섹션 */}
+        {/* GPS + QR 체크인 섹션 */}
         {(meetup.status === '진행중') && (participants.some(p => p.id === user?.id) || isHost) && (
           <CheckInButton
             meetupId={meetupId}
@@ -885,6 +1013,7 @@ const UniversalMeetupDetailScreen: React.FC<UniversalMeetupDetailScreenProps> = 
             meetupLatitude={meetup.latitude}
             meetupLongitude={meetup.longitude}
             checkInRadius={meetup.checkInRadius || 300}
+            isHost={isHost}
             onCheckInSuccess={() => fetchMeetupById(meetupId)}
           />
         )}
@@ -899,41 +1028,96 @@ const UniversalMeetupDetailScreen: React.FC<UniversalMeetupDetailScreenProps> = 
         )}
 
         <View style={styles.participantSection}>
-          <Text style={styles.participantTitle}>참여자 ({participants.filter(p => p.id !== meetup.hostId).length + 1}명)</Text>
-
-          <View style={styles.participantItem}>
-            <View style={styles.hostAvatar}>
-              <ProfileImage
-                profileImage={meetup.host?.profileImage}
-                name={meetup.host?.name || meetup.hostName}
-                size={44}
-              />
-            </View>
-            <View style={styles.participantInfo}>
-              <Text style={styles.participantName}>{meetup.host?.name || meetup.hostName} (호스트)</Text>
-              <Text style={styles.participantRole}>호스트입니다</Text>
-            </View>
+          <View style={styles.participantHeaderRow}>
+            <Text style={styles.participantTitle}>참여자 ({participants.filter(p => p.id !== meetup.hostId).length + 1}명)</Text>
+            <Text style={styles.participantCountText}>
+              {meetup.currentParticipants ?? 0}/{meetup.maxParticipants ?? 4}명
+            </Text>
           </View>
 
-          {participants.filter(participant => participant.id !== meetup.hostId).map((participant) => (
-            <View key={participant.id} style={styles.participantItem}>
-              <View style={styles.participantAvatar}>
+          {/* 참가 현황 미니바 */}
+          <View style={styles.participantMiniBar}>
+            <View style={[
+              styles.participantMiniBarFill,
+              {
+                width: `${Math.min(((meetup.currentParticipants ?? 0) / (meetup.maxParticipants ?? 4)) * 100, 100)}%`,
+                backgroundColor: (meetup.currentParticipants ?? 0) >= (meetup.maxParticipants ?? 4)
+                  ? COLORS.functional.error
+                  : ((meetup.currentParticipants ?? 0) / (meetup.maxParticipants ?? 4)) >= 0.8
+                    ? COLORS.functional.warning
+                    : COLORS.primary.accent,
+              }
+            ]} />
+          </View>
+
+          {/* 호스트 */}
+          <View style={styles.participantItem}>
+            <View style={styles.hostAvatarWrap}>
+              <View style={styles.hostAvatar}>
                 <ProfileImage
-                  profileImage={participant.profileImage}
-                  name={participant.name}
+                  profileImage={meetup.host?.profileImage}
+                  name={meetup.host?.name || meetup.hostName}
                   size={44}
                 />
               </View>
-              <View style={styles.participantInfo}>
-                <Text style={styles.participantName}>{participant.name}</Text>
-                <Text style={styles.participantRole}>
-                  {participant.status === 'approved' ? '참가승인' :
-                   participant.status === 'pending' ? '참가신청' :
-                   participant.status === 'rejected' ? '참가거절' : '참가취소'}
-                </Text>
+              <View style={styles.hostCrownBadge}>
+                <Text style={styles.hostCrownEmoji}>{'👑'}</Text>
               </View>
             </View>
-          ))}
+            <View style={styles.participantInfo}>
+              <View style={styles.participantNameRow}>
+                <Text style={styles.participantName}>{meetup.host?.name || meetup.hostName}</Text>
+                <View style={styles.hostLabelBadge}>
+                  <Text style={styles.hostLabelText}>호스트</Text>
+                </View>
+              </View>
+              <View style={styles.participantMetaRow}>
+                {meetup.host?.babAlScore != null && (() => {
+                  const level = getBabalLevelLabel(meetup.host.babAlScore);
+                  return (
+                    <View style={[styles.babalLevelBadge, { backgroundColor: level.color + '18' }]}>
+                      <Text style={[styles.babalLevelText, { color: level.color }]}>{level.label}</Text>
+                    </View>
+                  );
+                })()}
+              </View>
+            </View>
+          </View>
+
+          {/* 참가자들 */}
+          {participants.filter(participant => participant.id !== meetup.hostId).map((participant) => {
+            const babalLevel = participant.babAlScore != null
+              ? getBabalLevelLabel(participant.babAlScore)
+              : null;
+            return (
+              <View key={participant.id} style={styles.participantItem}>
+                <View style={styles.participantAvatar}>
+                  <ProfileImage
+                    profileImage={participant.profileImage}
+                    name={participant.name}
+                    size={44}
+                  />
+                </View>
+                <View style={styles.participantInfo}>
+                  <View style={styles.participantNameRow}>
+                    <Text style={styles.participantName}>{participant.name}</Text>
+                  </View>
+                  <View style={styles.participantMetaRow}>
+                    <Text style={styles.participantRole}>
+                      {participant.status === 'approved' ? '참가승인' :
+                       participant.status === 'pending' ? '참가신청' :
+                       participant.status === 'rejected' ? '참가거절' : '참가취소'}
+                    </Text>
+                    {babalLevel && (
+                      <View style={[styles.babalLevelBadge, { backgroundColor: babalLevel.color + '18' }]}>
+                        <Text style={[styles.babalLevelText, { color: babalLevel.color }]}>{babalLevel.label}</Text>
+                      </View>
+                    )}
+                  </View>
+                </View>
+              </View>
+            );
+          })}
 
           {participants.filter(p => p.id !== meetup.hostId).length === 0 && (
             <Text style={styles.noParticipants}>아직 참여자가 없습니다.</Text>
@@ -969,45 +1153,76 @@ const UniversalMeetupDetailScreen: React.FC<UniversalMeetupDetailScreenProps> = 
           <>
             {(participants.some(p => p.id === user?.id) || isHost) ? (
               <View style={styles.bottomButtonContainer}>
-                <TouchableOpacity
-                  onPress={() => handleGoToChat()}
-                  style={styles.chatButton}
-                >
-                  <Text style={styles.chatButtonText}>채팅방</Text>
-                </TouchableOpacity>
+                {/* 약속금 미결제 참가자: 결제 버튼 표시 */}
+                {!isHost && meetup.promiseDepositRequired && depositAmount > 0 && depositStatus !== 'paid' ? (
+                  <>
+                    <TouchableOpacity
+                      onPress={() => navigation.navigate('DepositPayment', {
+                        meetupId,
+                        depositAmount: meetup.promiseDepositAmount || 3000,
+                      })}
+                      style={styles.depositButton}
+                    >
+                      <Text style={styles.depositButtonText}>
+                        {'약속금 ' + (meetup.promiseDepositAmount || 3000).toLocaleString() + '원 결제하기'}
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => setShowLeaveModal(true)}
+                      style={styles.leaveButton}
+                    >
+                      <Text style={styles.leaveButtonText}>참여취소</Text>
+                    </TouchableOpacity>
+                  </>
+                ) : (
+                  <>
+                    {/* 결제 완료 표시 */}
+                    {!isHost && depositStatus === 'paid' && depositAmount > 0 && (
+                      <View style={styles.depositPaidBadge}>
+                        <Text style={styles.depositPaidText}>약속금 결제완료</Text>
+                      </View>
+                    )}
+                    <TouchableOpacity
+                      onPress={() => handleGoToChat()}
+                      style={styles.chatButton}
+                    >
+                      <Text style={styles.chatButtonText}>채팅방</Text>
+                    </TouchableOpacity>
 
-                {isHost && (
-                  <TouchableOpacity
-                    onPress={() => {
-                      if (meetup.status === '모집중' || meetup.status === '모집완료') {
-                        handleStatusChange('진행중');
-                      } else if (meetup.status === '진행중') {
-                        handleStatusChange('종료');
-                      } else {
-                        setShowHostModal(true);
-                      }
-                    }}
-                    style={[
-                      styles.hostButton,
-                      meetup.status === '진행중' && styles.endButton
-                    ]}
-                    disabled={statusChangeLoading}
-                  >
-                    <Text style={styles.hostButtonText}>
-                      {statusChangeLoading ? '처리 중...' :
-                       meetup.status === '모집중' || meetup.status === '모집완료' ? '약속시작' :
-                       meetup.status === '진행중' ? '약속종료' : '약속확정'}
-                    </Text>
-                  </TouchableOpacity>
-                )}
+                    {isHost && (
+                      <TouchableOpacity
+                        onPress={() => {
+                          if (meetup.status === '모집중' || meetup.status === '모집완료') {
+                            handleStatusChange('진행중');
+                          } else if (meetup.status === '진행중') {
+                            handleStatusChange('종료');
+                          } else {
+                            setShowHostModal(true);
+                          }
+                        }}
+                        style={[
+                          styles.hostButton,
+                          meetup.status === '진행중' && styles.endButton
+                        ]}
+                        disabled={statusChangeLoading}
+                      >
+                        <Text style={styles.hostButtonText}>
+                          {statusChangeLoading ? '처리 중...' :
+                           meetup.status === '모집중' || meetup.status === '모집완료' ? '약속시작' :
+                           meetup.status === '진행중' ? '약속종료' : '약속확정'}
+                        </Text>
+                      </TouchableOpacity>
+                    )}
 
-                {!isHost && (
-                  <TouchableOpacity
-                    onPress={() => setShowLeaveModal(true)}
-                    style={styles.leaveButton}
-                  >
-                    <Text style={styles.leaveButtonText}>참여취소</Text>
-                  </TouchableOpacity>
+                    {!isHost && (
+                      <TouchableOpacity
+                        onPress={() => setShowLeaveModal(true)}
+                        style={styles.leaveButton}
+                      >
+                        <Text style={styles.leaveButtonText}>참여취소</Text>
+                      </TouchableOpacity>
+                    )}
+                  </>
                 )}
               </View>
             ) : (
@@ -1050,7 +1265,7 @@ const UniversalMeetupDetailScreen: React.FC<UniversalMeetupDetailScreenProps> = 
               노쇼 방지 약속금이며, 1일 이내에 다시 입금됩니다.
             </Text>
             <View style={styles.modalAmountContainer}>
-              <Text style={styles.modalAmount}>약속금 3000원</Text>
+              <Text style={styles.modalAmount}>{'약속금 ' + (meetup.promiseDepositAmount || 3000).toLocaleString() + '원'}</Text>
             </View>
             <View style={styles.modalButtonContainer}>
               <TouchableOpacity
@@ -1556,10 +1771,31 @@ const styles = StyleSheet.create({
     borderColor: CARD_STYLE.borderColor,
     ...SHADOWS.small,
   },
+  participantHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
   participantTitle: {
     ...TYPOGRAPHY.sectionHeader.title,
     color: COLORS.text.primary,
+  },
+  participantCountText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: COLORS.primary.accent,
+  },
+  participantMiniBar: {
+    height: 4,
+    backgroundColor: COLORS.neutral.grey100,
+    borderRadius: 2,
+    overflow: 'hidden',
     marginBottom: SPACING.lg,
+  },
+  participantMiniBarFill: {
+    height: '100%',
+    borderRadius: 2,
   },
   participantItem: {
     flexDirection: 'row',
@@ -1569,13 +1805,32 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: COLORS.neutral.grey100,
   },
+  hostAvatarWrap: {
+    position: 'relative',
+    marginRight: 12,
+  },
   hostAvatar: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    marginRight: 12,
     borderWidth: 2,
     borderColor: COLORS.primary.accent,
+  },
+  hostCrownBadge: {
+    position: 'absolute',
+    top: -6,
+    right: -4,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: COLORS.neutral.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.neutral.grey100,
+  },
+  hostCrownEmoji: {
+    fontSize: 10,
   },
   participantAvatar: {
     width: 44,
@@ -1588,11 +1843,42 @@ const styles = StyleSheet.create({
   participantInfo: {
     flex: 1,
   },
+  participantNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 2,
+  },
   participantName: {
     ...TYPOGRAPHY.body.large,
     fontWeight: '600',
     color: COLORS.text.primary,
-    marginBottom: 2,
+  },
+  hostLabelBadge: {
+    backgroundColor: COLORS.primary.accent,
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: 4,
+  },
+  hostLabelText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: COLORS.text.white,
+  },
+  participantMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 2,
+  },
+  babalLevelBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  babalLevelText: {
+    fontSize: 10,
+    fontWeight: '600',
   },
   participantRole: {
     ...TYPOGRAPHY.body.small,
@@ -1693,6 +1979,32 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: COLORS.neutral.white,
     letterSpacing: -0.2,
+  },
+  depositButton: {
+    flex: 1,
+    backgroundColor: COLORS.special.deposit,
+    borderRadius: BORDER_RADIUS.md,
+    paddingVertical: 14,
+    alignItems: 'center',
+    ...SHADOWS.cta,
+  },
+  depositButtonText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: COLORS.neutral.white,
+  },
+  depositPaidBadge: {
+    backgroundColor: COLORS.functional.successLight,
+    borderRadius: BORDER_RADIUS.sm,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    alignSelf: 'center',
+    marginBottom: 4,
+  },
+  depositPaidText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: COLORS.functional.success,
   },
   pastMeetupContainer: {
     backgroundColor: COLORS.neutral.light,

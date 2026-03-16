@@ -22,6 +22,12 @@ exports.getMeetupReviews = async (req, res) => {
       LIMIT $2 OFFSET $3
     `, [meetupId, parseInt(limit), offset]);
 
+    // images 파싱
+    const reviews = result.rows.map(review => ({
+      ...review,
+      images: typeof review.images === 'string' ? JSON.parse(review.images) : (review.images || []),
+    }));
+
     const countResult = await pool.query(
       'SELECT COUNT(*) as total FROM reviews WHERE meetup_id = $1',
       [meetupId]
@@ -29,7 +35,7 @@ exports.getMeetupReviews = async (req, res) => {
 
     res.json({
       success: true,
-      reviews: result.rows,
+      reviews: reviews,
       pagination: {
         page: parseInt(page),
         limit: parseInt(limit),
@@ -47,7 +53,7 @@ exports.getMeetupReviews = async (req, res) => {
 exports.createReview = async (req, res) => {
   try {
     const userId = req.user.userId;
-    const { meetupId, rating, content, revieweeId } = req.body;
+    const { meetupId, rating, content, revieweeId, images } = req.body;
 
     // 평점 범위 검증
     if (!rating || rating < 1 || rating > 5) {
@@ -105,11 +111,14 @@ exports.createReview = async (req, res) => {
       });
     }
 
+    // images 검증 (최대 3장)
+    const reviewImages = Array.isArray(images) ? images.slice(0, 3) : [];
+
     const result = await pool.query(`
-      INSERT INTO reviews (meetup_id, reviewer_id, reviewee_id, rating, content)
-      VALUES ($1, $2, $3, $4, $5)
+      INSERT INTO reviews (meetup_id, reviewer_id, reviewee_id, rating, content, images)
+      VALUES ($1, $2, $3, $4, $5, $6::jsonb)
       RETURNING *
-    `, [meetupId, userId, targetRevieweeId, rating, content]);
+    `, [meetupId, userId, targetRevieweeId, rating, content, JSON.stringify(reviewImages)]);
 
     // 리뷰 대상의 밥알지수 변동 (통합 알고리즘)
     const scoreEvent = getReviewScoreEvent(rating);
@@ -148,14 +157,24 @@ exports.updateReview = async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.user.userId;
-    const { rating, content } = req.body;
+    const { rating, content, images } = req.body;
 
-    const result = await pool.query(`
-      UPDATE reviews
-      SET rating = $1, content = $2, updated_at = NOW()
-      WHERE id = $3 AND reviewer_id = $4
-      RETURNING *
-    `, [rating, content, id, userId]);
+    // images가 제공되면 업데이트, 아니면 기존 유지
+    const reviewImages = Array.isArray(images) ? images.slice(0, 3) : undefined;
+
+    const result = reviewImages !== undefined
+      ? await pool.query(`
+          UPDATE reviews
+          SET rating = $1, content = $2, images = $5::jsonb, updated_at = NOW()
+          WHERE id = $3 AND reviewer_id = $4
+          RETURNING *
+        `, [rating, content, id, userId, JSON.stringify(reviewImages)])
+      : await pool.query(`
+          UPDATE reviews
+          SET rating = $1, content = $2, updated_at = NOW()
+          WHERE id = $3 AND reviewer_id = $4
+          RETURNING *
+        `, [rating, content, id, userId]);
 
     if (result.rows.length === 0) {
       return res.status(404).json({

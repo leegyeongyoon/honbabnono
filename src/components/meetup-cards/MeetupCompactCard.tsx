@@ -12,7 +12,7 @@ import { BORDER_RADIUS, SPACING } from '../../styles/spacing';
 import { processImageUrl } from '../../utils/imageUtils';
 import { formatMeetupDateTime } from '../../utils/dateUtils';
 import type { MeetupCardBaseProps } from './types';
-import { getUrgencyInfo, formatDistance } from './types';
+import { getUrgencyInfo, formatDistance, getParticipantStatus } from './types';
 import { getCategoryByName } from '../../constants/categories';
 
 interface MeetupCompactCardProps extends MeetupCardBaseProps {
@@ -28,6 +28,7 @@ const MeetupCompactCard: React.FC<MeetupCompactCardProps> = ({ meetup, onPress, 
   const currentP = meetup.currentParticipants ?? 0;
   const maxP = meetup.maxParticipants ?? 4;
   const participantText = `${currentP}/${maxP}명`;
+  const participantStatus = getParticipantStatus(currentP, maxP);
   const urgencyInfo =
     meetup.status === 'recruiting'
       ? getUrgencyInfo(meetup.date, meetup.time, currentP, maxP)
@@ -95,13 +96,22 @@ const MeetupCompactCard: React.FC<MeetupCompactCardProps> = ({ meetup, onPress, 
           {distanceText ? ` · ${distanceText}` : ''}
         </Text>
 
-        {/* 4행: 참가자 + 가격 */}
+        {/* 4행: 참가자 + 상태뱃지 + 가격 */}
         <View style={styles.bottomRow}>
           <View style={styles.participantWrap}>
             <View style={[styles.participantDot, {
-              backgroundColor: currentP >= maxP ? COLORS.text.tertiary : COLORS.functional.success,
+              backgroundColor: participantStatus.type === 'closed' ? COLORS.functional.error :
+                               participantStatus.type === 'closing_soon' ? COLORS.functional.warning :
+                               COLORS.functional.success,
             }]} />
             <Text style={styles.participantText}>{participantText}</Text>
+            {participantStatus.type !== 'open' && (
+              <View style={[styles.statusBadge, { backgroundColor: participantStatus.bgColor }]}>
+                <Text style={[styles.statusBadgeText, { color: participantStatus.color }]}>
+                  {participantStatus.label}
+                </Text>
+              </View>
+            )}
           </View>
           {meetup.priceRange && (
             <Text style={styles.priceText}>{meetup.priceRange}</Text>
@@ -279,6 +289,16 @@ const styles = StyleSheet.create({
     paddingVertical: 1,
     borderRadius: 3,
     overflow: 'hidden',
+  },
+  statusBadge: {
+    marginLeft: 4,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    borderRadius: 3,
+  },
+  statusBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
   },
 });
 

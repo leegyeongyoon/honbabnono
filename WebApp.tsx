@@ -8,7 +8,7 @@ function WebApp() {
 
   return (
     <SafeAreaProvider>
-      <StatusBar 
+      <StatusBar
         barStyle={isDarkMode ? 'light-content' : 'dark-content'}
         backgroundColor="#fff"
       />
