@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import { COLORS, SHADOWS, CARD_STYLE, BORDER_RADIUS, SPACING, TYPOGRAPHY, HEADER_STYLE } from '../../styles';
 import {Icon} from '../Icon';
+import UnderlineTabBar from '../UnderlineTabBar';
 import chatService from '../../services/chatService';
 import chatApiService, {ChatRoom, ChatMessage} from '../../services/chatApiService';
 import {getDetailedDateFormat, getChatDateHeader, isSameDay} from '../../utils/timeUtils';
@@ -62,7 +63,6 @@ const UniversalChatScreen: React.FC<UniversalChatScreenProps> = ({
   const [messageInputFocused, setMessageInputFocused] = useState(false);
   const messageListRef = useRef<ScrollView>(null);
 
-  const tabs = ['전체', '약속', '개인'];
   const userId = currentUser?.id || '';
 
   // 1대1 채팅 권한 체크
@@ -590,38 +590,15 @@ const UniversalChatScreen: React.FC<UniversalChatScreenProps> = ({
       </View>
 
       {/* 탭 네비게이션 */}
-      <View style={styles.tabNavigation}>
-        {tabs.map((tab) => {
-          const tabHasUnread = chatRooms.some(r => {
-            if (tab === '전체') return r.unreadCount > 0;
-            if (tab === '약속') return r.type === 'meetup' && r.unreadCount > 0;
-            return r.type === 'direct' && r.unreadCount > 0;
-          });
-
-          return (
-            <View key={tab} style={styles.tabButtonWrapper}>
-              <TouchableOpacity
-                style={[
-                  styles.tabButton,
-                  selectedTab === tab && styles.selectedTabButton
-                ]}
-                onPress={() => setSelectedTab(tab)}
-                activeOpacity={0.7}
-              >
-                <Text style={[
-                  styles.tabButtonText,
-                  selectedTab === tab && styles.selectedTabButtonText
-                ]}>
-                  {tab}
-                </Text>
-              </TouchableOpacity>
-              {tabHasUnread && selectedTab !== tab && (
-                <View style={styles.tabUnreadDot} />
-              )}
-            </View>
-          );
-        })}
-      </View>
+      <UnderlineTabBar
+        tabs={[
+          { key: '전체', label: '전체', badge: chatRooms.reduce((sum, r) => sum + (r.unreadCount || 0), 0) || undefined },
+          { key: '약속', label: '약속', badge: chatRooms.filter(r => r.type === 'meetup').reduce((sum, r) => sum + (r.unreadCount || 0), 0) || undefined },
+          { key: '개인', label: '개인', badge: chatRooms.filter(r => r.type === 'direct').reduce((sum, r) => sum + (r.unreadCount || 0), 0) || undefined },
+        ]}
+        activeKey={selectedTab}
+        onTabChange={(key) => setSelectedTab(key)}
+      />
 
       {/* 채팅 목록 */}
       {renderChatList()}
@@ -691,52 +668,6 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-
-  // === 탭 네비게이션 (언더라인 스타일) ===
-  tabNavigation: {
-    flexDirection: 'row',
-    backgroundColor: COLORS.neutral.white,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.neutral.grey100,
-    paddingHorizontal: 4,
-  },
-  tabButtonWrapper: {
-    position: 'relative',
-  },
-  tabButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 24,
-    paddingVertical: 14,
-    minHeight: 48,
-    borderBottomWidth: 3,
-    borderBottomColor: 'transparent',
-    gap: 6,
-  },
-  tabUnreadDot: {
-    position: 'absolute',
-    top: 6,
-    right: 4,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: COLORS.primary.accent,
-    borderWidth: 2,
-    borderColor: COLORS.neutral.white,
-  },
-  selectedTabButton: {
-    borderBottomColor: COLORS.primary.main,
-  },
-  tabButtonText: {
-    fontSize: 15,
-    fontWeight: '500',
-    color: COLORS.text.tertiary,
-  },
-  selectedTabButtonText: {
-    color: COLORS.text.primary,
-    fontWeight: '700',
   },
 
   // === 채팅방 목록 ===

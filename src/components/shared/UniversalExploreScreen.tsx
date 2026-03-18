@@ -11,18 +11,19 @@ import {
   SafeAreaView,
   ScrollView,
 } from 'react-native';
-import { COLORS, SHADOWS, CARD_STYLE } from '../../styles/colors';
+import { COLORS, SHADOWS } from '../../styles/colors';
 import { BORDER_RADIUS, LIST_ITEM_STYLE } from '../../styles/spacing';
 import { Icon } from '../Icon';
 import MeetupCard from '../MeetupCard';
 import MeetupMapView from '../MeetupMapView';
 import MeetupMarkerPopup from '../MeetupMarkerPopup';
 import EmptyState from '../EmptyState';
+import FilterDropdown from '../FilterDropdown';
+import CategoryTabBar from '../CategoryTabBar';
 import { FadeIn } from '../animated';
 import { MeetupCardSkeleton } from '../skeleton';
 import { useUserStore } from '../../store/userStore';
 import { API_HOSTS } from '../../services/apiClient';
-import { FOOD_CATEGORIES } from '../../constants/categories';
 
 const API_URL = Platform.OS === 'web'
   ? (process.env.REACT_APP_API_URL || 'http://localhost:3001')
@@ -37,8 +38,6 @@ const RADIUS_OPTIONS = [
   { label: '5km', value: 5000 },
   { label: '10km', value: 10000 },
 ];
-
-const CATEGORY_NAMES = FOOD_CATEGORIES.map(c => c.name);
 
 interface Meetup {
   id: string;
@@ -101,6 +100,9 @@ const UniversalExploreScreen: React.FC<UniversalExploreScreenProps> = ({ navigat
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [radius, setRadius] = useState<number>(userRadius);
   const [searchFocused, setSearchFocused] = useState(false);
+  const [selectedGender, setSelectedGender] = useState('');
+  const [selectedAge, setSelectedAge] = useState('');
+  const [showFilterModal, setShowFilterModal] = useState(false);
 
   // Default center (사용자 설정이 있으면 사용, 없으면 강남역)
   const [center, setCenter] = useState({
@@ -127,11 +129,20 @@ const UniversalExploreScreen: React.FC<UniversalExploreScreenProps> = ({ navigat
     );
   }, [meetups, searchQuery]);
 
-  // Apply category filter on top of search filter
+  // Apply category + gender + age filters on top of search filter
   const displayMeetups = useMemo(() => {
-    if (!selectedCategory) {return filteredMeetups;}
-    return filteredMeetups.filter(m => m.category === selectedCategory);
-  }, [filteredMeetups, selectedCategory]);
+    let result = filteredMeetups;
+    if (selectedCategory) {
+      result = result.filter(m => m.category === selectedCategory);
+    }
+    if (selectedGender) {
+      result = result.filter(m => !m.genderPreference || m.genderPreference === selectedGender || m.genderPreference === '무관');
+    }
+    if (selectedAge) {
+      result = result.filter(m => !m.ageRange || m.ageRange.includes(selectedAge));
+    }
+    return result;
+  }, [filteredMeetups, selectedCategory, selectedGender, selectedAge]);
 
   // Fetch nearby meetups
   const fetchNearbyMeetups = useCallback(async (lat: number, lng: number, searchRadius?: number) => {
@@ -234,11 +245,6 @@ const UniversalExploreScreen: React.FC<UniversalExploreScreenProps> = ({ navigat
     setSearchQuery('');
   }, []);
 
-  // Handle category change
-  const handleCategoryChange = useCallback((category: string | null) => {
-    setSelectedCategory(category);
-  }, []);
-
   // Handle radius change
   const handleRadiusChange = useCallback((newRadius: number) => {
     setRadius(newRadius);
@@ -307,7 +313,14 @@ const UniversalExploreScreen: React.FC<UniversalExploreScreenProps> = ({ navigat
       <View style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>탐색</Text>
+          <View style={styles.headerTitleRow}>
+            <Text style={styles.headerTitle}>탐색</Text>
+            {!isLoading && displayMeetups.length > 0 && (
+              <View style={styles.countBadge}>
+                <Text style={styles.countBadgeText}>{displayMeetups.length}</Text>
+              </View>
+            )}
+          </View>
           <View style={styles.viewToggle}>
             <TouchableOpacity
               style={[styles.toggleButton, viewMode === 'map' && styles.toggleButtonActive]}
@@ -328,78 +341,47 @@ const UniversalExploreScreen: React.FC<UniversalExploreScreenProps> = ({ navigat
           </View>
         </View>
 
-        {/* Category Tabs (배민 스타일 pill 칩) */}
-        <View style={styles.categoryTabBar}>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.categoryTabScroll}
-          >
-            <TouchableOpacity
-              style={[
-                styles.categoryChip,
-                !selectedCategory && styles.categoryChipActive,
-              ]}
-              onPress={() => handleCategoryChange(null)}
-              activeOpacity={0.7}
-            >
-              <Text
-                style={[
-                  styles.categoryChipText,
-                  !selectedCategory && styles.categoryChipTextActive,
-                ]}
-              >
-                전체
-              </Text>
-            </TouchableOpacity>
-            {CATEGORY_NAMES.map((name) => (
-              <TouchableOpacity
-                key={name}
-                style={[
-                  styles.categoryChip,
-                  selectedCategory === name && styles.categoryChipActive,
-                ]}
-                onPress={() => handleCategoryChange(name)}
-                activeOpacity={0.7}
-              >
-                <Text
-                  style={[
-                    styles.categoryChipText,
-                    selectedCategory === name && styles.categoryChipTextActive,
-                  ]}
-                >
-                  {name}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
+        {/* Category Tabs */}
+        <CategoryTabBar
+          selectedCategory={selectedCategory}
+          onCategoryChange={(cat) => setSelectedCategory(cat)}
+        />
 
         {/* Search Section */}
         <View style={styles.searchSection}>
-          <View style={[styles.searchBar, searchFocused && styles.searchBarFocused]}>
-            <Icon name="search" size={16} color={searchFocused ? COLORS.primary.main : COLORS.text.tertiary} />
-            <TextInput
-              style={styles.searchInput}
-              placeholder="약속 검색 (제목, 위치, 카테고리)"
-              placeholderTextColor={COLORS.text.tertiary}
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              onSubmitEditing={handleSearchSubmit}
-              onFocus={() => setSearchFocused(true)}
-              onBlur={() => setSearchFocused(false)}
-              returnKeyType="search"
-            />
-            {searchQuery.length > 0 && (
-              <TouchableOpacity
-                onPress={() => { handleClearSearch(); fetchNearbyMeetups(center.latitude, center.longitude, radius); }}
-                activeOpacity={0.7}
-                style={styles.searchClearButton}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              >
-                <Icon name="x" size={14} color={COLORS.text.tertiary} />
-              </TouchableOpacity>
-            )}
+          <View style={styles.searchRow}>
+            <View style={[styles.searchBar, searchFocused && styles.searchBarFocused]}>
+              <Icon name="search" size={16} color={searchFocused ? COLORS.primary.main : COLORS.text.tertiary} />
+              <TextInput
+                style={styles.searchInput}
+                placeholder="약속 검색 (제목, 위치, 카테고리)"
+                placeholderTextColor={COLORS.text.tertiary}
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                onSubmitEditing={handleSearchSubmit}
+                onFocus={() => setSearchFocused(true)}
+                onBlur={() => setSearchFocused(false)}
+                returnKeyType="search"
+              />
+              {searchQuery.length > 0 && (
+                <TouchableOpacity
+                  onPress={() => { handleClearSearch(); fetchNearbyMeetups(center.latitude, center.longitude, radius); }}
+                  activeOpacity={0.7}
+                  style={styles.searchClearButton}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <Icon name="x" size={14} color={COLORS.text.tertiary} />
+                </TouchableOpacity>
+              )}
+            </View>
+            <TouchableOpacity
+              style={[styles.filterButton, (selectedGender || selectedAge) ? styles.filterButtonActive : undefined]}
+              onPress={() => setShowFilterModal(true)}
+              activeOpacity={0.7}
+            >
+              <Icon name="settings" size={18} color={(selectedGender || selectedAge) ? COLORS.primary.main : COLORS.text.tertiary} />
+              {(selectedGender || selectedAge) ? <View style={styles.filterDot} /> : null}
+            </TouchableOpacity>
           </View>
 
           {/* Radius Filter Chips */}
@@ -532,6 +514,17 @@ const UniversalExploreScreen: React.FC<UniversalExploreScreenProps> = ({ navigat
           )}
         </View>
       </View>
+
+      {/* Filter Modal */}
+      <FilterDropdown
+        visible={showFilterModal}
+        onClose={() => setShowFilterModal(false)}
+        selectedGender={selectedGender}
+        selectedAge={selectedAge}
+        onGenderChange={setSelectedGender}
+        onAgeChange={setSelectedAge}
+        onReset={() => { setSelectedGender(''); setSelectedAge(''); }}
+      />
     </SafeAreaView>
   );
 };
@@ -563,38 +556,24 @@ const styles = StyleSheet.create({
     color: COLORS.text.primary,
     letterSpacing: -0.3,
   },
-
-  // Category Tabs (배민 스타일 pill 칩)
-  categoryTabBar: {
-    backgroundColor: COLORS.neutral.white,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.neutral.grey100,
-  },
-  categoryTabScroll: {
-    paddingLeft: 20,
-    paddingRight: 12,
+  headerTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 8,
   },
-  categoryChip: {
-    height: 36,
-    minHeight: 44,
-    justifyContent: 'center',
-    paddingHorizontal: 18,
+  countBadge: {
+    backgroundColor: COLORS.primary.main,
     borderRadius: 10,
-    backgroundColor: COLORS.neutral.grey100,
+    minWidth: 20,
+    height: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 6,
   },
-  categoryChipActive: {
-    backgroundColor: COLORS.primary.dark,
-  },
-  categoryChipText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: COLORS.text.secondary,
-  },
-  categoryChipTextActive: {
-    fontWeight: '600',
-    color: COLORS.text.white,
+  countBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: COLORS.neutral.white,
   },
 
   // Search Section
@@ -605,7 +584,36 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: COLORS.neutral.grey100,
   },
+  searchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  filterButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 20,
+    backgroundColor: COLORS.neutral.grey50,
+    borderWidth: 1,
+    borderColor: COLORS.neutral.grey100,
+  },
+  filterButtonActive: {
+    backgroundColor: COLORS.primary.light,
+    borderColor: COLORS.primary.main,
+  },
+  filterDot: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: COLORS.primary.main,
+  },
   searchBar: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     height: 56,

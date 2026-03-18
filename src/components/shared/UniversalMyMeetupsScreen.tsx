@@ -1,16 +1,17 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
-  TouchableOpacity,
   RefreshControl,
   SafeAreaView,
   Animated,
 } from 'react-native';
+import LinearGradient from 'react-native-linear-gradient';
 import { COLORS, SHADOWS, CARD_STYLE } from '../../styles/colors';
 import { NotificationBell } from '../NotificationBell';
+import UnderlineTabBar from '../UnderlineTabBar';
 import MeetupCard from '../MeetupCard';
 import EmptyState from '../EmptyState';
 import userApiService, { JoinedMeetup, HostedMeetup } from '../../services/userApiService';
@@ -29,11 +30,47 @@ interface UniversalMyMeetupsScreenProps {
   onGoBack?: () => void;
 }
 
-const TAB_ITEMS = [
-  { key: 'applied' as const, label: '신청한 약속' },
-  { key: 'created' as const, label: '내가 만든 약속' },
-  { key: 'past' as const, label: '지난 약속' },
-];
+type TabKey = 'applied' | 'created' | 'past';
+
+interface DateGroup {
+  date: string;
+  label: string;
+  meetups: (JoinedMeetup | HostedMeetup)[];
+}
+
+const groupByDate = (meetupList: (JoinedMeetup | HostedMeetup)[]): DateGroup[] => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+
+  const dateMap = new Map<string, (JoinedMeetup | HostedMeetup)[]>();
+
+  meetupList.forEach(meetup => {
+    const meetupDate = new Date(meetup.date);
+    meetupDate.setHours(0, 0, 0, 0);
+    const key = meetupDate.toISOString().split('T')[0];
+    if (!dateMap.has(key)) {
+      dateMap.set(key, []);
+    }
+    dateMap.get(key)!.push(meetup);
+  });
+
+  const sortedKeys = [...dateMap.keys()].sort();
+
+  return sortedKeys.map(key => {
+    const date = new Date(key);
+    let label = `${date.getMonth() + 1}월 ${date.getDate()}일`;
+    if (date.getTime() === today.getTime()) label = '오늘';
+    else if (date.getTime() === tomorrow.getTime()) label = '내일';
+
+    return {
+      date: key,
+      label,
+      meetups: dateMap.get(key)!,
+    };
+  });
+};
 
 const SkeletonPulse: React.FC<{ style?: any }> = ({ style }) => {
   const pulseAnim = useRef(new Animated.Value(0.3)).current;
@@ -66,12 +103,33 @@ const UniversalMyMeetupsScreen: React.FC<UniversalMyMeetupsScreenProps> = ({
   onNavigate,
   onGoBack
 }) => {
-  const [activeTab, setActiveTab] = useState<'applied' | 'created' | 'past'>('applied');
+  const [activeTab, setActiveTab] = useState<TabKey>('applied');
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [appliedMeetups, setAppliedMeetups] = useState<JoinedMeetup[]>([]);
   const [createdMeetups, setCreatedMeetups] = useState<HostedMeetup[]>([]);
   const [pastMeetups, setPastMeetups] = useState<(JoinedMeetup | HostedMeetup)[]>([]);
+
+  const appliedCount = appliedMeetups.length;
+  const createdCount = createdMeetups.length;
+  const pastCount = pastMeetups.length;
+
+  const tabItems = useMemo(() => [
+    { key: 'applied', label: '신청한 약속', badge: appliedCount },
+    { key: 'created', label: '내가 만든 약속', badge: createdCount },
+    { key: 'past', label: '지난 약속', badge: pastCount },
+  ], [appliedCount, createdCount, pastCount]);
+
+  const currentMeetups = useMemo(() => {
+    switch (activeTab) {
+      case 'applied': return appliedMeetups;
+      case 'created': return createdMeetups;
+      case 'past': return pastMeetups;
+      default: return [];
+    }
+  }, [activeTab, appliedMeetups, createdMeetups, pastMeetups]);
+
+  const dateGroups = useMemo(() => groupByDate(currentMeetups), [currentMeetups]);
 
   useEffect(() => {
     if (user) {
@@ -207,14 +265,6 @@ const UniversalMyMeetupsScreen: React.FC<UniversalMyMeetupsScreenProps> = ({
     handleNavigate('Notification');
   };
 
-  const getTabCount = (tab: 'applied' | 'created' | 'past') => {
-    switch (tab) {
-      case 'applied': return appliedMeetups.length;
-      case 'created': return createdMeetups.length;
-      case 'past': return pastMeetups.length;
-    }
-  };
-
   const renderSkeletonLoader = () => (
     <View style={styles.skeletonContainer}>
       {[1, 2, 3].map((i) => (
@@ -231,124 +281,127 @@ const UniversalMyMeetupsScreen: React.FC<UniversalMyMeetupsScreenProps> = ({
     </View>
   );
 
-  const renderMeetupItem = (meetup: JoinedMeetup | HostedMeetup, showHostInfo: boolean = false, keyPrefix?: string) => (
-    <MeetupCard
-      key={keyPrefix ? `${keyPrefix}-${meetup.id}` : meetup.id}
-      meetup={meetup}
-      onPress={handleMeetupPress}
-      variant="compact"
-    />
-  );
+  const getEmptyState = () => {
+    switch (activeTab) {
+      case 'applied':
+        return (
+          <EmptyState
+            icon="calendar"
+            title="아직 신청한 약속이 없어요"
+            description="홈에서 밥약속을 찾아보세요!"
+            actionLabel="약속 찾아보기"
+            onAction={() => handleNavigate('Home')}
+          />
+        );
+      case 'created':
+        return (
+          <EmptyState
+            icon="plus-circle"
+            title="약속을 만들어보세요!"
+            description="새로운 밥약속을 만들어보세요!"
+            actionLabel="약속 만들기"
+            onAction={() => handleNavigate('CreateMeetup')}
+          />
+        );
+      case 'past':
+        return (
+          <EmptyState
+            icon="clock"
+            title="아직 지난 약속이 없어요"
+            description="밥약속에 참여해보세요!"
+          />
+        );
+      default:
+        return null;
+    }
+  };
 
   const renderTabContent = () => {
     if (loading) {
       return renderSkeletonLoader();
     }
 
-    switch (activeTab) {
-      case 'applied':
-        return (
-          <FadeIn>
+    if (currentMeetups.length === 0) {
+      return (
+        <FadeIn>
           <View style={styles.meetupsContainer}>
-            {appliedMeetups.length === 0 ? (
-              <EmptyState
-                icon="calendar"
-                title="아직 신청한 약속이 없어요"
-                description="홈에서 밥약속을 찾아보세요!"
-                actionLabel="약속 찾아보기"
-                onAction={() => handleNavigate('Home')}
-              />
-            ) : (
-              appliedMeetups.map((meetup, index) => renderMeetupItem(meetup, true, `applied-${index}`))
-            )}
+            {getEmptyState()}
           </View>
-          </FadeIn>
-        );
-
-      case 'created':
-        return (
-          <FadeIn>
-          <View style={styles.meetupsContainer}>
-            {createdMeetups.length === 0 ? (
-              <EmptyState
-                icon="plus-circle"
-                title="약속을 만들어보세요!"
-                description="새로운 밥약속을 만들어보세요!"
-                actionLabel="약속 만들기"
-                onAction={() => handleNavigate('CreateMeetup')}
-              />
-            ) : (
-              createdMeetups.map((meetup, index) => renderMeetupItem(meetup, false, `created-${index}`))
-            )}
-          </View>
-          </FadeIn>
-        );
-
-      case 'past':
-        return (
-          <FadeIn>
-          <View style={styles.meetupsContainer}>
-            {pastMeetups.length === 0 ? (
-              <EmptyState
-                icon="clock"
-                title="아직 지난 약속이 없어요"
-                description="밥약속에 참여해보세요!"
-              />
-            ) : (
-              pastMeetups.map((meetup, index) => renderMeetupItem(meetup, !('hostName' in meetup), `past-${index}`))
-            )}
-          </View>
-          </FadeIn>
-        );
-
-      default:
-        return null;
+        </FadeIn>
+      );
     }
+
+    return (
+      <FadeIn>
+        <View style={styles.meetupsContainer}>
+          {dateGroups.map(group => (
+            <View key={group.date}>
+              <View style={styles.dateHeader}>
+                <Text style={styles.dateHeaderText}>{group.label}</Text>
+                {group.label === '오늘' && (
+                  <View style={styles.todayBadge}>
+                    <Text style={styles.todayBadgeText}>TODAY</Text>
+                  </View>
+                )}
+              </View>
+              {group.meetups.map((meetup, index) => (
+                <MeetupCard
+                  key={`${activeTab}-${group.date}-${meetup.id}-${index}`}
+                  meetup={meetup}
+                  onPress={handleMeetupPress}
+                  variant="compact"
+                />
+              ))}
+            </View>
+          ))}
+        </View>
+      </FadeIn>
+    );
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* 헤더 */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>내 약속</Text>
-        <NotificationBell
-          userId={user?.id?.toString()}
-          onPress={handleNotificationPress}
-          color={COLORS.text.primary}
-          size={22}
-          accessibilityLabel="알림"
-        />
+      {/* Summary Hero */}
+      <View style={styles.summaryHero}>
+        <LinearGradient
+          colors={['#FFF8F0', '#FFFFFF']}
+          style={styles.summaryGradient}
+        >
+          <View style={styles.summaryHeaderRow}>
+            <Text style={styles.summaryTitle}>내 약속</Text>
+            <NotificationBell
+              userId={user?.id?.toString()}
+              onPress={handleNotificationPress}
+              color={COLORS.text.primary}
+              size={22}
+              accessibilityLabel="알림"
+            />
+          </View>
+          <View style={styles.summaryStatsRow}>
+            <View style={styles.summaryStat}>
+              <Text style={styles.summaryStatValue}>{appliedCount}</Text>
+              <Text style={styles.summaryStatLabel}>신청</Text>
+            </View>
+            <View style={styles.summaryStatDivider} />
+            <View style={styles.summaryStat}>
+              <Text style={styles.summaryStatValue}>{createdCount}</Text>
+              <Text style={styles.summaryStatLabel}>주최</Text>
+            </View>
+            <View style={styles.summaryStatDivider} />
+            <View style={styles.summaryStat}>
+              <Text style={styles.summaryStatValue}>{pastCount}</Text>
+              <Text style={styles.summaryStatLabel}>완료</Text>
+            </View>
+          </View>
+        </LinearGradient>
       </View>
 
-      {/* 탭 바 */}
-      <View style={styles.tabContainer} accessibilityRole="tablist">
-        {TAB_ITEMS.map((tab) => {
-          const isActive = activeTab === tab.key;
-          const count = getTabCount(tab.key);
-          return (
-            <TouchableOpacity
-              key={tab.key}
-              style={[styles.tabButton, isActive && styles.activeTabButton]}
-              onPress={() => setActiveTab(tab.key)}
-              activeOpacity={0.7}
-              accessibilityRole="tab"
-              accessibilityState={{ selected: isActive }}
-              accessibilityLabel={`${tab.label} ${count > 0 ? `${count}개` : ''}`}
-            >
-              <Text style={[styles.tabButtonText, isActive && styles.activeTabButtonText]}>
-                {tab.label}
-              </Text>
-              {count > 0 && (
-                <View style={[styles.tabCountBadge, isActive && styles.activeTabCountBadge]}>
-                  <Text style={[styles.tabCountText, isActive && styles.activeTabCountText]}>
-                    {count}
-                  </Text>
-                </View>
-              )}
-            </TouchableOpacity>
-          );
-        })}
-      </View>
+      {/* UnderlineTabBar */}
+      <UnderlineTabBar
+        tabs={tabItems}
+        activeKey={activeTab}
+        onTabChange={(key) => setActiveTab(key as TabKey)}
+      />
 
       {/* 컨텐츠 */}
       <ScrollView
@@ -376,73 +429,80 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.neutral.background,
   },
-  // Header
-  header: {
+  // Summary Hero
+  summaryHero: {
+    marginBottom: 0,
+  },
+  summaryGradient: {
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 16,
+  },
+  summaryHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    paddingTop: 20,
-    backgroundColor: COLORS.neutral.white,
-    ...SHADOWS.small,
+    marginBottom: 16,
   },
-  headerTitle: {
-    fontSize: 22,
-    fontWeight: '800',
+  summaryTitle: {
+    fontSize: 21,
+    fontWeight: '700',
     color: COLORS.text.primary,
     letterSpacing: -0.3,
   },
-  // Tabs
-  tabContainer: {
+  summaryStatsRow: {
     flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: COLORS.neutral.white,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.neutral.grey100,
-    paddingHorizontal: 4,
+    borderRadius: 12,
+    padding: 16,
+    ...SHADOWS.small,
   },
-  tabButton: {
+  summaryStat: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  summaryStatValue: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: COLORS.text.primary,
+    letterSpacing: -0.3,
+  },
+  summaryStatLabel: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: COLORS.text.tertiary,
+    marginTop: 4,
+  },
+  summaryStatDivider: {
+    width: 1,
+    height: 32,
+    backgroundColor: COLORS.neutral.grey100,
+  },
+  // Date Groups
+  dateHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 24,
-    paddingVertical: 14,
-    minHeight: 48,
-    borderBottomWidth: 3,
-    borderBottomColor: 'transparent',
-    gap: 6,
+    gap: 8,
+    paddingTop: 20,
+    paddingBottom: 8,
   },
-  activeTabButton: {
-    borderBottomColor: COLORS.primary.main,
-  },
-  tabButtonText: {
+  dateHeaderText: {
     fontSize: 15,
-    color: COLORS.text.tertiary,
-    fontWeight: '500',
-  },
-  activeTabButtonText: {
+    fontWeight: '600',
     color: COLORS.text.primary,
-    fontWeight: '700',
+    letterSpacing: -0.2,
   },
-  tabCountBadge: {
-    backgroundColor: COLORS.neutral.grey100,
-    borderRadius: 11,
-    minWidth: 22,
-    height: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 6,
-  },
-  activeTabCountBadge: {
+  todayBadge: {
     backgroundColor: COLORS.primary.main,
+    borderRadius: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
   },
-  tabCountText: {
-    fontSize: 12,
+  todayBadgeText: {
+    fontSize: 10,
     fontWeight: '700',
-    color: COLORS.text.tertiary,
-  },
-  activeTabCountText: {
-    color: COLORS.text.white,
+    color: COLORS.neutral.white,
   },
   // Content
   scrollView: {
@@ -453,8 +513,8 @@ const styles = StyleSheet.create({
   },
   meetupsContainer: {
     paddingHorizontal: 20,
-    paddingTop: 16,
-    gap: 14,
+    paddingTop: 4,
+    gap: 10,
   },
   // Skeleton
   skeletonContainer: {

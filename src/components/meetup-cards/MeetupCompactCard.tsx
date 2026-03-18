@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   Image,
   Platform,
+  Animated,
 } from 'react-native';
 import { COLORS, CSS_SHADOWS } from '../../styles/colors';
 import { BORDER_RADIUS, SPACING } from '../../styles/spacing';
@@ -24,6 +25,25 @@ const GENDER_EXCLUDE = ['무관', '상관없음', '혼성'];
 const MeetupCompactCard: React.FC<MeetupCompactCardProps> = ({ meetup, onPress, distance }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [isPressed, setIsPressed] = useState(false);
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+
+  const handlePressIn = () => {
+    Animated.spring(scaleAnim, {
+      toValue: 0.98,
+      friction: 8,
+      tension: 100,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const handlePressOut = () => {
+    Animated.spring(scaleAnim, {
+      toValue: 1,
+      friction: 8,
+      tension: 40,
+      useNativeDriver: true,
+    }).start();
+  };
 
   const currentP = meetup.currentParticipants ?? 0;
   const maxP = meetup.maxParticipants ?? 4;
@@ -162,11 +182,17 @@ const MeetupCompactCard: React.FC<MeetupCompactCardProps> = ({ meetup, onPress, 
   // ─── Native ──────────────────────────────────────────────
   return (
     <TouchableOpacity
-      activeOpacity={0.7}
+      activeOpacity={0.9}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
       onPress={() => onPress(meetup)}
-      style={styles.card}
     >
-      {compactContent}
+      <Animated.View style={[styles.card, { transform: [{ scale: scaleAnim }] }]}>
+        {meetup.status === 'recruiting' && (
+          <View style={styles.recruitingAccent} />
+        )}
+        {compactContent}
+      </Animated.View>
     </TouchableOpacity>
   );
 };
@@ -299,6 +325,16 @@ const styles = StyleSheet.create({
   statusBadgeText: {
     fontSize: 10,
     fontWeight: '700',
+  },
+  recruitingAccent: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 3,
+    backgroundColor: COLORS.functional.success,
+    borderTopLeftRadius: 8,
+    borderBottomLeftRadius: 8,
   },
 });
 

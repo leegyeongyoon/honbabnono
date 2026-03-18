@@ -2,7 +2,6 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import {
   View,
   Text,
-  Image,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
@@ -20,7 +19,8 @@ import { NotificationBell } from '../NotificationBell';
 import NeighborhoodSelector from '../NeighborhoodSelector';
 import NativeMapModal from '../NativeMapModal';
 import MeetupCard from '../MeetupCard';
-import CategoryIcon from '../CategoryIcon';
+import SectionHeader from '../SectionHeader';
+import HeroBannerCarousel from '../HeroBannerCarousel';
 import FadeIn from '../animated/FadeIn';
 import MeetupCardSkeleton from '../skeleton/MeetupCardSkeleton';
 import EmptyState from '../EmptyState';
@@ -59,6 +59,23 @@ const getGreeting = (): { greeting: string; subtitle: string } => {
   if (hour < 17) return { greeting: '좋은 오후에요!', subtitle: '간식 타임 같이 할까요?' };
   if (hour < 21) return { greeting: '저녁이 왔어요!', subtitle: '오늘 같이 밥 먹을까요?' };
   return { greeting: '좋은 밤이에요!', subtitle: '야식 메이트를 찾아볼까요?' };
+};
+
+// 카테고리 이모지 매핑
+const getCategoryEmoji = (id: string): string => {
+  const map: Record<string, string> = {
+    korean: '\uD83C\uDF5A',
+    chinese: '\uD83E\uDD5F',
+    japanese: '\uD83C\uDF63',
+    western: '\uD83C\uDF5D',
+    bbq: '\uD83E\uDD69',
+    seafood: '\uD83E\uDD90',
+    hotpot: '\uD83C\uDF72',
+    cafe: '\u2615',
+    bar: '\uD83C\uDF7A',
+    etc: '\uD83C\uDF7D',
+  };
+  return map[id] || '\uD83C\uDF7D';
 };
 
 // 반경 포맷팅 함수
@@ -312,15 +329,6 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
       <View style={styles.container}>
         {/* 고정 헤더 — 미니멀 에디토리얼 */}
         <View style={styles.header}>
-          <View style={styles.headerLogoWrap}>
-            <Image
-              source={require('../../assets/logo/logo-v2-table-e.png')}
-              style={styles.headerLogoImage}
-              resizeMode="contain"
-            />
-            <Text style={styles.headerLogo}>잇테이블</Text>
-          </View>
-
           <TouchableOpacity
             style={styles.locationButton}
             onPress={openNeighborhoodSelector}
@@ -369,19 +377,13 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
             />
           }
         >
-          {/* 히어로 배너 — 컴팩트 클린 */}
+          {/* 인사말 + 히어로 배너 캐러셀 */}
           <FadeIn delay={0}>
-            <View style={styles.heroBanner}>
-              {/* 상단 틸 악센트 라인 */}
-              <LinearGradient
-                colors={COLORS.gradient.cta}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.heroAccentLine}
-              />
+            <View style={styles.greetingSection}>
               <Text style={styles.heroGreeting}>{greeting}</Text>
               <Text style={styles.heroSubtitle}>{greetingSubtitle}</Text>
             </View>
+            <HeroBannerCarousel />
           </FadeIn>
 
           {/* 검색 바 — 히어로 아래 겹쳐서 배치 */}
@@ -461,34 +463,24 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
             )}
           </View>
 
-          {/* 카테고리 그리드 (4x2) with CategoryIcon */}
-          {/* 카테고리 — 가로 스크롤 칩 */}
+          {/* 카테고리 5열 그리드 */}
           <FadeIn delay={100}>
-          <View style={styles.categorySection}>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.categoryScrollContent}
-            >
-              {FOOD_CATEGORIES.map((category) => (
-                <TouchableOpacity
-                  key={category.id}
-                  style={[styles.categoryChip, { backgroundColor: category.bgColor, borderColor: 'rgba(17,17,17,0.06)' }]}
-                  onPress={() => navigation.navigate('MeetupList', { category: category.name })}
-                  activeOpacity={0.7}
-                  accessibilityLabel={`${category.name} 카테고리`}
-                  accessibilityRole="button"
-                >
-                  <CategoryIcon
-                    iconName={category.icon}
-                    size={24}
-                    color={category.color}
-                    backgroundColor="transparent"
-                  />
-                  <Text style={styles.categoryChipText}>{category.name}</Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
+          <View style={styles.categoryGrid}>
+            {FOOD_CATEGORIES.map((category) => (
+              <TouchableOpacity
+                key={category.id}
+                style={styles.categoryGridItem}
+                onPress={() => navigation.navigate('MeetupList', { category: category.name })}
+                activeOpacity={0.7}
+                accessibilityLabel={`${category.name} 카테고리`}
+                accessibilityRole="button"
+              >
+                <View style={[styles.categoryIconCircle, { backgroundColor: category.bgColor }]}>
+                  <Text style={styles.categoryEmoji}>{getCategoryEmoji(category.id)}</Text>
+                </View>
+                <Text style={styles.categoryGridLabel} numberOfLines={1}>{category.name}</Text>
+              </TouchableOpacity>
+            ))}
           </View>
           </FadeIn>
 
@@ -499,26 +491,12 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
           {(isLoading || soonMeetups.length > 0) && (
             <FadeIn delay={200}>
             <View style={[styles.contentSection, { backgroundColor: COLORS.neutral.white }]}>
-              <View style={styles.sectionHeader}>
-                <View>
-                  <View style={styles.sectionTitleRow}>
-                    <View style={styles.sectionAccentBar} />
-                    <Text style={styles.sectionTitle}>곧 시작하는 밥약속</Text>
-                  </View>
-                  <Text style={styles.sectionSubtitle}>2시간 이내 시작</Text>
-                </View>
-                <TouchableOpacity
-                  onPress={() => navigation.navigate('MeetupList')}
-                  activeOpacity={0.7}
-                  accessibilityLabel="곧 시작하는 밥약속 더보기"
-                  style={styles.seeAllButton as any}
-                >
-                  <View style={styles.seeAllRow}>
-                    <Text style={styles.seeAllText}>더보기</Text>
-                    <Icon name="chevron-right" size={14} color={COLORS.text.tertiary} />
-                  </View>
-                </TouchableOpacity>
-              </View>
+              <SectionHeader
+                emoji={'\uD83D\uDD25'}
+                title="곧 시작하는 밥약속"
+                subtitle="2시간 이내 시작"
+                onSeeAll={() => navigation.navigate('MeetupList')}
+              />
               {isLoading ? (
                 renderHorizontalSkeletons()
               ) : fetchError ? (
@@ -551,26 +529,12 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
           {(isLoading || newMeetups.length > 0) && (
             <FadeIn delay={300}>
             <View style={[styles.contentSection, { backgroundColor: COLORS.surface.secondary }]}>
-              <View style={styles.sectionHeader}>
-                <View>
-                  <View style={styles.sectionTitleRow}>
-                    <View style={styles.sectionAccentBar} />
-                    <Text style={styles.sectionTitle}>새로 올라온 밥약속</Text>
-                  </View>
-                  <Text style={styles.sectionSubtitle}>방금 등록된 새 밥약속</Text>
-                </View>
-                <TouchableOpacity
-                  onPress={() => navigation.navigate('MeetupList')}
-                  activeOpacity={0.7}
-                  accessibilityLabel="새로 올라온 밥약속 더보기"
-                  style={styles.seeAllButton as any}
-                >
-                  <View style={styles.seeAllRow}>
-                    <Text style={styles.seeAllText}>더보기</Text>
-                    <Icon name="chevron-right" size={14} color={COLORS.text.tertiary} />
-                  </View>
-                </TouchableOpacity>
-              </View>
+              <SectionHeader
+                emoji={'\u2728'}
+                title="새로 올라온 밥약속"
+                subtitle="방금 등록된 새 밥약속"
+                onSeeAll={() => navigation.navigate('MeetupList')}
+              />
               {isLoading ? (
                 renderHorizontalSkeletons()
               ) : fetchError ? (
@@ -603,26 +567,12 @@ const UniversalHomeScreen: React.FC<UniversalHomeScreenProps> = ({
           {(isLoading || recruitingMeetups.length > 0) && (
             <FadeIn delay={400}>
             <View style={[styles.contentSection, { backgroundColor: COLORS.neutral.white }]}>
-              <View style={styles.sectionHeader}>
-                <View>
-                  <View style={styles.sectionTitleRow}>
-                    <View style={styles.sectionAccentBar} />
-                    <Text style={styles.sectionTitle}>모집중인 밥약속</Text>
-                  </View>
-                  <Text style={styles.sectionSubtitle}>함께할 사람을 찾고 있어요</Text>
-                </View>
-                <TouchableOpacity
-                  onPress={() => navigation.navigate('MeetupList')}
-                  activeOpacity={0.7}
-                  accessibilityLabel="모집중인 밥약속 더보기"
-                  style={styles.seeAllButton as any}
-                >
-                  <View style={styles.seeAllRow}>
-                    <Text style={styles.seeAllText}>더보기</Text>
-                    <Icon name="chevron-right" size={14} color={COLORS.text.tertiary} />
-                  </View>
-                </TouchableOpacity>
-              </View>
+              <SectionHeader
+                emoji={'\uD83D\uDCE2'}
+                title="모집중인 밥약속"
+                subtitle="함께할 사람을 찾고 있어요"
+                onSeeAll={() => navigation.navigate('MeetupList')}
+              />
               {isLoading ? (
                 renderVerticalSkeletons()
               ) : fetchError ? (
@@ -806,23 +756,6 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(17,17,17,0.06)',
   },
-  headerLogoWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.sm,
-  },
-  headerLogoImage: {
-    width: 28,
-    height: 28,
-    borderRadius: 6,
-  },
-  headerLogo: {
-    fontSize: 20,
-    fontWeight: '700' as any,
-    letterSpacing: -0.3,
-    color: COLORS.primary.main,
-    lineHeight: 28,
-  },
   locationButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -857,22 +790,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 
-  // ─── 히어로 배너 (컴팩트 클린) ───────────────────────────
-  heroBanner: {
+  // ─── 인사말 섹션 ──────────────────────────────────────
+  greetingSection: {
+    paddingHorizontal: 20,
     paddingTop: 20,
-    paddingBottom: 24,
-    paddingHorizontal: 24,
-    backgroundColor: COLORS.neutral.white,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.neutral.grey100,
-    position: 'relative',
-  },
-  heroAccentLine: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 3,
+    paddingBottom: 12,
   },
   heroGreeting: {
     fontSize: 22,
@@ -970,32 +892,33 @@ const styles = StyleSheet.create({
     color: COLORS.text.primary,
   },
 
-  // ─── 카테고리 가로 스크롤 칩 ────────────────────────────
-  categorySection: {
-    backgroundColor: COLORS.neutral.white,
-    paddingTop: SPACING.sm,
-    paddingBottom: SPACING.lg,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.neutral.grey100,
-  },
-  categoryScrollContent: {
-    paddingHorizontal: SPACING.xl,
-    gap: SPACING.sm,
-  },
-  categoryChip: {
+  // ─── 카테고리 5열 그리드 ──────────────────────────────
+  categoryGrid: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 1,
+    flexWrap: 'wrap',
+    paddingHorizontal: 20,
+    gap: 0,
   },
-  categoryChipText: {
-    fontSize: 13,
-    fontWeight: FONT_WEIGHTS.medium as any,
-    lineHeight: 18,
+  categoryGridItem: {
+    width: '20%' as any,
+    alignItems: 'center',
+    paddingVertical: 10,
+  },
+  categoryIconCircle: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  categoryEmoji: {
+    fontSize: 24,
+  },
+  categoryGridLabel: {
+    fontSize: 12,
+    fontWeight: '500' as any,
     color: COLORS.text.secondary,
+    marginTop: 6,
   },
 
   // ─── 콘텐츠 섹션 (에디토리얼 깔끔한 구분) ──────────────
@@ -1003,55 +926,6 @@ const styles = StyleSheet.create({
     paddingTop: SPACING.xxl,
     paddingBottom: SPACING.lg,
     overflow: 'hidden',
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: SPACING.xl,
-    marginBottom: SPACING.lg,
-  },
-  sectionTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.md,
-  },
-  sectionAccentBar: {
-    width: 3,
-    height: 18,
-    backgroundColor: COLORS.primary.accent,
-    borderRadius: 2,
-  },
-  sectionTitle: {
-    ...TYPOGRAPHY.sectionHeader.title,
-    fontWeight: FONT_WEIGHTS.bold as any,
-  },
-  sectionSubtitle: {
-    fontSize: 13,
-    fontWeight: '400' as any,
-    lineHeight: 18,
-    color: COLORS.text.tertiary,
-    marginTop: 4,
-    marginLeft: 13,
-  },
-  seeAllRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 2,
-  },
-  seeAllButton: {
-    minHeight: 44,
-    minWidth: 44,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.xs,
-  },
-  seeAllText: {
-    fontSize: 13,
-    fontWeight: FONT_WEIGHTS.medium as any,
-    letterSpacing: 0,
-    color: COLORS.text.tertiary,
   },
   horizontalCardList: {
     paddingLeft: SPACING.xl,

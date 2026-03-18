@@ -45,22 +45,24 @@ interface QuickMenuItem {
   label: string;
   icon: IconName;
   screen: string;
+  iconBg: string;
+  iconColor: string;
 }
 
 const QUICK_MENUS: QuickMenuItem[] = [
-  { id: 'my-meetups', label: '내 약속', icon: 'calendar', screen: 'MyMeetups' },
-  { id: 'wishlist', label: '찜 목록', icon: 'heart', screen: 'Wishlist' },
-  { id: 'point-charge', label: '포인트', icon: 'credit-card', screen: 'PointCharge' },
-  { id: 'my-reviews', label: '리뷰', icon: 'star', screen: 'MyReviews' },
-  { id: 'recent-views', label: '최근 본', icon: 'eye', screen: 'RecentViews' },
-  { id: 'notification-settings', label: '설정', icon: 'settings', screen: 'Settings' },
+  { id: 'my-meetups', label: '내 약속', icon: 'calendar', screen: 'MyMeetups', iconBg: '#FFF3E0', iconColor: '#E65100' },
+  { id: 'wishlist', label: '찜 목록', icon: 'heart', screen: 'Wishlist', iconBg: '#FCE4EC', iconColor: '#C62828' },
+  { id: 'point-charge', label: '포인트', icon: 'credit-card', screen: 'PointCharge', iconBg: '#E8F5E9', iconColor: '#2E7D32' },
+  { id: 'my-reviews', label: '리뷰', icon: 'star', screen: 'MyReviews', iconBg: '#FFF8E1', iconColor: '#F57F17' },
+  { id: 'recent-views', label: '최근 본', icon: 'eye', screen: 'RecentViews', iconBg: '#E3F2FD', iconColor: '#1565C0' },
+  { id: 'notification-settings', label: '설정', icon: 'settings', screen: 'Settings', iconBg: '#F3E5F5', iconColor: '#6A1B9A' },
 ];
 
 // 고객지원 메뉴
 const SUPPORT_MENUS = [
-  { id: 'notices', label: '공지사항', screen: 'Notices' },
-  { id: 'faq', label: '자주 묻는 질문', screen: 'FAQ' },
-  { id: 'terms', label: '이용약관', screen: 'Terms' },
+  { id: 'notices', label: '공지사항', screen: 'Notices', icon: 'bell' as IconName },
+  { id: 'faq', label: '자주 묻는 질문', screen: 'FAQ', icon: 'info' as IconName },
+  { id: 'terms', label: '이용약관', screen: 'Terms', icon: 'info' as IconName },
 ];
 
 const UniversalMyPageScreen: React.FC<UniversalMyPageScreenProps> = ({
@@ -84,7 +86,6 @@ const UniversalMyPageScreen: React.FC<UniversalMyPageScreenProps> = ({
 
   const [loading, setLoading] = useState(true);
   const [userProfileImageUrl, setUserProfileImageUrl] = useState(null);
-  const [supportExpanded, setSupportExpanded] = useState(false);
   const { dialog, confirmDanger, confirm } = useConfirmDialog();
 
   // API에서 유저 데이터 가져오기
@@ -254,6 +255,10 @@ const UniversalMyPageScreen: React.FC<UniversalMyPageScreenProps> = ({
                 end={{ x: 1, y: 1 }}
                 style={styles.profileHero}
               >
+                {/* Decorative circles */}
+                <View style={styles.heroCircle1} />
+                <View style={styles.heroCircle2} />
+
                 <View style={styles.profileRow}>
                   <View
                     style={styles.profileImageWrapper}
@@ -291,10 +296,12 @@ const UniversalMyPageScreen: React.FC<UniversalMyPageScreenProps> = ({
                 <Text style={styles.statValue}>{userStats.totalMeetups}</Text>
                 <Text style={styles.statLabel}>참여</Text>
               </View>
+              <View style={styles.statDivider} />
               <View style={styles.statCard}>
                 <Text style={styles.statValue}>{userStats.hostedMeetups}</Text>
                 <Text style={styles.statLabel}>주최</Text>
               </View>
+              <View style={styles.statDivider} />
               <View style={styles.statCard}>
                 <Text style={styles.statValue}>{userStats.reviewCount}</Text>
                 <Text style={styles.statLabel}>리뷰</Text>
@@ -315,16 +322,26 @@ const UniversalMyPageScreen: React.FC<UniversalMyPageScreenProps> = ({
               </View>
               <View style={styles.pointBannerRight}>
                 <Text style={styles.pointBannerValue}>{userStats.availablePoints.toLocaleString()}P</Text>
-                <Icon name="chevron-right" size={14} color={COLORS.text.tertiary} />
+                <View style={styles.chargeButton}>
+                  <Text style={styles.chargeButtonText}>충전</Text>
+                </View>
               </View>
             </TouchableOpacity>
           </FadeIn>
 
           {/* 밥알지수 카드 */}
           <FadeIn delay={100}>
-            <View style={styles.riceCard}>
+            <LinearGradient
+              colors={['#FFF8F0', '#FFFFFF']}
+              style={styles.riceCard}
+            >
               <View style={styles.riceHeader}>
-                <Text style={styles.riceLabel}>밥알지수</Text>
+                <View style={styles.riceHeaderLeft}>
+                  <View style={styles.riceIconCircle}>
+                    <Text style={styles.riceIconEmoji}>🍚</Text>
+                  </View>
+                  <Text style={styles.riceLabel}>밥알지수</Text>
+                </View>
                 <Text style={styles.riceScore}>{userStats.riceIndex}점</Text>
               </View>
               <View style={styles.riceProgressBg}>
@@ -357,7 +374,7 @@ const UniversalMyPageScreen: React.FC<UniversalMyPageScreenProps> = ({
               <Text style={styles.riceGradeText}>
                 {riceGrade.emoji} {riceGrade.label}
               </Text>
-            </View>
+            </LinearGradient>
           </FadeIn>
 
           {/* 빠른 메뉴 (3x2 그리드) */}
@@ -371,8 +388,8 @@ const UniversalMyPageScreen: React.FC<UniversalMyPageScreenProps> = ({
                     onPress={() => navigation.navigate(menu.screen)}
                     activeOpacity={0.7}
                   >
-                    <View style={styles.quickMenuIconBox}>
-                      <Icon name={menu.icon} size={20} color={COLORS.primary.accent} />
+                    <View style={[styles.quickMenuIconBox, { backgroundColor: menu.iconBg }]}>
+                      <Icon name={menu.icon} size={20} color={menu.iconColor} />
                     </View>
                     <Text style={styles.quickMenuLabel} numberOfLines={1}>{menu.label}</Text>
                   </TouchableOpacity>
@@ -384,39 +401,31 @@ const UniversalMyPageScreen: React.FC<UniversalMyPageScreenProps> = ({
           {/* 구분선 */}
           <View style={styles.sectionDivider} />
 
-          {/* 고객지원 (접힌 목록) */}
+          {/* 고객지원 */}
           <FadeIn delay={200}>
             <View style={styles.supportSection}>
-              <TouchableOpacity
-                style={styles.supportHeader}
-                onPress={() => setSupportExpanded(!supportExpanded)}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.supportTitle}>고객지원</Text>
-                <Icon
-                  name={supportExpanded ? 'chevron-up' : 'chevron-down'}
-                  size={16}
-                  color={COLORS.text.tertiary}
-                />
-              </TouchableOpacity>
-              {supportExpanded && (
-                <View style={styles.supportList}>
-                  {SUPPORT_MENUS.map((menu, idx) => (
-                    <TouchableOpacity
-                      key={menu.id}
-                      style={[
-                        styles.supportItem,
-                        idx === SUPPORT_MENUS.length - 1 && { borderBottomWidth: 0 },
-                      ]}
-                      onPress={() => navigation.navigate(menu.screen)}
-                      activeOpacity={0.7}
-                    >
+              <Text style={styles.supportTitle}>고객지원</Text>
+              <View style={styles.supportList}>
+                {SUPPORT_MENUS.map((menu, idx) => (
+                  <TouchableOpacity
+                    key={menu.id}
+                    style={[
+                      styles.supportItem,
+                      idx === SUPPORT_MENUS.length - 1 && { borderBottomWidth: 0 },
+                    ]}
+                    onPress={() => navigation.navigate(menu.screen)}
+                    activeOpacity={0.7}
+                  >
+                    <View style={styles.supportItemLeft}>
+                      <View style={styles.supportIconCircle}>
+                        <Icon name={menu.icon} size={16} color={COLORS.text.secondary} />
+                      </View>
                       <Text style={styles.supportItemText}>{menu.label}</Text>
-                      <Icon name="chevron-right" size={14} color={COLORS.text.tertiary} />
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              )}
+                    </View>
+                    <Icon name="chevron-right" size={14} color={COLORS.text.tertiary} />
+                  </TouchableOpacity>
+                ))}
+              </View>
             </View>
           </FadeIn>
 
@@ -502,7 +511,26 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary.main,
     paddingHorizontal: SPACING.xl,
     paddingTop: 28,
-    paddingBottom: 28,
+    paddingBottom: 44,
+    overflow: 'hidden',
+  },
+  heroCircle1: {
+    position: 'absolute',
+    top: -30,
+    right: -20,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+  },
+  heroCircle2: {
+    position: 'absolute',
+    bottom: -40,
+    left: -10,
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    backgroundColor: 'rgba(255,255,255,0.04)',
   },
   profileRow: {
     flexDirection: 'row',
@@ -549,21 +577,27 @@ const styles = StyleSheet.create({
     color: COLORS.text.white,
   },
 
-  // 통계 카드 (화이트 카드, 서틀 보더)
+  // 통계 카드 (화이트 카드, 오버랩)
   statsRow: {
     flexDirection: 'row',
-    paddingHorizontal: SPACING.xl,
-    paddingTop: 16,
-    gap: 10,
+    marginHorizontal: SPACING.xl,
+    marginTop: -20,
+    backgroundColor: COLORS.surface.primary,
+    borderRadius: BORDER_RADIUS.xl,
+    padding: 16,
+    gap: 0,
+    ...SHADOWS.medium,
+    zIndex: 2,
   },
   statCard: {
     flex: 1,
     alignItems: 'center',
-    backgroundColor: COLORS.surface.primary,
-    paddingVertical: 16,
-    borderRadius: BORDER_RADIUS.md,
-    borderWidth: 1,
-    borderColor: COLORS.neutral.grey100,
+  },
+  statDivider: {
+    width: 1,
+    height: 32,
+    backgroundColor: COLORS.neutral.grey100,
+    alignSelf: 'center',
   },
   statValue: {
     fontSize: 22,
@@ -614,10 +648,20 @@ const styles = StyleSheet.create({
     color: COLORS.primary.accent,
     letterSpacing: -0.2,
   },
+  chargeButton: {
+    backgroundColor: COLORS.primary.main,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+  },
+  chargeButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: COLORS.neutral.white,
+  },
 
   // 밥알지수 카드
   riceCard: {
-    backgroundColor: COLORS.surface.primary,
     marginHorizontal: SPACING.xl,
     marginTop: 12,
     borderRadius: BORDER_RADIUS.md,
@@ -630,6 +674,22 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 12,
+  },
+  riceHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  riceIconCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#FFF3E0',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  riceIconEmoji: {
+    fontSize: 14,
   },
   riceLabel: {
     fontSize: 14,
@@ -697,10 +757,10 @@ const styles = StyleSheet.create({
   quickMenuIconBox: {
     width: 40,
     height: 40,
-    borderRadius: BORDER_RADIUS.md,
-    backgroundColor: COLORS.neutral.background,
+    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
+    marginBottom: 8,
   },
   quickMenuLabel: {
     fontSize: 12,
@@ -720,14 +780,7 @@ const styles = StyleSheet.create({
 
   // 고객지원
   supportSection: {
-    marginHorizontal: SPACING.xl,
     marginTop: 16,
-  },
-  supportHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 14,
   },
   supportTitle: {
     fontSize: 13,
@@ -735,10 +788,11 @@ const styles = StyleSheet.create({
     color: COLORS.text.tertiary,
     letterSpacing: 0.3,
     textTransform: 'uppercase',
+    paddingHorizontal: SPACING.xl,
+    marginBottom: 8,
   },
   supportList: {
-    borderTopWidth: 1,
-    borderTopColor: COLORS.neutral.grey100,
+    marginHorizontal: SPACING.xl,
   },
   supportItem: {
     flexDirection: 'row',
@@ -747,6 +801,19 @@ const styles = StyleSheet.create({
     height: 48,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.neutral.grey100,
+  },
+  supportItemLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  supportIconCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: COLORS.neutral.grey50,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   supportItemText: {
     fontSize: 14,
