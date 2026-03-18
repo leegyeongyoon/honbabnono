@@ -21,7 +21,7 @@ exports.login = async (req, res) => {
     }
 
     const admin = result.rows[0];
-    const isValidPassword = await bcrypt.compare(password, admin.password_hash);
+    const isValidPassword = await bcrypt.compare(password, admin.password || admin.password_hash);
 
     if (!isValidPassword) {
       return res.status(401).json({
@@ -64,44 +64,56 @@ exports.login = async (req, res) => {
   }
 };
 
-// 대시보드 통계
+// 대시보드 통계 (종합)
 exports.getDashboardStats = async (req, res) => {
   try {
-    // 총 사용자 수
-    const usersResult = await pool.query('SELECT COUNT(*) as count FROM users');
+    const days = parseInt(req.query.days) || 7;
 
-    // 총 모임 수
-    const meetupsResult = await pool.query('SELECT COUNT(*) as count FROM meetups');
+    // All counts in one query for efficiency
+    const countsResult = await pool.query(`
+      SELECT
+        (SELECT COUNT(*) FROM users) as total_users,
+        (SELECT COUNT(*) FROM users WHERE created_at >= CURRENT_DATE) as today_users,
+        (SELECT COUNT(*) FROM users WHERE created_at >= NOW() - INTERVAL '7 days') as week_users,
+        (SELECT COUNT(*) FROM meetups) as total_meetups,
+        (SELECT COUNT(*) FROM meetups WHERE created_at >= CURRENT_DATE) as today_meetups,
+        (SELECT COUNT(*) FROM meetups WHERE status IN ('모집중', '모집완료')) as active_meetups,
+        (SELECT COUNT(*) FROM meetups WHERE status = '종료') as completed_meetups,
+        (SELECT COUNT(*) FROM reviews) as total_reviews,
+        (SELECT COALESCE(AVG(rating), 0) FROM reviews) as avg_rating,
+        (SELECT COUNT(*) FROM reports WHERE status = 'pending') as pending_reports,
+        (SELECT COUNT(*) FROM support_tickets WHERE status IN ('open', 'pending')) as pending_support,
+        (SELECT COUNT(*) FROM promise_deposits WHERE status = 'paid') as active_deposits,
+        (SELECT COALESCE(SUM(amount), 0) FROM promise_deposits WHERE status = 'paid') as total_deposit_amount,
+        (SELECT COALESCE(SUM(amount), 0) FROM platform_revenues) as total_revenue,
+        (SELECT COUNT(*) FROM user_badges) as total_badges_awarded,
+        (SELECT COUNT(*) FROM advertisements WHERE is_active = true) as active_ads
+    `);
 
-    // 오늘 가입자 수
-    const todayUsersResult = await pool.query(
-      "SELECT COUNT(*) as count FROM users WHERE created_at >= CURRENT_DATE"
-    );
-
-    // 오늘 생성된 모임 수
-    const todayMeetupsResult = await pool.query(
-      "SELECT COUNT(*) as count FROM meetups WHERE created_at >= CURRENT_DATE"
-    );
-
-    // 활성 모임 수
-    const activeMeetupsResult = await pool.query(
-      "SELECT COUNT(*) as count FROM meetups WHERE status IN ('모집중', '모집완료')"
-    );
+    // Daily trends
+    const trendsResult = await pool.query(`
+      SELECT
+        d::date as date,
+        COALESCE((SELECT COUNT(*) FROM users WHERE DATE(created_at) = d::date), 0) as new_users,
+        COALESCE((SELECT COUNT(*) FROM meetups WHERE DATE(created_at) = d::date), 0) as new_meetups,
+        COALESCE((SELECT COUNT(*) FROM meetups WHERE DATE(updated_at) = d::date AND status = '종료'), 0) as completed_meetups,
+        COALESCE((SELECT COUNT(*) FROM reviews WHERE DATE(created_at) = d::date), 0) as new_reviews
+      FROM generate_series(
+        CURRENT_DATE - ($1 || ' days')::interval,
+        CURRENT_DATE,
+        '1 day'::interval
+      ) d
+      ORDER BY d
+    `, [days]);
 
     res.json({
       success: true,
-      stats: {
-        totalUsers: parseInt(usersResult.rows[0].count),
-        totalMeetups: parseInt(meetupsResult.rows[0].count),
-        todayUsers: parseInt(todayUsersResult.rows[0].count),
-        todayMeetups: parseInt(todayMeetupsResult.rows[0].count),
-        activeMeetups: parseInt(activeMeetupsResult.rows[0].count)
-      }
+      stats: countsResult.rows[0],
+      trends: trendsResult.rows
     });
-
   } catch (error) {
     logger.error('대시보드 통계 조회 오류:', error);
-    res.status(500).json({ error: '서버 오류가 발생했습니다' });
+    res.status(500).json({ success: false, error: '서버 오류가 발생했습니다' });
   }
 };
 
@@ -577,87 +589,82 @@ exports.getProfile = async (req, res) => {
   }
 };
 
-// 시스템 설정 조회
+// 시스템 설정 조회 (DB 기반)
 exports.getSettings = async (req, res) => {
   try {
-    const settings = {
-      maintenanceMode: false,
-      allowNewSignups: true,
-      maxMeetupParticipants: 4,
-      meetupCreationCooldown: 60,
-      autoApprovalEnabled: true,
-      emailNotificationsEnabled: true,
-      smsNotificationsEnabled: false,
-      depositAmount: 3000,
-      platformFee: 0
+    const result = await pool.query('SELECT key, value FROM system_settings');
+    const settings = {};
+    for (const row of result.rows) {
+      const val = row.value;
+      if (val === 'true') settings[row.key] = true;
+      else if (val === 'false') settings[row.key] = false;
+      else if (!isNaN(val) && val !== '') settings[row.key] = Number(val);
+      else settings[row.key] = val;
+    }
+
+    // Map snake_case to camelCase for frontend
+    const mapped = {
+      maintenanceMode: settings.maintenance_mode ?? false,
+      allowNewSignups: settings.allow_new_signups ?? true,
+      maxMeetupParticipants: settings.max_meetup_participants ?? 4,
+      meetupCreationCooldown: settings.meetup_creation_cooldown ?? 60,
+      autoApprovalEnabled: settings.auto_approval_enabled ?? true,
+      emailNotificationsEnabled: settings.email_notifications_enabled ?? true,
+      smsNotificationsEnabled: settings.sms_notifications_enabled ?? false,
+      depositAmount: settings.deposit_amount ?? 3000,
+      platformFee: settings.platform_fee ?? 0
     };
 
-    res.json({
-      success: true,
-      data: settings
-    });
+    res.json({ success: true, data: mapped });
   } catch (error) {
     logger.error('시스템 설정 조회 오류:', error);
-    res.status(500).json({
-      success: false,
-      error: '시스템 설정 조회 중 오류가 발생했습니다.'
+    // Fallback to defaults if table doesn't exist
+    res.json({
+      success: true,
+      data: {
+        maintenanceMode: false, allowNewSignups: true,
+        maxMeetupParticipants: 4, meetupCreationCooldown: 60,
+        autoApprovalEnabled: true, emailNotificationsEnabled: true,
+        smsNotificationsEnabled: false, depositAmount: 3000, platformFee: 0
+      }
     });
   }
 };
 
-// 시스템 설정 저장
+// 시스템 설정 저장 (DB 기반)
 exports.updateSettings = async (req, res) => {
   try {
-    const {
-      maintenanceMode,
-      allowNewSignups,
-      maxMeetupParticipants,
-      meetupCreationCooldown,
-      autoApprovalEnabled,
-      emailNotificationsEnabled,
-      smsNotificationsEnabled,
-      depositAmount,
-      platformFee
-    } = req.body;
+    const keyMap = {
+      maintenanceMode: 'maintenance_mode',
+      allowNewSignups: 'allow_new_signups',
+      maxMeetupParticipants: 'max_meetup_participants',
+      meetupCreationCooldown: 'meetup_creation_cooldown',
+      autoApprovalEnabled: 'auto_approval_enabled',
+      emailNotificationsEnabled: 'email_notifications_enabled',
+      smsNotificationsEnabled: 'sms_notifications_enabled',
+      depositAmount: 'deposit_amount',
+      platformFee: 'platform_fee'
+    };
 
-    if (typeof maxMeetupParticipants !== 'number' || maxMeetupParticipants < 1 || maxMeetupParticipants > 50) {
-      return res.status(400).json({
-        success: false,
-        error: '최대 참가자 수는 1명 이상 50명 이하여야 합니다.'
-      });
+    const updates = req.body;
+    const adminId = req.admin.id;
+
+    for (const [camelKey, value] of Object.entries(updates)) {
+      const dbKey = keyMap[camelKey];
+      if (dbKey) {
+        await pool.query(
+          `INSERT INTO system_settings (key, value, updated_by, updated_at)
+           VALUES ($1, $2, $3, NOW())
+           ON CONFLICT (key) DO UPDATE SET value = $2, updated_by = $3, updated_at = NOW()`,
+          [dbKey, String(value), adminId]
+        );
+      }
     }
 
-    if (typeof depositAmount !== 'number' || depositAmount < 0) {
-      return res.status(400).json({
-        success: false,
-        error: '예약금은 0원 이상이어야 합니다.'
-      });
-    }
-
-    logger.info('시스템 설정 저장:', {
-      maintenanceMode,
-      allowNewSignups,
-      maxMeetupParticipants,
-      meetupCreationCooldown,
-      autoApprovalEnabled,
-      emailNotificationsEnabled,
-      smsNotificationsEnabled,
-      depositAmount,
-      platformFee,
-      updatedBy: req.admin.username,
-      updatedAt: new Date()
-    });
-
-    res.json({
-      success: true,
-      message: '시스템 설정이 저장되었습니다.'
-    });
+    res.json({ success: true, message: '시스템 설정이 저장되었습니다.' });
   } catch (error) {
     logger.error('시스템 설정 저장 오류:', error);
-    res.status(500).json({
-      success: false,
-      error: '시스템 설정 저장 중 오류가 발생했습니다.'
-    });
+    res.status(500).json({ success: false, error: '시스템 설정 저장 중 오류가 발생했습니다.' });
   }
 };
 
@@ -830,7 +837,7 @@ exports.createAccount = async (req, res) => {
     const passwordHash = await bcrypt.hash(password, 10);
 
     const result = await pool.query(`
-      INSERT INTO admins (username, email, password_hash, role, is_active, created_at)
+      INSERT INTO admins (username, email, password, role, is_active, created_at)
       VALUES ($1, $2, $3, $4, true, NOW())
       RETURNING id, username, email, role, created_at
     `, [username, email, passwordHash, role || 'admin']);
@@ -896,7 +903,7 @@ exports.updateAccountPassword = async (req, res) => {
     const passwordHash = await bcrypt.hash(newPassword, 10);
 
     await pool.query(
-      'UPDATE admins SET password_hash = $1, updated_at = NOW() WHERE id = $2',
+      'UPDATE admins SET password = $1, updated_at = NOW() WHERE id = $2',
       [passwordHash, adminId]
     );
 
@@ -1055,21 +1062,34 @@ exports.updateChatbotSettings = async (req, res) => {
   }
 };
 
-// 실시간 통계 조회
+// 실시간 통계 조회 (종합)
 exports.getRealtimeStats = async (req, res) => {
   try {
     const result = await pool.query(`
       SELECT
+        (SELECT COUNT(*) FROM users) as total_users,
         (SELECT COUNT(*) FROM users WHERE created_at > NOW() - INTERVAL '1 hour') as new_users_hour,
+        (SELECT COUNT(DISTINCT user_id) FROM meetup_participants WHERE joined_at > NOW() - INTERVAL '24 hours') as active_users_day,
+        (SELECT COUNT(*) FROM meetups) as total_meetups,
+        (SELECT COUNT(*) FROM meetups WHERE status IN ('모집중', '모집완료')) as active_meetups,
         (SELECT COUNT(*) FROM meetups WHERE created_at > NOW() - INTERVAL '1 hour') as new_meetups_hour,
-        (SELECT COUNT(*) FROM meetup_participants WHERE joined_at > NOW() - INTERVAL '1 hour') as new_participants_hour,
-        (SELECT COUNT(*) FROM meetups WHERE status = '모집중') as active_meetups,
-        (SELECT COUNT(DISTINCT user_id) FROM meetup_participants WHERE joined_at > NOW() - INTERVAL '24 hours') as active_users_day
+        (SELECT COUNT(*) FROM chat_rooms) as total_chat_rooms,
+        (SELECT COUNT(DISTINCT cr.id) FROM chat_rooms cr JOIN chat_messages cm ON cr.id = cm."chatRoomId" WHERE cm."createdAt" > NOW() - INTERVAL '24 hours') as active_chat_rooms,
+        (SELECT COALESCE(SUM(amount), 0) FROM platform_revenues) as total_revenue,
+        (SELECT COUNT(*) FROM advertisements) as total_ads,
+        (SELECT COUNT(*) FROM advertisements WHERE is_active = true) as active_ads,
+        (SELECT COALESCE(SUM(available_points), 0) FROM user_points) as total_points,
+        (SELECT COUNT(*) FROM promise_deposits WHERE status = 'pending') as pending_deposits,
+        (SELECT COUNT(*) FROM reports WHERE status = 'pending') as pending_reports,
+        (SELECT COUNT(*) FROM support_tickets WHERE status IN ('open', 'pending')) as pending_support
     `);
 
     res.json({
       success: true,
-      data: result.rows[0]
+      data: {
+        ...result.rows[0],
+        systemHealth: 'healthy'
+      }
     });
   } catch (error) {
     logger.error('실시간 통계 조회 오류:', error);
@@ -1466,5 +1486,766 @@ exports.softDeleteReview = async (req, res) => {
   } catch (error) {
     logger.error('리뷰 소프트 삭제 오류:', error);
     res.status(500).json({ success: false, error: '리뷰 삭제에 실패했습니다.' });
+  }
+};
+
+// ========== 약속금/결제 관리 ==========
+
+exports.getDeposits = async (req, res) => {
+  try {
+    const { page = 1, limit = 20, status, search } = req.query;
+    const offset = (page - 1) * limit;
+    let conditions = [];
+    let params = [];
+    let idx = 1;
+
+    if (status && status !== 'all') {
+      conditions.push(`pd.status = $${idx}`);
+      params.push(status);
+      idx++;
+    }
+    if (search) {
+      conditions.push(`(u.name ILIKE $${idx} OR u.email ILIKE $${idx})`);
+      params.push(`%${search}%`);
+      idx++;
+    }
+
+    const where = conditions.length ? 'WHERE ' + conditions.join(' AND ') : '';
+    params.push(parseInt(limit), offset);
+
+    const result = await pool.query(`
+      SELECT pd.*, u.name as user_name, u.email as user_email, m.title as meetup_title,
+        COUNT(*) OVER() as total_count
+      FROM promise_deposits pd
+      LEFT JOIN users u ON pd.user_id = u.id
+      LEFT JOIN meetups m ON pd.meetup_id = m.id
+      ${where}
+      ORDER BY pd.created_at DESC
+      LIMIT $${idx} OFFSET $${idx + 1}
+    `, params);
+
+    const total = result.rows.length > 0 ? parseInt(result.rows[0].total_count) : 0;
+
+    res.json({
+      success: true,
+      deposits: result.rows,
+      pagination: { page: parseInt(page), limit: parseInt(limit), total }
+    });
+  } catch (error) {
+    logger.error('약속금 목록 조회 오류:', error);
+    res.status(500).json({ success: false, error: '약속금 목록 조회에 실패했습니다.' });
+  }
+};
+
+exports.getDepositStats = async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT
+        COUNT(*) as total,
+        COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending,
+        COUNT(CASE WHEN status = 'paid' THEN 1 END) as paid,
+        COUNT(CASE WHEN status = 'refunded' THEN 1 END) as refunded,
+        COUNT(CASE WHEN status = 'forfeited' THEN 1 END) as forfeited,
+        COALESCE(SUM(CASE WHEN status = 'paid' THEN amount ELSE 0 END), 0) as total_paid_amount,
+        COALESCE(SUM(CASE WHEN status = 'refunded' THEN refund_amount ELSE 0 END), 0) as total_refunded_amount,
+        COALESCE(SUM(CASE WHEN status = 'forfeited' THEN amount ELSE 0 END), 0) as total_forfeited_amount
+      FROM promise_deposits
+    `);
+    res.json({ success: true, data: result.rows[0] });
+  } catch (error) {
+    logger.error('약속금 통계 조회 오류:', error);
+    res.status(500).json({ success: false, error: '약속금 통계 조회에 실패했습니다.' });
+  }
+};
+
+exports.processDepositRefund = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { reason } = req.body;
+
+    const deposit = await pool.query('SELECT * FROM promise_deposits WHERE id = $1', [id]);
+    if (deposit.rows.length === 0) {
+      return res.status(404).json({ success: false, error: '약속금을 찾을 수 없습니다.' });
+    }
+
+    await pool.query(
+      `UPDATE promise_deposits SET status = 'refunded', refund_amount = amount, refund_reason = $2, returned_at = NOW(), updated_at = NOW() WHERE id = $1`,
+      [id, reason || '관리자 환불']
+    );
+
+    res.json({ success: true, message: '환불이 처리되었습니다.' });
+  } catch (error) {
+    logger.error('약속금 환불 처리 오류:', error);
+    res.status(500).json({ success: false, error: '환불 처리에 실패했습니다.' });
+  }
+};
+
+exports.getRevenue = async (req, res) => {
+  try {
+    const { page = 1, limit = 20 } = req.query;
+    const offset = (page - 1) * limit;
+
+    const result = await pool.query(`
+      SELECT *, COUNT(*) OVER() as total_count
+      FROM platform_revenues
+      ORDER BY created_at DESC
+      LIMIT $1 OFFSET $2
+    `, [parseInt(limit), offset]);
+
+    const statsResult = await pool.query(`
+      SELECT
+        COALESCE(SUM(amount), 0) as total_revenue,
+        COALESCE(SUM(CASE WHEN revenue_type = 'noshow_fee' THEN amount ELSE 0 END), 0) as noshow_revenue,
+        COALESCE(SUM(CASE WHEN revenue_type = 'late_cancel_fee' THEN amount ELSE 0 END), 0) as cancel_revenue,
+        COALESCE(SUM(CASE WHEN revenue_type = 'service_fee' THEN amount ELSE 0 END), 0) as service_revenue
+      FROM platform_revenues
+    `);
+
+    const total = result.rows.length > 0 ? parseInt(result.rows[0].total_count) : 0;
+
+    res.json({
+      success: true,
+      revenues: result.rows,
+      stats: statsResult.rows[0],
+      pagination: { page: parseInt(page), limit: parseInt(limit), total }
+    });
+  } catch (error) {
+    logger.error('수익 조회 오류:', error);
+    res.status(500).json({ success: false, error: '수익 조회에 실패했습니다.' });
+  }
+};
+
+// ========== 뱃지 관리 ==========
+
+exports.getBadges = async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT b.*,
+        (SELECT COUNT(*) FROM user_badges ub WHERE ub.badge_type = b.name) as awarded_count
+      FROM badges b
+      ORDER BY b.category, b.required_count
+    `);
+    res.json({ success: true, badges: result.rows });
+  } catch (error) {
+    logger.error('뱃지 목록 조회 오류:', error);
+    res.status(500).json({ success: false, error: '뱃지 목록 조회에 실패했습니다.' });
+  }
+};
+
+exports.createBadge = async (req, res) => {
+  try {
+    const { name, description, category, required_count, icon } = req.body;
+    const result = await pool.query(`
+      INSERT INTO badges (name, description, category, required_count, icon, is_active, created_at)
+      VALUES ($1, $2, $3, $4, $5, true, NOW())
+      RETURNING *
+    `, [name, description, category || 'general', required_count || 1, icon || '🏅']);
+    res.status(201).json({ success: true, badge: result.rows[0] });
+  } catch (error) {
+    logger.error('뱃지 생성 오류:', error);
+    res.status(500).json({ success: false, error: '뱃지 생성에 실패했습니다.' });
+  }
+};
+
+exports.updateBadge = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, description, category, required_count, icon, is_active } = req.body;
+    const result = await pool.query(`
+      UPDATE badges SET name = COALESCE($1, name), description = COALESCE($2, description),
+        category = COALESCE($3, category), required_count = COALESCE($4, required_count),
+        icon = COALESCE($5, icon), is_active = COALESCE($6, is_active), updated_at = NOW()
+      WHERE id = $7 RETURNING *
+    `, [name, description, category, required_count, icon, is_active, id]);
+    if (result.rows.length === 0) return res.status(404).json({ success: false, error: '뱃지를 찾을 수 없습니다.' });
+    res.json({ success: true, badge: result.rows[0] });
+  } catch (error) {
+    logger.error('뱃지 수정 오류:', error);
+    res.status(500).json({ success: false, error: '뱃지 수정에 실패했습니다.' });
+  }
+};
+
+exports.deleteBadge = async (req, res) => {
+  try {
+    const { id } = req.params;
+    await pool.query('DELETE FROM badges WHERE id = $1', [id]);
+    res.json({ success: true, message: '뱃지가 삭제되었습니다.' });
+  } catch (error) {
+    logger.error('뱃지 삭제 오류:', error);
+    res.status(500).json({ success: false, error: '뱃지 삭제에 실패했습니다.' });
+  }
+};
+
+exports.awardBadge = async (req, res) => {
+  try {
+    const { userId, badgeId } = req.body;
+    await pool.query(`
+      INSERT INTO user_badges (user_id, badge_type, earned_at)
+      VALUES ($1, (SELECT name FROM badges WHERE id = $2), NOW())
+      ON CONFLICT DO NOTHING
+    `, [userId, badgeId]);
+    res.json({ success: true, message: '뱃지가 부여되었습니다.' });
+  } catch (error) {
+    logger.error('뱃지 부여 오류:', error);
+    res.status(500).json({ success: false, error: '뱃지 부여에 실패했습니다.' });
+  }
+};
+
+exports.revokeBadge = async (req, res) => {
+  try {
+    const { userId, badgeId } = req.body;
+    await pool.query('DELETE FROM user_badges WHERE user_id = $1 AND badge_type = (SELECT name FROM badges WHERE id = $2)', [userId, badgeId]);
+    res.json({ success: true, message: '뱃지가 회수되었습니다.' });
+  } catch (error) {
+    logger.error('뱃지 회수 오류:', error);
+    res.status(500).json({ success: false, error: '뱃지 회수에 실패했습니다.' });
+  }
+};
+
+exports.getBadgeStats = async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT
+        (SELECT COUNT(*) FROM badges) as total_badges,
+        (SELECT COUNT(*) FROM user_badges) as total_awarded,
+        (SELECT COUNT(DISTINCT user_id) FROM user_badges) as unique_users
+    `);
+    const byCategory = await pool.query(`
+      SELECT b.category, COUNT(ub.id) as count
+      FROM badges b LEFT JOIN user_badges ub ON b.name = ub.badge_type
+      GROUP BY b.category
+    `);
+    res.json({ success: true, data: { ...result.rows[0], byCategory: byCategory.rows } });
+  } catch (error) {
+    logger.error('뱃지 통계 조회 오류:', error);
+    res.status(500).json({ success: false, error: '뱃지 통계 조회에 실패했습니다.' });
+  }
+};
+
+// ========== 알림 관리 ==========
+
+exports.getNotifications = async (req, res) => {
+  try {
+    const { page = 1, limit = 20, type } = req.query;
+    const offset = (page - 1) * limit;
+    let conditions = [];
+    let params = [];
+    let idx = 1;
+
+    if (type) {
+      conditions.push(`n.type = $${idx}`);
+      params.push(type);
+      idx++;
+    }
+
+    const where = conditions.length ? 'WHERE ' + conditions.join(' AND ') : '';
+    params.push(parseInt(limit), offset);
+
+    const result = await pool.query(`
+      SELECT n.*, u.name as user_name, u.email as user_email,
+        COUNT(*) OVER() as total_count
+      FROM notifications n
+      LEFT JOIN users u ON n.user_id = u.id
+      ${where}
+      ORDER BY n.created_at DESC
+      LIMIT $${idx} OFFSET $${idx + 1}
+    `, params);
+
+    const total = result.rows.length > 0 ? parseInt(result.rows[0].total_count) : 0;
+
+    res.json({
+      success: true,
+      notifications: result.rows,
+      pagination: { page: parseInt(page), limit: parseInt(limit), total }
+    });
+  } catch (error) {
+    logger.error('알림 목록 조회 오류:', error);
+    res.status(500).json({ success: false, error: '알림 목록 조회에 실패했습니다.' });
+  }
+};
+
+exports.broadcastNotification = async (req, res) => {
+  try {
+    const { title, content, type } = req.body;
+    if (!title || !content) {
+      return res.status(400).json({ success: false, error: '제목과 내용은 필수입니다.' });
+    }
+
+    const usersResult = await pool.query('SELECT id FROM users WHERE deleted_at IS NULL');
+    const users = usersResult.rows;
+
+    let insertCount = 0;
+    for (const user of users) {
+      await pool.query(`
+        INSERT INTO notifications (user_id, title, message, type, is_read, created_at)
+        VALUES ($1, $2, $3, $4, false, NOW())
+      `, [user.id, title, content, type || 'system']);
+      insertCount++;
+    }
+
+    res.json({ success: true, message: `${insertCount}명에게 알림이 발송되었습니다.` });
+  } catch (error) {
+    logger.error('전체 알림 발송 오류:', error);
+    res.status(500).json({ success: false, error: '알림 발송에 실패했습니다.' });
+  }
+};
+
+exports.getNotificationStats = async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT
+        COUNT(*) as total,
+        COUNT(CASE WHEN is_read = true THEN 1 END) as read_count,
+        COUNT(CASE WHEN is_read = false THEN 1 END) as unread_count,
+        COUNT(CASE WHEN created_at >= CURRENT_DATE THEN 1 END) as today_count
+      FROM notifications
+    `);
+
+    const deviceResult = await pool.query(`
+      SELECT
+        COUNT(*) as total_tokens,
+        COUNT(CASE WHEN platform = 'ios' THEN 1 END) as ios_tokens,
+        COUNT(CASE WHEN platform = 'android' THEN 1 END) as android_tokens,
+        COUNT(CASE WHEN platform = 'web' THEN 1 END) as web_tokens
+      FROM device_tokens
+    `);
+
+    res.json({
+      success: true,
+      data: {
+        notifications: result.rows[0],
+        devices: deviceResult.rows[0]
+      }
+    });
+  } catch (error) {
+    logger.error('알림 통계 조회 오류:', error);
+    res.status(500).json({ success: false, error: '알림 통계 조회에 실패했습니다.' });
+  }
+};
+
+// ========== 지원 티켓 관리 ==========
+
+exports.getSupportTickets = async (req, res) => {
+  try {
+    const { page = 1, limit = 20, status, priority } = req.query;
+    const offset = (page - 1) * limit;
+    let conditions = [];
+    let params = [];
+    let idx = 1;
+
+    if (status && status !== 'all') {
+      conditions.push(`st.status = $${idx}`);
+      params.push(status);
+      idx++;
+    }
+    if (priority) {
+      conditions.push(`st.priority = $${idx}`);
+      params.push(priority);
+      idx++;
+    }
+
+    const where = conditions.length ? 'WHERE ' + conditions.join(' AND ') : '';
+    params.push(parseInt(limit), offset);
+
+    const result = await pool.query(`
+      SELECT st.*, u.name as user_name, u.email as user_email,
+        COUNT(*) OVER() as total_count
+      FROM support_tickets st
+      LEFT JOIN users u ON st.user_id = u.id
+      ${where}
+      ORDER BY
+        CASE st.priority WHEN 'urgent' THEN 0 WHEN 'high' THEN 1 WHEN 'normal' THEN 2 WHEN 'low' THEN 3 ELSE 4 END,
+        st.created_at DESC
+      LIMIT $${idx} OFFSET $${idx + 1}
+    `, params);
+
+    const total = result.rows.length > 0 ? parseInt(result.rows[0].total_count) : 0;
+
+    res.json({
+      success: true,
+      tickets: result.rows,
+      pagination: { page: parseInt(page), limit: parseInt(limit), total }
+    });
+  } catch (error) {
+    logger.error('지원 티켓 목록 조회 오류:', error);
+    res.status(500).json({ success: false, error: '지원 티켓 목록 조회에 실패했습니다.' });
+  }
+};
+
+exports.updateSupportTicket = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, admin_response, priority } = req.body;
+    const adminId = req.admin.id;
+
+    const result = await pool.query(`
+      UPDATE support_tickets
+      SET status = COALESCE($1, status),
+          admin_response = COALESCE($2, admin_response),
+          priority = COALESCE($3, priority),
+          resolved_by = CASE WHEN $1 IN ('resolved', 'closed') THEN $4 ELSE resolved_by END,
+          resolved_at = CASE WHEN $1 IN ('resolved', 'closed') THEN NOW() ELSE resolved_at END,
+          updated_at = NOW()
+      WHERE id = $5
+      RETURNING *
+    `, [status, admin_response, priority, adminId, id]);
+
+    if (result.rows.length === 0) return res.status(404).json({ success: false, error: '티켓을 찾을 수 없습니다.' });
+    res.json({ success: true, ticket: result.rows[0] });
+  } catch (error) {
+    logger.error('지원 티켓 수정 오류:', error);
+    res.status(500).json({ success: false, error: '지원 티켓 수정에 실패했습니다.' });
+  }
+};
+
+exports.getSupportTicketStats = async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT
+        COUNT(*) as total,
+        COUNT(CASE WHEN status IN ('open', 'pending') THEN 1 END) as open_count,
+        COUNT(CASE WHEN status = 'in_progress' THEN 1 END) as in_progress,
+        COUNT(CASE WHEN status = 'resolved' THEN 1 END) as resolved,
+        COUNT(CASE WHEN status = 'closed' THEN 1 END) as closed,
+        COUNT(CASE WHEN created_at >= CURRENT_DATE THEN 1 END) as today_count
+      FROM support_tickets
+    `);
+    res.json({ success: true, data: result.rows[0] });
+  } catch (error) {
+    logger.error('지원 티켓 통계 조회 오류:', error);
+    res.status(500).json({ success: false, error: '지원 티켓 통계 조회에 실패했습니다.' });
+  }
+};
+
+// ========== 채팅 관리 ==========
+
+exports.getChatRooms = async (req, res) => {
+  try {
+    const { page = 1, limit = 20, search } = req.query;
+    const offset = (page - 1) * limit;
+    let conditions = [];
+    let params = [];
+    let idx = 1;
+
+    if (search) {
+      conditions.push(`m.title ILIKE $${idx}`);
+      params.push(`%${search}%`);
+      idx++;
+    }
+
+    const where = conditions.length ? 'WHERE ' + conditions.join(' AND ') : '';
+    params.push(parseInt(limit), offset);
+
+    const result = await pool.query(`
+      SELECT cr.*, m.title as meetup_title, m.status as meetup_status,
+        (SELECT COUNT(*) FROM chat_messages cm WHERE cm."chatRoomId" = cr.id) as message_count,
+        (SELECT COUNT(*) FROM chat_participants cp WHERE cp."chatRoomId" = cr.id) as participant_count,
+        (SELECT MAX(cm."createdAt") FROM chat_messages cm WHERE cm."chatRoomId" = cr.id) as last_message_at,
+        COUNT(*) OVER() as total_count
+      FROM chat_rooms cr
+      LEFT JOIN meetups m ON cr."meetupId" = m.id
+      ${where}
+      ORDER BY last_message_at DESC NULLS LAST
+      LIMIT $${idx} OFFSET $${idx + 1}
+    `, params);
+
+    const total = result.rows.length > 0 ? parseInt(result.rows[0].total_count) : 0;
+
+    res.json({
+      success: true,
+      rooms: result.rows,
+      pagination: { page: parseInt(page), limit: parseInt(limit), total }
+    });
+  } catch (error) {
+    logger.error('채팅방 목록 조회 오류:', error);
+    res.status(500).json({ success: false, error: '채팅방 목록 조회에 실패했습니다.' });
+  }
+};
+
+exports.getChatMessages = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { page = 1, limit = 50 } = req.query;
+    const offset = (page - 1) * limit;
+
+    const result = await pool.query(`
+      SELECT cm.*, u.name as sender_name, u.profile_image as sender_image,
+        COUNT(*) OVER() as total_count
+      FROM chat_messages cm
+      LEFT JOIN users u ON cm."senderId" = u.id
+      WHERE cm."chatRoomId" = $1
+      ORDER BY cm."createdAt" DESC
+      LIMIT $2 OFFSET $3
+    `, [id, parseInt(limit), offset]);
+
+    const total = result.rows.length > 0 ? parseInt(result.rows[0].total_count) : 0;
+
+    res.json({
+      success: true,
+      messages: result.rows,
+      pagination: { page: parseInt(page), limit: parseInt(limit), total }
+    });
+  } catch (error) {
+    logger.error('채팅 메시지 조회 오류:', error);
+    res.status(500).json({ success: false, error: '채팅 메시지 조회에 실패했습니다.' });
+  }
+};
+
+exports.deleteChatMessage = async (req, res) => {
+  try {
+    const { id } = req.params;
+    await pool.query(
+      `UPDATE chat_messages SET message = '[관리자에 의해 삭제됨]', "isDeleted" = true, "deletedAt" = NOW() WHERE id = $1`,
+      [id]
+    );
+    res.json({ success: true, message: '메시지가 삭제되었습니다.' });
+  } catch (error) {
+    logger.error('채팅 메시지 삭제 오류:', error);
+    res.status(500).json({ success: false, error: '메시지 삭제에 실패했습니다.' });
+  }
+};
+
+exports.getChatStats = async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT
+        (SELECT COUNT(*) FROM chat_rooms) as total_rooms,
+        (SELECT COUNT(*) FROM chat_messages) as total_messages,
+        (SELECT COUNT(DISTINCT cr.id) FROM chat_rooms cr
+         JOIN chat_messages cm ON cr.id = cm."chatRoomId"
+         WHERE cm."createdAt" > NOW() - INTERVAL '24 hours') as active_rooms,
+        (SELECT COUNT(*) FROM chat_messages WHERE "createdAt" >= CURRENT_DATE) as today_messages
+    `);
+    res.json({ success: true, data: result.rows[0] });
+  } catch (error) {
+    logger.error('채팅 통계 조회 오류:', error);
+    res.status(500).json({ success: false, error: '채팅 통계 조회에 실패했습니다.' });
+  }
+};
+
+// ========== 리뷰 관리 (강화) ==========
+
+exports.getReviews = async (req, res) => {
+  try {
+    const { page = 1, limit = 20, reported, hidden } = req.query;
+    const offset = (page - 1) * limit;
+    let conditions = [];
+    let params = [];
+    let idx = 1;
+
+    if (reported === 'true') {
+      conditions.push(`r.id IN (SELECT DISTINCT reported_content_id FROM reports WHERE content_type = 'review' AND status = 'pending')`);
+    }
+    if (hidden === 'true') {
+      conditions.push('r.is_hidden = true');
+    }
+
+    const where = conditions.length ? 'WHERE ' + conditions.join(' AND ') : '';
+    params.push(parseInt(limit), offset);
+
+    const result = await pool.query(`
+      SELECT r.*,
+        reviewer.name as reviewer_name, reviewer.email as reviewer_email,
+        m.title as meetup_title,
+        COUNT(*) OVER() as total_count
+      FROM reviews r
+      LEFT JOIN users reviewer ON r.reviewer_id = reviewer.id
+      LEFT JOIN meetups m ON r.meetup_id = m.id
+      ${where}
+      ORDER BY r.created_at DESC
+      LIMIT $${idx} OFFSET $${idx + 1}
+    `, params);
+
+    const total = result.rows.length > 0 ? parseInt(result.rows[0].total_count) : 0;
+
+    res.json({
+      success: true,
+      reviews: result.rows,
+      pagination: { page: parseInt(page), limit: parseInt(limit), total }
+    });
+  } catch (error) {
+    logger.error('리뷰 목록 조회 오류:', error);
+    res.status(500).json({ success: false, error: '리뷰 목록 조회에 실패했습니다.' });
+  }
+};
+
+exports.hideReview = async (req, res) => {
+  try {
+    const { reviewId } = req.params;
+    const { reason } = req.body;
+    await pool.query(`
+      UPDATE reviews SET is_hidden = true, hidden_reason = $2, hidden_at = NOW(), hidden_by = $3
+      WHERE id = $1
+    `, [reviewId, reason || '관리자 판단', req.admin.id]);
+    res.json({ success: true, message: '리뷰가 숨김 처리되었습니다.' });
+  } catch (error) {
+    logger.error('리뷰 숨김 오류:', error);
+    res.status(500).json({ success: false, error: '리뷰 숨김에 실패했습니다.' });
+  }
+};
+
+exports.restoreReview = async (req, res) => {
+  try {
+    const { reviewId } = req.params;
+    await pool.query(`
+      UPDATE reviews SET is_hidden = false, hidden_reason = NULL, hidden_at = NULL, hidden_by = NULL
+      WHERE id = $1
+    `, [reviewId]);
+    res.json({ success: true, message: '리뷰가 복원되었습니다.' });
+  } catch (error) {
+    logger.error('리뷰 복원 오류:', error);
+    res.status(500).json({ success: false, error: '리뷰 복원에 실패했습니다.' });
+  }
+};
+
+exports.getReviewStats = async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT
+        COUNT(*) as total,
+        COALESCE(AVG(rating), 0) as avg_rating,
+        COUNT(CASE WHEN is_hidden = true THEN 1 END) as hidden_count,
+        COUNT(CASE WHEN created_at >= CURRENT_DATE THEN 1 END) as today_count,
+        COUNT(CASE WHEN rating >= 4 THEN 1 END) as positive_count,
+        COUNT(CASE WHEN rating <= 2 THEN 1 END) as negative_count
+      FROM reviews
+    `);
+    res.json({ success: true, data: result.rows[0] });
+  } catch (error) {
+    logger.error('리뷰 통계 조회 오류:', error);
+    res.status(500).json({ success: false, error: '리뷰 통계 조회에 실패했습니다.' });
+  }
+};
+
+// ========== 광고 관리 (관리자 CRUD) ==========
+
+exports.getAdvertisements = async (req, res) => {
+  try {
+    const { page = 1, limit = 20, status } = req.query;
+    const offset = (page - 1) * limit;
+    let conditions = [];
+    let params = [];
+    let idx = 1;
+
+    if (status === 'active') {
+      conditions.push('is_active = true');
+    } else if (status === 'inactive') {
+      conditions.push('is_active = false');
+    }
+
+    const where = conditions.length ? 'WHERE ' + conditions.join(' AND ') : '';
+    params.push(parseInt(limit), offset);
+
+    const result = await pool.query(`
+      SELECT *, COUNT(*) OVER() as total_count
+      FROM advertisements
+      ${where}
+      ORDER BY priority DESC, created_at DESC
+      LIMIT $${idx} OFFSET $${idx + 1}
+    `, params);
+
+    const total = result.rows.length > 0 ? parseInt(result.rows[0].total_count) : 0;
+
+    res.json({
+      success: true,
+      advertisements: result.rows,
+      pagination: { page: parseInt(page), limit: parseInt(limit), total }
+    });
+  } catch (error) {
+    logger.error('광고 목록 조회 오류:', error);
+    res.status(500).json({ success: false, error: '광고 목록 조회에 실패했습니다.' });
+  }
+};
+
+exports.createAdvertisement = async (req, res) => {
+  try {
+    const { title, description, image_url, link_url, position, priority, start_date, end_date, business_name, contact_info } = req.body;
+    const adminId = req.admin ? req.admin.id : null;
+    const result = await pool.query(`
+      INSERT INTO advertisements (title, description, image_url, link_url, created_by, position, priority, start_date, end_date, business_name, contact_info, is_active, created_at)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, true, NOW())
+      RETURNING *
+    `, [title, description, image_url, link_url, adminId, position || 'banner', priority || 0, start_date, end_date, business_name, contact_info]);
+    res.status(201).json({ success: true, advertisement: result.rows[0] });
+  } catch (error) {
+    logger.error('광고 생성 오류:', error);
+    res.status(500).json({ success: false, error: '광고 생성에 실패했습니다.' });
+  }
+};
+
+exports.updateAdvertisement = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { title, description, image_url, link_url, position, priority, start_date, end_date, is_active, business_name, contact_info } = req.body;
+    const result = await pool.query(`
+      UPDATE advertisements SET
+        title = COALESCE($1, title), description = COALESCE($2, description),
+        image_url = COALESCE($3, image_url), link_url = COALESCE($4, link_url),
+        position = COALESCE($5, position), priority = COALESCE($6, priority),
+        start_date = COALESCE($7, start_date), end_date = COALESCE($8, end_date),
+        is_active = COALESCE($9, is_active), business_name = COALESCE($10, business_name),
+        contact_info = COALESCE($11, contact_info), updated_at = NOW()
+      WHERE id = $12 RETURNING *
+    `, [title, description, image_url, link_url, position, priority, start_date, end_date, is_active, business_name, contact_info, id]);
+    if (result.rows.length === 0) return res.status(404).json({ success: false, error: '광고를 찾을 수 없습니다.' });
+    res.json({ success: true, advertisement: result.rows[0] });
+  } catch (error) {
+    logger.error('광고 수정 오류:', error);
+    res.status(500).json({ success: false, error: '광고 수정에 실패했습니다.' });
+  }
+};
+
+exports.deleteAdvertisement = async (req, res) => {
+  try {
+    const { id } = req.params;
+    await pool.query('DELETE FROM advertisements WHERE id = $1', [id]);
+    res.json({ success: true, message: '광고가 삭제되었습니다.' });
+  } catch (error) {
+    logger.error('광고 삭제 오류:', error);
+    res.status(500).json({ success: false, error: '광고 삭제에 실패했습니다.' });
+  }
+};
+
+exports.toggleAdvertisement = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await pool.query(`
+      UPDATE advertisements SET is_active = NOT is_active, updated_at = NOW()
+      WHERE id = $1 RETURNING *
+    `, [id]);
+    if (result.rows.length === 0) return res.status(404).json({ success: false, error: '광고를 찾을 수 없습니다.' });
+    res.json({ success: true, advertisement: result.rows[0] });
+  } catch (error) {
+    logger.error('광고 토글 오류:', error);
+    res.status(500).json({ success: false, error: '광고 토글에 실패했습니다.' });
+  }
+};
+
+// ========== 감사 로그 ==========
+
+exports.getAuditLogs = async (req, res) => {
+  try {
+    const { page = 1, limit = 50 } = req.query;
+    const offset = (page - 1) * limit;
+
+    const result = await pool.query(`
+      SELECT al.*, a.username as admin_username,
+        COUNT(*) OVER() as total_count
+      FROM admin_audit_logs al
+      LEFT JOIN admins a ON al.admin_id = a.id
+      ORDER BY al.created_at DESC
+      LIMIT $1 OFFSET $2
+    `, [parseInt(limit), offset]);
+
+    const total = result.rows.length > 0 ? parseInt(result.rows[0].total_count) : 0;
+
+    res.json({
+      success: true,
+      logs: result.rows,
+      pagination: { page: parseInt(page), limit: parseInt(limit), total }
+    });
+  } catch (error) {
+    logger.error('감사 로그 조회 오류:', error);
+    res.status(500).json({ success: false, error: '감사 로그 조회에 실패했습니다.' });
   }
 };

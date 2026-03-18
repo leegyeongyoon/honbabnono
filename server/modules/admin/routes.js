@@ -79,9 +79,13 @@ router.post('/dashboard/collect-stats', authenticateAdminNew, adminController.co
 // 통계 리포트
 router.get('/reports/:type', authenticateAdminNew, adminController.getStatReports);
 
-// 리뷰 관리
+// 리뷰 관리 (강화) - static routes first
+router.get('/reviews/stats', authenticateAdminNew, adminController.getReviewStats);
+router.get('/reviews', authenticateAdminNew, adminController.getReviews);
 router.delete('/reviews/:reviewId', authenticateAdminNew, adminController.deleteReview);
 router.patch('/reviews/:reviewId/delete', authenticateAdminNew, adminController.softDeleteReview);
+router.patch('/reviews/:reviewId/hide', authenticateAdminNew, adminController.hideReview);
+router.patch('/reviews/:reviewId/restore', authenticateAdminNew, adminController.restoreReview);
 
 // 간단 통계 (legacy /admin/stats)
 router.get('/stats', authenticateAdminNew, adminController.getStats);
@@ -97,5 +101,46 @@ router.put('/meetups/:id/:action', authenticateAdminNew, adminController.updateM
 
 // 사용자 상태 변경 액션
 router.put('/users/:id/:action', authenticateAdminNew, adminController.updateUserAction);
+
+// 약속금/결제 관리 - static routes first
+router.get('/deposits/stats', authenticateAdminNew, adminController.getDepositStats);
+router.get('/deposits', authenticateAdminNew, adminController.getDeposits);
+router.post('/deposits/:id/refund', authenticateAdminNew, adminController.processDepositRefund);
+router.get('/revenue', authenticateAdminNew, adminController.getRevenue);
+
+// 뱃지 관리 - static routes first
+router.get('/badges/stats', authenticateAdminNew, adminController.getBadgeStats);
+router.get('/badges', authenticateAdminNew, adminController.getBadges);
+router.post('/badges', authenticateAdminNew, adminController.createBadge);
+router.post('/badges/award', authenticateAdminNew, adminController.awardBadge);
+router.post('/badges/revoke', authenticateAdminNew, adminController.revokeBadge);
+router.put('/badges/:id', authenticateAdminNew, adminController.updateBadge);
+router.delete('/badges/:id', authenticateAdminNew, adminController.deleteBadge);
+
+// 알림 관리 - static routes first
+router.get('/notifications/stats', authenticateAdminNew, adminController.getNotificationStats);
+router.get('/notifications', authenticateAdminNew, adminController.getNotifications);
+router.post('/notifications/broadcast', authenticateAdminNew, adminController.broadcastNotification);
+
+// 지원 티켓 관리 - static routes first
+router.get('/support-tickets/stats', authenticateAdminNew, adminController.getSupportTicketStats);
+router.get('/support-tickets', authenticateAdminNew, adminController.getSupportTickets);
+router.put('/support-tickets/:id', authenticateAdminNew, adminController.updateSupportTicket);
+
+// 채팅 관리 - static routes first
+router.get('/chat/stats', authenticateAdminNew, adminController.getChatStats);
+router.get('/chat-rooms', authenticateAdminNew, adminController.getChatRooms);
+router.get('/chat-rooms/:id/messages', authenticateAdminNew, adminController.getChatMessages);
+router.delete('/chat-messages/:id', authenticateAdminNew, adminController.deleteChatMessage);
+
+// 광고 관리 (관리자 CRUD)
+router.get('/advertisements', authenticateAdminNew, adminController.getAdvertisements);
+router.post('/advertisements', authenticateAdminNew, adminController.createAdvertisement);
+router.put('/advertisements/:id', authenticateAdminNew, adminController.updateAdvertisement);
+router.delete('/advertisements/:id', authenticateAdminNew, adminController.deleteAdvertisement);
+router.patch('/advertisements/:id/toggle', authenticateAdminNew, adminController.toggleAdvertisement);
+
+// 감사 로그
+router.get('/audit-logs', authenticateAdminNew, adminController.getAuditLogs);
 
 module.exports = router;

@@ -13,6 +13,7 @@ import ListItemButton from '@mui/material/ListItemButton';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
 import Button from '@mui/material/Button';
+import Divider from '@mui/material/Divider';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import PeopleIcon from '@mui/icons-material/People';
 import EventIcon from '@mui/icons-material/Event';
@@ -24,7 +25,12 @@ import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import SmartToyIcon from '@mui/icons-material/SmartToy';
 import CampaignIcon from '@mui/icons-material/Campaign';
 import AnnouncementIcon from '@mui/icons-material/Announcement';
-import PsychologyIcon from '@mui/icons-material/Psychology';
+import PaymentIcon from '@mui/icons-material/Payment';
+import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
+import NotificationsIcon from '@mui/icons-material/Notifications';
+import SupportAgentIcon from '@mui/icons-material/SupportAgent';
+import ChatIcon from '@mui/icons-material/Chat';
+import RateReviewIcon from '@mui/icons-material/RateReview';
 
 import Dashboard from './components/Dashboard';
 import UserManagement from './components/UserManagement';
@@ -36,8 +42,12 @@ import AdminManagement from './components/AdminManagement';
 import AdvertisementManagement from './components/AdvertisementManagement';
 import ChatbotSettings from './components/ChatbotSettings';
 import NoticeManagement from './components/NoticeManagement';
-import ResearchAgent from './components/ResearchAgent';
-import AdvancedResearch from './components/AdvancedResearch';
+import DepositManagement from './components/DepositManagement';
+import BadgeManagement from './components/BadgeManagement';
+import NotificationManagement from './components/NotificationManagement';
+import SupportManagement from './components/SupportManagement';
+import ChatManagement from './components/ChatManagement';
+import ReviewManagement from './components/ReviewManagement';
 import Login from './components/Login';
 
 const theme = createTheme({
@@ -73,18 +83,29 @@ const theme = createTheme({
 
 const drawerWidth = 240;
 
-const menuItems = [
+const menuItems: Array<{ text: string; icon?: React.ReactNode; path?: string; divider?: boolean }> = [
   { text: '대시보드', icon: <DashboardIcon />, path: '/dashboard' },
+  { text: '---', divider: true },
   { text: '사용자 관리', icon: <PeopleIcon />, path: '/users' },
   { text: '차단 관리', icon: <BlockIcon />, path: '/blocked-users' },
+  { text: '---', divider: true },
   { text: '약속 관리', icon: <EventIcon />, path: '/meetups' },
+  { text: '약속금/결제', icon: <PaymentIcon />, path: '/deposits' },
+  { text: '---', divider: true },
+  { text: '채팅 관리', icon: <ChatIcon />, path: '/chat' },
+  { text: '리뷰 관리', icon: <RateReviewIcon />, path: '/reviews' },
+  { text: '뱃지 관리', icon: <EmojiEventsIcon />, path: '/badges' },
+  { text: '---', divider: true },
+  { text: '알림 관리', icon: <NotificationsIcon />, path: '/notifications' },
+  { text: '신고 관리', icon: <ReportIcon />, path: '/reports' },
+  { text: '지원 티켓', icon: <SupportAgentIcon />, path: '/support' },
+  { text: '---', divider: true },
   { text: '공지사항', icon: <AnnouncementIcon />, path: '/notices' },
   { text: '광고 관리', icon: <CampaignIcon />, path: '/advertisements' },
-  { text: '리서치 에이전트', icon: <PsychologyIcon />, path: '/research-agent' },
-  { text: '고급 리서치', icon: <PsychologyIcon />, path: '/advanced-research' },
+  { text: '---', divider: true },
   { text: '관리자 계정', icon: <AdminPanelSettingsIcon />, path: '/admin-accounts' },
   { text: '챗봇 설정', icon: <SmartToyIcon />, path: '/chatbot-settings' },
-  { text: '리포트', icon: <ReportIcon />, path: '/reports' },
+  { text: '리포트', icon: <ReportIcon />, path: '/reports-download' },
   { text: '설정', icon: <SettingsIcon />, path: '/settings' },
 ];
 
@@ -204,32 +225,30 @@ function App() {
               </Typography>
             </Toolbar>
             <List>
-              {menuItems.map((item) => (
-                <ListItem key={item.text} disablePadding>
-                  <ListItemButton
-                    component="a"
-                    href={item.path}
-                    sx={{
-                      '&:hover': {
-                        backgroundColor: '#F9F8F6',
-                      },
-                    }}
-                  >
-                    <ListItemIcon sx={{ color: '#C9B59C' }}>
-                      {item.icon}
-                    </ListItemIcon>
-                    <ListItemText 
-                      primary={item.text} 
-                      sx={{ 
-                        '& .MuiTypography-root': { 
-                          color: '#4C422C',
-                          fontWeight: 500,
-                        } 
-                      }} 
-                    />
-                  </ListItemButton>
-                </ListItem>
-              ))}
+              {menuItems.map((item, index) => {
+                if (item.divider) {
+                  return <Divider key={index} sx={{ my: 0.5 }} />;
+                }
+                return (
+                  <ListItem key={item.text} disablePadding>
+                    <ListItemButton
+                      component="a"
+                      href={item.path}
+                      sx={{
+                        '&:hover': { backgroundColor: '#F9F8F6' },
+                      }}
+                    >
+                      <ListItemIcon sx={{ color: '#C9B59C' }}>
+                        {item.icon}
+                      </ListItemIcon>
+                      <ListItemText
+                        primary={item.text}
+                        sx={{ '& .MuiTypography-root': { color: '#4C422C', fontWeight: 500 } }}
+                      />
+                    </ListItemButton>
+                  </ListItem>
+                );
+              })}
             </List>
           </Drawer>
           
@@ -249,13 +268,18 @@ function App() {
               <Route path="/users" element={<UserManagement />} />
               <Route path="/blocked-users" element={<BlockedUserManagement />} />
               <Route path="/meetups" element={<MeetupManagement />} />
+              <Route path="/deposits" element={<DepositManagement />} />
+              <Route path="/chat" element={<ChatManagement />} />
+              <Route path="/reviews" element={<ReviewManagement />} />
+              <Route path="/badges" element={<BadgeManagement />} />
+              <Route path="/notifications" element={<NotificationManagement />} />
+              <Route path="/reports" element={<Reports />} />
+              <Route path="/support" element={<SupportManagement />} />
               <Route path="/notices" element={<NoticeManagement />} />
               <Route path="/advertisements" element={<AdvertisementManagement />} />
-              <Route path="/research-agent" element={<ResearchAgent />} />
-              <Route path="/advanced-research" element={<AdvancedResearch />} />
               <Route path="/admin-accounts" element={<AdminManagement />} />
               <Route path="/chatbot-settings" element={<ChatbotSettings />} />
-              <Route path="/reports" element={<Reports />} />
+              <Route path="/reports-download" element={<Reports />} />
               <Route path="/settings" element={<Settings />} />
             </Routes>
           </Box>
