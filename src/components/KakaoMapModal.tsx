@@ -311,7 +311,7 @@ const KakaoMapModal: React.FC<KakaoMapModalProps> = ({
             { text: '설정 방법 보기', onPress: () => {
               const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
               const message = isIOS 
-                ? 'iOS 설정:\n\n1️⃣ 설정 → 개인정보보호 → 위치서비스 → 켜기\n2️⃣ 설정 → Safari → 웹사이트용 → 위치 → 허용\n3️⃣ Safari 완전 종료 후 재시작\n4️⃣ https://honbabnono.com 재접속'
+                ? 'iOS 설정:\n\n1️⃣ 설정 → 개인정보보호 → 위치서비스 → 켜기\n2️⃣ 설정 → Safari → 웹사이트용 → 위치 → 허용\n3️⃣ Safari 완전 종료 후 재시작\n4️⃣ https://eattable.kr 재접속'
                 : '브라우저 설정:\n\n1️⃣ 주소창 왼쪽 🔒 아이콘 클릭\n2️⃣ 위치 → "허용" 선택\n3️⃣ 페이지 새로고침';
               Alert.alert('GPS 설정 방법', message);
             }},

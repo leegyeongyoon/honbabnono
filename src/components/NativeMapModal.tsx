@@ -155,7 +155,7 @@ const NativeMapModal: React.FC<NativeMapModalProps> = ({
       const host = Platform.OS === 'android' ? '10.0.2.2' : 'localhost';
       return `http://${host}:3000/${htmlFile}?v=${cacheBuster}`;
     }
-    return `https://honbabnono.com/${htmlFile}`;
+    return `https://eattable.kr/${htmlFile}`;
   }, [visible, mode]);
 
   const handleMessage = (event: any) => {

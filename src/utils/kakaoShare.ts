@@ -52,7 +52,7 @@ interface MeetupShareData {
   maxParticipants?: number;
 }
 
-const APP_URL = 'https://honbabnono.com';
+const APP_URL = 'https://eattable.kr';
 
 function getMeetupUrl(meetupId: string): string {
   return `${APP_URL}/meetup/${meetupId}`;

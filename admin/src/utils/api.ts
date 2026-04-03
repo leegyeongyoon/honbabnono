@@ -4,21 +4,21 @@ import axios from 'axios';
 const getApiBaseUrl = (): string => {
   // 서버사이드 렌더링이나 빌드 타임에는 window가 없을 수 있음
   if (typeof window === 'undefined') {
-    return 'https://honbabnono.com'; // 기본값을 프로덕션 URL로 설정
+    return 'https://eattable.kr'; // 기본값을 프로덕션 URL로 설정
   }
-  
-  // 프로덕션 환경에서 admin.honbabnono.com으로 접속한 경우
-  if (window.location.hostname === 'admin.honbabnono.com') {
-    return 'https://honbabnono.com';
+
+  // 프로덕션 환경에서 admin.eattable.kr로 접속한 경우
+  if (window.location.hostname === 'admin.eattable.kr') {
+    return 'https://eattable.kr';
   }
-  
+
   // 로컬 개발 환경
   if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
     return 'http://localhost:3001';
   }
-  
+
   // 기타 환경 (fallback)
-  return 'https://honbabnono.com';
+  return 'https://eattable.kr';
 };
 
 // 런타임에 동적으로 API URL을 가져오는 함수
