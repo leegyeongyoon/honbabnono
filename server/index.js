@@ -235,28 +235,6 @@ apiRouter.use('/support', supportRoutes);
 apiRouter.use('/deposits', depositsRoutes);
 apiRouter.use('/search', searchRoutes);
 
-// Deploy webhook (GitHub Actions → Raspberry Pi 자동 배포)
-apiRouter.post('/deploy/webhook', (req, res) => {
-  const token = req.headers['x-deploy-token'];
-  if (token !== process.env.DEPLOY_WEBHOOK_TOKEN) {
-    return res.status(403).json({ error: 'Unauthorized' });
-  }
-
-  const { sha, actor, message } = req.body;
-  logger.info(`배포 트리거: ${actor} - ${message} (${sha?.substring(0, 7)})`);
-
-  res.status(202).json({ status: 'accepted', message: 'Deploy started' });
-
-  const { exec } = require('child_process');
-  exec('/home/gyoungyoon/eattable/deploy.sh', { timeout: 600000 }, (error, stdout, stderr) => {
-    if (error) {
-      logger.error('배포 실패:', error.message);
-      return;
-    }
-    logger.info('배포 완료:', stdout.trim().split('\n').slice(-3).join(' | '));
-  });
-});
-
 // Legal endpoints
 apiRouter.get('/legal/terms', supportController.getTerms);
 apiRouter.get('/legal/privacy', supportController.getPrivacyPolicy);

@@ -16,54 +16,74 @@ on:
 
 jobs:
   deploy:
-    name: Trigger Pi Deploy
+    name: Deploy to Raspberry Pi
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 40
 
     steps:
-    - name: Trigger deployment webhook
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install cloudflared
       run: |
-        RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
-          "https://eattable.kr/api/deploy/webhook" \
-          -H "Content-Type: application/json" \
-          -H "X-Deploy-Token: ${{ secrets.DEPLOY_WEBHOOK_TOKEN }}" \
-          -d "{
-            \"ref\": \"${{ github.ref }}\",
-            \"sha\": \"${{ github.sha }}\",
-            \"actor\": \"${{ github.actor }}\",
-            \"message\": \"$(echo '${{ github.event.head_commit.message }}' | head -1)\"
-          }")
+        curl -fsSL https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb -o cloudflared.deb
+        sudo dpkg -i cloudflared.deb
 
-        HTTP_CODE=$(echo "$RESPONSE" | tail -1)
-        BODY=$(echo "$RESPONSE" | head -n -1)
-
-        echo "Response: $BODY"
-        echo "HTTP Status: $HTTP_CODE"
-
-        if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "202" ]; then
-          echo "Deploy triggered successfully!"
-        else
-          echo "Failed to trigger deploy"
-          exit 1
-        fi
-
-    - name: Wait for build & verify
+    - name: Setup SSH
       run: |
-        echo "Waiting 5 minutes for build to complete..."
-        sleep 300
+        mkdir -p ~/.ssh
+        echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+        cat >> ~/.ssh/config << 'SSHCONFIG'
+        Host deploy.eattable.kr
+          ProxyCommand cloudflared access ssh --hostname %h
+          StrictHostKeyChecking no
+          UserKnownHostsFile /dev/null
+        SSHCONFIG
 
-        HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://eattable.kr/api/health")
-        echo "Health check: HTTP $HTTP_STATUS"
+    - name: Test SSH connection
+      run: |
+        ssh -o ConnectTimeout=15 ${{ secrets.DEPLOY_USER }}@deploy.eattable.kr 'echo "Connected to $(hostname)"'
 
-        if [ "$HTTP_STATUS" = "200" ]; then
-          echo "Deploy verified!"
-        else
-          echo "Health check failed - may still be building"
-        fi
+    - name: Sync code
+      run: |
+        rsync -avz --delete \
+          -e "ssh -o ProxyCommand='cloudflared access ssh --hostname deploy.eattable.kr'" \
+          --exclude='node_modules' \
+          --exclude='.git' \
+          --exclude='ios' \
+          --exclude='android' \
+          --exclude='*.hwpx' \
+          --exclude='*.docx' \
+          --exclude='.env' \
+          --exclude='.env.development' \
+          --exclude='.env.test' \
+          ./ ${{ secrets.DEPLOY_USER }}@deploy.eattable.kr:/home/gyoungyoon/eattable/app/
+
+    - name: Build and deploy
+      run: |
+        ssh ${{ secrets.DEPLOY_USER }}@deploy.eattable.kr << 'EOF'
+          cd /home/gyoungyoon/eattable
+          echo "=== Docker build ==="
+          docker compose up -d --build app 2>&1 | tail -20
+          echo "=== Waiting for startup ==="
+          sleep 30
+          HTTP=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:80/)
+          API=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:80/api/health)
+          echo "Web: $HTTP | API: $API"
+          docker ps --format "table {{.Names}}\t{{.Status}}"
+          if [ "$HTTP" = "200" ] && [ "$API" = "200" ]; then
+            echo "Deploy SUCCESS"
+          else
+            echo "Deploy WARNING - check logs"
+            docker logs eattable-app --tail 10
+            exit 1
+          fi
+        EOF
 
     - name: Summary
       if: always()
       run: |
-        echo "URL: https://eattable.kr"
+        echo "https://eattable.kr"
         echo "Commit: ${{ github.sha }}"
         echo "By: ${{ github.actor }}"
