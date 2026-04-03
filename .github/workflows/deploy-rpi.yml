@@ -1,0 +1,69 @@
+name: Deploy to Raspberry Pi
+
+on:
+  push:
+    branches: [ main ]
+    paths-ignore:
+      - '*.md'
+      - 'terraform/**'
+      - '.github/workflows/deploy.yml'
+      - '.github/workflows/deploy-admin.yml'
+      - '.github/workflows/cost-check.yml'
+      - '.github/workflows/cleanup.yml'
+      - '.github/workflows/destroy.yml'
+      - '.github/workflows/emergency-cleanup.yml'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Trigger Pi Deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+    - name: Trigger deployment webhook
+      run: |
+        RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
+          "https://eattable.kr/api/deploy/webhook" \
+          -H "Content-Type: application/json" \
+          -H "X-Deploy-Token: ${{ secrets.DEPLOY_WEBHOOK_TOKEN }}" \
+          -d "{
+            \"ref\": \"${{ github.ref }}\",
+            \"sha\": \"${{ github.sha }}\",
+            \"actor\": \"${{ github.actor }}\",
+            \"message\": \"$(echo '${{ github.event.head_commit.message }}' | head -1)\"
+          }")
+
+        HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+        BODY=$(echo "$RESPONSE" | head -n -1)
+
+        echo "Response: $BODY"
+        echo "HTTP Status: $HTTP_CODE"
+
+        if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "202" ]; then
+          echo "Deploy triggered successfully!"
+        else
+          echo "Failed to trigger deploy"
+          exit 1
+        fi
+
+    - name: Wait for build & verify
+      run: |
+        echo "Waiting 5 minutes for build to complete..."
+        sleep 300
+
+        HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://eattable.kr/api/health")
+        echo "Health check: HTTP $HTTP_STATUS"
+
+        if [ "$HTTP_STATUS" = "200" ]; then
+          echo "Deploy verified!"
+        else
+          echo "Health check failed - may still be building"
+        fi
+
+    - name: Summary
+      if: always()
+      run: |
+        echo "URL: https://eattable.kr"
+        echo "Commit: ${{ github.sha }}"
+        echo "By: ${{ github.actor }}"

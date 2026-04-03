@@ -1,9 +1,7 @@
-name: Check AWS Costs
+name: "[DISABLED] Check AWS Costs"
 
 on:
-  schedule:
-    - cron: '0 9 * * 1'  # 매주 월요일 오전 9시
-  workflow_dispatch:  # 수동 실행 가능
+  workflow_dispatch:  # 수동 실행만 가능 (스케줄 비활성화)
 
 env:
   AWS_REGION: ap-northeast-2

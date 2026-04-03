@@ -1,9 +1,7 @@
-name: Deploy to AWS ECS
+name: "[DISABLED] Deploy to AWS ECS"
 
 on:
-  push:
-    branches: [ main ]
-  workflow_dispatch:  # 수동 실행 가능
+  workflow_dispatch:  # 수동 실행만 가능 (자동 트리거 비활성화)
 
 env:
   AWS_REGION: ap-northeast-2

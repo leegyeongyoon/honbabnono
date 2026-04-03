@@ -1,8 +1,6 @@
-name: Deploy Admin Dashboard
+name: "[DISABLED] Deploy Admin Dashboard"
 
 on:
-  push:
-    branches: [ main ]
   workflow_dispatch:
 
 env:
