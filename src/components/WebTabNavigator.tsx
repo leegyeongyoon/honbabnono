@@ -2,16 +2,15 @@ import React, {useState, useEffect} from 'react';
 import {View, Text, TouchableOpacity, StyleSheet} from 'react-native';
 import {COLORS} from '../styles/colors';
 import {SPACING} from '../styles/spacing';
-import {TYPOGRAPHY} from '../styles/typography';
-import {Icon, IconName} from './Icon';
+import NavIcon from './NavIcon';
 import HomeScreen from '../screens/HomeScreen.web';
-import SearchScreen from '../screens/SearchScreen.web';
-import NotificationScreen from '../screens/NotificationScreen.web';
+import ExploreScreen from '../screens/ExploreScreen.web';
+import ChatScreen from '../screens/ChatScreen.web';
+import MyMeetupsScreen from '../screens/MyMeetupsScreen.web';
 import MyPageScreen from '../screens/MyPageScreen';
 import LoginScreen from '../screens/LoginScreen.web';
 import MeetupDetailScreen from '../screens/MeetupDetailScreen';
 import CreateMeetupScreen from '../screens/CreateMeetupScreen.web';
-import ChatScreen from '../screens/ChatScreen.web';
 import AdvertisementDetailScreen from '../screens/AdvertisementDetailScreen';
 import apiClient from '../services/apiClient';
 import chatService from '../services/chatService';
@@ -26,11 +25,11 @@ const WebTabNavigator = () => {
   const [hasUnreadChats, setHasUnreadChats] = useState(false);
 
   const tabs = [
-    {key: 'Home', title: '홈', icon: 'home' as IconName, component: HomeScreen},
-    {key: 'Search', title: '검색', icon: 'search' as IconName, component: SearchScreen},
-    {key: 'Notifications', title: '알림', icon: 'bell' as IconName, component: NotificationScreen},
-    {key: 'Chat', title: '채팅', icon: 'message-circle' as IconName, component: ChatScreen},
-    {key: 'MyPage', title: '마이페이지', icon: 'user' as IconName, component: MyPageScreen},
+    {key: 'Home', title: '홈', navIcon: 'home' as const, component: HomeScreen},
+    {key: 'Explore', title: '탐색', navIcon: 'explore' as const, component: ExploreScreen},
+    {key: 'Chat', title: '채팅', navIcon: 'chat' as const, component: ChatScreen},
+    {key: 'MyMeetups', title: '내약속', navIcon: 'mymeetups' as const, component: MyMeetupsScreen},
+    {key: 'MyPage', title: '마이페이지', navIcon: 'mypage' as const, component: MyPageScreen},
   ];
 
   // 로그인 상태 확인 및 URL 라우팅 (페이지 로드 시)
@@ -122,7 +121,7 @@ const WebTabNavigator = () => {
     }
     
     // 로그인이 필요한 페이지들 - 로그인하지 않은 경우 로그인 페이지로 리다이렉트
-    const protectedPaths = ['/home', '/search', '/notifications', '/chat', '/mypage', '/create-meetup'];
+    const protectedPaths = ['/home', '/explore', '/chat', '/my-meetups', '/mypage', '/create-meetup'];
     const isProtectedPath = protectedPaths.includes(path) || path.startsWith('/meetup/') || path.startsWith('/chat/');
     
     // 광고 디테일 페이지는 공개 (로그인 불필요)
@@ -168,15 +167,15 @@ const WebTabNavigator = () => {
     } else if (path === '/home') {
       setCurrentScreen('tabs');
       setActiveTab('Home');
-    } else if (path === '/search') {
+    } else if (path === '/explore' || path === '/search') {
       setCurrentScreen('tabs');
-      setActiveTab('Search');
-    } else if (path === '/notifications') {
-      setCurrentScreen('tabs');
-      setActiveTab('Notifications');
+      setActiveTab('Explore');
     } else if (path === '/chat') {
       setCurrentScreen('tabs');
       setActiveTab('Chat');
+    } else if (path === '/my-meetups') {
+      setCurrentScreen('tabs');
+      setActiveTab('MyMeetups');
     } else if (path === '/mypage') {
       setCurrentScreen('tabs');
       setActiveTab('MyPage');
@@ -259,9 +258,9 @@ const WebTabNavigator = () => {
   const navigateToTab = (tabKey: string) => {
     const paths = {
       'Home': '/home',
-      'Search': '/search',
-      'Notifications': '/notifications',
+      'Explore': '/explore',
       'Chat': '/chat',
+      'MyMeetups': '/my-meetups',
       'MyPage': '/mypage'
     };
     window.history.pushState({}, '', paths[tabKey] || '/home');
@@ -282,8 +281,12 @@ const WebTabNavigator = () => {
         navigateToChat(params.meetupId, params.meetupTitle);
       } else if (screenName === 'Home') {
         navigateBack();
+      } else if (screenName === 'Explore' || screenName === 'Search') {
+        navigateToTab('Explore');
       } else if (screenName === 'Notifications') {
-        navigateToTab('Notifications');
+        navigateToTab('Home');
+      } else if (screenName === 'MyMeetups') {
+        navigateToTab('MyMeetups');
       } else if (screenName === 'AdvertisementDetail') {
         navigateToAdvertisementDetail(params.advertisementId);
       }
@@ -292,10 +295,10 @@ const WebTabNavigator = () => {
       navigateBack();
     },
     navigateToSearch: () => {
-      setActiveTab('Search');
+      navigateToTab('Explore');
     },
     navigateToNotifications: () => {
-      navigateToTab('Notifications');
+      navigateToTab('Home');
     },
     logout: handleLogout,
     user: user
@@ -332,8 +335,13 @@ const WebTabNavigator = () => {
       return <ScreenComponent navigateToLogin={navigateToLogin} navigation={webNavigation} user={user} />;
     }
     
-    // SearchScreen에도 네비게이션 전달
-    if (activeTab === 'Search') {
+    // ExploreScreen에 네비게이션 전달
+    if (activeTab === 'Explore') {
+      return <ScreenComponent navigation={webNavigation} user={user} />;
+    }
+
+    // MyMeetupsScreen에 네비게이션 전달
+    if (activeTab === 'MyMeetups') {
       return <ScreenComponent navigation={webNavigation} user={user} />;
     }
     
@@ -371,16 +379,12 @@ const WebTabNavigator = () => {
                 accessibilityRole="tab"
                 accessibilityState={{ selected: isActive }}
               >
-                {isActive && <View style={styles.tabIndicator} />}
                 <View style={styles.tabIconContainer}>
-                  <Icon
-                    name={tab.icon}
+                  <NavIcon
+                    name={tab.navIcon}
                     size={24}
-                    color={isActive ? COLORS.primary.main : COLORS.text.tertiary}
+                    color={isActive ? '#151515' : '#8F99A9'}
                   />
-                  {tab.key === 'Notifications' && hasUnreadNotifications && !isActive && (
-                    <View style={styles.unreadDot} />
-                  )}
                   {tab.key === 'Chat' && hasUnreadChats && !isActive && (
                     <View style={styles.unreadDot} />
                   )}
@@ -409,10 +413,10 @@ const styles = StyleSheet.create({
   },
   tabBar: {
     flexDirection: 'row',
-    height: SPACING.bottomNav.height,
+    height: 64,
     backgroundColor: COLORS.neutral.white,
     borderTopWidth: 1,
-    borderTopColor: COLORS.primary.accent,
+    borderTopColor: '#F5F5F5',
   },
   tabItem: {
     flex: 1,
@@ -422,14 +426,7 @@ const styles = StyleSheet.create({
     position: 'relative' as const,
   },
   tabIndicator: {
-    position: 'absolute' as const,
-    top: 0,
-    left: '20%' as unknown as number,
-    right: '20%' as unknown as number,
-    height: 2,
-    backgroundColor: COLORS.primary.main,
-    borderBottomLeftRadius: 1,
-    borderBottomRightRadius: 1,
+    display: 'none' as const,
   },
   tabIconContainer: {
     position: 'relative' as const,
@@ -437,7 +434,7 @@ const styles = StyleSheet.create({
     height: 24,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 2,
+    marginBottom: 5,
   },
   unreadDot: {
     position: 'absolute' as const,
@@ -449,13 +446,14 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.functional.error,
   },
   tabLabel: {
-    fontSize: TYPOGRAPHY.tab.fontSize,
+    fontSize: 12,
     fontWeight: '500' as const,
-    color: COLORS.text.tertiary,
+    color: '#8F99A9',
+    letterSpacing: 0.2,
   },
   activeTabLabel: {
-    color: COLORS.primary.main,
-    fontWeight: '700' as const,
+    color: '#151515',
+    fontWeight: '500' as const,
   },
 });
 

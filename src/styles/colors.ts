@@ -1,43 +1,41 @@
-// 잇테이블 디자인 시스템 v13 — "웜 앰버"
-// 벤치마크: 캐치테이블(프리미엄) + 토스(깔끔함) + 크래프트 푸드 브랜딩
-// 키워드: 따뜻함, 식욕자극, 프리미엄, 크래프트, 골든
-// 팔레트: 웜 앰버 + 클린 화이트 — 식사 앱에 최적화된 꿀빛 골든
-// 차별화: 당근(비비드 오렌지) vs 잇테이블(깊고 따뜻한 골든 앰버)
+// 잇테이블 디자인 시스템 v14 — Figma 완성본 기반
+// 키워드: 클린, 미니멀, 오렌지 CTA, Pretendard
+// Figma 완성본 (2446:191) 기준 디자인 토큰
 
 export const COLORS = {
-  // 메인 컬러 (웜 앰버 — 꿀빛 골든, 식욕자극)
+  // 메인 컬러 — Figma CTA 오렌지
   primary: {
-    main: '#D4882C',      // 리치 앰버 — 메인 브랜드 컬러
+    main: '#FFA529',      // CTA 오렌지 (같이먹기 버튼)
     light: '#FFF8F0',     // 웜 크림 (표면/배경)
-    dark: '#8B5216',      // 딥 앰버 (CTA, 강조 — 화이트 대비 6.3:1)
-    accent: '#D4882C',    // 활성 상태 (=main)
-    gradient: '#E9A84A',  // 라이트 골든 (그라데이션 끝)
+    dark: '#E8921E',      // 프레스 상태
+    accent: '#FFA529',    // 활성 상태 (=main)
+    gradient: '#FFB84D',  // 라이트 오렌지 (그라데이션 끝)
   },
 
   // 보조 컬러
   secondary: {
-    main: '#6B7280',      // 쿨 그레이 (Tailwind Gray-500)
-    light: '#F3F4F6',     // 소프트 배경
+    main: '#6B7280',      // 쿨 그레이
+    light: '#F3F5F7',     // 태그/칩 배경 (Figma)
     dark: '#4B5563',      // 딥 그레이
     warm: '#E5E7EB',      // 라이트 보더
   },
 
-  // 중성 컬러 (웜 뉴트럴 — 브랜드 톤 통일)
+  // 중성 컬러 — Figma 기준
   neutral: {
     white: '#FFFFFF',
-    grey50: '#FAFAF8',    // 카드 배경 (웜)
-    light: '#F7F5F3',     // 섹션 배경 (웜)
-    background: '#FFFFFF', // 메인 배경 (순백)
-    grey100: '#EFECEA',   // 보더/스켈레톤 (웜)
-    grey200: '#D9D9D9',   // 디바이더
+    grey50: '#FAFAFA',    // 카드 배경
+    light: '#F5F5F5',     // 섹션 배경 / 플레이스홀더 (Figma)
+    background: '#FFFFFF', // 메인 배경
+    grey100: '#F5F5F5',   // 보더/디바이더 (Figma)
+    grey200: '#E0E0E0',   // 디바이더
     grey300: '#BDBDBD',   // 비활성
-    grey400: '#9E9E9E',   // 플레이스홀더
-    grey500: '#757575',   // 서브텍스트
-    grey600: '#5C4F42',   // 세컨더리 텍스트 (웜)
-    grey700: '#424242',   // 강조 텍스트
-    grey800: '#212121',   // 프라이머리 텍스트
-    grey900: '#1A1714',   // 헤딩 (웜)
-    black: '#111111',     // 퓨어 다크
+    grey400: '#7E8082',   // 플레이스홀더 (Figma 검색바)
+    grey500: '#878B94',   // 서브텍스트/캡션 (Figma)
+    grey600: '#5F5F5F',   // 세컨더리 텍스트 (Figma)
+    grey700: '#293038',   // 본문 텍스트 (Figma)
+    grey800: '#2D2E2F',   // 카테고리 라벨 (Figma)
+    grey900: '#121212',   // 프라이머리 텍스트 (Figma)
+    black: '#121212',     // 타이틀 (Figma)
   },
 
   // 기능적 컬러
@@ -52,14 +50,14 @@ export const COLORS = {
     infoLight: '#E8F0FE',
   },
 
-  // 텍스트 컬러
+  // 텍스트 컬러 — Figma 기준
   text: {
-    primary: '#1A1714',   // 웜 다크 (높은 대비)
-    secondary: '#5C4F42', // 웜 그레이
-    tertiary: '#9E9E9E',  // 뮤트
-    accent: '#704412',    // 웜 브라운 (날짜, 소제목 등)
+    primary: '#121212',   // 메인 텍스트 (Figma)
+    secondary: '#5F5F5F', // 보조 텍스트 (Figma)
+    tertiary: '#878B94',  // 캡션/메타 (Figma)
+    accent: '#FFA529',    // CTA 오렌지
     white: '#FFFFFF',
-    light: '#EFECEA',
+    light: '#F5F5F5',
     error: '#D32F2F',
   },
 
@@ -80,23 +78,23 @@ export const COLORS = {
     primary: '#FFFFFF',
     secondary: '#FAFAFA',
     elevated: '#FFFFFF',
-    overlay: 'rgba(17,17,17,0.6)',
-    dimmed: 'rgba(17,17,17,0.35)',
+    overlay: 'rgba(0,0,0,0.6)',
+    dimmed: 'rgba(0,0,0,0.35)',
   },
 
   // 그라데이션
   gradient: {
-    primary: ['#8B5216', '#D4882C'],
-    secondary: ['#D4882C', '#E9A84A'],
-    warm: ['#8B5216', '#D4882C'],
+    primary: ['#FFA529', '#FFB84D'],
+    secondary: ['#FFA529', '#FFB84D'],
+    warm: ['#FFA529', '#FFB84D'],
     sunset: ['#FAFAFA', '#F5F5F5', '#FFFFFF'],
-    accent: ['#8B5216', '#D4882C'],
-    cta: ['#D4882C', '#E9A84A'],
-    hero: ['rgba(139,82,22,0.95)', 'rgba(139,82,22,0.6)', 'transparent'],
-    heroCSS: 'linear-gradient(135deg, #8B5216 0%, #A86A20 50%, #D4882C 100%)',
-    heroBg: 'linear-gradient(135deg, #8B5216 0%, #A86A20 50%, #D4882C 100%)',
-    cardOverlay: ['transparent', 'rgba(17,17,17,0.65)'],
-    ctaCSS: 'linear-gradient(135deg, #D4882C 0%, #E9A84A 100%)',
+    accent: ['#FFA529', '#FFB84D'],
+    cta: ['#FFA529', '#FFB84D'],
+    hero: ['rgba(0,0,0,0.5)', 'rgba(0,0,0,0.2)', 'transparent'],
+    heroCSS: '#FFA529',
+    heroBg: '#FFA529',
+    cardOverlay: ['transparent', 'rgba(0,0,0,0.5)'],
+    ctaCSS: '#FFA529',
     subtleGold: 'linear-gradient(180deg, #FFF8F0 0%, #FFFFFF 100%)',
   },
 } as const;
@@ -177,14 +175,14 @@ export const SHADOWS = {
     elevation: 12,
   },
   focused: {
-    shadowColor: '#D4882C',
+    shadowColor: '#FFA529',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.2,
     shadowRadius: 8,
     elevation: 6,
   },
   cta: {
-    shadowColor: '#8B5216',
+    shadowColor: '#FFA529',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.18,
     shadowRadius: 12,
@@ -318,18 +316,18 @@ export const CARD_STYLE = {
   borderRadius: 10,
 } as const;
 
-// CTA 버튼 스타일 — 골든 앰버
+// CTA 버튼 스타일 — Figma 오렌지
 export const CTA_STYLE = {
   primary: {
-    backgroundColor: '#D4882C',
-    borderRadius: 8,
+    backgroundColor: '#FFA529',
+    borderRadius: 16,
     paddingVertical: 14,
     paddingHorizontal: 24,
     minHeight: 48,
   },
   primaryLarge: {
-    backgroundColor: '#D4882C',
-    borderRadius: 10,
+    backgroundColor: '#FFA529',
+    borderRadius: 16,
     paddingVertical: 16,
     paddingHorizontal: 32,
     minHeight: 52,

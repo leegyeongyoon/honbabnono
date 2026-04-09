@@ -12,9 +12,11 @@ import { COLORS, CSS_SHADOWS } from '../../styles/colors';
 import { BORDER_RADIUS, SPACING } from '../../styles/spacing';
 import { processImageUrl } from '../../utils/imageUtils';
 import { formatMeetupDateTime } from '../../utils/dateUtils';
+import { getChatTimeDifference } from '../../utils/timeUtils';
 import type { MeetupCardBaseProps } from './types';
 import { getUrgencyInfo, formatDistance, getParticipantStatus } from './types';
 import { getCategoryByName } from '../../constants/categories';
+import { Icon } from '../Icon';
 
 interface MeetupCompactCardProps extends MeetupCardBaseProps {
   distance?: number;
@@ -60,6 +62,60 @@ const MeetupCompactCard: React.FC<MeetupCompactCardProps> = ({ meetup, onPress, 
   // 성별 표시 여부
   const showGender =
     meetup.genderPreference && !GENDER_EXCLUDE.includes(meetup.genderPreference);
+
+  // Figma home/list pattern for web
+  const webContent = Platform.OS === 'web' ? (
+    <View style={styles.rowFigma}>
+      {/* 썸네일: 70x70, borderRadius 16 */}
+      <View style={styles.imageContainerFigma}>
+        <img
+          src={processImageUrl(meetup.image, meetup.category)}
+          loading="lazy"
+          style={{
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            borderRadius: 16,
+          }}
+          alt={meetup.title}
+        />
+      </View>
+
+      {/* 텍스트 영역 */}
+      <View style={styles.textAreaFigma}>
+        {/* 1행: 제목 16px SemiBold #121212 */}
+        <Text style={styles.titleFigma} numberOfLines={1}>
+          {meetup.title}
+        </Text>
+
+        {/* 2행: 설명 14px Regular #293038 */}
+        <Text style={styles.descFigma} numberOfLines={1}>
+          {meetup.category}
+          {meetup.location ? ` · ${meetup.location}` : ''}
+          {meetup.priceRange ? ` · ${meetup.priceRange}` : ''}
+        </Text>
+
+        {/* 3행: 메타 — 장소 + 인원 + 시간 */}
+        <View style={styles.metaRowFigma}>
+          <View style={styles.metaGroupFigma}>
+            <View style={styles.metaItemFigma}>
+              <Icon name="map-pin" size={12} color="#878b94" />
+              <Text style={styles.metaTextFigma} numberOfLines={1}>
+                {meetup.location || '위치 미정'}
+              </Text>
+            </View>
+            <View style={[styles.metaItemFigma, { flexShrink: 0 }]}>
+              <Icon name="user" size={12} color="#878b94" />
+              <Text style={styles.metaTextFigma}>{participantText}</Text>
+            </View>
+          </View>
+          <Text style={styles.metaTimeFigma}>
+            {getChatTimeDifference(meetup.updatedAt || meetup.createdAt)}
+          </Text>
+        </View>
+      </View>
+    </View>
+  ) : null;
 
   const compactContent = (
     <View style={styles.row}>
@@ -144,7 +200,7 @@ const MeetupCompactCard: React.FC<MeetupCompactCardProps> = ({ meetup, onPress, 
     </View>
   );
 
-  // ─── Web ─────────────────────────────────────────────────
+  // ─── Web (Figma home/list pattern) ──────────────────────
   if (Platform.OS === 'web') {
     return (
       <div
@@ -162,19 +218,17 @@ const MeetupCompactCard: React.FC<MeetupCompactCardProps> = ({ meetup, onPress, 
           display: 'flex',
           flexDirection: 'row',
           alignItems: 'center',
-          padding: '14px 20px',
+          padding: '16px 20px',
           backgroundColor: isPressed
             ? COLORS.neutral.grey100
             : isHovered
               ? COLORS.neutral.grey50
               : COLORS.neutral.white,
           cursor: 'pointer',
-          transition: 'background-color 120ms ease, box-shadow 120ms ease',
-          borderBottom: `1px solid ${COLORS.neutral.grey100}`,
-          boxShadow: isHovered ? '0 1px 4px rgba(0,0,0,0.04)' : 'none',
+          transition: 'background-color 120ms ease',
         }}
       >
-        {compactContent}
+        {webContent}
       </div>
     );
   }
@@ -205,6 +259,74 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: COLORS.neutral.grey100,
   },
+  // ─── Figma home/list pattern (web only) ────────────────
+  rowFigma: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 18,
+    flex: 1,
+  },
+  imageContainerFigma: {
+    width: 70,
+    height: 70,
+    borderRadius: 16,
+    overflow: 'hidden',
+    backgroundColor: COLORS.neutral.grey100,
+    flexShrink: 0,
+  },
+  textAreaFigma: {
+    flex: 1,
+    gap: 3,
+  },
+  titleFigma: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#121212',
+    letterSpacing: -0.3,
+    lineHeight: 22,
+  },
+  descFigma: {
+    fontSize: 14,
+    fontWeight: '400',
+    color: '#293038',
+    letterSpacing: -0.8,
+    lineHeight: 20,
+  },
+  metaRowFigma: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 2,
+  },
+  metaGroupFigma: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 11,
+    flex: 1,
+    overflow: 'hidden',
+  },
+  metaItemFigma: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    flexShrink: 1,
+    overflow: 'hidden',
+  },
+  metaTextFigma: {
+    fontSize: 14,
+    fontWeight: '400',
+    color: '#878b94',
+    lineHeight: 20,
+  },
+  metaTimeFigma: {
+    fontSize: 14,
+    fontWeight: '400',
+    color: '#121212',
+    lineHeight: 20,
+    flexShrink: 0,
+    marginLeft: 8,
+  },
+  // ─── Original native styles ────────────────────────────
   row: {
     flexDirection: 'row',
     alignItems: 'center',

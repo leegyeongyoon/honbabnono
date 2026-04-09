@@ -263,6 +263,14 @@ const UniversalExploreScreen: React.FC<UniversalExploreScreenProps> = ({ navigat
     return count > 0 ? `총 ${count}개의 약속` : '';
   }, [displayMeetups.length]);
 
+  // Active filter count for badge display
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (selectedGender) count += 1;
+    if (selectedAge) count += 1;
+    return count;
+  }, [selectedGender, selectedAge]);
+
   // Render map below list (matches web mapListBelow)
   const renderMapBelowList = () => (
     <ScrollView style={styles.mapListBelow} showsVerticalScrollIndicator={false}>
@@ -286,19 +294,22 @@ const UniversalExploreScreen: React.FC<UniversalExploreScreenProps> = ({ navigat
       ) : (
         <FadeIn>
           <View style={styles.meetupList}>
-            {displayMeetups.map(meetup => (
-              <View key={meetup.id} style={styles.meetupItemWrapper}>
-                <MeetupCard
-                  meetup={meetup}
-                  onPress={handleMeetupPress}
-                  variant="compact"
-                />
-                {meetup.distance != null && (
-                  <View style={styles.distanceBadge}>
-                    <Icon name="map-pin" size={10} color={COLORS.primary.main} />
-                    <Text style={styles.distanceText} numberOfLines={1}>{formatDistance(meetup.distance)}</Text>
-                  </View>
-                )}
+            {displayMeetups.map((meetup, index) => (
+              <View key={meetup.id}>
+                <View style={styles.meetupItemWrapper}>
+                  <MeetupCard
+                    meetup={meetup}
+                    onPress={handleMeetupPress}
+                    variant="compact"
+                  />
+                  {meetup.distance != null && (
+                    <View style={styles.distanceBadge}>
+                      <Icon name="map-pin" size={10} color={COLORS.primary.main} />
+                      <Text style={styles.distanceText} numberOfLines={1}>{formatDistance(meetup.distance)}</Text>
+                    </View>
+                  )}
+                </View>
+                {index < displayMeetups.length - 1 && <View style={styles.listDivider} />}
               </View>
             ))}
           </View>
@@ -311,32 +322,50 @@ const UniversalExploreScreen: React.FC<UniversalExploreScreenProps> = ({ navigat
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
-        {/* Header */}
+        {/* Header: Search Bar */}
         <View style={styles.header}>
-          <View style={styles.headerTitleRow}>
-            <Text style={styles.headerTitle}>탐색</Text>
-            {!isLoading && displayMeetups.length > 0 && (
-              <View style={styles.countBadge}>
-                <Text style={styles.countBadgeText}>{displayMeetups.length}</Text>
-              </View>
+          <View style={[styles.searchBar, searchFocused && styles.searchBarFocused]}>
+            <Icon name="search" size={18} color={COLORS.neutral.grey400} />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="신청한 모임을 찾아봐요"
+              placeholderTextColor={COLORS.neutral.grey400}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              onSubmitEditing={handleSearchSubmit}
+              onFocus={() => setSearchFocused(true)}
+              onBlur={() => setSearchFocused(false)}
+              returnKeyType="search"
+            />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity
+                onPress={() => { handleClearSearch(); fetchNearbyMeetups(center.latitude, center.longitude, radius); }}
+                activeOpacity={0.7}
+                style={styles.searchClearButton}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Icon name="x" size={14} color={COLORS.neutral.grey400} />
+              </TouchableOpacity>
             )}
           </View>
-          <View style={styles.viewToggle}>
+        </View>
+
+        {/* Segmented Control: 지도 / 리스트 */}
+        <View style={styles.segmentedRow}>
+          <View style={styles.segmentedControl}>
             <TouchableOpacity
-              style={[styles.toggleButton, viewMode === 'map' && styles.toggleButtonActive]}
+              style={[styles.segmentButton, viewMode === 'map' && styles.segmentButtonActive]}
               onPress={() => setViewMode('map')}
               activeOpacity={0.7}
             >
-              <Icon name="map" size={16} color={viewMode === 'map' ? COLORS.text.white : COLORS.text.secondary} />
-              <Text style={[styles.toggleText, viewMode === 'map' && styles.toggleTextActive]}>지도</Text>
+              <Text style={[styles.segmentText, viewMode === 'map' && styles.segmentTextActive]}>지도</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.toggleButton, viewMode === 'list' && styles.toggleButtonActive]}
+              style={[styles.segmentButton, viewMode === 'list' && styles.segmentButtonActive]}
               onPress={() => setViewMode('list')}
               activeOpacity={0.7}
             >
-              <Icon name="list" size={16} color={viewMode === 'list' ? COLORS.text.white : COLORS.text.secondary} />
-              <Text style={[styles.toggleText, viewMode === 'list' && styles.toggleTextActive]}>리스트</Text>
+              <Text style={[styles.segmentText, viewMode === 'list' && styles.segmentTextActive]}>리스트</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -347,68 +376,46 @@ const UniversalExploreScreen: React.FC<UniversalExploreScreenProps> = ({ navigat
           onCategoryChange={(cat) => setSelectedCategory(cat)}
         />
 
-        {/* Search Section */}
-        <View style={styles.searchSection}>
-          <View style={styles.searchRow}>
-            <View style={[styles.searchBar, searchFocused && styles.searchBarFocused]}>
-              <Icon name="search" size={16} color={searchFocused ? COLORS.primary.main : COLORS.text.tertiary} />
-              <TextInput
-                style={styles.searchInput}
-                placeholder="약속 검색 (제목, 위치, 카테고리)"
-                placeholderTextColor={COLORS.text.tertiary}
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-                onSubmitEditing={handleSearchSubmit}
-                onFocus={() => setSearchFocused(true)}
-                onBlur={() => setSearchFocused(false)}
-                returnKeyType="search"
-              />
-              {searchQuery.length > 0 && (
-                <TouchableOpacity
-                  onPress={() => { handleClearSearch(); fetchNearbyMeetups(center.latitude, center.longitude, radius); }}
-                  activeOpacity={0.7}
-                  style={styles.searchClearButton}
-                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                >
-                  <Icon name="x" size={14} color={COLORS.text.tertiary} />
-                </TouchableOpacity>
-              )}
-            </View>
-            <TouchableOpacity
-              style={[styles.filterButton, (selectedGender || selectedAge) ? styles.filterButtonActive : undefined]}
-              onPress={() => setShowFilterModal(true)}
-              activeOpacity={0.7}
-            >
-              <Icon name="settings" size={18} color={(selectedGender || selectedAge) ? COLORS.primary.main : COLORS.text.tertiary} />
-              {(selectedGender || selectedAge) ? <View style={styles.filterDot} /> : null}
-            </TouchableOpacity>
-          </View>
+        {/* Filter Row: 3 dropdown buttons */}
+        <View style={styles.filterRow}>
+          {/* Radius filter */}
+          <TouchableOpacity
+            style={styles.filterChip}
+            activeOpacity={0.7}
+            onPress={() => {
+              // Cycle through radius options
+              const currentIdx = RADIUS_OPTIONS.findIndex(o => o.value === radius);
+              const nextIdx = (currentIdx + 1) % RADIUS_OPTIONS.length;
+              handleRadiusChange(RADIUS_OPTIONS[nextIdx].value);
+            }}
+          >
+            <Text style={styles.filterChipText}>반경 {formatRadiusLabel(radius)}</Text>
+            <Icon name="chevron-down" size={14} color={COLORS.neutral.grey600} />
+          </TouchableOpacity>
 
-          {/* Radius Filter Chips */}
-          <View style={styles.radiusRow}>
-            <Icon name="map-pin" size={14} color={COLORS.text.secondary} />
-            <Text style={styles.radiusLabel}>반경</Text>
-            {RADIUS_OPTIONS.map((opt) => (
-              <TouchableOpacity
-                key={opt.value}
-                style={[
-                  styles.radiusChip,
-                  radius === opt.value && styles.radiusChipActive,
-                ]}
-                onPress={() => handleRadiusChange(opt.value)}
-                activeOpacity={0.7}
-              >
-                <Text
-                  style={[
-                    styles.radiusChipText,
-                    radius === opt.value && styles.radiusChipTextActive,
-                  ]}
-                >
-                  {opt.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+          {/* Gender filter */}
+          <TouchableOpacity
+            style={[styles.filterChip, selectedGender ? styles.filterChipActive : undefined]}
+            activeOpacity={0.7}
+            onPress={() => setShowFilterModal(true)}
+          >
+            <Text style={[styles.filterChipText, selectedGender ? styles.filterChipTextActive : undefined]}>
+              {selectedGender || '성별'}
+            </Text>
+            <Icon name="chevron-down" size={14} color={selectedGender ? COLORS.primary.main : COLORS.neutral.grey600} />
+          </TouchableOpacity>
+
+          {/* Age filter */}
+          <TouchableOpacity
+            style={[styles.filterChip, selectedAge ? styles.filterChipActive : undefined]}
+            activeOpacity={0.7}
+            onPress={() => setShowFilterModal(true)}
+          >
+            <Text style={[styles.filterChipText, selectedAge ? styles.filterChipTextActive : undefined]}>
+              {selectedAge || '나이'}
+            </Text>
+            <Icon name="chevron-down" size={14} color={selectedAge ? COLORS.primary.main : COLORS.neutral.grey600} />
+          </TouchableOpacity>
         </View>
 
         {/* Main Content */}
@@ -491,19 +498,22 @@ const UniversalExploreScreen: React.FC<UniversalExploreScreenProps> = ({ navigat
               ) : (
                 <FadeIn>
                   <View style={styles.meetupList}>
-                    {displayMeetups.map(meetup => (
-                      <View key={meetup.id} style={styles.meetupItemWrapper}>
-                        <MeetupCard
-                          meetup={meetup}
-                          onPress={handleMeetupPress}
-                          variant="compact"
-                        />
-                        {meetup.distance != null && (
-                          <View style={styles.distanceBadge}>
-                            <Icon name="map-pin" size={10} color={COLORS.primary.main} />
-                            <Text style={styles.distanceText} numberOfLines={1}>{formatDistance(meetup.distance)}</Text>
-                          </View>
-                        )}
+                    {displayMeetups.map((meetup, index) => (
+                      <View key={meetup.id}>
+                        <View style={styles.meetupItemWrapper}>
+                          <MeetupCard
+                            meetup={meetup}
+                            onPress={handleMeetupPress}
+                            variant="compact"
+                          />
+                          {meetup.distance != null && (
+                            <View style={styles.distanceBadge}>
+                              <Icon name="map-pin" size={10} color={COLORS.primary.main} />
+                              <Text style={styles.distanceText} numberOfLines={1}>{formatDistance(meetup.distance)}</Text>
+                            </View>
+                          )}
+                        </View>
+                        {index < displayMeetups.length - 1 && <View style={styles.listDivider} />}
                       </View>
                     ))}
                   </View>
@@ -513,6 +523,15 @@ const UniversalExploreScreen: React.FC<UniversalExploreScreenProps> = ({ navigat
             </ScrollView>
           )}
         </View>
+
+        {/* FAB: Create meetup */}
+        <TouchableOpacity
+          style={styles.fab}
+          activeOpacity={0.8}
+          onPress={() => navigation.navigate('CreateMeetup')}
+        >
+          <Icon name="plus" size={26} color={COLORS.neutral.white} />
+        </TouchableOpacity>
       </View>
 
       {/* Filter Modal */}
@@ -536,147 +555,117 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    backgroundColor: COLORS.neutral.background,
+    backgroundColor: COLORS.neutral.white,
   },
 
-  // Header
+  // ─── Header: pill search bar ──────────────────────────────
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
     paddingHorizontal: 20,
-    paddingVertical: 14,
-    paddingTop: 20,
+    paddingTop: 12,
+    paddingBottom: 10,
+    backgroundColor: COLORS.neutral.white,
+  },
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    height: 44,
+    backgroundColor: COLORS.neutral.grey100, // #F5F5F5
+    borderRadius: 22, // pill
+    paddingHorizontal: 16,
+    gap: 8,
+  },
+  searchBarFocused: {
+    backgroundColor: COLORS.neutral.white,
+    borderWidth: 1.5,
+    borderColor: COLORS.primary.main,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 14,
+    color: COLORS.neutral.grey900, // #121212
+    padding: 0,
+    lineHeight: 20,
+  },
+  searchClearButton: {
+    padding: 4,
+    minWidth: 24,
+    minHeight: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  // ─── Segmented Control ────────────────────────────────────
+  segmentedRow: {
+    paddingHorizontal: 20,
+    paddingBottom: 10,
+    backgroundColor: COLORS.neutral.white,
+    alignItems: 'center',
+  },
+  segmentedControl: {
+    flexDirection: 'row',
+    backgroundColor: COLORS.neutral.grey100, // #F5F5F5
+    borderRadius: 20, // pill bg
+    padding: 3,
+    alignSelf: 'stretch',
+  },
+  segmentButton: {
+    flex: 1,
+    height: 34,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 17,
+  },
+  segmentButtonActive: {
     backgroundColor: COLORS.neutral.white,
     ...SHADOWS.small,
   },
-  headerTitle: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: COLORS.text.primary,
-    letterSpacing: -0.3,
+  segmentText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: COLORS.neutral.grey500, // #878B94
   },
-  headerTitleRow: {
+  segmentTextActive: {
+    fontWeight: '700',
+    color: COLORS.neutral.grey900, // #121212
+  },
+
+  // ─── Filter Row: 3 dropdown chips ────────────────────────
+  filterRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-  },
-  countBadge: {
-    backgroundColor: COLORS.primary.main,
-    borderRadius: 10,
-    minWidth: 20,
-    height: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 6,
-  },
-  countBadgeText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: COLORS.neutral.white,
-  },
-
-  // Search Section
-  searchSection: {
-    paddingVertical: 12,
     paddingHorizontal: 20,
+    paddingVertical: 10,
     backgroundColor: COLORS.neutral.white,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.neutral.grey100,
   },
-  searchRow: {
+  filterChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-  },
-  filterButton: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 20,
-    backgroundColor: COLORS.neutral.grey50,
+    height: 34,
+    paddingHorizontal: 12,
+    gap: 4,
+    borderRadius: 17,
     borderWidth: 1,
-    borderColor: COLORS.neutral.grey100,
-  },
-  filterButtonActive: {
-    backgroundColor: COLORS.primary.light,
-    borderColor: COLORS.primary.main,
-  },
-  filterDot: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: COLORS.primary.main,
-  },
-  searchBar: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    height: 56,
-    backgroundColor: COLORS.neutral.grey100,
-    borderRadius: 8,
-    paddingHorizontal: 20,
-    gap: 10,
-  },
-  searchBarFocused: {
+    borderColor: COLORS.neutral.grey200, // #E0E0E0
     backgroundColor: COLORS.neutral.white,
-    ...SHADOWS.focused,
   },
-  searchInput: {
-    flex: 1,
-    fontSize: 15,
-    color: COLORS.text.primary,
-    padding: 0,
-  },
-  searchClearButton: {
-    padding: 6,
-    minWidth: 28,
-    minHeight: 28,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-
-  // Radius Filter Chips
-  radiusRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginTop: 12,
-  },
-  radiusLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: COLORS.text.secondary,
-    marginRight: 2,
-  },
-  radiusChip: {
-    height: 32,
-    minHeight: 44,
-    justifyContent: 'center',
-    paddingHorizontal: 14,
-    borderRadius: 10,
-    backgroundColor: 'transparent',
-    borderWidth: 1.5,
-    borderColor: COLORS.neutral.grey300,
-  },
-  radiusChipActive: {
-    backgroundColor: COLORS.primary.light,
+  filterChipActive: {
     borderColor: COLORS.primary.main,
+    backgroundColor: COLORS.primary.light, // #FFF8F0
   },
-  radiusChipText: {
+  filterChipText: {
     fontSize: 13,
-    fontWeight: '600',
-    color: COLORS.text.tertiary,
+    fontWeight: '500',
+    color: COLORS.neutral.grey600, // #5F5F5F
   },
-  radiusChipTextActive: {
+  filterChipTextActive: {
     color: COLORS.primary.main,
+    fontWeight: '600',
   },
 
-  // Content
+  // ─── Content ──────────────────────────────────────────────
   content: {
     flex: 1,
   },
@@ -692,7 +681,7 @@ const styles = StyleSheet.create({
     zIndex: 50,
   },
 
-  // Map below list
+  // ─── Map below list ───────────────────────────────────────
   mapListBelow: {
     flex: 1,
     backgroundColor: COLORS.neutral.white,
@@ -700,7 +689,7 @@ const styles = StyleSheet.create({
     borderTopColor: COLORS.neutral.grey100,
   },
 
-  // List Title
+  // ─── List Title ───────────────────────────────────────────
   listTitleRow: {
     flexDirection: 'row',
     alignItems: 'baseline',
@@ -712,91 +701,82 @@ const styles = StyleSheet.create({
   mapListTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: COLORS.text.primary,
-    letterSpacing: -0.05,
+    color: COLORS.neutral.grey900, // #121212
+    letterSpacing: -0.2,
   },
   listCount: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: COLORS.text.tertiary,
+    fontSize: 13,
+    fontWeight: '500',
+    color: COLORS.neutral.grey500, // #878B94
   },
 
-  // List View
+  // ─── List View ────────────────────────────────────────────
   listScrollContainer: {
     flex: 1,
+    backgroundColor: COLORS.neutral.white,
   },
   listHeader: {
     backgroundColor: COLORS.neutral.white,
     paddingBottom: 0,
   },
 
-  // Meetup List
+  // ─── Meetup List ──────────────────────────────────────────
   meetupList: {
     paddingHorizontal: 0,
-    gap: 0,
   },
   meetupItemWrapper: {
     position: 'relative',
     overflow: 'hidden',
-    ...LIST_ITEM_STYLE,
+    backgroundColor: COLORS.neutral.white,
+  },
+  listDivider: {
+    height: 1,
+    backgroundColor: COLORS.neutral.grey100, // #F5F5F5
+    marginHorizontal: 20,
   },
 
-  // Distance Badge
+  // ─── Distance Badge ───────────────────────────────────────
   distanceBadge: {
     position: 'absolute',
     top: 12,
     right: 12,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 3,
     backgroundColor: COLORS.primary.light,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
     borderRadius: BORDER_RADIUS.full,
   },
   distanceText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
     color: COLORS.primary.main,
   },
 
-  // Skeleton Loading
+  // ─── Skeleton ─────────────────────────────────────────────
   skeletonPadding: {
     padding: 20,
   },
 
-  // Bottom spacer
+  // ─── Bottom spacer ────────────────────────────────────────
   bottomSpacer: {
     height: 100,
   },
 
-  // View Toggle (pill 형태)
-  viewToggle: {
-    flexDirection: 'row',
-    backgroundColor: COLORS.neutral.grey100,
-    borderRadius: 12,
-    padding: 3,
-  },
-  toggleButton: {
-    flexDirection: 'row',
+  // ─── FAB ──────────────────────────────────────────────────
+  fab: {
+    position: 'absolute',
+    bottom: 24,
+    right: 20,
+    width: 57,
+    height: 57,
+    borderRadius: 28.5,
+    backgroundColor: COLORS.primary.main, // #FFA529
+    justifyContent: 'center',
     alignItems: 'center',
-    gap: 5,
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    borderRadius: 10,
-    minHeight: 44,
-  },
-  toggleButtonActive: {
-    backgroundColor: COLORS.primary.main,
-    ...SHADOWS.small,
-  },
-  toggleText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: COLORS.text.secondary,
-  },
-  toggleTextActive: {
-    color: COLORS.text.white,
+    ...SHADOWS.fab,
+    zIndex: 100,
   },
 });
 

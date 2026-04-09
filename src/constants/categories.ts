@@ -13,7 +13,7 @@ export interface FoodCategory {
   image: string; // DALL-E generated icon path (web: /categories/ID.png)
 }
 
-// 카테고리 (10개 — 핵심 식사 카테고리)
+// 카테고리 (8개 — Figma 완성본 기준, 4열 x 2행)
 export const FOOD_CATEGORIES: FoodCategory[] = [
   {
     id: 'korean',
@@ -24,6 +24,16 @@ export const FOOD_CATEGORIES: FoodCategory[] = [
     bgColor: CATEGORY_COLORS.korean.bg,
     bgHover: CATEGORY_COLORS.korean.bgHover,
     image: '/categories/korean.png',
+  },
+  {
+    id: 'western',
+    name: '양식',
+    icon: 'pizza',
+    desc: '파스타/스테이크/피자',
+    color: CATEGORY_COLORS.western.accent,
+    bgColor: CATEGORY_COLORS.western.bg,
+    bgHover: CATEGORY_COLORS.western.bgHover,
+    image: '/categories/western.png',
   },
   {
     id: 'chinese',
@@ -46,24 +56,24 @@ export const FOOD_CATEGORIES: FoodCategory[] = [
     image: '/categories/japanese.png',
   },
   {
-    id: 'western',
-    name: '양식',
-    icon: 'pizza',
-    desc: '파스타/스테이크/피자',
-    color: CATEGORY_COLORS.western.accent,
-    bgColor: CATEGORY_COLORS.western.bg,
-    bgHover: CATEGORY_COLORS.western.bgHover,
-    image: '/categories/pizza.png',
-  },
-  {
     id: 'bbq',
-    name: '고기/구이',
+    name: '고기',
     icon: 'meat',
     desc: '삼겹살/갈비/곱창',
     color: CATEGORY_COLORS.bbq.accent,
     bgColor: CATEGORY_COLORS.bbq.bg,
     bgHover: CATEGORY_COLORS.bbq.bgHover,
     image: '/categories/bbq.png',
+  },
+  {
+    id: 'bunsik',
+    name: '분식',
+    icon: 'compass',
+    desc: '떡볶이/김밥/라면',
+    color: CATEGORY_COLORS.etc.accent,
+    bgColor: CATEGORY_COLORS.etc.bg,
+    bgHover: CATEGORY_COLORS.etc.bgHover,
+    image: '/categories/bunsik.png',
   },
   {
     id: 'seafood',
@@ -77,43 +87,13 @@ export const FOOD_CATEGORIES: FoodCategory[] = [
   },
   {
     id: 'hotpot',
-    name: '찌개/전골',
+    name: '찌개',
     icon: 'pot',
-    desc: '부대찌개/샤브샤브',
+    desc: '부대찌개/샤브샤브/전골',
     color: CATEGORY_COLORS.hotpot.accent,
     bgColor: CATEGORY_COLORS.hotpot.bg,
     bgHover: CATEGORY_COLORS.hotpot.bgHover,
     image: '/categories/hotpot.png',
-  },
-  {
-    id: 'cafe',
-    name: '카페',
-    icon: 'coffee',
-    desc: '브런치/커피/케이크',
-    color: CATEGORY_COLORS.cafe.accent,
-    bgColor: CATEGORY_COLORS.cafe.bg,
-    bgHover: CATEGORY_COLORS.cafe.bgHover,
-    image: '/categories/cafe.png',
-  },
-  {
-    id: 'bar',
-    name: '술집',
-    icon: 'wine',
-    desc: '호프/이자카야/와인바',
-    color: CATEGORY_COLORS.bar.accent,
-    bgColor: CATEGORY_COLORS.bar.bg,
-    bgHover: CATEGORY_COLORS.bar.bgHover,
-    image: '/categories/bar.png',
-  },
-  {
-    id: 'etc',
-    name: '기타',
-    icon: 'compass',
-    desc: '분식/야식/기타',
-    color: CATEGORY_COLORS.etc.accent,
-    bgColor: CATEGORY_COLORS.etc.bg,
-    bgHover: CATEGORY_COLORS.etc.bgHover,
-    image: '/categories/etc.png',
   },
 ];
 

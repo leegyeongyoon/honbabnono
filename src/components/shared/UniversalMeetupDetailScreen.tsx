@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Modal as RNModal, Platform, Image } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Modal as RNModal, Platform, Image, Clipboard } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { COLORS, SHADOWS, CARD_STYLE, CSS_SHADOWS, BORDER_RADIUS, SPACING, TYPOGRAPHY } from '../../styles';
 import { useUserStore } from '../../store/userStore';
@@ -102,7 +102,7 @@ const FilterAccordion: React.FC<{
         <View style={styles.accordionContent}>
           {hasDepositInfo && (
             <View style={styles.filterSection}>
-              <Text style={styles.filterSectionTitle}>💰 약속금</Text>
+              <Text style={styles.filterSectionTitle}>약속금</Text>
               <View style={styles.filterItem}>
                 <Text style={styles.filterValue}>
                   {promiseDepositAmount?.toLocaleString()}원
@@ -114,7 +114,7 @@ const FilterAccordion: React.FC<{
 
           {diningPreferences?.eatingSpeed && (
             <View style={styles.filterSection}>
-              <Text style={styles.filterSectionTitle}>🍽️ 식사 속도</Text>
+              <Text style={styles.filterSectionTitle}>식사 속도</Text>
               <View style={styles.filterItem}>
                 <Text style={styles.filterValue}>{diningPreferences.eatingSpeed}</Text>
               </View>
@@ -123,7 +123,7 @@ const FilterAccordion: React.FC<{
 
           {diningPreferences?.conversationDuringMeal && (
             <View style={styles.filterSection}>
-              <Text style={styles.filterSectionTitle}>💬 식사 중 대화</Text>
+              <Text style={styles.filterSectionTitle}>식사 중 대화</Text>
               <View style={styles.filterItem}>
                 <Text style={styles.filterValue}>{diningPreferences.conversationDuringMeal}</Text>
               </View>
@@ -132,7 +132,7 @@ const FilterAccordion: React.FC<{
 
           {diningPreferences?.talkativeness && (
             <View style={styles.filterSection}>
-              <Text style={styles.filterSectionTitle}>🗣️ 수다 정도</Text>
+              <Text style={styles.filterSectionTitle}>수다 정도</Text>
               <View style={styles.filterItem}>
                 <Text style={styles.filterValue}>{diningPreferences.talkativeness}</Text>
               </View>
@@ -141,7 +141,7 @@ const FilterAccordion: React.FC<{
 
           {diningPreferences?.mealPurpose && (
             <View style={styles.filterSection}>
-              <Text style={styles.filterSectionTitle}>🎯 식사 목적</Text>
+              <Text style={styles.filterSectionTitle}>식사 목적</Text>
               <View style={styles.filterItem}>
                 <Text style={styles.filterValue}>{diningPreferences.mealPurpose}</Text>
               </View>
@@ -150,7 +150,7 @@ const FilterAccordion: React.FC<{
 
           {diningPreferences?.specificRestaurant && (
             <View style={styles.filterSection}>
-              <Text style={styles.filterSectionTitle}>🏪 선호 음식점</Text>
+              <Text style={styles.filterSectionTitle}>선호 음식점</Text>
               <View style={styles.filterItem}>
                 <Text style={styles.filterValue}>{diningPreferences.specificRestaurant}</Text>
               </View>
@@ -159,7 +159,7 @@ const FilterAccordion: React.FC<{
 
           {diningPreferences?.interests && diningPreferences.interests.length > 0 && (
             <View style={styles.filterSection}>
-              <Text style={styles.filterSectionTitle}>🎨 관심사</Text>
+              <Text style={styles.filterSectionTitle}>관심사</Text>
               <View style={styles.filterItem}>
                 <View style={styles.interestTags}>
                   {diningPreferences.interests.map((interest: string, index: number) => (
@@ -328,18 +328,28 @@ const UniversalMeetupDetailScreen: React.FC<UniversalMeetupDetailScreenProps> = 
   if (loading || !currentMeetup) {
     return (
       <View style={styles.loadingContainer}>
-        <View style={styles.skeletonHeader}>
+        {/* Skeleton Header */}
+        <View style={styles.skeletonHeaderBar}>
+          <View style={[styles.skeletonLine, { width: 24, height: 24 }]} />
+          <View style={[styles.skeletonLine, { width: 120, height: 18 }]} />
+          <View style={{ width: 24 }} />
+        </View>
+        {/* Skeleton Hero */}
+        <View style={styles.skeletonHero} />
+        {/* Skeleton Host */}
+        <View style={styles.skeletonHostRow}>
           <View style={styles.skeletonCircle} />
           <View style={{ flex: 1, gap: 8 }}>
             <View style={[styles.skeletonLine, { width: '40%' }]} />
             <View style={[styles.skeletonLine, { width: '60%', height: 10 }]} />
           </View>
         </View>
-        <View style={styles.skeletonCard}>
-          <View style={[styles.skeletonLine, { width: '80%', height: 20, marginBottom: 16 }]} />
+        {/* Skeleton Content */}
+        <View style={styles.skeletonContent}>
+          <View style={[styles.skeletonLine, { width: '50%', height: 12, marginBottom: 12 }]} />
           <View style={[styles.skeletonLine, { width: '100%' }]} />
+          <View style={[styles.skeletonLine, { width: '80%' }]} />
           <View style={[styles.skeletonLine, { width: '70%' }]} />
-          <View style={[styles.skeletonLine, { width: '90%' }]} />
         </View>
       </View>
     );
@@ -596,15 +606,44 @@ const UniversalMeetupDetailScreen: React.FC<UniversalMeetupDetailScreenProps> = 
     }
   };
 
+  const handleCopyAddress = () => {
+    const address = meetup.address || meetup.location || '';
+    if (Platform.OS === 'web') {
+      try {
+        navigator.clipboard.writeText(address);
+      } catch (_e) {
+        // fallback: silent
+      }
+    } else {
+      Clipboard.setString(address);
+    }
+    Alert.alert('복사됨', '주소가 클립보드에 복사되었습니다.');
+  };
+
+  const statusLabel = meetup.status === 'recruiting' ? '모집중'
+    : meetup.status === 'confirmed' ? '모집완료'
+    : meetup.status;
+
   return (
     <View style={styles.container}>
+      {/* ──── 1. Header ──── */}
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerBackBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+          <Icon name="arrow-left" size={22} color="#121212" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle} numberOfLines={1}>{meetup.title || '모임 상세'}</Text>
+        <TouchableOpacity onPress={handleShare} style={styles.headerShareBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+          <Icon name="share-2" size={20} color="#121212" />
+        </TouchableOpacity>
+      </View>
+
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        {/* 히어로 커버 이미지 (280px) */}
+        {/* ──── 2. Hero Image (180px) ──── */}
         {Platform.OS === 'web' ? (
           <div style={{
             position: 'relative',
             width: '100%',
-            height: 280,
+            height: 180,
             overflow: 'hidden',
             backgroundColor: COLORS.neutral.grey200,
           }}>
@@ -617,124 +656,26 @@ const UniversalMeetupDetailScreen: React.FC<UniversalMeetupDetailScreenProps> = 
                 objectFit: 'cover',
               }}
             />
-            {/* 상단 그라데이션 오버레이 */}
-            <div style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              height: 100,
-              background: 'linear-gradient(180deg, rgba(17,17,17,0.4) 0%, transparent 100%)',
-              pointerEvents: 'none',
-            }} />
-            {/* 하단 그라데이션 오버레이 */}
-            <div style={{
-              position: 'absolute',
-              bottom: 0,
-              left: 0,
-              right: 0,
-              height: 120,
-              background: 'linear-gradient(0deg, rgba(17,17,17,0.5) 0%, transparent 100%)',
-              pointerEvents: 'none',
-            }} />
-            {/* 오버레이 헤더 버튼들 */}
-            <div style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              display: 'flex',
-              flexDirection: 'row',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              padding: '16px 16px',
-              paddingTop: 20,
-            }}>
-              <div style={{ width: 40, height: 40 }} />
-              <div style={{ display: 'flex', flexDirection: 'row', gap: 8, alignItems: 'center' }}>
-                <div
-                  onClick={handleShare}
-                  style={{
-                    width: 40,
-                    height: 40,
-                    borderRadius: 20,
-                    backgroundColor: 'rgba(255,255,255,0.9)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                    boxShadow: CSS_SHADOWS.small,
-                    backdropFilter: 'blur(8px)',
-                    transition: 'transform 150ms ease',
-                  }}
-                  role="button"
-                  aria-label="공유하기"
-                  onMouseDown={(e: any) => { e.currentTarget.style.transform = 'scale(0.9)'; }}
-                  onMouseUp={(e: any) => { e.currentTarget.style.transform = 'scale(1)'; }}
-                  onMouseLeave={(e: any) => { e.currentTarget.style.transform = 'scale(1)'; }}
-                >
-                  {Share2LucideIcon ? (
-                    <Share2LucideIcon
-                      size={19}
-                      color={COLORS.text.secondary}
-                    />
-                  ) : (
-                    <Icon name="share-2" size={19} color={COLORS.text.secondary} />
-                  )}
-                </div>
-                <div
-                  onClick={toggleWishlist}
-                  style={{
-                    width: 40,
-                    height: 40,
-                    borderRadius: 20,
-                    backgroundColor: 'rgba(255,255,255,0.9)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                    boxShadow: CSS_SHADOWS.small,
-                    backdropFilter: 'blur(8px)',
-                  }}
-                  role="button"
-                  aria-label={isWishlisted ? '찜 해제' : '찜하기'}
-                >
-                  {Heart ? (
-                    <Heart
-                      size={20}
-                      color={isWishlisted ? COLORS.functional.error : COLORS.text.secondary}
-                      fill={isWishlisted ? COLORS.functional.error : 'transparent'}
-                    />
-                  ) : (
-                    <Icon name="heart" size={20} color={isWishlisted ? COLORS.functional.error : COLORS.text.secondary} fill={isWishlisted ? COLORS.functional.error : undefined} />
-                  )}
-                </div>
-              </div>
-            </div>
             {/* 상태 뱃지 */}
             {meetup.status && (
               <div style={{
                 position: 'absolute',
-                bottom: 16,
-                left: 16,
-                display: 'flex',
-                flexDirection: 'row',
-                gap: 8,
-                alignItems: 'center',
+                top: 12,
+                left: 12,
               }}>
                 <div style={{
                   paddingLeft: 10,
                   paddingRight: 10,
-                  paddingTop: 5,
-                  paddingBottom: 5,
-                  borderRadius: BORDER_RADIUS.sm,
+                  paddingTop: 4,
+                  paddingBottom: 4,
+                  borderRadius: 4,
                   backgroundColor: meetup.status === 'recruiting' || meetup.status === '모집중' ? COLORS.functional.success
                     : meetup.status === 'confirmed' || meetup.status === '모집완료' ? COLORS.primary.main
                     : meetup.status === '진행중' ? COLORS.functional.info
                     : COLORS.neutral.grey500,
                 }}>
-                  <span style={{ fontSize: 12, fontWeight: '700', color: COLORS.neutral.white }}>
-                    {meetup.status === 'recruiting' ? '모집중' : meetup.status === 'confirmed' ? '모집완료' : meetup.status}
+                  <span style={{ fontSize: 11, fontWeight: '600', color: '#FFFFFF' }}>
+                    {statusLabel}
                   </span>
                 </div>
               </div>
@@ -747,39 +688,6 @@ const UniversalMeetupDetailScreen: React.FC<UniversalMeetupDetailScreenProps> = 
               style={styles.heroImage}
               resizeMode="cover"
             />
-            {/* 상단 그라데이션 오버레이 */}
-            <LinearGradient
-              colors={['rgba(17,17,17,0.4)', 'transparent']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 0, y: 1 }}
-              style={styles.heroGradientTop}
-            />
-            {/* 하단 그라데이션 오버레이 */}
-            <LinearGradient
-              colors={['transparent', 'rgba(17,17,17,0.5)']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 0, y: 1 }}
-              style={styles.heroGradientBottom}
-            />
-            {/* 오버레이 헤더 버튼들 */}
-            <View style={styles.heroHeaderOverlay}>
-              <View style={{ width: 40, height: 40 }} />
-              <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
-                <TouchableOpacity
-                  style={styles.heroIconButton}
-                  onPress={handleShare}
-                >
-                  <Icon name="share-2" size={19} color={COLORS.text.secondary} />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.heroIconButton}
-                  onPress={toggleWishlist}
-                  disabled={wishlistLoading}
-                >
-                  <Text style={{ fontSize: 20 }}>{isWishlisted ? '❤️' : '🤍'}</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
             {/* 상태 뱃지 */}
             {meetup.status && (
               <View style={styles.heroStatusBadgeContainer}>
@@ -792,286 +700,177 @@ const UniversalMeetupDetailScreen: React.FC<UniversalMeetupDetailScreenProps> = 
                       : COLORS.neutral.grey500,
                   }
                 ]}>
-                  <Text style={styles.heroStatusBadgeText}>
-                    {meetup.status === 'recruiting' ? '모집중' : meetup.status === 'confirmed' ? '모집완료' : meetup.status}
-                  </Text>
+                  <Text style={styles.heroStatusBadgeText}>{statusLabel}</Text>
                 </View>
               </View>
             )}
           </View>
         )}
 
-        {/* 호스트 정보 카드 (히어로 이미지 겹침) — 클릭 시 호스트 프로필 이동 */}
-        {Platform.OS === 'web' ? (
-          <div
-            style={{
-              marginLeft: SPACING.xl,
-              marginRight: SPACING.xl,
-              marginTop: -32,
-              position: 'relative',
-              zIndex: 2,
-              backgroundColor: COLORS.neutral.white,
-              borderRadius: BORDER_RADIUS.md,
-              padding: 16,
-              display: 'flex',
-              flexDirection: 'row',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              boxShadow: CSS_SHADOWS.card,
-              border: `1px solid ${CARD_STYLE.borderColor}`,
-              cursor: 'pointer',
-              transition: 'box-shadow 200ms ease',
-            }}
-            onClick={() => meetup.hostId && navigation.navigate('HostProfile', { userId: meetup.hostId })}
-          >
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-              <ProfileImage
-                profileImage={meetup.host?.profileImage}
-                name={meetup.host?.name || meetup.hostName}
-                size={52}
-              />
-              <View>
-                <Text style={styles.hostName}>{meetup.hostName || '익명'}</Text>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 }}>
-                  <Icon name="map-pin" size={12} color={COLORS.text.tertiary} />
-                  <Text style={styles.hostLocation}>{meetup.location || '위치 미정'}</Text>
-                </View>
-              </View>
-            </View>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              <View style={styles.riceIndicator}>
-                <Text style={styles.riceText}>{meetup.hostBabAlScore || userRiceIndex} 밥알</Text>
-              </View>
-              <Icon name="chevron-right" size={16} color={COLORS.text.tertiary} />
-            </View>
-          </div>
-        ) : (
-          <TouchableOpacity
-            style={styles.hostSection}
-            activeOpacity={0.7}
-            onPress={() => meetup.hostId && navigation.navigate('HostProfile', { userId: meetup.hostId })}
-          >
-            <View style={styles.hostInfo}>
-              <ProfileImage
-                profileImage={meetup.host?.profileImage}
-                name={meetup.host?.name || meetup.hostName}
-                size={52}
-                style={styles.avatar}
-              />
-              <View>
-                <Text style={styles.hostName}>{meetup.hostName || '익명'}</Text>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 }}>
-                  <Icon name="map-pin" size={12} color={COLORS.text.tertiary} />
-                  <Text style={styles.hostLocation}>{meetup.location || '위치 미정'}</Text>
-                </View>
-              </View>
-            </View>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              <View style={styles.riceIndicator}>
-                <Text style={styles.riceText}>{meetup.hostBabAlScore || userRiceIndex} 밥알</Text>
-              </View>
-              <Icon name="chevron-right" size={16} color={COLORS.text.tertiary} />
-            </View>
-          </TouchableOpacity>
-        )}
-
-        <View style={styles.mainCard}>
-          <Text style={styles.meetupTitle}>{meetup.title || '급한 때실 시밥'}</Text>
-
-          <View style={styles.filterBadgeContainer}>
-            <Text style={styles.filterBadgeTitle}>필수 성향</Text>
-            <View style={styles.filterBadges}>
-              {meetup.category && (
-                <View style={[styles.filterBadge, { backgroundColor: getCategoryColor(meetup.category) + '15' }]}>
-                  <Text style={styles.categoryEmoji}>{getCategoryEmoji(meetup.category)}</Text>
-                  <Text style={[styles.filterBadgeText, { color: getCategoryColor(meetup.category) }]}>
-                    {meetup.category}
-                  </Text>
-                </View>
-              )}
-
-              {meetup.priceRange && (
-                <View style={styles.priceBadge}>
-                  <Icon name="dollar-sign" size={13} color={COLORS.functional.success} />
-                  <Text style={styles.priceBadgeText}>{meetup.priceRange}</Text>
-                </View>
-              )}
-
-              {meetup.ageRange && (
-                <View style={styles.ageBadge}>
-                  <Icon name="user" size={13} color={COLORS.text.secondary} />
-                  <Text style={styles.ageBadgeText}>{meetup.ageRange}</Text>
-                </View>
-              )}
-
-              {meetup.genderPreference && (
-                <View style={styles.genderBadge}>
-                  <Icon name="users" size={13} color={COLORS.primary.main} />
-                  <Text style={styles.genderBadgeText}>{meetup.genderPreference}</Text>
-                </View>
-              )}
+        {/* ──── 3. Host Info ──── */}
+        <TouchableOpacity
+          style={styles.hostSection}
+          activeOpacity={0.7}
+          onPress={() => meetup.hostId && navigation.navigate('HostProfile', { userId: meetup.hostId })}
+        >
+          <View style={styles.hostLeft}>
+            <ProfileImage
+              profileImage={meetup.host?.profileImage}
+              name={meetup.host?.name || meetup.hostName}
+              size={43}
+            />
+            <View style={styles.hostTextWrap}>
+              <Text style={styles.hostName}>{meetup.hostName || '익명'}</Text>
+              <Text style={styles.hostLocation}>{meetup.location || '위치 미정'}</Text>
             </View>
           </View>
-
-          <View style={styles.filterBadgeContainer}>
-            <Text style={styles.filterBadgeTitle}>선택 성향</Text>
-            <View style={styles.filterBadges}>
-              <View style={styles.optionalBadge}>
-                <Icon name="smile" size={13} color={COLORS.text.secondary} />
-                <Text style={styles.optionalBadgeText}>분위기 좋은 곳</Text>
-              </View>
-
-              <View style={styles.optionalBadge}>
-                <Icon name="map" size={13} color={COLORS.text.secondary} />
-                <Text style={styles.optionalBadgeText}>역 근처</Text>
-              </View>
-
-              <View style={styles.optionalBadge}>
-                <Icon name="clock" size={13} color={COLORS.text.secondary} />
-                <Text style={styles.optionalBadgeText}>1-2시간</Text>
-              </View>
-
-              <View style={styles.optionalBadge}>
-                <Icon name="coffee" size={13} color={COLORS.text.secondary} />
-                <Text style={styles.optionalBadgeText}>무알코올</Text>
-              </View>
-            </View>
+          <View style={styles.riceIndicator}>
+            <Text style={styles.riceText}>{meetup.hostBabAlScore || userRiceIndex} 밥알</Text>
+            <View style={styles.riceIcon} />
           </View>
+        </TouchableOpacity>
 
-          <View style={styles.infoGrid}>
-            <View style={styles.infoRow}>
-              <Icon name="map-pin" size={15} color={COLORS.text.tertiary} />
-              <Text style={styles.infoLabel}>{meetup.location}</Text>
+        {/* ──── 4. Divider ──── */}
+        <View style={styles.divider} />
+
+        {/* ──── 5. Tags (pill chips) ──── */}
+        <View style={styles.tagsSection}>
+          {meetup.category && (
+            <View style={styles.tagChip}>
+              <Text style={styles.tagChipText}>{meetup.category}</Text>
             </View>
-
-            <View style={styles.infoRow}>
-              <Icon name="clock" size={15} color={COLORS.text.tertiary} />
-              <Text style={styles.infoLabel}>{formatMeetupDateTime(meetup.date, meetup.time)}</Text>
+          )}
+          {meetup.ageRange && (
+            <View style={styles.tagChip}>
+              <Text style={styles.tagChipText}>{meetup.ageRange}</Text>
             </View>
-
-            <View style={styles.infoRow}>
-              <Icon name="users" size={15} color={COLORS.primary.accent} />
-              <Text style={[styles.infoLabel, { color: COLORS.primary.accent, fontWeight: '700' }]}>
-                {meetup.currentParticipants ?? 0}/{meetup.maxParticipants ?? 4}명
-              </Text>
+          )}
+          {meetup.genderPreference && (
+            <View style={styles.tagChip}>
+              <Text style={styles.tagChipText}>{meetup.genderPreference}</Text>
             </View>
+          )}
+          {meetup.priceRange && (
+            <View style={styles.tagChip}>
+              <Text style={styles.tagChipText}>{meetup.priceRange}</Text>
+            </View>
+          )}
+        </View>
 
-            {/* 참가자 프로그레스바 */}
-            {Platform.OS === 'web' ? (
-              <div style={{
-                height: 6,
-                backgroundColor: COLORS.neutral.grey100,
-                borderRadius: BORDER_RADIUS.sm,
-                overflow: 'hidden',
-                marginTop: -4,
-                marginBottom: 8,
-              }}>
-                <div style={{
-                  width: `${Math.min(participantRatio * 100, 100)}%`,
-                  height: '100%',
-                  borderRadius: BORDER_RADIUS.sm,
-                  backgroundColor: getProgressBarColor(),
-                  transition: 'width 600ms ease',
-                }} />
-              </div>
-            ) : (
-              <View style={styles.progressBarContainer}>
-                <View style={[
-                  styles.progressBarFill,
-                  {
-                    width: `${Math.min(participantRatio * 100, 100)}%`,
-                    backgroundColor: getProgressBarColor(),
-                  }
-                ]} />
-              </View>
-            )}
+        {/* ──── 6. Info rows ──── */}
+        <View style={styles.infoSection}>
+          <View style={styles.infoRow}>
+            <Icon name="map-pin" size={18} color="#5f5f5f" />
+            <Text style={styles.infoText}>{meetup.location}</Text>
           </View>
-
-          <Text style={styles.description}>
-            {meetup.description || '설명이 없습니다.'}
-          </Text>
-
-          <View style={styles.timeInfo}>
-            <Text style={styles.timeText}>
-              {meetup.createdAt ? getChatTimeDifference(meetup.createdAt) : '방금 전'} · 조회 {meetup.viewCount || 0}
+          <View style={styles.infoRow}>
+            <Icon name="calendar" size={18} color="#5f5f5f" />
+            <Text style={styles.infoText}>{formatMeetupDateTime(meetup.date, meetup.time)}</Text>
+          </View>
+          <View style={styles.infoRow}>
+            <Icon name="users" size={18} color="#5f5f5f" />
+            <Text style={styles.infoText}>
+              {meetup.currentParticipants ?? 0}/{meetup.maxParticipants ?? 4}명
             </Text>
           </View>
         </View>
 
+        {/* ──── 7. Divider ──── */}
+        <View style={styles.divider} />
+
+        {/* ──── 8. Description ──── */}
+        <View style={styles.descriptionSection}>
+          <Text style={styles.description}>
+            {meetup.description || '설명이 없습니다.'}
+          </Text>
+          <Text style={styles.metaText}>
+            {meetup.createdAt ? getChatTimeDifference(meetup.createdAt) : '방금 전'} · 조회 {meetup.viewCount || 0}
+          </Text>
+        </View>
+
+        {/* ──── FilterAccordion ──── */}
         <FilterAccordion
           diningPreferences={meetup.diningPreferences}
           promiseDepositRequired={meetup.promiseDepositRequired}
           promiseDepositAmount={meetup.promiseDepositAmount}
         />
 
-        {/* GPS + QR 체크인 섹션 */}
+        {/* ──── GPS + QR 체크인 섹션 ──── */}
         {(meetup.status === '진행중') && (participants.some(p => p.id === user?.id) || isHost) && (
-          <CheckInButton
-            meetupId={meetupId}
-            meetupStatus={meetup.status}
-            meetupLocation={meetup.location}
-            meetupLatitude={meetup.latitude}
-            meetupLongitude={meetup.longitude}
-            checkInRadius={meetup.checkInRadius || 300}
-            isHost={isHost}
-            onCheckInSuccess={() => fetchMeetupById(meetupId)}
-          />
+          <View style={styles.sectionPadded}>
+            <CheckInButton
+              meetupId={meetupId}
+              meetupStatus={meetup.status}
+              meetupLocation={meetup.location}
+              meetupLatitude={meetup.latitude}
+              meetupLongitude={meetup.longitude}
+              checkInRadius={meetup.checkInRadius || 300}
+              isHost={isHost}
+              onCheckInSuccess={() => fetchMeetupById(meetupId)}
+            />
+          </View>
         )}
 
+        {/* ──── 9. Map ──── */}
         {KakaoMapComponent && (
-          <KakaoMapComponent
-            location={meetup.location}
-            address={meetup.address || meetup.location}
-            latitude={meetup.latitude}
-            longitude={meetup.longitude}
-          />
+          <View style={styles.mapSection}>
+            <View style={styles.mapContainer}>
+              <KakaoMapComponent
+                location={meetup.location}
+                address={meetup.address || meetup.location}
+                latitude={meetup.latitude}
+                longitude={meetup.longitude}
+              />
+            </View>
+          </View>
         )}
 
-        <View style={styles.participantSection}>
-          <View style={styles.participantHeaderRow}>
-            <Text style={styles.participantTitle}>참여자 ({participants.filter(p => p.id !== meetup.hostId).length + 1}명)</Text>
-            <Text style={styles.participantCountText}>
-              {meetup.currentParticipants ?? 0}/{meetup.maxParticipants ?? 4}명
-            </Text>
+        {/* ──── 10. Address + copy + transit badges ──── */}
+        {(meetup.address || meetup.location) && (
+          <View style={styles.addressSection}>
+            <View style={styles.addressRow}>
+              <Text style={styles.addressText} numberOfLines={2}>{meetup.address || meetup.location}</Text>
+              <TouchableOpacity onPress={handleCopyAddress} style={styles.copyBtn}>
+                <Icon name="copy" size={18} color="#5f5f5f" />
+                <Text style={styles.copyBtnText}>복사</Text>
+              </TouchableOpacity>
+            </View>
+            {/* Transit badges */}
+            <View style={styles.transitRow}>
+              {meetup.nearbySubway && (
+                <View style={styles.transitBadgeBlue}>
+                  <Text style={styles.transitBadgeBlueText}>{meetup.nearbySubway}</Text>
+                </View>
+              )}
+              {meetup.nearbyBus && (
+                <View style={styles.transitBadgeGreen}>
+                  <Text style={styles.transitBadgeGreenText}>{meetup.nearbyBus}</Text>
+                </View>
+              )}
+            </View>
           </View>
+        )}
 
-          {/* 참가 현황 미니바 */}
-          <View style={styles.participantMiniBar}>
-            <View style={[
-              styles.participantMiniBarFill,
-              {
-                width: `${Math.min(((meetup.currentParticipants ?? 0) / (meetup.maxParticipants ?? 4)) * 100, 100)}%`,
-                backgroundColor: (meetup.currentParticipants ?? 0) >= (meetup.maxParticipants ?? 4)
-                  ? COLORS.functional.error
-                  : ((meetup.currentParticipants ?? 0) / (meetup.maxParticipants ?? 4)) >= 0.8
-                    ? COLORS.functional.warning
-                    : COLORS.primary.accent,
-              }
-            ]} />
-          </View>
+        {/* ──── 11. Divider ──── */}
+        <View style={styles.divider} />
+
+        {/* ──── 12. Participants ──── */}
+        <View style={styles.participantSection}>
+          <Text style={styles.participantTitle}>참여 멤버</Text>
 
           {/* 호스트 */}
           <View style={styles.participantItem}>
-            <View style={styles.hostAvatarWrap}>
-              <View style={styles.hostAvatar}>
-                <ProfileImage
-                  profileImage={meetup.host?.profileImage}
-                  name={meetup.host?.name || meetup.hostName}
-                  size={44}
-                />
-              </View>
-              <View style={styles.hostCrownBadge}>
-                <Text style={styles.hostCrownEmoji}>{'👑'}</Text>
-              </View>
-            </View>
+            <ProfileImage
+              profileImage={meetup.host?.profileImage}
+              name={meetup.host?.name || meetup.hostName}
+              size={40}
+            />
             <View style={styles.participantInfo}>
               <View style={styles.participantNameRow}>
                 <Text style={styles.participantName}>{meetup.host?.name || meetup.hostName}</Text>
                 <View style={styles.hostLabelBadge}>
                   <Text style={styles.hostLabelText}>호스트</Text>
                 </View>
-              </View>
-              <View style={styles.participantMetaRow}>
                 {meetup.host?.babAlScore != null && (() => {
                   const level = getBabalLevelLabel(meetup.host.babAlScore);
                   return (
@@ -1081,6 +880,9 @@ const UniversalMeetupDetailScreen: React.FC<UniversalMeetupDetailScreenProps> = 
                   );
                 })()}
               </View>
+              {meetup.host?.bio && (
+                <Text style={styles.participantBio} numberOfLines={1}>{meetup.host.bio}</Text>
+              )}
             </View>
           </View>
 
@@ -1091,29 +893,23 @@ const UniversalMeetupDetailScreen: React.FC<UniversalMeetupDetailScreenProps> = 
               : null;
             return (
               <View key={participant.id} style={styles.participantItem}>
-                <View style={styles.participantAvatar}>
-                  <ProfileImage
-                    profileImage={participant.profileImage}
-                    name={participant.name}
-                    size={44}
-                  />
-                </View>
+                <ProfileImage
+                  profileImage={participant.profileImage}
+                  name={participant.name}
+                  size={40}
+                />
                 <View style={styles.participantInfo}>
                   <View style={styles.participantNameRow}>
                     <Text style={styles.participantName}>{participant.name}</Text>
-                  </View>
-                  <View style={styles.participantMetaRow}>
-                    <Text style={styles.participantRole}>
-                      {participant.status === 'approved' ? '참가승인' :
-                       participant.status === 'pending' ? '참가신청' :
-                       participant.status === 'rejected' ? '참가거절' : '참가취소'}
-                    </Text>
                     {babalLevel && (
                       <View style={[styles.babalLevelBadge, { backgroundColor: babalLevel.color + '18' }]}>
                         <Text style={[styles.babalLevelText, { color: babalLevel.color }]}>{babalLevel.label}</Text>
                       </View>
                     )}
                   </View>
+                  {participant.bio && (
+                    <Text style={styles.participantBio} numberOfLines={1}>{participant.bio}</Text>
+                  )}
                 </View>
               </View>
             );
@@ -1127,32 +923,35 @@ const UniversalMeetupDetailScreen: React.FC<UniversalMeetupDetailScreenProps> = 
         <View style={styles.bottomPadding} />
       </ScrollView>
 
+      {/* ──── 13. Bottom Bar ──── */}
       <View style={styles.fixedBottom}>
         {meetup.status === '종료' && (participants.some(p => p.id === user?.id) || isHost) ? (
-          <View style={styles.bottomButtonContainer}>
+          <View style={styles.bottomBarRow}>
             <TouchableOpacity
               onPress={() => navigation.navigate('WriteReview', { meetupId, meetupTitle: meetup.title })}
-              style={styles.reviewButton}
+              style={styles.ctaButton}
             >
               <Icon name="star" size={18} color={COLORS.neutral.white} />
-              <Text style={styles.reviewButtonText}>리뷰 작성하기</Text>
+              <Text style={styles.ctaButtonText}>리뷰 작성하기</Text>
             </TouchableOpacity>
           </View>
         ) : isPastMeetup ? (
-          <View style={styles.pastMeetupContainer}>
-            <Text style={styles.pastMeetupText}>
-              {meetup.status === '완료' ?
-                '완료된 약속이에요' :
-                meetup.status === '취소' ?
-                '취소된 약속이에요' :
-                '파토된 약속이에요'
-              }
-            </Text>
+          <View style={styles.bottomBarRow}>
+            <View style={styles.pastMeetupContainer}>
+              <Text style={styles.pastMeetupText}>
+                {meetup.status === '완료' ?
+                  '완료된 약속이에요' :
+                  meetup.status === '취소' ?
+                  '취소된 약속이에요' :
+                  '파토된 약속이에요'
+                }
+              </Text>
+            </View>
           </View>
         ) : (
           <>
             {(participants.some(p => p.id === user?.id) || isHost) ? (
-              <View style={styles.bottomButtonContainer}>
+              <View style={styles.bottomBarRow}>
                 {/* 약속금 미결제 참가자: 결제 버튼 표시 */}
                 {!isHost && meetup.promiseDepositRequired && depositAmount > 0 && depositStatus !== 'paid' ? (
                   <>
@@ -1226,32 +1025,54 @@ const UniversalMeetupDetailScreen: React.FC<UniversalMeetupDetailScreenProps> = 
                 )}
               </View>
             ) : (
-              <View>
-                {joinDisabledReason && (
-                  <Text style={{
-                    fontSize: 13,
-                    color: COLORS.functional.error,
-                    textAlign: 'center',
-                    fontWeight: '600',
-                    marginBottom: 6,
-                  }}>{joinDisabledReason}</Text>
-                )}
+              <View style={styles.bottomBarRow}>
+                {/* Heart wishlist + CTA */}
                 <TouchableOpacity
-                  onPress={() => handleJoinMeetup()}
-                  style={[
-                    styles.joinButton,
-                    !canJoin && { backgroundColor: COLORS.neutral.grey300, opacity: 0.7 },
-                  ]}
-                  disabled={!canJoin}
+                  onPress={toggleWishlist}
+                  style={styles.wishlistBtn}
+                  disabled={wishlistLoading}
                 >
-                  <Text style={styles.joinButtonText}>{canJoin ? '같이먹기' : joinDisabledReason}</Text>
+                  {Platform.OS === 'web' && Heart ? (
+                    <Heart
+                      size={24}
+                      color={isWishlisted ? COLORS.functional.error : '#868b94'}
+                      fill={isWishlisted ? COLORS.functional.error : 'transparent'}
+                    />
+                  ) : (
+                    <Icon
+                      name="heart"
+                      size={24}
+                      color={isWishlisted ? COLORS.functional.error : '#868b94'}
+                      fill={isWishlisted ? COLORS.functional.error : undefined}
+                    />
+                  )}
+                  <Text style={[styles.wishlistCount, isWishlisted && { color: COLORS.functional.error }]}>
+                    {meetup.wishlistCount || 0}
+                  </Text>
                 </TouchableOpacity>
+
+                <View style={styles.ctaWrap}>
+                  {joinDisabledReason && (
+                    <Text style={styles.joinDisabledHint}>{joinDisabledReason}</Text>
+                  )}
+                  <TouchableOpacity
+                    onPress={() => handleJoinMeetup()}
+                    style={[
+                      styles.ctaButton,
+                      !canJoin && { backgroundColor: COLORS.neutral.grey300, opacity: 0.7 },
+                    ]}
+                    disabled={!canJoin}
+                  >
+                    <Text style={styles.ctaButtonText}>{canJoin ? '같이먹기' : joinDisabledReason}</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
             )}
           </>
         )}
       </View>
 
+      {/* ──── Modals ──── */}
       <ModalComponent
         visible={showPromiseModal}
         transparent={true}
@@ -1372,18 +1193,53 @@ const UniversalMeetupDetailScreen: React.FC<UniversalMeetupDetailScreenProps> = 
 };
 
 const styles = StyleSheet.create({
+  /* ──── Container ──── */
   container: {
     flex: 1,
-    backgroundColor: COLORS.neutral.background,
+    backgroundColor: '#FFFFFF',
   },
   scrollView: {
     flex: 1,
   },
-  // 히어로 이미지 스타일 (Native)
+
+  /* ──── 1. Header ──── */
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    height: 56,
+    paddingTop: Platform.OS === 'ios' ? 46 : 0,
+    paddingHorizontal: 20,
+    backgroundColor: '#FFFFFF',
+    ...(Platform.OS === 'ios' ? { height: 102 } : {}),
+  },
+  headerBackBtn: {
+    width: 32,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerTitle: {
+    flex: 1,
+    textAlign: 'center',
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#121212',
+    letterSpacing: -0.2,
+    marginHorizontal: 8,
+  },
+  headerShareBtn: {
+    width: 32,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  /* ──── 2. Hero Image ──── */
   heroContainer: {
     position: 'relative',
     width: '100%',
-    height: 280,
+    height: 180,
     overflow: 'hidden',
     backgroundColor: COLORS.neutral.grey200,
   },
@@ -1391,454 +1247,233 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
-  heroGradientTop: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 100,
-  },
-  heroGradientBottom: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 120,
-  },
-  heroHeaderOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingTop: 50,
-  },
-  heroIconButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.9)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...SHADOWS.small,
-  },
   heroStatusBadgeContainer: {
     position: 'absolute',
-    bottom: 16,
-    left: 16,
-    flexDirection: 'row',
-    gap: 8,
-    alignItems: 'center',
+    top: 12,
+    left: 12,
   },
   heroStatusBadge: {
     paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: BORDER_RADIUS.sm,
+    paddingVertical: 4,
+    borderRadius: 4,
   },
   heroStatusBadgeText: {
-    fontSize: 12,
-    fontWeight: '700',
+    fontSize: 11,
+    fontWeight: '600',
     color: COLORS.neutral.white,
   },
-  // 참가자 프로그레스바 (Native)
-  progressBarContainer: {
-    height: 6,
-    backgroundColor: COLORS.neutral.grey100,
-    borderRadius: BORDER_RADIUS.sm,
-    overflow: 'hidden',
-    marginTop: -4,
-    marginBottom: 8,
-  },
-  progressBarFill: {
-    height: '100%',
-    borderRadius: BORDER_RADIUS.sm,
-  },
-  loadingContainer: {
-    flex: 1,
-    backgroundColor: COLORS.neutral.background,
-    padding: SPACING.xl,
-    paddingTop: 60,
-  },
-  skeletonHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: SPACING.xl,
-    borderRadius: BORDER_RADIUS.md,
-    backgroundColor: COLORS.neutral.white,
-    borderWidth: 1,
-    borderColor: CARD_STYLE.borderColor,
-    marginBottom: SPACING.lg,
-    gap: 12,
-  },
-  skeletonCircle: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: COLORS.neutral.light,
-  },
-  skeletonCard: {
-    padding: SPACING.xl,
-    borderRadius: BORDER_RADIUS.md,
-    backgroundColor: COLORS.neutral.white,
-    borderWidth: 1,
-    borderColor: CARD_STYLE.borderColor,
-    gap: 10,
-  },
-  skeletonLine: {
-    height: 14,
-    borderRadius: BORDER_RADIUS.sm,
-    backgroundColor: COLORS.neutral.light,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: SPACING.xl,
-    paddingVertical: 14,
-    paddingTop: 50,
-    backgroundColor: COLORS.neutral.white,
-    ...SHADOWS.sticky,
-    zIndex: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: CARD_STYLE.borderColor,
-  },
-  headerPlaceholder: {
-    width: 40,
-  },
-  headerIcons: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  iconButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+
+  /* ──── 3. Host Info ──── */
   hostSection: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginHorizontal: SPACING.xl,
-    marginTop: -32,
-    marginBottom: SPACING.lg,
-    padding: SPACING.lg,
-    borderRadius: BORDER_RADIUS.md,
-    backgroundColor: COLORS.neutral.white,
-    borderWidth: 1,
-    borderColor: CARD_STYLE.borderColor,
-    ...SHADOWS.medium,
-    zIndex: 2,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
   },
-  hostInfo: {
+  hostLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 9,
+    flex: 1,
   },
-  avatar: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    borderWidth: 1.5,
-    borderColor: COLORS.neutral.grey200,
+  hostTextWrap: {
+    flex: 1,
   },
   hostName: {
-    ...TYPOGRAPHY.heading.h4,
-    color: COLORS.text.primary,
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#121212',
     marginBottom: 2,
   },
   hostLocation: {
-    ...TYPOGRAPHY.body.small,
-    color: COLORS.text.tertiary,
+    fontSize: 14,
+    fontWeight: '400',
+    color: '#868b94',
   },
   riceIndicator: {
-    backgroundColor: COLORS.neutral.light,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: BORDER_RADIUS.md,
-    borderWidth: 1,
-    borderColor: COLORS.neutral.grey100,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   riceText: {
-    fontSize: 13,
-    color: COLORS.text.secondary,
+    fontSize: 16,
+    color: '#121212',
     fontWeight: '600',
   },
-  mainCard: {
-    backgroundColor: COLORS.neutral.white,
-    marginHorizontal: SPACING.xl,
-    marginBottom: SPACING.lg,
-    padding: SPACING.xl,
-    borderRadius: BORDER_RADIUS.md,
-    borderWidth: 1,
-    borderColor: CARD_STYLE.borderColor,
-    ...SHADOWS.medium,
+  riceIcon: {
+    width: 16,
+    height: 16,
+    borderRadius: 3,
+    backgroundColor: '#d9d9d9',
   },
-  meetupTitle: {
-    ...TYPOGRAPHY.heading.h1,
-    color: COLORS.text.primary,
-    marginBottom: SPACING.xl,
+
+  /* ──── 4/7/11. Divider ──── */
+  divider: {
+    height: 1,
+    backgroundColor: '#f5f5f5',
+    marginHorizontal: 20,
   },
-  filterBadgeContainer: {
-    marginBottom: SPACING.xl,
-  },
-  filterBadgeTitle: {
-    ...TYPOGRAPHY.heading.h4,
-    color: COLORS.text.primary,
-    marginBottom: SPACING.md,
-  },
-  filterBadges: {
+
+  /* ──── 5. Tags ──── */
+  tagsSection: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: 6,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
   },
-  filterBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: BORDER_RADIUS.sm,
-    gap: 5,
+  tagChip: {
+    backgroundColor: '#f3f5f7',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 16,
   },
-  filterBadgeText: {
+  tagChipText: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '400',
+    color: '#5f5f5f',
   },
-  categoryEmoji: {
-    fontSize: 13,
-  },
-  priceBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: BORDER_RADIUS.sm,
-    backgroundColor: COLORS.functional.successLight,
-    gap: 5,
-  },
-  priceBadgeText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: COLORS.functional.success,
-  },
-  ageBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: BORDER_RADIUS.sm,
-    backgroundColor: COLORS.neutral.light,
-    gap: 5,
-  },
-  ageBadgeText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: COLORS.text.secondary,
-  },
-  genderBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: BORDER_RADIUS.sm,
-    backgroundColor: COLORS.neutral.light,
-    gap: 5,
-  },
-  genderBadgeText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: COLORS.primary.main,
-  },
-  optionalBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: BORDER_RADIUS.sm,
-    backgroundColor: COLORS.neutral.background,
-    borderWidth: 1,
-    borderColor: COLORS.neutral.grey100,
-    gap: 5,
-  },
-  optionalBadgeText: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: COLORS.text.tertiary,
-  },
-  infoGrid: {
-    marginBottom: SPACING.xl,
+
+  /* ──── 6. Info rows ──── */
+  infoSection: {
+    paddingHorizontal: 20,
+    paddingBottom: 16,
+    gap: 16,
   },
   infoRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 10,
+    gap: 12,
   },
-  infoLabel: {
-    ...TYPOGRAPHY.body.medium,
-    color: COLORS.text.secondary,
-    marginLeft: 8,
+  infoText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#5f5f5f',
+    flex: 1,
+  },
+
+  /* ──── 8. Description ──── */
+  descriptionSection: {
+    paddingHorizontal: 20,
+    paddingVertical: 20,
   },
   description: {
-    ...TYPOGRAPHY.body.large,
-    color: COLORS.text.primary,
-    lineHeight: 26,
-    marginBottom: SPACING.lg,
+    fontSize: 16,
+    fontWeight: '400',
+    color: '#5f5f5f',
+    lineHeight: 24,
+    marginBottom: 12,
   },
-  timeInfo: {
-    paddingTop: SPACING.lg,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.neutral.grey100,
-  },
-  timeText: {
-    ...TYPOGRAPHY.caption,
-    color: COLORS.text.tertiary,
-  },
-  accordionContainer: {
-    marginHorizontal: SPACING.xl,
-    marginBottom: SPACING.xl,
-    backgroundColor: COLORS.neutral.white,
-    borderRadius: BORDER_RADIUS.md,
-    borderWidth: 1,
-    borderColor: CARD_STYLE.borderColor,
-    overflow: 'hidden',
-    ...SHADOWS.small,
-  },
-  accordionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: SPACING.lg,
-    backgroundColor: COLORS.surface.secondary,
-  },
-  accordionTitle: {
-    ...TYPOGRAPHY.heading.h4,
-    color: COLORS.text.primary,
-  },
-  accordionContent: {
-    padding: SPACING.lg,
-    backgroundColor: COLORS.neutral.white,
-  },
-  filterSection: {
-    marginBottom: SPACING.lg,
-  },
-  filterSectionTitle: {
-    ...TYPOGRAPHY.body.medium,
-    fontWeight: '600',
-    color: COLORS.text.primary,
-    marginBottom: 6,
-  },
-  filterItem: {
-    marginBottom: 4,
-  },
-  filterValue: {
-    ...TYPOGRAPHY.body.medium,
-    color: COLORS.text.secondary,
-  },
-  filterDescription: {
-    ...TYPOGRAPHY.caption,
-    color: COLORS.text.tertiary,
-    marginTop: 2,
-  },
-  interestTags: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-  },
-  interestTag: {
-    backgroundColor: COLORS.neutral.light,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: BORDER_RADIUS.sm,
-    borderWidth: 1,
-    borderColor: COLORS.neutral.grey100,
-  },
-  interestTagText: {
+  metaText: {
     fontSize: 12,
-    color: COLORS.text.secondary,
-    fontWeight: '500',
+    fontWeight: '400',
+    color: '#868b94',
   },
-  participantSection: {
-    backgroundColor: COLORS.neutral.white,
-    marginHorizontal: SPACING.xl,
-    marginBottom: SPACING.lg,
-    padding: SPACING.xl,
-    borderRadius: BORDER_RADIUS.md,
-    borderWidth: 1,
-    borderColor: CARD_STYLE.borderColor,
-    ...SHADOWS.small,
+
+  /* ──── 9. Map ──── */
+  mapSection: {
+    paddingHorizontal: 20,
+    paddingBottom: 12,
   },
-  participantHeaderRow: {
+  mapContainer: {
+    width: '100%',
+    height: 168,
+    borderRadius: 16,
+    overflow: 'hidden',
+    backgroundColor: '#f5f5f5',
+  },
+
+  /* ──── 10. Address ──── */
+  addressSection: {
+    paddingHorizontal: 20,
+    paddingBottom: 16,
+  },
+  addressRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  addressText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#5f5f5f',
+    flex: 1,
+    marginRight: 8,
+  },
+  copyBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingVertical: 4,
+    paddingHorizontal: 4,
+  },
+  copyBtnText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#5f5f5f',
+  },
+  transitRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  transitBadgeBlue: {
+    width: 17,
+    height: 17,
+    borderRadius: 8.5,
+    backgroundColor: '#3e519b',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  transitBadgeBlueText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  transitBadgeGreen: {
+    width: 17,
+    height: 17,
+    borderRadius: 8.5,
+    backgroundColor: '#3e9b4b',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  transitBadgeGreenText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  transitStationText: {
+    fontSize: 12,
+    fontWeight: '400',
+    color: '#868b94',
+    marginLeft: 4,
+  },
+
+  /* ──── Helper ──── */
+  sectionPadded: {
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+  },
+
+  /* ──── 12. Participants ──── */
+  participantSection: {
+    paddingHorizontal: 20,
+    paddingVertical: 20,
   },
   participantTitle: {
-    ...TYPOGRAPHY.sectionHeader.title,
-    color: COLORS.text.primary,
-  },
-  participantCountText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: COLORS.primary.accent,
-  },
-  participantMiniBar: {
-    height: 4,
-    backgroundColor: COLORS.neutral.grey100,
-    borderRadius: 2,
-    overflow: 'hidden',
-    marginBottom: SPACING.lg,
-  },
-  participantMiniBarFill: {
-    height: '100%',
-    borderRadius: 2,
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#121212',
+    marginBottom: 16,
   },
   participantItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 14,
-    paddingBottom: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.neutral.grey100,
-  },
-  hostAvatarWrap: {
-    position: 'relative',
-    marginRight: 12,
-  },
-  hostAvatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    borderWidth: 2,
-    borderColor: COLORS.primary.accent,
-  },
-  hostCrownBadge: {
-    position: 'absolute',
-    top: -6,
-    right: -4,
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    backgroundColor: COLORS.neutral.white,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: COLORS.neutral.grey100,
-  },
-  hostCrownEmoji: {
-    fontSize: 10,
-  },
-  participantAvatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    marginRight: 12,
-    borderWidth: 1,
-    borderColor: COLORS.neutral.grey100,
+    gap: 9,
+    marginBottom: 18,
   },
   participantInfo: {
     flex: 1,
@@ -1850,26 +1485,25 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   participantName: {
-    ...TYPOGRAPHY.body.large,
-    fontWeight: '600',
-    color: COLORS.text.primary,
+    fontSize: 16,
+    fontWeight: '400',
+    color: '#121212',
+  },
+  participantBio: {
+    fontSize: 14,
+    fontWeight: '400',
+    color: '#868b94',
   },
   hostLabelBadge: {
-    backgroundColor: COLORS.primary.accent,
+    backgroundColor: COLORS.primary.main,
     paddingHorizontal: 6,
-    paddingVertical: 1,
+    paddingVertical: 2,
     borderRadius: 4,
   },
   hostLabelText: {
     fontSize: 10,
     fontWeight: '700',
     color: COLORS.text.white,
-  },
-  participantMetaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginTop: 2,
   },
   babalLevelBadge: {
     paddingHorizontal: 6,
@@ -1880,54 +1514,86 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '600',
   },
-  participantRole: {
-    ...TYPOGRAPHY.body.small,
-    color: COLORS.text.tertiary,
-  },
   noParticipants: {
-    ...TYPOGRAPHY.body.medium,
-    color: COLORS.text.tertiary,
+    fontSize: 14,
+    color: '#868b94',
     textAlign: 'center',
-    marginTop: SPACING.xl,
+    paddingVertical: 24,
   },
-  bottomPadding: {
-    height: 100,
-  },
+
+  /* ──── 13. Bottom Bar ──── */
   fixedBottom: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: COLORS.neutral.white,
-    paddingHorizontal: SPACING.xl,
-    paddingVertical: SPACING.lg,
+    height: 110,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 20,
+    paddingTop: 13,
     paddingBottom: 34,
     borderTopWidth: 1,
-    borderTopColor: CARD_STYLE.borderColor,
-    ...SHADOWS.sticky,
+    borderTopColor: '#f5f5f5',
   },
-  bottomButtonContainer: {
+  bottomBarRow: {
     flexDirection: 'row',
-    gap: 10,
+    alignItems: 'center',
+    gap: 12,
+  },
+  wishlistBtn: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 48,
+    gap: 2,
+  },
+  wishlistCount: {
+    fontSize: 11,
+    fontWeight: '500',
+    color: '#868b94',
+  },
+  ctaWrap: {
+    flex: 1,
+  },
+  ctaButton: {
+    backgroundColor: '#FFA529',
+    height: 52,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 6,
+  },
+  ctaButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    letterSpacing: -0.2,
+  },
+  joinDisabledHint: {
+    fontSize: 12,
+    color: COLORS.functional.error,
+    textAlign: 'center',
+    fontWeight: '600',
+    marginBottom: 4,
   },
   chatButton: {
     flex: 2,
     backgroundColor: COLORS.primary.main,
-    paddingVertical: 14,
-    borderRadius: BORDER_RADIUS.md,
+    height: 52,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    ...SHADOWS.small,
   },
   chatButtonText: {
-    ...TYPOGRAPHY.button.large,
+    fontSize: 16,
+    fontWeight: '600',
     color: COLORS.neutral.white,
   },
   hostButton: {
     flex: 1,
     backgroundColor: COLORS.functional.success,
-    paddingVertical: 14,
-    borderRadius: BORDER_RADIUS.md,
+    height: 52,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1935,58 +1601,32 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.functional.error,
   },
   hostButtonText: {
-    ...TYPOGRAPHY.button.medium,
+    fontSize: 14,
+    fontWeight: '600',
     color: COLORS.neutral.white,
   },
   leaveButton: {
     flex: 1,
     backgroundColor: COLORS.neutral.white,
-    paddingVertical: 14,
-    borderRadius: BORDER_RADIUS.md,
+    height: 52,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
     borderColor: COLORS.functional.error,
   },
   leaveButtonText: {
-    ...TYPOGRAPHY.button.medium,
+    fontSize: 14,
+    fontWeight: '600',
     color: COLORS.functional.error,
-  },
-  reviewButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: COLORS.primary.accent,
-    paddingVertical: 14,
-    borderRadius: BORDER_RADIUS.md,
-    gap: 8,
-    ...SHADOWS.cta,
-  },
-  reviewButtonText: {
-    ...TYPOGRAPHY.button.large,
-    color: COLORS.neutral.white,
-  },
-  joinButton: {
-    backgroundColor: COLORS.primary.accent,
-    borderRadius: BORDER_RADIUS.md,
-    paddingVertical: 16,
-    alignItems: 'center',
-    ...SHADOWS.cta,
-  },
-  joinButtonText: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: COLORS.neutral.white,
-    letterSpacing: -0.2,
   },
   depositButton: {
     flex: 1,
     backgroundColor: COLORS.special.deposit,
-    borderRadius: BORDER_RADIUS.md,
-    paddingVertical: 14,
+    height: 52,
+    borderRadius: 16,
     alignItems: 'center',
-    ...SHADOWS.cta,
+    justifyContent: 'center',
   },
   depositButtonText: {
     fontSize: 15,
@@ -1995,11 +1635,10 @@ const styles = StyleSheet.create({
   },
   depositPaidBadge: {
     backgroundColor: COLORS.functional.successLight,
-    borderRadius: BORDER_RADIUS.sm,
+    borderRadius: 4,
     paddingHorizontal: 10,
     paddingVertical: 6,
     alignSelf: 'center',
-    marginBottom: 4,
   },
   depositPaidText: {
     fontSize: 12,
@@ -2007,20 +1646,134 @@ const styles = StyleSheet.create({
     color: COLORS.functional.success,
   },
   pastMeetupContainer: {
+    flex: 1,
     backgroundColor: COLORS.neutral.light,
-    borderRadius: BORDER_RADIUS.md,
-    paddingVertical: 16,
-    paddingHorizontal: SPACING.xl,
+    borderRadius: 16,
+    height: 52,
     alignItems: 'center',
+    justifyContent: 'center',
     borderWidth: 1,
     borderColor: COLORS.neutral.grey100,
   },
   pastMeetupText: {
-    ...TYPOGRAPHY.body.large,
+    fontSize: 16,
     fontWeight: '600',
     color: COLORS.text.tertiary,
     textAlign: 'center',
   },
+
+  /* ──── Loading skeleton ──── */
+  loadingContainer: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
+  skeletonHeaderBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    height: 56,
+    paddingHorizontal: 20,
+    backgroundColor: COLORS.neutral.white,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.neutral.grey100,
+  },
+  skeletonHero: {
+    width: '100%',
+    height: 180,
+    backgroundColor: COLORS.neutral.light,
+  },
+  skeletonHostRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    gap: 12,
+  },
+  skeletonCircle: {
+    width: 43,
+    height: 43,
+    borderRadius: 22,
+    backgroundColor: COLORS.neutral.light,
+  },
+  skeletonContent: {
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    gap: 10,
+  },
+  skeletonLine: {
+    height: 14,
+    borderRadius: 4,
+    backgroundColor: COLORS.neutral.light,
+  },
+
+  /* ──── Accordion (FilterAccordion) ──── */
+  accordionContainer: {
+    marginHorizontal: 20,
+    marginBottom: 16,
+    backgroundColor: COLORS.neutral.white,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.neutral.grey100,
+    overflow: 'hidden',
+  },
+  accordionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    backgroundColor: COLORS.surface.secondary,
+  },
+  accordionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+  },
+  accordionContent: {
+    padding: 16,
+    backgroundColor: COLORS.neutral.white,
+  },
+  filterSection: {
+    marginBottom: 14,
+  },
+  filterSectionTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+    marginBottom: 6,
+  },
+  filterItem: {
+    marginBottom: 4,
+  },
+  filterValue: {
+    fontSize: 14,
+    fontWeight: '400',
+    color: COLORS.text.secondary,
+  },
+  filterDescription: {
+    fontSize: 12,
+    fontWeight: '400',
+    color: '#868B94',
+    marginTop: 2,
+  },
+  interestTags: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  interestTag: {
+    backgroundColor: '#f3f5f7',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 16,
+  },
+  interestTagText: {
+    fontSize: 12,
+    color: '#5f5f5f',
+    fontWeight: '400',
+  },
+
+  /* ──── Modals ──── */
   modalOverlay: {
     position: 'absolute',
     top: 0,
@@ -2033,33 +1786,34 @@ const styles = StyleSheet.create({
   },
   modalContainer: {
     backgroundColor: COLORS.neutral.white,
-    borderRadius: BORDER_RADIUS.lg,
+    borderRadius: 16,
     padding: 24,
     width: '90%',
     maxWidth: 400,
     ...SHADOWS.large,
   },
   modalTitle: {
-    ...TYPOGRAPHY.heading.h2,
+    fontSize: 20,
+    fontWeight: '600',
     color: COLORS.text.primary,
     textAlign: 'center',
-    marginBottom: SPACING.lg,
+    marginBottom: 12,
+    lineHeight: 28,
   },
   modalDescription: {
-    ...TYPOGRAPHY.body.medium,
+    fontSize: 14,
+    fontWeight: '400',
     color: COLORS.text.secondary,
     textAlign: 'center',
     lineHeight: 22,
-    marginBottom: SPACING.xl,
+    marginBottom: 20,
   },
   modalAmountContainer: {
-    backgroundColor: COLORS.neutral.light,
-    borderRadius: BORDER_RADIUS.md,
-    padding: SPACING.lg,
+    backgroundColor: '#F3F5F7',
+    borderRadius: 12,
+    padding: 16,
     alignItems: 'center',
-    marginBottom: SPACING.xl,
-    borderWidth: 1,
-    borderColor: COLORS.neutral.grey100,
+    marginBottom: 20,
   },
   modalAmount: {
     fontSize: 24,
@@ -2073,38 +1827,41 @@ const styles = StyleSheet.create({
   },
   modalCancelButton: {
     flex: 1,
-    backgroundColor: COLORS.neutral.light,
-    borderRadius: BORDER_RADIUS.md,
-    padding: 14,
+    backgroundColor: '#F3F5F7',
+    borderRadius: 16,
+    height: 48,
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: COLORS.neutral.grey100,
+    justifyContent: 'center',
   },
   modalCancelText: {
-    ...TYPOGRAPHY.button.medium,
+    fontSize: 15,
+    fontWeight: '600',
     color: COLORS.text.secondary,
   },
   modalPayButton: {
     flex: 1,
-    backgroundColor: COLORS.primary.accent,
-    borderRadius: BORDER_RADIUS.md,
-    padding: 14,
+    backgroundColor: '#FFA529',
+    borderRadius: 16,
+    height: 48,
     alignItems: 'center',
-    ...SHADOWS.cta,
+    justifyContent: 'center',
   },
   modalPayText: {
-    ...TYPOGRAPHY.button.medium,
+    fontSize: 15,
+    fontWeight: '600',
     color: COLORS.neutral.white,
   },
   modalLeaveButton: {
     flex: 1,
     backgroundColor: COLORS.functional.error,
-    borderRadius: BORDER_RADIUS.md,
-    padding: 14,
+    borderRadius: 16,
+    height: 48,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   modalLeaveText: {
-    ...TYPOGRAPHY.button.medium,
+    fontSize: 15,
+    fontWeight: '600',
     color: COLORS.neutral.white,
   },
   modalHostCancelButton: {
@@ -2113,13 +1870,18 @@ const styles = StyleSheet.create({
   modalConfirmButton: {
     flex: 1,
     backgroundColor: COLORS.functional.success,
-    borderRadius: BORDER_RADIUS.md,
-    padding: 14,
+    borderRadius: 16,
+    height: 48,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   modalConfirmText: {
-    ...TYPOGRAPHY.button.medium,
+    fontSize: 15,
+    fontWeight: '600',
     color: COLORS.neutral.white,
+  },
+  bottomPadding: {
+    height: 120,
   },
 });
 

@@ -2,9 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { COLORS } from '../styles/colors';
-import { SPACING } from '../styles/spacing';
-import { TYPOGRAPHY } from '../styles/typography';
-import { Icon, IconName } from './Icon';
+import NavIcon from './NavIcon';
 import apiClient from '../services/apiClient';
 import chatService from '../services/chatService';
 
@@ -13,12 +11,13 @@ const BottomTabBar: React.FC = () => {
   const navigate = useNavigate();
   const [unreadChatCount, setUnreadChatCount] = useState(0);
 
+  // Figma 기준 탭 순서: 홈 / 탐색 / 채팅 / 내약속 / 마이페이지
   const tabs = [
-    { key: 'home', title: '홈', icon: 'home' as IconName, path: '/home' },
-    { key: 'my-meetups', title: '내약속', icon: 'calendar' as IconName, path: '/my-meetups' },
-    { key: 'explore', title: '탐색', icon: 'compass' as IconName, path: '/explore' },
-    { key: 'chat', title: '채팅', icon: 'message-circle' as IconName, path: '/chat' },
-    { key: 'mypage', title: '마이페이지', icon: 'user' as IconName, path: '/mypage' },
+    { key: 'home', title: '홈', navIcon: 'home' as const, path: '/home' },
+    { key: 'explore', title: '탐색', navIcon: 'explore' as const, path: '/explore' },
+    { key: 'chat', title: '채팅', navIcon: 'chat' as const, path: '/chat' },
+    { key: 'my-meetups', title: '내약속', navIcon: 'mymeetups' as const, path: '/my-meetups' },
+    { key: 'mypage', title: '마이페이지', navIcon: 'mypage' as const, path: '/mypage' },
   ];
 
   const getActiveTab = () => {
@@ -114,10 +113,10 @@ const BottomTabBar: React.FC = () => {
             accessibilityLabel={`${tab.title} 탭`}
           >
             <View style={styles.tabIconContainer}>
-              <Icon
-                name={tab.icon}
-                size={21}
-                color={isActive ? COLORS.primary.accent : COLORS.neutral.grey400}
+              <NavIcon
+                name={tab.navIcon}
+                size={24}
+                color={isActive ? '#151515' : '#8F99A9'}
               />
               {showChatBadge && (
                 <View style={styles.chatBadge}>
@@ -133,7 +132,6 @@ const BottomTabBar: React.FC = () => {
             ]}>
               {tab.title}
             </Text>
-            {isActive && <View style={styles.activeIndicator} />}
           </TouchableOpacity>
         );
       })}
@@ -144,10 +142,10 @@ const BottomTabBar: React.FC = () => {
 const styles = StyleSheet.create({
   tabBar: {
     flexDirection: 'row',
-    height: SPACING.bottomNav.height,
+    height: 64,
     backgroundColor: COLORS.neutral.white,
     borderTopWidth: 1,
-    borderTopColor: COLORS.neutral.grey100,
+    borderTopColor: '#F5F5F5',
     ...(Platform.OS === 'web' ? {
       // @ts-ignore: web-only boxShadow
       boxShadow: '0 -1px 0 rgba(17,17,17,0.04)',
@@ -157,26 +155,18 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: SPACING.tab.paddingVertical,
-    paddingBottom: 6,
+    paddingTop: 8,
+    paddingBottom: 8,
     minHeight: 44,
     position: 'relative',
   },
   tabIconContainer: {
     position: 'relative',
-    width: 28,
-    height: 28,
+    width: 24,
+    height: 24,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 1,
-  },
-  activeIndicator: {
-    position: 'absolute',
-    top: 0,
-    width: 20,
-    height: 2,
-    backgroundColor: COLORS.primary.accent,
-    borderRadius: 1,
+    marginBottom: 5,
   },
   chatBadge: {
     position: 'absolute',
@@ -199,14 +189,14 @@ const styles = StyleSheet.create({
     lineHeight: 11,
   },
   tabLabel: {
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: '500',
-    color: COLORS.neutral.grey400,
+    color: '#8F99A9',
     letterSpacing: 0.2,
   },
   activeTabLabel: {
-    color: COLORS.primary.accent,
-    fontWeight: '600',
+    color: '#151515',
+    fontWeight: '500',
   },
 });
 

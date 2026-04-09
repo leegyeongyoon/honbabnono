@@ -90,7 +90,6 @@ const ExploreScreen: React.FC = () => {
   const [searchFocused, setSearchFocused] = useState(false);
   const [popupCloseHovered, setPopupCloseHovered] = useState(false);
   const [popupDetailHovered, setPopupDetailHovered] = useState(false);
-  const [filterButtonHovered, setFilterButtonHovered] = useState(false);
   const [locationPermission, setLocationPermission] = useState<'granted' | 'denied' | 'pending'>('pending');
   const [myLocation, setMyLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [mapBounds, setMapBounds] = useState<MapBounds | null>(null);
@@ -273,82 +272,35 @@ const ExploreScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      {/* 헤더 */}
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <Text style={styles.headerTitle}>탐색</Text>
-          {!loading && displayMeetups.length > 0 && (
-            <View style={styles.countBadge}>
-              <Text style={styles.countBadgeText}>
-                {displayMeetups.length}
-              </Text>
-            </View>
-          )}
-        </View>
-        {/* 뷰 모드 토글 */}
-        <View style={styles.viewToggle}>
-          <TouchableOpacity
-            style={[styles.toggleButton, viewMode === 'map' && styles.toggleButtonActive]}
-            onPress={() => setViewMode('map')}
-            activeOpacity={0.7}
-          >
-            <Icon name="map" size={16} color={viewMode === 'map' ? COLORS.text.white : COLORS.text.secondary} />
-            <Text style={[styles.toggleText, viewMode === 'map' && styles.toggleTextActive]}>지도</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.toggleButton, viewMode === 'list' && styles.toggleButtonActive]}
-            onPress={() => setViewMode('list')}
-            activeOpacity={0.7}
-          >
-            <Icon name="list" size={16} color={viewMode === 'list' ? COLORS.text.white : COLORS.text.secondary} />
-            <Text style={[styles.toggleText, viewMode === 'list' && styles.toggleTextActive]}>리스트</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {/* 카테고리 탭 (이미지 기반) */}
-      <CategoryTabBar
-        selectedCategory={selectedCategory}
-        onCategoryChange={handleCategoryChange}
-      />
-
-      {/* 검색바 + 필터 버튼 */}
+      {/* Sticky Header Area */}
       <div style={{
-        paddingTop: SPACING.md,
-        paddingBottom: SPACING.md,
-        paddingLeft: SPACING.screen.horizontal,
-        paddingRight: SPACING.screen.horizontal,
+        position: 'sticky' as any,
+        top: 0,
+        zIndex: 10,
         backgroundColor: COLORS.neutral.white,
-        borderBottom: `1px solid ${CARD_STYLE.borderColor}`,
-        position: 'relative',
       }}>
+        {/* Search Bar */}
         <div style={{
-          display: 'flex',
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: SPACING.sm,
+          padding: '12px 20px',
+          backgroundColor: COLORS.neutral.white,
         }}>
-          {/* 검색 인풋 */}
           <div style={{
             display: 'flex',
             flexDirection: 'row',
             alignItems: 'center',
-            flex: 1,
-            height: 48,
-            backgroundColor: COLORS.neutral.white,
-            borderRadius: BORDER_RADIUS.lg,
-            paddingLeft: SPACING.lg,
-            paddingRight: SPACING.lg,
-            gap: SPACING.md,
-            border: searchFocused ? `1.5px solid ${COLORS.primary.accent}` : `1.5px solid ${COLORS.neutral.grey100}`,
-            boxShadow: searchFocused ? `${CSS_SHADOWS.medium}, ${CSS_SHADOWS.focused}` : CSS_SHADOWS.medium,
-            transition: `border-color ${TRANSITIONS.normal}, box-shadow ${TRANSITIONS.normal}`,
+            height: 44,
+            backgroundColor: COLORS.neutral.grey100,
+            borderRadius: 22,
+            paddingLeft: 16,
+            paddingRight: 12,
+            gap: 8,
+            border: searchFocused ? `1.5px solid ${COLORS.primary.accent}` : '1.5px solid transparent',
+            transition: `border-color ${TRANSITIONS.normal}`,
           }}>
-            <Icon name="search" size={16} color={searchFocused ? COLORS.primary.main : COLORS.text.tertiary} />
             <TextInput
               style={styles.searchInput}
-              placeholder="약속 검색 (제목, 위치, 카테고리)"
-              placeholderTextColor={COLORS.text.tertiary}
+              placeholder="신청한 모임을 찾아봐요"
+              placeholderTextColor="#7E8082"
               value={searchQuery}
               onChangeText={setSearchQuery}
               onSubmitEditing={handleSearchSubmit}
@@ -356,163 +308,228 @@ const ExploreScreen: React.FC = () => {
               onBlur={() => setSearchFocused(false)}
               returnKeyType="search"
             />
-            {searchQuery.length > 0 && (
+            {searchQuery.length > 0 ? (
               <TouchableOpacity
                 onPress={() => { setSearchQuery(''); fetchMeetups(center.lat, center.lng); }}
                 style={styles.searchClearButton}
               >
                 <Icon name="times" size={14} color={COLORS.text.tertiary} />
               </TouchableOpacity>
-            )}
-          </div>
-
-          {/* 필터 칩 버튼 */}
-          <div
-            ref={filterButtonRef}
-            onClick={() => setShowFilters(!showFilters)}
-            onMouseEnter={() => setFilterButtonHovered(true)}
-            onMouseLeave={() => setFilterButtonHovered(false)}
-            style={{
-              display: 'flex',
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: 5,
-              height: 48,
-              paddingLeft: 14,
-              paddingRight: 14,
-              borderRadius: BORDER_RADIUS.lg,
-              border: showFilters || hasActiveFilters
-                ? `1.5px solid ${COLORS.primary.main}`
-                : `1.5px solid ${COLORS.neutral.grey100}`,
-              backgroundColor: showFilters || hasActiveFilters
-                ? COLORS.primary.light
-                : filterButtonHovered
-                  ? COLORS.neutral.grey50
-                  : COLORS.neutral.white,
-              cursor: 'pointer',
-              userSelect: 'none',
-              position: 'relative',
-              transition: `all ${TRANSITIONS.normal}`,
-              boxShadow: CSS_SHADOWS.small,
-              flexShrink: 0,
-            }}
-          >
-            <Icon
-              name="filter"
-              size={15}
-              color={showFilters || hasActiveFilters ? COLORS.primary.main : COLORS.text.tertiary}
-            />
-            <span style={{
-              fontSize: 14,
-              fontWeight: 600,
-              color: showFilters || hasActiveFilters ? COLORS.primary.main : COLORS.text.secondary,
-              whiteSpace: 'nowrap',
-              transition: `color ${TRANSITIONS.normal}`,
-            }}>
-              필터
-            </span>
-            {hasActiveFilters && (
-              <div style={{
-                position: 'absolute',
-                top: -3,
-                right: -3,
-                width: 8,
-                height: 8,
-                borderRadius: BORDER_RADIUS.full,
-                backgroundColor: COLORS.primary.main,
-                border: `1.5px solid ${COLORS.neutral.white}`,
-              }} />
+            ) : (
+              <Icon name="search" size={18} color="#7E8082" />
             )}
           </div>
         </div>
 
-        {/* 필터 드롭다운 패널 */}
-        {showFilters && (
-          <div
-            ref={filterDropdownRef}
-            style={{
-              position: 'absolute',
-              top: '100%',
-              right: SPACING.screen.horizontal,
-              zIndex: 100,
-              minWidth: 280,
-              backgroundColor: COLORS.neutral.white,
-              borderRadius: BORDER_RADIUS.xl,
-              border: `1px solid ${COLORS.neutral.grey100}`,
-              boxShadow: CSS_SHADOWS.large,
-              padding: SPACING.lg,
-              marginTop: 4,
-            }}
-          >
-            {/* 성별 필터 */}
-            <div style={{ marginBottom: SPACING.lg }}>
-              <div style={{
-                fontSize: 13,
-                fontWeight: 700,
-                color: COLORS.text.secondary,
-                marginBottom: SPACING.sm,
-                letterSpacing: -0.1,
-              }}>
-                성별
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
-                {GENDER_OPTIONS.map((opt) => (
-                  <FilterChip
-                    key={`gender-${opt.value}`}
-                    label={opt.label}
-                    isActive={selectedGender === opt.value}
-                    onPress={() => setSelectedGender(selectedGender === opt.value ? '' : opt.value)}
-                  />
-                ))}
-              </div>
-            </div>
+        {/* Segmented Control: 지도 / 리스트 */}
+        <div style={{
+          display: 'flex',
+          justifyContent: 'center',
+          padding: '0 20px 12px',
+          backgroundColor: COLORS.neutral.white,
+        }}>
+          <div style={{
+            display: 'flex',
+            flexDirection: 'row',
+            height: 40,
+            backgroundColor: '#f1f2f3',
+            borderRadius: 99,
+            padding: 4,
+            width: '100%',
+            maxWidth: 335,
+          }}>
+            <SegmentedTab
+              label="지도"
+              isActive={viewMode === 'map'}
+              onPress={() => setViewMode('map')}
+            />
+            <SegmentedTab
+              label="리스트"
+              isActive={viewMode === 'list'}
+              onPress={() => setViewMode('list')}
+            />
+          </div>
+        </div>
 
-            {/* 나이 필터 */}
-            <div>
-              <div style={{
-                fontSize: 13,
-                fontWeight: 700,
-                color: COLORS.text.secondary,
-                marginBottom: SPACING.sm,
-                letterSpacing: -0.1,
-              }}>
-                나이
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
-                {AGE_OPTIONS.map((opt) => (
-                  <FilterChip
-                    key={`age-${opt.value}`}
-                    label={opt.label}
-                    isActive={selectedAge === opt.value}
-                    onPress={() => setSelectedAge(selectedAge === opt.value ? '' : opt.value)}
-                  />
-                ))}
-              </div>
-            </div>
+        {/* Category Tabs: Horizontal scroll with underline indicator */}
+        <div style={{
+          backgroundColor: COLORS.neutral.white,
+          borderBottom: '1px solid #e4e6e8',
+        }}>
+          <div style={{
+            display: 'flex',
+            flexDirection: 'row',
+            overflowX: 'auto',
+            paddingLeft: 20,
+            paddingRight: 12,
+            gap: 24,
+            scrollbarWidth: 'none',
+          }}>
+            <CategoryTab
+              label="전체"
+              isActive={!selectedCategory}
+              onPress={() => handleCategoryChange(null)}
+            />
+            <CategoryTab
+              label="한식"
+              isActive={selectedCategory === '한식'}
+              onPress={() => handleCategoryChange('한식')}
+            />
+            <CategoryTab
+              label="중식"
+              isActive={selectedCategory === '중식'}
+              onPress={() => handleCategoryChange('중식')}
+            />
+            <CategoryTab
+              label="양식"
+              isActive={selectedCategory === '양식'}
+              onPress={() => handleCategoryChange('양식')}
+            />
+            <CategoryTab
+              label="일식"
+              isActive={selectedCategory === '일식'}
+              onPress={() => handleCategoryChange('일식')}
+            />
+            <CategoryTab
+              label="고기"
+              isActive={selectedCategory === '고기'}
+              onPress={() => handleCategoryChange('고기')}
+            />
+            <CategoryTab
+              label="분식"
+              isActive={selectedCategory === '분식'}
+              onPress={() => handleCategoryChange('분식')}
+            />
+            <CategoryTab
+              label="해산물"
+              isActive={selectedCategory === '해산물'}
+              onPress={() => handleCategoryChange('해산물')}
+            />
+            <CategoryTab
+              label="찌개"
+              isActive={selectedCategory === '찌개'}
+              onPress={() => handleCategoryChange('찌개')}
+            />
+          </div>
+        </div>
 
-            {/* 초기화 버튼 */}
-            {hasActiveFilters && (
+        {/* Filter Row (list view only) */}
+        {viewMode === 'list' && (
+          <div style={{
+            display: 'flex',
+            flexDirection: 'row',
+            gap: 4,
+            padding: '10px 20px',
+            backgroundColor: COLORS.neutral.white,
+            borderBottom: `1px solid ${COLORS.neutral.grey100}`,
+            position: 'relative',
+          }}>
+            <FilterPill
+              ref={filterButtonRef}
+              label={selectedGender || '성별'}
+              isActive={selectedGender !== ''}
+              onPress={() => setShowFilters(!showFilters)}
+            />
+            <FilterPill
+              label={selectedAge || '나이'}
+              isActive={selectedAge !== ''}
+              onPress={() => setShowFilters(!showFilters)}
+            />
+            <FilterPill
+              label="정렬"
+              isActive={false}
+              onPress={() => setShowFilters(!showFilters)}
+            />
+
+            {/* 필터 드롭다운 패널 */}
+            {showFilters && (
               <div
-                onClick={() => {
-                  setSelectedGender('');
-                  setSelectedAge('');
-                }}
+                ref={filterDropdownRef}
                 style={{
-                  marginTop: SPACING.lg,
-                  paddingTop: SPACING.md,
-                  borderTop: `1px solid ${COLORS.neutral.grey100}`,
-                  display: 'flex',
-                  justifyContent: 'center',
-                  cursor: 'pointer',
+                  position: 'absolute',
+                  top: '100%',
+                  left: 20,
+                  zIndex: 100,
+                  minWidth: 280,
+                  backgroundColor: COLORS.neutral.white,
+                  borderRadius: BORDER_RADIUS.xl,
+                  border: `1px solid ${COLORS.neutral.grey100}`,
+                  boxShadow: CSS_SHADOWS.large,
+                  padding: SPACING.lg,
+                  marginTop: 4,
                 }}
               >
-                <span style={{
-                  fontSize: 13,
-                  fontWeight: 600,
-                  color: COLORS.text.tertiary,
-                }}>
-                  필터 초기화
-                </span>
+                {/* 성별 필터 */}
+                <div style={{ marginBottom: SPACING.lg }}>
+                  <div style={{
+                    fontSize: 13,
+                    fontWeight: 700,
+                    color: COLORS.text.secondary,
+                    marginBottom: SPACING.sm,
+                    letterSpacing: -0.1,
+                  }}>
+                    성별
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
+                    {GENDER_OPTIONS.map((opt) => (
+                      <FilterChip
+                        key={`gender-${opt.value}`}
+                        label={opt.label}
+                        isActive={selectedGender === opt.value}
+                        onPress={() => setSelectedGender(selectedGender === opt.value ? '' : opt.value)}
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                {/* 나이 필터 */}
+                <div>
+                  <div style={{
+                    fontSize: 13,
+                    fontWeight: 700,
+                    color: COLORS.text.secondary,
+                    marginBottom: SPACING.sm,
+                    letterSpacing: -0.1,
+                  }}>
+                    나이
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
+                    {AGE_OPTIONS.map((opt) => (
+                      <FilterChip
+                        key={`age-${opt.value}`}
+                        label={opt.label}
+                        isActive={selectedAge === opt.value}
+                        onPress={() => setSelectedAge(selectedAge === opt.value ? '' : opt.value)}
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                {/* 초기화 버튼 */}
+                {hasActiveFilters && (
+                  <div
+                    onClick={() => {
+                      setSelectedGender('');
+                      setSelectedAge('');
+                    }}
+                    style={{
+                      marginTop: SPACING.lg,
+                      paddingTop: SPACING.md,
+                      borderTop: `1px solid ${COLORS.neutral.grey100}`,
+                      display: 'flex',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <span style={{
+                      fontSize: 13,
+                      fontWeight: 600,
+                      color: COLORS.text.tertiary,
+                    }}>
+                      필터 초기화
+                    </span>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -520,7 +537,7 @@ const ExploreScreen: React.FC = () => {
       </div>
 
       {viewMode === 'map' ? (
-        /* 지도 뷰 */
+        /* ========== Map View ========== */
         <View style={styles.mapContainer}>
           {/* 위치 권한 배너 */}
           {showLocationBanner && (
@@ -529,7 +546,7 @@ const ExploreScreen: React.FC = () => {
               flexDirection: 'row',
               alignItems: 'center',
               justifyContent: 'space-between',
-              padding: `${SPACING.md}px ${SPACING.screen.horizontal}px`,
+              padding: '10px 20px',
               backgroundColor: COLORS.functional.infoLight,
               borderBottom: `1px solid ${COLORS.functional.info}20`,
             }}>
@@ -537,7 +554,7 @@ const ExploreScreen: React.FC = () => {
                 display: 'flex',
                 flexDirection: 'row',
                 alignItems: 'center',
-                gap: SPACING.sm,
+                gap: 8,
                 flex: 1,
               }}>
                 <Icon name="map-pin" size={14} color={COLORS.functional.info} />
@@ -556,7 +573,7 @@ const ExploreScreen: React.FC = () => {
                   cursor: 'pointer',
                   padding: 4,
                   flexShrink: 0,
-                  marginLeft: SPACING.sm,
+                  marginLeft: 8,
                 }}
               >
                 <Icon name="times" size={12} color={COLORS.functional.info} />
@@ -580,21 +597,21 @@ const ExploreScreen: React.FC = () => {
               myLocation={myLocation}
             />
 
-            {/* 내 위치 버튼 */}
+            {/* 내 위치 버튼 — Figma: 52x52 circle, bottom right */}
             <MyLocationButton onClick={handleMyLocationClick} hasLocation={locationPermission === 'granted'} />
 
-            {/* 선택된 모임 바텀시트 카드 */}
+            {/* 선택된 모임 바텀 카드 — Figma: white card, borderRadius, padding 28px */}
             {selectedMeetup && (
               <div
                 ref={bottomCardRef}
                 style={{
                   position: 'absolute',
-                  bottom: SPACING.lg,
-                  left: SPACING.lg,
-                  right: SPACING.lg,
+                  bottom: 16,
+                  left: 16,
+                  right: 16,
                   backgroundColor: COLORS.neutral.white,
-                  borderRadius: BORDER_RADIUS.xxl,
-                  padding: SPACING.lg,
+                  borderRadius: 16,
+                  padding: 28,
                   boxShadow: CSS_SHADOWS.large,
                   zIndex: 20,
                   animation: 'slideUp 200ms ease-out',
@@ -606,14 +623,15 @@ const ExploreScreen: React.FC = () => {
                     to { transform: translateY(0); opacity: 1; }
                   }
                 `}</style>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
                   <div style={{ flex: 1 }}>
+                    {/* Title: SemiBold 24px (scaled for mobile web) */}
                     <div style={{
-                      fontSize: 16,
-                      fontWeight: '700',
-                      color: COLORS.text.primary,
-                      marginBottom: 6,
-                      lineHeight: '22px',
+                      fontSize: 18,
+                      fontWeight: '600',
+                      color: '#121212',
+                      marginBottom: 8,
+                      lineHeight: '24px',
                       display: '-webkit-box',
                       WebkitLineClamp: 2,
                       WebkitBoxOrient: 'vertical',
@@ -622,98 +640,100 @@ const ExploreScreen: React.FC = () => {
                     }}>
                       {selectedMeetup.title}
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
-                      <span style={{
-                        display: 'inline-block',
-                        fontSize: 12,
-                        fontWeight: '600',
-                        color: getCategoryColor(selectedMeetup.category),
-                        backgroundColor: `${getCategoryColor(selectedMeetup.category)}15`,
-                        padding: '3px 8px',
-                        borderRadius: BORDER_RADIUS.pill,
-                      }}>
-                        {selectedMeetup.category}
-                      </span>
-                      <span style={{
-                        fontSize: 13,
-                        color: COLORS.text.secondary,
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                        maxWidth: 150,
+                    {/* Description: Regular 17px → 14px for mobile */}
+                    {selectedMeetup.location && (
+                      <div style={{
+                        fontSize: 14,
+                        fontWeight: '400',
+                        color: '#5F5F5F',
+                        marginBottom: 10,
+                        lineHeight: '20px',
                       }}>
                         {selectedMeetup.location}
-                      </span>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: COLORS.text.tertiary }}>
-                      <span>{selectedMeetup.date} {selectedMeetup.time}</span>
-                      <span style={{ color: COLORS.neutral.grey300 }}>|</span>
-                      <span style={{
-                        color: selectedMeetup.currentParticipants >= selectedMeetup.maxParticipants
-                          ? COLORS.functional.error
-                          : COLORS.text.tertiary,
-                        fontWeight: selectedMeetup.currentParticipants >= selectedMeetup.maxParticipants ? '600' : '400',
-                      }}>
-                        {selectedMeetup.currentParticipants}/{selectedMeetup.maxParticipants}명
-                      </span>
-                      {selectedMeetup.distance != null && (
-                        <>
-                          <span style={{ color: COLORS.neutral.grey300 }}>|</span>
-                          <span style={{
-                            color: COLORS.primary.main,
-                            fontWeight: '600',
-                            backgroundColor: COLORS.primary.light,
-                            padding: '2px 8px',
-                            borderRadius: BORDER_RADIUS.pill,
-                            fontSize: 12,
-                          }}>{formatDistance(selectedMeetup.distance)}</span>
-                        </>
-                      )}
+                      </div>
+                    )}
+                    {/* Meta: calendar + date, user + count */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <Icon name="calendar" size={14} color="#878B94" />
+                        <span style={{ fontSize: 13, color: '#878B94', fontWeight: 400 }}>
+                          {selectedMeetup.date} {selectedMeetup.time}
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <Icon name="user" size={14} color="#878B94" />
+                        <span style={{
+                          fontSize: 13,
+                          color: selectedMeetup.currentParticipants >= selectedMeetup.maxParticipants
+                            ? COLORS.functional.error
+                            : '#878B94',
+                          fontWeight: selectedMeetup.currentParticipants >= selectedMeetup.maxParticipants ? 600 : 400,
+                        }}>
+                          {selectedMeetup.currentParticipants}/{selectedMeetup.maxParticipants}명
+                        </span>
+                      </div>
                     </div>
                   </div>
-                  <div
-                    onClick={() => setSelectedMeetup(null)}
-                    onMouseEnter={() => setPopupCloseHovered(true)}
-                    onMouseLeave={() => setPopupCloseHovered(false)}
-                    style={{
-                      cursor: 'pointer',
-                      padding: 8,
-                      color: COLORS.text.tertiary,
-                      fontSize: 14,
-                      lineHeight: '14px',
-                      borderRadius: BORDER_RADIUS.md,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      width: 36,
-                      height: 36,
-                      backgroundColor: popupCloseHovered ? COLORS.neutral.grey200 : COLORS.neutral.grey100,
-                      transition: `background-color ${TRANSITIONS.fast}`,
-                      flexShrink: 0,
-                    }}
-                    role="button"
-                    aria-label="닫기"
-                  >
-                    ✕
+
+                  {/* Thumbnail on right: 45x45 */}
+                  <div style={{
+                    width: 45,
+                    height: 45,
+                    borderRadius: 8,
+                    overflow: 'hidden',
+                    backgroundColor: COLORS.neutral.grey100,
+                    flexShrink: 0,
+                  }}>
+                    {selectedMeetup.image && (
+                      <img
+                        src={selectedMeetup.image}
+                        alt={selectedMeetup.title}
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      />
+                    )}
                   </div>
                 </div>
+                {/* Close button */}
+                <div
+                  onClick={() => setSelectedMeetup(null)}
+                  onMouseEnter={() => setPopupCloseHovered(true)}
+                  onMouseLeave={() => setPopupCloseHovered(false)}
+                  style={{
+                    position: 'absolute',
+                    top: 12,
+                    right: 12,
+                    cursor: 'pointer',
+                    padding: 6,
+                    borderRadius: BORDER_RADIUS.full,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: 28,
+                    height: 28,
+                    backgroundColor: popupCloseHovered ? COLORS.neutral.grey200 : COLORS.neutral.grey100,
+                    transition: `background-color ${TRANSITIONS.fast}`,
+                  }}
+                  role="button"
+                  aria-label="닫기"
+                >
+                  <Icon name="times" size={12} color={COLORS.text.tertiary} />
+                </div>
+                {/* Detail button */}
                 <div
                   onClick={() => handleMeetupClick(selectedMeetup)}
                   onMouseEnter={() => setPopupDetailHovered(true)}
                   onMouseLeave={() => setPopupDetailHovered(false)}
                   style={{
-                    marginTop: 14,
-                    padding: '13px 0',
+                    marginTop: 16,
+                    padding: '12px 0',
                     textAlign: 'center',
-                    background: COLORS.gradient.ctaCSS,
+                    backgroundColor: '#FFA529',
                     color: COLORS.text.white,
-                    borderRadius: BORDER_RADIUS.md,
+                    borderRadius: 10,
                     fontSize: 15,
-                    fontWeight: '700',
+                    fontWeight: '600',
                     cursor: 'pointer',
-                    letterSpacing: '0.3px',
                     transition: `transform ${TRANSITIONS.normal}`,
-                    boxShadow: CSS_SHADOWS.cta,
                     transform: popupDetailHovered ? 'scale(1.02)' : 'scale(1)',
                   }}
                 >
@@ -726,9 +746,7 @@ const ExploreScreen: React.FC = () => {
           {/* 지도 아래 모임 리스트 */}
           <ScrollView style={styles.mapListBelow} showsVerticalScrollIndicator={false}>
             <View style={styles.listTitleRow}>
-              <Text style={styles.mapListTitle}>
-                {listTitle}
-              </Text>
+              <Text style={styles.mapListTitle}>{listTitle}</Text>
               {visibleMeetups.length > 0 && (
                 <Text style={styles.listCount}>
                   {mapBounds ? `지도 영역 ${visibleMeetups.length}개` : `총 ${visibleMeetups.length}개의 약속`}
@@ -759,12 +777,6 @@ const ExploreScreen: React.FC = () => {
                         onPress={handleMeetupClick}
                         variant="compact"
                       />
-                      {meetup.distance != null && (
-                        <View style={styles.distanceBadge}>
-                          <Icon name="map-pin" size={10} color={COLORS.primary.main} />
-                          <Text style={styles.distanceText} numberOfLines={1}>{formatDistance(meetup.distance)}</Text>
-                        </View>
-                      )}
                     </View>
                   ))}
                 </View>
@@ -774,18 +786,8 @@ const ExploreScreen: React.FC = () => {
           </ScrollView>
         </View>
       ) : (
-        /* 리스트 뷰 */
+        /* ========== List View ========== */
         <ScrollView style={styles.listContainer} showsVerticalScrollIndicator={false}>
-          <View style={styles.listHeader}>
-            <View style={styles.listTitleRow}>
-              <Text style={styles.mapListTitle}>
-                {listTitle}
-              </Text>
-              {displayMeetups.length > 0 && (
-                <Text style={styles.listCount}>총 {displayMeetups.length}개의 약속</Text>
-              )}
-            </View>
-          </View>
           {loading ? (
             <View style={styles.skeletonPadding}>
               {[1, 2, 3, 4, 5].map(i => <MeetupCardSkeleton key={i} variant="compact" />)}
@@ -802,24 +804,61 @@ const ExploreScreen: React.FC = () => {
           ) : (
             <FadeIn>
               <View style={styles.meetupList}>
-                {displayMeetups.map(meetup => (
-                  <View key={meetup.id} style={styles.meetupItemWrapper}>
-                    <MeetupCard
-                      meetup={meetup}
-                      onPress={handleMeetupClick}
-                      variant="compact"
-                    />
-                    {meetup.distance != null && (
-                      <View style={styles.distanceBadge}>
-                        <Icon name="map-pin" size={10} color={COLORS.primary.main} />
-                        <Text style={styles.distanceText} numberOfLines={1}>{formatDistance(meetup.distance)}</Text>
-                      </View>
+                {displayMeetups.map((meetup, index) => (
+                  <View key={meetup.id}>
+                    <View style={styles.meetupItemWrapper}>
+                      <MeetupCard
+                        meetup={meetup}
+                        onPress={handleMeetupClick}
+                        variant="compact"
+                      />
+                    </View>
+                    {/* Separator between items — Figma: 1px line */}
+                    {index < displayMeetups.length - 1 && (
+                      <div style={{
+                        height: 1,
+                        backgroundColor: '#f0f0f0',
+                        marginLeft: 20 + 70 + 18,
+                        marginRight: 20,
+                      }} />
                     )}
                   </View>
                 ))}
               </View>
             </FadeIn>
           )}
+
+          {/* FAB: 57x57 orange circle with + */}
+          <div
+            onClick={() => navigate('/create')}
+            style={{
+              position: 'fixed',
+              bottom: 80,
+              right: 20,
+              width: 57,
+              height: 57,
+              borderRadius: 57 / 2,
+              backgroundColor: '#FFA529',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              boxShadow: CSS_SHADOWS.fab,
+              zIndex: 50,
+              transition: `transform ${TRANSITIONS.normal}`,
+            }}
+            role="button"
+            aria-label="새 모임 만들기"
+          >
+            <span style={{
+              fontSize: 28,
+              fontWeight: 300,
+              color: COLORS.text.white,
+              lineHeight: '28px',
+              marginTop: -1,
+            }}>+</span>
+          </div>
+
           <View style={{ height: 100 }} />
         </ScrollView>
       )}
@@ -827,7 +866,146 @@ const ExploreScreen: React.FC = () => {
   );
 };
 
-/** My location FAB button overlaid on the map */
+/** Segmented Tab component — Figma pill style (orange active) */
+const SegmentedTab: React.FC<{
+  label: string;
+  isActive: boolean;
+  onPress: () => void;
+}> = ({ label, isActive, onPress }) => {
+  const [hovered, setHovered] = useState(false);
+
+  return (
+    <div
+      onClick={onPress}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        flex: 1,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        height: 32,
+        borderRadius: 999,
+        backgroundColor: isActive ? '#FFA529' : 'transparent',
+        cursor: 'pointer',
+        transition: `all ${TRANSITIONS.normal}`,
+        userSelect: 'none',
+      }}
+    >
+      <span style={{
+        fontSize: 14,
+        fontWeight: isActive ? 600 : 500,
+        color: isActive ? '#FFFFFF' : '#8f99a9',
+        transition: `color ${TRANSITIONS.normal}`,
+      }}>
+        {label}
+      </span>
+    </div>
+  );
+};
+
+/** Category Tab with underline indicator — Figma style */
+const CategoryTab: React.FC<{
+  label: string;
+  isActive: boolean;
+  onPress: () => void;
+}> = ({ label, isActive, onPress }) => {
+  const [hovered, setHovered] = useState(false);
+
+  return (
+    <div
+      onClick={onPress}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingTop: 10,
+        paddingBottom: 10,
+        cursor: 'pointer',
+        userSelect: 'none',
+        position: 'relative',
+        whiteSpace: 'nowrap',
+        flexShrink: 0,
+      }}
+    >
+      <span style={{
+        fontSize: 14,
+        fontWeight: 600,
+        color: isActive ? '#121212' : '#666666',
+        transition: `color ${TRANSITIONS.normal}`,
+        lineHeight: '20px',
+      }}>
+        {label}
+      </span>
+      {/* Underline indicator */}
+      <div style={{
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        height: 2,
+        backgroundColor: isActive ? '#121212' : 'transparent',
+        borderRadius: 1,
+        transition: `background-color ${TRANSITIONS.normal}`,
+      }} />
+    </div>
+  );
+};
+
+/** Filter Pill — Figma: border #e4e6e8, borderRadius 20, text #181a1c 14px Medium */
+const FilterPill = React.forwardRef<HTMLDivElement, {
+  label: string;
+  isActive: boolean;
+  onPress: () => void;
+}>(({ label, isActive, onPress }, ref) => {
+  const [hovered, setHovered] = useState(false);
+
+  return (
+    <div
+      ref={ref}
+      onClick={onPress}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        display: 'flex',
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        paddingTop: 5,
+        paddingBottom: 5,
+        paddingLeft: 16,
+        paddingRight: 9,
+        borderRadius: 20,
+        border: isActive
+          ? `1.5px solid ${COLORS.primary.main}`
+          : '1px solid #e4e6e8',
+        backgroundColor: isActive
+          ? COLORS.primary.light
+          : hovered
+            ? COLORS.neutral.grey50
+            : COLORS.neutral.white,
+        cursor: 'pointer',
+        userSelect: 'none',
+        transition: `all ${TRANSITIONS.normal}`,
+        flexShrink: 0,
+      }}
+    >
+      <span style={{
+        fontSize: 14,
+        fontWeight: 500,
+        color: isActive ? COLORS.primary.main : '#181a1c',
+        whiteSpace: 'nowrap',
+      }}>
+        {label}
+      </span>
+      <Icon name="chevron-down" size={12} color={isActive ? COLORS.primary.main : '#878B94'} />
+    </div>
+  );
+});
+
+/** My location FAB button overlaid on the map — Figma: 52x52 circle */
 const MyLocationButton: React.FC<{
   onClick: () => void;
   hasLocation: boolean;
@@ -842,10 +1020,10 @@ const MyLocationButton: React.FC<{
       style={{
         position: 'absolute',
         bottom: 80,
-        right: SPACING.lg,
-        width: 44,
-        height: 44,
-        borderRadius: BORDER_RADIUS.full,
+        right: 16,
+        width: 52,
+        height: 52,
+        borderRadius: 26,
         backgroundColor: COLORS.neutral.white,
         display: 'flex',
         alignItems: 'center',
@@ -862,7 +1040,7 @@ const MyLocationButton: React.FC<{
     >
       <Icon
         name="compass"
-        size={20}
+        size={22}
         color={hasLocation ? COLORS.functional.info : COLORS.text.tertiary}
       />
     </div>
@@ -919,72 +1097,7 @@ const FilterChip: React.FC<{
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.neutral.background,
-  },
-
-  // Header
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    ...HEADER_STYLE.main,
-    // @ts-ignore
-    position: 'sticky',
-    top: 0,
-    zIndex: 10,
-    boxShadow: CSS_SHADOWS.stickyHeader,
-  },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.sm,
-  },
-  headerTitle: {
-    ...HEADER_STYLE.title,
-  },
-  countBadge: {
-    backgroundColor: COLORS.primary.light,
-    borderRadius: BORDER_RADIUS.pill,
-    paddingHorizontal: SPACING.sm,
-    paddingVertical: 2,
-    borderWidth: 1,
-    borderColor: COLORS.neutral.grey100,
-  },
-  countBadgeText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: COLORS.primary.main,
-  },
-
-  // View Toggle (pill)
-  viewToggle: {
-    flexDirection: 'row',
-    backgroundColor: COLORS.neutral.grey100,
-    borderRadius: BORDER_RADIUS.xl,
-    padding: 3,
-  },
-  toggleButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    borderRadius: BORDER_RADIUS.lg,
-    cursor: 'pointer',
-    transition: `all ${TRANSITIONS.normal}`,
-  },
-  toggleButtonActive: {
-    backgroundColor: COLORS.primary.main,
-    ...SHADOWS.small,
-  },
-  toggleText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: COLORS.text.secondary,
-    transition: `color ${TRANSITIONS.normal}`,
-  },
-  toggleTextActive: {
-    color: COLORS.text.white,
+    backgroundColor: COLORS.neutral.white,
   },
 
   // Search
@@ -998,9 +1111,7 @@ const styles = StyleSheet.create({
   },
   searchClearButton: {
     cursor: 'pointer',
-    padding: 8,
-    minWidth: 44,
-    minHeight: 44,
+    padding: 6,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1023,29 +1134,26 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'baseline',
     justifyContent: 'space-between',
-    paddingHorizontal: SPACING.screen.horizontal,
+    paddingHorizontal: 20,
     paddingTop: SPACING.lg,
     paddingBottom: SPACING.sm,
   },
   mapListTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: COLORS.text.primary,
+    color: '#121212',
     letterSpacing: -0.05,
   },
   listCount: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: COLORS.text.tertiary,
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#878B94',
   },
 
   // List View
   listContainer: {
     flex: 1,
-  },
-  listHeader: {
     backgroundColor: COLORS.neutral.white,
-    paddingBottom: 0,
   },
 
   // Meetup List
@@ -1056,7 +1164,7 @@ const styles = StyleSheet.create({
   meetupItemWrapper: {
     position: 'relative',
     overflow: 'hidden',
-    ...LIST_ITEM_STYLE,
+    backgroundColor: COLORS.neutral.white,
     cursor: 'pointer',
   },
 
@@ -1081,7 +1189,7 @@ const styles = StyleSheet.create({
 
   // Skeleton Loading
   skeletonPadding: {
-    padding: SPACING.screen.horizontal,
+    padding: 20,
   },
 });
 
