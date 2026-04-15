@@ -32,8 +32,8 @@ test.describe('홈 화면 - 모임 목록', () => {
     if (hasArticle) {
       await card.click();
     } else {
-      // 다른 방법: 모임 제목 텍스트 클릭
-      const meetupLink = page.locator('text=/[🍜🥘🍚🍣🦞🥟🍲🥩☕🍝🐟🍺🥘]/..');
+      // 다른 방법: 모임 관련 텍스트 요소 클릭
+      const meetupLink = page.locator('div[style*="cursor: pointer"]').first();
       if (await meetupLink.count() > 0) {
         await meetupLink.first().click();
       }
