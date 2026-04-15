@@ -5,7 +5,6 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  FlatList,
   TextInput,
   Image,
 } from 'react-native';
@@ -14,13 +13,12 @@ import { COLORS, CSS_SHADOWS, TYPOGRAPHY, SPACING, BORDER_RADIUS, TRANSITIONS } 
 import { Icon } from '../components/Icon';
 import chatService from '../services/chatService';
 import chatApiService, { ChatRoom, ChatMessage } from '../services/chatApiService';
-import { getDetailedDateFormat, getChatDateHeader, isSameDay } from '../utils/timeUtils';
+import { getChatDateHeader, isSameDay } from '../utils/timeUtils';
 import { useRouterNavigation } from '../components/RouterNavigation';
 import { useUserStore } from '../store/userStore';
 import Toast from '../components/Toast';
 import { useToast } from '../hooks/useToast';
 import EmptyState from '../components/EmptyState';
-import UnderlineTabBar from '../components/UnderlineTabBar';
 
 import { ChatListSkeleton } from '../components/skeleton';
 import { getAvatarColor, getInitials } from '../utils/avatarColor';
@@ -69,88 +67,103 @@ const WebSendButtonWrapper: React.FC<{
   );
 };
 
-// --- Hover-aware chat list item ---
+// --- Figma chat/list item (web) ---
 const WebChatListItem: React.FC<{
   item: ChatRoom;
   onSelect: (id: number) => void;
 }> = ({ item, onSelect }) => {
   const [hovered, setHovered] = useState(false);
-  const displayTitle = item.type === 'meetup' ? item.title : item.title;
-  const participantCount = item.type === 'meetup' ? item.participants.length : undefined;
+  const displayTitle = item.title;
   const hasUnread = item.unreadCount > 0;
 
   return (
     <div
+      onClick={() => onSelect(item.id)}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
-        backgroundColor: hovered ? COLORS.neutral.light : hasUnread ? COLORS.primary.light : 'transparent',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 18,
+        padding: '14px 20px',
+        backgroundColor: hovered ? COLORS.neutral.grey50 : 'transparent',
         transition: `background-color ${TRANSITIONS.normal}`,
         cursor: 'pointer',
-        borderBottom: `1px solid ${COLORS.neutral.grey100}`,
       }}
       role="button"
       aria-label={`${displayTitle} 채팅방${hasUnread ? `, 읽지 않은 메시지 ${item.unreadCount}개` : ''}`}
     >
-      <TouchableOpacity
-        style={styles.chatItem}
-        onPress={() => onSelect(item.id)}
-        activeOpacity={0.7}
-      >
-        {/* 아바타 + 타입 뱃지 */}
-        <div style={{ position: 'relative', marginRight: 14 }}>
-          <View style={[styles.chatAvatar, { backgroundColor: getAvatarColor(displayTitle) }]}>
-            <Text style={styles.chatAvatarText}>
-              {getInitials(displayTitle)}
-            </Text>
-          </View>
-          {/* 채팅방 타입 뱃지 */}
-          <div style={{
-            position: 'absolute',
-            bottom: -2,
-            right: -2,
-            width: 20,
-            height: 20,
-            borderRadius: 10,
-            backgroundColor: item.type === 'meetup' ? COLORS.primary.main : COLORS.neutral.grey400,
+      {/* Figma: 57x57 원형 아바타 */}
+      <div style={{ position: 'relative', flexShrink: 0 }}>
+        <div
+          style={{
+            width: 57,
+            height: 57,
+            borderRadius: '50%',
+            backgroundColor: getAvatarColor(displayTitle),
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            border: `2px solid ${COLORS.surface.primary}`,
-          }}>
-            <span style={{ fontSize: 10, lineHeight: '20px' }}>
-              {item.type === 'meetup' ? '👥' : '💬'}
+            overflow: 'hidden',
+          }}
+        >
+          <span style={{ fontSize: 20, fontWeight: 700, color: COLORS.text.white }}>
+            {getInitials(displayTitle)}
+          </span>
+        </div>
+        {hasUnread && (
+          <div
+            style={{
+              position: 'absolute',
+              top: -2,
+              right: -2,
+              minWidth: 20,
+              height: 20,
+              borderRadius: 10,
+              backgroundColor: COLORS.primary.main,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '0 6px',
+              border: `2px solid ${COLORS.neutral.white}`,
+            }}
+          >
+            <span style={{ fontSize: 10, fontWeight: 700, color: COLORS.neutral.white, lineHeight: 1 }}>
+              {item.unreadCount > 99 ? '99+' : item.unreadCount}
             </span>
           </div>
+        )}
+      </div>
+
+      {/* Figma: 제목 16px SemiBold #121212, 설명 14px #868b94 */}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4, overflow: 'hidden' }}>
+        <div
+          style={{
+            fontSize: 16,
+            fontWeight: hasUnread ? 600 : 500,
+            color: '#121212',
+            letterSpacing: -0.3,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {displayTitle}
         </div>
-        <View style={styles.chatInfo}>
-          <View style={styles.chatTitleRow}>
-            <Text style={[styles.chatTitle, hasUnread && styles.chatTitleUnread]} numberOfLines={1}>
-              {displayTitle}
-            </Text>
-            {participantCount && (
-              <View style={styles.chatParticipantBadge}>
-                <Text style={styles.chatParticipantCount}>{participantCount}</Text>
-              </View>
-            )}
-          </View>
-          <Text style={[styles.lastMessage, hasUnread && styles.lastMessageUnread]} numberOfLines={1}>
-            {item.lastMessage || '아직 메시지가 없습니다'}
-          </Text>
-        </View>
-        <View style={styles.chatMeta}>
-          <Text style={[styles.chatTime, hasUnread && styles.chatTimeUnread]}>
-            {getDetailedDateFormat(item.lastTime)}
-          </Text>
-          {hasUnread && (
-            <View style={styles.unreadBadge}>
-              <Text style={styles.unreadCount}>
-                {item.unreadCount > 99 ? '99+' : item.unreadCount}
-              </Text>
-            </View>
-          )}
-        </View>
-      </TouchableOpacity>
+        <div
+          style={{
+            fontSize: 14,
+            fontWeight: 400,
+            color: '#868b94',
+            letterSpacing: -0.8,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {item.lastMessage || '아직 메시지가 없습니다'}
+        </div>
+      </div>
     </div>
   );
 };
@@ -166,7 +179,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation }) => {
   const { id: chatIdFromUrl } = useParams<{ id?: string }>();
   const { user } = useUserStore();
 
-  const [selectedTab, setSelectedTab] = useState('전체');
+  const [selectedTab, setSelectedTab] = useState<'meetup' | 'direct'>('meetup');
   const [chatRooms, setChatRooms] = useState<ChatRoom[]>([]);
   const [selectedChatId, setSelectedChatId] = useState<number | null>(
     chatIdFromUrl ? parseInt(chatIdFromUrl) : null
@@ -182,7 +195,10 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation }) => {
   const [messageInputFocused, setMessageInputFocused] = useState(false);
   const messageListRef = React.useRef<ScrollView>(null);
 
-  const tabs = ['전체', '약속', '개인'];
+  const TAB_ITEMS: { key: 'meetup' | 'direct'; label: string }[] = [
+    { key: 'meetup', label: '모임채팅' },
+    { key: 'direct', label: '1:1 채팅' },
+  ];
   const userId = user?.id?.toString() || '';
 
   // 1대1 채팅 권한 체크
@@ -432,11 +448,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation }) => {
   };
 
   const renderChatList = () => {
-    const filteredRooms = chatRooms.filter(room => {
-      if (selectedTab === '전체') return true;
-      if (selectedTab === '약속') return room.type === 'meetup';
-      return room.type === 'direct';
-    });
+    const filteredRooms = chatRooms.filter(room => room.type === selectedTab);
 
     if (loading) {
       return (
@@ -453,25 +465,22 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation }) => {
         <EmptyState
           icon="message-circle"
           iconSize={56}
-          title={selectedTab === '개인' ? '1:1 채팅이 없어요' : '아직 채팅이 없어요'}
-          description="밥약속에 참가하면 채팅이 시작돼요"
+          title={selectedTab === 'direct' ? '1:1 채팅이 없어요' : '아직 모임채팅이 없어요'}
+          description="모임에 참가하면 채팅이 시작돼요"
         />
       );
     }
 
     return (
-      <FlatList
-        data={filteredRooms}
-        keyExtractor={(item) => item.id.toString()}
-        renderItem={({ item }) => (
-          <WebChatListItem item={item} onSelect={selectChatRoom} />
-        )}
+      <ScrollView
         style={styles.chatList}
-        showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.chatListContainer}
-        refreshing={loading}
-        onRefresh={loadChatRooms}
-      />
+        showsVerticalScrollIndicator={false}
+      >
+        {filteredRooms.map((item) => (
+          <WebChatListItem key={item.id} item={item} onSelect={selectChatRoom} />
+        ))}
+      </ScrollView>
     );
   };
 
@@ -674,44 +683,109 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation }) => {
     return renderChatRoom();
   }
 
-  // UnderlineTabBar용 탭 아이템 생성
-  const tabItems = tabs.map(tab => {
-    const count = chatRooms.filter(r => {
-      if (tab === '전체') return r.unreadCount > 0;
-      if (tab === '약속') return r.type === 'meetup' && r.unreadCount > 0;
-      return r.type === 'direct' && r.unreadCount > 0;
-    }).length;
-    return { key: tab, label: tab, badge: count || undefined };
-  });
-
   return (
     <View style={styles.container}>
-      {/* 헤더 */}
+      {/* Figma 헤더 */}
       <View style={styles.header}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-          <Text style={styles.headerTitle}>채팅</Text>
-          {chatRooms.filter(r => r.unreadCount > 0).length > 0 && (
-            <View style={styles.headerUnreadBadge}>
-              <Text style={styles.headerUnreadText}>
-                {chatRooms.reduce((sum, r) => sum + r.unreadCount, 0)}
-              </Text>
-            </View>
-          )}
-        </View>
+        <Text style={styles.headerTitle}>채팅</Text>
         <View style={styles.headerIcons}>
           <WebHoverButton borderRadius={20}>
-            <TouchableOpacity style={styles.headerIcon} activeOpacity={0.7}>
-              <Icon name="bell" size={20} color={COLORS.text.primary} />
+            <TouchableOpacity style={styles.headerIcon} activeOpacity={0.7} accessibilityLabel="검색">
+              <Icon name="search" size={22} color={COLORS.text.primary} />
+            </TouchableOpacity>
+          </WebHoverButton>
+          <WebHoverButton borderRadius={20}>
+            <TouchableOpacity style={styles.headerIcon} activeOpacity={0.7} accessibilityLabel="알림">
+              <Icon name="bell" size={22} color={COLORS.text.primary} />
             </TouchableOpacity>
           </WebHoverButton>
         </View>
       </View>
 
-      {/* 탭 네비게이션 — UnderlineTabBar */}
-      <UnderlineTabBar tabs={tabItems} activeKey={selectedTab} onTabChange={setSelectedTab} />
+      {/* Figma 2-tab — simple underline */}
+      <div style={{ display: 'flex', borderBottom: '1px solid #f1f2f3', backgroundColor: '#fff' }}>
+        {TAB_ITEMS.map((tab) => {
+          const isActive = selectedTab === tab.key;
+          const unreadCount = chatRooms
+            .filter((r) => r.type === tab.key)
+            .reduce((sum, r) => sum + (r.unreadCount > 0 ? 1 : 0), 0);
+          return (
+            <button
+              key={tab.key}
+              onClick={() => setSelectedTab(tab.key)}
+              style={{
+                flex: 1,
+                paddingTop: 12,
+                paddingBottom: 14,
+                fontSize: 14,
+                fontWeight: 600,
+                letterSpacing: -0.3,
+                background: 'transparent',
+                border: 'none',
+                borderBottom: isActive ? '2px solid #121212' : '2px solid transparent',
+                color: isActive ? '#121212' : '#666',
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+                transition: 'color 150ms ease',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 6,
+              }}
+              aria-selected={isActive}
+            >
+              {tab.label}
+              {unreadCount > 0 && (
+                <span
+                  style={{
+                    minWidth: 18,
+                    height: 18,
+                    padding: '0 6px',
+                    borderRadius: 9,
+                    backgroundColor: COLORS.primary.main,
+                    color: '#fff',
+                    fontSize: 10,
+                    fontWeight: 700,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  {unreadCount}
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
 
       {/* 채팅 목록 */}
       {renderChatList()}
+
+      {/* Figma FAB 추가 버튼 */}
+      <button
+        onClick={() => navigate('/create')}
+        style={{
+          position: 'fixed',
+          bottom: 103,
+          right: 16,
+          width: 57,
+          height: 57,
+          borderRadius: 28.5,
+          background: `linear-gradient(135deg, ${COLORS.primary.main}, ${COLORS.primary.dark})`,
+          border: 'none',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          cursor: 'pointer',
+          boxShadow: '0 6px 20px rgba(255,165,41,0.35), 0 2px 6px rgba(0,0,0,0.08)',
+          transition: 'transform 150ms ease',
+          zIndex: 20,
+        }}
+        aria-label="새 채팅"
+      >
+        <Icon name="plus" size={28} color="#fff" />
+      </button>
 
       {/* 1대1 채팅 시작 모달 */}
       {showDMModal && selectedUserForDM && (
@@ -753,49 +827,31 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.neutral.white,
   },
 
-  // === 채팅 리스트 헤더 ===
+  // === Figma 채팅 리스트 헤더 ===
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingVertical: 12,
+    paddingVertical: 16,
     backgroundColor: COLORS.neutral.white,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.neutral.grey100,
-    // @ts-ignore — web CSS shadow
-    boxShadow: CSS_SHADOWS.stickyHeader,
     zIndex: 10,
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
+    fontSize: 16,
+    fontWeight: '600',
     letterSpacing: -0.3,
-    color: COLORS.text.primary,
-  },
-  headerUnreadBadge: {
-    backgroundColor: COLORS.primary.main,
-    borderRadius: 10,
-    minWidth: 20,
-    height: 20,
-    paddingHorizontal: 6,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headerUnreadText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: COLORS.neutral.white,
-    lineHeight: 14,
+    color: '#121212',
   },
   headerIcons: {
     flexDirection: 'row',
-    gap: 4,
+    alignItems: 'center',
+    gap: 16,
   },
   headerIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     justifyContent: 'center',
     alignItems: 'center',
   },

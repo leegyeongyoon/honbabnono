@@ -1,13 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, RefreshControl } from 'react-native';
 import { useNavigate } from 'react-router-dom';
-import { COLORS, SHADOWS, CSS_SHADOWS, CARD_STYLE, TRANSITIONS, withOpacity } from '../styles/colors';
-import { HEADER_STYLE, SPACING, BORDER_RADIUS } from '../styles/spacing';
+import { COLORS, CSS_SHADOWS } from '../styles/colors';
+import { SPACING } from '../styles/spacing';
 import { NotificationBell } from '../components/NotificationBell';
 import MeetupCard from '../components/MeetupCard';
 import EmptyState from '../components/EmptyState';
-import SummaryHero from '../components/SummaryHero';
-import UnderlineTabBar from '../components/UnderlineTabBar';
+import { Icon } from '../components/Icon';
 import { useUserStore } from '../store/userStore';
 import userApiService, { JoinedMeetup, HostedMeetup } from '../services/userApiService';
 import { FadeIn } from '../components/animated';
@@ -22,90 +21,42 @@ interface MyMeetupsScreenProps {
   user?: User | null;
 }
 
-const TAB_ITEMS = [
-  { key: 'applied' as const, label: '신청한 약속' },
-  { key: 'created' as const, label: '내가 만든 약속' },
-  { key: 'past' as const, label: '지난 약속' },
+type TabKey = 'applied' | 'created' | 'past';
+
+const TAB_ITEMS: { key: TabKey; label: string; placeholder: string }[] = [
+  { key: 'applied', label: '신청한 모임', placeholder: '신청한 모임을 찾아봐요' },
+  { key: 'created', label: '내가 만든 모임', placeholder: '내가 만든 모임을 찾아봐요' },
+  { key: 'past', label: '지난 모임', placeholder: '지난 모임을 찾아봐요' },
 ];
 
-// --- Date helpers ---
-
-const DAYS_KR = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'];
-
-const toDateKey = (dateStr: string): string => {
-  const d = new Date(dateStr);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-};
-
-const formatDateHeader = (dateKey: string): string => {
-  const d = new Date(dateKey);
-  const month = d.getMonth() + 1;
-  const day = d.getDate();
-  const dayOfWeek = DAYS_KR[d.getDay()];
-  return `${month}월 ${day}일 ${dayOfWeek}`;
-};
-
-const isToday = (dateStr: string): boolean => {
-  const now = new Date();
-  const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-  return toDateKey(dateStr) === todayKey;
-};
-
-type DateGroup<T> = {
-  dateKey: string;
-  label: string;
-  isToday: boolean;
-  meetups: T[];
-};
-
-function groupByDate<T extends { date: string }>(meetups: T[]): DateGroup<T>[] {
-  const map = new Map<string, T[]>();
-  for (const m of meetups) {
-    const key = toDateKey(m.date);
-    const arr = map.get(key);
-    if (arr) {
-      arr.push(m);
-    } else {
-      map.set(key, [m]);
-    }
-  }
-  const groups: DateGroup<T>[] = [];
-  for (const [dateKey, items] of map.entries()) {
-    groups.push({
-      dateKey,
-      label: formatDateHeader(dateKey),
-      isToday: isToday(items[0].date),
-      meetups: items,
-    });
-  }
-  groups.sort((a, b) => a.dateKey.localeCompare(b.dateKey));
-  return groups;
-}
-
-// --- Skeleton loader (CSS-based, no Animated) ---
+// --- Skeleton loader (Figma home/list pattern) ---
 
 const SkeletonCard: React.FC<{ index: number }> = ({ index }) => (
   <div
     key={index}
     style={{
       display: 'flex',
-      flexDirection: 'row',
       alignItems: 'center',
-      justifyContent: 'space-between',
+      gap: 18,
+      padding: '16px 20px',
       backgroundColor: COLORS.neutral.white,
-      borderRadius: BORDER_RADIUS.lg,
-      padding: SPACING.lg,
-      border: `${CARD_STYLE.borderWidth}px solid ${CARD_STYLE.borderColor}`,
-      boxShadow: CSS_SHADOWS.small,
     }}
   >
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 10, marginRight: 16 }}>
-      <div style={{ height: 22, width: 56, borderRadius: BORDER_RADIUS.full, backgroundColor: COLORS.neutral.grey100, animation: 'skeleton-pulse 1.5s ease-in-out infinite' }} />
-      <div style={{ height: 18, width: '75%', borderRadius: 6, backgroundColor: COLORS.neutral.grey100, animation: 'skeleton-pulse 1.5s ease-in-out 0.1s infinite' }} />
-      <div style={{ height: 14, width: '55%', borderRadius: 4, backgroundColor: COLORS.neutral.grey100, animation: 'skeleton-pulse 1.5s ease-in-out 0.2s infinite' }} />
-      <div style={{ height: 14, width: '40%', borderRadius: 4, backgroundColor: COLORS.neutral.grey100, animation: 'skeleton-pulse 1.5s ease-in-out 0.3s infinite' }} />
+    <div
+      style={{
+        width: 70,
+        height: 70,
+        borderRadius: 16,
+        backgroundColor: COLORS.neutral.grey100,
+        animation: 'skeleton-pulse 1.5s ease-in-out infinite',
+        flexShrink: 0,
+      }}
+    />
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <div style={{ height: 18, width: '55%', borderRadius: 4, backgroundColor: COLORS.neutral.grey100, animation: 'skeleton-pulse 1.5s ease-in-out 0.1s infinite' }} />
+      <div style={{ height: 14, width: '80%', borderRadius: 4, backgroundColor: COLORS.neutral.grey100, animation: 'skeleton-pulse 1.5s ease-in-out 0.2s infinite' }} />
+      <div style={{ height: 12, width: '45%', borderRadius: 4, backgroundColor: COLORS.neutral.grey100, animation: 'skeleton-pulse 1.5s ease-in-out 0.3s infinite' }} />
     </div>
-    <div style={{ width: 64, height: 64, borderRadius: BORDER_RADIUS.xl, backgroundColor: COLORS.neutral.grey100, animation: 'skeleton-pulse 1.5s ease-in-out 0.15s infinite' }} />
   </div>
 );
 
@@ -114,9 +65,10 @@ const SkeletonCard: React.FC<{ index: number }> = ({ index }) => (
 const MyMeetupsScreen: React.FC<MyMeetupsScreenProps> = ({ user: propsUser }) => {
   const navigate = useNavigate();
   const { user: storeUser } = useUserStore();
-  const [activeTab, setActiveTab] = useState<'applied' | 'created' | 'past'>('applied');
+  const [activeTab, setActiveTab] = useState<TabKey>('applied');
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const [appliedMeetups, setAppliedMeetups] = useState<JoinedMeetup[]>([]);
   const [createdMeetups, setCreatedMeetups] = useState<HostedMeetup[]>([]);
   const [pastMeetups, setPastMeetups] = useState<(JoinedMeetup | HostedMeetup)[]>([]);
@@ -129,6 +81,11 @@ const MyMeetupsScreen: React.FC<MyMeetupsScreenProps> = ({ user: propsUser }) =>
       loadMeetupData();
     }
   }, [user]);
+
+  // Reset search when switching tabs
+  useEffect(() => {
+    setSearchQuery('');
+  }, [activeTab]);
 
   // Inject skeleton keyframes once
   useEffect(() => {
@@ -160,6 +117,19 @@ const MyMeetupsScreen: React.FC<MyMeetupsScreenProps> = ({ user: propsUser }) =>
     }
   };
 
+  const transformMeetup = (meetup: any) => ({
+    ...meetup,
+    maxParticipants: meetup.max_participants || meetup.maxParticipants,
+    currentParticipants: meetup.current_participants || meetup.currentParticipants,
+    priceRange: meetup.price_range || meetup.priceRange,
+    ageRange: meetup.age_range || meetup.ageRange,
+    genderPreference: meetup.gender_preference || meetup.genderPreference,
+    diningPreferences: meetup.dining_preferences || meetup.diningPreferences || {},
+    promiseDepositAmount: meetup.promise_deposit_amount || meetup.promiseDepositAmount || 0,
+    promiseDepositRequired: meetup.promise_deposit_required || meetup.promiseDepositRequired || false,
+    createdAt: meetup.created_at || meetup.createdAt,
+  });
+
   const loadAppliedMeetups = async () => {
     try {
       const response = await userApiService.getJoinedMeetups(1, 50);
@@ -170,21 +140,8 @@ const MyMeetupsScreen: React.FC<MyMeetupsScreenProps> = ({ user: propsUser }) =>
         return;
       }
 
-      // 백엔드에서 받은 snake_case를 camelCase로 변환
-      const transformedData = data.map(meetup => ({
-        ...meetup,
-        maxParticipants: meetup.max_participants || meetup.maxParticipants,
-        currentParticipants: meetup.current_participants || meetup.currentParticipants,
-        priceRange: meetup.price_range || meetup.priceRange,
-        ageRange: meetup.age_range || meetup.ageRange,
-        genderPreference: meetup.gender_preference || meetup.genderPreference,
-        diningPreferences: meetup.dining_preferences || meetup.diningPreferences || {},
-        promiseDepositAmount: meetup.promise_deposit_amount || meetup.promiseDepositAmount || 0,
-        promiseDepositRequired: meetup.promise_deposit_required || meetup.promiseDepositRequired || false,
-        createdAt: meetup.created_at || meetup.createdAt
-      }));
+      const transformedData = data.map(transformMeetup);
 
-      // 현재 진행중인 모임만 필터링
       const activeMeetups = transformedData.filter(meetup => {
         return meetup.status === '모집중' || meetup.status === '예정';
       });
@@ -198,22 +155,7 @@ const MyMeetupsScreen: React.FC<MyMeetupsScreenProps> = ({ user: propsUser }) =>
   const loadCreatedMeetups = async () => {
     try {
       const { data } = await userApiService.getHostedMeetups(1, 50);
-
-      // 백엔드에서 받은 snake_case를 camelCase로 변환
-      const transformedData = data.map(meetup => ({
-        ...meetup,
-        maxParticipants: meetup.max_participants || meetup.maxParticipants,
-        currentParticipants: meetup.current_participants || meetup.currentParticipants,
-        priceRange: meetup.price_range || meetup.priceRange,
-        ageRange: meetup.age_range || meetup.ageRange,
-        genderPreference: meetup.gender_preference || meetup.genderPreference,
-        diningPreferences: meetup.dining_preferences || meetup.diningPreferences || {},
-        promiseDepositAmount: meetup.promise_deposit_amount || meetup.promiseDepositAmount || 0,
-        promiseDepositRequired: meetup.promise_deposit_required || meetup.promiseDepositRequired || false,
-        createdAt: meetup.created_at || meetup.createdAt
-      }));
-
-      // 현재 진행중인 모임만 필터링
+      const transformedData = data.map(transformMeetup);
       const activeMeetups = transformedData.filter(meetup =>
         meetup.status === '모집중' || meetup.status === '예정'
       );
@@ -230,44 +172,12 @@ const MyMeetupsScreen: React.FC<MyMeetupsScreenProps> = ({ user: propsUser }) =>
         userApiService.getHostedMeetups(1, 50)
       ]);
 
-      // 백엔드에서 받은 snake_case를 camelCase로 변환
-      const transformedJoined = joinedResponse.data.map(meetup => ({
-        ...meetup,
-        maxParticipants: meetup.max_participants || meetup.maxParticipants,
-        currentParticipants: meetup.current_participants || meetup.currentParticipants,
-        priceRange: meetup.price_range || meetup.priceRange,
-        ageRange: meetup.age_range || meetup.ageRange,
-        genderPreference: meetup.gender_preference || meetup.genderPreference,
-        diningPreferences: meetup.dining_preferences || meetup.diningPreferences || {},
-        promiseDepositAmount: meetup.promise_deposit_amount || meetup.promiseDepositAmount || 0,
-        promiseDepositRequired: meetup.promise_deposit_required || meetup.promiseDepositRequired || false,
-        createdAt: meetup.created_at || meetup.createdAt
-      }));
+      const isPast = (m: any) =>
+        m.status === '완료' || m.status === '종료' || m.status === '취소' || m.status === '파토';
 
-      const transformedHosted = hostedResponse.data.map(meetup => ({
-        ...meetup,
-        maxParticipants: meetup.max_participants || meetup.maxParticipants,
-        currentParticipants: meetup.current_participants || meetup.currentParticipants,
-        priceRange: meetup.price_range || meetup.priceRange,
-        ageRange: meetup.age_range || meetup.ageRange,
-        genderPreference: meetup.gender_preference || meetup.genderPreference,
-        diningPreferences: meetup.dining_preferences || meetup.diningPreferences || {},
-        promiseDepositAmount: meetup.promise_deposit_amount || meetup.promiseDepositAmount || 0,
-        promiseDepositRequired: meetup.promise_deposit_required || meetup.promiseDepositRequired || false,
-        createdAt: meetup.created_at || meetup.createdAt
-      }));
+      const pastJoined = joinedResponse.data.map(transformMeetup).filter(isPast);
+      const pastHosted = hostedResponse.data.map(transformMeetup).filter(isPast);
 
-      // 지난 모임 필터링 (완료/종료/취소/파토 모두 포함)
-      const pastJoined = transformedJoined.filter(meetup => {
-        return meetup.status === '완료' || meetup.status === '종료' ||
-               meetup.status === '취소' || meetup.status === '파토';
-      });
-      const pastHosted = transformedHosted.filter(meetup => {
-        return meetup.status === '완료' || meetup.status === '종료' ||
-               meetup.status === '취소' || meetup.status === '파토';
-      });
-
-      // 두 배열을 합치고 날짜순으로 정렬
       const allPast = [...pastJoined, ...pastHosted].sort((a, b) =>
         new Date(b.date).getTime() - new Date(a.date).getTime()
       );
@@ -291,243 +201,152 @@ const MyMeetupsScreen: React.FC<MyMeetupsScreenProps> = ({ user: propsUser }) =>
     }
   };
 
-  const renderMeetupItem = (meetup: JoinedMeetup | HostedMeetup, showHostInfo: boolean = false, keyPrefix?: string) => (
-    <MeetupCard
-      key={keyPrefix ? `${keyPrefix}-${meetup.id}` : meetup.id}
-      meetup={meetup}
-      onPress={handleMeetupPress}
-      variant="compact"
-    />
-  );
+  // Current tab's data + search filter
+  const currentMeetups = useMemo(() => {
+    const list =
+      activeTab === 'applied' ? appliedMeetups :
+      activeTab === 'created' ? createdMeetups :
+      pastMeetups;
 
-  const getTabCount = (tab: 'applied' | 'created' | 'past') => {
-    switch (tab) {
-      case 'applied': return appliedMeetups.length;
-      case 'created': return createdMeetups.length;
-      case 'past': return pastMeetups.length;
-    }
-  };
+    if (!searchQuery.trim()) return list;
+    const q = searchQuery.trim().toLowerCase();
+    return list.filter((m: any) =>
+      (m.title || '').toLowerCase().includes(q) ||
+      (m.location || '').toLowerCase().includes(q) ||
+      (m.category || '').toLowerCase().includes(q)
+    );
+  }, [activeTab, appliedMeetups, createdMeetups, pastMeetups, searchQuery]);
 
-  // Date-grouped data for applied and created tabs
-  const appliedGroups = useMemo(() => groupByDate(appliedMeetups as any), [appliedMeetups]);
-  const createdGroups = useMemo(() => groupByDate(createdMeetups as any), [createdMeetups]);
-
-  const tabItems = TAB_ITEMS.map(tab => ({
-    key: tab.key,
-    label: tab.label,
-    badge: getTabCount(tab.key) || undefined,
-  }));
-
-  const renderTodayBadge = () => (
-    <span
-      style={{
-        display: 'inline-block',
-        fontSize: 11,
-        fontWeight: 700,
-        color: COLORS.primary.dark,
-        backgroundColor: withOpacity(COLORS.primary.main, 0.15),
-        borderRadius: BORDER_RADIUS.sm,
-        padding: '2px 8px',
-        marginLeft: 8,
-        letterSpacing: -0.2,
-      }}
-    >
-      오늘
-    </span>
-  );
-
-  const renderDateSection = <T extends JoinedMeetup | HostedMeetup>(
-    group: DateGroup<T>,
-    showHostInfo: boolean,
-    tabKey: string,
-  ) => (
-    <div key={group.dateKey} style={{ marginBottom: 4 }}>
-      {/* Date section header */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          paddingTop: 16,
-          paddingBottom: 8,
-          paddingLeft: 4,
-        }}
-      >
-        <span
-          style={{
-            fontSize: 13,
-            fontWeight: 600,
-            color: group.isToday ? COLORS.text.primary : COLORS.text.secondary,
-            letterSpacing: -0.2,
-          }}
-        >
-          {group.label}
-        </span>
-        {group.isToday && renderTodayBadge()}
-      </div>
-
-      {/* Meetup cards, with special today wrapper */}
-      {group.isToday ? (
-        <div
-          style={{
-            backgroundColor: COLORS.primary.light,
-            borderRadius: BORDER_RADIUS.xl,
-            padding: '12px 12px 4px 12px',
-            border: `1px solid ${withOpacity(COLORS.primary.main, 0.12)}`,
-          }}
-        >
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {group.meetups.map((meetup, idx) =>
-              renderMeetupItem(meetup, showHostInfo, `${tabKey}-${group.dateKey}-${idx}`)
-            )}
-          </div>
-        </div>
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {group.meetups.map((meetup, idx) =>
-            renderMeetupItem(meetup, showHostInfo, `${tabKey}-${group.dateKey}-${idx}`)
-          )}
-        </div>
-      )}
-    </div>
-  );
+  const activeTabMeta = TAB_ITEMS.find(t => t.key === activeTab)!;
 
   const renderSkeletonLoader = () => (
-    <div style={{ paddingLeft: 20, paddingRight: 20, paddingTop: 16, display: 'flex', flexDirection: 'column', gap: 14 }}>
+    <div style={{ display: 'flex', flexDirection: 'column' }}>
       {[0, 1, 2].map((i) => (
         <SkeletonCard key={i} index={i} />
       ))}
     </div>
   );
 
+  const renderEmptyState = () => {
+    switch (activeTab) {
+      case 'applied':
+        return (
+          <EmptyState
+            icon="calendar"
+            title="아직 신청한 모임이 없어요"
+            description="홈에서 모임을 찾아보세요!"
+            actionLabel="모임 찾아보기"
+            onAction={() => navigate('/')}
+          />
+        );
+      case 'created':
+        return (
+          <EmptyState
+            icon="plus-circle"
+            title="모임을 만들어보세요!"
+            description="새로운 모임을 만들어보세요!"
+            actionLabel="모임 만들기"
+            onAction={() => navigate('/create')}
+          />
+        );
+      case 'past':
+        return (
+          <EmptyState
+            icon="clock"
+            title="아직 지난 모임이 없어요"
+            description="모임에 참여해보세요!"
+          />
+        );
+    }
+  };
+
   const renderTabContent = () => {
     if (loading) {
       return renderSkeletonLoader();
     }
 
-    switch (activeTab) {
-      case 'applied':
+    if (currentMeetups.length === 0) {
+      if (searchQuery.trim()) {
         return (
-          <FadeIn>
-            <View style={styles.meetupsContainer}>
-              {appliedMeetups.length === 0 ? (
-                <EmptyState
-                  icon="calendar"
-                  title="아직 신청한 약속이 없어요"
-                  description="홈에서 밥약속을 찾아보세요!"
-                  actionLabel="약속 찾아보기"
-                  onAction={() => navigate('/')}
-                />
-              ) : (
-                appliedGroups.map((group) =>
-                  renderDateSection(group, true, 'applied')
-                )
-              )}
-            </View>
-          </FadeIn>
+          <EmptyState
+            icon="search"
+            title="검색 결과가 없어요"
+            description={`"${searchQuery}"에 대한 모임을 찾을 수 없어요`}
+          />
         );
-
-      case 'created':
-        return (
-          <FadeIn>
-            <View style={styles.meetupsContainer}>
-              {createdMeetups.length === 0 ? (
-                <EmptyState
-                  icon="plus-circle"
-                  title="약속을 만들어보세요!"
-                  description="새로운 밥약속을 만들어보세요!"
-                  actionLabel="약속 만들기"
-                  onAction={() => navigate('/create')}
-                />
-              ) : (
-                createdGroups.map((group) =>
-                  renderDateSection(group, false, 'created')
-                )
-              )}
-            </View>
-          </FadeIn>
-        );
-
-      case 'past':
-        return (
-          <FadeIn>
-            <View style={styles.meetupsContainer}>
-              {pastMeetups.length === 0 ? (
-                <EmptyState
-                  icon="clock"
-                  title="아직 지난 약속이 없어요"
-                  description="밥약속에 참여해보세요!"
-                />
-              ) : (
-                (pastMeetups as any[]).map((meetup, index) => {
-                  const meetupIsToday = isToday(meetup.date);
-                  if (meetupIsToday) {
-                    return (
-                      <div
-                        key={`past-today-${index}`}
-                        style={{
-                          backgroundColor: COLORS.primary.light,
-                          borderRadius: BORDER_RADIUS.xl,
-                          padding: 12,
-                          border: `1px solid ${withOpacity(COLORS.primary.main, 0.12)}`,
-                          position: 'relative',
-                        }}
-                      >
-                        <span
-                          style={{
-                            position: 'absolute',
-                            top: 8,
-                            right: 12,
-                            fontSize: 11,
-                            fontWeight: 700,
-                            color: COLORS.primary.dark,
-                            backgroundColor: withOpacity(COLORS.primary.main, 0.15),
-                            borderRadius: BORDER_RADIUS.sm,
-                            padding: '2px 8px',
-                            letterSpacing: -0.2,
-                            zIndex: 1,
-                          }}
-                        >
-                          오늘
-                        </span>
-                        {renderMeetupItem(meetup, !('hostName' in meetup), `past-${index}`)}
-                      </div>
-                    );
-                  }
-                  return renderMeetupItem(meetup, !('hostName' in meetup), `past-${index}`);
-                })
-              )}
-            </View>
-          </FadeIn>
-        );
-
-      default:
-        return null;
+      }
+      return renderEmptyState();
     }
+
+    return (
+      <FadeIn>
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          {currentMeetups.map((meetup: any, idx: number) => (
+            <MeetupCard
+              key={`${activeTab}-${meetup.id}-${idx}`}
+              meetup={meetup}
+              onPress={handleMeetupPress}
+              variant="compact"
+            />
+          ))}
+        </div>
+      </FadeIn>
+    );
   };
 
   return (
     <View style={styles.container}>
-      {/* 헤더 */}
+      {/* 헤더 — Figma pattern */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>내 약속</Text>
-        <NotificationBell
-          userId={user?.id?.toString()}
-          onPress={() => {
-            navigate('/notifications');
-          }}
-          color={COLORS.text.primary}
-          size={22}
-          // @ts-ignore web-specific
-          aria-label="알림"
-        />
+        <View style={styles.headerIcons}>
+          <NotificationBell
+            userId={user?.id?.toString()}
+            onPress={() => navigate('/notifications')}
+            color={COLORS.text.primary}
+            size={22}
+            // @ts-ignore web-specific
+            aria-label="알림"
+          />
+        </View>
       </View>
 
-      {/* 언더라인 탭바 */}
-      <UnderlineTabBar
-        tabs={tabItems}
-        activeKey={activeTab}
-        onTabChange={(key) => setActiveTab(key as 'applied' | 'created' | 'past')}
-      />
+      {/* 탭바 — Figma simple underline (3 tabs equal width) */}
+      <div style={styles_web.tabBar as React.CSSProperties}>
+        {TAB_ITEMS.map(tab => {
+          const isActive = activeTab === tab.key;
+          return (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              style={{
+                ...styles_web.tabButton,
+                color: isActive ? '#121212' : '#666',
+                borderBottom: isActive ? '2px solid #121212' : '2px solid transparent',
+              }}
+              aria-label={tab.label}
+              aria-selected={isActive}
+            >
+              {tab.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* 검색창 — Figma pattern */}
+      <div style={styles_web.searchWrap as React.CSSProperties}>
+        <div style={styles_web.searchBox as React.CSSProperties}>
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder={activeTabMeta.placeholder}
+            style={styles_web.searchInput as React.CSSProperties}
+            aria-label={`${activeTabMeta.label} 검색`}
+          />
+          <Icon name="search" size={20} color="#7e8082" />
+        </div>
+      </div>
 
       {/* 컨텐츠 */}
       <ScrollView
@@ -543,17 +362,17 @@ const MyMeetupsScreen: React.FC<MyMeetupsScreenProps> = ({ user: propsUser }) =>
         }
         showsVerticalScrollIndicator={false}
       >
-        {/* Summary Hero */}
-        <SummaryHero
-          items={[
-            { label: '신청한', value: appliedMeetups.length, color: COLORS.primary.main },
-            { label: '만든', value: createdMeetups.length, color: COLORS.functional.info },
-            { label: '지난', value: pastMeetups.length, color: COLORS.text.tertiary },
-          ]}
-        />
-
         {renderTabContent()}
       </ScrollView>
+
+      {/* FAB — Figma 추가 버튼 */}
+      <button
+        onClick={() => navigate('/create')}
+        style={styles_web.fab as React.CSSProperties}
+        aria-label="모임 만들기"
+      >
+        <Icon name="plus" size={28} color="#fff" />
+      </button>
     </View>
   );
 };
@@ -561,42 +380,100 @@ const MyMeetupsScreen: React.FC<MyMeetupsScreenProps> = ({ user: propsUser }) =>
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.neutral.background,
+    backgroundColor: COLORS.neutral.white,
   },
-  // Header
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: SPACING.screen.horizontal,
-    paddingVertical: SPACING.md,
+    paddingVertical: 16,
     backgroundColor: COLORS.neutral.white,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.neutral.grey100,
     // @ts-ignore
     position: 'sticky',
     top: 0,
     zIndex: 10,
-    boxShadow: CSS_SHADOWS.stickyHeader,
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
+    fontSize: 16,
+    fontWeight: '600',
     letterSpacing: -0.3,
-    color: COLORS.text.primary,
+    color: '#121212',
   },
-  // Content
+  headerIcons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: SPACING.xxl,
-  },
-  meetupsContainer: {
-    paddingHorizontal: SPACING.screen.horizontal,
-    paddingTop: SPACING.lg,
-    gap: 14,
+    paddingBottom: 120,
   },
 });
+
+// Web-only CSS-in-JS styles (Figma pattern)
+const styles_web = {
+  tabBar: {
+    display: 'flex',
+    borderBottom: '1px solid #f1f2f3',
+    backgroundColor: '#fff',
+  } as React.CSSProperties,
+  tabButton: {
+    flex: 1,
+    paddingTop: 12,
+    paddingBottom: 14,
+    fontSize: 14,
+    fontWeight: 600,
+    letterSpacing: -0.3,
+    background: 'transparent',
+    border: 'none',
+    cursor: 'pointer',
+    fontFamily: 'inherit',
+    transition: 'color 150ms ease',
+  },
+  searchWrap: {
+    padding: '12px 20px 10px',
+    backgroundColor: '#fff',
+  },
+  searchBox: {
+    display: 'flex',
+    alignItems: 'center',
+    height: 44,
+    backgroundColor: '#f1f2f3',
+    borderRadius: 12,
+    padding: '0 18px',
+    gap: 10,
+  },
+  searchInput: {
+    flex: 1,
+    background: 'transparent',
+    border: 'none',
+    outline: 'none',
+    fontSize: 14,
+    fontWeight: 500,
+    letterSpacing: -0.3,
+    color: '#121212',
+    fontFamily: 'inherit',
+  },
+  fab: {
+    position: 'fixed',
+    bottom: 103,
+    right: 16,
+    width: 57,
+    height: 57,
+    borderRadius: 28.5,
+    background: `linear-gradient(135deg, ${COLORS.primary.main}, ${COLORS.primary.dark})`,
+    border: 'none',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    cursor: 'pointer',
+    boxShadow: '0 6px 20px rgba(255,165,41,0.35), 0 2px 6px rgba(0,0,0,0.08)',
+    transition: 'transform 150ms ease, box-shadow 150ms ease',
+    zIndex: 20,
+  },
+};
 
 export default MyMeetupsScreen;
