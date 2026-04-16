@@ -1,12 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
 import { useNavigate } from 'react-router-dom';
-import { COLORS, SHADOWS, CSS_SHADOWS, CARD_STYLE } from '../styles/colors';
-import { HEADER_STYLE } from '../styles/spacing';
 import { Icon } from '../components/Icon';
 import apiClient from '../services/apiClient';
-import EmptyState from '../components/EmptyState';
-import { FadeIn } from '../components/animated';
 
 interface Notice {
   id: number;
@@ -22,7 +17,6 @@ const NoticesScreen: React.FC = () => {
   const navigate = useNavigate();
   const [notices, setNotices] = useState<Notice[]>([]);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
 
   const fetchNotices = async () => {
     try {
@@ -32,7 +26,6 @@ const NoticesScreen: React.FC = () => {
       // silently handle error
     } finally {
       setLoading(false);
-      setRefreshing(false);
     }
   };
 
@@ -40,169 +33,178 @@ const NoticesScreen: React.FC = () => {
     fetchNotices();
   }, []);
 
-  const handleRefresh = () => {
-    setRefreshing(true);
-    fetchNotices();
-  };
-
-  const getTypeStyle = (type: Notice['type']) => {
-    switch (type) {
-      case 'important':
-        return { backgroundColor: COLORS.functional.error, label: '중요' };
-      case 'maintenance':
-        return { backgroundColor: COLORS.functional.warning, label: '점검' };
-      case 'event':
-        return { backgroundColor: COLORS.functional.success, label: '이벤트' };
-      default:
-        return { backgroundColor: COLORS.primary.dark, label: '일반' };
-    }
-  };
-
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, '0')}.${String(date.getDate()).padStart(2, '0')}`;
+    const yy = String(date.getFullYear()).slice(2);
+    const mm = String(date.getMonth() + 1).padStart(2, '0');
+    const dd = String(date.getDate()).padStart(2, '0');
+    return `${yy}.${mm}.${dd}`;
   };
 
-  const renderNoticeItem = (notice: Notice) => {
-    const typeStyle = getTypeStyle(notice.type);
+  const renderSkeletons = () => (
+    <div style={styles.listContainer}>
+      {[0, 1, 2, 3, 4].map((i) => (
+        <div key={i} style={styles.skeletonItem}>
+          <div style={styles.skeletonTitle} />
+          <div style={styles.skeletonDate} />
+        </div>
+      ))}
+    </div>
+  );
 
-    return (
-      <div
-        key={notice.id}
-        onClick={() => navigate(`/notices/${notice.id}`)}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.transform = 'translateY(-2px)';
-          e.currentTarget.style.boxShadow = '0 4px 16px rgba(17,17,17,0.10)';
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.transform = 'translateY(0)';
-          e.currentTarget.style.boxShadow = '';
-        }}
-        style={{
-          cursor: 'pointer',
-          transition: 'all 200ms ease',
-          marginBottom: 12,
-        }}
-      >
-        <View style={[styles.noticeItem, notice.is_pinned && styles.pinnedNotice]}>
-          <View style={styles.noticeHeader}>
-            <View style={styles.noticeInfo}>
-              <View style={styles.noticeMeta}>
-                <View style={[styles.typeTag, { backgroundColor: typeStyle.backgroundColor }]}>
-                  <Text style={styles.typeTagText}>{typeStyle.label}</Text>
-                </View>
-                {notice.is_pinned && (
-                  <Icon name="pin" size={16} color={COLORS.primary.main} />
-                )}
-                <Text style={styles.noticeDate}>{formatDate(notice.created_at)}</Text>
-              </View>
-            </View>
-          </View>
-
-          <Text style={[styles.noticeTitle, notice.is_pinned && styles.pinnedTitle]}>
-            {notice.title}
-          </Text>
-
-          <Text style={styles.noticePreview} numberOfLines={2}>
-            {notice.content.replace(/<[^>]*>/g, '').substring(0, 100)}...
-          </Text>
-
-          <View style={styles.noticeActions}>
-            <Icon name="chevron-right" size={16} color={COLORS.text.secondary} />
-          </View>
-        </View>
-      </div>
-    );
-  };
-
-  if (loading) {
-    return (
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => navigate('/mypage')}>
-            <Icon name="arrow-left" size={24} color={COLORS.text.primary} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>공지사항</Text>
-          <View style={{ width: 44 }} />
-        </View>
-        <View style={{ padding: 20, gap: 12 }}>
-          {[0, 1, 2, 3, 4].map((i) => (
-            <View key={i} className="animate-shimmer" style={{ padding: 16, backgroundColor: COLORS.neutral.grey50, borderRadius: 8, gap: 10 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <View style={{ width: 48, height: 20, borderRadius: 4, backgroundColor: COLORS.neutral.grey100 }} />
-                <View style={{ width: 80, height: 12, borderRadius: 6, backgroundColor: COLORS.neutral.grey100 }} />
-              </View>
-              <View style={{ width: '80%', height: 14, borderRadius: 7, backgroundColor: COLORS.neutral.grey100 }} />
-              <View style={{ width: '50%', height: 10, borderRadius: 5, backgroundColor: COLORS.neutral.grey100 }} />
-            </View>
-          ))}
-        </View>
-      </View>
-    );
-  }
+  const renderEmpty = () => (
+    <div style={styles.emptyState}>
+      <Icon name="bell-off" size={48} color="#b7bbbf" />
+      <div style={styles.emptyTitle}>등록된 공지사항이 없습니다</div>
+      <div style={styles.emptyDescription}>새로운 소식이 있으면 알려드릴게요!</div>
+    </div>
+  );
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigate('/mypage')}
+    <div style={styles.container}>
+      {/* Header */}
+      <div style={styles.header}>
+        <button
+          onClick={() => navigate(-1)}
+          style={styles.headerBackButton}
         >
-          <Icon name="arrow-left" size={24} color={COLORS.text.primary} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>공지사항</Text>
-        <View style={styles.placeholder} />
-      </View>
+          <Icon name="chevron-left" size={24} color="#121212" />
+        </button>
+        <span style={styles.headerTitle}>공지사항</span>
+      </div>
 
-      <ScrollView
-        style={styles.content}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
-        }
-      >
-        <FadeIn>
-        {notices.length === 0 ? (
-          <EmptyState
-            icon="bell-off"
-            title="등록된 공지사항이 없습니다"
-            description="새로운 소식이 있으면 알려드릴게요!"
-          />
-        ) : (
-          <View style={styles.noticesList}>
-            {notices.map(renderNoticeItem)}
-          </View>
+      {/* Content */}
+      <div style={styles.scrollContainer}>
+        {loading ? renderSkeletons() : notices.length === 0 ? renderEmpty() : (
+          <div style={styles.listContainer}>
+            {notices.map((notice) => (
+              <button
+                key={notice.id}
+                onClick={() => navigate(`/notices/${notice.id}`)}
+                style={styles.noticeItem}
+                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#fafafa'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+              >
+                <div style={styles.noticeTitle}>{notice.title}</div>
+                <div style={styles.noticeDate}>{formatDate(notice.created_at)}</div>
+              </button>
+            ))}
+          </div>
         )}
-        </FadeIn>
-      </ScrollView>
-    </View>
+      </div>
+    </div>
   );
 };
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.neutral.grey100 },
-  centerContent: { justifyContent: 'center', alignItems: 'center' },
-  loadingText: { fontSize: 16, color: COLORS.text.secondary },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', ...HEADER_STYLE.sub, zIndex: 10 },
-  backButton: { padding: 10, minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 200ms ease' },
-  headerTitle: { ...HEADER_STYLE.subTitle },
-  placeholder: { width: 32 },
-  content: { flex: 1 },
-  noticesList: { padding: 16 },
-  noticeItem: { backgroundColor: COLORS.neutral.white, borderRadius: 8, padding: 20, borderWidth: 1, borderColor: 'rgba(17,17,17,0.06)', shadowColor: COLORS.neutral.black, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 4, elevation: 1 },
-  pinnedNotice: { borderWidth: 1.5, borderColor: 'rgba(224,146,110,0.20)', backgroundColor: COLORS.neutral.grey50 },
-  noticeHeader: { marginBottom: 12 },
-  noticeInfo: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  noticeMeta: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  typeTag: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 4 },
-  typeTagText: { fontSize: 11, fontWeight: '700', color: COLORS.neutral.white },
-  noticeDate: { fontSize: 13, color: COLORS.text.accent },
-  noticeTitle: { fontSize: 16, fontWeight: '600', color: COLORS.text.primary, marginBottom: 8, lineHeight: 22 },
-  pinnedTitle: { color: COLORS.primary.main },
-  noticePreview: { fontSize: 14, color: COLORS.text.secondary, lineHeight: 20, marginBottom: 8 },
-  noticeActions: { alignItems: 'flex-end' },
-  emptyState: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 80 },
-  emptyTitle: { fontSize: 18, fontWeight: '600', color: COLORS.text.primary, marginTop: 16, marginBottom: 8 },
-  emptySubtitle: { fontSize: 14, color: COLORS.text.secondary, textAlign: 'center' },
-});
+const styles: { [key: string]: React.CSSProperties } = {
+  container: {
+    display: 'flex',
+    flexDirection: 'column',
+    height: '100vh',
+    backgroundColor: '#ffffff',
+  },
+  header: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 56,
+    backgroundColor: '#fff',
+    position: 'relative',
+    borderBottom: '1px solid #f1f2f3',
+    flexShrink: 0,
+  },
+  headerBackButton: {
+    position: 'absolute',
+    left: 20,
+    background: 'none',
+    border: 'none',
+    cursor: 'pointer',
+    padding: 0,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: 600,
+    color: '#121212',
+    letterSpacing: -0.3,
+  },
+  scrollContainer: {
+    flex: 1,
+    overflowY: 'auto',
+  },
+  listContainer: {
+    display: 'flex',
+    flexDirection: 'column',
+  },
+  noticeItem: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    gap: 6,
+    padding: 20,
+    borderBottom: '1px solid #efefef',
+    background: 'none',
+    border: 'none',
+    borderBottomStyle: 'solid',
+    borderBottomWidth: 1,
+    borderBottomColor: '#efefef',
+    cursor: 'pointer',
+    textAlign: 'left',
+    width: '100%',
+    transition: 'background-color 150ms ease',
+  },
+  noticeTitle: {
+    fontSize: 16,
+    fontWeight: 500,
+    color: '#121212',
+    lineHeight: 1.4,
+  },
+  noticeDate: {
+    fontSize: 14,
+    fontWeight: 400,
+    color: '#4e637b',
+  },
+  // Skeleton
+  skeletonItem: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 8,
+    padding: 20,
+    borderBottom: '1px solid #efefef',
+  },
+  skeletonTitle: {
+    width: '70%',
+    height: 16,
+    borderRadius: 4,
+    backgroundColor: '#f0f0f0',
+  },
+  skeletonDate: {
+    width: '25%',
+    height: 14,
+    borderRadius: 4,
+    backgroundColor: '#f0f0f0',
+  },
+  // Empty state
+  emptyState: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingTop: 120,
+    gap: 8,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: 600,
+    color: '#121212',
+    marginTop: 8,
+  },
+  emptyDescription: {
+    fontSize: 14,
+    color: '#5f5f5f',
+  },
+};
 
 export default NoticesScreen;

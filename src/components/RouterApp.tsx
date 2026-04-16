@@ -39,6 +39,8 @@ import ExploreScreen from '../screens/ExploreScreen.web';
 import SettingsScreen from '../screens/SettingsScreen.web';
 import HostProfileScreen from '../screens/HostProfileScreen.web';
 import OnboardingScreen from '../screens/OnboardingScreen.web';
+import FAQScreen from '../screens/FAQScreen.web';
+import TermsScreen from '../screens/TermsScreen.web';
 
 // Components
 import BottomTabBar from './BottomTabBar';
@@ -221,9 +223,9 @@ const RouterApp: React.FC = () => {
       } else if (screenName === 'Notices') {
         window.location.href = '/notices';
       } else if (screenName === 'FAQ') {
-        window.location.href = '/notices';
+        window.location.href = '/faq';
       } else if (screenName === 'Terms') {
-        window.location.href = '/notices';
+        window.location.href = '/terms';
       } else if (screenName === 'WriteReview') {
         window.location.href = `/meetup/${params?.meetupId}`;
       } else if (screenName === 'DepositPayment') {
@@ -304,6 +306,8 @@ const RouterApp: React.FC = () => {
           <Route path="/advertisement/:id" element={<AdvertisementDetailScreen user={user} navigation={getReactRouterNavigation()} />} />
           <Route path="/notices" element={<NoticesScreen />} />
           <Route path="/notices/:id" element={<NoticeDetailScreen />} />
+          <Route path="/faq" element={<FAQScreen />} />
+          <Route path="/terms" element={<TermsScreen />} />
 
           {/* 보호된 라우트들 */}
           <Route path="/chat/:id" element={protectedElement(<MainLayout><ChatScreen {...getNavigationProps()} /></MainLayout>)} />
