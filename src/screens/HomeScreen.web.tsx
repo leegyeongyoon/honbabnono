@@ -18,6 +18,7 @@ import { useUserStore } from '../store/userStore';
 import { useMeetupStore } from '../store/meetupStore';
 import { FOOD_CATEGORIES } from '../constants/categories';
 import { useMeetups } from '../hooks/useMeetups';
+import advertisementApiService, { Advertisement } from '../services/advertisementApiService';
 
 interface HomeScreenProps {
   navigateToLogin?: () => void;
@@ -54,6 +55,10 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
   const scrollViewRef = useRef<ScrollView>(null);
   const [hoveredCategoryId, setHoveredCategoryId] = useState<string | null>(null);
 
+  // 배너 광고
+  const [bannerAds, setBannerAds] = useState<Advertisement[]>([]);
+  const [currentAdIndex, setCurrentAdIndex] = useState(0);
+
   const handleMeetupClick = useCallback((meetup: any) => {
     const meetupId = typeof meetup === 'string' ? meetup : meetup.id;
     navigate(`/meetup/${meetupId}`);
@@ -65,7 +70,20 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
     fetchHomeMeetups()
       .catch(() => setFetchError(true))
       .finally(() => setIsLoading(false));
+    // 배너 광고 로드
+    advertisementApiService.getActiveAdvertisements('home_banner')
+      .then(ads => setBannerAds(ads))
+      .catch(() => {});
   }, []);
+
+  // 배너 자동 순환 (5초)
+  useEffect(() => {
+    if (bannerAds.length <= 1) return;
+    const interval = setInterval(() => {
+      setCurrentAdIndex(prev => (prev + 1) % bannerAds.length);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [bannerAds.length]);
 
   const loadSavedNeighborhood = () => {
     const saved = locationService.getUserNeighborhood();
@@ -433,28 +451,89 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
           </div>
         </div>
 
-        {/* ===== Banner Placeholder ===== */}
+        {/* ===== 배너 광고 ===== */}
         <div style={{
           marginLeft: 20,
           marginRight: 20,
           marginBottom: 28,
         }}>
-          <div style={{
-            height: 86,
-            backgroundColor: '#BEBEBE',
-            borderRadius: 20,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}>
-            <span style={{
-              fontSize: 16,
-              fontWeight: 500,
-              color: '#FFFFFF',
-            }}>
-              배너
-            </span>
-          </div>
+          {bannerAds.length > 0 ? (
+            <div
+              onClick={() => {
+                const ad = bannerAds[currentAdIndex];
+                if (!ad) return;
+                advertisementApiService.recordClick(ad.id).catch(() => {});
+                if (ad.useDetailPage) {
+                  navigate(`/advertisement/${ad.id}`);
+                } else if (ad.linkUrl) {
+                  if (ad.linkUrl.startsWith('http')) {
+                    window.open(ad.linkUrl, '_blank');
+                  } else {
+                    navigate(ad.linkUrl);
+                  }
+                }
+              }}
+              style={{
+                height: 86,
+                borderRadius: 20,
+                overflow: 'hidden',
+                position: 'relative',
+                cursor: 'pointer',
+              }}
+            >
+              <img
+                src={bannerAds[currentAdIndex]?.imageUrl?.startsWith('http')
+                  ? bannerAds[currentAdIndex].imageUrl
+                  : `${process.env.REACT_APP_API_URL || ''}/uploads${bannerAds[currentAdIndex]?.imageUrl || ''}`
+                }
+                alt={bannerAds[currentAdIndex]?.title || '광고'}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
+                }}
+              />
+              {/* 오버레이 텍스트 */}
+              <div style={{
+                position: 'absolute',
+                bottom: 0,
+                left: 0,
+                right: 0,
+                padding: '8px 16px',
+                background: 'linear-gradient(transparent, rgba(0,0,0,0.5))',
+                display: 'flex',
+                alignItems: 'flex-end',
+                justifyContent: 'space-between',
+              }}>
+                <span style={{ fontSize: 14, fontWeight: 600, color: '#fff' }}>
+                  {bannerAds[currentAdIndex]?.title}
+                </span>
+                {bannerAds.length > 1 && (
+                  <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.8)' }}>
+                    {currentAdIndex + 1}/{bannerAds.length}
+                  </span>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div
+              onClick={() => navigate('/create')}
+              style={{
+                height: 86,
+                borderRadius: 20,
+                background: 'linear-gradient(135deg, #FFA529 0%, #FF8C00 100%)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 8,
+                cursor: 'pointer',
+              }}
+            >
+              <span style={{ fontSize: 15, fontWeight: 600, color: '#fff' }}>
+                지금 바로 모임을 만들어보세요!
+              </span>
+            </div>
+          )}
         </div>
 
         {/* ===== Section 1: 바로 참여할 수 있는 번개 ===== */}
