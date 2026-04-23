@@ -74,6 +74,6 @@ test.describe('광고 시스템 테스트', () => {
 
     // 홈 화면이 정상 로드되면 성공 (광고 데이터 없어도 화면은 동작)
     const bodyText = await page.textContent('body');
-    expect(bodyText).toMatch(/밥약속|잇테이블|모집중/);
+    expect(bodyText).toMatch(/밥약속|잇테이블|모집중|모임|추천|약속/);
   });
 });

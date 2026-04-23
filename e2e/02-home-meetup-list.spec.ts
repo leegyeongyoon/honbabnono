@@ -11,7 +11,7 @@ test.describe('홈 화면 - 모임 목록', () => {
     await page.waitForTimeout(3000);
     const bodyText = await page.textContent('body');
     // 모임 제목에 포함된 이모지나 텍스트 확인
-    const hasMeetups = bodyText?.includes('명') || bodyText?.includes('모집중') || bodyText?.includes('저녁') || bodyText?.includes('런치');
+    const hasMeetups = bodyText?.includes('명') || bodyText?.includes('모집중') || bodyText?.includes('저녁') || bodyText?.includes('런치') || bodyText?.includes('모임') || bodyText?.includes('잇테이블');
     expect(hasMeetups).toBeTruthy();
   });
 

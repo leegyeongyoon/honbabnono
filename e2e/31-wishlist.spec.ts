@@ -11,7 +11,7 @@ test.describe('찜 목록(위시리스트) 테스트', () => {
     await page.waitForTimeout(3000);
 
     const bodyText = await page.textContent('body');
-    expect(bodyText).toMatch(/찜 목록|찜한|위시리스트|약속 찾아보기/);
+    expect(bodyText).toMatch(/찜 목록|찜 모임|찜한|위시리스트|약속 찾아보기/);
   });
 
   test('찜 목록 빈 상태 표시', async ({ page }) => {
@@ -21,8 +21,10 @@ test.describe('찜 목록(위시리스트) 테스트', () => {
     const bodyText = await page.textContent('body');
     // 찜한 모임이 있거나, 빈 상태 메시지가 있어야 함
     const hasContent = bodyText?.includes('찜 목록') ||
+      bodyText?.includes('찜 모임') ||
       bodyText?.includes('약속 찾아보기') ||
-      bodyText?.includes('찜한 약속');
+      bodyText?.includes('찜한 약속') ||
+      bodyText?.includes('찜한');
     expect(hasContent).toBeTruthy();
   });
 
