@@ -1,12 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
+import { View, StyleSheet, ScrollView } from 'react-native';
 import { useNavigate } from 'react-router-dom';
-import { COLORS, SHADOWS, CSS_SHADOWS, CARD_STYLE } from '../styles/colors';
-import { HEADER_STYLE } from '../styles/spacing';
 import { Icon } from '../components/Icon';
 import EmptyState from '../components/EmptyState';
-import { ArrowLeft, Clock, Users, MapPin, Trash2 } from 'lucide-react';
 import apiClient from '../services/apiClient';
+import { processImageUrl } from '../utils/imageUtils';
 
 interface RecentViewItem {
   id: string;
@@ -141,205 +139,207 @@ const RecentViewsScreen: React.FC = () => {
 
   const getStatusColor = (item: RecentViewItem) => {
     if (item.is_ended) {
-      return COLORS.text.tertiary;
+      return '#878B94';
     }
     switch (item.status) {
-      case '모집중': return COLORS.secondary.main;
-      case '모집완료': return COLORS.primary.main;
-      case '진행중': return COLORS.functional.success;
-      case '종료': return COLORS.text.tertiary;
-      case '취소': return COLORS.text.error;
-      default: return COLORS.text.secondary;
+      case '모집중': return '#6B7280';
+      case '모집완료': return '#FFA529';
+      case '진행중': return '#2E7D4F';
+      case '종료': return '#878B94';
+      case '취소': return '#D32F2F';
+      default: return '#5F5F5F';
     }
   };
 
-  const renderRecentViewItem = (item: RecentViewItem) => (
-    <div
-      key={item.id}
-      onMouseEnter={(e) => {
-        if (!item.is_ended) {
-          e.currentTarget.style.transform = 'translateY(-3px)';
-          e.currentTarget.style.boxShadow = '0 6px 20px rgba(17,17,17,0.1)';
-        }
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.transform = 'translateY(0)';
-        e.currentTarget.style.boxShadow = '';
-      }}
-      style={{ cursor: 'pointer', transition: 'all 200ms ease' }}
-    >
-      <TouchableOpacity
-        style={[
-          styles.recentViewCard,
-          item.is_ended && styles.endedCard
-        ]}
-        onPress={() => navigate(`/meetup/${item.meetup_id}`)}
+  // ---- Skeleton list item ----
+  const SkeletonListItem = () => (
+    <div style={{
+      display: 'flex',
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 18,
+      padding: '16px 20px',
+    }}>
+      <div style={{
+        width: 70,
+        height: 70,
+        borderRadius: 16,
+        backgroundColor: '#F5F5F5',
+        flexShrink: 0,
+        animation: 'pulse 1.5s ease-in-out infinite',
+      }} />
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flex: 1 }}>
+        <div style={{ width: '60%', height: 16, borderRadius: 4, backgroundColor: '#F5F5F5' }} />
+        <div style={{ width: '80%', height: 14, borderRadius: 4, backgroundColor: '#F5F5F5' }} />
+        <div style={{ width: '50%', height: 14, borderRadius: 4, backgroundColor: '#F5F5F5' }} />
+      </div>
+    </div>
+  );
+
+  // ---- Recent view item row ----
+  const RecentViewRow = ({ item }: { item: RecentViewItem }) => {
+    const [hovered, setHovered] = useState(false);
+    const imageUrl = processImageUrl(item.image, item.category);
+    const location = item.location || item.address || '';
+    const description = item.description || item.category || '';
+
+    return (
+      <div
+        onClick={() => navigate(`/meetup/${item.meetup_id}`)}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+        style={{
+          display: 'flex',
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 18,
+          padding: '16px 20px',
+          cursor: 'pointer',
+          backgroundColor: hovered ? '#FAFAFA' : '#FFFFFF',
+          transition: 'background-color 150ms ease',
+          opacity: item.is_ended ? 0.5 : 1,
+        }}
       >
-      {/* 모임 이미지 */}
-      <View style={styles.imageContainer}>
-        {item.image ? (
-          <Image
-            source={{ uri: item.image }}
-            style={styles.meetupImage}
-            resizeMode="cover"
-          />
-        ) : (
-          <View style={styles.placeholderImage}>
-            <Icon name="utensils" size={32} color={COLORS.text.tertiary} />
-          </View>
-        )}
+        {/* Thumbnail */}
+        <img
+          src={imageUrl}
+          alt={item.title || ''}
+          style={{
+            width: 70,
+            height: 70,
+            borderRadius: 16,
+            objectFit: 'cover',
+            flexShrink: 0,
+            backgroundColor: '#F5F5F5',
+          }}
+        />
 
-        {/* 종료 오버레이 */}
-        {item.is_ended && (
-          <View style={styles.endedOverlay}>
-            <Text style={styles.endedOverlayText}>종료된 약속</Text>
-          </View>
-        )}
-      </View>
-
-      {/* 모임 정보 */}
-      <View style={styles.cardContent}>
-        <View style={styles.cardHeader}>
-          <Text style={[
-            styles.cardTitle,
-            item.is_ended && styles.endedTitle
-          ]}>
-            {item.title}
-          </Text>
-          <TouchableOpacity
-            style={styles.removeButton}
-            onPress={(e) => {
-              e.stopPropagation();
-              removeFromRecentViews(item.id);
-            }}
-          >
-            <Trash2 size={16} color={COLORS.text.secondary} />
-          </TouchableOpacity>
-        </View>
-
-        <Text style={[
-          styles.cardCategory,
-          item.is_ended && styles.endedText
-        ]}>
-          {item.category}
-        </Text>
-
-        <View style={styles.cardMeta}>
-          <View style={styles.metaRow}>
-            <Clock size={14} color={item.is_ended ? COLORS.text.tertiary : COLORS.text.secondary} />
-            <Text style={[
-              styles.metaText,
-              item.is_ended && styles.endedText
-            ]}>
-              {formatMeetupDate(item.date)} {formatTime(item.time)}
-            </Text>
-          </View>
-
-          <View style={styles.metaRow}>
-            <MapPin size={14} color={item.is_ended ? COLORS.text.tertiary : COLORS.text.secondary} />
-            <Text style={[
-              styles.metaText,
-              item.is_ended && styles.endedText
-            ]}>
-              {item.location}
-            </Text>
-          </View>
-
-          <View style={styles.metaRow}>
-            <Users size={14} color={item.is_ended ? COLORS.text.tertiary : COLORS.text.secondary} />
-            <Text style={[
-              styles.metaText,
-              item.is_ended && styles.endedText
-            ]}>
+        {/* Text area */}
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 4,
+          flex: 1,
+          minWidth: 0,
+        }}>
+          {/* Title */}
+          <div style={{
+            fontSize: 16,
+            fontWeight: 600,
+            color: '#121212',
+            lineHeight: '22px',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}>
+            {item.title || ''}
+          </div>
+          {/* Description */}
+          <div style={{
+            fontSize: 14,
+            fontWeight: 400,
+            color: '#293038',
+            lineHeight: '20px',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}>
+            {description}
+          </div>
+          {/* Meta row */}
+          <div style={{
+            display: 'flex',
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 6,
+            fontSize: 14,
+            fontWeight: 400,
+            lineHeight: '20px',
+          }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: '#878B94' }}>
+              <Icon name="map-pin" size={13} color="#878B94" />
+              <span style={{
+                maxWidth: 100,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}>
+                {location}
+              </span>
+            </span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: '#878B94' }}>
+              <Icon name="users" size={13} color="#878B94" />
               {item.current_participants ?? 0}/{item.max_participants ?? 4}명
-            </Text>
-          </View>
-        </View>
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
-        <View style={styles.cardFooter}>
-          <View style={[
-            styles.statusBadge,
-            { backgroundColor: getStatusColor(item) + '20' }
-          ]}>
-            <Text style={[
-              styles.statusText,
-              { color: getStatusColor(item) }
-            ]}>
-              {getStatusText(item)}
-            </Text>
-          </View>
-
-          <Text style={styles.viewedAtText}>
-            {formatDate(item.viewed_at)} 조회
-          </Text>
-        </View>
-      </View>
-    </TouchableOpacity>
+  // ---- Header ----
+  const renderHeader = () => (
+    <div style={{
+      display: 'flex',
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      height: 56,
+      backgroundColor: '#FFFFFF',
+      position: 'sticky' as any,
+      top: 0,
+      zIndex: 10,
+      borderBottom: '1px solid rgba(17,17,17,0.06)',
+    }}>
+      <div
+        onClick={() => navigate(-1)}
+        style={{
+          position: 'absolute',
+          left: 12,
+          width: 44,
+          height: 44,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          cursor: 'pointer',
+        }}
+      >
+        <span style={{
+          fontSize: 22,
+          fontWeight: 300,
+          color: '#121212',
+          lineHeight: '22px',
+        }}>
+          &lt;
+        </span>
+      </div>
+      <span style={{
+        fontSize: 16,
+        fontWeight: 600,
+        color: '#121212',
+      }}>
+        최근 본 모임
+      </span>
     </div>
   );
 
   if (loading) {
     return (
       <View style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => navigate(-1)}>
-            <ArrowLeft size={24} color={COLORS.text.primary} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>최근 본 글</Text>
-          <View style={{ width: 44 }} />
-        </View>
-        <View style={{ padding: 20, gap: 12 }}>
-          {[0, 1, 2, 3, 4].map((i) => (
-            <View key={i} className="animate-shimmer" style={{ flexDirection: 'row', padding: 16, backgroundColor: COLORS.neutral.grey50, borderRadius: 8, gap: 12 }}>
-              <View style={{ width: 80, height: 80, borderRadius: 12, backgroundColor: COLORS.neutral.grey100 }} />
-              <View style={{ flex: 1, gap: 8, justifyContent: 'center' }}>
-                <View style={{ width: '70%', height: 14, borderRadius: 7, backgroundColor: COLORS.neutral.grey100 }} />
-                <View style={{ width: '50%', height: 10, borderRadius: 5, backgroundColor: COLORS.neutral.grey100 }} />
-                <View style={{ width: '40%', height: 10, borderRadius: 5, backgroundColor: COLORS.neutral.grey100 }} />
-              </View>
-            </View>
-          ))}
-        </View>
+        {renderHeader()}
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <SkeletonListItem />
+          <SkeletonListItem />
+          <SkeletonListItem />
+          <SkeletonListItem />
+        </div>
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
-      {/* 헤더 */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigate(-1)}
-        >
-          <ArrowLeft size={24} color={COLORS.text.primary} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>최근 본 글</Text>
-        {recentViews.length > 0 && (
-          <TouchableOpacity
-            style={styles.clearAllButton}
-            onPress={clearAllRecentViews}
-          >
-            <Text style={styles.clearAllText}>전체 삭제</Text>
-          </TouchableOpacity>
-        )}
-      </View>
-
-      {/* 통계 정보 */}
-      {recentViews.length > 0 && (
-        <View style={styles.statsContainer}>
-          <View style={styles.statCard}>
-            <Text style={styles.statNumber}>{recentViews.length}</Text>
-            <Text style={styles.statLabel}>최근 본 글</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statNumber}>
-              {recentViews.filter(item => !item.is_ended).length}
-            </Text>
-            <Text style={styles.statLabel}>참여 가능한 약속</Text>
-          </View>
-        </View>
-      )}
+      {renderHeader()}
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {recentViews.length === 0 ? (
@@ -351,11 +351,15 @@ const RecentViewsScreen: React.FC = () => {
             onAction={() => navigate('/home')}
           />
         ) : (
-          <View style={styles.recentViewsGrid}>
-            <Text style={styles.sectionTitle}>최근 본 글 ({recentViews.length}개)</Text>
-            {recentViews.map(renderRecentViewItem)}
-          </View>
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            {recentViews.map((item) => (
+              <RecentViewRow key={item.id} item={item} />
+            ))}
+          </div>
         )}
+
+        {/* Bottom spacing for bottom nav */}
+        <View style={{ height: 100 }} />
       </ScrollView>
     </View>
   );
@@ -364,207 +368,10 @@ const RecentViewsScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.neutral.background,
+    backgroundColor: '#FFFFFF',
   },
-  centerContent: {
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    fontSize: 16,
-    color: COLORS.text.secondary,
-  },
-
-  // 헤더
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    ...HEADER_STYLE.sub,
-    ...SHADOWS.sticky,
-    zIndex: 10,
-  },
-  backButton: {
-    padding: 8,
-    cursor: 'pointer',
-    transition: 'all 200ms ease',
-  },
-  headerTitle: {
-    ...HEADER_STYLE.subTitle,
-  },
-  clearAllButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-    backgroundColor: 'rgba(212, 84, 78, 0.08)',
-    cursor: 'pointer',
-    transition: 'all 200ms ease',
-  },
-  clearAllText: {
-    fontSize: 14,
-    color: COLORS.text.error,
-    fontWeight: '600',
-  },
-
-  // 통계
-  statsContainer: {
-    flexDirection: 'row',
-    gap: 12,
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: COLORS.neutral.white,
-  },
-  statCard: {
-    flex: 1,
-    backgroundColor: COLORS.neutral.background,
-    borderRadius: 8,
-    padding: 16,
-    alignItems: 'center',
-    ...CARD_STYLE,
-    ...SHADOWS.small,
-    borderWidth: 1,
-    borderColor: 'rgba(17,17,17,0.06)',
-  },
-  statNumber: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: COLORS.primary.dark,
-    marginBottom: 4,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: COLORS.text.secondary,
-    textAlign: 'center',
-  },
-
-  // 컨텐츠
   content: {
     flex: 1,
-  },
-
-  // 최근 본 글 목록
-  recentViewsGrid: {
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: COLORS.text.primary,
-    marginBottom: 16,
-  },
-
-  // 최근 본 글 카드
-  recentViewCard: {
-    backgroundColor: COLORS.neutral.white,
-    borderRadius: 8,
-    marginBottom: 16,
-    overflow: 'hidden',
-    ...CARD_STYLE,
-    ...SHADOWS.small,
-  },
-  endedCard: {
-    opacity: 0.7,
-  },
-  imageContainer: {
-    position: 'relative',
-    height: 160,
-  },
-  meetupImage: {
-    width: '100%',
-    height: '100%',
-  },
-  placeholderImage: {
-    width: '100%',
-    height: '100%',
-    backgroundColor: COLORS.neutral.light,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  endedOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(17,17,17,0.6)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  endedOverlayText: {
-    color: COLORS.neutral.white,
-    fontSize: 16,
-    fontWeight: '600',
-  },
-
-  // 카드 컨텐츠
-  cardContent: {
-    padding: 16,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 8,
-  },
-  cardTitle: {
-    flex: 1,
-    fontSize: 16,
-    fontWeight: '700',
-    color: COLORS.text.primary,
-    marginRight: 12,
-  },
-  endedTitle: {
-    color: COLORS.text.tertiary,
-  },
-  removeButton: {
-    padding: 4,
-    cursor: 'pointer',
-    transition: 'all 200ms ease',
-  },
-  cardCategory: {
-    fontSize: 14,
-    color: COLORS.text.secondary,
-    marginBottom: 12,
-  },
-  endedText: {
-    color: COLORS.text.tertiary,
-  },
-
-  // 메타 정보
-  cardMeta: {
-    gap: 6,
-    marginBottom: 12,
-  },
-  metaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  metaText: {
-    fontSize: 13,
-    color: COLORS.text.secondary,
-  },
-
-  // 카드 푸터
-  cardFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  statusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  statusText: {
-    fontSize: 12,
-    fontWeight: '500',
-  },
-  viewedAtText: {
-    fontSize: 13,
-    color: COLORS.text.tertiary,
-    fontWeight: '500',
   },
 });
 

@@ -19,12 +19,15 @@ interface PointTransaction {
   status: 'completed' | 'pending' | 'cancelled';
 }
 
+type FilterType = 'all' | 'earn' | 'use';
+
 const PointHistoryScreen: React.FC = () => {
   const navigate = useNavigate();
   const [transactions, setTransactions] = useState<PointTransaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [currentPoints, setCurrentPoints] = useState(0);
+  const [activeFilter, setActiveFilter] = useState<FilterType>('all');
 
   const fetchPointHistory = async () => {
     try {
@@ -76,154 +79,209 @@ const PointHistoryScreen: React.FC = () => {
     }
   };
 
-  const renderTransactionItem = (transaction: PointTransaction) => (
-    <div
-      key={transaction.id}
-      onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'rgba(17,17,17,0.02)'; }}
-      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
-      style={{ cursor: 'pointer', transition: 'background-color 200ms ease' }}
-    >
-      <View style={styles.transactionItem}>
-        <View style={styles.profileImage}>
-          <View style={styles.avatarCircle}>
-            <Icon name={getTransactionIconName(transaction.type)} size={20} color={getTransactionColor(transaction.type)} />
-          </View>
-        </View>
+  const isPositiveTransaction = (type: string): boolean => {
+    return type === 'charge' || type === 'refund' || type === 'reward';
+  };
 
-        <View style={styles.transactionInfo}>
-          <Text style={styles.transactionDescription}>{transaction.description}</Text>
-          {transaction.meetup_title && (
-            <Text style={styles.meetupTitle}>{transaction.meetup_title}</Text>
-          )}
-          <Text style={styles.transactionDate}>
-            {new Date(transaction.created_at).toLocaleDateString('ko-KR', {
-              year: 'numeric',
-              month: 'long',
-              day: 'numeric',
-              hour: '2-digit',
-              minute: '2-digit'
-            })}
-          </Text>
-        </View>
+  const filteredTransactions = transactions.filter((t) => {
+    if (activeFilter === 'all') return true;
+    if (activeFilter === 'earn') return isPositiveTransaction(t.type);
+    if (activeFilter === 'use') return t.type === 'use';
+    return true;
+  });
 
-        <View style={styles.amountContainer}>
-          <Text style={[
-            styles.transactionAmount,
-            { color: getTransactionColor(transaction.type) }
-          ]}>
-            {transaction.type === 'use' ? '-' : '+'}
-            {(transaction.amount ?? 0).toLocaleString()}원
-          </Text>
-          <Text style={styles.transactionType}>
-            {getTransactionTypeText(transaction.type)}
-          </Text>
-        </View>
-      </View>
+  const formatDate = (dateStr: string) => {
+    const d = new Date(dateStr);
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${month}.${day}`;
+  };
+
+  const formatTime = (dateStr: string) => {
+    const d = new Date(dateStr);
+    const hours = String(d.getHours()).padStart(2, '0');
+    const minutes = String(d.getMinutes()).padStart(2, '0');
+    return `${hours}:${minutes}`;
+  };
+
+  const computeRunningBalance = (txList: PointTransaction[]): number[] => {
+    // Compute balance after each transaction, starting from currentPoints
+    // Transactions are newest-first, so go backward
+    const balances: number[] = new Array(txList.length);
+    let bal = currentPoints;
+    for (let i = 0; i < txList.length; i++) {
+      balances[i] = bal;
+      const tx = txList[i];
+      // Reverse the effect of this transaction to get previous balance
+      if (tx.type === 'use') {
+        bal = bal + tx.amount;
+      } else {
+        bal = bal - tx.amount;
+      }
+    }
+    return balances;
+  };
+
+  const balances = computeRunningBalance(filteredTransactions);
+
+  const filters: { key: FilterType; label: string }[] = [
+    { key: 'all', label: '전체' },
+    { key: 'earn', label: '적립' },
+    { key: 'use', label: '사용' },
+  ];
+
+  const renderHeader = () => (
+    <div style={headerStyles.container}>
+      <div
+        style={headerStyles.backButton}
+        onClick={() => navigate('/mypage')}
+        onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.opacity = '0.6'; }}
+        onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.opacity = '1'; }}
+      >
+        <span style={headerStyles.backArrow}>&lt;</span>
+      </div>
+      <span style={headerStyles.title}>포인트</span>
+      <div style={headerStyles.rightSpacer} />
     </div>
   );
 
+  const renderFilterTabs = () => (
+    <div style={filterStyles.container}>
+      {filters.map((f) => {
+        const isActive = activeFilter === f.key;
+        return (
+          <div
+            key={f.key}
+            onClick={() => setActiveFilter(f.key)}
+            onMouseEnter={(e) => {
+              if (!isActive) {
+                (e.currentTarget as HTMLDivElement).style.backgroundColor = '#f5f5f5';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (!isActive) {
+                (e.currentTarget as HTMLDivElement).style.backgroundColor = 'transparent';
+              }
+            }}
+            style={{
+              ...filterStyles.pill,
+              ...(isActive ? filterStyles.pillActive : filterStyles.pillInactive),
+              cursor: 'pointer',
+              transition: 'all 200ms ease',
+            }}
+          >
+            <span
+              style={{
+                ...filterStyles.pillText,
+                ...(isActive ? filterStyles.pillTextActive : filterStyles.pillTextInactive),
+              }}
+            >
+              {f.label}
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+
+  const renderPointCard = () => (
+    <div style={cardStyles.wrapper}>
+      <div style={cardStyles.card}>
+        <span style={cardStyles.label}>보유포인트</span>
+        <span style={cardStyles.amount}>{currentPoints.toLocaleString()}P</span>
+        <div style={cardStyles.buttonRow}>
+          <div
+            style={cardStyles.actionButton}
+            onClick={() => navigate('/point-charge')}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.backgroundColor = 'rgba(255,255,255,0.30)'; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.backgroundColor = 'rgba(255,255,255,0.18)'; }}
+          >
+            <span style={cardStyles.actionIcon}>&#8853;</span>
+            <span style={cardStyles.actionText}>충전</span>
+          </div>
+          <div
+            style={cardStyles.actionButton}
+            onClick={() => navigate('/point-withdraw')}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.backgroundColor = 'rgba(255,255,255,0.30)'; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.backgroundColor = 'rgba(255,255,255,0.18)'; }}
+          >
+            <span style={cardStyles.actionIcon}>&#8854;</span>
+            <span style={cardStyles.actionText}>인출</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderTransactionItem = (transaction: PointTransaction, index: number) => {
+    const positive = isPositiveTransaction(transaction.type);
+    const amountColor = positive ? '#FFA529' : '#121212';
+    const amountPrefix = positive ? '+' : '-';
+    const balance = balances[index] ?? 0;
+
+    return (
+      <div key={transaction.id}>
+        <div style={listStyles.row}>
+          {/* Left: date + time */}
+          <div style={listStyles.dateCol}>
+            <span style={listStyles.date}>{formatDate(transaction.created_at)}</span>
+            <span style={listStyles.time}>{formatTime(transaction.created_at)}</span>
+          </div>
+
+          {/* Center: type text */}
+          <div style={listStyles.typeCol}>
+            <span style={listStyles.typeText}>{getTransactionTypeText(transaction.type)}</span>
+          </div>
+
+          {/* Right: amount + balance */}
+          <div style={listStyles.amountCol}>
+            <span style={{ ...listStyles.amountText, color: amountColor }}>
+              {amountPrefix}{(transaction.amount ?? 0).toLocaleString()}P
+            </span>
+            <span style={listStyles.balanceText}>{balance.toLocaleString()}P</span>
+          </div>
+        </div>
+        <div style={listStyles.separator} />
+      </div>
+    );
+  };
+
   if (loading) {
     return (
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigate('/mypage')}
-          >
-            <Icon name="arrow-left" size={24} color={COLORS.text.primary} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>포인트 내역</Text>
-          <View style={{ width: 28 }} />
-        </View>
-        <View style={styles.skeletonWrap}>
+      <div style={pageStyles.container}>
+        {renderHeader()}
+        <div style={{ padding: '8px 0', backgroundColor: '#FFFFFF' }}>
           {[0, 1, 2, 3, 4, 5].map((i) => (
-            <ListItemSkeleton key={i} size={44} />
+            <div key={i} style={{ padding: '0 20px' }}>
+              <ListItemSkeleton key={i} size={44} />
+            </div>
           ))}
-        </View>
-      </View>
+        </div>
+      </div>
     );
   }
 
   if (error) {
     return (
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigate('/mypage')}
-          >
-            <Icon name="arrow-left" size={24} color={COLORS.text.primary} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>포인트 내역</Text>
-          <View style={{ width: 28 }} />
-        </View>
+      <div style={pageStyles.container}>
+        {renderHeader()}
         <ErrorState
           title="포인트 내역을 불러올 수 없습니다"
           description="네트워크 상태를 확인하고 다시 시도해주세요"
           onRetry={fetchPointHistory}
         />
-      </View>
+      </div>
     );
   }
 
   return (
-    <View style={styles.container}>
-      {/* 헤더 */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigate('/mypage')}
-        >
-          <Icon name="arrow-left" size={24} color={COLORS.text.primary} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>포인트 내역</Text>
-        <TouchableOpacity
-          style={styles.chargeButton}
-          onPress={() => navigate('/point-charge')}
-        >
-          <Icon name="plus" size={20} color={COLORS.primary.main} />
-        </TouchableOpacity>
-      </View>
+    <div style={pageStyles.container}>
+      {renderHeader()}
+      {renderFilterTabs()}
+      {renderPointCard()}
 
-      {/* 현재 보유 포인트 */}
-      <View style={styles.currentPointsContainer}>
-        <div style={{
-          background: COLORS.gradient.heroCSS,
-          borderRadius: 8,
-          padding: 28,
-          alignItems: 'center',
-          textAlign: 'center',
-          boxShadow: '0 4px 16px rgba(184,107,74,0.20)',
-        }}>
-          <Text style={styles.pointsLabel}>현재 보유 포인트</Text>
-          <Text style={styles.pointsAmount}>{currentPoints.toLocaleString()}원</Text>
-          <div
-            onClick={() => navigate('/point-charge')}
-            onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.30)'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.15)'; }}
-            style={{
-              display: 'flex',
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: 8,
-              paddingLeft: 20,
-              paddingRight: 20,
-              paddingTop: 12,
-              paddingBottom: 12,
-              backgroundColor: 'rgba(255,255,255,0.15)',
-              borderRadius: 6,
-              cursor: 'pointer',
-              transition: 'all 200ms ease',
-            }}
-          >
-            <Icon name="plus" size={16} color={COLORS.neutral.white} />
-            <Text style={styles.chargeButtonText}>포인트 충전</Text>
-          </div>
-        </div>
-      </View>
-
-      <ScrollView style={styles.content}>
-        {transactions.length === 0 ? (
+      <div style={pageStyles.listArea}>
+        {filteredTransactions.length === 0 ? (
           <EmptyState
             icon="dollar-sign"
             title="포인트 사용 내역이 없습니다"
@@ -232,150 +290,230 @@ const PointHistoryScreen: React.FC = () => {
             onAction={() => navigate('/point-charge')}
           />
         ) : (
-          <View style={styles.transactionsList}>
-            <Text style={styles.sectionTitle}>사용 내역 ({transactions.length}건)</Text>
-            {transactions.map(renderTransactionItem)}
-          </View>
+          <div style={pageStyles.transactionList}>
+            {filteredTransactions.map((tx, idx) => renderTransactionItem(tx, idx))}
+          </div>
         )}
-      </ScrollView>
-    </View>
+      </div>
+    </div>
   );
 };
 
-const styles = StyleSheet.create({
+/* ─── Inline style objects (CSS-in-JS for web) ─── */
+
+const pageStyles: Record<string, React.CSSProperties> = {
   container: {
+    display: 'flex',
+    flexDirection: 'column',
+    minHeight: '100vh',
+    backgroundColor: '#FFFFFF',
+  },
+  listArea: {
     flex: 1,
-    backgroundColor: COLORS.neutral.grey100,
+    overflowY: 'auto',
   },
-  skeletonWrap: {
-    paddingTop: 8,
-    backgroundColor: COLORS.neutral.white,
-    marginTop: 8,
-    borderRadius: 8,
-    marginHorizontal: 16,
+  transactionList: {
+    paddingBottom: 24,
   },
-  header: {
+};
+
+const headerStyles: Record<string, React.CSSProperties> = {
+  container: {
+    display: 'flex',
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    ...HEADER_STYLE.sub,
+    justifyContent: 'space-between',
+    height: 56,
+    paddingLeft: 4,
+    paddingRight: 4,
+    backgroundColor: '#FFFFFF',
+    borderBottom: '1px solid #f1f2f3',
+    position: 'sticky',
+    top: 0,
     zIndex: 10,
   },
   backButton: {
-    padding: 10,
-    minWidth: 44,
-    minHeight: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-    cursor: 'pointer',
-    transition: 'all 200ms ease',
-  },
-  headerTitle: {
-    ...HEADER_STYLE.subTitle,
-  },
-  chargeButton: {
-    padding: 4,
-    cursor: 'pointer',
-    transition: 'all 200ms ease',
-  },
-  currentPointsContainer: {
-    padding: 20,
-    paddingBottom: 8,
-  },
-  pointsCard: {
-    backgroundColor: COLORS.primary.main,
-    borderRadius: 8,
-    padding: 24,
-    alignItems: 'center',
-  },
-  pointsLabel: {
-    fontSize: 14,
-    color: COLORS.neutral.white,
-    marginBottom: 8,
-  },
-  pointsAmount: {
-    fontSize: 36,
-    fontWeight: '700',
-    color: COLORS.neutral.white,
-    marginBottom: 16,
-  },
-  chargeButtonFull: {
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 6,
-    gap: 8,
-  },
-  chargeButtonText: {
-    color: COLORS.neutral.white,
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  content: {
-    flex: 1,
-  },
-  transactionsList: {
-    backgroundColor: COLORS.neutral.white,
-    marginTop: 8,
-    marginBottom: 16,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: COLORS.text.primary,
-    padding: 20,
-    paddingBottom: 0,
-  },
-  transactionItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    paddingHorizontal: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(17,17,17,0.06)',
-  },
-  profileImage: {
-    marginRight: 16,
-  },
-  avatarCircle: {
     width: 44,
     height: 44,
-    borderRadius: 22,
-    backgroundColor: COLORS.neutral.light,
-    justifyContent: 'center',
+    display: 'flex',
     alignItems: 'center',
+    justifyContent: 'center',
+    cursor: 'pointer',
+    transition: 'opacity 200ms ease',
   },
-  transactionInfo: {
-    flex: 1,
+  backArrow: {
+    fontSize: 20,
+    fontWeight: '400',
+    color: '#121212',
+    lineHeight: '1',
   },
-  transactionDescription: {
+  title: {
     fontSize: 16,
     fontWeight: '600',
-    color: COLORS.text.primary,
-    marginBottom: 4,
+    color: '#121212',
+    letterSpacing: -0.2,
   },
-  meetupTitle: {
+  rightSpacer: {
+    width: 44,
+    height: 44,
+  },
+};
+
+const filterStyles: Record<string, React.CSSProperties> = {
+  container: {
+    display: 'flex',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    padding: '12px 20px',
+    backgroundColor: '#FFFFFF',
+  },
+  pill: {
+    paddingLeft: 16,
+    paddingRight: 16,
+    paddingTop: 7,
+    paddingBottom: 7,
+    borderRadius: 20,
+    userSelect: 'none',
+  },
+  pillActive: {
+    backgroundColor: '#FFA529',
+  },
+  pillInactive: {
+    backgroundColor: 'transparent',
+    border: '1px solid #E0E0E0',
+  },
+  pillText: {
     fontSize: 14,
-    color: COLORS.text.secondary,
+    fontWeight: '500',
+    lineHeight: '1.3',
+  },
+  pillTextActive: {
+    color: '#FFFFFF',
+  },
+  pillTextInactive: {
+    color: '#121212',
+  },
+};
+
+const cardStyles: Record<string, React.CSSProperties> = {
+  wrapper: {
+    padding: '8px 20px 16px 20px',
+  },
+  card: {
+    background: 'linear-gradient(135deg, #FFA529, #E8941F)',
+    borderRadius: 16,
+    padding: '24px 24px 20px 24px',
+    display: 'flex',
+    flexDirection: 'column',
+  },
+  label: {
+    fontSize: 14,
+    color: '#FFFFFF',
     marginBottom: 4,
+    fontWeight: '400',
   },
-  transactionDate: {
+  amount: {
+    fontSize: 36,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 20,
+    letterSpacing: -0.5,
+  },
+  buttonRow: {
+    display: 'flex',
+    flexDirection: 'row',
+    gap: 10,
+  },
+  actionButton: {
+    display: 'flex',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingLeft: 16,
+    paddingRight: 18,
+    paddingTop: 10,
+    paddingBottom: 10,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    borderRadius: 8,
+    cursor: 'pointer',
+    transition: 'background-color 200ms ease',
+  },
+  actionIcon: {
+    fontSize: 18,
+    color: '#FFFFFF',
+    lineHeight: '1',
+  },
+  actionText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+};
+
+const listStyles: Record<string, React.CSSProperties> = {
+  row: {
+    display: 'flex',
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: '16px 20px',
+  },
+  dateCol: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    minWidth: 48,
+    marginRight: 16,
+  },
+  date: {
+    fontSize: 14,
+    color: '#878b94',
+    fontWeight: '400',
+    lineHeight: '1.4',
+  },
+  time: {
     fontSize: 13,
-    color: COLORS.text.accent,
+    color: '#878b94',
+    fontWeight: '400',
+    lineHeight: '1.4',
   },
-  amountContainer: {
+  typeCol: {
+    flex: 1,
+  },
+  typeText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#121212',
+  },
+  amountCol: {
+    display: 'flex',
+    flexDirection: 'column',
     alignItems: 'flex-end',
   },
-  transactionAmount: {
+  amountText: {
     fontSize: 16,
     fontWeight: '700',
-    marginBottom: 2,
+    lineHeight: '1.4',
   },
-  transactionType: {
-    fontSize: 12,
-    color: COLORS.text.secondary,
+  balanceText: {
+    fontSize: 14,
+    color: '#878b94',
+    fontWeight: '400',
+    lineHeight: '1.4',
+  },
+  separator: {
+    height: 1,
+    backgroundColor: '#f1f2f3',
+    marginLeft: 20,
+    marginRight: 20,
+  },
+};
+
+// Keep StyleSheet for compatibility with any RN components that might still need it
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
   },
 });
 

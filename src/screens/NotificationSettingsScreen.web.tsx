@@ -1,9 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch } from 'react-native';
 import { useNavigate } from 'react-router-dom';
-import { COLORS, SHADOWS, CARD_STYLE, CSS_SHADOWS } from '../styles/colors';
-import { HEADER_STYLE } from '../styles/spacing';
-import { Icon } from '../components/Icon';
 import apiClient from '../services/apiClient';
 
 interface NotificationSettings {
@@ -99,16 +96,19 @@ const NotificationSettingsScreen: React.FC = () => {
     key: keyof NotificationSettings,
     title: string,
     description: string,
-    icon: string
+    isLast?: boolean
   ) => {
     // settings가 undefined이거나 null인 경우를 안전하게 처리
     const settingValue = settings && typeof settings[key] === 'boolean' ? settings[key] : false;
 
     return (
-      <View key={key} style={styles.settingItem}>
-        <View style={styles.settingIconContainer}>
-          <Icon name={icon} size={20} color={COLORS.primary.main} />
-        </View>
+      <View
+        key={key}
+        style={[
+          styles.settingItem,
+          !isLast && styles.settingItemBorder,
+        ]}
+      >
         <View style={styles.settingInfo}>
           <Text style={styles.settingTitle}>{title}</Text>
           <Text style={styles.settingDescription}>{description}</Text>
@@ -116,8 +116,8 @@ const NotificationSettingsScreen: React.FC = () => {
         <Switch
           value={settingValue}
           onValueChange={(value) => handleSettingChange(key, value)}
-          trackColor={{ false: COLORS.neutral.grey200, true: 'rgba(212,136,44,0.3)' }}
-          thumbColor={settingValue ? COLORS.primary.main : COLORS.neutral.grey400}
+          trackColor={{ false: '#d1d5db', true: '#d1d5db' }}
+          thumbColor={settingValue ? '#6b7280' : '#ffffff'}
         />
       </View>
     );
@@ -128,22 +128,22 @@ const NotificationSettingsScreen: React.FC = () => {
       <View style={styles.container}>
         <View style={styles.header}>
           <TouchableOpacity style={styles.backButton} onPress={() => navigate('/mypage')}>
-            <Icon name="arrow-left" size={24} color={COLORS.text.primary} />
+            <Text style={styles.backArrow}>{'<'}</Text>
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>알림 설정</Text>
+          <Text style={styles.headerTitle}>알림설정</Text>
           <View style={styles.placeholder} />
         </View>
-        <View style={{ padding: 20, gap: 16 }}>
+        <View style={styles.content}>
           {[0, 1, 2].map((section) => (
-            <View key={section} className="animate-shimmer" style={{ backgroundColor: COLORS.neutral.grey50, borderRadius: 8, padding: 20, gap: 16 }}>
-              <View style={{ width: '30%', height: 14, borderRadius: 7, backgroundColor: COLORS.neutral.grey100 }} />
-              {[0, 1, 2].map((row) => (
-                <View key={row} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <View style={{ gap: 6, flex: 1 }}>
-                    <View style={{ width: '60%', height: 14, borderRadius: 7, backgroundColor: COLORS.neutral.grey100 }} />
-                    <View style={{ width: '80%', height: 10, borderRadius: 5, backgroundColor: COLORS.neutral.grey100 }} />
+            <View key={section} style={styles.skeletonSection}>
+              <View style={styles.skeletonSectionTitle} />
+              {[0, 1].map((row) => (
+                <View key={row} style={styles.skeletonRow}>
+                  <View style={styles.skeletonTextGroup}>
+                    <View style={styles.skeletonTitle} />
+                    <View style={styles.skeletonDesc} />
                   </View>
-                  <View style={{ width: 48, height: 28, borderRadius: 14, backgroundColor: COLORS.neutral.grey100 }} />
+                  <View style={styles.skeletonToggle} />
                 </View>
               ))}
             </View>
@@ -161,79 +161,63 @@ const NotificationSettingsScreen: React.FC = () => {
           style={styles.backButton}
           onPress={() => navigate('/mypage')}
         >
-          <Icon name="arrow-left" size={24} color={COLORS.text.primary} />
+          <Text style={styles.backArrow}>{'<'}</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>알림 설정</Text>
+        <Text style={styles.headerTitle}>알림설정</Text>
         <View style={styles.placeholder} />
       </View>
 
-      <ScrollView style={styles.content}>
-        {/* 기본 알림 설정 */}
+      <ScrollView style={styles.scrollView}>
+        {/* 기본 알림 */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>기본 알림</Text>
-          <View style={styles.settingsContainer}>
-            {renderSettingItem(
-              'pushNotifications',
-              '푸시 알림',
-              '앱에서 보내는 모든 알림을 받습니다',
-              'bell'
-            )}
-            {renderSettingItem(
-              'emailNotifications',
-              '이메일 알림',
-              '중요한 알림을 이메일로 받습니다',
-              'mail'
-            )}
-          </View>
+          {renderSettingItem(
+            'pushNotifications',
+            '푸시알림',
+            '앱에서 보내는 모든 알림을 받습니다'
+          )}
+          {renderSettingItem(
+            'emailNotifications',
+            '이메일 알림',
+            '중요한 알림을 이메일로 받습니다',
+            true
+          )}
         </View>
 
-        {/* 모임 관련 알림 */}
+        <View style={styles.sectionDivider} />
+
+        {/* 모임 알림 */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>약속 알림</Text>
-          <View style={styles.settingsContainer}>
-            {renderSettingItem(
-              'meetupReminders',
-              '약속 리마인더',
-              '약속 시작 전 미리 알려드립니다',
-              'clock'
-            )}
-            {renderSettingItem(
-              'chatMessages',
-              '채팅 메시지',
-              '약속 채팅방의 새 메시지 알림',
-              'message-circle'
-            )}
-          </View>
+          <Text style={styles.sectionTitle}>모임 알림</Text>
+          {renderSettingItem(
+            'meetupReminders',
+            '모임 리마인더',
+            '모임 시작 전 미리 알려드립니다'
+          )}
+          {renderSettingItem(
+            'chatMessages',
+            '채팅 메시지',
+            '모임 채팅방의 새 메시지 알림',
+            true
+          )}
         </View>
+
+        <View style={styles.sectionDivider} />
 
         {/* 마케팅 알림 */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>마케팅 알림</Text>
-          <View style={styles.settingsContainer}>
-            {renderSettingItem(
-              'marketingEmails',
-              '마케팅 이메일',
-              '이벤트, 할인 정보 등을 받습니다',
-              'megaphone'
-            )}
-            {renderSettingItem(
-              'weeklyDigest',
-              '주간 리포트',
-              '주간 활동 요약을 받습니다',
-              'list'
-            )}
-          </View>
-        </View>
-
-        {/* 알림 시간 설정 */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>알림 시간 설정</Text>
-          <View style={styles.infoCard}>
-            <Icon name="info" size={20} color={COLORS.primary.main} />
-            <Text style={styles.infoText}>
-              약속 리마인더는 약속 시작 30분 전, 10분 전에 발송됩니다.
-            </Text>
-          </View>
+          {renderSettingItem(
+            'marketingEmails',
+            '마케팅 이메일',
+            '이벤트, 할인 정보 등을 받습니다'
+          )}
+          {renderSettingItem(
+            'weeklyDigest',
+            '주간 리포트',
+            '주간 활동 요약을 받습니다',
+            true
+          )}
         </View>
       </ScrollView>
     </View>
@@ -243,22 +227,18 @@ const NotificationSettingsScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.neutral.grey100,
-  },
-  centerContent: {
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    fontSize: 16,
-    color: COLORS.text.secondary,
+    backgroundColor: '#FFFFFF',
   },
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    ...HEADER_STYLE.sub,
-    zIndex: 10,
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 12,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(17,17,17,0.06)',
   },
   backButton: {
     padding: 10,
@@ -267,88 +247,105 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     cursor: 'pointer',
-    transition: 'all 200ms ease',
+  },
+  backArrow: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#121212',
   },
   headerTitle: {
-    ...HEADER_STYLE.subTitle,
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#121212',
   },
   placeholder: {
-    width: 32,
+    width: 44,
   },
   content: {
     flex: 1,
+    paddingTop: 8,
+  },
+  scrollView: {
+    flex: 1,
   },
   section: {
-    marginBottom: 8,
+    backgroundColor: '#FFFFFF',
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '700',
-    color: COLORS.text.primary,
+    color: '#121212',
     paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: COLORS.neutral.grey100,
+    paddingTop: 16,
+    paddingBottom: 8,
   },
-  settingsContainer: {
-    backgroundColor: COLORS.neutral.white,
-    marginHorizontal: 16,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(17,17,17,0.06)',
-    shadowColor: COLORS.neutral.black,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 1,
+  sectionDivider: {
+    height: 8,
+    backgroundColor: '#F5F5F5',
   },
   settingItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
+    paddingVertical: 14,
     paddingHorizontal: 20,
+  },
+  settingItemBorder: {
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(17,17,17,0.06)',
-    cursor: 'pointer',
-    transition: 'all 200ms ease',
-  },
-  settingIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: COLORS.neutral.light,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
   },
   settingInfo: {
     flex: 1,
+    marginRight: 12,
   },
   settingTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: '#121212',
     marginBottom: 2,
   },
   settingDescription: {
     fontSize: 13,
-    color: COLORS.text.secondary,
+    color: '#878b94',
   },
-  infoCard: {
+  // Skeleton loading styles
+  skeletonSection: {
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    gap: 12,
+  },
+  skeletonSectionTitle: {
+    width: '30%',
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: '#F0F0F0',
+    marginBottom: 4,
+  },
+  skeletonRow: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: 'rgba(212,136,44,0.06)',
-    marginHorizontal: 16,
-    padding: 16,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(212,136,44,0.10)',
   },
-  infoText: {
+  skeletonTextGroup: {
+    gap: 6,
     flex: 1,
-    marginLeft: 12,
-    fontSize: 14,
-    color: COLORS.text.secondary,
-    lineHeight: 20,
+  },
+  skeletonTitle: {
+    width: '50%',
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: '#F0F0F0',
+  },
+  skeletonDesc: {
+    width: '70%',
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#F0F0F0',
+  },
+  skeletonToggle: {
+    width: 48,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#F0F0F0',
   },
 });
 

@@ -1,14 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
+import { View, StyleSheet, ScrollView } from 'react-native';
 import { useNavigate } from 'react-router-dom';
-import { COLORS, SHADOWS, CARD_STYLE, withOpacity } from '../styles/colors';
-import { LIST_ITEM_STYLE, HEADER_STYLE } from '../styles/spacing';
 import { Icon } from '../components/Icon';
-import { Heart, ArrowLeft, Clock, Users, MapPin } from 'lucide-react';
+import { Heart } from 'lucide-react';
 import apiClient from '../services/apiClient';
 import EmptyState from '../components/EmptyState';
 import ErrorState from '../components/ErrorState';
-import { MeetupCardSkeleton } from '../components/skeleton';
+import { processImageUrl } from '../utils/imageUtils';
 
 interface WishlistItem {
   wishlist_id: string;
@@ -75,222 +73,210 @@ const WishlistScreen: React.FC = () => {
     }
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('ko-KR', {
-      month: 'short',
-      day: 'numeric'
-    });
-  };
+  // ---- Skeleton list item ----
+  const SkeletonListItem = () => (
+    <div style={{
+      display: 'flex',
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 18,
+      padding: '16px 20px',
+    }}>
+      <div style={{
+        width: 70,
+        height: 70,
+        borderRadius: 16,
+        backgroundColor: '#F5F5F5',
+        flexShrink: 0,
+        animation: 'pulse 1.5s ease-in-out infinite',
+      }} />
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flex: 1 }}>
+        <div style={{ width: '60%', height: 16, borderRadius: 4, backgroundColor: '#F5F5F5' }} />
+        <div style={{ width: '80%', height: 14, borderRadius: 4, backgroundColor: '#F5F5F5' }} />
+        <div style={{ width: '50%', height: 14, borderRadius: 4, backgroundColor: '#F5F5F5' }} />
+      </div>
+    </div>
+  );
 
-  const formatTime = (timeString: string) => {
-    if (!timeString) return '';
-    const [hours, minutes] = timeString.split(':');
-    const time = new Date();
-    time.setHours(parseInt(hours) || 0, parseInt(minutes) || 0);
-    return time.toLocaleTimeString('ko-KR', {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false
-    });
-  };
-
-  const getStatusText = (item: WishlistItem) => {
-    if (item.is_ended) {
-      return '이미 종료된 약속';
-    }
-    switch (item.status) {
-      case '모집중': return '모집 중';
-      case '모집완료': return '모집 완료';
-      case '진행중': return '진행 중';
-      case '종료': return '종료됨';
-      case '취소': return '취소됨';
-      default: return item.status;
-    }
-  };
-
-  const getStatusColor = (item: WishlistItem) => {
-    if (item.is_ended) {
-      return COLORS.text.tertiary;
-    }
-    switch (item.status) {
-      case '모집중': return COLORS.secondary.main;
-      case '모집완료': return COLORS.primary.main;
-      case '진행중': return COLORS.functional.success;
-      case '종료': return COLORS.text.tertiary;
-      case '취소': return COLORS.text.error;
-      default: return COLORS.text.secondary;
-    }
-  };
-
-  const renderWishlistItem = (item: WishlistItem) => {
-    const isRecruiting = item.status === '모집중' && !item.is_ended;
+  // ---- Wishlist item row ----
+  const WishlistRow = ({ item }: { item: WishlistItem }) => {
+    const [hovered, setHovered] = useState(false);
+    const imageUrl = processImageUrl(item.image, item.category);
+    const location = item.location || item.address || '';
+    const description = item.description || item.category || '';
 
     return (
-    <div
-      key={item.wishlist_id}
-      style={{
-        transition: 'background-color 200ms ease',
-        cursor: 'pointer',
-        borderLeft: isRecruiting ? `3px solid ${COLORS.primary.main}` : '3px solid transparent',
-      }}
-      onMouseEnter={(e) => {
-        if (!item.is_ended) {
-          (e.currentTarget as HTMLElement).style.backgroundColor = '#FAFAF8';
-        }
-      }}
-      onMouseLeave={(e) => {
-        (e.currentTarget as HTMLElement).style.backgroundColor = '#FFFFFF';
-      }}
-      onMouseDown={(e) => {
-        if (!item.is_ended) {
-          (e.currentTarget as HTMLElement).style.backgroundColor = COLORS.neutral.grey100;
-        }
-      }}
-      onMouseUp={(e) => {
-        if (!item.is_ended) {
-          (e.currentTarget as HTMLElement).style.backgroundColor = '#FAFAF8';
-        }
-      }}
-    >
-    <TouchableOpacity
-      style={[
-        styles.wishlistCard,
-        item.is_ended && styles.endedCard
-      ]}
-      onPress={() => navigate(`/meetup/${item.id}`)}
-    >
-      {/* 모임 이미지 */}
-      <View style={styles.imageContainer}>
-        {item.image ? (
-          <Image
-            source={{ uri: item.image }}
-            style={styles.meetupImage}
-            resizeMode="cover"
-          />
-        ) : (
-          <View style={styles.placeholderImage}>
-            <Icon name="utensils" size={32} color={COLORS.text.tertiary} />
-          </View>
-        )}
+      <div
+        onClick={() => navigate(`/meetup/${item.id}`)}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+        style={{
+          display: 'flex',
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 18,
+          padding: '16px 20px',
+          cursor: 'pointer',
+          backgroundColor: hovered ? '#FAFAFA' : '#FFFFFF',
+          transition: 'background-color 150ms ease',
+          opacity: item.is_ended ? 0.5 : 1,
+        }}
+      >
+        {/* Thumbnail */}
+        <img
+          src={imageUrl}
+          alt={item.title || ''}
+          style={{
+            width: 70,
+            height: 70,
+            borderRadius: 16,
+            objectFit: 'cover',
+            flexShrink: 0,
+            backgroundColor: '#F5F5F5',
+          }}
+        />
 
-        {/* 종료 오버레이 */}
-        {item.is_ended && (
-          <View style={styles.endedOverlay}>
-            <Text style={styles.endedText}>종료된 약속</Text>
-          </View>
-        )}
-      </View>
-
-      {/* 모임 정보 */}
-      <View style={styles.cardContent}>
-        <View style={styles.cardHeader}>
-          <Text style={[
-            styles.cardTitle,
-            item.is_ended && styles.endedTitle
-          ]}>
-            {item.title}
-          </Text>
-          <TouchableOpacity
-            style={styles.heartButton}
-            onPress={(e) => {
-              e.stopPropagation();
-              removeFromWishlist(item.id);
-            }}
-          >
-            <Heart
-              size={18}
-              color={COLORS.functional.error}
-              fill={COLORS.functional.error}
-            />
-          </TouchableOpacity>
-        </View>
-
-        <Text style={[
-          styles.cardCategory,
-          item.is_ended && styles.endedText
-        ]}>
-          {item.category}
-        </Text>
-
-        <View style={styles.cardMeta}>
-          <View style={styles.metaRow}>
-            <Clock size={14} color={item.is_ended ? COLORS.text.tertiary : COLORS.text.secondary} />
-            <Text style={[
-              styles.metaText,
-              item.is_ended && styles.endedText
-            ]}>
-              {formatDate(item.date)} {formatTime(item.time)}
-            </Text>
-          </View>
-
-          <View style={styles.metaRow}>
-            <MapPin size={14} color={item.is_ended ? COLORS.text.tertiary : COLORS.text.secondary} />
-            <Text style={[
-              styles.metaText,
-              item.is_ended && styles.endedText
-            ]}>
-              {item.location}
-            </Text>
-          </View>
-
-          <View style={styles.metaRow}>
-            <Users size={14} color={item.is_ended ? COLORS.text.tertiary : COLORS.text.secondary} />
-            <Text style={[
-              styles.metaText,
-              item.is_ended && styles.endedText
-            ]}>
+        {/* Text area */}
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 4,
+          flex: 1,
+          minWidth: 0,
+        }}>
+          {/* Title */}
+          <div style={{
+            fontSize: 16,
+            fontWeight: 600,
+            color: '#121212',
+            lineHeight: '22px',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}>
+            {item.title || ''}
+          </div>
+          {/* Description */}
+          <div style={{
+            fontSize: 14,
+            fontWeight: 400,
+            color: '#293038',
+            lineHeight: '20px',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}>
+            {description}
+          </div>
+          {/* Meta row */}
+          <div style={{
+            display: 'flex',
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 6,
+            fontSize: 14,
+            fontWeight: 400,
+            lineHeight: '20px',
+          }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: '#878B94' }}>
+              <Icon name="map-pin" size={13} color="#878B94" />
+              <span style={{
+                maxWidth: 100,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}>
+                {location}
+              </span>
+            </span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: '#878B94' }}>
+              <Icon name="users" size={13} color="#878B94" />
               {item.current_participants ?? 0}/{item.max_participants ?? 4}명
-            </Text>
-          </View>
-        </View>
+            </span>
+          </div>
+        </div>
 
-        <View style={styles.cardFooter}>
-          <View style={[
-            styles.statusBadge,
-            { backgroundColor: getStatusColor(item) + '20' }
-          ]}>
-            <Text style={[
-              styles.statusText,
-              { color: getStatusColor(item) }
-            ]}>
-              {getStatusText(item)}
-            </Text>
-          </View>
-
-          {item.deposit_amount > 0 && (
-            <Text style={[
-              styles.depositText,
-              item.is_ended && styles.endedText
-            ]}>
-              약속금 3,000원
-            </Text>
-          )}
-        </View>
-      </View>
-    </TouchableOpacity>
-    </div>
+        {/* Heart remove button */}
+        <div
+          onClick={(e) => {
+            e.stopPropagation();
+            removeFromWishlist(item.id);
+          }}
+          style={{
+            flexShrink: 0,
+            padding: 8,
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <Heart
+            size={18}
+            color="#FF4D6A"
+            fill="#FF4D6A"
+          />
+        </div>
+      </div>
     );
   };
+
+  // ---- Header ----
+  const renderHeader = () => (
+    <div style={{
+      display: 'flex',
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      height: 56,
+      backgroundColor: '#FFFFFF',
+      position: 'sticky' as any,
+      top: 0,
+      zIndex: 10,
+      borderBottom: '1px solid rgba(17,17,17,0.06)',
+    }}>
+      <div
+        onClick={() => navigate(-1)}
+        style={{
+          position: 'absolute',
+          left: 12,
+          width: 44,
+          height: 44,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          cursor: 'pointer',
+        }}
+      >
+        <span style={{
+          fontSize: 22,
+          fontWeight: 300,
+          color: '#121212',
+          lineHeight: '22px',
+        }}>
+          &lt;
+        </span>
+      </div>
+      <span style={{
+        fontSize: 16,
+        fontWeight: 600,
+        color: '#121212',
+      }}>
+        찜 모임
+      </span>
+    </div>
+  );
 
   if (loading) {
     return (
       <View style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigate(-1)}
-          >
-            <ArrowLeft size={24} color={COLORS.text.primary} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>찜 목록</Text>
-          <View style={styles.placeholder} />
-        </View>
-        <View style={styles.skeletonWrap}>
-          {[0, 1, 2, 3].map((i) => (
-            <MeetupCardSkeleton key={i} />
-          ))}
-        </View>
+        {renderHeader()}
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <SkeletonListItem />
+          <SkeletonListItem />
+          <SkeletonListItem />
+          <SkeletonListItem />
+        </div>
       </View>
     );
   }
@@ -298,16 +284,7 @@ const WishlistScreen: React.FC = () => {
   if (error) {
     return (
       <View style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigate(-1)}
-          >
-            <ArrowLeft size={24} color={COLORS.text.primary} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>찜 목록</Text>
-          <View style={styles.placeholder} />
-        </View>
+        {renderHeader()}
         <ErrorState
           title="위시리스트를 불러올 수 없습니다"
           description="네트워크 상태를 확인하고 다시 시도해주세요"
@@ -319,33 +296,7 @@ const WishlistScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      {/* 헤더 */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigate(-1)}
-        >
-          <ArrowLeft size={24} color={COLORS.text.primary} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>찜 목록</Text>
-        <View style={styles.placeholder} />
-      </View>
-
-      {/* 통계 정보 */}
-      {wishlist.length > 0 && (
-        <View style={styles.statsContainer}>
-          <View style={styles.statCard}>
-            <Text style={styles.statNumber}>{wishlist.length}</Text>
-            <Text style={styles.statLabel}>총 찜한 약속</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statNumber}>
-              {wishlist.filter(item => !item.is_ended).length}
-            </Text>
-            <Text style={styles.statLabel}>참여 가능한 약속</Text>
-          </View>
-        </View>
-      )}
+      {renderHeader()}
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {wishlist.length === 0 ? (
@@ -358,11 +309,15 @@ const WishlistScreen: React.FC = () => {
             onAction={() => navigate('/home')}
           />
         ) : (
-          <View style={styles.wishlistGrid}>
-            <Text style={styles.sectionTitle}>저장한 약속 ({wishlist.length}개)</Text>
-            {wishlist.map(renderWishlistItem)}
-          </View>
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            {wishlist.map((item) => (
+              <WishlistRow key={item.wishlist_id} item={item} />
+            ))}
+          </div>
         )}
+
+        {/* Bottom spacing for bottom nav */}
+        <View style={{ height: 100 }} />
       </ScrollView>
     </View>
   );
@@ -371,238 +326,10 @@ const WishlistScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.neutral.background,
+    backgroundColor: '#FFFFFF',
   },
-  skeletonWrap: {
-    padding: 20,
-    gap: 16,
-  },
-
-  // 헤더
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    ...HEADER_STYLE.sub,
-    ...SHADOWS.sticky,
-    zIndex: 10,
-  },
-  backButton: {
-    padding: 10,
-    minWidth: 44,
-    minHeight: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerTitle: {
-    ...HEADER_STYLE.subTitle,
-  },
-  placeholder: {
-    width: 40,
-  },
-
-  // 통계
-  statsContainer: {
-    flexDirection: 'row',
-    gap: 12,
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: COLORS.neutral.white,
-  },
-  statCard: {
-    flex: 1,
-    backgroundColor: COLORS.neutral.white,
-    borderRadius: 6,
-    padding: 16,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: withOpacity(COLORS.neutral.black, 0.08),
-    // @ts-ignore
-    backgroundImage: `linear-gradient(145deg, ${COLORS.primary.light} 0%, ${COLORS.neutral.white} 100%)`,
-  },
-  statNumber: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: COLORS.primary.dark,
-    marginBottom: 4,
-    letterSpacing: -0.5,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: COLORS.text.secondary,
-    textAlign: 'center',
-  },
-
-  // 컨텐츠
   content: {
     flex: 1,
-  },
-
-  // 빈 상태
-  emptyState: {
-    alignItems: 'center',
-    paddingHorizontal: 40,
-    paddingTop: 80,
-  },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: COLORS.text.primary,
-    marginTop: 24,
-    marginBottom: 8,
-  },
-  emptyDescription: {
-    fontSize: 14,
-    color: COLORS.text.secondary,
-    textAlign: 'center',
-    lineHeight: 20,
-    marginBottom: 32,
-  },
-  exploreButton: {
-    backgroundColor: COLORS.primary.main,
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-  },
-  exploreButtonText: {
-    color: COLORS.neutral.white,
-    fontSize: 14,
-    fontWeight: '600',
-  },
-
-  // 찜 목록
-  wishlistGrid: {
-    paddingHorizontal: 0,
-    paddingVertical: 0,
-  },
-  sectionTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: COLORS.text.secondary,
-    marginBottom: 0,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    backgroundColor: '#FAFAF8',
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(17,17,17,0.06)',
-  },
-
-  // 찜 카드
-  wishlistCard: {
-    backgroundColor: COLORS.neutral.white,
-    overflow: 'hidden',
-    borderBottomWidth: 1,
-    borderBottomColor: LIST_ITEM_STYLE.borderBottomColor,
-  },
-  endedCard: {
-    opacity: 0.7,
-  },
-  imageContainer: {
-    position: 'relative',
-    height: 160,
-  },
-  meetupImage: {
-    width: '100%',
-    height: '100%',
-  },
-  placeholderImage: {
-    width: '100%',
-    height: '100%',
-    backgroundColor: COLORS.neutral.light,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  endedOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: COLORS.surface.overlay,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  endedText: {
-    color: COLORS.neutral.white,
-    fontSize: 16,
-    fontWeight: '600',
-  },
-
-  // 카드 컨텐츠
-  cardContent: {
-    padding: 16,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 8,
-  },
-  cardTitle: {
-    flex: 1,
-    fontSize: 16,
-    fontWeight: '700',
-    color: COLORS.text.primary,
-    marginRight: 12,
-    letterSpacing: -0.2,
-  },
-  endedTitle: {
-    color: COLORS.text.tertiary,
-  },
-  heartButton: {
-    padding: 10,
-    minWidth: 44,
-    minHeight: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cardCategory: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: COLORS.primary.main,
-    backgroundColor: COLORS.primary.light,
-    alignSelf: 'flex-start',
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-    borderRadius: 10,
-    marginBottom: 12,
-    overflow: 'hidden',
-  },
-
-  // 메타 정보
-  cardMeta: {
-    gap: 6,
-    marginBottom: 12,
-  },
-  metaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  metaText: {
-    fontSize: 13,
-    color: COLORS.text.secondary,
-  },
-
-  // 카드 푸터
-  cardFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  statusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  statusText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  depositText: {
-    fontSize: 13,
-    color: COLORS.text.secondary,
-    fontWeight: '500',
   },
 });
 

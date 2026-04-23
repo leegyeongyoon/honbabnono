@@ -1,13 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { useNavigate } from 'react-router-dom';
-import { COLORS, SHADOWS, CARD_STYLE, withOpacity } from '../styles/colors';
-import { HEADER_STYLE } from '../styles/spacing';
-import { Icon } from '../components/Icon';
-import { NotificationBell } from '../components/NotificationBell';
 import apiClient from '../services/apiClient';
-import EmptyState from '../components/EmptyState';
-import { MeetupCardSkeleton } from '../components/skeleton';
+import { processImageUrl } from '../utils/imageUtils';
 
 interface JoinedMeetup {
   id: string;
@@ -27,11 +21,15 @@ interface JoinedMeetup {
   has_reviewed: boolean;
 }
 
+type TabType = 'applied' | 'created' | 'past';
+
 const JoinedMeetupsScreen: React.FC = () => {
   const navigate = useNavigate();
   const [joinedMeetups, setJoinedMeetups] = useState<JoinedMeetup[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'upcoming' | 'completed'>('upcoming');
+  const [activeTab, setActiveTab] = useState<TabType>('applied');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [hoveredCard, setHoveredCard] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchJoinedMeetups = async () => {
@@ -61,11 +59,11 @@ const JoinedMeetupsScreen: React.FC = () => {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case '참가승인': return COLORS.secondary.main;
-      case '참가신청': return COLORS.primary.main;
-      case '참가거절': return COLORS.text.error;
-      case '참가취소': return COLORS.text.secondary;
-      default: return COLORS.text.secondary;
+      case '참가승인': return '#22c55e';
+      case '참가신청': return '#3b82f6';
+      case '참가거절': return '#ef4444';
+      case '참가취소': return '#878b94';
+      default: return '#878b94';
     }
   };
 
@@ -86,330 +84,473 @@ const JoinedMeetupsScreen: React.FC = () => {
     return meetupDate > now && meetupStatus !== 'completed';
   };
 
+  const getTimeAgo = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMin = Math.floor(diffMs / 60000);
+    if (diffMin < 1) return '방금 전';
+    if (diffMin < 60) return `${diffMin}분 전`;
+    const diffHour = Math.floor(diffMin / 60);
+    if (diffHour < 24) return `${diffHour}시간 전`;
+    const diffDay = Math.floor(diffHour / 24);
+    return `${diffDay}일 전`;
+  };
+
   const filteredMeetups = (joinedMeetups || []).filter(meetup => {
-    if (activeTab === 'upcoming') {
-      return isUpcoming(meetup.meetup_status, meetup.date);
+    let tabMatch = false;
+    if (activeTab === 'applied') {
+      tabMatch = isUpcoming(meetup.meetup_status, meetup.date) && meetup.participation_status === '참가신청';
+    } else if (activeTab === 'created') {
+      tabMatch = isUpcoming(meetup.meetup_status, meetup.date);
     } else {
-      return !isUpcoming(meetup.meetup_status, meetup.date) || meetup.meetup_status === 'completed';
+      tabMatch = !isUpcoming(meetup.meetup_status, meetup.date) || meetup.meetup_status === 'completed';
     }
+
+    if (!tabMatch) return false;
+
+    if (searchQuery.trim()) {
+      const q = searchQuery.trim().toLowerCase();
+      return (
+        meetup.title.toLowerCase().includes(q) ||
+        meetup.location.toLowerCase().includes(q) ||
+        meetup.category.toLowerCase().includes(q)
+      );
+    }
+
+    return true;
   });
 
   const handleReviewWrite = (meetupId: string) => {
     navigate(`/write-review/${meetupId}`);
   };
 
-  const renderMeetupItem = (meetup: JoinedMeetup) => (
-    <div
-      key={meetup.id}
-      onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = withOpacity(COLORS.neutral.black, 0.03); }}
-      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
-      style={{ cursor: 'pointer', transition: 'background-color 200ms ease' }}
-    >
-      <TouchableOpacity
-        style={styles.meetupItem}
-        onPress={() => navigate(`/meetup/${meetup.id}`)}
-      >
-        <View style={styles.profileImage}>
-          <View style={styles.avatarCircle}>
-            <Icon name="utensils" size={20} color={COLORS.primary.main} />
-          </View>
-        </View>
+  const tabs: { key: TabType; label: string }[] = [
+    { key: 'applied', label: '신청한 모임' },
+    { key: 'created', label: '내가 만든 모임' },
+    { key: 'past', label: '지난 모임' },
+  ];
 
-        <View style={styles.meetupInfo}>
-          <Text style={styles.meetupTitle}>{meetup.title}</Text>
-          <Text style={styles.meetupCategory}>{meetup.category}</Text>
-          <View style={styles.meetupMeta}>
-            <Text style={styles.metaText}>
-              {meetup.location} • {new Date(meetup.date).toLocaleDateString()} •
-              <Text style={[styles.statusText, { color: getStatusColor(meetup.participation_status) }]}>
-                {' '}{getStatusText(meetup.participation_status)}
-              </Text>
-            </Text>
-          </View>
-        </View>
+  const searchPlaceholders: Record<TabType, string> = {
+    applied: '신청한 모임을 찾아봐요',
+    created: '내가 만든 모임을 찾아봐요',
+    past: '지난 모임을 찾아봐요',
+  };
 
-        <View style={styles.actionContainer}>
-          {activeTab === 'completed' && !meetup.has_reviewed && (
-            <TouchableOpacity
-              style={styles.reviewButton}
-              onPress={(e) => {
-                e.stopPropagation();
-                handleReviewWrite(meetup.id);
-              }}
-            >
-              <Icon name="edit" size={16} color={COLORS.primary.main} />
-              <Text style={styles.reviewButtonText}>리뷰</Text>
-            </TouchableOpacity>
-          )}
-          {activeTab === 'completed' && meetup.has_reviewed && (
-            <View style={styles.reviewedBadge}>
-              <Icon name="check" size={16} color={COLORS.secondary.main} />
-              <Text style={styles.reviewedText}>완료</Text>
-            </View>
-          )}
-        </View>
-      </TouchableOpacity>
+  const renderSkeleton = () => (
+    <div style={styles.container}>
+      <div style={styles.header}>
+        <div
+          style={styles.backButton}
+          onClick={() => navigate('/mypage')}
+        >
+          <span style={{ fontSize: 20, color: '#121212' }}>&#8249;</span>
+        </div>
+        <span style={styles.headerTitle}>참가한 모임</span>
+        <div style={{ width: 44 }} />
+      </div>
+      <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
+        {[0, 1, 2, 3, 4].map((i) => (
+          <div key={i} style={{ display: 'flex', gap: 18, padding: '16px 0' }}>
+            <div style={{
+              width: 70, height: 70, borderRadius: 16,
+              backgroundColor: '#f1f2f3', flexShrink: 0,
+              animation: 'pulse 1.5s ease-in-out infinite',
+            }} />
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div style={{ width: '60%', height: 16, borderRadius: 4, backgroundColor: '#f1f2f3' }} />
+              <div style={{ width: '80%', height: 14, borderRadius: 4, backgroundColor: '#f1f2f3' }} />
+              <div style={{ width: '50%', height: 14, borderRadius: 4, backgroundColor: '#f1f2f3' }} />
+            </div>
+          </div>
+        ))}
+      </div>
+      <style>{`@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }`}</style>
     </div>
   );
 
-  if (loading) {
+  const renderMeetupItem = (meetup: JoinedMeetup) => {
+    const imageUrl = processImageUrl(meetup.image || null, meetup.category);
+    const isHovered = hoveredCard === meetup.id;
+
     return (
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigate('/mypage')}
+      <div
+        key={meetup.id}
+        style={{
+          ...styles.cardItem,
+          backgroundColor: isHovered ? '#f9fafb' : 'transparent',
+        }}
+        onClick={() => navigate(`/meetup/${meetup.id}`)}
+        onMouseEnter={() => setHoveredCard(meetup.id)}
+        onMouseLeave={() => setHoveredCard(null)}
+      >
+        <img
+          src={imageUrl}
+          alt={meetup.title}
+          style={styles.thumbnail}
+        />
+        <div style={styles.cardContent}>
+          <span style={styles.cardTitle}>{meetup.title}</span>
+          <span style={styles.cardDescription}>
+            {meetup.description || meetup.category}
+          </span>
+          <div style={styles.cardMeta}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#878b94" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+              <circle cx="12" cy="10" r="3" />
+            </svg>
+            <span style={styles.metaText}>{meetup.location}</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#878b94" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+            </svg>
+            <span style={styles.metaText}>
+              {meetup.current_participants}/{meetup.max_participants}명
+            </span>
+            <span style={styles.metaText}>
+              {getTimeAgo(meetup.joined_at)} 대화
+            </span>
+          </div>
+        </div>
+
+        {activeTab === 'past' && !meetup.has_reviewed && (
+          <div
+            style={styles.reviewBtn}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleReviewWrite(meetup.id);
+            }}
           >
-            <Icon name="arrow-left" size={24} color={COLORS.text.primary} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>참여한 약속</Text>
-          <View style={{ width: 20 }} />
-        </View>
-        <View style={styles.skeletonWrap}>
-          {[0, 1, 2, 3, 4].map((i) => (
-            <MeetupCardSkeleton key={i} />
-          ))}
-        </View>
-      </View>
+            리뷰
+          </div>
+        )}
+        {activeTab === 'past' && meetup.has_reviewed && (
+          <div style={styles.reviewedBadge}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+            <span style={{ fontSize: 12, color: '#22c55e', fontWeight: 600 }}>완료</span>
+          </div>
+        )}
+      </div>
     );
+  };
+
+  if (loading) {
+    return renderSkeleton();
   }
 
   return (
-    <View style={styles.container}>
-      {/* 헤더 */}
-      <View style={styles.header}>
-        <TouchableOpacity
+    <div style={styles.container}>
+      {/* Header */}
+      <div style={styles.header}>
+        <div
           style={styles.backButton}
-          onPress={() => navigate('/mypage')}
+          onClick={() => navigate('/mypage')}
         >
-          <Icon name="arrow-left" size={24} color={COLORS.text.primary} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>참여한 약속</Text>
-        <NotificationBell
-          onPress={() => {
-            navigate('/notifications');
-          }}
-          color={COLORS.text.primary}
-          size={20}
-        />
-      </View>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#121212" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="15 18 9 12 15 6" />
+          </svg>
+        </div>
+        <span style={styles.headerTitle}>참가한 모임</span>
+        <div style={{ width: 44 }} />
+      </div>
 
-      {/* 탭 선택 */}
-      <View style={styles.tabContainer}>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'upcoming' && styles.activeTab]}
-          onPress={() => setActiveTab('upcoming')}
-        >
-          <Text style={[styles.tabText, activeTab === 'upcoming' && styles.activeTabText]}>
-            예정된 약속
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'completed' && styles.activeTab]}
-          onPress={() => setActiveTab('completed')}
-        >
-          <Text style={[styles.tabText, activeTab === 'completed' && styles.activeTabText]}>
-            완료된 약속
-          </Text>
-        </TouchableOpacity>
-      </View>
+      {/* 3-Tab bar */}
+      <div style={styles.tabContainer}>
+        {tabs.map((tab) => (
+          <div
+            key={tab.key}
+            style={{
+              ...styles.tab,
+              borderBottomColor: activeTab === tab.key ? '#121212' : 'transparent',
+            }}
+            onClick={() => setActiveTab(tab.key)}
+          >
+            <span
+              style={{
+                fontSize: 15,
+                fontWeight: activeTab === tab.key ? 600 : 400,
+                color: activeTab === tab.key ? '#121212' : '#666666',
+                lineHeight: '22px',
+              }}
+            >
+              {tab.label}
+            </span>
+          </div>
+        ))}
+      </div>
 
-      <ScrollView style={styles.content}>
-        {filteredMeetups.length === 0 ? (
-          <EmptyState
-            variant="no-data"
-            icon="calendar"
-            title={activeTab === 'upcoming' ? '예정된 약속이 없어요' : '완료된 약속이 없어요'}
-            description="새로운 약속을 찾아 참여해보세요!"
-            actionLabel="약속 찾아보기"
-            onAction={() => navigate('/home')}
+      {/* Search bar */}
+      <div style={styles.searchWrapper}>
+        <div style={styles.searchInputContainer}>
+          <input
+            type="text"
+            placeholder={searchPlaceholders[activeTab]}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            style={styles.searchInput}
           />
+          <svg
+            width="20" height="20" viewBox="0 0 24 24"
+            fill="none" stroke="#878b94" strokeWidth="2"
+            strokeLinecap="round" strokeLinejoin="round"
+            style={{ flexShrink: 0 }}
+          >
+            <circle cx="11" cy="11" r="8" />
+            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+          </svg>
+        </div>
+      </div>
+
+      {/* Filter pills */}
+      <div style={styles.filterRow}>
+        {['필터1', '필터2', '필터3'].map((label) => (
+          <div key={label} style={styles.filterPill}>
+            <span style={{ fontSize: 14, color: '#293038' }}>{label}</span>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#293038" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </div>
+        ))}
+      </div>
+
+      {/* Card list */}
+      <div style={styles.listContainer}>
+        {filteredMeetups.length === 0 ? (
+          <div style={styles.emptyState}>
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+              <line x1="16" y1="2" x2="16" y2="6" />
+              <line x1="8" y1="2" x2="8" y2="6" />
+              <line x1="3" y1="10" x2="21" y2="10" />
+            </svg>
+            <span style={{ fontSize: 16, fontWeight: 600, color: '#121212', marginTop: 16 }}>
+              {activeTab === 'applied' ? '신청한 모임이 없어요' :
+               activeTab === 'created' ? '만든 모임이 없어요' :
+               '지난 모임이 없어요'}
+            </span>
+            <span style={{ fontSize: 14, color: '#878b94', marginTop: 8 }}>
+              새로운 모임을 찾아 참여해보세요!
+            </span>
+            <div
+              style={styles.exploreButton}
+              onClick={() => navigate('/home')}
+            >
+              모임 찾아보기
+            </div>
+          </div>
         ) : (
-          <View style={styles.meetupsList}>
-            <Text style={styles.sectionTitle}>
-              {activeTab === 'upcoming' ? '예정된' : '완료된'} 약속 ({filteredMeetups.length}개)
-            </Text>
-            {filteredMeetups.map(renderMeetupItem)}
-          </View>
+          filteredMeetups.map(renderMeetupItem)
         )}
-      </ScrollView>
-    </View>
+      </div>
+    </div>
   );
 };
 
-const styles = StyleSheet.create({
+const styles: { [key: string]: React.CSSProperties } = {
   container: {
-    flex: 1,
-    backgroundColor: COLORS.neutral.background,
+    display: 'flex',
+    flexDirection: 'column',
+    height: '100vh',
+    backgroundColor: '#FFFFFF',
   },
-  skeletonWrap: {
-    padding: 20,
-    gap: 16,
-  },
+
+  // Header
   header: {
+    display: 'flex',
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    ...HEADER_STYLE.sub,
-    ...SHADOWS.sticky,
+    justifyContent: 'space-between',
+    height: 56,
+    paddingLeft: 4,
+    paddingRight: 4,
+    backgroundColor: '#FFFFFF',
+    position: 'sticky' as const,
+    top: 0,
     zIndex: 10,
   },
   backButton: {
-    padding: 10,
-    minWidth: 44,
-    minHeight: 44,
+    width: 44,
+    height: 44,
+    display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     cursor: 'pointer',
-    transition: 'all 200ms ease',
   },
   headerTitle: {
-    ...HEADER_STYLE.subTitle,
+    fontSize: 16,
+    fontWeight: 600,
+    color: '#121212',
+    position: 'absolute' as const,
+    left: '50%',
+    transform: 'translateX(-50%)',
   },
+
+  // Tabs
   tabContainer: {
+    display: 'flex',
     flexDirection: 'row',
-    backgroundColor: COLORS.neutral.white,
-    borderBottomWidth: 1,
-    borderBottomColor: CARD_STYLE.borderColor,
+    backgroundColor: '#FFFFFF',
+    borderBottom: '1px solid #f1f2f3',
   },
   tab: {
     flex: 1,
-    paddingVertical: 16,
+    display: 'flex',
     alignItems: 'center',
-    borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
+    justifyContent: 'center',
+    paddingTop: 14,
+    paddingBottom: 14,
+    borderBottom: '2px solid transparent',
     cursor: 'pointer',
+    transition: 'all 150ms ease',
   },
-  activeTab: {
-    borderBottomColor: COLORS.primary.main,
+
+  // Search
+  searchWrapper: {
+    padding: '12px 20px',
   },
-  tabText: {
-    fontSize: 16,
-    color: COLORS.text.secondary,
-  },
-  activeTabText: {
-    color: COLORS.primary.main,
-    fontWeight: '700',
-  },
-  content: {
-    flex: 1,
-  },
-  emptyState: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 40,
-    paddingTop: 100,
-  },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: COLORS.text.primary,
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  emptyDescription: {
-    fontSize: 14,
-    color: COLORS.text.secondary,
-    textAlign: 'center',
-    marginBottom: 24,
-  },
-  exploreButton: {
-    backgroundColor: COLORS.primary.main,
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-  },
-  exploreButtonText: {
-    color: COLORS.text.white,
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  meetupsList: {
-    backgroundColor: COLORS.neutral.white,
-    marginTop: 8,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: COLORS.text.primary,
-    padding: 20,
-    paddingBottom: 0,
-  },
-  meetupItem: {
+  searchInputContainer: {
+    display: 'flex',
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: CARD_STYLE.borderColor,
+    backgroundColor: '#f1f2f3',
+    borderRadius: 12,
+    height: 44,
+    paddingLeft: 16,
+    paddingRight: 14,
+    gap: 8,
   },
-  profileImage: {
-    marginRight: 16,
-  },
-  avatarCircle: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: COLORS.primary.light,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  meetupInfo: {
+  searchInput: {
     flex: 1,
-  },
-  meetupTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: COLORS.text.primary,
-    marginBottom: 4,
-  },
-  meetupCategory: {
+    border: 'none',
+    outline: 'none',
+    backgroundColor: 'transparent',
     fontSize: 14,
-    color: COLORS.text.secondary,
-    marginBottom: 4,
+    color: '#121212',
+    lineHeight: '20px',
   },
-  meetupMeta: {
+
+  // Filter pills
+  filterRow: {
+    display: 'flex',
+    flexDirection: 'row',
+    gap: 8,
+    paddingLeft: 20,
+    paddingRight: 20,
+    paddingBottom: 12,
+  },
+  filterPill: {
+    display: 'flex',
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 4,
+    border: '1px solid #d1d5db',
+    borderRadius: 20,
+    paddingTop: 8,
+    paddingBottom: 8,
+    paddingLeft: 14,
+    paddingRight: 14,
+    cursor: 'pointer',
+    backgroundColor: '#FFFFFF',
+  },
+
+  // Card list
+  listContainer: {
+    flex: 1,
+    overflowY: 'auto' as const,
+  },
+  cardItem: {
+    display: 'flex',
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: '16px 20px',
+    gap: 18,
+    cursor: 'pointer',
+    transition: 'background-color 150ms ease',
+  },
+  thumbnail: {
+    width: 70,
+    height: 70,
+    borderRadius: 16,
+    objectFit: 'cover' as const,
+    flexShrink: 0,
+  },
+  cardContent: {
+    flex: 1,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 4,
+    minWidth: 0,
+  },
+  cardTitle: {
+    fontSize: 16,
+    fontWeight: 600,
+    color: '#121212',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap' as const,
+  },
+  cardDescription: {
+    fontSize: 14,
+    color: '#293038',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap' as const,
+  },
+  cardMeta: {
+    display: 'flex',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 2,
   },
   metaText: {
-    fontSize: 12,
-    color: COLORS.text.secondary,
+    fontSize: 14,
+    color: '#878b94',
+    marginRight: 6,
   },
-  statusText: {
-    fontSize: 12,
-    fontWeight: '500',
-  },
-  actionContainer: {
-    marginLeft: 12,
-  },
-  reviewButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.primary.light,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    gap: 4,
+
+  // Review
+  reviewBtn: {
+    fontSize: 13,
+    fontWeight: 600,
+    color: '#3b82f6',
+    backgroundColor: '#eff6ff',
+    padding: '6px 14px',
+    borderRadius: 16,
     cursor: 'pointer',
-    transition: 'all 200ms ease',
-  },
-  reviewButtonText: {
-    fontSize: 12,
-    color: COLORS.primary.main,
-    fontWeight: '600',
+    flexShrink: 0,
   },
   reviewedBadge: {
+    display: 'flex',
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
+    flexShrink: 0,
   },
-  reviewedText: {
-    fontSize: 12,
-    color: COLORS.secondary.main,
-    fontWeight: '600',
+
+  // Empty state
+  emptyState: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingTop: 80,
+    paddingBottom: 40,
+    paddingLeft: 40,
+    paddingRight: 40,
   },
-});
+  exploreButton: {
+    marginTop: 24,
+    backgroundColor: '#121212',
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: 600,
+    padding: '12px 28px',
+    borderRadius: 12,
+    cursor: 'pointer',
+  },
+};
 
 export default JoinedMeetupsScreen;

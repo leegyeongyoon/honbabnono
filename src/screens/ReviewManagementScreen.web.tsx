@@ -1,8 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, ActivityIndicator } from 'react-native';
 import { useNavigate } from 'react-router-dom';
-import { COLORS, SHADOWS } from '../styles/colors';
-import { HEADER_STYLE } from '../styles/spacing';
 import { Icon } from '../components/Icon';
 import { FadeIn } from '../components/animated';
 import EmptyState from '../components/EmptyState';
@@ -40,6 +38,9 @@ const ReviewManagementScreen: React.FC = () => {
   const [replyingId, setReplyingId] = useState<string | null>(null);
   const [replyContent, setReplyContent] = useState('');
 
+  // More menu state
+  const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
+
   const fetchReviews = useCallback(async () => {
     try {
       setLoading(true);
@@ -61,7 +62,17 @@ const ReviewManagementScreen: React.FC = () => {
     fetchReviews();
   }, [fetchReviews]);
 
+  // Close menu on outside click
+  useEffect(() => {
+    const handleClick = () => setMenuOpenId(null);
+    if (menuOpenId) {
+      document.addEventListener('click', handleClick);
+      return () => document.removeEventListener('click', handleClick);
+    }
+  }, [menuOpenId]);
+
   const handleStartEdit = (review: WrittenReview) => {
+    setMenuOpenId(null);
     setEditingId(review.id);
     setEditRating(review.rating);
     setEditContent(review.content || '');
@@ -99,6 +110,7 @@ const ReviewManagementScreen: React.FC = () => {
   };
 
   const handleDeleteReview = async (reviewId: string) => {
+    setMenuOpenId(null);
     if (!window.confirm('정말로 이 리뷰를 삭제하시겠습니까?\n삭제된 리뷰는 복구할 수 없습니다.')) {
       return;
     }
@@ -143,7 +155,15 @@ const ReviewManagementScreen: React.FC = () => {
     }
   };
 
-  const renderStars = (rating: number, size: number = 14, interactive?: boolean, onSelect?: (star: number) => void) => {
+  const formatDate = (dateStr: string) => {
+    const d = new Date(dateStr);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}.${m}.${day}`;
+  };
+
+  const renderStars = (rating: number, size: number = 12, interactive?: boolean, onSelect?: (star: number) => void) => {
     const numRating = Number(rating) || 0;
     return (
       <View style={styles.starsContainer}>
@@ -159,7 +179,7 @@ const ReviewManagementScreen: React.FC = () => {
             <Icon
               name="star"
               size={size}
-              color={i <= numRating ? COLORS.primary.main : COLORS.neutral.grey200}
+              color={i <= numRating ? '#FFA529' : '#E0E0E0'}
             />
           </div>
         ))}
@@ -167,55 +187,78 @@ const ReviewManagementScreen: React.FC = () => {
     );
   };
 
-  const renderWrittenReviewItem = (review: WrittenReview) => {
+  const renderWrittenReviewItem = (review: WrittenReview, index: number) => {
     const isEditing = editingId === review.id;
+    const isLast = index === writtenReviews.length - 1;
 
     return (
-      <div
-        key={review.id}
-        onMouseEnter={(e) => { if (!isEditing) {(e.currentTarget as HTMLElement).style.backgroundColor = '#FAFAF8';} }}
-        onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent'; }}
-        style={{ transition: 'background-color 150ms ease' }}
-      >
-        <View style={styles.reviewCard}>
+      <div key={review.id} style={{ position: 'relative' as const }}>
+        <View style={[styles.reviewCard, isLast && { borderBottomWidth: 0 }]}>
+          {/* Top row: avatar, name, stars, date, more */}
           <View style={styles.reviewHeader}>
-            <View style={styles.reviewTitleRow}>
-              <View style={styles.avatarCircle}>
-                <Icon name="edit" size={16} color={COLORS.primary.main} />
+            <View style={styles.avatarCircle}>
+              <Icon name="user" size={18} color="#BDBDBD" />
+            </View>
+            <View style={styles.headerInfo}>
+              <View style={styles.nameStarsRow}>
+                <Text style={styles.reviewerName}>{review.meetup_title || '약속'}</Text>
+                {!isEditing && renderStars(review.rating ?? 0, 12)}
               </View>
-              <View style={styles.titleWrap}>
-                <Text style={styles.reviewTitle} numberOfLines={1}>{review.meetup_title || '약속'}</Text>
-                {isEditing ? (
-                  <View style={styles.editStarsRow}>
-                    {renderStars(editRating, 20, true, setEditRating)}
-                  </View>
-                ) : (
-                  <View style={styles.ratingContainer}>
-                    {renderStars(review.rating ?? 0)}
-                    <Text style={styles.ratingText}>{review.rating ?? 0}.0</Text>
-                  </View>
-                )}
-              </View>
+              {!isEditing && (
+                <Text style={styles.dateText}>{formatDate(review.created_at)}</Text>
+              )}
             </View>
 
             {!isEditing && (
-              <View style={styles.actionContainer}>
-                <div
-                  onClick={() => handleStartEdit(review)}
-                  style={{ cursor: 'pointer', padding: 8, borderRadius: 6, backgroundColor: COLORS.neutral.light }}
-                >
-                  <Icon name="edit" size={14} color={COLORS.text.accent} />
-                </div>
-                <div
-                  onClick={() => handleDeleteReview(review.id)}
-                  style={{ cursor: 'pointer', padding: 8, borderRadius: 6, backgroundColor: COLORS.neutral.light }}
-                >
-                  <Icon name="trash-2" size={14} color={COLORS.functional.error} />
-                </div>
-              </View>
+              <div
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setMenuOpenId(menuOpenId === review.id ? null : review.id);
+                }}
+                style={{
+                  cursor: 'pointer',
+                  padding: 4,
+                  marginLeft: 'auto',
+                  position: 'relative' as const,
+                }}
+              >
+                <Icon name="more-vertical" size={18} color="#878B94" />
+              </div>
             )}
           </View>
 
+          {/* More menu dropdown */}
+          {menuOpenId === review.id && (
+            <div style={webStyles.menuDropdown}>
+              <div
+                onClick={() => handleStartEdit(review)}
+                style={webStyles.menuItem}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = '#F5F5F5'; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent'; }}
+              >
+                <Icon name="edit" size={14} color="#121212" />
+                <span style={{ fontSize: 14, color: '#121212' }}>수정</span>
+              </div>
+              <div
+                onClick={() => handleDeleteReview(review.id)}
+                style={webStyles.menuItem}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = '#F5F5F5'; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent'; }}
+              >
+                <Icon name="trash-2" size={14} color="#D32F2F" />
+                <span style={{ fontSize: 14, color: '#D32F2F' }}>삭제</span>
+              </div>
+            </div>
+          )}
+
+          {/* Edit form (stars row) */}
+          {isEditing && (
+            <View style={styles.editStarsRow}>
+              {renderStars(editRating, 20, true, setEditRating)}
+            </View>
+          )}
+
+          {/* Review text */}
           {isEditing ? (
             <View style={styles.editForm}>
               <TextInput
@@ -223,7 +266,7 @@ const ReviewManagementScreen: React.FC = () => {
                 value={editContent}
                 onChangeText={setEditContent}
                 placeholder="후기를 수정해주세요"
-                placeholderTextColor={COLORS.text.tertiary}
+                placeholderTextColor="#878B94"
                 multiline
                 numberOfLines={4}
                 maxLength={500}
@@ -232,26 +275,21 @@ const ReviewManagementScreen: React.FC = () => {
               <View style={styles.editActions}>
                 <div
                   onClick={handleCancelEdit}
-                  style={{
-                    cursor: 'pointer', padding: '8px 16px', borderRadius: 8,
-                    border: `1px solid ${COLORS.neutral.grey200}`, display: 'inline-flex',
-                    alignItems: 'center', justifyContent: 'center',
-                  }}
+                  style={webStyles.cancelBtn}
                 >
                   <Text style={styles.cancelText}>취소</Text>
                 </div>
                 <div
                   onClick={handleSubmitEdit}
                   style={{
+                    ...webStyles.submitBtn,
+                    backgroundColor: editRating === 0 ? '#E0E0E0' : '#FFA529',
                     cursor: submitting || editRating === 0 ? 'not-allowed' : 'pointer',
-                    padding: '8px 16px', borderRadius: 8,
-                    backgroundColor: editRating === 0 ? COLORS.neutral.grey200 : COLORS.primary.main,
-                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                     opacity: submitting || editRating === 0 ? 0.5 : 1,
                   }}
                 >
                   {submitting ? (
-                    <ActivityIndicator size="small" color={COLORS.neutral.white} />
+                    <ActivityIndicator size="small" color="#FFFFFF" />
                   ) : (
                     <Text style={styles.submitText}>수정 완료</Text>
                   )}
@@ -259,11 +297,12 @@ const ReviewManagementScreen: React.FC = () => {
               </View>
             </View>
           ) : (
-            <Text style={styles.reviewContent} numberOfLines={2}>
+            <Text style={styles.reviewContent}>
               {review.content}
             </Text>
           )}
 
+          {/* Tags */}
           {!isEditing && review.tags && review.tags.length > 0 && (
             <View style={styles.tagsRow}>
               {review.tags.map((tag, idx) => (
@@ -273,57 +312,38 @@ const ReviewManagementScreen: React.FC = () => {
               ))}
             </View>
           )}
-
-          {!isEditing && (
-            <View style={styles.reviewFooter}>
-              <Text style={styles.metaText}>
-                {new Date(review.created_at).toLocaleDateString('ko-KR')}
-              </Text>
-              {review.meetup_location && (
-                <>
-                  <View style={styles.metaDivider} />
-                  <Text style={styles.metaText}>{review.meetup_location}</Text>
-                </>
-              )}
-            </View>
-          )}
         </View>
       </div>
     );
   };
 
-  const renderReceivedReviewItem = (review: ReceivedReview) => {
+  const renderReceivedReviewItem = (review: ReceivedReview, index: number) => {
     const isReplying = replyingId === review.id;
+    const isLast = index === receivedReviews.length - 1;
 
     return (
-      <div
-        key={review.id}
-        onMouseEnter={(e) => { if (!isReplying) {(e.currentTarget as HTMLElement).style.backgroundColor = '#FAFAF8';} }}
-        onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent'; }}
-        style={{ transition: 'background-color 150ms ease' }}
-      >
-        <View style={styles.reviewCard}>
+      <div key={review.id}>
+        <View style={[styles.reviewCard, isLast && { borderBottomWidth: 0 }]}>
+          {/* Top row: avatar, name, stars, date */}
           <View style={styles.reviewHeader}>
-            <View style={styles.reviewTitleRow}>
-              <View style={styles.avatarCircle}>
-                <Icon name="star" size={16} color={COLORS.primary.main} />
+            <View style={styles.avatarCircle}>
+              <Icon name="user" size={18} color="#BDBDBD" />
+            </View>
+            <View style={styles.headerInfo}>
+              <View style={styles.nameStarsRow}>
+                <Text style={styles.reviewerName}>{review.reviewer_name}</Text>
+                {renderStars(review.rating ?? 0, 12)}
               </View>
-              <View style={styles.titleWrap}>
-                <Text style={styles.reviewTitle} numberOfLines={1}>{review.meetup_title || '약속'}</Text>
-                <View style={styles.ratingContainer}>
-                  <Text style={styles.reviewerLabel}>{review.reviewer_name}</Text>
-                  <View style={styles.ratingDot} />
-                  {renderStars(review.rating ?? 0)}
-                  <Text style={styles.ratingText}>{review.rating ?? 0}.0</Text>
-                </View>
-              </View>
+              <Text style={styles.dateText}>{formatDate(review.created_at)}</Text>
             </View>
           </View>
 
-          <Text style={styles.reviewContent} numberOfLines={3}>
+          {/* Review text */}
+          <Text style={styles.reviewContent}>
             {review.comment}
           </Text>
 
+          {/* Tags */}
           {review.tags && review.tags.length > 0 && (
             <View style={styles.tagsRow}>
               {review.tags.map((tag, idx) => (
@@ -334,9 +354,10 @@ const ReviewManagementScreen: React.FC = () => {
             </View>
           )}
 
+          {/* Reply */}
           {review.reply ? (
             <View style={styles.replyContainer}>
-              <Icon name="corner-down-right" size={14} color={COLORS.text.tertiary} />
+              <Icon name="corner-down-right" size={14} color="#878B94" />
               <View style={styles.replyBody}>
                 <Text style={styles.replyLabel}>내 답변</Text>
                 <Text style={styles.replyText}>{review.reply}</Text>
@@ -349,7 +370,7 @@ const ReviewManagementScreen: React.FC = () => {
                 value={replyContent}
                 onChangeText={setReplyContent}
                 placeholder="리뷰에 대한 답변을 작성해주세요"
-                placeholderTextColor={COLORS.text.tertiary}
+                placeholderTextColor="#878B94"
                 multiline
                 numberOfLines={3}
                 maxLength={300}
@@ -358,26 +379,21 @@ const ReviewManagementScreen: React.FC = () => {
               <View style={styles.editActions}>
                 <div
                   onClick={handleCancelReply}
-                  style={{
-                    cursor: 'pointer', padding: '8px 16px', borderRadius: 8,
-                    border: `1px solid ${COLORS.neutral.grey200}`, display: 'inline-flex',
-                    alignItems: 'center', justifyContent: 'center',
-                  }}
+                  style={webStyles.cancelBtn}
                 >
                   <Text style={styles.cancelText}>취소</Text>
                 </div>
                 <div
                   onClick={handleSubmitReply}
                   style={{
+                    ...webStyles.submitBtn,
+                    backgroundColor: !replyContent.trim() ? '#E0E0E0' : '#FFA529',
                     cursor: submitting || !replyContent.trim() ? 'not-allowed' : 'pointer',
-                    padding: '8px 16px', borderRadius: 8,
-                    backgroundColor: !replyContent.trim() ? COLORS.neutral.grey200 : COLORS.primary.main,
-                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                     opacity: submitting || !replyContent.trim() ? 0.5 : 1,
                   }}
                 >
                   {submitting ? (
-                    <ActivityIndicator size="small" color={COLORS.neutral.white} />
+                    <ActivityIndicator size="small" color="#FFFFFF" />
                   ) : (
                     <Text style={styles.submitText}>답변 등록</Text>
                   )}
@@ -387,26 +403,14 @@ const ReviewManagementScreen: React.FC = () => {
           ) : review.can_reply ? (
             <div
               onClick={() => handleStartReply(review.id)}
-              style={{
-                cursor: 'pointer', display: 'flex', flexDirection: 'row',
-                alignItems: 'center', justifyContent: 'center',
-                border: `1px solid ${COLORS.primary.accent}`,
-                borderRadius: 8, padding: '10px 0', marginTop: 12, gap: 6,
-                transition: 'background-color 150ms ease',
-              }}
-              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = 'rgba(212,136,44,0.04)'; }}
+              style={webStyles.replyButton}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = '#FAFAFA'; }}
               onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent'; }}
             >
-              <Icon name="message-circle" size={16} color={COLORS.primary.accent} />
+              <Icon name="message-circle" size={16} color="#FFA529" />
               <Text style={styles.replyButtonText}>답변하기</Text>
             </div>
           ) : null}
-
-          <View style={styles.reviewFooter}>
-            <Text style={styles.metaText}>
-              {new Date(review.created_at).toLocaleDateString('ko-KR')}
-            </Text>
-          </View>
         </View>
       </div>
     );
@@ -419,9 +423,9 @@ const ReviewManagementScreen: React.FC = () => {
       <View style={styles.container}>
         <View style={styles.header}>
           <TouchableOpacity style={styles.backButton} onPress={() => navigate('/mypage')}>
-            <Icon name="arrow-left" size={24} color={COLORS.text.primary} />
+            <Icon name="chevron-left" size={24} color="#121212" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>리뷰 관리</Text>
+          <Text style={styles.headerTitle}>후기관리</Text>
           <View style={styles.headerRight} />
         </View>
         <View style={styles.skeletonWrap}>
@@ -435,57 +439,61 @@ const ReviewManagementScreen: React.FC = () => {
 
   return (
     <FadeIn style={styles.container}>
+      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigate('/mypage')}
         >
-          <Icon name="arrow-left" size={24} color={COLORS.text.primary} />
+          <Icon name="chevron-left" size={24} color="#121212" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>리뷰 관리</Text>
+        <Text style={styles.headerTitle}>후기관리</Text>
         <View style={styles.headerRight} />
       </View>
 
-      {/* Filter tabs */}
-      <View style={styles.filterContainer}>
-        <div
+      {/* Tabs - Figma underline style matching MyMeetupsScreen */}
+      <div style={webStyles.tabBar}>
+        <button
           onClick={() => setSelectedFilter('written')}
           style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            padding: '14px 24px', cursor: 'pointer', minHeight: 48,
-            borderBottom: selectedFilter === 'written' ? `3px solid ${COLORS.primary.main}` : '3px solid transparent',
-            transition: 'border-color 200ms ease',
+            ...webStyles.tabButton,
+            color: selectedFilter === 'written' ? '#121212' : '#666',
+            borderBottom: selectedFilter === 'written' ? '2px solid #121212' : '2px solid transparent',
           }}
         >
-          <Text style={[styles.filterText, selectedFilter === 'written' && styles.activeFilterText]}>
-            작성한 리뷰 ({writtenReviews.length})
-          </Text>
-        </div>
-
-        <div
+          쓴 후기
+        </button>
+        <button
           onClick={() => setSelectedFilter('received')}
           style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            padding: '14px 24px', cursor: 'pointer', minHeight: 48,
-            borderBottom: selectedFilter === 'received' ? `3px solid ${COLORS.primary.main}` : '3px solid transparent',
-            transition: 'border-color 200ms ease',
+            ...webStyles.tabButton,
+            color: selectedFilter === 'received' ? '#121212' : '#666',
+            borderBottom: selectedFilter === 'received' ? '2px solid #121212' : '2px solid transparent',
           }}
         >
-          <Text style={[styles.filterText, selectedFilter === 'received' && styles.activeFilterText]}>
-            받은 리뷰 ({receivedReviews.length})
-          </Text>
-        </div>
-      </View>
+          받은 후기
+        </button>
+      </div>
 
       <ScrollView style={styles.content} contentContainerStyle={styles.contentInner}>
         {error && (
           <View style={styles.errorBanner}>
-            <Icon name="alert-circle" size={16} color={COLORS.functional.error} />
+            <Icon name="alert-circle" size={16} color="#D32F2F" />
             <Text style={styles.errorText}>{error}</Text>
             <div onClick={() => setError(null)} style={{ cursor: 'pointer', padding: 4 }}>
-              <Icon name="x" size={16} color={COLORS.text.secondary} />
+              <Icon name="x" size={16} color="#5F5F5F" />
             </div>
           </View>
+        )}
+
+        {/* Section count */}
+        {currentReviews.length > 0 && (
+          <Text style={styles.sectionCount}>
+            {selectedFilter === 'written'
+              ? `내가 쓴 후기 ${writtenReviews.length}개`
+              : `내가 받은 후기 ${receivedReviews.length}개`
+            }
+          </Text>
         )}
 
         {currentReviews.length === 0 ? (
@@ -503,8 +511,8 @@ const ReviewManagementScreen: React.FC = () => {
         ) : (
           <View style={styles.reviewsList}>
             {selectedFilter === 'written'
-              ? writtenReviews.map(renderWrittenReviewItem)
-              : receivedReviews.map(renderReceivedReviewItem)}
+              ? writtenReviews.map((r, i) => renderWrittenReviewItem(r, i))
+              : receivedReviews.map((r, i) => renderReceivedReviewItem(r, i))}
           </View>
         )}
       </ScrollView>
@@ -512,152 +520,189 @@ const ReviewManagementScreen: React.FC = () => {
   );
 };
 
+// Web-only styles (CSS-in-JS)
+const webStyles = {
+  tabBar: {
+    display: 'flex',
+    borderBottom: '1px solid #f1f2f3',
+    backgroundColor: '#FFFFFF',
+  } as React.CSSProperties,
+  tabButton: {
+    flex: 1,
+    paddingTop: 12,
+    paddingBottom: 14,
+    fontSize: 14,
+    fontWeight: 600,
+    letterSpacing: -0.3,
+    background: 'transparent',
+    border: 'none',
+    cursor: 'pointer',
+    fontFamily: 'inherit',
+    transition: 'color 150ms ease',
+  } as React.CSSProperties,
+  cancelBtn: {
+    cursor: 'pointer',
+    padding: '8px 16px',
+    borderRadius: 8,
+    border: '1px solid #E0E0E0',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  } as React.CSSProperties,
+  submitBtn: {
+    padding: '8px 16px',
+    borderRadius: 8,
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  } as React.CSSProperties,
+  replyButton: {
+    cursor: 'pointer',
+    display: 'flex',
+    flexDirection: 'row' as const,
+    alignItems: 'center',
+    justifyContent: 'center',
+    border: '1px solid #FFA529',
+    borderRadius: 8,
+    padding: '10px 0',
+    marginTop: 12,
+    gap: 6,
+    transition: 'background-color 150ms ease',
+  } as React.CSSProperties,
+  menuDropdown: {
+    position: 'absolute' as const,
+    top: 52,
+    right: 20,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    boxShadow: '0 2px 12px rgba(0,0,0,0.12)',
+    zIndex: 100,
+    overflow: 'hidden',
+    minWidth: 100,
+  } as React.CSSProperties,
+  menuItem: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8,
+    padding: '10px 16px',
+    cursor: 'pointer',
+    transition: 'background-color 100ms ease',
+  } as React.CSSProperties,
+};
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.neutral.grey100,
+    backgroundColor: '#FFFFFF',
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    ...HEADER_STYLE.sub,
-    zIndex: 10,
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 12,
+    backgroundColor: '#FFFFFF',
   },
   backButton: {
-    padding: 10,
+    padding: 4,
     minWidth: 44,
     minHeight: 44,
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'center',
   },
   headerTitle: {
-    ...HEADER_STYLE.subTitle,
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#121212',
+    letterSpacing: -0.2,
   },
   headerRight: {
     width: 44,
   },
-  filterContainer: {
-    flexDirection: 'row',
-    backgroundColor: COLORS.neutral.white,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(212,136,44,0.08)',
-    paddingHorizontal: 4,
-  },
-  filterText: {
-    fontSize: 15,
-    color: COLORS.text.tertiary,
-    fontWeight: '500',
-  },
-  activeFilterText: {
-    color: COLORS.text.primary,
-    fontWeight: '700',
-  },
   content: {
     flex: 1,
+    backgroundColor: '#FFFFFF',
   },
   contentInner: {
-    padding: 16,
     paddingBottom: 32,
   },
   skeletonWrap: {
     paddingTop: 8,
-    backgroundColor: COLORS.neutral.white,
-    marginTop: 8,
-    borderRadius: 8,
-    marginHorizontal: 16,
+    backgroundColor: '#FFFFFF',
+  },
+  sectionCount: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#121212',
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 8,
   },
   errorBanner: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(220,38,38,0.08)',
     padding: 12,
+    marginHorizontal: 20,
+    marginTop: 12,
     borderRadius: 8,
-    marginBottom: 16,
     gap: 8,
   },
   errorText: {
     flex: 1,
     fontSize: 14,
-    color: COLORS.functional.error,
+    color: '#D32F2F',
   },
   reviewsList: {
-    backgroundColor: COLORS.neutral.white,
-    borderRadius: 8,
-    overflow: 'hidden',
+    backgroundColor: '#FFFFFF',
   },
   reviewCard: {
-    backgroundColor: 'transparent',
-    padding: 16,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(17,17,17,0.06)',
+    borderBottomColor: '#f1f2f3',
   },
   reviewHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 12,
-  },
-  reviewTitleRow: {
-    flex: 1,
-    flexDirection: 'row',
     alignItems: 'center',
-    marginRight: 8,
+    marginBottom: 12,
   },
   avatarCircle: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(212,136,44,0.08)',
+    backgroundColor: '#F5F5F5',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
   },
-  titleWrap: {
+  headerInfo: {
     flex: 1,
+    justifyContent: 'center',
   },
-  reviewTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: COLORS.text.primary,
-    marginBottom: 4,
-  },
-  ratingContainer: {
+  nameStarsRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 8,
+    marginBottom: 2,
+  },
+  reviewerName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#121212',
+  },
+  dateText: {
+    fontSize: 13,
+    color: '#878B94',
   },
   starsContainer: {
     flexDirection: 'row',
-    gap: 2,
-    marginRight: 6,
-  },
-  ratingText: {
-    fontSize: 12,
-    color: COLORS.text.accent,
-    fontWeight: '500',
-    marginLeft: 4,
-  },
-  reviewerLabel: {
-    fontSize: 13,
-    color: COLORS.text.secondary,
-    fontWeight: '500',
-    marginRight: 6,
-  },
-  ratingDot: {
-    width: 3,
-    height: 3,
-    borderRadius: 1.5,
-    backgroundColor: COLORS.neutral.grey300,
-    marginRight: 6,
-  },
-  actionContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
+    gap: 1,
   },
   reviewContent: {
     fontSize: 15,
-    color: COLORS.text.primary,
+    color: '#121212',
     lineHeight: 22,
     marginBottom: 12,
   },
@@ -665,55 +710,38 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 6,
-    marginBottom: 12,
+    marginBottom: 4,
   },
   tagChip: {
-    backgroundColor: COLORS.neutral.grey100,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
+    backgroundColor: '#f1f2f3',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 14,
   },
   tagChipText: {
-    fontSize: 12,
-    color: COLORS.text.secondary,
-  },
-  reviewFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(17,17,17,0.04)',
-  },
-  metaDivider: {
-    width: 1,
-    height: 12,
-    backgroundColor: COLORS.neutral.grey200,
-    marginHorizontal: 10,
-  },
-  metaText: {
-    fontSize: 12,
-    color: COLORS.text.accent,
+    fontSize: 13,
+    color: '#5F5F5F',
   },
   // Edit form
   editForm: {
-    marginBottom: 12,
+    marginBottom: 4,
   },
   editStarsRow: {
-    marginBottom: 8,
+    marginBottom: 12,
   },
   editTextInput: {
     borderWidth: 1,
-    borderColor: COLORS.neutral.grey200,
+    borderColor: '#E0E0E0',
     borderRadius: 8,
     padding: 12,
     fontSize: 14,
-    color: COLORS.text.primary,
+    color: '#121212',
     minHeight: 80,
-    backgroundColor: COLORS.neutral.grey100,
+    backgroundColor: '#FAFAFA',
   },
   charCounter: {
     fontSize: 12,
-    color: COLORS.text.tertiary,
+    color: '#878B94',
     textAlign: 'right',
     marginTop: 4,
     marginBottom: 8,
@@ -726,21 +754,21 @@ const styles = StyleSheet.create({
   cancelText: {
     fontSize: 14,
     fontWeight: '500',
-    color: COLORS.text.secondary,
+    color: '#5F5F5F',
   },
   submitText: {
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.neutral.white,
+    color: '#FFFFFF',
   },
   // Reply styles
   replyContainer: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    backgroundColor: COLORS.neutral.background,
+    backgroundColor: '#FAFAFA',
     padding: 12,
     borderRadius: 8,
-    marginBottom: 12,
+    marginTop: 4,
     gap: 8,
   },
   replyBody: {
@@ -749,32 +777,31 @@ const styles = StyleSheet.create({
   replyLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: COLORS.text.tertiary,
+    color: '#878B94',
     marginBottom: 4,
   },
   replyText: {
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: '#5F5F5F',
     lineHeight: 20,
   },
   replyButtonText: {
     fontSize: 14,
     fontWeight: '500',
-    color: COLORS.primary.accent,
+    color: '#FFA529',
   },
   replyForm: {
     marginTop: 12,
-    marginBottom: 12,
   },
   replyTextInput: {
     borderWidth: 1,
-    borderColor: COLORS.neutral.grey200,
+    borderColor: '#E0E0E0',
     borderRadius: 8,
     padding: 12,
     fontSize: 14,
-    color: COLORS.text.primary,
+    color: '#121212',
     minHeight: 60,
-    backgroundColor: COLORS.neutral.grey100,
+    backgroundColor: '#FAFAFA',
   },
 });
 

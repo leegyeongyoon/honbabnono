@@ -1,10 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { useNavigate } from 'react-router-dom';
-import { COLORS, SHADOWS, CSS_SHADOWS, CARD_STYLE } from '../styles/colors';
-import { HEADER_STYLE } from '../styles/spacing';
-import { Icon } from '../components/Icon';
-import { ArrowLeft, UserX, Shield, AlertTriangle } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import apiClient from '../services/apiClient';
 import { ProfileImage } from '../components/ProfileImage';
 import EmptyState from '../components/EmptyState';
@@ -78,62 +75,24 @@ const BlockedUsersScreen: React.FC = () => {
     }
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
-
-    if (diffInHours < 1) {
-      const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
-      return `${diffInMinutes}분 전`;
-    } else if (diffInHours < 24) {
-      return `${diffInHours}시간 전`;
-    } else {
-      const diffInDays = Math.floor(diffInHours / 24);
-      if (diffInDays < 7) {
-        return `${diffInDays}일 전`;
-      } else {
-        return date.toLocaleDateString('ko-KR', {
-          year: 'numeric',
-          month: 'short',
-          day: 'numeric'
-        });
-      }
-    }
-  };
-
   const renderBlockedUser = (user: BlockedUser) => (
-    <View key={user.block_id} style={styles.userCard}>
-      <View style={styles.userInfo}>
-        <ProfileImage
-          uri={user.profile_image}
-          size={60}
-          name={user.name}
-          style={styles.profileImage}
-        />
+    <View key={user.block_id} style={styles.userRow}>
+      <ProfileImage
+        uri={user.profile_image}
+        size={40}
+        name={user.name}
+        style={styles.avatar}
+      />
 
-        <View style={styles.userDetails}>
-          <Text style={styles.userName}>{user.name}</Text>
-          <Text style={styles.userEmail}>{user.email}</Text>
-
-          {user.reason && (
-            <View style={styles.reasonContainer}>
-              <AlertTriangle size={14} color={COLORS.text.secondary} />
-              <Text style={styles.reasonText}>{user.reason}</Text>
-            </View>
-          )}
-
-          <Text style={styles.blockedDate}>
-            {formatDate(user.blocked_at)} 차단
-          </Text>
-        </View>
+      <View style={styles.userTextContainer}>
+        <Text style={styles.userName}>{user.name}</Text>
+        <Text style={styles.userLocation}>차단된 사용자</Text>
       </View>
 
       <TouchableOpacity
         style={styles.unblockButton}
         onPress={() => unblockUser(user.id, user.name)}
       >
-        <UserX size={20} color={COLORS.neutral.white} />
         <Text style={styles.unblockButtonText}>차단 해제</Text>
       </TouchableOpacity>
     </View>
@@ -144,20 +103,20 @@ const BlockedUsersScreen: React.FC = () => {
       <View style={styles.container}>
         <View style={styles.header}>
           <TouchableOpacity style={styles.backButton} onPress={() => navigate(-1)}>
-            <ArrowLeft size={24} color={COLORS.text.primary} />
+            <ArrowLeft size={22} color="#121212" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>차단 회원 관리</Text>
-          <View style={{ width: 44 }} />
+          <Text style={styles.headerTitle}>차단 사용자 관리</Text>
+          <View style={styles.headerRight} />
         </View>
-        <View style={{ padding: 20, gap: 12 }}>
+        <View style={styles.skeletonContainer}>
           {[0, 1, 2, 3].map((i) => (
-            <View key={i} className="animate-shimmer" style={{ flexDirection: 'row', alignItems: 'center', padding: 16, backgroundColor: COLORS.neutral.grey50, borderRadius: 8, gap: 12 }}>
-              <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: COLORS.neutral.grey100 }} />
-              <View style={{ flex: 1, gap: 8 }}>
-                <View style={{ width: '50%', height: 14, borderRadius: 7, backgroundColor: COLORS.neutral.grey100 }} />
-                <View style={{ width: '30%', height: 10, borderRadius: 5, backgroundColor: COLORS.neutral.grey100 }} />
+            <View key={i} className="animate-shimmer" style={styles.skeletonRow}>
+              <View style={styles.skeletonAvatar} />
+              <View style={styles.skeletonTextGroup}>
+                <View style={styles.skeletonName} />
+                <View style={styles.skeletonLocation} />
               </View>
-              <View style={{ width: 72, height: 32, borderRadius: 6, backgroundColor: COLORS.neutral.grey100 }} />
+              <View style={styles.skeletonButton} />
             </View>
           ))}
         </View>
@@ -167,28 +126,16 @@ const BlockedUsersScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      {/* 헤더 */}
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigate(-1)}
         >
-          <ArrowLeft size={24} color={COLORS.text.primary} />
+          <ArrowLeft size={22} color="#121212" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>차단 회원 관리</Text>
-        <View style={styles.placeholder} />
+        <Text style={styles.headerTitle}>차단 사용자 관리</Text>
+        <View style={styles.headerRight} />
       </View>
-
-      {/* 통계 정보 */}
-      {blockedUsers.length > 0 && (
-        <View style={styles.statsContainer}>
-          <View style={styles.statCard}>
-            <Shield size={24} color={COLORS.functional.error} />
-            <Text style={styles.statNumber}>{blockedUsers.length}</Text>
-            <Text style={styles.statLabel}>차단한 회원</Text>
-          </View>
-        </View>
-      )}
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {blockedUsers.length === 0 ? (
@@ -200,13 +147,7 @@ const BlockedUsersScreen: React.FC = () => {
             onAction={() => navigate('/home')}
           />
         ) : (
-          <View style={styles.blockedUsersGrid}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>차단한 회원 ({blockedUsers.length}명)</Text>
-              <Text style={styles.sectionSubtitle}>
-                차단한 회원의 약속, 채팅, 댓글이 보이지 않습니다.
-              </Text>
-            </View>
+          <View style={styles.listContainer}>
             {blockedUsers.map(renderBlockedUser)}
           </View>
         )}
@@ -226,169 +167,124 @@ const BlockedUsersScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.neutral.grey100,
-  },
-  centerContent: {
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    fontSize: 16,
-    color: COLORS.text.secondary,
+    backgroundColor: '#FFFFFF',
   },
 
-  // 헤더
+  // Header
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    ...HEADER_STYLE.sub,
+    height: 56,
+    paddingHorizontal: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+    backgroundColor: '#FFFFFF',
     zIndex: 10,
   },
   backButton: {
-    padding: 10,
-    minWidth: 44,
-    minHeight: 44,
+    width: 44,
+    height: 44,
     alignItems: 'center',
     justifyContent: 'center',
     cursor: 'pointer',
-    transition: 'all 200ms ease',
   },
   headerTitle: {
-    ...HEADER_STYLE.subTitle,
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#121212',
   },
-  placeholder: {
-    width: 40,
-  },
-
-  // 통계
-  statsContainer: {
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: COLORS.neutral.white,
-  },
-  statCard: {
-    backgroundColor: COLORS.neutral.grey50,
-    borderRadius: 8,
-    padding: 20,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(17,17,17,0.06)',
-    shadowColor: COLORS.neutral.black,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 1,
-  },
-  statNumber: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: COLORS.functional.error,
-    marginTop: 8,
-    marginBottom: 4,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: COLORS.text.secondary,
-    textAlign: 'center',
+  headerRight: {
+    width: 44,
   },
 
-  // 컨텐츠
+  // Content
   content: {
     flex: 1,
   },
+  listContainer: {
+    paddingVertical: 4,
+  },
 
-  // 차단 회원 목록
-  blockedUsersGrid: {
-    paddingHorizontal: 20,
+  // User row
+  userRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingVertical: 16,
+    paddingHorizontal: 20,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#f0f0f0',
   },
-  sectionHeader: {
-    marginBottom: 20,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: COLORS.text.primary,
-    marginBottom: 4,
-  },
-  sectionSubtitle: {
-    fontSize: 14,
-    color: COLORS.text.secondary,
-    lineHeight: 18,
-  },
-
-  // 사용자 카드
-  userCard: {
-    backgroundColor: COLORS.neutral.white,
-    padding: 16,
-    marginBottom: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    cursor: 'pointer',
-    transition: 'all 200ms ease',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(17,17,17,0.06)',
-    shadowColor: COLORS.neutral.black,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 1,
-  },
-  userInfo: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  profileImage: {
+  avatar: {
     marginRight: 12,
   },
-  userDetails: {
+  userTextContainer: {
     flex: 1,
   },
   userName: {
     fontSize: 16,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: '#121212',
     marginBottom: 2,
   },
-  userEmail: {
+  userLocation: {
     fontSize: 14,
-    color: COLORS.text.secondary,
-    marginBottom: 6,
+    color: '#878b94',
   },
-  reasonContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  reasonText: {
-    fontSize: 13,
-    color: COLORS.text.secondary,
-    marginLeft: 4,
-    fontStyle: 'italic',
-  },
-  blockedDate: {
-    fontSize: 13,
-    color: COLORS.text.accent,
-  },
+
+  // Unblock button
   unblockButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.functional.error,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: '#d1d5db',
     borderRadius: 6,
-    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     cursor: 'pointer',
-    transition: 'all 200ms ease',
   },
   unblockButtonText: {
-    color: COLORS.neutral.white,
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 13,
+    color: '#121212',
+    fontWeight: '500',
+  },
+
+  // Skeleton loading
+  skeletonContainer: {
+    paddingVertical: 4,
+  },
+  skeletonRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+  },
+  skeletonAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#f0f0f0',
+    marginRight: 12,
+  },
+  skeletonTextGroup: {
+    flex: 1,
+    gap: 6,
+  },
+  skeletonName: {
+    width: '40%',
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: '#f0f0f0',
+  },
+  skeletonLocation: {
+    width: '25%',
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#f0f0f0',
+  },
+  skeletonButton: {
+    width: 72,
+    height: 34,
+    borderRadius: 6,
+    backgroundColor: '#f0f0f0',
   },
 });
 

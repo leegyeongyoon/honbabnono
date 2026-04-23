@@ -351,7 +351,7 @@ const ExploreScreen: React.FC = () => {
           </div>
         </div>
 
-        {/* Category Tabs: Horizontal scroll with underline indicator */}
+        {/* Category Tabs: Horizontal scroll, text-only active state */}
         <div style={{
           backgroundColor: COLORS.neutral.white,
           borderBottom: '1px solid #e4e6e8',
@@ -362,7 +362,7 @@ const ExploreScreen: React.FC = () => {
             overflowX: 'auto',
             paddingLeft: 20,
             paddingRight: 12,
-            gap: 24,
+            gap: 32,
             scrollbarWidth: 'none',
           }}>
             <CategoryTab
@@ -828,40 +828,40 @@ const ExploreScreen: React.FC = () => {
             </FadeIn>
           )}
 
-          {/* FAB: 57x57 orange circle with + */}
-          <div
-            onClick={() => navigate('/create')}
-            style={{
-              position: 'fixed',
-              bottom: 80,
-              right: 20,
-              width: 57,
-              height: 57,
-              borderRadius: 57 / 2,
-              backgroundColor: '#FFA529',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-              boxShadow: CSS_SHADOWS.fab,
-              zIndex: 50,
-              transition: `transform ${TRANSITIONS.normal}`,
-            }}
-            role="button"
-            aria-label="새 모임 만들기"
-          >
-            <span style={{
-              fontSize: 28,
-              fontWeight: 300,
-              color: COLORS.text.white,
-              lineHeight: '28px',
-              marginTop: -1,
-            }}>+</span>
-          </div>
-
           <View style={{ height: 100 }} />
         </ScrollView>
       )}
+
+      {/* FAB: 57x57 orange circle with + — visible in both map & list views */}
+      <div
+        onClick={() => navigate('/create-meetup')}
+        style={{
+          position: 'fixed',
+          bottom: 103,
+          right: 16,
+          width: 57,
+          height: 57,
+          borderRadius: 57 / 2,
+          backgroundColor: '#FFA529',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          cursor: 'pointer',
+          boxShadow: CSS_SHADOWS.fab,
+          zIndex: 50,
+          transition: `transform ${TRANSITIONS.normal}`,
+        }}
+        role="button"
+        aria-label="새 모임 만들기"
+      >
+        <span style={{
+          fontSize: 28,
+          fontWeight: 300,
+          color: COLORS.text.white,
+          lineHeight: '28px',
+          marginTop: -1,
+        }}>+</span>
+      </div>
     </View>
   );
 };
@@ -904,7 +904,7 @@ const SegmentedTab: React.FC<{
   );
 };
 
-/** Category Tab with underline indicator — Figma style */
+/** Category Tab — Figma: active #121212 SemiBold, inactive #666 SemiBold, 14px */
 const CategoryTab: React.FC<{
   label: string;
   isActive: boolean;
@@ -925,7 +925,6 @@ const CategoryTab: React.FC<{
         paddingBottom: 10,
         cursor: 'pointer',
         userSelect: 'none',
-        position: 'relative',
         whiteSpace: 'nowrap',
         flexShrink: 0,
       }}
@@ -939,17 +938,6 @@ const CategoryTab: React.FC<{
       }}>
         {label}
       </span>
-      {/* Underline indicator */}
-      <div style={{
-        position: 'absolute',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        height: 2,
-        backgroundColor: isActive ? '#121212' : 'transparent',
-        borderRadius: 1,
-        transition: `background-color ${TRANSITIONS.normal}`,
-      }} />
     </div>
   );
 };
