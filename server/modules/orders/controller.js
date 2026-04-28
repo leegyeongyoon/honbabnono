@@ -285,9 +285,9 @@ exports.updateCookingStatus = async (req, res) => {
     const restaurantId = req.merchant.restaurantId;
     const { cooking_status } = req.body;
 
-    // 1. 주문의 restaurant_id 확인
+    // 1. 주문의 restaurant_id + reservation_id 확인
     const orderResult = await pool.query(
-      'SELECT id, restaurant_id, cooking_status FROM orders WHERE id = $1',
+      'SELECT id, restaurant_id, reservation_id, cooking_status FROM orders WHERE id = $1',
       [id]
     );
 
@@ -331,6 +331,20 @@ exports.updateCookingStatus = async (req, res) => {
     updateQuery += ` WHERE id = $${params.length}`;
 
     await pool.query(updateQuery, params);
+
+    // 소켓을 통해 고객에게 조리 상태 변경 알림
+    if (order.reservation_id) {
+      const io = req.app.get('io');
+      if (io) {
+        const { emitCookingUpdate } = require('../reservations/socket');
+        emitCookingUpdate(io, order.reservation_id, {
+          orderId: order.id,
+          cookingStatus: cooking_status,
+          previousStatus: order.cooking_status,
+          restaurantId: order.restaurant_id,
+        });
+      }
+    }
 
     res.json({
       success: true,

@@ -321,9 +321,13 @@ exports.updateArrival = async (req, res) => {
     const userId = req.user.userId;
     const { arrival_status } = req.body;
 
-    // 본인 확인
+    // 본인 확인 (식당 정보 포함)
     const reservationResult = await pool.query(
-      'SELECT id, user_id FROM reservations WHERE id = $1',
+      `SELECT r.id, r.user_id, r.restaurant_id,
+              u.name AS user_name
+       FROM reservations r
+       JOIN users u ON r.user_id = u.id
+       WHERE r.id = $1`,
       [id]
     );
 
@@ -331,7 +335,9 @@ exports.updateArrival = async (req, res) => {
       return res.status(404).json({ success: false, error: '예약을 찾을 수 없습니다.' });
     }
 
-    if (reservationResult.rows[0].user_id !== userId) {
+    const reservation = reservationResult.rows[0];
+
+    if (reservation.user_id !== userId) {
       return res.status(403).json({ success: false, error: '본인의 예약만 수정할 수 있습니다.' });
     }
 
@@ -339,6 +345,18 @@ exports.updateArrival = async (req, res) => {
       'UPDATE reservations SET arrival_status = $1, updated_at = NOW() WHERE id = $2',
       [arrival_status, id]
     );
+
+    // 소켓을 통해 점주에게 도착 상태 변경 알림
+    const io = req.app.get('io');
+    if (io) {
+      const { emitArrivalUpdate } = require('./socket');
+      emitArrivalUpdate(io, reservation.restaurant_id, {
+        reservationId: reservation.id,
+        arrivalStatus: arrival_status,
+        userId: reservation.user_id,
+        userName: reservation.user_name,
+      });
+    }
 
     res.json({
       success: true,
@@ -353,15 +371,25 @@ exports.updateArrival = async (req, res) => {
 /**
  * 체크인
  * POST /reservations/:id/checkin
+ *
+ * Body (택 1):
+ * - { qrCode: "..." }  — QR 스캔 체크인 (QR 코드 값 검증)
+ * - {} (빈 body)        — 예약번호 기반 체크인 (본인 인증만으로)
  */
 exports.checkin = async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.user.userId;
+    const { qrCode } = req.body;
 
-    // 1. 본인 예약 확인
+    // 1. 예약 조회 (QR 코드, 식당 정보 포함)
     const reservationResult = await pool.query(
-      'SELECT id, user_id, status FROM reservations WHERE id = $1',
+      `SELECT r.id, r.user_id, r.status, r.qr_code, r.restaurant_id, r.party_size,
+              rst.name AS restaurant_name, u.name AS user_name
+       FROM reservations r
+       JOIN restaurants rst ON r.restaurant_id = rst.id
+       JOIN users u ON r.user_id = u.id
+       WHERE r.id = $1`,
       [id]
     );
 
@@ -380,12 +408,32 @@ exports.checkin = async (req, res) => {
       return res.status(400).json({ success: false, error: `현재 상태(${reservation.status})에서는 체크인할 수 없습니다.` });
     }
 
-    // 3. UPDATE checked_in_at, arrival_status
+    // 3. QR 코드 검증 (qrCode가 전달된 경우)
+    if (qrCode) {
+      if (qrCode !== reservation.qr_code) {
+        return res.status(400).json({ success: false, error: 'QR 코드가 일치하지 않습니다.' });
+      }
+    }
+
+    // 4. UPDATE checked_in_at, arrival_status
     await pool.query(
       `UPDATE reservations SET checked_in_at = NOW(), arrival_status = 'arrived', updated_at = NOW()
        WHERE id = $1`,
       [id]
     );
+
+    // 5. 소켓을 통해 점주에게 체크인 알림 (io가 app에 설정된 경우)
+    const io = req.app.get('io');
+    if (io) {
+      const { emitCheckin } = require('./socket');
+      emitCheckin(io, reservation.restaurant_id, {
+        reservationId: reservation.id,
+        userId: reservation.user_id,
+        userName: reservation.user_name,
+        partySize: reservation.party_size,
+        restaurantName: reservation.restaurant_name,
+      });
+    }
 
     res.json({
       success: true,
@@ -440,10 +488,22 @@ exports.updateStatus = async (req, res) => {
     }
 
     // 3. UPDATE status
+    const previousStatus = reservation.status;
     await pool.query(
       'UPDATE reservations SET status = $1, updated_at = NOW() WHERE id = $2',
       [status, id]
     );
+
+    // 소켓을 통해 고객에게 상태 변경 알림
+    const io = req.app.get('io');
+    if (io) {
+      const { emitStatusUpdate } = require('./socket');
+      emitStatusUpdate(io, id, {
+        status,
+        previousStatus,
+        restaurantId: reservation.restaurant_id,
+      });
+    }
 
     res.json({
       success: true,

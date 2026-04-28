@@ -49,6 +49,8 @@ import ReservationFormScreen from '../screens/ReservationFormScreen.web';
 import ReservationPaymentScreen from '../screens/PaymentScreen.web';
 import ReservationConfirmScreen from '../screens/ReservationConfirmScreen.web';
 import MyReservationsScreenV2 from '../screens/MyReservationsScreen.web';
+import WriteRestaurantReviewScreen from '../screens/WriteRestaurantReviewScreen.web';
+import SearchRestaurantsScreen from '../screens/SearchRestaurantsScreen.web';
 
 // Components
 import BottomTabBar from './BottomTabBar';
@@ -355,6 +357,8 @@ const RouterApp: React.FC = () => {
           <Route path="/payment/:reservationId" element={protectedElement(<ReservationPaymentScreen />)} />
           <Route path="/reservation-confirm/:reservationId" element={protectedElement(<ReservationConfirmScreen />)} />
           <Route path="/my-reservations" element={protectedElement(<MainLayout><MyReservationsScreenV2 /></MainLayout>)} />
+          <Route path="/write-restaurant-review/:reservationId" element={protectedElement(<WriteRestaurantReviewScreen />)} />
+          <Route path="/search-restaurants" element={protectedElement(<SearchRestaurantsScreen />)} />
 
           {/* 온보딩 페이지 */}
           <Route path="/onboarding" element={hasSeenOnboarding ? <Navigate to="/login" replace /> : <OnboardingScreen />} />

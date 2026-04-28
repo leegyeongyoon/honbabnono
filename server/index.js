@@ -93,6 +93,7 @@ const depositsRoutes = require('./modules/deposits/routes');
 const searchRoutes = require('./modules/search/routes');
 
 // v2 피벗 모듈
+const restaurantReviewRoutes = require('./modules/reviews/restaurant-review.routes');
 const restaurantsRoutes = require('./modules/restaurants/routes');
 const merchantsRoutes = require('./modules/merchants/routes');
 const menusRoutes = require('./modules/menus/routes');
@@ -232,6 +233,7 @@ apiRouter.use('/user', userRoutes);
 apiRouter.use('/meetups', meetupsRoutes);
 apiRouter.use('/chat', chatRoutes);
 apiRouter.use('/reviews', reviewsRoutes);
+apiRouter.use('/reviews/restaurant', restaurantReviewRoutes);
 apiRouter.use('/points', pointsRoutes);
 apiRouter.use('/notifications', notificationsRoutes);
 apiRouter.use('/badges', badgesRoutes);
