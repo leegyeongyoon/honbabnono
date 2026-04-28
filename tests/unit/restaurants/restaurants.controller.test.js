@@ -85,15 +85,15 @@ describe('RestaurantsController', () => {
         review_count: 5,
       };
 
-      // Promise.all: 식당, 메뉴, 타임슬롯
+      // Promise.all: 식당, 메뉴(category join), 타임슬롯(slot_time)
       mockPool.query
         .mockResolvedValueOnce({ rows: [restaurantRow], rowCount: 1 })
         .mockResolvedValueOnce({
-          rows: [{ id: 10, name: '비빔밥', category: '한식', price: 10000 }],
+          rows: [{ id: 10, name: '비빔밥', category_name: '한식', category_id: 'c1', price: 10000, is_active: true }],
           rowCount: 1,
         })
         .mockResolvedValueOnce({
-          rows: [{ id: 100, day_of_week: 1, start_time: '11:00', end_time: '14:00' }],
+          rows: [{ id: 100, day_of_week: 1, slot_time: '11:00', max_reservations: 5, current_reservations: 0 }],
           rowCount: 1,
         });
 

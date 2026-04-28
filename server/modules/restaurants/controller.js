@@ -188,20 +188,23 @@ exports.getRestaurantById = async (req, res) => {
       GROUP BY r.id
     `;
 
-    // 메뉴 목록 (카테고리별)
+    // 메뉴 목록 (카테고리 join)
     const menusQuery = `
-      SELECT id, name, description, price, category, image_url, is_available, sort_order
-      FROM restaurant_menus
-      WHERE restaurant_id = $1 AND is_available = true
-      ORDER BY category, sort_order, name
+      SELECT m.id, m.name, m.description, m.price, m.image_url, m.is_active,
+             m.sort_order, m.is_set_menu, m.serves, m.prep_time_min,
+             m.category_id, c.name AS category_name
+      FROM menus m
+      LEFT JOIN menu_categories c ON c.id = m.category_id
+      WHERE m.restaurant_id = $1 AND m.is_active = true
+      ORDER BY c.sort_order NULLS LAST, m.sort_order, m.name
     `;
 
     // 타임슬롯 목록
     const timeSlotsQuery = `
-      SELECT id, day_of_week, start_time, end_time, max_capacity, is_active
+      SELECT id, day_of_week, slot_time, max_reservations, current_reservations, is_active
       FROM restaurant_time_slots
       WHERE restaurant_id = $1 AND is_active = true
-      ORDER BY day_of_week, start_time
+      ORDER BY day_of_week, slot_time
     `;
 
     const [restaurantResult, menusResult, timeSlotsResult] = await Promise.all([
@@ -217,7 +220,7 @@ exports.getRestaurantById = async (req, res) => {
     // 메뉴를 카테고리별로 그룹핑
     const menusByCategory = {};
     for (const menu of menusResult.rows) {
-      const cat = menu.category || '기타';
+      const cat = menu.category_name || '기타';
       if (!menusByCategory[cat]) {
         menusByCategory[cat] = [];
       }
@@ -259,13 +262,13 @@ exports.getTimeSlots = async (req, res) => {
     }
 
     const query = `
-      SELECT rts.id, rts.day_of_week, rts.start_time, rts.end_time,
-             rts.max_capacity, rts.is_active
+      SELECT rts.id, rts.day_of_week, rts.slot_time,
+             rts.max_reservations, rts.current_reservations, rts.is_active
       FROM restaurant_time_slots rts
       WHERE rts.restaurant_id = $1
         AND rts.is_active = true
         ${dayFilter}
-      ORDER BY rts.day_of_week, rts.start_time
+      ORDER BY rts.day_of_week, rts.slot_time
     `;
 
     const result = await pool.query(query, params);

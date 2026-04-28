@@ -16,7 +16,7 @@ exports.createReservation = async (req, res) => {
 
     // 1. 식당 존재 + 활성 확인
     const restaurantResult = await client.query(
-      'SELECT id, name, status FROM restaurants WHERE id = $1',
+      'SELECT id, name, is_active FROM restaurants WHERE id = $1',
       [restaurant_id]
     );
 
@@ -25,17 +25,18 @@ exports.createReservation = async (req, res) => {
       return res.status(404).json({ success: false, error: '식당을 찾을 수 없습니다.' });
     }
 
-    if (restaurantResult.rows[0].status !== 'active') {
+    if (!restaurantResult.rows[0].is_active) {
       await client.query('ROLLBACK');
       return res.status(400).json({ success: false, error: '현재 예약을 받지 않는 식당입니다.' });
     }
 
-    // 2. time_slot 잔여 확인
+    // 2. time_slot 잔여 확인 (요일 기반 슬롯 + 같은 날짜 내 이미 잡힌 예약 수)
+    const dayOfWeek = new Date(reservation_date).getDay();
     const slotResult = await client.query(
-      `SELECT id, current_reservations, max_reservations
-       FROM time_slots
-       WHERE restaurant_id = $1 AND slot_date = $2 AND slot_time = $3`,
-      [restaurant_id, reservation_date, reservation_time]
+      `SELECT id, max_reservations
+       FROM restaurant_time_slots
+       WHERE restaurant_id = $1 AND day_of_week = $2 AND slot_time = $3 AND is_active = true`,
+      [restaurant_id, dayOfWeek, reservation_time]
     );
 
     if (slotResult.rows.length === 0) {
@@ -44,7 +45,19 @@ exports.createReservation = async (req, res) => {
     }
 
     const slot = slotResult.rows[0];
-    if (slot.current_reservations >= slot.max_reservations) {
+
+    // 같은 날짜/시간에 이미 confirmed/preparing 예약 수 카운트
+    const bookedResult = await client.query(
+      `SELECT COUNT(*)::int AS booked
+       FROM reservations
+       WHERE restaurant_id = $1
+         AND reservation_date = $2
+         AND reservation_time = $3
+         AND status NOT IN ('cancelled', 'no_show', 'pending_payment')`,
+      [restaurant_id, reservation_date, reservation_time]
+    );
+
+    if (bookedResult.rows[0].booked >= slot.max_reservations) {
       await client.query('ROLLBACK');
       return res.status(400).json({ success: false, error: '해당 시간대 예약이 마감되었습니다.' });
     }
@@ -60,9 +73,9 @@ exports.createReservation = async (req, res) => {
       [userId, restaurant_id, reservation_date, reservation_time, party_size, special_request || null, qrCode]
     );
 
-    // 5. time_slot current_reservations +1
+    // 5. time_slot current_reservations +1 (요일 슬롯의 누적 카운터)
     await client.query(
-      'UPDATE time_slots SET current_reservations = current_reservations + 1 WHERE id = $1',
+      'UPDATE restaurant_time_slots SET current_reservations = current_reservations + 1 WHERE id = $1',
       [slot.id]
     );
 
@@ -289,11 +302,13 @@ exports.cancelReservation = async (req, res) => {
       [cancel_reason || null, id]
     );
 
-    // 4. time_slot current_reservations -1
+    // 4. time_slot current_reservations -1 (요일 기반)
+    const dayOfWeek = new Date(reservation.reservation_date).getDay();
     await client.query(
-      `UPDATE time_slots SET current_reservations = GREATEST(current_reservations - 1, 0)
-       WHERE restaurant_id = $1 AND slot_date = $2 AND slot_time = $3`,
-      [reservation.restaurant_id, reservation.reservation_date, reservation.reservation_time]
+      `UPDATE restaurant_time_slots
+       SET current_reservations = GREATEST(current_reservations - 1, 0)
+       WHERE restaurant_id = $1 AND day_of_week = $2 AND slot_time = $3`,
+      [reservation.restaurant_id, dayOfWeek, reservation.reservation_time]
     );
 
     await client.query('COMMIT');

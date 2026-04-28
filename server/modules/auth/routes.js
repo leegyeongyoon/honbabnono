@@ -27,6 +27,9 @@ router.post('/logout', authenticateToken, authController.logout);
 // 테스트 로그인 (개발용)
 router.post('/test-login', authController.testLogin);
 
+// v2 테스트 시드 (개발/테스트 전용)
+router.post('/test-seed-v2', authController.testSeedV2);
+
 // 사용자 프로필 조회
 router.get('/profile', authenticateToken, authController.getProfile);
 

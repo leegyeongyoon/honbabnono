@@ -56,11 +56,13 @@ describe('ReservationsController', () => {
       });
 
       setupTransactionMock(mockPool, [
-        // 1. SELECT restaurant
-        { rows: [{ id: 1, name: '한솥', status: 'active' }], rowCount: 1 },
-        // 2. SELECT time_slot
-        { rows: [{ id: 100, current_reservations: 0, max_reservations: 10 }], rowCount: 1 },
-        // 3. INSERT reservation
+        // 1. SELECT restaurant (is_active)
+        { rows: [{ id: 1, name: '한솥', is_active: true }], rowCount: 1 },
+        // 2. SELECT restaurant_time_slots (요일 기반)
+        { rows: [{ id: 100, max_reservations: 10 }], rowCount: 1 },
+        // 3. SELECT COUNT booked reservations
+        { rows: [{ booked: 0 }], rowCount: 1 },
+        // 4. INSERT reservation
         {
           rows: [{
             id: 50,
@@ -74,7 +76,7 @@ describe('ReservationsController', () => {
           }],
           rowCount: 1,
         },
-        // 4. UPDATE time_slot
+        // 5. UPDATE restaurant_time_slots
         { rows: [], rowCount: 1 },
       ]);
 
@@ -118,8 +120,9 @@ describe('ReservationsController', () => {
       });
 
       setupTransactionMock(mockPool, [
-        { rows: [{ id: 1, name: '한솥', status: 'active' }], rowCount: 1 },
-        { rows: [{ id: 100, current_reservations: 10, max_reservations: 10 }], rowCount: 1 },
+        { rows: [{ id: 1, name: '한솥', is_active: true }], rowCount: 1 },
+        { rows: [{ id: 100, max_reservations: 10 }], rowCount: 1 },
+        { rows: [{ booked: 10 }], rowCount: 1 }, // 이미 마감
       ]);
 
       await reservationsController.createReservation(mockReq, mockRes);

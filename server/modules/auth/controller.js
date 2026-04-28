@@ -481,6 +481,94 @@ exports.testLogin = async (req, res) => {
   }
 };
 
+// ============================================================
+// v2 테스트 시드 (개발/테스트 전용)
+// 멱등 — 매번 호출해도 동일 ID 유지
+// ============================================================
+exports.testSeedV2 = async (req, res) => {
+  if (process.env.NODE_ENV === 'production') {
+    return res.status(404).json({ error: 'Not found' });
+  }
+
+  const TEST_USER_ID = '11111111-1111-1111-1111-111111111111';
+  const TEST_USER_2_ID = '22222222-2222-2222-2222-222222222222';
+  const TEST_MERCHANT_USER_ID = '33333333-3333-3333-3333-333333333333';
+  const TEST_RESTAURANT_ID = '99999999-1111-1111-1111-111111111111';
+  const TEST_MERCHANT_ID = '99999999-2222-2222-2222-222222222222';
+
+  try {
+    // 1. 사용자 보장 (UPSERT)
+    await pool.query(`
+      INSERT INTO users (id, email, name, provider, is_verified, gender, rating)
+      VALUES ($1, 'e2e-host@test.local', 'E2E 호스트', 'email', true, '여성', 4.5)
+      ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name
+    `, [TEST_USER_ID]);
+
+    await pool.query(`
+      INSERT INTO users (id, email, name, provider, is_verified, gender, rating)
+      VALUES ($1, 'e2e-guest@test.local', 'E2E 게스트', 'email', true, '남성', 4.0)
+      ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name
+    `, [TEST_USER_2_ID]);
+
+    await pool.query(`
+      INSERT INTO users (id, email, name, provider, is_verified, gender, rating)
+      VALUES ($1, 'e2e-merchant@test.local', 'E2E 점주', 'email', true, '남성', 0)
+      ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name
+    `, [TEST_MERCHANT_USER_ID]);
+
+    // 2. restaurant
+    await pool.query(`
+      INSERT INTO restaurants (id, name, description, category, phone, address, latitude, longitude, seat_count, is_active)
+      VALUES ($1, 'E2E 샤브샤브', '테스트용 샤브샤브 매장', '샤브샤브', '02-123-4567', '서울특별시 강남구 강남대로 396', 37.4979, 127.0276, 30, true)
+      ON CONFLICT (id) DO UPDATE SET is_active = true, updated_at = NOW()
+    `, [TEST_RESTAURANT_ID]);
+
+    // 3. merchant (verified)
+    await pool.query(`
+      INSERT INTO merchants (id, user_id, restaurant_id, business_number, business_name, representative_name, verification_status, verified_at)
+      VALUES ($1, $2, $3, '123-45-67890', 'E2E 사업자', 'E2E 점주', 'verified', NOW())
+      ON CONFLICT (id) DO UPDATE SET verification_status = 'verified', verified_at = NOW()
+    `, [TEST_MERCHANT_ID, TEST_MERCHANT_USER_ID, TEST_RESTAURANT_ID]);
+
+    // 4. menus (3개) — 멱등 보장 위해 기존 삭제 후 INSERT
+    await pool.query(`DELETE FROM menus WHERE restaurant_id = $1`, [TEST_RESTAURANT_ID]);
+    await pool.query(`
+      INSERT INTO menus (restaurant_id, name, description, price, prep_time_min, is_set_menu, serves, is_active)
+      VALUES
+        ($1, '샤브샤브 2인 세트', '소고기/돼지고기 + 채소/만두', 38000, 20, true, 2, true),
+        ($1, '샤브샤브 3-4인 세트', '풍성한 모듬 + 사이드', 78000, 25, true, 4, true),
+        ($1, '런치 단품', '평일 점심 한정', 13000, 10, false, 1, true)
+    `, [TEST_RESTAURANT_ID]);
+
+    // 5. time slots (월~금 11:00, 12:00, 18:00, 19:00, 20:00)
+    await pool.query(`DELETE FROM restaurant_time_slots WHERE restaurant_id = $1`, [TEST_RESTAURANT_ID]);
+    const slots = ['11:00', '12:00', '18:00', '19:00', '20:00'];
+    for (let dow = 1; dow <= 5; dow++) {
+      for (const t of slots) {
+        await pool.query(`
+          INSERT INTO restaurant_time_slots (restaurant_id, day_of_week, slot_time, max_reservations, is_active)
+          VALUES ($1, $2, $3, 5, true)
+          ON CONFLICT (restaurant_id, day_of_week, slot_time) DO NOTHING
+        `, [TEST_RESTAURANT_ID, dow, t]);
+      }
+    }
+
+    res.json({
+      success: true,
+      seeded: {
+        userId: TEST_USER_ID,
+        guestUserId: TEST_USER_2_ID,
+        merchantUserId: TEST_MERCHANT_USER_ID,
+        restaurantId: TEST_RESTAURANT_ID,
+        merchantId: TEST_MERCHANT_ID,
+      },
+    });
+  } catch (error) {
+    logger.error('v2 시드 실패:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
 // 사용자 프로필 조회
 exports.getProfile = async (req, res) => {
   try {

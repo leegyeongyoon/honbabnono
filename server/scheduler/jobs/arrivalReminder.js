@@ -19,7 +19,7 @@ async function run() {
     await sendReminder({
       minutesBefore: 30,
       notificationType: 'reservation_reminder_30min',
-      titleTemplate: (r) => '🍽️ 예약 30분 전 알림',
+      titleTemplate: () => '🍽️ 예약 30분 전 알림',
       messageTemplate: (r) => `"${r.restaurant_name}" 예약 시간까지 30분 남았습니다. 출발 준비를 해주세요!`,
     });
 
@@ -27,8 +27,16 @@ async function run() {
     await sendReminder({
       minutesBefore: 15,
       notificationType: 'reservation_reminder_15min',
-      titleTemplate: (r) => '🍽️ 예약 15분 전 알림',
+      titleTemplate: () => '🍽️ 예약 15분 전 알림',
       messageTemplate: (r) => `"${r.restaurant_name}" 예약 시간까지 15분 남았습니다. 곧 도착해주세요!`,
+    });
+
+    // ─── 5분 전 알림 (PIVOT-PLAN: "매장 근처" 시점) ───
+    await sendReminder({
+      minutesBefore: 5,
+      notificationType: 'reservation_reminder_5min',
+      titleTemplate: () => '🍽️ 예약 5분 전 — 매장에서 준비 중!',
+      messageTemplate: (r) => `"${r.restaurant_name}" 도착 즉시 식사 시작할 수 있도록 매장에서 마무리 조리 중입니다.`,
     });
   } catch (error) {
     logger.error(`${JOB_NAME} 오류:`, error);
@@ -42,6 +50,7 @@ async function sendReminder({ minutesBefore, notificationType, titleTemplate, me
   try {
     // 오늘 날짜 + 해당 시간이 minutesBefore분 후인 예약 조회
     // 아직 해당 타입의 알림이 발송되지 않은 건만
+    // reservation_id는 UUID이므로 텍스트 비교로 중복 체크
     const result = await pool.query(`
       SELECT r.id, r.user_id, r.reservation_date, r.reservation_time,
              r.party_size, r.restaurant_id,
@@ -52,8 +61,8 @@ async function sendReminder({ minutesBefore, notificationType, titleTemplate, me
         AND r.reservation_date = CURRENT_DATE
         AND (r.reservation_date + r.reservation_time) > NOW()
         AND (r.reservation_date + r.reservation_time) <= NOW() + INTERVAL '${minutesBefore} minutes'
-        AND r.id NOT IN (
-          SELECT DISTINCT CAST(n.data->>'reservation_id' AS INTEGER)
+        AND r.id::text NOT IN (
+          SELECT n.data->>'reservation_id'
           FROM notifications n
           WHERE n.type = $1
             AND n.data->>'reservation_id' IS NOT NULL
