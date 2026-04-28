@@ -377,3 +377,25 @@ exports.updateCategory = async (req, res) => {
     res.status(500).json({ success: false, error: '카테고리 수정 중 오류가 발생했습니다.' });
   }
 };
+
+exports.deleteCategory = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const merchantRestaurantId = req.merchant && req.merchant.restaurantId;
+
+    const cat = await pool.query('SELECT id, restaurant_id FROM menu_categories WHERE id = $1', [id]);
+    if (cat.rows.length === 0) {
+      return res.status(404).json({ success: false, error: '카테고리를 찾을 수 없습니다.' });
+    }
+    if (cat.rows[0].restaurant_id !== merchantRestaurantId) {
+      return res.status(403).json({ success: false, error: '본인 매장의 카테고리만 삭제할 수 있습니다.' });
+    }
+
+    await pool.query('DELETE FROM menu_categories WHERE id = $1', [id]);
+
+    res.json({ success: true, message: '카테고리가 삭제되었습니다.' });
+  } catch (error) {
+    logger.error('카테고리 삭제 오류:', error);
+    res.status(500).json({ success: false, error: '카테고리 삭제 중 오류가 발생했습니다.' });
+  }
+};

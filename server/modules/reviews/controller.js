@@ -409,3 +409,100 @@ exports.featureReview = async (req, res) => {
     res.status(500).json({ error: '서버 오류가 발생했습니다' });
   }
 };
+
+
+// ============================================================
+// v2 — 매장 리뷰 (restaurant_reviews 테이블, 3축 평점)
+// ============================================================
+
+exports.createRestaurantReview = async (req, res) => {
+  try {
+    const userId = req.user.userId || req.user.id;
+    const {
+      reservation_id,
+      restaurant_id,
+      taste_rating,
+      service_rating,
+      ambiance_rating,
+      content,
+      images,
+    } = req.body;
+
+    if (!reservation_id || !restaurant_id) {
+      return res.status(400).json({ success: false, error: "reservation_id, restaurant_id가 필요합니다." });
+    }
+
+    for (const v of [taste_rating, service_rating, ambiance_rating]) {
+      if (typeof v !== "number" || v < 1 || v > 5) {
+        return res.status(400).json({ success: false, error: "각 평점은 1~5 사이여야 합니다." });
+      }
+    }
+
+    const reservationCheck = await pool.query(
+      "SELECT id, user_id, status FROM reservations WHERE id = $1",
+      [reservation_id]
+    );
+    if (reservationCheck.rows.length === 0) {
+      return res.status(404).json({ success: false, error: "예약을 찾을 수 없습니다." });
+    }
+    if (reservationCheck.rows[0].user_id !== userId) {
+      return res.status(403).json({ success: false, error: "본인 예약만 리뷰 작성 가능합니다." });
+    }
+    if (reservationCheck.rows[0].status !== "completed") {
+      return res.status(400).json({ success: false, error: "완료된 예약에만 리뷰를 작성할 수 있습니다." });
+    }
+
+    const result = await pool.query(
+      `INSERT INTO restaurant_reviews (reservation_id, restaurant_id, user_id, taste_rating, service_rating, ambiance_rating, content, images)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+       ON CONFLICT (reservation_id, user_id) DO UPDATE
+         SET taste_rating = EXCLUDED.taste_rating,
+             service_rating = EXCLUDED.service_rating,
+             ambiance_rating = EXCLUDED.ambiance_rating,
+             content = EXCLUDED.content,
+             images = EXCLUDED.images,
+             updated_at = NOW()
+       RETURNING *`,
+      [reservation_id, restaurant_id, userId, taste_rating, service_rating, ambiance_rating, content || null, JSON.stringify(images || [])]
+    );
+
+    res.status(201).json({ success: true, review: result.rows[0] });
+  } catch (error) {
+    logger.error("매장 리뷰 작성 오류:", error);
+    res.status(500).json({ success: false, error: "리뷰 작성 중 오류가 발생했습니다." });
+  }
+};
+
+exports.getRestaurantReviews = async (req, res) => {
+  try {
+    const { restaurantId } = req.params;
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.min(50, Math.max(1, parseInt(req.query.limit) || 20));
+    const offset = (page - 1) * limit;
+
+    const result = await pool.query(
+      `SELECT rr.id, rr.taste_rating, rr.service_rating, rr.ambiance_rating, rr.overall_rating,
+              rr.content, rr.images, rr.reply, rr.replied_at, rr.created_at,
+              u.name AS user_name, u.profile_image,
+              COUNT(*) OVER() AS total_count
+         FROM restaurant_reviews rr
+         JOIN users u ON u.id = rr.user_id
+        WHERE rr.restaurant_id = $1
+        ORDER BY rr.created_at DESC
+        LIMIT $2 OFFSET $3`,
+      [restaurantId, limit, offset]
+    );
+
+    const total = result.rows.length ? parseInt(result.rows[0].total_count) : 0;
+
+    res.json({
+      success: true,
+      reviews: result.rows,
+      pagination: { page, limit, total },
+    });
+  } catch (error) {
+    logger.error("매장 리뷰 목록 오류:", error);
+    res.status(500).json({ success: false, error: "리뷰를 불러오는 중 오류가 발생했습니다." });
+  }
+};
+

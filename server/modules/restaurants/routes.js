@@ -43,6 +43,12 @@ router.get('/:id', controller.getRestaurantById);
 // 식당 타임슬롯 조회
 router.get('/:id/time-slots', controller.getTimeSlots);
 
+// 타임슬롯 생성 (점주)
+router.post('/:id/time-slots', authenticateMerchant, controller.createTimeSlot);
+
+// 타임슬롯 삭제 (점주)
+router.delete('/:id/time-slots/:slotId', authenticateMerchant, controller.deleteTimeSlot);
+
 // ============================================
 // 점주 전용 API
 // ============================================

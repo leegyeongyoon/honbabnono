@@ -34,6 +34,9 @@ router.put(
   controller.updateCategory
 );
 
+// 카테고리 삭제 (점주 전용)
+router.delete('/categories/:id', authenticateMerchant, controller.deleteCategory);
+
 // === 일반 엔드포인트 ===
 
 // 메뉴 상세 조회 (public)

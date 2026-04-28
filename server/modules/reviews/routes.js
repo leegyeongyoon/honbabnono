@@ -29,4 +29,8 @@ router.post('/participant', authenticateToken, validate({ body: createReviewSche
 // 사용자 리뷰 통계 조회
 router.get('/stats/:userId', reviewController.getUserReviewStats);
 
+// v2 매장 리뷰 (3축: taste/service/ambiance)
+router.post('/restaurant', authenticateToken, reviewController.createRestaurantReview);
+router.get('/restaurant/:restaurantId', reviewController.getRestaurantReviews);
+
 module.exports = router;

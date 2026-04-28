@@ -18,10 +18,10 @@ exports.getRestaurants = async (req, res) => {
 
     let query = `
       SELECT r.*,
-             COALESCE(AVG(rv.rating), 0) AS avg_rating,
+             COALESCE(AVG(rv.overall_rating), 0) AS avg_rating,
              COUNT(DISTINCT rv.id) AS review_count
       FROM restaurants r
-      LEFT JOIN reviews rv ON rv.restaurant_id = r.id
+      LEFT JOIN restaurant_reviews rv ON rv.restaurant_id = r.id
       WHERE r.is_active = true
     `;
     const params = [];
@@ -87,7 +87,7 @@ exports.getNearbyRestaurants = async (req, res) => {
 
     const query = `
       SELECT r.*,
-             COALESCE(AVG(rv.rating), 0) AS avg_rating,
+             COALESCE(AVG(rv.overall_rating), 0) AS avg_rating,
              COUNT(DISTINCT rv.id) AS review_count,
              (6371000 * acos(
                cos(radians($1)) * cos(radians(r.latitude)) *
@@ -95,7 +95,7 @@ exports.getNearbyRestaurants = async (req, res) => {
                sin(radians($1)) * sin(radians(r.latitude))
              )) AS distance
       FROM restaurants r
-      LEFT JOIN reviews rv ON rv.restaurant_id = r.id
+      LEFT JOIN restaurant_reviews rv ON rv.restaurant_id = r.id
       WHERE r.is_active = true
         AND r.latitude IS NOT NULL
         AND r.longitude IS NOT NULL
@@ -147,10 +147,10 @@ exports.searchRestaurants = async (req, res) => {
 
     const query = `
       SELECT r.*,
-             COALESCE(AVG(rv.rating), 0) AS avg_rating,
+             COALESCE(AVG(rv.overall_rating), 0) AS avg_rating,
              COUNT(DISTINCT rv.id) AS review_count
       FROM restaurants r
-      LEFT JOIN reviews rv ON rv.restaurant_id = r.id
+      LEFT JOIN restaurant_reviews rv ON rv.restaurant_id = r.id
       WHERE ${conditions.join(' AND ')}
       GROUP BY r.id
       ORDER BY r.name ASC
@@ -180,10 +180,10 @@ exports.getRestaurantById = async (req, res) => {
     // 식당 기본 정보 + 평균 평점
     const restaurantQuery = `
       SELECT r.*,
-             COALESCE(AVG(rv.rating), 0) AS avg_rating,
+             COALESCE(AVG(rv.overall_rating), 0) AS avg_rating,
              COUNT(DISTINCT rv.id) AS review_count
       FROM restaurants r
-      LEFT JOIN reviews rv ON rv.restaurant_id = r.id
+      LEFT JOIN restaurant_reviews rv ON rv.restaurant_id = r.id
       WHERE r.id = $1 AND r.is_active = true
       GROUP BY r.id
     `;
@@ -313,15 +313,14 @@ exports.createRestaurant = async (req, res) => {
       INSERT INTO restaurants (
         name, description, category, phone, address, address_detail,
         latitude, longitude, image_url, images, operating_hours, seat_count,
-        merchant_id, is_active
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, true)
+        is_active
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, true)
       RETURNING *
     `, [
       name, description || null, category || null, phone || null,
       address, address_detail || null, latitude || null, longitude || null,
       image_url || null, JSON.stringify(images || []),
       JSON.stringify(operating_hours || {}), seat_count || null,
-      merchantId,
     ]);
 
     const restaurant = result.rows[0];
@@ -487,12 +486,12 @@ exports.getFavorites = async (req, res) => {
 
     const query = `
       SELECT r.*,
-             COALESCE(AVG(rv.rating), 0) AS avg_rating,
+             COALESCE(AVG(rv.overall_rating), 0) AS avg_rating,
              COUNT(DISTINCT rv.id) AS review_count,
              rf.created_at AS favorited_at
       FROM restaurants r
       INNER JOIN restaurant_favorites rf ON rf.restaurant_id = r.id
-      LEFT JOIN reviews rv ON rv.restaurant_id = r.id
+      LEFT JOIN restaurant_reviews rv ON rv.restaurant_id = r.id
       WHERE rf.user_id = $1 AND r.is_active = true
       GROUP BY r.id, rf.created_at
       ORDER BY rf.created_at DESC
@@ -543,12 +542,12 @@ exports.getRecentViews = async (req, res) => {
 
     const query = `
       SELECT r.*,
-             COALESCE(AVG(rv.rating), 0) AS avg_rating,
+             COALESCE(AVG(rv.overall_rating), 0) AS avg_rating,
              COUNT(DISTINCT rv.id) AS review_count,
              urv.viewed_at
       FROM restaurants r
       INNER JOIN user_recent_restaurant_views urv ON urv.restaurant_id = r.id
-      LEFT JOIN reviews rv ON rv.restaurant_id = r.id
+      LEFT JOIN restaurant_reviews rv ON rv.restaurant_id = r.id
       WHERE urv.user_id = $1 AND r.is_active = true
       GROUP BY r.id, urv.viewed_at
       ORDER BY urv.viewed_at DESC
@@ -564,5 +563,65 @@ exports.getRecentViews = async (req, res) => {
   } catch (error) {
     logger.error('최근 본 식당 목록 조회 오류:', error);
     res.status(500).json({ success: false, error: '최근 본 식당 목록을 불러오는 중 오류가 발생했습니다.' });
+  }
+};
+
+// ============================================
+// 타임슬롯 CRUD (점주)
+// ============================================
+
+exports.createTimeSlot = async (req, res) => {
+  try {
+    const { id: restaurantId } = req.params;
+    const merchantRestaurantId = req.merchant && req.merchant.restaurantId;
+    if (!merchantRestaurantId || merchantRestaurantId !== restaurantId) {
+      return res.status(403).json({ success: false, error: '본인 매장만 슬롯을 추가할 수 있습니다.' });
+    }
+
+    const { day_of_week, slot_time, max_reservations } = req.body;
+    if (typeof day_of_week !== 'number' || day_of_week < 0 || day_of_week > 6) {
+      return res.status(400).json({ success: false, error: 'day_of_week는 0~6이어야 합니다.' });
+    }
+    if (!slot_time) {
+      return res.status(400).json({ success: false, error: 'slot_time이 필요합니다.' });
+    }
+
+    const result = await pool.query(
+      `INSERT INTO restaurant_time_slots (restaurant_id, day_of_week, slot_time, max_reservations, is_active)
+       VALUES ($1, $2, $3, $4, true)
+       ON CONFLICT (restaurant_id, day_of_week, slot_time)
+       DO UPDATE SET max_reservations = EXCLUDED.max_reservations, is_active = true
+       RETURNING *`,
+      [restaurantId, day_of_week, slot_time, max_reservations || 5]
+    );
+
+    res.status(201).json({ success: true, timeSlot: result.rows[0] });
+  } catch (error) {
+    logger.error('타임슬롯 생성 오류:', error);
+    res.status(500).json({ success: false, error: '타임슬롯 생성 중 오류가 발생했습니다.' });
+  }
+};
+
+exports.deleteTimeSlot = async (req, res) => {
+  try {
+    const { id: restaurantId, slotId } = req.params;
+    const merchantRestaurantId = req.merchant && req.merchant.restaurantId;
+    if (!merchantRestaurantId || merchantRestaurantId !== restaurantId) {
+      return res.status(403).json({ success: false, error: '본인 매장의 슬롯만 삭제할 수 있습니다.' });
+    }
+
+    const result = await pool.query(
+      `DELETE FROM restaurant_time_slots WHERE id = $1 AND restaurant_id = $2 RETURNING id`,
+      [slotId, restaurantId]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ success: false, error: '슬롯을 찾을 수 없습니다.' });
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    logger.error('타임슬롯 삭제 오류:', error);
+    res.status(500).json({ success: false, error: '타임슬롯 삭제 중 오류가 발생했습니다.' });
   }
 };

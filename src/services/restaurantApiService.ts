@@ -88,7 +88,7 @@ const getRestaurants = async (params?: {
   page?: number;
   limit?: number;
 }): Promise<{ restaurants: Restaurant[]; pagination?: any }> => {
-  const response = await apiClient.get('/api/restaurants', { params });
+  const response = await apiClient.get('/restaurants', { params });
   return response.data.data ?? response.data;
 };
 
@@ -97,21 +97,21 @@ const getNearbyRestaurants = async (
   lng: number,
   radius: number = 3000,
 ): Promise<Restaurant[]> => {
-  const response = await apiClient.get('/api/restaurants/nearby', {
+  const response = await apiClient.get('/restaurants/nearby', {
     params: { lat, lng, radius },
   });
   return response.data.data ?? response.data;
 };
 
 const searchRestaurants = async (keyword: string): Promise<Restaurant[]> => {
-  const response = await apiClient.get('/api/restaurants/search', {
+  const response = await apiClient.get('/restaurants/search', {
     params: { keyword },
   });
   return response.data.data ?? response.data;
 };
 
 const getRestaurantById = async (id: string): Promise<Restaurant> => {
-  const response = await apiClient.get(`/api/restaurants/${id}`);
+  const response = await apiClient.get(`/restaurants/${id}`);
   return response.data.data ?? response.data;
 };
 
@@ -120,7 +120,7 @@ const getTimeSlots = async (
   date: string,
 ): Promise<TimeSlot[]> => {
   const response = await apiClient.get(
-    `/api/restaurants/${restaurantId}/timeslots`,
+    `/restaurants/${restaurantId}/time-slots`,
     { params: { date } },
   );
   return response.data.data ?? response.data;
@@ -130,22 +130,22 @@ const toggleFavorite = async (
   restaurantId: string,
 ): Promise<{ favorited: boolean }> => {
   const response = await apiClient.post(
-    `/api/restaurants/${restaurantId}/favorite`,
+    `/restaurants/${restaurantId}/favorite`,
   );
   return response.data.data ?? response.data;
 };
 
 const recordView = async (restaurantId: string): Promise<void> => {
-  await apiClient.post(`/api/restaurants/${restaurantId}/view`);
+  await apiClient.post(`/restaurants/${restaurantId}/view`);
 };
 
 const getFavorites = async (): Promise<Restaurant[]> => {
-  const response = await apiClient.get('/api/restaurants/favorites');
+  const response = await apiClient.get('/restaurants/favorites');
   return response.data.data ?? response.data;
 };
 
 const getRecentViews = async (): Promise<Restaurant[]> => {
-  const response = await apiClient.get('/api/restaurants/recent-views');
+  const response = await apiClient.get('/restaurants/recent-views');
   return response.data.data ?? response.data;
 };
 
@@ -155,13 +155,13 @@ const getMenusByRestaurant = async (
   restaurantId: string,
 ): Promise<MenuItem[]> => {
   const response = await apiClient.get(
-    `/api/menus/restaurant/${restaurantId}`,
+    `/menus/restaurant/${restaurantId}`,
   );
   return response.data.data ?? response.data;
 };
 
 const getMenuById = async (id: string): Promise<MenuItem> => {
-  const response = await apiClient.get(`/api/menus/${id}`);
+  const response = await apiClient.get(`/menus/${id}`);
   return response.data.data ?? response.data;
 };
 
@@ -170,14 +170,14 @@ const getMenuById = async (id: string): Promise<MenuItem> => {
 const getMyReservations = async (
   status?: string,
 ): Promise<Reservation[]> => {
-  const response = await apiClient.get('/api/reservations/my', {
+  const response = await apiClient.get('/reservations/my', {
     params: status ? { status } : undefined,
   });
   return response.data.data ?? response.data;
 };
 
 const getReservationById = async (id: string): Promise<Reservation> => {
-  const response = await apiClient.get(`/api/reservations/${id}`);
+  const response = await apiClient.get(`/reservations/${id}`);
   return response.data.data ?? response.data;
 };
 
@@ -188,7 +188,7 @@ const createReservation = async (data: {
   partySize: number;
   specialRequest?: string;
 }): Promise<Reservation> => {
-  const response = await apiClient.post('/api/reservations', data);
+  const response = await apiClient.post('/reservations', data);
   return response.data.data ?? response.data;
 };
 
@@ -196,18 +196,18 @@ const cancelReservation = async (
   id: string,
   reason?: string,
 ): Promise<void> => {
-  await apiClient.put(`/api/reservations/${id}/cancel`, { reason });
+  await apiClient.put(`/reservations/${id}/cancel`, { reason });
 };
 
 const updateArrival = async (
   id: string,
   status: string,
 ): Promise<void> => {
-  await apiClient.put(`/api/reservations/${id}/arrival`, { status });
+  await apiClient.put(`/reservations/${id}/arrival`, { status });
 };
 
 const checkin = async (id: string): Promise<void> => {
-  await apiClient.post(`/api/reservations/${id}/checkin`);
+  await apiClient.post(`/reservations/${id}/checkin`);
 };
 
 // ---------- Orders ----------
@@ -216,7 +216,7 @@ const createOrder = async (
   reservationId: string,
   items: { menuId: string; quantity: number; options?: any[] }[],
 ): Promise<Order> => {
-  const response = await apiClient.post('/api/orders', {
+  const response = await apiClient.post('/orders', {
     reservationId,
     items,
   });
@@ -224,7 +224,7 @@ const createOrder = async (
 };
 
 const getOrderById = async (id: string): Promise<Order> => {
-  const response = await apiClient.get(`/api/orders/${id}`);
+  const response = await apiClient.get(`/orders/${id}`);
   return response.data.data ?? response.data;
 };
 
@@ -232,7 +232,7 @@ const getOrderByReservation = async (
   reservationId: string,
 ): Promise<Order> => {
   const response = await apiClient.get(
-    `/api/orders/reservation/${reservationId}`,
+    `/orders/reservation/${reservationId}`,
   );
   return response.data.data ?? response.data;
 };
@@ -244,7 +244,7 @@ const preparePayment = async (data: {
   amount: number;
   paymentMethod?: string;
 }): Promise<any> => {
-  const response = await apiClient.post('/api/payments/prepare', data);
+  const response = await apiClient.post('/payments/prepare', data);
   return response.data.data ?? response.data;
 };
 
@@ -252,7 +252,7 @@ const verifyPayment = async (data: {
   impUid: string;
   merchantUid: string;
 }): Promise<any> => {
-  const response = await apiClient.post('/api/payments/verify', data);
+  const response = await apiClient.post('/payments/verify', data);
   return response.data.data ?? response.data;
 };
 
@@ -260,7 +260,7 @@ const getPaymentByReservation = async (
   reservationId: string,
 ): Promise<Payment> => {
   const response = await apiClient.get(
-    `/api/payments/reservation/${reservationId}`,
+    `/payments/reservation/${reservationId}`,
   );
   return response.data.data ?? response.data;
 };
@@ -269,7 +269,7 @@ const refundPayment = async (
   id: string,
   reason?: string,
 ): Promise<any> => {
-  const response = await apiClient.post(`/api/payments/${id}/refund`, {
+  const response = await apiClient.post(`/payments/${id}/refund`, {
     reason,
   });
   return response.data.data ?? response.data;
