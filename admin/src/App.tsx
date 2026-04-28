@@ -31,8 +31,12 @@ import NotificationsIcon from '@mui/icons-material/Notifications';
 import SupportAgentIcon from '@mui/icons-material/SupportAgent';
 import ChatIcon from '@mui/icons-material/Chat';
 import RateReviewIcon from '@mui/icons-material/RateReview';
+import RestaurantIcon from '@mui/icons-material/Restaurant';
+import EventAvailableIcon from '@mui/icons-material/EventAvailable';
 
 import Dashboard from './components/Dashboard';
+import RestaurantManagement from './components/RestaurantManagement';
+import ReservationMonitoring from './components/ReservationMonitoring';
 import UserManagement from './components/UserManagement';
 import MeetupManagement from './components/MeetupManagement';
 import Reports from './components/Reports';
@@ -86,10 +90,13 @@ const drawerWidth = 240;
 const menuItems: Array<{ text: string; icon?: React.ReactNode; path?: string; divider?: boolean }> = [
   { text: '대시보드', icon: <DashboardIcon />, path: '/dashboard' },
   { text: '---', divider: true },
+  { text: '매장 관리', icon: <RestaurantIcon />, path: '/restaurants' },
+  { text: '예약 모니터링', icon: <EventAvailableIcon />, path: '/reservations' },
+  { text: '---', divider: true },
   { text: '사용자 관리', icon: <PeopleIcon />, path: '/users' },
   { text: '차단 관리', icon: <BlockIcon />, path: '/blocked-users' },
   { text: '---', divider: true },
-  { text: '약속 관리', icon: <EventIcon />, path: '/meetups' },
+  { text: '약속 관리 (레거시)', icon: <EventIcon />, path: '/meetups' },
   { text: '약속금/결제', icon: <PaymentIcon />, path: '/deposits' },
   { text: '---', divider: true },
   { text: '채팅 관리', icon: <ChatIcon />, path: '/chat' },
@@ -265,6 +272,8 @@ function App() {
             <Routes>
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
               <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/restaurants" element={<RestaurantManagement />} />
+              <Route path="/reservations" element={<ReservationMonitoring />} />
               <Route path="/users" element={<UserManagement />} />
               <Route path="/blocked-users" element={<BlockedUserManagement />} />
               <Route path="/meetups" element={<MeetupManagement />} />

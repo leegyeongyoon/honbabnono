@@ -2249,3 +2249,148 @@ exports.getAuditLogs = async (req, res) => {
     res.status(500).json({ success: false, error: '감사 로그 조회에 실패했습니다.' });
   }
 };
+
+// ============================================
+// v2 피벗 — 매장 관리 (관리자)
+// ============================================
+
+exports.getRestaurantsForAdmin = async (req, res) => {
+  try {
+    const { page = 1, limit = 50, status, category, q } = req.query;
+    const offset = (parseInt(page) - 1) * parseInt(limit);
+    const conditions = [];
+    const params = [];
+
+    if (status === 'active') conditions.push('r.is_active = true');
+    else if (status === 'inactive') conditions.push('r.is_active = false');
+
+    if (category && category !== 'all') {
+      params.push(category);
+      conditions.push(`r.category = $${params.length}`);
+    }
+
+    if (q) {
+      params.push(`%${q}%`);
+      conditions.push(`(r.name ILIKE $${params.length} OR r.address ILIKE $${params.length} OR u.name ILIKE $${params.length})`);
+    }
+
+    const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+    params.push(parseInt(limit), offset);
+
+    const sql = `
+      SELECT r.id, r.name, r.category, r.address, r.phone, r.description,
+             r.is_active, r.created_at, r.updated_at,
+             u.name AS owner_name,
+             m.business_name, m.business_number,
+             COUNT(*) OVER() AS total_count
+      FROM restaurants r
+      LEFT JOIN merchants m ON m.restaurant_id = r.id
+      LEFT JOIN users u ON u.id = m.user_id
+      ${where}
+      ORDER BY r.created_at DESC
+      LIMIT $${params.length - 1} OFFSET $${params.length}
+    `;
+
+    const result = await pool.query(sql, params);
+    const total = result.rows.length ? parseInt(result.rows[0].total_count) : 0;
+
+    res.json({
+      success: true,
+      restaurants: result.rows,
+      pagination: { page: parseInt(page), limit: parseInt(limit), total },
+    });
+  } catch (error) {
+    logger.error('관리자 매장 목록 조회 오류:', error);
+    res.status(500).json({ success: false, error: '매장 목록 조회에 실패했습니다.' });
+  }
+};
+
+exports.toggleRestaurantActive = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { is_active } = req.body;
+    const result = await pool.query(
+      `UPDATE restaurants SET is_active = $1, updated_at = NOW() WHERE id = $2 RETURNING id, name, is_active`,
+      [Boolean(is_active), id]
+    );
+    if (result.rowCount === 0) {
+      return res.status(404).json({ success: false, error: '매장을 찾을 수 없습니다.' });
+    }
+    res.json({ success: true, restaurant: result.rows[0] });
+  } catch (error) {
+    logger.error('관리자 매장 활성화 토글 오류:', error);
+    res.status(500).json({ success: false, error: '매장 상태 변경에 실패했습니다.' });
+  }
+};
+
+// ============================================
+// v2 피벗 — 예약 모니터링 (관리자)
+// ============================================
+
+exports.getReservationsForAdmin = async (req, res) => {
+  try {
+    const { date, status, restaurantId, page = 1, limit = 100 } = req.query;
+    const offset = (parseInt(page) - 1) * parseInt(limit);
+    const conditions = [];
+    const params = [];
+
+    if (date) {
+      params.push(date);
+      conditions.push(`res.reservation_date = $${params.length}`);
+    }
+    if (status && status !== 'all') {
+      params.push(status);
+      conditions.push(`res.status = $${params.length}`);
+    }
+    if (restaurantId) {
+      params.push(restaurantId);
+      conditions.push(`res.restaurant_id = $${params.length}`);
+    }
+
+    const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+    params.push(parseInt(limit), offset);
+
+    const sql = `
+      SELECT res.id,
+             res.reservation_date,
+             res.reservation_time,
+             res.party_size,
+             res.status,
+             res.arrival_status,
+             res.checked_in_at,
+             res.created_at,
+             r.name AS restaurant_name,
+             u.name AS customer_name,
+             u.phone AS customer_phone,
+             p.status AS payment_status,
+             p.amount AS payment_amount,
+             COALESCE(
+               (SELECT string_agg(oi.menu_name || ' x' || oi.quantity, ', ')
+                FROM orders o
+                JOIN order_items oi ON oi.order_id = o.id
+                WHERE o.reservation_id = res.id),
+               ''
+             ) AS menu_items,
+             COUNT(*) OVER() AS total_count
+      FROM reservations res
+      LEFT JOIN restaurants r ON r.id = res.restaurant_id
+      LEFT JOIN users u ON u.id = res.user_id
+      LEFT JOIN payments p ON p.reservation_id = res.id
+      ${where}
+      ORDER BY res.reservation_date DESC, res.reservation_time DESC
+      LIMIT $${params.length - 1} OFFSET $${params.length}
+    `;
+
+    const result = await pool.query(sql, params);
+    const total = result.rows.length ? parseInt(result.rows[0].total_count) : 0;
+
+    res.json({
+      success: true,
+      reservations: result.rows,
+      pagination: { page: parseInt(page), limit: parseInt(limit), total },
+    });
+  } catch (error) {
+    logger.error('관리자 예약 목록 조회 오류:', error);
+    res.status(500).json({ success: false, error: '예약 목록 조회에 실패했습니다.' });
+  }
+};
