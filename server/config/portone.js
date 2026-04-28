@@ -138,13 +138,13 @@ const verifyWebhookPayment = async (impUid, merchantUid) => {
 
 /**
  * merchant_uid 형식 검증
- * 허용 형식: deposit_{timestamp}_{random6chars}
+ * 허용 형식: deposit_{timestamp}_{random6chars} 또는 reservation_{timestamp}_{random6chars}
  */
 const isValidMerchantUid = (merchantUid) => {
   if (!merchantUid || typeof merchantUid !== 'string') {
     return false;
   }
-  const pattern = /^deposit_\d{13,}_[a-z0-9]{6}$/;
+  const pattern = /^(deposit|reservation)_\d{13,}_[a-z0-9]{6}$/;
   return pattern.test(merchantUid);
 };
 

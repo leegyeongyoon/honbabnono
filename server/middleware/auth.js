@@ -84,6 +84,51 @@ const authenticateAdmin = async (req, res, next) => {
 // authenticateAdminNew는 authenticateAdmin의 별칭 (하위 호환성 유지)
 const authenticateAdminNew = authenticateAdmin;
 
+// 점주 인증 미들웨어 (JWT 사용자 인증 + merchants 테이블 검증)
+const authenticateMerchant = async (req, res, next) => {
+  try {
+    const authHeader = req.headers.authorization;
+    const token = authHeader && authHeader.split(' ')[1];
+
+    if (!token) {
+      return res.status(401).json({ success: false, error: '접근 토큰이 필요합니다.' });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const userId = decoded.userId || decoded.id;
+
+    req.user = { userId, email: decoded.email, name: decoded.name };
+
+    const result = await pool.query(
+      'SELECT id, user_id, restaurant_id, verification_status FROM merchants WHERE user_id = $1',
+      [userId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(403).json({ success: false, error: '점주 등록이 필요합니다.' });
+    }
+
+    const merchant = result.rows[0];
+
+    if (merchant.verification_status !== 'verified') {
+      return res.status(403).json({ success: false, error: '사업자 인증이 완료되지 않았습니다.' });
+    }
+
+    req.merchant = {
+      id: merchant.id,
+      userId: merchant.user_id,
+      restaurantId: merchant.restaurant_id,
+    };
+
+    next();
+  } catch (error) {
+    if (error.name === 'JsonWebTokenError' || error.name === 'TokenExpiredError') {
+      return res.status(401).json({ success: false, error: '유효하지 않은 토큰입니다.' });
+    }
+    return res.status(500).json({ success: false, error: '점주 인증 처리 중 오류가 발생했습니다.' });
+  }
+};
+
 // JWT 액세스 토큰 생성 (짧은 만료 시간)
 const generateJWT = (user) => {
   return jwt.sign(
@@ -154,6 +199,7 @@ module.exports = {
   authenticateToken,
   authenticateAdmin,
   authenticateAdminNew,
+  authenticateMerchant,
   generateJWT,
   generateRefreshToken,
   verifyRefreshToken,
