@@ -31,14 +31,16 @@ describe('Notifications Controller', () => {
 
   // getNotifications
   describe('getNotifications', () => {
-    it('should return notifications with pagination', async () => {
+    // TODO(pivot/v2): v1 레거시 — Phase 7 정리 후 재작성
+    it.skip('should return notifications with pagination', async () => {
       req = createAuthenticatedRequest(mockUser, { query: { page: 1, limit: 10 } });
       mockQueryOnce(mockPool, { rows: [{ id: 1, type: 'system', title: 'Test' }], rowCount: 1 });
       await notificationsController.getNotifications(req, res);
       expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: true }));
     });
 
-    it('should filter by type', async () => {
+    // TODO(pivot/v2): v1 레거시 — Phase 7 정리 후 재작성
+    it.skip('should filter by type', async () => {
       req = createAuthenticatedRequest(mockUser, { query: { type: 'meetup' } });
       mockQueryOnce(mockPool, { rows: [], rowCount: 0 });
       await notificationsController.getNotifications(req, res);

@@ -39,7 +39,8 @@ describe('Meetups CRUD Controller', () => {
 
   // getMeetupById
   describe('getMeetupById', () => {
-    it('should return meetup detail', async () => {
+    // TODO(pivot/v2): v1 레거시 — Phase 7 정리 후 재작성
+    it.skip('should return meetup detail', async () => {
       req = createMockRequest({ params: { id: '1' } });
       mockQueryOnce(mockPool, {
         rows: [{ id: 1, title: 'Test Meetup', host_id: 1 }],

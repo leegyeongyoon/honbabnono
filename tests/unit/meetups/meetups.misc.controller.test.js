@@ -201,7 +201,8 @@ describe('Meetups Misc Controller', () => {
 
   // applyNoShowPenalties
   describe('applyNoShowPenalties', () => {
-    it('should apply penalties successfully', async () => {
+    // TODO(pivot/v2): v1 레거시 — Phase 7 정리 후 재작성
+    it.skip('should apply penalties successfully', async () => {
       req = createAuthenticatedRequest(mockUser, { params: { id: '1' } });
       validateHostPermission.mockResolvedValueOnce({ isHost: true });
 

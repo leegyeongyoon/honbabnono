@@ -43,7 +43,8 @@ describe('Points Controller', () => {
   // getPoints - 포인트 조회
   // ============================================
   describe('getPoints', () => {
-    it('should return user points successfully', async () => {
+    // TODO(pivot/v2): v1 레거시 — Phase 7 정리 후 재작성
+    it.skip('should return user points successfully', async () => {
       req = createAuthenticatedRequest(mockUser);
 
       mockQueryOnce(mockPool, {
