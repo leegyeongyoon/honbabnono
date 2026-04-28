@@ -16,6 +16,7 @@ const PointChargeScreen: React.FC = () => {
   const [hoveredPreset, setHoveredPreset] = useState<number | null>(null);
   const { toast, showSuccess, showError, showInfo, hideToast } = useToast();
 
+  const isDisabled = !amount || parseInt(amount) < 1000 || loading;
   const presetAmounts = [1000, 3000, 5000, 10000, 20000, 50000];
 
   const handleAmountSelect = (selectedAmount: number) => {
@@ -144,26 +145,21 @@ const PointChargeScreen: React.FC = () => {
       <View style={styles.bottomContainer}>
         <div
           style={{
-            background: (!amount || parseInt(amount) < 1000 || loading)
-              ? COLORS.neutral.grey200
-              : COLORS.gradient.heroCSS,
-            borderRadius: 6,
-            boxShadow: (!amount || parseInt(amount) < 1000 || loading)
-              ? 'none'
-              : '0 4px 12px rgba(184,107,74,0.25), 0 8px 24px rgba(184,107,74,0.12)',
-            cursor: (!amount || parseInt(amount) < 1000 || loading) ? 'not-allowed' : 'pointer',
+            background: isDisabled ? '#E0E0E0' : '#FFA529',
+            borderRadius: 12,
+            cursor: isDisabled ? 'default' : 'pointer',
             transition: 'all 200ms ease',
-            transform: chargeButtonHovered && amount && parseInt(amount) >= 1000 && !loading ? 'scale(1.02)' : 'scale(1)',
+            transform: chargeButtonHovered && !isDisabled ? 'scale(1.02)' : 'scale(1)',
           }}
-          onMouseEnter={() => amount && parseInt(amount) >= 1000 && !loading && setChargeButtonHovered(true)}
+          onMouseEnter={() => !isDisabled && setChargeButtonHovered(true)}
           onMouseLeave={() => setChargeButtonHovered(false)}
         >
           <TouchableOpacity
             style={styles.chargeButton}
             onPress={handleCharge}
-            disabled={!amount || parseInt(amount) < 1000 || loading}
+            disabled={isDisabled}
           >
-            <Text style={styles.chargeButtonText}>
+            <Text style={[styles.chargeButtonText, isDisabled && styles.chargeButtonTextDisabled]}>
               {loading ? '충전 중...' : `${amount ? (parseInt(amount) || 0).toLocaleString() : '0'}원 충전하기`}
             </Text>
           </TouchableOpacity>
@@ -228,20 +224,15 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   amountInput: {
-    borderWidth: 1,
-    borderColor: 'rgba(17,17,17,0.10)',
-    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: '#f1f2f3',
+    borderRadius: 12,
     padding: 20,
     fontSize: 28,
     fontWeight: '700',
-    color: COLORS.text.primary,
+    color: '#121212',
     backgroundColor: COLORS.neutral.white,
     textAlign: 'center',
-    shadowColor: COLORS.neutral.black,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 1,
   },
   amountHint: {
     fontSize: 12,
@@ -257,30 +248,25 @@ const styles = StyleSheet.create({
   presetButton: {
     paddingVertical: 12,
     paddingHorizontal: 20,
-    borderRadius: 6,
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: 'rgba(17,17,17,0.06)',
+    borderColor: '#E0E0E0',
     backgroundColor: COLORS.neutral.white,
     minWidth: 90,
     alignItems: 'center',
-    shadowColor: COLORS.neutral.black,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 1,
   },
   presetButtonSelected: {
-    borderColor: COLORS.primary.main,
-    backgroundColor: 'rgba(212,136,44,0.06)',
+    borderColor: '#FFA529',
+    backgroundColor: '#FFF5E6',
     borderWidth: 1.5,
   },
   presetButtonText: {
     fontSize: 15,
     fontWeight: '600',
-    color: COLORS.text.secondary,
+    color: '#293038',
   },
   presetButtonTextSelected: {
-    color: COLORS.primary.main,
+    color: '#FFA529',
     fontWeight: '700',
   },
   paymentMethodCard: {
@@ -288,14 +274,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: COLORS.neutral.white,
     padding: 16,
-    borderRadius: 8,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: 'rgba(17,17,17,0.06)',
-    shadowColor: COLORS.neutral.black,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 1,
+    borderColor: '#f1f2f3',
   },
   paymentMethodInfo: {
     flex: 1,
@@ -314,11 +295,10 @@ const styles = StyleSheet.create({
   bottomContainer: {
     padding: 20,
     backgroundColor: COLORS.neutral.white,
-    shadowColor: COLORS.neutral.black,
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 5,
+    position: 'sticky',
+    bottom: 0,
+    borderTopWidth: 1,
+    borderTopColor: '#f1f2f3',
   },
   chargeButton: {
     paddingVertical: 16,
@@ -327,7 +307,10 @@ const styles = StyleSheet.create({
   chargeButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: COLORS.neutral.white,
+    color: '#FFFFFF',
+  },
+  chargeButtonTextDisabled: {
+    color: '#999999',
   },
 });
 

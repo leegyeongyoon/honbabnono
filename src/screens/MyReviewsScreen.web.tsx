@@ -1,8 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, ActivityIndicator } from 'react-native';
 import { useNavigate } from 'react-router-dom';
-import { COLORS, SHADOWS } from '../styles/colors';
-import { HEADER_STYLE } from '../styles/spacing';
 import { Icon } from '../components/Icon';
 import { FadeIn } from '../components/animated';
 import EmptyState from '../components/EmptyState';
@@ -162,7 +160,7 @@ const MyReviewsScreen: React.FC = () => {
             <Icon
               name="star"
               size={size}
-              color={i <= numRating ? COLORS.primary.main : COLORS.neutral.grey200}
+              color={i <= numRating ? '#FFA529' : '#E0E0E0'}
             />
           </div>
         ))}
@@ -177,19 +175,19 @@ const MyReviewsScreen: React.FC = () => {
       : '0.0';
 
     return (
-      <View style={styles.summaryCard}>
-        <View style={styles.summaryItem}>
-          <Text style={styles.summaryNumber}>{reviews.length}</Text>
-          <Text style={styles.summaryLabel}>
+      <div style={webStyles.summaryRow}>
+        <div style={webStyles.summaryItem}>
+          <span style={webStyles.summaryNumber}>{reviews.length}</span>
+          <span style={webStyles.summaryLabel}>
             {activeTab === 'written' ? '작성한 리뷰' : '받은 리뷰'}
-          </Text>
-        </View>
-        <View style={styles.summaryDivider} />
-        <View style={styles.summaryItem}>
-          <Text style={styles.summaryNumber}>{avgRating}</Text>
-          <Text style={styles.summaryLabel}>평균 평점</Text>
-        </View>
-      </View>
+          </span>
+        </div>
+        <div style={webStyles.summaryDivider} />
+        <div style={webStyles.summaryItem}>
+          <span style={webStyles.summaryNumber}>{avgRating}</span>
+          <span style={webStyles.summaryLabel}>평균 평점</span>
+        </div>
+      </div>
     );
   };
 
@@ -208,7 +206,7 @@ const MyReviewsScreen: React.FC = () => {
           <View style={styles.reviewHeader}>
             <View style={styles.reviewTitleRow}>
               <View style={styles.avatarCircle}>
-                <Icon name="edit" size={16} color={COLORS.primary.main} />
+                <Icon name="edit" size={16} color={'#FFA529'} />
               </View>
               <View style={styles.titleWrap}>
                 <Text style={styles.reviewTitle} numberOfLines={1}>{review.meetup_title || '약속'}</Text>
@@ -229,15 +227,15 @@ const MyReviewsScreen: React.FC = () => {
               <View style={styles.actionContainer}>
                 <div
                   onClick={() => handleStartEdit(review)}
-                  style={{ cursor: 'pointer', padding: 8, borderRadius: 6, backgroundColor: COLORS.neutral.light }}
+                  style={{ cursor: 'pointer', padding: 8, borderRadius: 6, backgroundColor: '#F5F5F5' }}
                 >
-                  <Icon name="edit" size={14} color={COLORS.text.accent} />
+                  <Icon name="edit" size={14} color={'#878B94'} />
                 </div>
                 <div
                   onClick={() => handleDeleteReview(review.id)}
-                  style={{ cursor: 'pointer', padding: 8, borderRadius: 6, backgroundColor: COLORS.neutral.light }}
+                  style={{ cursor: 'pointer', padding: 8, borderRadius: 6, backgroundColor: '#F5F5F5' }}
                 >
-                  <Icon name="trash-2" size={14} color={COLORS.functional.error} />
+                  <Icon name="trash-2" size={14} color={'#D32F2F'} />
                 </div>
               </View>
             )}
@@ -251,7 +249,7 @@ const MyReviewsScreen: React.FC = () => {
                 value={editContent}
                 onChangeText={setEditContent}
                 placeholder="후기를 수정해주세요"
-                placeholderTextColor={COLORS.text.tertiary}
+                placeholderTextColor={'#878B94'}
                 multiline
                 numberOfLines={4}
                 maxLength={500}
@@ -262,7 +260,7 @@ const MyReviewsScreen: React.FC = () => {
                   onClick={handleCancelEdit}
                   style={{
                     cursor: 'pointer', padding: '8px 16px', borderRadius: 8,
-                    border: `1px solid ${COLORS.neutral.grey200}`, display: 'inline-flex',
+                    border: `1px solid ${'#E0E0E0'}`, display: 'inline-flex',
                     alignItems: 'center', justifyContent: 'center',
                   }}
                 >
@@ -273,13 +271,13 @@ const MyReviewsScreen: React.FC = () => {
                   style={{
                     cursor: submitting || editRating === 0 ? 'not-allowed' : 'pointer',
                     padding: '8px 16px', borderRadius: 8,
-                    backgroundColor: editRating === 0 ? COLORS.neutral.grey200 : COLORS.primary.main,
+                    backgroundColor: editRating === 0 ? '#E0E0E0' : '#FFA529',
                     display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                     opacity: submitting || editRating === 0 ? 0.5 : 1,
                   }}
                 >
                   {submitting ? (
-                    <ActivityIndicator size="small" color={COLORS.neutral.white} />
+                    <ActivityIndicator size="small" color={'#FFFFFF'} />
                   ) : (
                     <Text style={styles.submitText}>수정 완료</Text>
                   )}
@@ -337,7 +335,7 @@ const MyReviewsScreen: React.FC = () => {
           <View style={styles.reviewHeader}>
             <View style={styles.reviewTitleRow}>
               <View style={styles.avatarCircle}>
-                <Icon name="star" size={16} color={COLORS.primary.main} />
+                <Icon name="star" size={16} color={'#FFA529'} />
               </View>
               <View style={styles.titleWrap}>
                 <Text style={styles.reviewTitle} numberOfLines={1}>{review.meetup_title || '약속'}</Text>
@@ -370,7 +368,7 @@ const MyReviewsScreen: React.FC = () => {
           {/* Reply section */}
           {review.reply ? (
             <View style={styles.replyContainer}>
-              <Icon name="corner-down-right" size={14} color={COLORS.text.tertiary} />
+              <Icon name="corner-down-right" size={14} color={'#878B94'} />
               <View style={styles.replyBody}>
                 <Text style={styles.replyLabel}>내 답변</Text>
                 <Text style={styles.replyText}>{review.reply}</Text>
@@ -383,7 +381,7 @@ const MyReviewsScreen: React.FC = () => {
                 value={replyContent}
                 onChangeText={setReplyContent}
                 placeholder="리뷰에 대한 답변을 작성해주세요"
-                placeholderTextColor={COLORS.text.tertiary}
+                placeholderTextColor={'#878B94'}
                 multiline
                 numberOfLines={3}
                 maxLength={300}
@@ -394,7 +392,7 @@ const MyReviewsScreen: React.FC = () => {
                   onClick={handleCancelReply}
                   style={{
                     cursor: 'pointer', padding: '8px 16px', borderRadius: 8,
-                    border: `1px solid ${COLORS.neutral.grey200}`, display: 'inline-flex',
+                    border: `1px solid ${'#E0E0E0'}`, display: 'inline-flex',
                     alignItems: 'center', justifyContent: 'center',
                   }}
                 >
@@ -405,13 +403,13 @@ const MyReviewsScreen: React.FC = () => {
                   style={{
                     cursor: submitting || !replyContent.trim() ? 'not-allowed' : 'pointer',
                     padding: '8px 16px', borderRadius: 8,
-                    backgroundColor: !replyContent.trim() ? COLORS.neutral.grey200 : COLORS.primary.main,
+                    backgroundColor: !replyContent.trim() ? '#E0E0E0' : '#FFA529',
                     display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                     opacity: submitting || !replyContent.trim() ? 0.5 : 1,
                   }}
                 >
                   {submitting ? (
-                    <ActivityIndicator size="small" color={COLORS.neutral.white} />
+                    <ActivityIndicator size="small" color={'#FFFFFF'} />
                   ) : (
                     <Text style={styles.submitText}>답변 등록</Text>
                   )}
@@ -424,14 +422,14 @@ const MyReviewsScreen: React.FC = () => {
               style={{
                 cursor: 'pointer', display: 'flex', flexDirection: 'row',
                 alignItems: 'center', justifyContent: 'center',
-                border: `1px solid ${COLORS.primary.accent}`,
+                border: `1px solid ${'#FFA529'}`,
                 borderRadius: 8, padding: '10px 0', marginTop: 12, gap: 6,
                 transition: 'background-color 150ms ease',
               }}
               onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = 'rgba(212,136,44,0.04)'; }}
               onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent'; }}
             >
-              <Icon name="message-circle" size={16} color={COLORS.primary.accent} />
+              <Icon name="message-circle" size={16} color={'#FFA529'} />
               <Text style={styles.replyButtonText}>답변하기</Text>
             </div>
           ) : null}
@@ -452,7 +450,7 @@ const MyReviewsScreen: React.FC = () => {
       <View style={styles.container}>
         <View style={styles.header}>
           <TouchableOpacity style={styles.backButton} onPress={() => navigate('/mypage')}>
-            <Icon name="arrow-left" size={24} color={COLORS.text.primary} />
+            <Icon name="chevron-left" size={24} color="#121212" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>내 리뷰</Text>
           <View style={{ width: 44 }} />
@@ -476,54 +474,48 @@ const MyReviewsScreen: React.FC = () => {
           style={styles.backButton}
           onPress={() => navigate('/mypage')}
         >
-          <Icon name="arrow-left" size={24} color={COLORS.text.primary} />
+          <Icon name="chevron-left" size={24} color="#121212" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>내 리뷰</Text>
         <View style={{ width: 44 }} />
       </View>
 
       {/* Tabs */}
-      <View style={styles.tabContainer}>
-        <div
+      <div style={webStyles.tabBar}>
+        <button
           onClick={() => setActiveTab('written')}
           style={{
-            flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center',
-            padding: '14px 0', cursor: 'pointer',
-            borderBottom: activeTab === 'written' ? `3px solid ${COLORS.primary.main}` : '3px solid transparent',
-            transition: 'border-color 200ms ease',
+            ...webStyles.tabButton,
+            color: activeTab === 'written' ? '#121212' : '#666',
+            borderBottom: activeTab === 'written' ? '2px solid #121212' : '2px solid transparent',
           }}
         >
-          <Text style={[styles.tabText, activeTab === 'written' && styles.activeTabText]}>
-            작성한 리뷰 ({writtenReviews.length})
-          </Text>
-        </div>
-        <div
+          작성한 리뷰 ({writtenReviews.length})
+        </button>
+        <button
           onClick={() => setActiveTab('received')}
           style={{
-            flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center',
-            padding: '14px 0', cursor: 'pointer',
-            borderBottom: activeTab === 'received' ? `3px solid ${COLORS.primary.main}` : '3px solid transparent',
-            transition: 'border-color 200ms ease',
+            ...webStyles.tabButton,
+            color: activeTab === 'received' ? '#121212' : '#666',
+            borderBottom: activeTab === 'received' ? '2px solid #121212' : '2px solid transparent',
           }}
         >
-          <Text style={[styles.tabText, activeTab === 'received' && styles.activeTabText]}>
-            받은 리뷰 ({receivedReviews.length})
-          </Text>
-        </div>
-      </View>
+          받은 리뷰 ({receivedReviews.length})
+        </button>
+      </div>
 
       <ScrollView style={styles.content} contentContainerStyle={styles.contentInner}>
         {error && (
-          <View style={styles.errorBanner}>
-            <Icon name="alert-circle" size={16} color={COLORS.functional.error} />
-            <Text style={styles.errorText}>{error}</Text>
+          <div style={webStyles.errorBanner}>
+            <Icon name="alert-circle" size={16} color="#D32F2F" />
+            <span style={webStyles.errorText}>{error}</span>
             <div
               onClick={() => setError(null)}
-              style={{ cursor: 'pointer', padding: 4 }}
+              style={{ cursor: 'pointer', padding: 4, display: 'flex', alignItems: 'center' }}
             >
-              <Icon name="x" size={16} color={COLORS.text.secondary} />
+              <span style={{ fontSize: 16, color: '#D32F2F', fontWeight: 500, lineHeight: 1 }}>{'\u2715'}</span>
             </div>
-          </View>
+          </div>
         )}
 
         {renderSummary()}
@@ -552,109 +544,125 @@ const MyReviewsScreen: React.FC = () => {
   );
 };
 
+// Web-only styles (CSS-in-JS)
+const webStyles = {
+  tabBar: {
+    display: 'flex',
+    borderBottom: '1px solid #f1f2f3',
+    backgroundColor: '#FFFFFF',
+  } as React.CSSProperties,
+  tabButton: {
+    flex: 1,
+    paddingTop: 12,
+    paddingBottom: 14,
+    fontSize: 14,
+    fontWeight: 600,
+    letterSpacing: -0.3,
+    background: 'transparent',
+    border: 'none',
+    cursor: 'pointer',
+    fontFamily: 'inherit',
+    transition: 'color 150ms ease',
+  } as React.CSSProperties,
+  summaryRow: {
+    display: 'flex',
+    flexDirection: 'row' as const,
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    padding: 20,
+    marginBottom: 16,
+    border: '1px solid #f1f2f3',
+  } as React.CSSProperties,
+  summaryItem: {
+    display: 'flex',
+    flexDirection: 'column' as const,
+    alignItems: 'center',
+  } as React.CSSProperties,
+  summaryNumber: {
+    fontSize: 24,
+    fontWeight: 700,
+    color: '#121212',
+    marginBottom: 4,
+  } as React.CSSProperties,
+  summaryLabel: {
+    fontSize: 14,
+    color: '#878b94',
+  } as React.CSSProperties,
+  summaryDivider: {
+    width: 1,
+    height: 40,
+    backgroundColor: '#f1f2f3',
+  } as React.CSSProperties,
+  errorBanner: {
+    display: 'flex',
+    flexDirection: 'row' as const,
+    alignItems: 'center',
+    backgroundColor: '#FFF0F0',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 16,
+    gap: 8,
+  } as React.CSSProperties,
+  errorText: {
+    flex: 1,
+    fontSize: 14,
+    color: '#D32F2F',
+  } as React.CSSProperties,
+};
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.neutral.grey100,
+    backgroundColor: '#FFFFFF',
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    ...HEADER_STYLE.sub,
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 12,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#f1f2f3',
     zIndex: 10,
   },
   backButton: {
-    padding: 10,
+    padding: 4,
     minWidth: 44,
     minHeight: 44,
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'center',
   },
   headerTitle: {
-    ...HEADER_STYLE.subTitle,
-  },
-  tabContainer: {
-    flexDirection: 'row',
-    backgroundColor: COLORS.neutral.white,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(17,17,17,0.06)',
-  },
-  tabText: {
-    fontSize: 15,
-    color: COLORS.text.tertiary,
-    fontWeight: '500',
-  },
-  activeTabText: {
-    color: COLORS.text.primary,
-    fontWeight: '700',
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#121212',
+    letterSpacing: -0.2,
   },
   skeletonWrap: {
     paddingTop: 8,
-    backgroundColor: COLORS.neutral.white,
-    marginTop: 8,
-    borderRadius: 8,
-    marginHorizontal: 16,
+    backgroundColor: '#FFFFFF',
   },
   content: {
     flex: 1,
+    backgroundColor: '#FFFFFF',
   },
   contentInner: {
     padding: 16,
     paddingBottom: 32,
   },
-  summaryCard: {
-    backgroundColor: COLORS.neutral.white,
-    borderRadius: 8,
-    padding: 20,
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    ...SHADOWS.small,
-    borderWidth: 1,
-    borderColor: 'rgba(17,17,17,0.06)',
-    marginBottom: 16,
-  },
-  summaryItem: {
-    alignItems: 'center',
-  },
-  summaryNumber: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: COLORS.primary.main,
-    marginBottom: 4,
-  },
-  summaryLabel: {
-    fontSize: 14,
-    color: COLORS.text.secondary,
-  },
-  summaryDivider: {
-    width: 1,
-    backgroundColor: COLORS.neutral.grey100,
-    marginHorizontal: 20,
-  },
-  errorBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(220,38,38,0.08)',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 16,
-    gap: 8,
-  },
-  errorText: {
-    flex: 1,
-    fontSize: 14,
-    color: COLORS.functional.error,
-  },
   reviewsList: {
-    backgroundColor: COLORS.neutral.white,
+    backgroundColor: '#FFFFFF',
     borderRadius: 8,
     overflow: 'hidden',
   },
   reviewCard: {
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(17,17,17,0.06)',
+    borderBottomColor: '#f1f2f3',
   },
   reviewHeader: {
     flexDirection: 'row',
@@ -672,7 +680,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(212,136,44,0.08)',
+    backgroundColor: '#F5F5F5',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -683,7 +691,7 @@ const styles = StyleSheet.create({
   reviewTitle: {
     fontSize: 15,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: '#121212',
     marginBottom: 4,
   },
   ratingContainer: {
@@ -692,18 +700,18 @@ const styles = StyleSheet.create({
   },
   starsContainer: {
     flexDirection: 'row',
-    gap: 2,
+    gap: 1,
     marginRight: 6,
   },
   ratingText: {
     fontSize: 12,
-    color: COLORS.text.accent,
+    color: '#878b94',
     fontWeight: '500',
     marginLeft: 4,
   },
   reviewerLabel: {
     fontSize: 13,
-    color: COLORS.text.secondary,
+    color: '#5F5F5F',
     fontWeight: '500',
     marginRight: 6,
   },
@@ -711,7 +719,7 @@ const styles = StyleSheet.create({
     width: 3,
     height: 3,
     borderRadius: 1.5,
-    backgroundColor: COLORS.neutral.grey300,
+    backgroundColor: '#BDBDBD',
     marginRight: 6,
   },
   actionContainer: {
@@ -721,7 +729,7 @@ const styles = StyleSheet.create({
   },
   reviewContent: {
     fontSize: 15,
-    color: COLORS.text.primary,
+    color: '#121212',
     lineHeight: 22,
     marginBottom: 12,
   },
@@ -732,14 +740,14 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   tagChip: {
-    backgroundColor: COLORS.neutral.grey100,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
+    backgroundColor: '#f1f2f3',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 14,
   },
   tagChipText: {
-    fontSize: 12,
-    color: COLORS.text.secondary,
+    fontSize: 13,
+    color: '#5F5F5F',
   },
   reviewFooter: {
     flexDirection: 'row',
@@ -751,12 +759,12 @@ const styles = StyleSheet.create({
   metaDivider: {
     width: 1,
     height: 12,
-    backgroundColor: COLORS.neutral.grey200,
+    backgroundColor: '#E0E0E0',
     marginHorizontal: 10,
   },
   metaText: {
     fontSize: 12,
-    color: COLORS.text.accent,
+    color: '#878b94',
   },
   // Edit form styles
   editForm: {
@@ -767,17 +775,17 @@ const styles = StyleSheet.create({
   },
   editTextInput: {
     borderWidth: 1,
-    borderColor: COLORS.neutral.grey200,
+    borderColor: '#E0E0E0',
     borderRadius: 8,
     padding: 12,
     fontSize: 14,
-    color: COLORS.text.primary,
+    color: '#121212',
     minHeight: 80,
-    backgroundColor: COLORS.neutral.grey100,
+    backgroundColor: '#FAFAFA',
   },
   charCounter: {
     fontSize: 12,
-    color: COLORS.text.tertiary,
+    color: '#878b94',
     textAlign: 'right',
     marginTop: 4,
     marginBottom: 8,
@@ -790,18 +798,18 @@ const styles = StyleSheet.create({
   cancelText: {
     fontSize: 14,
     fontWeight: '500',
-    color: COLORS.text.secondary,
+    color: '#5F5F5F',
   },
   submitText: {
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.neutral.white,
+    color: '#FFFFFF',
   },
   // Reply styles
   replyContainer: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    backgroundColor: COLORS.neutral.background,
+    backgroundColor: '#FAFAFA',
     padding: 12,
     borderRadius: 8,
     marginBottom: 12,
@@ -813,18 +821,18 @@ const styles = StyleSheet.create({
   replyLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: COLORS.text.tertiary,
+    color: '#878b94',
     marginBottom: 4,
   },
   replyText: {
     fontSize: 14,
-    color: COLORS.text.secondary,
+    color: '#5F5F5F',
     lineHeight: 20,
   },
   replyButtonText: {
     fontSize: 14,
     fontWeight: '500',
-    color: COLORS.primary.accent,
+    color: '#FFA529',
   },
   replyForm: {
     marginTop: 12,
@@ -832,13 +840,13 @@ const styles = StyleSheet.create({
   },
   replyTextInput: {
     borderWidth: 1,
-    borderColor: COLORS.neutral.grey200,
+    borderColor: '#E0E0E0',
     borderRadius: 8,
     padding: 12,
     fontSize: 14,
-    color: COLORS.text.primary,
+    color: '#121212',
     minHeight: 60,
-    backgroundColor: COLORS.neutral.grey100,
+    backgroundColor: '#FAFAFA',
   },
 });
 

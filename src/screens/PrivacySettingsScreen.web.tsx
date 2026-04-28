@@ -1,8 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput } from 'react-native';
 import { useNavigate } from 'react-router-dom';
-import { COLORS, SHADOWS, CSS_SHADOWS } from '../styles/colors';
-import { HEADER_STYLE } from '../styles/spacing';
 import { Icon } from '../components/Icon';
 import { useUserStore } from '../store/userStore';
 import apiClient from '../services/apiClient';
@@ -83,368 +80,369 @@ const PrivacySettingsScreen: React.FC = () => {
     }
   };
 
-  const renderMenuItem = (
-    title: string,
-    description: string,
-    iconName: string,
-    onPress: () => void,
-    danger: boolean = false
-  ) => (
-    <TouchableOpacity
-      style={styles.menuItem}
-      onPress={onPress}
-    >
-      <View style={styles.menuIconContainer}>
-        <Icon name={iconName} size={18} color={danger ? COLORS.functional.error : COLORS.primary.main} />
-      </View>
-      <View style={styles.menuInfo}>
-        <Text style={[styles.menuTitle, danger && styles.dangerText]}>{title}</Text>
-        <Text style={styles.menuDescription}>{description}</Text>
-      </View>
-      <Icon name="chevron-right" size={16} color={COLORS.text.secondary} />
-    </TouchableOpacity>
-  );
-
   return (
-    <View style={styles.container}>
-      {/* 헤더 */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigate('/mypage')}
+    <div style={styles.container}>
+      {/* Header */}
+      <div style={styles.header}>
+        <button
+          onClick={() => navigate('/mypage')}
+          style={styles.headerLeftButton}
         >
-          <Icon name="arrow-left" size={24} color={COLORS.text.primary} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>개인정보 설정</Text>
-        <View style={styles.placeholder} />
-      </View>
+          <Icon name="chevron-left" size={24} color="#121212" />
+        </button>
+        <span style={styles.headerTitle}>개인정보 설정</span>
+        <div style={styles.headerRight} />
+      </div>
 
-      <ScrollView style={styles.content}>
-        {/* 계정 정보 */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>계정 정보</Text>
-          <View style={styles.accountCard}>
-            <View style={styles.accountInfo}>
-              <Text style={styles.accountName}>{user?.name || '사용자'}</Text>
-              <Text style={styles.accountEmail}>{user?.email || 'user@example.com'}</Text>
-              <Text style={styles.accountProvider}>
-                {user?.provider === 'kakao' ? '카카오 계정' : '이메일 계정'}으로 가입
-              </Text>
-            </View>
-          </View>
-        </View>
+      {/* Content */}
+      <div style={styles.scrollContainer}>
+        {/* 계정 정보 Section */}
+        <div style={styles.section}>
+          <div style={styles.sectionHeader}>계정 정보</div>
+          <div style={styles.menuList}>
+            <div style={styles.accountRow}>
+              <span style={styles.accountLabel}>이름</span>
+              <span style={styles.accountValue}>{user?.name || '사용자'}</span>
+            </div>
+            <div style={styles.accountRow}>
+              <span style={styles.accountLabel}>이메일</span>
+              <span style={styles.accountValue}>{user?.email || 'user@example.com'}</span>
+            </div>
+            <div style={{ ...styles.accountRow, borderBottom: 'none', marginBottom: 0 }}>
+              <span style={styles.accountLabel}>가입 방법</span>
+              <span style={styles.accountValue}>
+                {user?.provider === 'kakao' ? '카카오 계정' : '이메일 계정'}
+              </span>
+            </div>
+          </div>
+        </div>
 
-        {/* 보안 설정 */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>보안 설정</Text>
-          <View style={styles.menuContainer}>
-            {user?.provider !== 'kakao' && renderMenuItem(
-              '비밀번호 변경',
-              '계정 보안을 위해 주기적으로 변경하세요',
-              'settings',
-              () => setShowPasswordChange(true)
-            )}
-            {renderMenuItem(
-              '로그인 기록',
-              '최근 로그인 활동을 확인합니다',
-              'smartphone',
-              () => showInfo('로그인 기록 기능은 곧 추가될 예정입니다.')
-            )}
-          </View>
-        </View>
+        {/* Separator */}
+        <div style={styles.separator} />
 
-        {/* 개인정보 관리 */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>개인정보 관리</Text>
-          <View style={styles.menuContainer}>
-            {renderMenuItem(
-              '데이터 다운로드',
-              '내 활동 데이터를 다운로드합니다',
-              'arrow-left',
-              () => showInfo('데이터 다운로드 기능은 곧 추가될 예정입니다.')
-            )}
-            {renderMenuItem(
-              '데이터 삭제 요청',
-              '개인 데이터 삭제를 요청합니다',
-              'trash-2',
-              () => showInfo('데이터 삭제 요청 기능은 곧 추가될 예정입니다.')
-            )}
-          </View>
-        </View>
-
-        {/* 계정 관리 */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>계정 관리</Text>
-          <View style={styles.menuContainer}>
-            {renderMenuItem(
-              '로그아웃',
-              '현재 계정에서 로그아웃합니다',
-              'external-link',
-              handleLogout
-            )}
-            {renderMenuItem(
-              '계정 삭제',
-              '계정을 영구적으로 삭제합니다',
-              'alert-triangle',
-              handleDeleteAccount,
-              true
-            )}
-          </View>
-        </View>
-      </ScrollView>
-
-      {/* 비밀번호 변경 모달 */}
-      {showPasswordChange && (
-        <View style={styles.modalOverlay}>
-          <View style={styles.passwordModal}>
-            <View style={styles.modalHeader}>
-              <TouchableOpacity onPress={() => setShowPasswordChange(false)}>
-                <Icon name="x" size={24} color={COLORS.text.primary} />
-              </TouchableOpacity>
-              <Text style={styles.modalTitle}>비밀번호 변경</Text>
-              <TouchableOpacity
-                onPress={handlePasswordChange}
-                disabled={loading}
+        {/* 보안 설정 Section */}
+        <div style={styles.section}>
+          <div style={styles.sectionHeader}>보안 설정</div>
+          <div style={styles.menuList}>
+            {user?.provider !== 'kakao' && (
+              <button
+                onClick={() => setShowPasswordChange(true)}
+                style={styles.menuItem}
+                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#fafafa'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
               >
-                <Text style={[styles.saveText, loading && styles.disabledText]}>
-                  {loading ? '변경 중...' : '변경'}
-                </Text>
-              </TouchableOpacity>
-            </View>
+                <span style={styles.menuItemLabel}>비밀번호 변경</span>
+                <Icon name="chevron-right" size={18} color="#b7bbbf" />
+              </button>
+            )}
+            <button
+              onClick={() => showInfo('로그인 기록 기능은 곧 추가될 예정입니다.')}
+              style={{ ...styles.menuItem, marginBottom: 0 }}
+              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#fafafa'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+            >
+              <span style={styles.menuItemLabel}>로그인 기록</span>
+              <Icon name="chevron-right" size={18} color="#b7bbbf" />
+            </button>
+          </div>
+        </div>
 
-            <View style={styles.modalContent}>
-              <View style={styles.inputContainer}>
-                <Text style={styles.inputLabel}>현재 비밀번호</Text>
-                <TextInput
+        {/* Separator */}
+        <div style={styles.separator} />
+
+        {/* 개인정보 관리 Section */}
+        <div style={styles.section}>
+          <div style={styles.sectionHeader}>개인정보 관리</div>
+          <div style={styles.menuList}>
+            <button
+              onClick={() => showInfo('데이터 다운로드 기능은 곧 추가될 예정입니다.')}
+              style={styles.menuItem}
+              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#fafafa'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+            >
+              <span style={styles.menuItemLabel}>데이터 다운로드</span>
+              <Icon name="chevron-right" size={18} color="#b7bbbf" />
+            </button>
+            <button
+              onClick={() => showInfo('데이터 삭제 요청 기능은 곧 추가될 예정입니다.')}
+              style={{ ...styles.menuItem, marginBottom: 0 }}
+              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#fafafa'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+            >
+              <span style={styles.menuItemLabel}>데이터 삭제 요청</span>
+              <Icon name="chevron-right" size={18} color="#b7bbbf" />
+            </button>
+          </div>
+        </div>
+
+        {/* Separator */}
+        <div style={styles.separator} />
+
+        {/* 계정 관리 Section */}
+        <div style={styles.section}>
+          <div style={styles.menuList}>
+            <button
+              onClick={handleLogout}
+              style={styles.menuItem}
+              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#fafafa'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+            >
+              <span style={styles.menuItemLabel}>로그아웃</span>
+            </button>
+            <button
+              onClick={handleDeleteAccount}
+              style={{ ...styles.menuItem, marginBottom: 0 }}
+              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#fafafa'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+            >
+              <span style={{ ...styles.menuItemLabel, color: '#FF3B30' }}>계정 삭제</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Password Change Modal */}
+      {showPasswordChange && (
+        <div style={styles.modalOverlay}>
+          <div style={styles.modalContainer}>
+            <div style={styles.modalHeader}>
+              <button
+                onClick={() => setShowPasswordChange(false)}
+                style={styles.modalCloseButton}
+              >
+                <Icon name="x" size={24} color="#121212" />
+              </button>
+              <span style={styles.modalTitle}>비밀번호 변경</span>
+              <button
+                onClick={handlePasswordChange}
+                disabled={loading}
+                style={{
+                  ...styles.modalSaveButton,
+                  opacity: loading ? 0.5 : 1,
+                  cursor: loading ? 'not-allowed' : 'pointer',
+                }}
+              >
+                {loading ? '변경 중...' : '변경'}
+              </button>
+            </div>
+
+            <div style={styles.modalContent}>
+              <div style={styles.inputGroup}>
+                <label style={styles.inputLabel}>현재 비밀번호</label>
+                <input
+                  type="password"
                   style={styles.passwordInput}
                   placeholder="현재 비밀번호를 입력하세요"
                   value={passwordData.currentPassword}
-                  onChangeText={(text) => setPasswordData(prev => ({ ...prev, currentPassword: text }))}
-                  secureTextEntry
+                  onChange={(e) => setPasswordData(prev => ({ ...prev, currentPassword: e.target.value }))}
                 />
-              </View>
+              </div>
 
-              <View style={styles.inputContainer}>
-                <Text style={styles.inputLabel}>새 비밀번호</Text>
-                <TextInput
+              <div style={styles.inputGroup}>
+                <label style={styles.inputLabel}>새 비밀번호</label>
+                <input
+                  type="password"
                   style={styles.passwordInput}
                   placeholder="새 비밀번호를 입력하세요 (8자 이상)"
                   value={passwordData.newPassword}
-                  onChangeText={(text) => setPasswordData(prev => ({ ...prev, newPassword: text }))}
-                  secureTextEntry
+                  onChange={(e) => setPasswordData(prev => ({ ...prev, newPassword: e.target.value }))}
                 />
-              </View>
+              </div>
 
-              <View style={styles.inputContainer}>
-                <Text style={styles.inputLabel}>비밀번호 확인</Text>
-                <TextInput
+              <div style={styles.inputGroup}>
+                <label style={styles.inputLabel}>비밀번호 확인</label>
+                <input
+                  type="password"
                   style={styles.passwordInput}
                   placeholder="새 비밀번호를 다시 입력하세요"
                   value={passwordData.confirmPassword}
-                  onChangeText={(text) => setPasswordData(prev => ({ ...prev, confirmPassword: text }))}
-                  secureTextEntry
+                  onChange={(e) => setPasswordData(prev => ({ ...prev, confirmPassword: e.target.value }))}
                 />
-              </View>
-            </View>
-          </View>
-        </View>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       <Toast visible={toast.visible} message={toast.message} type={toast.type} onHide={hideToast} />
       <ConfirmDialog {...dialog} />
-    </View>
+    </div>
   );
 };
 
-const styles = StyleSheet.create({
+const styles: { [key: string]: React.CSSProperties } = {
   container: {
-    flex: 1,
-    backgroundColor: COLORS.neutral.grey100,
+    display: 'flex',
+    flexDirection: 'column',
+    height: '100vh',
+    backgroundColor: '#ffffff',
+    fontFamily: 'Pretendard, -apple-system, sans-serif',
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    ...HEADER_STYLE.sub,
-    zIndex: 10,
-  },
-  backButton: {
-    padding: 10,
-    minWidth: 44,
-    minHeight: 44,
+    display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
+    height: 56,
+    backgroundColor: '#fff',
+    position: 'relative',
+    borderBottom: '1px solid #f1f2f3',
+    flexShrink: 0,
+  },
+  headerLeftButton: {
+    position: 'absolute',
+    left: 20,
+    background: 'none',
+    border: 'none',
     cursor: 'pointer',
-    transition: 'all 200ms ease',
+    padding: 0,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   headerTitle: {
-    ...HEADER_STYLE.subTitle,
+    fontSize: 18,
+    fontWeight: 600,
+    color: '#121212',
+    letterSpacing: -0.3,
   },
-  placeholder: {
-    width: 32,
+  headerRight: {
+    position: 'absolute',
+    right: 20,
+    width: 24,
   },
-  content: {
+  scrollContainer: {
     flex: 1,
+    overflowY: 'auto',
   },
   section: {
-    marginBottom: 8,
+    paddingLeft: 20,
+    paddingRight: 20,
+    paddingTop: 24,
+    paddingBottom: 8,
   },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: COLORS.text.primary,
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: COLORS.neutral.grey100,
-  },
-  accountCard: {
-    backgroundColor: COLORS.neutral.white,
-    marginHorizontal: 16,
-    borderRadius: 8,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(17,17,17,0.06)',
-    shadowColor: COLORS.neutral.black,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 1,
-  },
-  accountInfo: {
-    alignItems: 'center',
-  },
-  accountName: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: COLORS.text.primary,
-    marginBottom: 4,
-  },
-  accountEmail: {
-    fontSize: 16,
-    color: COLORS.text.secondary,
-    marginBottom: 8,
-  },
-  accountProvider: {
+  sectionHeader: {
     fontSize: 14,
-    color: COLORS.primary.main,
-    fontWeight: '500',
+    fontWeight: 700,
+    color: '#b7bbbf',
+    marginBottom: 16,
   },
-  menuContainer: {
-    backgroundColor: COLORS.neutral.white,
-    marginHorizontal: 16,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(17,17,17,0.06)',
-    shadowColor: COLORS.neutral.black,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 1,
+  menuList: {
+    display: 'flex',
+    flexDirection: 'column',
   },
   menuItem: {
-    flexDirection: 'row',
+    display: 'flex',
     alignItems: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(17,17,17,0.06)',
+    justifyContent: 'space-between',
+    background: 'none',
+    border: 'none',
     cursor: 'pointer',
-    transition: 'all 200ms ease',
+    padding: '0 4px',
+    height: 56,
+    textAlign: 'left',
+    borderRadius: 6,
+    marginBottom: 0,
+    transition: 'background-color 150ms ease',
   },
-  menuIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: COLORS.neutral.light,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  menuIcon: {
-    fontSize: 18,
-  },
-  menuInfo: {
-    flex: 1,
-  },
-  menuTitle: {
+  menuItemLabel: {
     fontSize: 16,
-    fontWeight: '600',
-    color: COLORS.text.primary,
-    marginBottom: 2,
+    fontWeight: 500,
+    color: '#090909',
   },
-  menuDescription: {
-    fontSize: 13,
-    color: COLORS.text.secondary,
-  },
-  dangerText: {
-    color: COLORS.functional.error,
-  },
-  modalOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(17,17,17,0.5)',
-    justifyContent: 'center',
+  accountRow: {
+    display: 'flex',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    height: 56,
+    borderBottom: '1px solid #f1f2f3',
+    padding: '0 4px',
+  },
+  accountLabel: {
+    fontSize: 16,
+    fontWeight: 500,
+    color: '#878b94',
+  },
+  accountValue: {
+    fontSize: 16,
+    fontWeight: 500,
+    color: '#121212',
+  },
+  separator: {
+    height: 8,
+    backgroundColor: '#F5F5F5',
+  },
+  // Modal styles
+  modalOverlay: {
+    position: 'fixed',
+    inset: 0,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
     zIndex: 1000,
   },
-  passwordModal: {
-    backgroundColor: COLORS.neutral.white,
-    borderRadius: 12,
+  modalContainer: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
     width: '90%',
     maxWidth: 400,
-    shadowColor: COLORS.neutral.black,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 24,
-    elevation: 10,
+    boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
   },
   modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    display: 'flex',
     alignItems: 'center',
+    justifyContent: 'space-between',
     padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(17,17,17,0.06)',
+    borderBottom: '1px solid #f1f2f3',
+  },
+  modalCloseButton: {
+    background: 'none',
+    border: 'none',
+    cursor: 'pointer',
+    padding: 0,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   modalTitle: {
     fontSize: 18,
-    fontWeight: '700',
-    color: COLORS.text.primary,
+    fontWeight: 700,
+    color: '#121212',
   },
-  saveText: {
+  modalSaveButton: {
+    background: 'none',
+    border: 'none',
     fontSize: 16,
-    fontWeight: '600',
-    color: COLORS.primary.main,
-  },
-  disabledText: {
-    color: COLORS.text.accent,
+    fontWeight: 600,
+    color: '#FFA529',
+    cursor: 'pointer',
+    padding: 0,
   },
   modalContent: {
     padding: 20,
   },
-  inputContainer: {
+  inputGroup: {
     marginBottom: 20,
+    display: 'flex',
+    flexDirection: 'column',
   },
   inputLabel: {
     fontSize: 14,
-    fontWeight: '600',
-    color: COLORS.text.primary,
+    fontWeight: 600,
+    color: '#121212',
     marginBottom: 8,
   },
   passwordInput: {
-    borderWidth: 1,
-    borderColor: 'rgba(17,17,17,0.10)',
+    border: '1px solid #f1f2f3',
     borderRadius: 6,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    padding: '12px 16px',
     fontSize: 16,
-    color: COLORS.text.primary,
-    backgroundColor: COLORS.neutral.grey50,
-    transition: 'all 200ms ease',
+    color: '#121212',
+    backgroundColor: '#FAFAFA',
+    outline: 'none',
+    fontFamily: 'inherit',
+    transition: 'border-color 200ms ease',
   },
-});
+};
 
 export default PrivacySettingsScreen;

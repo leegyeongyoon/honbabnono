@@ -68,21 +68,43 @@ const MyActivitiesScreen: React.FC = () => {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case '참가승인': return COLORS.functional.success;
-      case '참가신청': return COLORS.primary.main;
+      case '참가승인': return '#22C55E';
+      case '참가신청': return '#3b82f6';
       case '참가거절': return COLORS.functional.error;
-      case '참가취소': return COLORS.text.accent;
+      case '참가취소': return '#878b94';
       default: return COLORS.text.secondary;
     }
   };
 
   const getStatusBg = (status: string) => {
     switch (status) {
-      case '참가승인': return 'rgba(61, 122, 79, 0.08)';
-      case '참가신청': return 'rgba(224,146,110,0.08)';
-      case '참가거절': return 'rgba(196, 60, 60, 0.08)';
-      case '참가취소': return 'rgba(139, 126, 114, 0.08)';
+      case '참가승인': return '#F0F9F0';
+      case '참가신청': return '#EFF6FF';
+      case '참가거절': return '#FDECEA';
+      case '참가취소': return '#F5F5F5';
       default: return COLORS.neutral.light;
+    }
+  };
+
+  const getCategoryColor = (category: string) => {
+    switch (category) {
+      case '한식': return '#E8921E';
+      case '중식': return '#D32F2F';
+      case '일식': return '#1976D2';
+      case '양식': return '#2E7D4F';
+      case '카페': return '#7B5EA7';
+      default: return '#6B7280';
+    }
+  };
+
+  const getCategoryBg = (category: string) => {
+    switch (category) {
+      case '한식': return '#FFF8F0';
+      case '중식': return '#FFF5F5';
+      case '일식': return '#EFF6FF';
+      case '양식': return '#EDF7F0';
+      case '카페': return '#F5F0FF';
+      default: return '#F3F5F7';
     }
   };
 
@@ -110,8 +132,10 @@ const MyActivitiesScreen: React.FC = () => {
         activeOpacity={0.7}
       >
         <View style={styles.cardIconWrap}>
-          <View style={styles.avatarCircle}>
-            <Icon name="utensils" size={20} color={COLORS.primary.main} />
+          <View style={[styles.categoryIcon, { backgroundColor: getCategoryBg(activity.category) }]}>
+            <Text style={[styles.categoryInitial, { color: getCategoryColor(activity.category) }]}>
+              {activity.category ? activity.category.charAt(0) : '?'}
+            </Text>
           </View>
         </View>
 
@@ -120,11 +144,11 @@ const MyActivitiesScreen: React.FC = () => {
           <Text style={styles.activityCategory}>{activity.category}</Text>
           <View style={styles.activityMeta}>
             <View style={styles.metaItem}>
-              <Icon name="map-pin" size={12} color={COLORS.text.accent} />
+              <Icon name="map-pin" size={12} color="#878b94" />
               <Text style={styles.metaText}>{activity.location}</Text>
             </View>
             <View style={styles.metaItem}>
-              <Icon name="users" size={12} color={COLORS.text.accent} />
+              <Icon name="users" size={12} color="#878b94" />
               <Text style={styles.metaText}>
                 {activity.current_participants ?? 0}/{activity.max_participants ?? 4}명
               </Text>
@@ -260,22 +284,21 @@ const styles = StyleSheet.create({
     cursor: 'pointer',
   },
   tabActive: {
-    borderBottomColor: COLORS.primary.main,
+    borderBottomColor: '#121212',
   },
   tabText: {
     fontSize: 14,
     fontWeight: '500',
-    color: COLORS.text.accent,
+    color: '#666666',
   },
   tabTextActive: {
     fontWeight: '600',
-    color: COLORS.primary.main,
+    color: '#121212',
   },
   content: {
     flex: 1,
   },
   contentInner: {
-    padding: 16,
     paddingBottom: 32,
   },
   skeletonWrap: {
@@ -291,7 +314,8 @@ const styles = StyleSheet.create({
   activityCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
     backgroundColor: 'transparent',
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(17,17,17,0.06)',
@@ -299,27 +323,30 @@ const styles = StyleSheet.create({
   cardIconWrap: {
     marginRight: 14,
   },
-  avatarCircle: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: 'rgba(224,146,110,0.08)',
+  categoryIcon: {
+    width: 50,
+    height: 50,
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  categoryInitial: {
+    fontSize: 18,
+    fontWeight: '700',
   },
   activityInfo: {
     flex: 1,
     marginRight: 8,
   },
   activityTitle: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '600',
-    color: COLORS.text.primary,
+    color: '#121212',
     marginBottom: 3,
   },
   activityCategory: {
-    fontSize: 13,
-    color: COLORS.text.accent,
+    fontSize: 14,
+    color: '#878b94',
     marginBottom: 6,
   },
   activityMeta: {
@@ -333,13 +360,13 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   metaText: {
-    fontSize: 12,
-    color: COLORS.text.accent,
+    fontSize: 13,
+    color: '#878b94',
   },
   statusBadge: {
     paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 6,
+    paddingVertical: 4,
+    borderRadius: 12,
   },
   statusText: {
     fontSize: 12,

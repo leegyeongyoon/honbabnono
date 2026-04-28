@@ -113,12 +113,14 @@ const NotificationSettingsScreen: React.FC = () => {
           <Text style={styles.settingTitle}>{title}</Text>
           <Text style={styles.settingDescription}>{description}</Text>
         </View>
-        <Switch
-          value={settingValue}
-          onValueChange={(value) => handleSettingChange(key, value)}
-          trackColor={{ false: '#d1d5db', true: '#d1d5db' }}
-          thumbColor={settingValue ? '#6b7280' : '#ffffff'}
-        />
+        <View style={{ flexShrink: 0, overflow: 'visible' as any }}>
+          <Switch
+            value={settingValue}
+            onValueChange={(value) => handleSettingChange(key, value)}
+            trackColor={{ false: '#d1d5db', true: '#d1d5db' }}
+            thumbColor={settingValue ? '#6b7280' : '#ffffff'}
+          />
+        </View>
       </View>
     );
   };
@@ -228,6 +230,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#FFFFFF',
+    overflow: 'visible' as any,
   },
   header: {
     flexDirection: 'row',
@@ -264,12 +267,15 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     paddingTop: 8,
+    overflow: 'visible' as any,
   },
   scrollView: {
     flex: 1,
+    overflow: 'visible' as any,
   },
   section: {
     backgroundColor: '#FFFFFF',
+    overflow: 'visible' as any,
   },
   sectionTitle: {
     fontSize: 16,
@@ -286,8 +292,10 @@ const styles = StyleSheet.create({
   settingItem: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between' as any,
     paddingVertical: 14,
     paddingHorizontal: 20,
+    overflow: 'visible' as any,
   },
   settingItemBorder: {
     borderBottomWidth: 1,

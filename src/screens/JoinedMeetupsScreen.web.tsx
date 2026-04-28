@@ -303,18 +303,6 @@ const JoinedMeetupsScreen: React.FC = () => {
         </div>
       </div>
 
-      {/* Filter pills */}
-      <div style={styles.filterRow}>
-        {['필터1', '필터2', '필터3'].map((label) => (
-          <div key={label} style={styles.filterPill}>
-            <span style={{ fontSize: 14, color: '#293038' }}>{label}</span>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#293038" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="6 9 12 15 18 9" />
-            </svg>
-          </div>
-        ))}
-      </div>
-
       {/* Card list */}
       <div style={styles.listContainer}>
         {filteredMeetups.length === 0 ? (
@@ -431,30 +419,6 @@ const styles: { [key: string]: React.CSSProperties } = {
     lineHeight: '20px',
   },
 
-  // Filter pills
-  filterRow: {
-    display: 'flex',
-    flexDirection: 'row',
-    gap: 8,
-    paddingLeft: 20,
-    paddingRight: 20,
-    paddingBottom: 12,
-  },
-  filterPill: {
-    display: 'flex',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    border: '1px solid #d1d5db',
-    borderRadius: 20,
-    paddingTop: 8,
-    paddingBottom: 8,
-    paddingLeft: 14,
-    paddingRight: 14,
-    cursor: 'pointer',
-    backgroundColor: '#FFFFFF',
-  },
-
   // Card list
   listContainer: {
     flex: 1,
@@ -536,10 +500,12 @@ const styles: { [key: string]: React.CSSProperties } = {
     flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
+    flex: 1,
     paddingTop: 80,
     paddingBottom: 40,
     paddingLeft: 40,
     paddingRight: 40,
+    textAlign: 'center' as const,
   },
   exploreButton: {
     marginTop: 24,

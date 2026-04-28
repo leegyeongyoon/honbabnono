@@ -832,34 +832,33 @@ const ExploreScreen: React.FC = () => {
         </ScrollView>
       )}
 
-      {/* FAB: 57x57 orange circle with + — visible in both map & list views */}
+      {/* FAB: 56x56 orange circle with + — visible in both map & list views */}
       <div
         onClick={() => navigate('/create-meetup')}
         style={{
           position: 'fixed',
-          bottom: 103,
-          right: 16,
-          width: 57,
-          height: 57,
-          borderRadius: 57 / 2,
+          bottom: 80,
+          right: 20,
+          width: 56,
+          height: 56,
+          borderRadius: 28,
           backgroundColor: '#FFA529',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           cursor: 'pointer',
-          boxShadow: CSS_SHADOWS.fab,
-          zIndex: 50,
+          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+          zIndex: 1000,
           transition: `transform ${TRANSITIONS.normal}`,
         }}
         role="button"
         aria-label="새 모임 만들기"
       >
         <span style={{
-          fontSize: 28,
+          fontSize: 24,
           fontWeight: 300,
-          color: COLORS.text.white,
-          lineHeight: '28px',
-          marginTop: -1,
+          color: '#FFFFFF',
+          lineHeight: '24px',
         }}>+</span>
       </div>
     </View>
@@ -1147,6 +1146,7 @@ const styles = StyleSheet.create({
   // Meetup List
   meetupList: {
     paddingHorizontal: 0,
+    paddingBottom: 80,
     gap: 0,
   },
   meetupItemWrapper: {

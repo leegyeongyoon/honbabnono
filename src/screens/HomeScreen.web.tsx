@@ -386,16 +386,16 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
 
         {/* ===== Category Grid (4x2) ===== */}
         <div style={{
-          paddingLeft: 20,
-          paddingRight: 20,
-          paddingTop: 8,
-          paddingBottom: 24,
+          padding: '8px 20px 24px 20px',
+          overflow: 'visible',
         }}>
           <div style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(4, 1fr)',
-            gap: '26px 28px',
-            justifyItems: 'center',
+            gap: '20px 0',
+            width: '100%',
+            boxSizing: 'border-box' as any,
+            overflow: 'visible',
           }}>
             {FOOD_CATEGORIES.map((category) => (
               <div
@@ -411,16 +411,18 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
                   cursor: 'pointer',
                   transition: 'transform 150ms ease',
                   transform: hoveredCategoryId === category.id ? 'scale(1.06)' : 'none',
+                  overflow: 'visible',
                 }}
                 role="button"
                 aria-label={category.name}
               >
                 <div style={{
-                  width: 74,
-                  height: 74,
+                  width: 64,
+                  height: 64,
                   borderRadius: 9999,
                   overflow: 'hidden',
                   backgroundColor: '#F5F5F5',
+                  flexShrink: 0,
                   boxShadow: hoveredCategoryId === category.id
                     ? '0 4px 12px rgba(17,17,17,0.12)'
                     : 'none',
@@ -437,7 +439,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
                   />
                 </div>
                 <span style={{
-                  fontSize: 14,
+                  fontSize: 13,
                   fontWeight: 600,
                   lineHeight: '18px',
                   color: '#2D2E2F',
@@ -763,9 +765,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#FFFFFF',
+    overflow: 'visible' as any,
   },
   scrollView: {
     flex: 1,
+    overflow: 'visible' as any,
   },
   locationButton: {
     flexDirection: 'row',
