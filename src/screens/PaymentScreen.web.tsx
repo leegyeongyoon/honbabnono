@@ -1,250 +1,369 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView } from 'react-native';
-import { COLORS, SHADOWS, CSS_SHADOWS, CARD_STYLE } from '../styles/colors';
-import { HEADER_STYLE } from '../styles/spacing';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useCallback } from 'react';
+import { ActivityIndicator } from 'react-native';
+import { useNavigate, useParams } from 'react-router-dom';
 import { Icon } from '../components/Icon';
-import { useToast } from '../hooks/useToast';
-import Toast from '../components/Toast';
-import { FadeIn } from '../components/animated';
+import { COLORS, CSS_SHADOWS, CARD_STYLE } from '../styles/colors';
+import { BORDER_RADIUS } from '../styles/spacing';
+import restaurantApiService from '../services/restaurantApiService';
+import useCartStore from '../store/cartStore';
+import useReservationStore from '../store/reservationStore';
+import usePaymentStore from '../store/paymentStore';
 
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  points: number;
+// ============================================================
+// PaymentScreen — 잇테이블 v2 선결제
+// ============================================================
+
+// PortOne (iamport) SDK
+declare global {
+  interface Window {
+    IMP?: {
+      init: (storeId: string) => void;
+      request_pay: (params: any, callback: (response: any) => void) => void;
+    };
+  }
 }
+
+type PaymentMethod = 'card' | 'kakao' | 'points';
+
+const IMP_STORE_ID = process.env.REACT_APP_IMP_STORE_ID || '';
 
 const PaymentScreen: React.FC = () => {
   const navigate = useNavigate();
-  const { toast, showSuccess, showError, showInfo, hideToast } = useToast();
-  const [user, setUser] = useState<User>({ id: 'user1', name: '사용자', email: 'user@example.com', points: 0 });
-  const [loading, setLoading] = useState(false);
-  const [selectedAmount, setSelectedAmount] = useState<number>(0);
-  const [customAmount, setCustomAmount] = useState<string>('');
-  const [selectedMethod, setSelectedMethod] = useState<'points' | 'card'>('card');
-  const [requiredAmount, setRequiredAmount] = useState<number>(0);
-  const [isFromMeetup, setIsFromMeetup] = useState<boolean>(false);
-  const [payButtonPressed, setPayButtonPressed] = useState(false);
-  const [payButtonHovered, setPayButtonHovered] = useState(false);
-  const [customAmountFocused, setCustomAmountFocused] = useState(false);
-  const [hoveredAmount, setHoveredAmount] = useState<number | null>(null);
+  const { reservationId } = useParams<{ reservationId: string }>();
+  const cartStore = useCartStore();
+  const reservationStore = useReservationStore();
+  const paymentStore = usePaymentStore();
 
-  const predefinedAmounts = [3000, 5000, 10000, 20000, 50000, 100000];
+  const [loading, setLoading] = useState(true);
+  const [processing, setProcessing] = useState(false);
+  const [selectedMethod, setSelectedMethod] = useState<PaymentMethod>('card');
+  const [impReady, setImpReady] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
 
+  const reservation = reservationStore.currentReservation;
+  const totalAmount = cartStore.totalAmount;
+  const items = cartStore.items;
+
+  // PortOne SDK 로드
   useEffect(() => {
-    const fetchUserPoints = async () => {
-      try {
-        const token = localStorage.getItem('token');
-        const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:3001/api'}/users/points`, {
-          headers: { 'Authorization': token ? `Bearer ${token}` : '' },
-        });
-        const data = await response.json();
-        if (data.success) {
-          setUser(prev => ({ ...prev, id: data.data.userId, name: data.data.name, points: data.data.points }));
-        }
-      } catch (error) { /* ignore */ }
-    };
-    fetchUserPoints();
-    const urlParams = new URLSearchParams(window.location.search);
-    const amountParam = urlParams.get('amount');
-    const reasonParam = urlParams.get('reason');
-    if (amountParam) {
-      const amount = parseInt(amountParam);
-      setRequiredAmount(amount);
-      setSelectedAmount(amount);
-      setCustomAmount(amount.toString());
-      if (reasonParam === 'meetup') setIsFromMeetup(true);
+    if (window.IMP) {
+      window.IMP.init(IMP_STORE_ID);
+      setImpReady(true);
+      return;
     }
+    const existing = document.querySelector('script[src="https://cdn.iamport.kr/v1/iamport.js"]');
+    if (existing) {
+      existing.addEventListener('load', () => {
+        window.IMP?.init(IMP_STORE_ID);
+        setImpReady(true);
+      });
+      return;
+    }
+    const script = document.createElement('script');
+    script.src = 'https://cdn.iamport.kr/v1/iamport.js';
+    script.onload = () => {
+      window.IMP?.init(IMP_STORE_ID);
+      setImpReady(true);
+    };
+    document.body.appendChild(script);
   }, []);
 
-  const handleAmountSelect = (amount: number) => { setSelectedAmount(amount); setCustomAmount(''); };
-  const handleCustomAmountChange = (value: string) => { setCustomAmount(value); setSelectedAmount(parseInt(value) || 0); };
-  const getCurrentAmount = () => customAmount ? parseInt(customAmount) || 0 : selectedAmount;
+  // 예약 정보 로드
+  useEffect(() => {
+    if (!reservationId) return;
+    reservationStore
+      .fetchReservationById(reservationId)
+      .finally(() => setLoading(false));
+  }, [reservationId]);
 
-  const handlePointCharge = async () => {
-    const amount = getCurrentAmount();
-    if (amount < 1000) { showError('최소 충전 금액은 1,000원입니다.'); return; }
-    setLoading(true);
+  const formatPrice = (n: number) => n.toLocaleString('ko-KR');
+
+  const handlePayment = useCallback(async () => {
+    if (!reservationId || processing) return;
+    setProcessing(true);
+    setErrorMsg('');
+
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:3001/api'}/users/charge-points`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` },
-        body: JSON.stringify({ amount }),
-      });
-      const data = await response.json();
-      if (data.success) {
-        setUser(prev => ({ ...prev, points: data.data.newPoints }));
-        let toastMessage = data.data.message || `${amount.toLocaleString()}원이 충전되었습니다.`;
-        if (data.data.isDeveloperAccount && data.data.bonusAmount > 0) toastMessage = data.data.message;
-        showSuccess(toastMessage);
-        setSelectedAmount(0); setCustomAmount('');
-        const returnUrl = sessionStorage.getItem('returnUrl');
-        if (returnUrl) {
-          sessionStorage.removeItem('returnUrl'); sessionStorage.removeItem('requiredPoints');
-          setTimeout(() => navigate(returnUrl), data.data.isDeveloperAccount ? 2000 : 1000);
-        }
-      } else { showError(data.message || '충전 중 오류가 발생했습니다.'); }
-    } catch (error) { showError('네트워크 오류가 발생했습니다.'); }
-    finally { setLoading(false); }
-  };
+      // 1. 주문 생성
+      const orderItems = items.map((item) => ({
+        menuId: item.menuId,
+        quantity: item.quantity,
+        options: item.options,
+      }));
+      const order = await restaurantApiService.createOrder(reservationId, orderItems);
+
+      // 2. 결제 준비
+      const paymentData = await paymentStore.preparePayment(
+        reservationId,
+        totalAmount,
+        selectedMethod,
+      );
+
+      // 3. 포인트 결제는 서버에서 즉시 처리
+      if (selectedMethod === 'points') {
+        cartStore.clearCart();
+        navigate(`/reservation-confirm/${reservationId}`);
+        return;
+      }
+
+      // 4. PortOne 결제
+      if (!window.IMP) {
+        setErrorMsg('결제 모듈을 불러올 수 없습니다. 페이지를 새로고침해주세요.');
+        setProcessing(false);
+        return;
+      }
+
+      const merchantUid = paymentData.merchantUid || `order_${Date.now()}`;
+
+      window.IMP.request_pay(
+        {
+          pg: selectedMethod === 'kakao' ? 'kakaopay' : 'html5_inicis',
+          pay_method: selectedMethod === 'kakao' ? 'kakaopay' : 'card',
+          merchant_uid: merchantUid,
+          name: reservation?.restaurantName
+            ? `${reservation.restaurantName} 예약 결제`
+            : '잇테이블 예약 결제',
+          amount: totalAmount,
+          buyer_name: '',
+          buyer_tel: '',
+        },
+        async (response: any) => {
+          if (response.success) {
+            try {
+              // 5. 결제 검증
+              await paymentStore.verifyPayment(response.imp_uid, merchantUid);
+              cartStore.clearCart();
+              navigate(`/reservation-confirm/${reservationId}`);
+            } catch {
+              setErrorMsg('결제 검증에 실패했습니다. 고객센터에 문의해주세요.');
+            }
+          } else {
+            setErrorMsg(response.error_msg || '결제가 취소되었습니다.');
+          }
+          setProcessing(false);
+        },
+      );
+    } catch (err: any) {
+      setErrorMsg(err.message || '결제 처리 중 오류가 발생했습니다.');
+      setProcessing(false);
+    }
+  }, [reservationId, processing, items, totalAmount, selectedMethod, reservation, paymentStore, cartStore, navigate]);
+
+  if (loading) {
+    return (
+      <div style={s.wrapper}>
+        <div style={s.container}>
+          <div style={s.loadingWrap}>
+            <ActivityIndicator size="large" color={COLORS.primary.main} />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => {
-          const returnUrl = sessionStorage.getItem('returnUrl');
-          if (returnUrl && isFromMeetup) { sessionStorage.removeItem('returnUrl'); sessionStorage.removeItem('requiredPoints'); navigate(returnUrl); }
-          else navigate(-1);
-        }} style={styles.backButton}>
-          <Icon name="arrow-left" size={20} color={COLORS.text.primary} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>{isFromMeetup ? '약속 참여비 충전' : '포인트 충전'}</Text>
-      </View>
+    <div style={s.wrapper}>
+      <div style={s.container}>
+        {/* 헤더 */}
+        <div style={s.header}>
+          <div style={s.backBtn} onClick={() => navigate(-1)}>
+            <Icon name="arrow-left" size={20} color={COLORS.text.primary} />
+          </div>
+          <div style={s.headerTitle}>결제</div>
+          <div style={{ width: 36 }} />
+        </div>
 
-      <FadeIn>
-      <View style={styles.content}>
-        {isFromMeetup && requiredAmount > 0 && (
-          <View style={styles.meetupInfoSection}>
-            <Text style={styles.meetupInfoTitle}>약속 참여 안내</Text>
-            <View style={styles.meetupInfoRow}>
-              <Text style={styles.meetupInfoLabel}>필요한 참여비</Text>
-              <Text style={styles.meetupInfoAmount}>{requiredAmount.toLocaleString()}원</Text>
-            </View>
-            <View style={styles.meetupInfoRow}>
-              <Text style={styles.meetupInfoLabel}>현재 포인트</Text>
-              <Text style={[styles.meetupInfoAmount, { color: user.points >= requiredAmount ? COLORS.functional.success : COLORS.functional.error }]}>{user.points.toLocaleString()}원</Text>
-            </View>
-            {user.points < requiredAmount && (
-              <View style={styles.meetupInfoRow}>
-                <Text style={styles.meetupInfoLabel}>부족한 포인트</Text>
-                <Text style={[styles.meetupInfoAmount, { color: COLORS.functional.error }]}>{(requiredAmount - user.points).toLocaleString()}원</Text>
-              </View>
+        {/* 예약 정보 요약 */}
+        <div style={s.section}>
+          <div style={s.sectionTitle}>예약 정보</div>
+          <div style={s.infoCard}>
+            {reservation && (
+              <>
+                <div style={s.infoRow}>
+                  <span style={s.infoLabel}>매장</span>
+                  <span style={s.infoValue}>{reservation.restaurantName || '-'}</span>
+                </div>
+                <div style={s.infoRow}>
+                  <span style={s.infoLabel}>날짜</span>
+                  <span style={s.infoValue}>{reservation.reservationDate}</span>
+                </div>
+                <div style={s.infoRow}>
+                  <span style={s.infoLabel}>시간</span>
+                  <span style={s.infoValue}>{reservation.reservationTime}</span>
+                </div>
+                <div style={s.infoRow}>
+                  <span style={s.infoLabel}>인원</span>
+                  <span style={s.infoValue}>{reservation.partySize}명</span>
+                </div>
+              </>
             )}
-          </View>
+          </div>
+        </div>
+
+        {/* 메뉴 목록 */}
+        {items.length > 0 && (
+          <div style={s.section}>
+            <div style={s.sectionTitle}>주문 메뉴</div>
+            <div style={s.infoCard}>
+              {items.map((item) => (
+                <div key={item.menuId} style={s.menuRow}>
+                  <span>{item.menuName} x{item.quantity}</span>
+                  <span style={s.menuPrice}>{formatPrice(item.subtotal)}원</span>
+                </div>
+              ))}
+              <div style={s.totalRow}>
+                <span>총 결제금액</span>
+                <span style={s.totalPrice}>{formatPrice(totalAmount)}원</span>
+              </div>
+            </div>
+          </div>
         )}
 
-        <View style={styles.pointsSection}>
-          <Text style={styles.pointsTitle}>내 포인트</Text>
-          <Text style={styles.pointsAmount}>{user.points.toLocaleString()}P</Text>
-          <Text style={styles.pointsSubtext}>포인트로 결제하면 빠르고 간편해요!</Text>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>충전 금액</Text>
-          <View style={styles.amountGrid}>
-            {predefinedAmounts.map((amount) => (
-              <div key={amount} style={{ flex: 1, minWidth: '30%', transition: 'all 150ms ease', transform: hoveredAmount === amount ? 'scale(1.04)' : 'scale(1)' }}
-                onMouseEnter={() => setHoveredAmount(amount)} onMouseLeave={() => setHoveredAmount(null)}>
-                <TouchableOpacity style={[styles.amountButton, selectedAmount === amount && !customAmount && styles.selectedAmountButton]} onPress={() => handleAmountSelect(amount)}>
-                  <Text style={[styles.amountButtonText, selectedAmount === amount && !customAmount && styles.selectedAmountButtonText]}>{amount.toLocaleString()}원</Text>
-                </TouchableOpacity>
+        {/* 결제 수단 */}
+        <div style={s.section}>
+          <div style={s.sectionTitle}>결제 수단</div>
+          <div style={s.methodList}>
+            {([
+              { key: 'card' as const, label: '신용/체크카드', icon: '💳' },
+              { key: 'kakao' as const, label: '카카오페이', icon: '💛' },
+              { key: 'points' as const, label: '포인트 결제', icon: '🪙' },
+            ]).map((method) => (
+              <div
+                key={method.key}
+                onClick={() => setSelectedMethod(method.key)}
+                style={{
+                  ...s.methodItem,
+                  borderColor:
+                    selectedMethod === method.key
+                      ? COLORS.primary.main
+                      : 'rgba(17,17,17,0.1)',
+                  backgroundColor:
+                    selectedMethod === method.key
+                      ? COLORS.primary.light
+                      : '#FFFFFF',
+                }}
+              >
+                <span style={{ fontSize: 20, marginRight: 10 }}>{method.icon}</span>
+                <span style={s.methodLabel}>{method.label}</span>
+                <div
+                  style={{
+                    ...s.radio,
+                    borderColor:
+                      selectedMethod === method.key
+                        ? COLORS.primary.main
+                        : COLORS.neutral.grey300,
+                  }}
+                >
+                  {selectedMethod === method.key && <div style={s.radioInner} />}
+                </div>
               </div>
             ))}
-          </View>
-          <View style={styles.customAmountSection}>
-            <Text style={styles.customAmountLabel}>직접 입력</Text>
-            <TextInput style={[styles.customAmountInput, customAmountFocused && { borderColor: COLORS.primary.main, boxShadow: '0 0 0 3px rgba(212,136,44,0.12)' } as any]}
-              placeholder="원하는 금액을 입력하세요" value={customAmount} onChangeText={handleCustomAmountChange}
-              keyboardType="numeric" onFocus={() => setCustomAmountFocused(true)} onBlur={() => setCustomAmountFocused(false)} />
-          </View>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>결제 방법</Text>
-          <TouchableOpacity style={[styles.paymentMethodButton, selectedMethod === 'card' && styles.selectedPaymentMethod]} onPress={() => setSelectedMethod('card')}>
-            <View style={styles.paymentMethodRow}>
-              <View style={styles.radioButton}>{selectedMethod === 'card' && <View style={styles.radioButtonInner} />}</View>
-              <Text style={styles.paymentMethodText}>카드 결제</Text>
-            </View>
-            <Text style={styles.paymentMethodSubtext}>신용카드, 체크카드로 포인트 충전</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.paymentMethodButton, false && styles.selectedPaymentMethod]} disabled={true}>
-            <View style={styles.paymentMethodRow}><View style={styles.radioButton} /><Text style={[styles.paymentMethodText, { color: COLORS.neutral.grey400 }]}>계좌이체</Text></View>
-            <Text style={[styles.paymentMethodSubtext, { color: COLORS.neutral.grey400 }]}>준비 중입니다</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.paymentMethodButton, false && styles.selectedPaymentMethod]} disabled={true}>
-            <View style={styles.paymentMethodRow}><View style={styles.radioButton} /><Text style={[styles.paymentMethodText, { color: COLORS.neutral.grey400 }]}>간편결제</Text></View>
-            <Text style={[styles.paymentMethodSubtext, { color: COLORS.neutral.grey400 }]}>카카오페이, 네이버페이 등 (준비 중)</Text>
-          </TouchableOpacity>
-        </View>
-
-        {getCurrentAmount() > 0 && (
-          <View style={styles.paymentInfo}>
-            <Text style={styles.paymentInfoTitle}>결제 정보</Text>
-            <View style={styles.paymentInfoRow}><Text style={styles.paymentInfoLabel}>충전 금액</Text><Text style={styles.paymentInfoValue}>{getCurrentAmount().toLocaleString()}원</Text></View>
-            <View style={styles.paymentInfoRow}><Text style={styles.paymentInfoLabel}>결제 방법</Text><Text style={styles.paymentInfoValue}>카드 결제</Text></View>
-          </View>
-        )}
-      </View>
-      </FadeIn>
-
-      <View style={styles.footer}>
-        <div style={{
-          background: (getCurrentAmount() === 0 || loading) ? COLORS.neutral.grey400 : COLORS.gradient.heroCSS,
-          borderRadius: 6,
-          boxShadow: (getCurrentAmount() === 0 || loading) ? 'none' : '0 4px 12px rgba(212,136,44,0.25), 0 8px 24px rgba(212,136,44,0.12)',
-          cursor: (getCurrentAmount() === 0 || loading) ? 'not-allowed' : 'pointer',
-          transition: 'all 200ms ease',
-          transform: payButtonHovered && getCurrentAmount() > 0 && !loading ? 'scale(1.02)' : payButtonPressed ? 'scale(0.98)' : 'scale(1)',
-          opacity: (getCurrentAmount() === 0 || loading) ? 0.7 : 1,
-        }}
-          onMouseEnter={() => getCurrentAmount() > 0 && !loading && setPayButtonHovered(true)}
-          onMouseLeave={() => { setPayButtonHovered(false); setPayButtonPressed(false); }}
-          onMouseDown={() => getCurrentAmount() > 0 && !loading && setPayButtonPressed(true)}
-          onMouseUp={() => setPayButtonPressed(false)}>
-          <TouchableOpacity style={styles.payButton} onPress={handlePointCharge} disabled={getCurrentAmount() === 0 || loading}>
-            <Text style={styles.payButtonText}>{loading ? '충전 중...' : getCurrentAmount() > 0 ? `${getCurrentAmount().toLocaleString()}원 충전하기` : '금액을 선택하세요'}</Text>
-          </TouchableOpacity>
+          </div>
         </div>
-      </View>
 
-      <Toast visible={toast.visible} message={toast.message} type={toast.type} onHide={hideToast} />
-    </ScrollView>
+        {/* 에러 메시지 */}
+        {errorMsg && (
+          <div style={s.errorBox}>
+            <span style={s.errorText}>{errorMsg}</span>
+          </div>
+        )}
+
+        {/* 결제 버튼 */}
+        <div style={s.submitSection}>
+          <div
+            onClick={!processing ? handlePayment : undefined}
+            style={{
+              ...s.submitButton,
+              opacity: processing ? 0.6 : 1,
+              cursor: processing ? 'not-allowed' : 'pointer',
+            }}
+          >
+            {processing ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              `${formatPrice(totalAmount)}원 결제하기`
+            )}
+          </div>
+        </div>
+
+        <div style={{ height: 40 }} />
+      </div>
+    </div>
   );
 };
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.neutral.grey50 },
-  header: { flexDirection: 'row', alignItems: 'center', ...HEADER_STYLE.sub, zIndex: 10 },
-  backButton: { marginRight: 16, padding: 10, minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
-  backButtonText: { fontSize: 20, color: COLORS.text.primary },
-  headerTitle: { ...HEADER_STYLE.subTitle },
-  content: { flex: 1, padding: 16 },
-  pointsSection: { backgroundColor: COLORS.primary.main, borderRadius: 8, padding: 24, marginBottom: 24, alignItems: 'center', shadowColor: COLORS.neutral.black, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.12, shadowRadius: 12, elevation: 5 },
-  pointsTitle: { fontSize: 14, fontWeight: '500', color: COLORS.neutral.white, opacity: 0.9, marginBottom: 8 },
-  pointsAmount: { fontSize: 36, fontWeight: '800', color: COLORS.neutral.white, marginBottom: 8 },
-  pointsSubtext: { fontSize: 13, color: COLORS.neutral.white, opacity: 0.8 },
-  section: { marginBottom: 24 },
-  sectionTitle: { fontSize: 17, fontWeight: '700', color: COLORS.text.primary, marginBottom: 16 },
-  amountGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 20 },
-  amountButton: { width: '100%', backgroundColor: COLORS.neutral.white, borderRadius: 8, padding: 16, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(17,17,17,0.06)', shadowColor: COLORS.neutral.black, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 4, elevation: 1 },
-  selectedAmountButton: { backgroundColor: 'rgba(212,136,44,0.06)', borderColor: COLORS.primary.main, borderWidth: 2 },
-  amountButtonText: { fontSize: 15, fontWeight: '600', color: COLORS.text.primary },
-  selectedAmountButtonText: { color: COLORS.primary.main, fontWeight: '700' },
-  customAmountSection: { marginTop: 12 },
-  customAmountLabel: { fontSize: 16, fontWeight: '500', color: COLORS.text.primary, marginBottom: 8 },
-  customAmountInput: { borderWidth: 1, borderColor: 'rgba(17,17,17,0.06)', borderRadius: 8, padding: 16, fontSize: 16, backgroundColor: COLORS.neutral.white, transition: 'border-color 150ms ease, box-shadow 150ms ease' },
-  paymentMethodButton: { backgroundColor: COLORS.neutral.white, borderRadius: 8, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: 'rgba(17,17,17,0.06)' },
-  selectedPaymentMethod: { borderColor: COLORS.primary.main, backgroundColor: 'rgba(212,136,44,0.04)' },
-  paymentMethodRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
-  radioButton: { width: 20, height: 20, borderRadius: 10, borderWidth: 2, borderColor: COLORS.neutral.grey400, marginRight: 12, alignItems: 'center', justifyContent: 'center' },
-  radioButtonInner: { width: 10, height: 10, borderRadius: 5, backgroundColor: COLORS.primary.main },
-  paymentMethodText: { fontSize: 16, fontWeight: '500', color: COLORS.text.primary },
-  paymentMethodSubtext: { fontSize: 14, color: COLORS.text.secondary, marginLeft: 32 },
-  paymentInfo: { backgroundColor: COLORS.neutral.white, borderRadius: 8, padding: 20, marginBottom: 24, borderWidth: 1, borderColor: 'rgba(17,17,17,0.06)', shadowColor: COLORS.neutral.black, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 4, elevation: 1 },
-  paymentInfoTitle: { fontSize: 16, fontWeight: '700', color: COLORS.text.primary, marginBottom: 12, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: 'rgba(17,17,17,0.06)' },
-  paymentInfoRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
-  paymentInfoLabel: { fontSize: 14, color: COLORS.text.secondary },
-  paymentInfoValue: { fontSize: 15, fontWeight: '600', color: COLORS.text.primary },
-  footer: { padding: 16, borderTopWidth: 1, borderTopColor: 'rgba(17,17,17,0.06)', backgroundColor: COLORS.neutral.white },
-  payButton: { paddingVertical: 16, paddingHorizontal: 24, alignItems: 'center' },
-  payButtonText: { fontSize: 17, fontWeight: '700', color: COLORS.neutral.white },
-  meetupInfoSection: { backgroundColor: 'rgba(212,136,44,0.06)', borderRadius: 8, padding: 20, marginBottom: 24, borderWidth: 1, borderColor: 'rgba(212,136,44,0.15)' },
-  meetupInfoTitle: { fontSize: 15, fontWeight: '700', color: COLORS.primary.main, marginBottom: 12, textAlign: 'center' },
-  meetupInfoRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-  meetupInfoLabel: { fontSize: 14, color: COLORS.text.secondary, fontWeight: '500' },
-  meetupInfoAmount: { fontSize: 16, fontWeight: '700', color: COLORS.text.primary },
-});
+// ── Styles ──
+
+const FONT = 'system-ui, -apple-system, sans-serif';
+
+const s: Record<string, React.CSSProperties> = {
+  wrapper: { minHeight: '100vh', backgroundColor: COLORS.neutral.background },
+  container: { maxWidth: 480, margin: '0 auto' },
+  loadingWrap: { display: 'flex', justifyContent: 'center', paddingTop: 120 },
+
+  header: {
+    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+    padding: '16px 20px 12px', backgroundColor: '#FFFFFF',
+    borderBottom: '1px solid rgba(17,17,17,0.06)',
+  },
+  backBtn: { width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' },
+  headerTitle: { fontSize: 18, fontWeight: 600, color: COLORS.text.primary, fontFamily: FONT },
+
+  section: { padding: '20px 20px 0' },
+  sectionTitle: { fontSize: 15, fontWeight: 700, color: COLORS.text.primary, fontFamily: FONT, marginBottom: 12 },
+
+  infoCard: {
+    borderRadius: CARD_STYLE.borderRadius, border: `1px solid ${CARD_STYLE.borderColor}`,
+    padding: 16, backgroundColor: '#FFFFFF',
+  },
+  infoRow: {
+    display: 'flex', justifyContent: 'space-between', padding: '6px 0',
+    fontSize: 14, fontFamily: FONT,
+  },
+  infoLabel: { color: COLORS.text.tertiary },
+  infoValue: { color: COLORS.text.primary, fontWeight: 500 },
+
+  menuRow: {
+    display: 'flex', justifyContent: 'space-between', padding: '6px 0',
+    fontSize: 14, fontFamily: FONT, color: COLORS.text.primary,
+  },
+  menuPrice: { fontWeight: 600, color: COLORS.text.secondary },
+  totalRow: {
+    display: 'flex', justifyContent: 'space-between', padding: '12px 0 0',
+    borderTop: '1px solid rgba(17,17,17,0.06)', marginTop: 8,
+    fontSize: 16, fontWeight: 700, fontFamily: FONT, color: COLORS.text.primary,
+  },
+  totalPrice: { color: COLORS.primary.main },
+
+  methodList: { display: 'flex', flexDirection: 'column' as const, gap: 10 },
+  methodItem: {
+    display: 'flex', alignItems: 'center', padding: '14px 16px',
+    borderRadius: CARD_STYLE.borderRadius, border: '2px solid rgba(17,17,17,0.1)',
+    cursor: 'pointer', transition: 'all 150ms',
+  },
+  methodLabel: { flex: 1, fontSize: 14, fontWeight: 500, color: COLORS.text.primary, fontFamily: FONT },
+  radio: {
+    width: 20, height: 20, borderRadius: 10, border: '2px solid',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+  },
+  radioInner: { width: 10, height: 10, borderRadius: 5, backgroundColor: COLORS.primary.main },
+
+  errorBox: {
+    margin: '16px 20px 0', padding: '12px 16px',
+    backgroundColor: COLORS.functional.errorLight,
+    borderRadius: BORDER_RADIUS.md,
+  },
+  errorText: { fontSize: 13, color: COLORS.functional.error, fontFamily: FONT },
+
+  submitSection: { padding: '24px 20px 0' },
+  submitButton: {
+    width: '100%', padding: '14px 0', borderRadius: BORDER_RADIUS.md,
+    background: `linear-gradient(135deg, ${COLORS.primary.main} 0%, ${COLORS.primary.gradient} 100%)`,
+    color: '#FFFFFF', fontSize: 16, fontWeight: 700, textAlign: 'center' as const,
+    fontFamily: FONT, boxShadow: CSS_SHADOWS.cta, transition: 'all 200ms',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    boxSizing: 'border-box' as const,
+  },
+};
 
 export default PaymentScreen;
