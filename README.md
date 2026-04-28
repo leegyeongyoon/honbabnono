@@ -1,281 +1,239 @@
-# 혼밥시러 (HonbabnoNo) - 모임 매칭 플랫폼
+# 잇테이블 (EatTable) — 선주문/선결제형 외식 예약 플랫폼
 
-혼자 먹기 싫은 사람들을 위한 모임 매칭 플랫폼입니다.
+> **"자리가 아니라, 식사 시작을 예약하다"**
 
-## 🚀 프로젝트 개요
+고객이 매장 방문 전에 좌석, 시간, 인원, 메뉴, 결제를 모두 확정하고, 매장은 고객의 도착 예정 상태를 보며 조리/상차림 타이밍을 조절해 "예약한 시간에 빠르게 식사를 시작"하게 만드는 외식 플랫폼입니다.
 
-혼밥시러는 혼자 식사하기 싫어하는 사람들이 함께 식사할 수 있도록 모임을 만들고 참여할 수 있는 플랫폼입니다.
+- 기획/사업 문서: [`docs/README-BUSINESS.md`](docs/README-BUSINESS.md)
+- 피벗 계획 상세: [`docs/PIVOT-PLAN.md`](docs/PIVOT-PLAN.md)
 
-### 주요 기능
-- 🍽️ 모임 생성 및 참여
-- 💬 실시간 채팅
-- 💰 약속금 시스템 (포인트/카카오페이/카드결제)
-- 🗺️ 지도 기반 위치 선택
-- ⭐ 밥알지수 (신뢰도 시스템)
-- 📝 참여자 리뷰 시스템
+---
 
-## 🏗️ 기술 스택
+## 기술 스택
 
-### Frontend
-- **React Native**: 크로스 플랫폼 모바일 앱
-- **React**: 웹 버전
-- **TypeScript**: 타입 안정성
-- **React Navigation**: 네비게이션
-- **Zustand**: 상태 관리
+| 영역 | 기술 |
+|------|------|
+| **모바일** | React Native 0.71, TypeScript |
+| **웹** | React 18, Webpack, TypeScript |
+| **상태 관리** | Zustand |
+| **백엔드** | Node.js, Express, Socket.IO |
+| **DB** | PostgreSQL (AWS RDS) |
+| **인증** | JWT (Access + Refresh Token), 카카오 소셜로그인 |
+| **결제** | PortOne (카드/간편결제) |
+| **인프라** | AWS (ECS, RDS, S3, CloudFront), Terraform |
+| **CI/CD** | GitHub Actions |
+| **테스트** | Jest (Unit/Integration), Playwright (E2E) |
 
-### Backend
-- **Node.js**: 백엔드 서버
-- **Express**: 웹 프레임워크
-- **PostgreSQL**: 데이터베이스
-- **JWT**: 인증 시스템
+---
 
-### 외부 서비스
-- **카카오 로그인 API**: 소셜 로그인
-- **카카오맵 API**: 지도 및 위치 서비스
-- **카카오페이 API**: 결제 서비스
+## 프로젝트 구조
 
-## 📋 비즈니스 정책 및 요구사항
-
-### 1. 모임 취소/환불 정책
-
-#### 사용자 자발적 취소
-- **모임 시작 1시간 전까지**: 약속금 전액 환불
-- **직전 취소 (패널티)**:
-  - 40분 전: 약속금 60% 환불
-  - 20분 전: 약속금 30% 환불
-  - 10분 전: 약속금 환불 불가
-
-#### 시스템 취소
-- **특정 인원이 차지 않아 모임이 취소되는 경우**: 전원 전액 환불
-- **시스템 오류로 인한 취소**: 전원 전액 환불
-
-#### 잦은 취소 제재
-- **3회 이상 연속 취소**: 일정 기간 모임 생성/참여 제한 조치
-
-### 2. 모임 확정 정책
-
-#### 모임장 권한
-- **최소 인원 달성 시**: 모임장이 수동으로 확정 가능
-  - 예: 4명 모임에서 2명만 모여도 모임장 판단하에 확정 가능
-- **확정된 모임**: 무조건 진행되며, 취소 시 패널티 적용
-
-#### 자동 확정 조건
-- 최대 인원 달성 시 자동 확정
-- 모임 시작 1시간 전 자동 확정
-
-### 3. 위치 관리 정책
-
-#### 표준 위치
-- **기본 모임 장소**: 강남역 1번 출구 (좌표: 37.498095, 127.027610)
-- **기존 모임**: 모두 강남역 1번 출구로 표준화 완료
-
-#### 위치 선택 방법
-- **검색 기능**: 주소/장소명으로 검색
-- **지도 클릭**: 직접 지도에서 위치 선택
-- **직접 입력 기능**: 제거됨 (2024.11.18)
-
-### 4. 결제 시스템
-
-#### 지원 결제 방법
-- **포인트 결제**: 보유 포인트로 즉시 결제
-- **카카오페이**: 외부 결제 창 연동
-- **카드 결제**: 신용카드/체크카드
-
-#### 약속금 정책
-- **기본 금액**: 3,000원
-- **환불 정책**: 상기 취소 정책에 따름
-- **보증금 성격**: 노쇼 방지용, 모임 완료 후 1일 이내 환불
-
-### 5. 신뢰도 시스템 (밥알지수)
-
-#### 계산 요소
-- 참여 모임 수
-- 호스팅 모임 수
-- 완료한 모임 수
-- 받은 리뷰 점수
-- 취소 이력
-
-#### 등급 시스템 (6단계)
-| 밥알지수 | 등급 | 이모지 | 색상 | 설명 |
-|---------|------|--------|------|------|
-| 90+ | 밥신 | 🍚👑 | #FF6B6B (빨간색) | 최고급 회원 |
-| 80+ | 밥마스터 | 🍚⭐ | #FF9500 (주황색) | 고급 회원 |
-| 70+ | 따끈한 밥그릇 | 🍚🔥 | #F5B041 (황금색) | 중급 회원 |
-| 50+ | 든든한 밥그릇 | 🍚💪 | #28A745 (초록색) | 초급 회원 |
-| 30+ | 새내기 밥그릇 | 🍚🌱 | #007BFF (파란색) | 새싹 회원 |
-| <30 | 밥알 초보 | 🍚👶 | #6C757D (회색) | 시작 단계 |
-
-#### 밥알지수 계산 알고리즘
-- **기본 점수**: 20점
-- **모임 참여**: +5점/회 (최대 40점)
-- **모임 주최**: +10점/회 (최대 30점)  
-- **리뷰 점수**: (평균 별점 - 3) × 10점
-- **완료율 보너스**: (완료한 모임 수 / 총 참여 모임 수) × 20점
-- **취소 패널티**: -10점/회
-
-### 6. 뱃지 시스템 🏆
-
-#### 뱃지 목록 및 획득 조건
-
-| 뱃지명 | 이모지 | 설명 | 획득 조건 |
-|--------|--------|------|----------|
-| 첫 모임 | 🌟 | 첫 번째 모임 참여 | 1회 이상 모임 참여 완료 |
-| 모임왕 | 👑 | 10회 이상 모임 참여 | 10회 이상 모임 참여 완료 |
-| 호스트 | 🏠 | 모임 개최하기 | 1회 이상 모임 주최 완료 |
-| 리뷰어 | ✍️ | 리뷰 10개 이상 작성 | 10개 이상 리뷰 작성 |
-| 밥친구 | 👥 | 같은 사람과 3회 모임 | 동일인과 3회 이상 함께 모임 |
-| 탐험가 | 🗺️ | 5개 지역 모임 참여 | 서로 다른 5개 지역에서 모임 참여 |
-
-#### 뱃지 획득 시스템
-- **자동 획득**: API 호출 시 조건 확인 후 자동 부여
-- **중복 방지**: 동일 뱃지는 최초 1회만 획득
-- **실시간 업데이트**: 마이페이지 접속 시 최신 상태로 업데이트
-- **뱃지 알림**: 새로 획득한 뱃지 실시간 알림 (구현 예정)
-
-#### API 엔드포인트
 ```
-GET /api/user/badges - 사용자 뱃지 목록 조회
+honbabnono/
+├── src/                        # React Native + Web 프론트엔드
+│   ├── components/             # 공용 컴포넌트
+│   │   ├── shared/             # Universal 화면 (웹/네이티브 공유)
+│   │   └── meetup-cards/       # 카드 컴포넌트 모음
+│   ├── screens/                # 화면 (*.web.tsx = 웹 전용)
+│   ├── services/               # API 서비스 레이어
+│   ├── store/                  # Zustand 스토어
+│   ├── styles/                 # 디자인 토큰 (colors, typography, spacing)
+│   ├── navigation/             # React Navigation 설정
+│   ├── constants/              # 상수 정의
+│   └── utils/                  # 유틸리티
+├── server/                     # Express 백엔드
+│   ├── index.js                # 서버 진입점
+│   ├── modules/                # 기능별 모듈 (controller.js + routes.js)
+│   ├── middleware/             # 인증, 검증, Rate Limiter
+│   ├── config/                 # DB, S3, PortOne, Logger 설정
+│   ├── migrations/             # DB 마이그레이션 SQL + runner.js
+│   ├── scheduler/              # cron 스케줄러
+│   └── utils/                  # 서버 유틸리티
+├── admin/                      # 관리자 대시보드 (React SPA)
+├── merchant/                   # 점주 대시보드 (Phase 2 예정)
+├── tests/                      # Jest 테스트
+├── e2e/                        # Playwright E2E 테스트
+├── docs/                       # 기획서, 사업계획서, 정책 문서
+├── terraform/                  # AWS IaC
+├── ios/                        # iOS 네이티브
+└── android/                    # Android 네이티브
 ```
 
-**응답 예시:**
-```json
-{
-  "success": true,
-  "badges": [
-    {
-      "id": "first_meetup",
-      "title": "첫 모임", 
-      "emoji": "🌟",
-      "description": "첫 번째 모임 참여",
-      "earned": true,
-      "earnedAt": "2024-11-24T12:00:00.000Z"
-    }
-  ],
-  "newBadges": [] // 새로 획득한 뱃지
-}
+### 프론트엔드 패턴
+
+- **Universal 패턴**: `src/components/shared/UniversalXxxScreen.tsx` — 웹/네이티브 공유 로직
+- **웹 진입점**: `WebApp.tsx` → `RouterApp.tsx`
+- **네이티브 진입점**: `src/navigation/RootNavigator.tsx`
+- **디자인 토큰**: `src/styles/colors.ts`, `typography.ts`, `spacing.ts`
+
+### 백엔드 모듈
+
+```
+server/modules/
+├── auth/              # 인증 (로그인, 회원가입, 카카오)
+├── user/              # 사용자 (프로필, 설정)
+├── notifications/     # 알림 (FCM 푸시, 앱내)
+├── chat/              # 채팅 (Socket.IO)
+├── points/            # 포인트 (충전, 사용)
+├── deposits/          # 결제 (PortOne 연동)
+├── reviews/           # 리뷰
+├── admin/             # 관리자 대시보드 API
+├── support/           # 공지, FAQ
+├── advertisements/    # 광고 배너
+├── ai/                # AI 검색/추천
+├── search/            # 검색
+├── meetups/           # [v1 레거시] 모임 — Phase 1에서 대체 예정
+└── badges/            # [v1 레거시] 뱃지 — 폐기 예정
 ```
 
-## 🎨 UI/UX 요구사항
+**v2 신규 모듈 (Phase 1~2에서 추가):**
+`restaurants`, `merchants`, `menus`, `reservations`, `orders`, `settlements`
 
-### 모임 상세 페이지 하단 버튼
-- **참여자/호스트**: 
-  - 왼쪽 2/3: "💬 채팅방" 버튼
-  - 오른쪽 1/3: "모임확정"/"모임취소" 버튼 (호스트만)
-  - 오른쪽 1/3: "참여취소" 버튼 (참가자만)
-- **미참여자**: 
-  - 전체: "같이먹기" 버튼
+---
 
-### 지도 표시
-- 모임 상세 페이지에서 해당 위치에 마커 표시 필수
-- 마커 클릭 시 위치명 인포윈도우 표시
+## 개발 환경 설정
 
-## 🗄️ 데이터베이스 스키마
+### 요구사항
 
-### 주요 테이블
-- `users`: 사용자 정보
-- `meetups`: 모임 정보
-- `meetup_participants`: 참여자 정보
-- `promise_deposits`: 약속금 정보
-- `user_points`: 포인트 정보
-- `point_transactions`: 포인트 거래 내역
-- `user_badges`: 사용자 뱃지 정보
-- `chat_rooms`: 채팅방 정보
-- `chat_messages`: 채팅 메시지
-
-### 모임 상태 (meetups.status)
-- `active`: 활성 모집 중
-- `confirmed`: 확정된 모임
-- `completed`: 완료된 모임
-- `cancelled`: 취소된 모임
-
-## 🚀 개발 환경 설정
-
-### 필수 요구사항
 - Node.js 16+
-- React Native CLI
-- PostgreSQL
-- 카카오 API 키 설정
+- PostgreSQL 14+
+- React Native CLI (모바일 개발 시)
 
-### 환경변수 설정
+### 환경변수
+
+`.env.development` 파일 생성:
+
 ```env
-DB_HOST=your_db_host
-DB_USER=your_db_user
-DB_PASSWORD=your_db_password
+DB_HOST=localhost
+DB_PORT=5432
 DB_NAME=honbabnono
-KAKAO_API_KEY=your_kakao_api_key
+DB_USER=your_user
+DB_PASSWORD=your_password
 JWT_SECRET=your_jwt_secret
+KAKAO_CLIENT_ID=your_kakao_key
+KAKAO_JS_KEY=your_kakao_js_key
+AWS_ACCESS_KEY_ID=your_aws_key
+AWS_SECRET_ACCESS_KEY=your_aws_secret
+AWS_S3_BUCKET=your_bucket
+PORTONE_STORE_ID=your_store_id
+PORTONE_CHANNEL_KEY=your_channel_key
 ```
 
 ### 설치 및 실행
+
 ```bash
 # 의존성 설치
 npm install
 
-# 웹 개발 서버 실행
-npm run web
+# 웹 + API 동시 실행 (개발)
+npm run dev
 
-# 백엔드 서버 실행 (포트 3001)
-PORT=3001 npm run server
+# 개별 실행
+npm run web            # 웹 개발 서버 (port 3000)
+npm run server         # API 서버 (port 3001)
 
-# 모바일 앱 실행
-npm run android  # Android
-npm run ios      # iOS
+# iOS (네이티브)
+cd ios && pod install
+npm run ios
 ```
-
-## 📱 앱 접속 방법
-
-### 개발 환경
-- **웹**: http://localhost:3000
-- **API**: http://localhost:3001
-- **데이터베이스**: PostgreSQL on AWS RDS
-
-### 주요 페이지
-- `/home`: 홈 화면
-- `/create-meetup`: 모임 생성
-- `/meetup-list`: 모임 목록
-- `/meetup/:id`: 모임 상세
-- `/chat/:id`: 채팅방
-- `/profile`: 프로필
-
-## 🔄 최근 업데이트 내역
-
-### 2024.11.24
-- 🏆 뱃지 시스템 구현 (6가지 뱃지)
-- 📊 밥알지수 6단계 등급 시스템 개선
-- 🎨 마이페이지 UI 리뉴얼
-  - 프로필 레이아웃 개선 (왼쪽 작은 프로필 + 오른쪽 상세 정보)
-  - 밥알지수별 색상 시스템 적용
-  - 다음 레벨까지 진행 상황 표시
-  - 뱃지 크기 최적화 및 획득 상태 표시
-- 🔧 데이터베이스 스키마 확장 (user_badges 테이블 추가)
-
-### 2024.11.18
-- ♻️ 위치 선택 직접 입력 기능 제거
-- 🗺️ 모임 상세 페이지 지도 마커 표시 개선
-- 📍 기존 모임 위치 강남역 1번 출구로 표준화
-- 💰 약속금 결제 시스템 통합
-
-## 🤝 개발 규칙
-
-### 커밋 메시지 규칙
-- ✨ feat: 새로운 기능 추가
-- 🐛 fix: 버그 수정
-- ♻️ refactor: 코드 리팩토링
-- 🗺️ map: 지도 관련 기능
-- 💰 payment: 결제 관련 기능
-- 📱 ui: UI/UX 개선
-- 📝 docs: 문서 업데이트
-
-### 코드 스타일
-- TypeScript 사용 필수
-- ESLint/Prettier 규칙 준수
-- 컴포넌트명은 PascalCase
-- 함수명은 camelCase
-
-## 📞 문의 및 지원
-
-개발 관련 문의사항이나 버그 리포트는 이슈로 등록해주세요.
 
 ---
 
-**Generated with Claude Code** 🤖
+## 주요 명령어
+
+| 명령어 | 설명 |
+|--------|------|
+| `npm run dev` | 웹 + API 동시 실행 |
+| `npm run web` | 웹 개발 서버 (port 3000) |
+| `npm run server` | API 서버 (port 3001) |
+| `npm run build:web` | 프로덕션 웹 빌드 |
+| `npm run test` | 전체 테스트 |
+| `npm run test:api` | API 테스트 |
+| `npm run test:e2e` | Playwright E2E 테스트 |
+| `npm run lint` | ESLint |
+| `npm run migrate` | DB 마이그레이션 실행 |
+| `npm run migrate:status` | 마이그레이션 상태 확인 |
+| `npm run migrate:dry` | 마이그레이션 미리보기 |
+
+---
+
+## DB 마이그레이션
+
+마이그레이션 파일은 `server/migrations/` 디렉토리에 SQL 파일로 관리됩니다.
+
+```bash
+# 상태 확인
+npm run migrate:status
+
+# 미실행 마이그레이션 전체 실행
+npm run migrate
+
+# 실행 대상만 미리보기 (변경 없음)
+npm run migrate:dry
+```
+
+**파일명 규칙:**
+- v1 (밥동무): `001` ~ `011`
+- v2 (피벗): `100` 번대부터
+
+---
+
+## 브랜치 전략
+
+| 브랜치 | 용도 |
+|--------|------|
+| `main` | 프로덕션 배포 |
+| `pivot/v2` | 선주문형 피벗 개발 (현재 작업 브랜치) |
+| `v1.0-meetup-era` (태그) | v1 밥동무 코드 스냅샷 |
+
+---
+
+## 커밋 컨벤션
+
+```
+feat: 매장 검색 API 추가
+fix: 결제 환불 금액 계산 오류 수정
+refactor: deposits 모듈을 payments로 전환
+chore: 마이그레이션 러너 도입
+```
+
+`feat:`, `fix:`, `refactor:`, `chore:`, `docs:` + **한글 설명**
+
+---
+
+## 접속 정보 (개발 환경)
+
+| 서비스 | URL |
+|--------|-----|
+| 웹 앱 | http://localhost:3000 |
+| API 서버 | http://localhost:3001 |
+| 관리자 대시보드 | http://localhost:3002 |
+
+---
+
+## 트러블슈팅
+
+### 포트 충돌
+```bash
+lsof -ti:3001 | xargs kill -9
+```
+
+### iOS pod 에러
+```bash
+cd ios && pod install --repo-update
+```
+
+### 모듈 못 찾는 에러
+```bash
+rm -rf node_modules && npm install
+```
+
+---
+
+## 관련 문서
+
+| 문서 | 경로 | 설명 |
+|------|------|------|
+| 기획/사업 소개 | [`docs/README-BUSINESS.md`](docs/README-BUSINESS.md) | 서비스 정의, 시장, 수익모델, KPI, 로드맵 |
+| 피벗 개발 계획 | [`docs/PIVOT-PLAN.md`](docs/PIVOT-PLAN.md) | Phase별 구현 체크리스트, 아키텍처, DB 모델 |
+| 비즈니스 정책 | [`docs/policies/`](docs/policies/) | 결제, 환불, 노쇼 정책 |

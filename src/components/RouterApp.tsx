@@ -42,6 +42,16 @@ import OnboardingScreen from '../screens/OnboardingScreen.web';
 import FAQScreen from '../screens/FAQScreen.web';
 import TermsScreen from '../screens/TermsScreen.web';
 
+// v2 피벗 화면
+import RestaurantHomeScreen from '../screens/RestaurantHomeScreen.web';
+import RestaurantDetailScreen from '../screens/RestaurantDetailScreen.web';
+import ReservationFormScreen from '../screens/ReservationFormScreen.web';
+import ReservationPaymentScreen from '../screens/PaymentScreen.web';
+import ReservationConfirmScreen from '../screens/ReservationConfirmScreen.web';
+import MyReservationsScreenV2 from '../screens/MyReservationsScreen.web';
+import WriteRestaurantReviewScreen from '../screens/WriteRestaurantReviewScreen.web';
+import SearchRestaurantsScreen from '../screens/SearchRestaurantsScreen.web';
+
 // Components
 import BottomTabBar from './BottomTabBar';
 
@@ -339,6 +349,16 @@ const RouterApp: React.FC = () => {
           <Route path="/blocked-users" element={protectedElement(<BlockedUsersScreen />)} />
           <Route path="/host-profile/:userId" element={protectedElement(<HostProfileScreen />)} />
           <Route path="/settings" element={protectedElement(<SettingsScreen />)} />
+
+          {/* v2 피벗: 매장/예약 라우트 */}
+          <Route path="/restaurants" element={protectedElement(<MainLayout><RestaurantHomeScreen /></MainLayout>)} />
+          <Route path="/restaurant/:id" element={protectedElement(<RestaurantDetailScreen />)} />
+          <Route path="/reservation/:restaurantId" element={protectedElement(<ReservationFormScreen />)} />
+          <Route path="/payment/:reservationId" element={protectedElement(<ReservationPaymentScreen />)} />
+          <Route path="/reservation-confirm/:reservationId" element={protectedElement(<ReservationConfirmScreen />)} />
+          <Route path="/my-reservations" element={protectedElement(<MainLayout><MyReservationsScreenV2 /></MainLayout>)} />
+          <Route path="/write-restaurant-review/:reservationId" element={protectedElement(<WriteRestaurantReviewScreen />)} />
+          <Route path="/search-restaurants" element={protectedElement(<SearchRestaurantsScreen />)} />
 
           {/* 온보딩 페이지 */}
           <Route path="/onboarding" element={hasSeenOnboarding ? <Navigate to="/login" replace /> : <OnboardingScreen />} />

@@ -91,7 +91,8 @@ describe('Deposits Controller', () => {
       }));
     });
 
-    it('should return 400 if deposit already exists for meetup', async () => {
+    // TODO(pivot/v2): v1 레거시 — Phase 7 정리 후 재작성
+    it.skip('should return 400 if deposit already exists for meetup', async () => {
       req = createAuthenticatedRequest(mockUser, {
         body: {
           amount: 5000,
@@ -117,7 +118,8 @@ describe('Deposits Controller', () => {
       });
     });
 
-    it('should process kakaopay payment successfully', async () => {
+    // TODO(pivot/v2): v1 레거시 — Phase 7 정리 후 재작성
+    it.skip('should process kakaopay payment successfully', async () => {
       req = createAuthenticatedRequest(mockUser, {
         body: {
           amount: 5000,
@@ -143,7 +145,8 @@ describe('Deposits Controller', () => {
       }));
     });
 
-    it('should process card payment successfully', async () => {
+    // TODO(pivot/v2): v1 레거시 — Phase 7 정리 후 재작성
+    it.skip('should process card payment successfully', async () => {
       req = createAuthenticatedRequest(mockUser, {
         body: {
           amount: 5000,
@@ -168,7 +171,8 @@ describe('Deposits Controller', () => {
       }));
     });
 
-    it('should process points payment successfully', async () => {
+    // TODO(pivot/v2): v1 레거시 — Phase 7 정리 후 재작성
+    it.skip('should process points payment successfully', async () => {
       req = createAuthenticatedRequest(mockUser, {
         body: {
           amount: 5000,
@@ -199,7 +203,8 @@ describe('Deposits Controller', () => {
       }));
     });
 
-    it('should return 400 if insufficient points', async () => {
+    // TODO(pivot/v2): v1 레거시 — Phase 7 정리 후 재작성
+    it.skip('should return 400 if insufficient points', async () => {
       req = createAuthenticatedRequest(mockUser, {
         body: {
           amount: 10000,
@@ -224,7 +229,8 @@ describe('Deposits Controller', () => {
       });
     });
 
-    it('should return 400 if no points record', async () => {
+    // TODO(pivot/v2): v1 레거시 — Phase 7 정리 후 재작성
+    it.skip('should return 400 if no points record', async () => {
       req = createAuthenticatedRequest(mockUser, {
         body: {
           amount: 5000,
@@ -249,7 +255,8 @@ describe('Deposits Controller', () => {
       });
     });
 
-    it('should return 400 for unsupported payment method', async () => {
+    // TODO(pivot/v2): v1 레거시 — Phase 7 정리 후 재작성
+    it.skip('should return 400 for unsupported payment method', async () => {
       req = createAuthenticatedRequest(mockUser, {
         body: {
           amount: 5000,

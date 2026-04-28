@@ -248,3 +248,65 @@ export async function seedFullMeetup(): Promise<{ meetupId: string }> {
 
   return { meetupId };
 }
+
+// ============================================================
+// v2 (잇테이블) 시드 헬퍼
+// ============================================================
+
+export interface V2SeedResult {
+  userId: string;
+  guestUserId: string;
+  merchantUserId: string;
+  restaurantId: string;
+  merchantId: string;
+}
+
+let v2SeedCache: V2SeedResult | null = null;
+
+/**
+ * v2 시드 — 매장/메뉴/시간슬롯/점주 생성 (멱등)
+ * 한 세션에서 한 번만 호출됨
+ */
+export async function seedV2Restaurant(): Promise<V2SeedResult> {
+  if (v2SeedCache) return v2SeedCache;
+
+  const res = await fetch(`${API_URL}/auth/test-seed-v2`, { method: 'POST' });
+  if (!res.ok) {
+    throw new Error(`v2 시드 실패: ${await res.text()}`);
+  }
+  const data = await res.json();
+  v2SeedCache = data.seeded;
+  return v2SeedCache!;
+}
+
+/**
+ * v2 예약 생성 (선택적)
+ */
+export async function createV2Reservation(
+  token: string,
+  restaurantId: string,
+  overrides: Record<string, any> = {}
+): Promise<any> {
+  // 다음 평일
+  const target = new Date();
+  do { target.setDate(target.getDate() + 1); } while (target.getDay() === 0 || target.getDay() === 6);
+  const dateStr = target.toISOString().split('T')[0];
+
+  const payload = {
+    restaurant_id: restaurantId,
+    reservation_date: dateStr,
+    reservation_time: '19:00',
+    party_size: 2,
+    special_request: 'E2E 예약',
+    ...overrides,
+  };
+
+  const res = await fetch(`${API_URL}/reservations`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify(payload),
+  });
+
+  if (!res.ok) throw new Error(`v2 예약 생성 실패: ${await res.text()}`);
+  return await res.json();
+}

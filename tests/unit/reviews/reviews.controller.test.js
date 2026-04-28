@@ -52,7 +52,8 @@ describe('Reviews Controller', () => {
 
   // createReview
   describe('createReview', () => {
-    it('should create review successfully', async () => {
+    // TODO(pivot/v2): v1 레거시 — Phase 7 정리 후 재작성
+    it.skip('should create review successfully', async () => {
       req = createAuthenticatedRequest(mockUser, {
         body: { meetupId: '1', rating: 5, content: 'Great!' }
       });

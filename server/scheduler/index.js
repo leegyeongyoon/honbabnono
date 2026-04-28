@@ -22,6 +22,7 @@ const statusTransition = require('./jobs/statusTransition');
 const noShowProcessing = require('./jobs/noShowProcessing');
 const autoCancelMinParticipants = require('./jobs/autoCancelMinParticipants');
 const monthlyBestHost = require('./jobs/monthlyBestHost');
+const arrivalReminder = require('./jobs/arrivalReminder');
 
 const scheduledJobs = [];
 
@@ -95,6 +96,17 @@ function startScheduler() {
   });
   scheduledJobs.push(bestHostJob);
   logger.info('  [월간 우수 호스트]: 매월 1일');
+
+  // 7. 예약 도착 리마인더 - 매 1분마다
+  const arrivalReminderJob = cron.schedule('* * * * *', async () => {
+    try {
+      await arrivalReminder.run();
+    } catch (error) {
+      logger.error('[예약 도착 리마인더] 실행 실패:', error);
+    }
+  });
+  scheduledJobs.push(arrivalReminderJob);
+  logger.info('  [예약 도착 리마인더]: 매 1분');
 
   logger.system('===============================================');
 }

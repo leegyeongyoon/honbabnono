@@ -143,4 +143,11 @@ router.patch('/advertisements/:id/toggle', authenticateAdminNew, adminController
 // 감사 로그
 router.get('/audit-logs', authenticateAdminNew, adminController.getAuditLogs);
 
+// v2 피벗 — 매장 관리
+router.get('/restaurants', authenticateAdminNew, adminController.getRestaurantsForAdmin);
+router.patch('/restaurants/:id/toggle', authenticateAdminNew, adminController.toggleRestaurantActive);
+
+// v2 피벗 — 예약 모니터링
+router.get('/reservations', authenticateAdminNew, adminController.getReservationsForAdmin);
+
 module.exports = router;

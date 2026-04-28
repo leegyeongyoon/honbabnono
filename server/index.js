@@ -91,6 +91,15 @@ const supportRoutes = require('./modules/support/routes');
 const supportController = require('./modules/support/controller');
 const depositsRoutes = require('./modules/deposits/routes');
 const searchRoutes = require('./modules/search/routes');
+
+// v2 피벗 모듈
+const restaurantReviewRoutes = require('./modules/reviews/restaurant-review.routes');
+const restaurantsRoutes = require('./modules/restaurants/routes');
+const merchantsRoutes = require('./modules/merchants/routes');
+const menusRoutes = require('./modules/menus/routes');
+const reservationsRoutes = require('./modules/reservations/routes');
+const ordersRoutes = require('./modules/orders/routes');
+const paymentsRoutes = require('./modules/payments/routes');
 const { authenticateToken } = require('./middleware/auth');
 const userController = require('./modules/user/controller');
 
@@ -224,6 +233,7 @@ apiRouter.use('/user', userRoutes);
 apiRouter.use('/meetups', meetupsRoutes);
 apiRouter.use('/chat', chatRoutes);
 apiRouter.use('/reviews', reviewsRoutes);
+apiRouter.use('/reviews/restaurant', restaurantReviewRoutes);
 apiRouter.use('/points', pointsRoutes);
 apiRouter.use('/notifications', notificationsRoutes);
 apiRouter.use('/badges', badgesRoutes);
@@ -234,6 +244,14 @@ apiRouter.use('/users', usersLegacyRoutes);
 apiRouter.use('/support', supportRoutes);
 apiRouter.use('/deposits', depositsRoutes);
 apiRouter.use('/search', searchRoutes);
+
+// v2 피벗 라우트
+apiRouter.use('/restaurants', restaurantsRoutes);
+apiRouter.use('/merchants', merchantsRoutes);
+apiRouter.use('/menus', menusRoutes);
+apiRouter.use('/reservations', reservationsRoutes);
+apiRouter.use('/orders', ordersRoutes);
+apiRouter.use('/payments', paymentsRoutes);
 
 // Legal endpoints
 apiRouter.get('/legal/terms', supportController.getTerms);

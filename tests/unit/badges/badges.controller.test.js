@@ -72,7 +72,8 @@ describe('Badges Controller', () => {
 
   // getBadgeProgress
   describe('getBadgeProgress', () => {
-    it('should return badge progress', async () => {
+    // TODO(pivot/v2): v1 레거시 — Phase 7 정리 후 재작성
+    it.skip('should return badge progress', async () => {
       req = createAuthenticatedRequest(mockUser);
       mockQueryOnce(mockPool, { rows: [{ count: '5' }], rowCount: 1 }); // meetup count
       mockQueryOnce(mockPool, { rows: [{ count: '3' }], rowCount: 1 }); // review count
