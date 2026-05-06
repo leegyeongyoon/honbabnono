@@ -9,7 +9,7 @@ import {
   Image,
 } from 'react-native';
 import { useNavigate, useParams } from 'react-router-dom';
-import { COLORS, CSS_SHADOWS, TYPOGRAPHY, SPACING, BORDER_RADIUS, TRANSITIONS } from '../styles';
+import { COLORS, CSS_SHADOWS, TYPOGRAPHY, SPACING, BORDER_RADIUS, TRANSITIONS, CARD_STYLE, HEADER_STYLE } from '../styles';
 import { Icon } from '../components/Icon';
 import chatService from '../services/chatService';
 import chatApiService, { ChatRoom, ChatMessage } from '../services/chatApiService';
@@ -22,6 +22,8 @@ import EmptyState from '../components/EmptyState';
 
 import { ChatListSkeleton } from '../components/skeleton';
 import { getAvatarColor, getInitials } from '../utils/avatarColor';
+
+const FONT_FAMILY = 'system-ui, -apple-system, sans-serif';
 
 // --- Hover-aware wrapper for header icon buttons ---
 const WebHoverButton: React.FC<{
@@ -107,7 +109,7 @@ const WebChatListItem: React.FC<{
             overflow: 'hidden',
           }}
         >
-          <span style={{ fontSize: 20, fontWeight: 700, color: COLORS.text.white }}>
+          <span style={{ fontSize: 20, fontWeight: 700, color: COLORS.text.white, fontFamily: FONT_FAMILY }}>
             {getInitials(displayTitle)}
           </span>
         </div>
@@ -128,7 +130,7 @@ const WebChatListItem: React.FC<{
               border: `2px solid ${COLORS.neutral.white}`,
             }}
           >
-            <span style={{ fontSize: 10, fontWeight: 700, color: COLORS.neutral.white, lineHeight: 1 }}>
+            <span style={{ fontSize: 10, fontWeight: 700, color: COLORS.neutral.white, lineHeight: 1, fontFamily: FONT_FAMILY }}>
               {item.unreadCount > 99 ? '99+' : item.unreadCount}
             </span>
           </div>
@@ -141,11 +143,12 @@ const WebChatListItem: React.FC<{
           style={{
             fontSize: 16,
             fontWeight: hasUnread ? 600 : 500,
-            color: '#121212',
+            color: COLORS.text.primary,
             letterSpacing: -0.3,
             overflow: 'hidden',
             textOverflow: 'ellipsis',
             whiteSpace: 'nowrap',
+            fontFamily: FONT_FAMILY,
           }}
         >
           {displayTitle}
@@ -154,11 +157,12 @@ const WebChatListItem: React.FC<{
           style={{
             fontSize: 14,
             fontWeight: 400,
-            color: '#868b94',
+            color: COLORS.text.tertiary,
             letterSpacing: -0.8,
             overflow: 'hidden',
             textOverflow: 'ellipsis',
             whiteSpace: 'nowrap',
+            fontFamily: FONT_FAMILY,
           }}
         >
           {item.lastMessage || '아직 메시지가 없습니다'}
@@ -486,9 +490,11 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation }) => {
 
   // 채팅방 내부 UI
   const renderChatRoom = () => (
+    <div style={webPageStyles.wrapper}>
+    <div style={webPageStyles.container}>
     <View style={styles.chatRoom}>
       {/* 채팅 헤더 */}
-      <View style={styles.chatRoomHeader}>
+      <div style={webPageStyles.chatRoomHeader}>
         <WebHoverButton borderRadius={22}>
           <TouchableOpacity
             style={styles.backButton}
@@ -517,7 +523,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation }) => {
             <Icon name="more-vertical" size={20} color={COLORS.text.primary} />
           </TouchableOpacity>
         </WebHoverButton>
-      </View>
+      </div>
 
       {/* 메시지 목록 */}
       <ScrollView
@@ -552,6 +558,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation }) => {
                     padding: '4px 14px',
                     whiteSpace: 'nowrap',
                     letterSpacing: 0.1,
+                    fontFamily: FONT_FAMILY,
                   }}>
                     {getChatDateHeader(message.timestamp)}
                   </div>
@@ -676,6 +683,8 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation }) => {
         </View>
       </View>
     </View>
+    </div>
+    </div>
   );
 
   // 채팅방이 선택된 경우 채팅방 UI 표시
@@ -684,10 +693,12 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation }) => {
   }
 
   return (
+    <div style={webPageStyles.wrapper}>
+    <div style={webPageStyles.container}>
     <View style={styles.container}>
       {/* Figma 헤더 */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>채팅</Text>
+      <div style={webPageStyles.header}>
+        <div style={webPageStyles.headerTitle}>채팅</div>
         <View style={styles.headerIcons}>
           <WebHoverButton borderRadius={20}>
             <TouchableOpacity style={styles.headerIcon} activeOpacity={0.7} accessibilityLabel="검색">
@@ -700,10 +711,10 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation }) => {
             </TouchableOpacity>
           </WebHoverButton>
         </View>
-      </View>
+      </div>
 
       {/* Figma 2-tab — simple underline */}
-      <div style={{ display: 'flex', borderBottom: '1px solid #f1f2f3', backgroundColor: '#fff' }}>
+      <div style={{ display: 'flex', borderBottom: `1px solid ${CARD_STYLE.borderColor}`, backgroundColor: COLORS.neutral.white }}>
         {TAB_ITEMS.map((tab) => {
           const isActive = selectedTab === tab.key;
           const unreadCount = chatRooms
@@ -722,11 +733,11 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation }) => {
                 letterSpacing: -0.3,
                 background: 'transparent',
                 border: 'none',
-                borderBottom: isActive ? '2px solid #121212' : '2px solid transparent',
-                color: isActive ? '#121212' : '#666',
+                borderBottom: isActive ? `2px solid ${COLORS.text.primary}` : '2px solid transparent',
+                color: isActive ? COLORS.text.primary : COLORS.text.secondary,
                 cursor: 'pointer',
-                fontFamily: 'inherit',
-                transition: 'color 150ms ease',
+                fontFamily: FONT_FAMILY,
+                transition: `color ${TRANSITIONS.normal}`,
                 display: 'inline-flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -743,12 +754,13 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation }) => {
                     padding: '0 6px',
                     borderRadius: 9,
                     backgroundColor: COLORS.primary.main,
-                    color: '#fff',
+                    color: COLORS.neutral.white,
                     fontSize: 10,
                     fontWeight: 700,
                     display: 'inline-flex',
                     alignItems: 'center',
                     justifyContent: 'center',
+                    fontFamily: FONT_FAMILY,
                   }}
                 >
                   {unreadCount}
@@ -771,20 +783,20 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation }) => {
           right: 16,
           width: 57,
           height: 57,
-          borderRadius: 28.5,
+          borderRadius: BORDER_RADIUS.full,
           background: `linear-gradient(135deg, ${COLORS.primary.main}, ${COLORS.primary.dark})`,
           border: 'none',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           cursor: 'pointer',
-          boxShadow: '0 6px 20px rgba(255,165,41,0.35), 0 2px 6px rgba(0,0,0,0.08)',
-          transition: 'transform 150ms ease',
+          boxShadow: CSS_SHADOWS.cta,
+          transition: `transform ${TRANSITIONS.fast}`,
           zIndex: 20,
         }}
         aria-label="새 채팅"
       >
-        <Icon name="plus" size={28} color="#fff" />
+        <Icon name="plus" size={28} color={COLORS.text.white} />
       </button>
 
       {/* 1대1 채팅 시작 모달 */}
@@ -817,7 +829,51 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation }) => {
 
       <Toast message={toast.message} type={toast.type} visible={toast.visible} onHide={hideToast} />
     </View>
+    </div>
+    </div>
   );
+};
+
+// ── Web CSS-in-JS Styles (matching design system) ──
+const webPageStyles: Record<string, React.CSSProperties> = {
+  wrapper: {
+    minHeight: '100vh',
+    backgroundColor: COLORS.neutral.background,
+  },
+  container: {
+    maxWidth: 480,
+    margin: '0 auto',
+    display: 'flex',
+    flexDirection: 'column',
+    minHeight: '100vh',
+  },
+  header: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: '16px 20px 12px',
+    backgroundColor: COLORS.neutral.white,
+    borderBottom: `1px solid ${CARD_STYLE.borderColor}`,
+    fontFamily: FONT_FAMILY,
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: 700,
+    letterSpacing: -0.3,
+    color: COLORS.text.primary,
+    fontFamily: FONT_FAMILY,
+  },
+  chatRoomHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: '16px 20px 12px',
+    backgroundColor: COLORS.neutral.white,
+    borderBottom: `1px solid ${CARD_STYLE.borderColor}`,
+    boxShadow: CSS_SHADOWS.stickyHeader,
+    zIndex: 10,
+    fontFamily: FONT_FAMILY,
+  },
 };
 
 const styles = StyleSheet.create({
@@ -825,23 +881,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.neutral.white,
-  },
-
-  // === Figma 채팅 리스트 헤더 ===
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: COLORS.neutral.white,
-    zIndex: 10,
-  },
-  headerTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    letterSpacing: -0.3,
-    color: '#121212',
   },
   headerIcons: {
     flexDirection: 'row',
@@ -888,6 +927,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
     color: COLORS.text.white,
+    fontFamily: 'system-ui, -apple-system, sans-serif',
   },
   chatInfo: {
     flex: 1,
@@ -905,6 +945,7 @@ const styles = StyleSheet.create({
     letterSpacing: -0.2,
     color: COLORS.text.primary,
     flexShrink: 1,
+    fontFamily: 'system-ui, -apple-system, sans-serif',
   },
   chatTitleUnread: {
     fontWeight: '700',
@@ -919,12 +960,14 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '600',
     color: COLORS.text.tertiary,
+    fontFamily: 'system-ui, -apple-system, sans-serif',
   },
   lastMessage: {
     fontSize: 13,
     fontWeight: '400',
     color: COLORS.text.tertiary,
     lineHeight: 18,
+    fontFamily: 'system-ui, -apple-system, sans-serif',
   },
   lastMessageUnread: {
     color: COLORS.text.secondary,
@@ -940,6 +983,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: COLORS.text.tertiary,
     fontWeight: '400',
+    fontFamily: 'system-ui, -apple-system, sans-serif',
   },
   chatTimeUnread: {
     color: COLORS.text.secondary,
@@ -959,6 +1003,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: COLORS.neutral.white,
     lineHeight: 14,
+    fontFamily: 'system-ui, -apple-system, sans-serif',
   },
 
   // === 빈 상태 / 로딩 ===
@@ -991,20 +1036,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.neutral.grey50,
   },
-  chatRoomHeader: {
-    minHeight: 56,
-    backgroundColor: COLORS.neutral.white,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.neutral.grey100,
-    // @ts-ignore — web CSS shadow
-    boxShadow: CSS_SHADOWS.stickyHeader,
-    zIndex: 10,
-  },
+  // chatRoomHeader moved to webPageStyles
   backButton: {
     padding: 10,
     minWidth: 44,
@@ -1014,11 +1046,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   chatRoomTitle: {
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: 18,
+    fontWeight: '600',
     letterSpacing: -0.2,
     color: COLORS.text.primary,
     textAlign: 'center',
+    fontFamily: 'system-ui, -apple-system, sans-serif',
   },
   menuButton: {
     width: 44,
@@ -1034,7 +1067,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.neutral.grey50,
   },
   messageListContainer: {
-    paddingHorizontal: 16,
+    paddingHorizontal: SPACING.lg,
     paddingVertical: SPACING.md,
   },
   messageItem: {
@@ -1054,6 +1087,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: COLORS.text.secondary,
     fontWeight: '600',
+    fontFamily: 'system-ui, -apple-system, sans-serif',
   },
 
   // === 말풍선 ===
@@ -1061,21 +1095,22 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.neutral.grey100,
     paddingHorizontal: 14,
     paddingVertical: 10,
-    borderRadius: 16,
-    borderTopLeftRadius: 4,
+    borderRadius: BORDER_RADIUS.xxl,
+    borderTopLeftRadius: BORDER_RADIUS.sm,
   },
   myMessageBubble: {
     backgroundColor: COLORS.primary.main,
     paddingHorizontal: 14,
     paddingVertical: 10,
-    borderRadius: 16,
-    borderTopRightRadius: 4,
+    borderRadius: BORDER_RADIUS.xxl,
+    borderTopRightRadius: BORDER_RADIUS.sm,
   },
   messageText: {
     fontSize: 14,
     fontWeight: '400',
     lineHeight: 20,
     color: COLORS.text.primary,
+    fontFamily: 'system-ui, -apple-system, sans-serif',
   },
   myMessageText: {
     color: COLORS.neutral.white,
@@ -1084,6 +1119,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: COLORS.text.tertiary,
     marginTop: 4,
+    fontFamily: 'system-ui, -apple-system, sans-serif',
   },
   myMessageTime: {
     textAlign: 'right',
@@ -1099,15 +1135,16 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: COLORS.text.tertiary,
     fontWeight: '400',
+    fontFamily: 'system-ui, -apple-system, sans-serif',
   },
 
   // === 메시지 입력 바 ===
   messageInput: {
     backgroundColor: COLORS.neutral.white,
     borderTopWidth: 1,
-    borderTopColor: COLORS.neutral.grey100,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    borderTopColor: 'rgba(17,17,17,0.06)',
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.sm,
     justifyContent: 'center',
   },
   inputRow: {
@@ -1120,12 +1157,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: COLORS.neutral.grey100,
-    borderRadius: 20,
+    borderRadius: BORDER_RADIUS.pill,
     paddingLeft: 16,
     paddingRight: 4,
     height: 40,
     boxSizing: 'border-box',
-    transition: 'background-color 200ms ease, box-shadow 200ms ease',
+    transition: `background-color ${TRANSITIONS.normal}, box-shadow ${TRANSITIONS.normal}`,
   },
   inputContainerFocused: {
     backgroundColor: COLORS.neutral.white,
@@ -1141,15 +1178,16 @@ const styles = StyleSheet.create({
     color: COLORS.text.primary,
     maxHeight: 80,
     paddingVertical: 0,
+    fontFamily: 'system-ui, -apple-system, sans-serif',
   },
   sendButton: {
     width: 34,
     height: 34,
-    borderRadius: 17,
+    borderRadius: BORDER_RADIUS.full,
     backgroundColor: COLORS.neutral.grey200,
     justifyContent: 'center',
     alignItems: 'center',
-    transition: 'background-color 150ms ease',
+    transition: `background-color ${TRANSITIONS.fast}`,
   } as any,
   sendButtonActive: {
     backgroundColor: COLORS.primary.main,
@@ -1164,7 +1202,7 @@ const styles = StyleSheet.create({
   profileImageContainer: {
     width: 34,
     height: 34,
-    borderRadius: 17,
+    borderRadius: BORDER_RADIUS.full,
     overflow: 'hidden',
     backgroundColor: COLORS.neutral.grey200,
     justifyContent: 'center',
@@ -1175,13 +1213,13 @@ const styles = StyleSheet.create({
   profileImage: {
     width: 34,
     height: 34,
-    borderRadius: 17,
+    borderRadius: BORDER_RADIUS.full,
     resizeMode: 'cover',
   },
   defaultProfileImage: {
     width: 34,
     height: 34,
-    borderRadius: 17,
+    borderRadius: BORDER_RADIUS.full,
     backgroundColor: COLORS.primary.main,
     justifyContent: 'center',
     alignItems: 'center',
@@ -1190,6 +1228,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     color: COLORS.text.white,
+    fontFamily: 'system-ui, -apple-system, sans-serif',
   },
   messageContentWrapper: {
     flex: 1,

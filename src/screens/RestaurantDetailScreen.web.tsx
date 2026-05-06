@@ -2,8 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Icon } from '../components/Icon';
-import { COLORS, CSS_SHADOWS, CARD_STYLE } from '../styles/colors';
-import { BORDER_RADIUS } from '../styles/spacing';
+import { COLORS, CSS_SHADOWS, CARD_STYLE, TRANSITIONS, CTA_STYLE } from '../styles/colors';
+import { SPACING, BORDER_RADIUS, HEADER_STYLE } from '../styles/spacing';
 import restaurantApiService, { Restaurant, MenuItem } from '../services/restaurantApiService';
 import useCartStore from '../store/cartStore';
 
@@ -125,7 +125,7 @@ const RestaurantDetailScreen: React.FC = () => {
       <div style={s.wrapper}>
         <div style={s.container}>
           <div style={s.loadingWrap}>
-            <div style={{ color: COLORS.text.tertiary, fontSize: 15 }}>
+            <div style={{ color: COLORS.text.tertiary, fontSize: 15, fontFamily: FONT }}>
               매장을 찾을 수 없습니다.
             </div>
           </div>
@@ -148,14 +148,14 @@ const RestaurantDetailScreen: React.FC = () => {
           )}
           {/* 뒤로가기 */}
           <div style={s.backButton} onClick={() => navigate(-1)}>
-            <Icon name="arrow-left" size={20} color="#FFFFFF" />
+            <Icon name="arrow-left" size={20} color={COLORS.neutral.white} />
           </div>
           {/* 찜 */}
           <div style={s.favoriteButton} onClick={handleToggleFavorite}>
             <Icon
               name="heart"
               size={20}
-              color={favorited ? COLORS.functional.error : '#FFFFFF'}
+              color={favorited ? COLORS.functional.error : COLORS.neutral.white}
             />
           </div>
         </div>
@@ -353,29 +353,38 @@ const FONT = 'system-ui, -apple-system, sans-serif';
 const s: Record<string, React.CSSProperties> = {
   wrapper: { minHeight: '100vh', backgroundColor: COLORS.neutral.background },
   container: { maxWidth: 480, margin: '0 auto', position: 'relative' as const },
-  loadingWrap: { display: 'flex', justifyContent: 'center', alignItems: 'center', paddingTop: 120 },
+  loadingWrap: { display: 'flex', justifyContent: 'center', alignItems: 'center', paddingTop: 120, fontFamily: FONT },
 
   // Hero
   heroWrapper: { position: 'relative' as const, width: '100%', height: 240, backgroundColor: COLORS.neutral.light },
   heroImage: { width: '100%', height: '100%', objectFit: 'cover' as const },
   heroPlaceholder: { width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.neutral.light },
   backButton: {
-    position: 'absolute' as const, top: 16, left: 16,
-    width: 36, height: 36, borderRadius: 18,
-    backgroundColor: 'rgba(0,0,0,0.35)', display: 'flex',
+    position: 'absolute' as const, top: SPACING.lg, left: SPACING.lg,
+    width: 36, height: 36, borderRadius: BORDER_RADIUS.full,
+    backgroundColor: COLORS.surface.dimmed, display: 'flex',
     alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+    transition: TRANSITIONS.normal,
   },
   favoriteButton: {
-    position: 'absolute' as const, top: 16, right: 16,
-    width: 36, height: 36, borderRadius: 18,
-    backgroundColor: 'rgba(0,0,0,0.35)', display: 'flex',
+    position: 'absolute' as const, top: SPACING.lg, right: SPACING.lg,
+    width: 36, height: 36, borderRadius: BORDER_RADIUS.full,
+    backgroundColor: COLORS.surface.dimmed, display: 'flex',
     alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+    transition: TRANSITIONS.normal,
   },
 
   // 매장 정보
-  infoSection: { padding: '16px 20px', borderBottom: '1px solid rgba(17,17,17,0.06)' },
-  restaurantName: { fontSize: 20, fontWeight: 700, color: COLORS.text.primary, fontFamily: FONT, marginBottom: 8 },
-  metaRow: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 },
+  infoSection: {
+    padding: `${SPACING.lg}px ${SPACING.screen.horizontal}px`,
+    borderBottom: `1px solid ${CARD_STYLE.borderColor}`,
+  },
+  restaurantName: {
+    fontSize: HEADER_STYLE.title.fontSize, fontWeight: 700,
+    color: COLORS.text.primary, fontFamily: FONT,
+    letterSpacing: HEADER_STYLE.title.letterSpacing, marginBottom: SPACING.sm,
+  },
+  metaRow: { display: 'flex', alignItems: 'center', gap: SPACING.sm, marginBottom: 6 },
   categoryChip: {
     fontSize: 12, fontWeight: 600, padding: '2px 10px',
     borderRadius: BORDER_RADIUS.pill, backgroundColor: COLORS.secondary.light,
@@ -388,61 +397,66 @@ const s: Record<string, React.CSSProperties> = {
 
   // 탭
   tabBar: {
-    display: 'flex', borderBottom: '1px solid rgba(17,17,17,0.06)',
-    position: 'sticky' as const, top: 0, backgroundColor: '#FFFFFF',
-    zIndex: 10,
+    display: 'flex', borderBottom: `1px solid ${CARD_STYLE.borderColor}`,
+    position: 'sticky' as const, top: 0, backgroundColor: COLORS.surface.primary,
+    zIndex: 10, boxShadow: CSS_SHADOWS.stickyHeader,
   },
   tab: {
     flex: 1, textAlign: 'center' as const, padding: '12px 0',
-    fontSize: 14, cursor: 'pointer', transition: 'all 150ms', fontFamily: FONT,
+    fontSize: 14, cursor: 'pointer', transition: TRANSITIONS.normal, fontFamily: FONT,
   },
-  tabContent: { padding: '0 20px 20px' },
+  tabContent: { padding: `0 ${SPACING.screen.horizontal}px ${SPACING.screen.horizontal}px` },
 
   // 메뉴 탭
   menuCategoryTitle: {
-    fontSize: 15, fontWeight: 700, color: COLORS.text.primary,
-    fontFamily: FONT, padding: '16px 0 8px',
-    borderBottom: '1px solid rgba(17,17,17,0.06)', marginBottom: 4,
+    fontSize: 17, fontWeight: 700, color: COLORS.text.primary,
+    fontFamily: FONT, padding: `${SPACING.lg}px 0 ${SPACING.sm}px`,
+    borderBottom: `1px solid ${CARD_STYLE.borderColor}`, marginBottom: SPACING.xs,
   },
   menuItem: {
     display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
-    padding: '14px 0', borderBottom: '1px solid rgba(17,17,17,0.04)',
+    padding: `${SPACING.card.padding}px 0`,
+    borderBottom: `1px solid ${CARD_STYLE.borderColor}`,
+    transition: TRANSITIONS.normal,
   },
-  menuInfo: { flex: 1, marginRight: 12 },
-  menuName: { fontSize: 15, fontWeight: 600, color: COLORS.text.primary, fontFamily: FONT, marginBottom: 4 },
-  menuDesc: { fontSize: 12, color: COLORS.text.tertiary, fontFamily: FONT, marginBottom: 4, lineHeight: '1.4' },
+  menuInfo: { flex: 1, marginRight: SPACING.md },
+  menuName: { fontSize: 15, fontWeight: 600, color: COLORS.text.primary, fontFamily: FONT, marginBottom: SPACING.xs },
+  menuDesc: { fontSize: 12, color: COLORS.text.tertiary, fontFamily: FONT, marginBottom: SPACING.xs, lineHeight: '1.4' },
   menuPrice: { fontSize: 14, fontWeight: 700, color: COLORS.text.primary, fontFamily: FONT },
-  menuRight: { display: 'flex', flexDirection: 'column' as const, alignItems: 'center', gap: 8 },
-  menuImage: { width: 72, height: 72, borderRadius: 8, objectFit: 'cover' as const },
-  qtyControls: { display: 'flex', alignItems: 'center', gap: 8 },
+  menuRight: { display: 'flex', flexDirection: 'column' as const, alignItems: 'center', gap: SPACING.sm },
+  menuImage: { width: 72, height: 72, borderRadius: BORDER_RADIUS.md, objectFit: 'cover' as const },
+  qtyControls: { display: 'flex', alignItems: 'center', gap: SPACING.sm },
   qtyButton: {
-    width: 28, height: 28, borderRadius: 14,
+    width: 28, height: 28, borderRadius: BORDER_RADIUS.full,
     border: `1px solid ${COLORS.neutral.grey200}`, display: 'flex',
     alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
     fontSize: 16, fontWeight: 600, color: COLORS.text.primary, fontFamily: FONT,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.surface.primary, transition: TRANSITIONS.fast,
   },
-  qtyText: { fontSize: 14, fontWeight: 600, minWidth: 20, textAlign: 'center' as const, fontFamily: FONT },
+  qtyText: { fontSize: 14, fontWeight: 600, minWidth: 20, textAlign: 'center' as const, fontFamily: FONT, color: COLORS.text.primary },
   addButton: {
     padding: '6px 16px', borderRadius: BORDER_RADIUS.pill,
     background: `linear-gradient(135deg, ${COLORS.primary.main} 0%, ${COLORS.primary.gradient} 100%)`,
-    color: '#FFFFFF', fontSize: 13, fontWeight: 600, cursor: 'pointer',
-    fontFamily: FONT,
+    color: COLORS.text.white, fontSize: 13, fontWeight: 600, cursor: 'pointer',
+    fontFamily: FONT, boxShadow: CSS_SHADOWS.cta, transition: TRANSITIONS.normal,
   },
 
   // 정보 탭
-  infoTab: { paddingTop: 16 },
-  infoRow: { padding: '12px 0', borderBottom: '1px solid rgba(17,17,17,0.04)' },
-  infoLabel: { fontSize: 13, fontWeight: 600, color: COLORS.text.secondary, fontFamily: FONT, marginBottom: 4 },
+  infoTab: { paddingTop: SPACING.lg },
+  infoRow: { padding: `${SPACING.md}px 0`, borderBottom: `1px solid ${CARD_STYLE.borderColor}` },
+  infoLabel: { fontSize: 13, fontWeight: 600, color: COLORS.text.secondary, fontFamily: FONT, marginBottom: SPACING.xs },
   infoValue: { fontSize: 14, color: COLORS.text.primary, fontFamily: FONT, lineHeight: '1.5' },
 
   // 리뷰 탭
-  reviewCard: { padding: '14px 0', borderBottom: '1px solid rgba(17,17,17,0.04)' },
-  reviewHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
+  reviewCard: {
+    padding: `${SPACING.card.padding}px 0`,
+    borderBottom: `1px solid ${CARD_STYLE.borderColor}`,
+  },
+  reviewHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: SPACING.xs },
   reviewUser: { fontSize: 14, fontWeight: 600, color: COLORS.text.primary, fontFamily: FONT },
   reviewRating: { fontSize: 13, fontWeight: 600, color: COLORS.primary.main, fontFamily: FONT },
-  reviewSubRatings: { display: 'flex', gap: 12, fontSize: 12, color: COLORS.text.tertiary, fontFamily: FONT, marginBottom: 6 },
-  reviewContent: { fontSize: 14, color: COLORS.text.primary, fontFamily: FONT, lineHeight: '1.5', marginBottom: 4 },
+  reviewSubRatings: { display: 'flex', gap: SPACING.md, fontSize: 12, color: COLORS.text.tertiary, fontFamily: FONT, marginBottom: 6 },
+  reviewContent: { fontSize: 14, color: COLORS.text.primary, fontFamily: FONT, lineHeight: '1.5', marginBottom: SPACING.xs },
   reviewDate: { fontSize: 12, color: COLORS.text.tertiary, fontFamily: FONT },
 
   emptyText: { fontSize: 14, color: COLORS.text.tertiary, textAlign: 'center' as const, padding: 40, fontFamily: FONT },
@@ -450,17 +464,19 @@ const s: Record<string, React.CSSProperties> = {
   // 장바구니 바
   cartBar: {
     position: 'fixed' as const, bottom: 0, left: 0, right: 0,
-    padding: '12px 20px', backgroundColor: '#FFFFFF',
-    borderTop: '1px solid rgba(17,17,17,0.06)',
+    padding: `${SPACING.md}px ${SPACING.screen.horizontal}px`,
+    backgroundColor: COLORS.surface.primary,
+    borderTop: `1px solid ${CARD_STYLE.borderColor}`,
     boxShadow: CSS_SHADOWS.bottomSheet, zIndex: 100,
   },
   cartBarInner: {
     maxWidth: 480, margin: '0 auto',
     background: `linear-gradient(135deg, ${COLORS.primary.main} 0%, ${COLORS.primary.gradient} 100%)`,
-    borderRadius: BORDER_RADIUS.md, padding: '14px 0',
+    borderRadius: BORDER_RADIUS.xxl, padding: '14px 0',
     textAlign: 'center' as const, cursor: 'pointer',
+    boxShadow: CSS_SHADOWS.cta, transition: TRANSITIONS.normal,
   },
-  cartBarText: { color: '#FFFFFF', fontSize: 15, fontWeight: 700, fontFamily: FONT },
+  cartBarText: { color: COLORS.text.white, fontSize: 15, fontWeight: 700, fontFamily: FONT },
 };
 
 export default RestaurantDetailScreen;

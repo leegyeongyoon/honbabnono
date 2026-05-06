@@ -9,8 +9,10 @@ import {
   Platform,
 } from 'react-native';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { COLORS, SHADOWS, CSS_SHADOWS, CARD_STYLE, TRANSITIONS } from '../styles/colors';
+import { COLORS, SHADOWS, CSS_SHADOWS, CARD_STYLE, TRANSITIONS, Z_INDEX } from '../styles/colors';
 import { BORDER_RADIUS, LIST_ITEM_STYLE, HEADER_STYLE, SPACING } from '../styles/spacing';
+
+const FONT_FAMILY = 'system-ui, -apple-system, sans-serif';
 import { Icon } from '../components/Icon';
 import WebKakaoMap, { MapMarker, MapBounds } from '../components/WebKakaoMap';
 import MeetupCard from '../components/MeetupCard';
@@ -271,17 +273,19 @@ const ExploreScreen: React.FC = () => {
   const showLocationBanner = locationPermission === 'denied' && !locationBannerDismissed && viewMode === 'map';
 
   return (
+    <div style={{ minHeight: '100vh', backgroundColor: COLORS.neutral.background }}>
     <View style={styles.container}>
       {/* Sticky Header Area */}
       <div style={{
         position: 'sticky' as any,
         top: 0,
-        zIndex: 10,
+        zIndex: Z_INDEX.sticky,
         backgroundColor: COLORS.neutral.white,
+        boxShadow: CSS_SHADOWS.stickyHeader,
       }}>
         {/* Search Bar */}
         <div style={{
-          padding: '12px 20px',
+          padding: `${SPACING.md}px ${SPACING.screen.horizontal}px`,
           backgroundColor: COLORS.neutral.white,
         }}>
           <div style={{
@@ -289,18 +293,19 @@ const ExploreScreen: React.FC = () => {
             flexDirection: 'row',
             alignItems: 'center',
             height: 44,
-            backgroundColor: COLORS.neutral.grey100,
-            borderRadius: 22,
-            paddingLeft: 16,
-            paddingRight: 12,
-            gap: 8,
-            border: searchFocused ? `1.5px solid ${COLORS.primary.accent}` : '1.5px solid transparent',
+            backgroundColor: COLORS.neutral.light,
+            borderRadius: BORDER_RADIUS.pill,
+            paddingLeft: SPACING.lg,
+            paddingRight: SPACING.md,
+            gap: SPACING.sm,
+            border: searchFocused ? `1.5px solid ${COLORS.primary.accent}` : `1px solid ${CARD_STYLE.borderColor}`,
             transition: `border-color ${TRANSITIONS.normal}`,
+            fontFamily: FONT_FAMILY,
           }}>
             <TextInput
               style={styles.searchInput}
               placeholder="매장을 검색해보세요"
-              placeholderTextColor="#7E8082"
+              placeholderTextColor={COLORS.neutral.grey400}
               value={searchQuery}
               onChangeText={setSearchQuery}
               onSubmitEditing={handleSearchSubmit}
@@ -316,7 +321,7 @@ const ExploreScreen: React.FC = () => {
                 <Icon name="times" size={14} color={COLORS.text.tertiary} />
               </TouchableOpacity>
             ) : (
-              <Icon name="search" size={18} color="#7E8082" />
+              <Icon name="search" size={18} color={COLORS.neutral.grey400} />
             )}
           </div>
         </div>
@@ -325,16 +330,16 @@ const ExploreScreen: React.FC = () => {
         <div style={{
           display: 'flex',
           justifyContent: 'center',
-          padding: '0 20px 12px',
+          padding: `0 ${SPACING.screen.horizontal}px ${SPACING.md}px`,
           backgroundColor: COLORS.neutral.white,
         }}>
           <div style={{
             display: 'flex',
             flexDirection: 'row',
             height: 40,
-            backgroundColor: '#f1f2f3',
-            borderRadius: 99,
-            padding: 4,
+            backgroundColor: COLORS.neutral.grey100,
+            borderRadius: BORDER_RADIUS.full,
+            padding: SPACING.xs,
             width: '100%',
             maxWidth: 335,
           }}>
@@ -354,15 +359,15 @@ const ExploreScreen: React.FC = () => {
         {/* Category Tabs: Horizontal scroll, text-only active state */}
         <div style={{
           backgroundColor: COLORS.neutral.white,
-          borderBottom: '1px solid #e4e6e8',
+          borderBottom: `1px solid ${CARD_STYLE.borderColor}`,
         }}>
           <div style={{
             display: 'flex',
             flexDirection: 'row',
             overflowX: 'auto',
-            paddingLeft: 20,
-            paddingRight: 12,
-            gap: 32,
+            paddingLeft: SPACING.screen.horizontal,
+            paddingRight: SPACING.md,
+            gap: SPACING.xxl,
             scrollbarWidth: 'none',
           }}>
             <CategoryTab
@@ -418,10 +423,10 @@ const ExploreScreen: React.FC = () => {
           <div style={{
             display: 'flex',
             flexDirection: 'row',
-            gap: 4,
-            padding: '10px 20px',
+            gap: SPACING.xs,
+            padding: `${SPACING.md - 2}px ${SPACING.screen.horizontal}px`,
             backgroundColor: COLORS.neutral.white,
-            borderBottom: `1px solid ${COLORS.neutral.grey100}`,
+            borderBottom: `1px solid ${CARD_STYLE.borderColor}`,
             position: 'relative',
           }}>
             <FilterPill
@@ -448,15 +453,16 @@ const ExploreScreen: React.FC = () => {
                 style={{
                   position: 'absolute',
                   top: '100%',
-                  left: 20,
-                  zIndex: 100,
+                  left: SPACING.screen.horizontal,
+                  zIndex: Z_INDEX.dropdown,
                   minWidth: 280,
                   backgroundColor: COLORS.neutral.white,
                   borderRadius: BORDER_RADIUS.xl,
-                  border: `1px solid ${COLORS.neutral.grey100}`,
+                  border: `1px solid ${CARD_STYLE.borderColor}`,
                   boxShadow: CSS_SHADOWS.large,
                   padding: SPACING.lg,
-                  marginTop: 4,
+                  marginTop: SPACING.xs,
+                  fontFamily: FONT_FAMILY,
                 }}
               >
                 {/* 성별 필터 */}
@@ -467,6 +473,7 @@ const ExploreScreen: React.FC = () => {
                     color: COLORS.text.secondary,
                     marginBottom: SPACING.sm,
                     letterSpacing: -0.1,
+                    fontFamily: FONT_FAMILY,
                   }}>
                     성별
                   </div>
@@ -490,6 +497,7 @@ const ExploreScreen: React.FC = () => {
                     color: COLORS.text.secondary,
                     marginBottom: SPACING.sm,
                     letterSpacing: -0.1,
+                    fontFamily: FONT_FAMILY,
                   }}>
                     나이
                   </div>
@@ -525,6 +533,7 @@ const ExploreScreen: React.FC = () => {
                       fontSize: 13,
                       fontWeight: 600,
                       color: COLORS.text.tertiary,
+                      fontFamily: FONT_FAMILY,
                     }}>
                       필터 초기화
                     </span>
@@ -546,7 +555,7 @@ const ExploreScreen: React.FC = () => {
               flexDirection: 'row',
               alignItems: 'center',
               justifyContent: 'space-between',
-              padding: '10px 20px',
+              padding: `${SPACING.md - 2}px ${SPACING.screen.horizontal}px`,
               backgroundColor: COLORS.functional.infoLight,
               borderBottom: `1px solid ${COLORS.functional.info}20`,
             }}>
@@ -554,7 +563,7 @@ const ExploreScreen: React.FC = () => {
                 display: 'flex',
                 flexDirection: 'row',
                 alignItems: 'center',
-                gap: 8,
+                gap: SPACING.sm,
                 flex: 1,
               }}>
                 <Icon name="map-pin" size={14} color={COLORS.functional.info} />
@@ -563,6 +572,7 @@ const ExploreScreen: React.FC = () => {
                   color: COLORS.functional.info,
                   fontWeight: 500,
                   lineHeight: '18px',
+                  fontFamily: FONT_FAMILY,
                 }}>
                   위치 권한을 허용하면 내 주변 매장을 볼 수 있어요
                 </span>
@@ -571,9 +581,9 @@ const ExploreScreen: React.FC = () => {
                 onClick={() => setLocationBannerDismissed(true)}
                 style={{
                   cursor: 'pointer',
-                  padding: 4,
+                  padding: SPACING.xs,
                   flexShrink: 0,
-                  marginLeft: 8,
+                  marginLeft: SPACING.sm,
                 }}
               >
                 <Icon name="times" size={12} color={COLORS.functional.info} />
@@ -606,15 +616,17 @@ const ExploreScreen: React.FC = () => {
                 ref={bottomCardRef}
                 style={{
                   position: 'absolute',
-                  bottom: 16,
-                  left: 16,
-                  right: 16,
+                  bottom: SPACING.lg,
+                  left: SPACING.lg,
+                  right: SPACING.lg,
                   backgroundColor: COLORS.neutral.white,
-                  borderRadius: 16,
-                  padding: 28,
+                  borderRadius: BORDER_RADIUS.xxl,
+                  padding: SPACING.xl + 4,
                   boxShadow: CSS_SHADOWS.large,
+                  border: `1px solid ${CARD_STYLE.borderColor}`,
                   zIndex: 20,
                   animation: 'slideUp 200ms ease-out',
+                  fontFamily: FONT_FAMILY,
                 }}
               >
                 <style>{`
@@ -623,15 +635,16 @@ const ExploreScreen: React.FC = () => {
                     to { transform: translateY(0); opacity: 1; }
                   }
                 `}</style>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: SPACING.md }}>
                   <div style={{ flex: 1 }}>
                     {/* Title: SemiBold 24px (scaled for mobile web) */}
                     <div style={{
                       fontSize: 18,
                       fontWeight: '600',
-                      color: '#121212',
-                      marginBottom: 8,
+                      color: COLORS.text.primary,
+                      marginBottom: SPACING.sm,
                       lineHeight: '24px',
+                      fontFamily: FONT_FAMILY,
                       display: '-webkit-box',
                       WebkitLineClamp: 2,
                       WebkitBoxOrient: 'vertical',
@@ -645,9 +658,10 @@ const ExploreScreen: React.FC = () => {
                       <div style={{
                         fontSize: 14,
                         fontWeight: '400',
-                        color: '#5F5F5F',
-                        marginBottom: 10,
+                        color: COLORS.text.secondary,
+                        marginBottom: SPACING.md - 2,
                         lineHeight: '20px',
+                        fontFamily: FONT_FAMILY,
                       }}>
                         {selectedMeetup.location}
                       </div>
@@ -655,19 +669,20 @@ const ExploreScreen: React.FC = () => {
                     {/* Meta: calendar + date, user + count */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <Icon name="calendar" size={14} color="#878B94" />
-                        <span style={{ fontSize: 13, color: '#878B94', fontWeight: 400 }}>
+                        <Icon name="calendar" size={14} color={COLORS.text.tertiary} />
+                        <span style={{ fontSize: 13, color: COLORS.text.tertiary, fontWeight: 400, fontFamily: FONT_FAMILY }}>
                           {selectedMeetup.date} {selectedMeetup.time}
                         </span>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <Icon name="user" size={14} color="#878B94" />
+                        <Icon name="user" size={14} color={COLORS.text.tertiary} />
                         <span style={{
                           fontSize: 13,
                           color: selectedMeetup.currentParticipants >= selectedMeetup.maxParticipants
                             ? COLORS.functional.error
-                            : '#878B94',
+                            : COLORS.text.tertiary,
                           fontWeight: selectedMeetup.currentParticipants >= selectedMeetup.maxParticipants ? 600 : 400,
+                          fontFamily: FONT_FAMILY,
                         }}>
                           {selectedMeetup.currentParticipants}/{selectedMeetup.maxParticipants}명
                         </span>
@@ -679,7 +694,7 @@ const ExploreScreen: React.FC = () => {
                   <div style={{
                     width: 45,
                     height: 45,
-                    borderRadius: 8,
+                    borderRadius: BORDER_RADIUS.md,
                     overflow: 'hidden',
                     backgroundColor: COLORS.neutral.grey100,
                     flexShrink: 0,
@@ -724,17 +739,19 @@ const ExploreScreen: React.FC = () => {
                   onMouseEnter={() => setPopupDetailHovered(true)}
                   onMouseLeave={() => setPopupDetailHovered(false)}
                   style={{
-                    marginTop: 16,
-                    padding: '12px 0',
+                    marginTop: SPACING.lg,
+                    padding: `${SPACING.md}px 0`,
                     textAlign: 'center',
-                    backgroundColor: '#FFA529',
+                    backgroundColor: COLORS.primary.main,
                     color: COLORS.text.white,
-                    borderRadius: 10,
+                    borderRadius: BORDER_RADIUS.lg,
                     fontSize: 15,
                     fontWeight: '600',
                     cursor: 'pointer',
                     transition: `transform ${TRANSITIONS.normal}`,
                     transform: popupDetailHovered ? 'scale(1.02)' : 'scale(1)',
+                    fontFamily: FONT_FAMILY,
+                    boxShadow: CSS_SHADOWS.cta,
                   }}
                 >
                   상세보기
@@ -817,9 +834,9 @@ const ExploreScreen: React.FC = () => {
                     {index < displayMeetups.length - 1 && (
                       <div style={{
                         height: 1,
-                        backgroundColor: '#f0f0f0',
-                        marginLeft: 20 + 70 + 18,
-                        marginRight: 20,
+                        backgroundColor: CARD_STYLE.borderColor,
+                        marginLeft: SPACING.screen.horizontal + 70 + 18,
+                        marginRight: SPACING.screen.horizontal,
                       }} />
                     )}
                   </View>
@@ -838,17 +855,17 @@ const ExploreScreen: React.FC = () => {
         style={{
           position: 'fixed',
           bottom: 80,
-          right: 20,
+          right: SPACING.screen.horizontal,
           width: 56,
           height: 56,
-          borderRadius: 28,
-          backgroundColor: '#FFA529',
+          borderRadius: BORDER_RADIUS.full,
+          backgroundColor: COLORS.primary.main,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           cursor: 'pointer',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-          zIndex: 1000,
+          boxShadow: CSS_SHADOWS.fab,
+          zIndex: Z_INDEX.modal,
           transition: `transform ${TRANSITIONS.normal}`,
         }}
         role="button"
@@ -857,11 +874,13 @@ const ExploreScreen: React.FC = () => {
         <span style={{
           fontSize: 24,
           fontWeight: 300,
-          color: '#FFFFFF',
+          color: COLORS.text.white,
           lineHeight: '24px',
+          fontFamily: FONT_FAMILY,
         }}>+</span>
       </div>
     </View>
+    </div>
   );
 };
 
@@ -884,8 +903,8 @@ const SegmentedTab: React.FC<{
         alignItems: 'center',
         justifyContent: 'center',
         height: 32,
-        borderRadius: 999,
-        backgroundColor: isActive ? '#FFA529' : 'transparent',
+        borderRadius: BORDER_RADIUS.full,
+        backgroundColor: isActive ? COLORS.primary.main : 'transparent',
         cursor: 'pointer',
         transition: `all ${TRANSITIONS.normal}`,
         userSelect: 'none',
@@ -894,8 +913,9 @@ const SegmentedTab: React.FC<{
       <span style={{
         fontSize: 14,
         fontWeight: isActive ? 600 : 500,
-        color: isActive ? '#FFFFFF' : '#8f99a9',
+        color: isActive ? COLORS.text.white : COLORS.neutral.grey500,
         transition: `color ${TRANSITIONS.normal}`,
+        fontFamily: FONT_FAMILY,
       }}>
         {label}
       </span>
@@ -920,8 +940,8 @@ const CategoryTab: React.FC<{
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        paddingTop: 10,
-        paddingBottom: 10,
+        paddingTop: SPACING.md - 2,
+        paddingBottom: SPACING.md - 2,
         cursor: 'pointer',
         userSelect: 'none',
         whiteSpace: 'nowrap',
@@ -931,9 +951,10 @@ const CategoryTab: React.FC<{
       <span style={{
         fontSize: 14,
         fontWeight: 600,
-        color: isActive ? '#121212' : '#666666',
+        color: isActive ? COLORS.text.primary : COLORS.secondary.main,
         transition: `color ${TRANSITIONS.normal}`,
         lineHeight: '20px',
+        fontFamily: FONT_FAMILY,
       }}>
         {label}
       </span>
@@ -959,15 +980,15 @@ const FilterPill = React.forwardRef<HTMLDivElement, {
         display: 'flex',
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 4,
+        gap: SPACING.xs,
         paddingTop: 5,
         paddingBottom: 5,
-        paddingLeft: 16,
+        paddingLeft: SPACING.lg,
         paddingRight: 9,
-        borderRadius: 20,
+        borderRadius: BORDER_RADIUS.pill,
         border: isActive
           ? `1.5px solid ${COLORS.primary.main}`
-          : '1px solid #e4e6e8',
+          : `1px solid ${COLORS.secondary.warm}`,
         backgroundColor: isActive
           ? COLORS.primary.light
           : hovered
@@ -982,12 +1003,13 @@ const FilterPill = React.forwardRef<HTMLDivElement, {
       <span style={{
         fontSize: 14,
         fontWeight: 500,
-        color: isActive ? COLORS.primary.main : '#181a1c',
+        color: isActive ? COLORS.primary.main : COLORS.text.primary,
         whiteSpace: 'nowrap',
+        fontFamily: FONT_FAMILY,
       }}>
         {label}
       </span>
-      <Icon name="chevron-down" size={12} color={isActive ? COLORS.primary.main : '#878B94'} />
+      <Icon name="chevron-down" size={12} color={isActive ? COLORS.primary.main : COLORS.text.tertiary} />
     </div>
   );
 });
@@ -1010,7 +1032,7 @@ const MyLocationButton: React.FC<{
         right: 16,
         width: 52,
         height: 52,
-        borderRadius: 26,
+        borderRadius: BORDER_RADIUS.full,
         backgroundColor: COLORS.neutral.white,
         display: 'flex',
         alignItems: 'center',
@@ -1052,8 +1074,8 @@ const FilterChip: React.FC<{
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        paddingLeft: 14,
-        paddingRight: 14,
+        paddingLeft: SPACING.lg - 2,
+        paddingRight: SPACING.lg - 2,
         borderRadius: BORDER_RADIUS.pill,
         border: isActive
           ? `1.5px solid ${COLORS.primary.main}`
@@ -1074,6 +1096,7 @@ const FilterChip: React.FC<{
         color: isActive ? COLORS.primary.main : COLORS.text.secondary,
         whiteSpace: 'nowrap',
         transition: `color ${TRANSITIONS.normal}`,
+        fontFamily: FONT_FAMILY,
       }}>
         {label}
       </span>
@@ -1085,6 +1108,8 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.neutral.white,
+    maxWidth: 480,
+    margin: '0 auto',
   },
 
   // Search
@@ -1095,6 +1120,7 @@ const styles = StyleSheet.create({
     borderWidth: 0,
     backgroundColor: 'transparent',
     outlineStyle: 'none',
+    fontFamily: FONT_FAMILY,
   },
   searchClearButton: {
     cursor: 'pointer',
@@ -1126,15 +1152,17 @@ const styles = StyleSheet.create({
     paddingBottom: SPACING.sm,
   },
   mapListTitle: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: '700',
-    color: '#121212',
+    color: COLORS.text.primary,
     letterSpacing: -0.05,
+    fontFamily: FONT_FAMILY,
   },
   listCount: {
     fontSize: 13,
     fontWeight: '500',
-    color: '#878B94',
+    color: COLORS.text.tertiary,
+    fontFamily: FONT_FAMILY,
   },
 
   // List View
@@ -1177,7 +1205,7 @@ const styles = StyleSheet.create({
 
   // Skeleton Loading
   skeletonPadding: {
-    padding: 20,
+    padding: SPACING.screen.horizontal,
   },
 });
 

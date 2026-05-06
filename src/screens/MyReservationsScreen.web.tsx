@@ -2,8 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { ActivityIndicator } from 'react-native';
 import { useNavigate } from 'react-router-dom';
 import { Icon } from '../components/Icon';
-import { COLORS, CSS_SHADOWS, CARD_STYLE } from '../styles/colors';
-import { BORDER_RADIUS } from '../styles/spacing';
+import { COLORS, CSS_SHADOWS, CARD_STYLE, TRANSITIONS } from '../styles/colors';
+import { SPACING, BORDER_RADIUS, HEADER_STYLE } from '../styles/spacing';
 import useReservationStore, { Reservation } from '../store/reservationStore';
 
 // ============================================================
@@ -17,11 +17,11 @@ const COMPLETED_STATUSES = ['completed'];
 const CANCELLED_STATUSES = ['cancelled'];
 
 const STATUS_LABELS: Record<string, { text: string; color: string; bg: string }> = {
-  pending_payment: { text: '결제 대기', color: '#E69100', bg: '#FFF8E6' },
-  confirmed: { text: '예약 확정', color: '#2E7D4F', bg: '#EDF7F0' },
-  preparing: { text: '준비중', color: '#1976D2', bg: '#E8F0FE' },
-  ready: { text: '준비 완료', color: '#2E7D4F', bg: '#EDF7F0' },
-  seated: { text: '착석', color: '#7B5EA7', bg: '#F2F0F6' },
+  pending_payment: { text: '결제 대기', color: COLORS.functional.warning, bg: COLORS.functional.warningLight },
+  confirmed: { text: '예약 확정', color: COLORS.functional.success, bg: COLORS.functional.successLight },
+  preparing: { text: '준비중', color: COLORS.functional.info, bg: COLORS.functional.infoLight },
+  ready: { text: '준비 완료', color: COLORS.functional.success, bg: COLORS.functional.successLight },
+  seated: { text: '착석', color: COLORS.special.premium, bg: '#F2F0F6' },
   completed: { text: '완료', color: COLORS.text.tertiary, bg: COLORS.neutral.light },
   cancelled: { text: '취소됨', color: COLORS.functional.error, bg: COLORS.functional.errorLight },
 };
@@ -88,7 +88,7 @@ const MyReservationsScreen: React.FC = () => {
       <span
         style={{
           fontSize: 11, fontWeight: 600, padding: '2px 8px',
-          borderRadius: 4, backgroundColor: info.bg, color: info.color,
+          borderRadius: BORDER_RADIUS.sm, backgroundColor: info.bg, color: info.color,
           fontFamily: FONT,
         }}
       >
@@ -249,90 +249,107 @@ const FONT = 'system-ui, -apple-system, sans-serif';
 
 const s: Record<string, React.CSSProperties> = {
   wrapper: { minHeight: '100vh', backgroundColor: COLORS.neutral.background },
-  container: { maxWidth: 480, margin: '0 auto' },
-  loadingWrap: { display: 'flex', justifyContent: 'center', paddingTop: 80 },
+  container: { maxWidth: 480, margin: '0 auto', paddingBottom: SPACING.screen.horizontal },
+  loadingWrap: { display: 'flex', justifyContent: 'center', alignItems: 'center', paddingTop: 80 },
 
   header: {
     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-    padding: '16px 20px 12px', backgroundColor: '#FFFFFF',
-    borderBottom: '1px solid rgba(17,17,17,0.06)',
+    padding: `${HEADER_STYLE.sub.paddingTop}px ${HEADER_STYLE.sub.paddingHorizontal}px ${HEADER_STYLE.sub.paddingBottom}px`,
+    backgroundColor: HEADER_STYLE.sub.backgroundColor,
+    borderBottom: `${HEADER_STYLE.sub.borderBottomWidth}px solid ${HEADER_STYLE.sub.borderBottomColor}`,
   },
-  backBtn: { width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' },
-  headerTitle: { fontSize: 18, fontWeight: 600, color: COLORS.text.primary, fontFamily: FONT },
+  backBtn: {
+    width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center',
+    cursor: 'pointer', fontFamily: FONT,
+  },
+  headerTitle: {
+    fontSize: HEADER_STYLE.subTitle.fontSize,
+    fontWeight: HEADER_STYLE.subTitle.fontWeight,
+    letterSpacing: HEADER_STYLE.subTitle.letterSpacing,
+    color: HEADER_STYLE.subTitle.color,
+    fontFamily: FONT,
+  },
 
   // 탭
   tabBar: {
-    display: 'flex', backgroundColor: '#FFFFFF',
-    borderBottom: '1px solid rgba(17,17,17,0.06)',
+    display: 'flex', backgroundColor: COLORS.neutral.white,
+    borderBottom: `1px solid ${CARD_STYLE.borderColor}`,
+    fontFamily: FONT,
   },
   tab: {
-    flex: 1, textAlign: 'center' as const, padding: '12px 0',
-    fontSize: 14, cursor: 'pointer', transition: 'all 150ms', fontFamily: FONT,
+    flex: 1, textAlign: 'center' as const, padding: `${SPACING.md}px 0`,
+    fontSize: 14, cursor: 'pointer', transition: `all ${TRANSITIONS.fast}`, fontFamily: FONT,
   },
 
-  listSection: { padding: '12px 20px' },
+  listSection: { padding: `${SPACING.md}px ${SPACING.screen.horizontal}px` },
 
   // 카드
   card: {
     borderRadius: CARD_STYLE.borderRadius,
-    border: `1px solid ${CARD_STYLE.borderColor}`,
-    backgroundColor: '#FFFFFF', padding: 16, marginBottom: 12,
+    border: `${CARD_STYLE.borderWidth}px solid ${CARD_STYLE.borderColor}`,
+    backgroundColor: COLORS.neutral.white, padding: SPACING.card.padding,
+    marginBottom: SPACING.card.margin,
     boxShadow: CSS_SHADOWS.card, cursor: 'pointer',
-    transition: 'box-shadow 200ms ease-out',
+    transition: `box-shadow ${TRANSITIONS.normal}`,
+    fontFamily: FONT,
   },
   cardHeader: {
     display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: SPACING.sm + 2,
   },
   cardRestaurant: { fontSize: 16, fontWeight: 700, color: COLORS.text.primary, fontFamily: FONT },
-  cardBody: { display: 'flex', flexDirection: 'column' as const, gap: 6 },
-  cardRow: { display: 'flex', alignItems: 'center', gap: 6 },
+  cardBody: { display: 'flex', flexDirection: 'column' as const, gap: SPACING.xs + 2 },
+  cardRow: { display: 'flex', alignItems: 'center', gap: SPACING.xs + 2 },
   cardRowText: { fontSize: 13, color: COLORS.text.secondary, fontFamily: FONT },
   cardMenuSummary: {
     fontSize: 12, color: COLORS.text.tertiary, fontFamily: FONT,
-    marginTop: 4, overflow: 'hidden', textOverflow: 'ellipsis',
+    marginTop: SPACING.xs, overflow: 'hidden', textOverflow: 'ellipsis',
     whiteSpace: 'nowrap' as const,
   },
 
   // 액션 버튼
   cardActions: {
-    display: 'flex', gap: 8, marginTop: 12, paddingTop: 12,
-    borderTop: '1px solid rgba(17,17,17,0.06)',
+    display: 'flex', gap: SPACING.sm, marginTop: SPACING.md, paddingTop: SPACING.md,
+    borderTop: `1px solid ${CARD_STYLE.borderColor}`,
+    fontFamily: FONT,
   },
   actionButton: {
-    padding: '6px 14px', borderRadius: BORDER_RADIUS.pill,
+    padding: `${SPACING.xs + 2}px ${SPACING.md + 2}px`, borderRadius: BORDER_RADIUS.pill,
     border: `1px solid ${COLORS.neutral.grey200}`,
-    backgroundColor: '#FFFFFF', fontSize: 12, fontWeight: 600,
+    backgroundColor: COLORS.neutral.white, fontSize: 12, fontWeight: 600,
     color: COLORS.text.secondary, cursor: 'pointer', fontFamily: FONT,
+    transition: `all ${TRANSITIONS.fast}`,
   },
   actionButtonPrimary: {
-    padding: '6px 14px', borderRadius: BORDER_RADIUS.pill,
+    padding: `${SPACING.xs + 2}px ${SPACING.md + 2}px`, borderRadius: BORDER_RADIUS.pill,
     background: `linear-gradient(135deg, ${COLORS.primary.main} 0%, ${COLORS.primary.gradient} 100%)`,
-    color: '#FFFFFF', fontSize: 12, fontWeight: 600,
+    color: COLORS.text.white, fontSize: 12, fontWeight: 600,
     cursor: 'pointer', fontFamily: FONT, border: 'none',
+    transition: `all ${TRANSITIONS.fast}`,
   },
   actionButtonDanger: {
-    padding: '6px 14px', borderRadius: BORDER_RADIUS.pill,
+    padding: `${SPACING.xs + 2}px ${SPACING.md + 2}px`, borderRadius: BORDER_RADIUS.pill,
     border: `1px solid ${COLORS.functional.error}`,
-    backgroundColor: '#FFFFFF', fontSize: 12, fontWeight: 600,
+    backgroundColor: COLORS.neutral.white, fontSize: 12, fontWeight: 600,
     color: COLORS.functional.error, cursor: 'pointer', fontFamily: FONT,
+    transition: `all ${TRANSITIONS.fast}`,
   },
 
   // 빈 상태
   emptySection: {
     display: 'flex', flexDirection: 'column' as const,
-    alignItems: 'center', paddingTop: 60,
+    alignItems: 'center', paddingTop: 60, fontFamily: FONT,
   },
-  emptyIcon: { marginBottom: 16 },
+  emptyIcon: { marginBottom: SPACING.lg },
   emptyText: {
     fontSize: 15, color: COLORS.text.tertiary, fontFamily: FONT,
-    marginBottom: 20,
+    marginBottom: SPACING.screen.horizontal,
   },
   emptyButton: {
-    padding: '10px 24px', borderRadius: BORDER_RADIUS.pill,
+    padding: `${SPACING.sm + 2}px ${SPACING.xl}px`, borderRadius: BORDER_RADIUS.pill,
     background: `linear-gradient(135deg, ${COLORS.primary.main} 0%, ${COLORS.primary.gradient} 100%)`,
-    color: '#FFFFFF', fontSize: 14, fontWeight: 600, cursor: 'pointer',
-    fontFamily: FONT,
+    color: COLORS.text.white, fontSize: 14, fontWeight: 600, cursor: 'pointer',
+    fontFamily: FONT, transition: `all ${TRANSITIONS.fast}`,
   },
 };
 

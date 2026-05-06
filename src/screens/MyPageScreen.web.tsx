@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { useNavigate } from 'react-router-dom';
-import { CSS_SHADOWS } from '../styles/colors';
+import { COLORS, CSS_SHADOWS, TRANSITIONS, CARD_STYLE } from '../styles/colors';
+import { SPACING, BORDER_RADIUS, HEADER_STYLE } from '../styles/spacing';
 import { useUserStore } from '../store/userStore';
 import { Icon, IconName } from '../components/Icon';
 import userApiService from '../services/userApiService';
@@ -71,7 +72,7 @@ const HoverMenuRow: React.FC<{
       style={[
         styles.menuRow,
         !isLast && styles.menuRowBorder,
-        hovered && { backgroundColor: '#FAFAFA' },
+        hovered && { backgroundColor: COLORS.neutral.grey50 },
       ]}
       onPress={onPress}
       activeOpacity={0.7}
@@ -80,7 +81,7 @@ const HoverMenuRow: React.FC<{
       <Text style={styles.menuRowLabel}>{label}</Text>
       <View style={styles.menuRowRight}>
         {value && <Text style={styles.menuRowValue}>{value}</Text>}
-        <Icon name="chevron-right" size={16} color="#878B94" />
+        <Icon name="chevron-right" size={16} color={COLORS.text.tertiary} />
       </View>
     </TouchableOpacity>
   );
@@ -100,19 +101,19 @@ const HoverStatRow: React.FC<{
       style={[
         styles.menuRow,
         !isLast && styles.menuRowBorder,
-        hovered && { backgroundColor: '#FAFAFA' },
+        hovered && { backgroundColor: COLORS.neutral.grey50 },
       ]}
       onPress={onPress}
       activeOpacity={0.7}
       {...bind}
     >
       <View style={styles.statRowLeft}>
-        <Icon name={icon} size={18} color="#878B94" />
+        <Icon name={icon} size={18} color={COLORS.text.tertiary} />
         <Text style={styles.menuRowLabel}>{label}</Text>
       </View>
       <View style={styles.menuRowRight}>
         <Text style={styles.menuRowValue}>{value}</Text>
-        <Icon name="chevron-right" size={16} color="#878B94" />
+        <Icon name="chevron-right" size={16} color={COLORS.text.tertiary} />
       </View>
     </TouchableOpacity>
   );
@@ -184,27 +185,30 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ user: propsUser }) => {
 
   if (loading) {
     return (
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>마이페이지</Text>
-          <TouchableOpacity
-            onPress={() => navigate('/settings')}
-            accessibilityLabel="설정"
-            // @ts-ignore
-            style={{ cursor: 'pointer' }}
-          >
-            <Icon name="settings" size={22} color="#121212" />
-          </TouchableOpacity>
-        </View>
-        <View style={styles.skeletonWrapper}>
-          <ProfileSkeleton />
-        </View>
-      </View>
+      <div style={pageStyles.wrapper}>
+        <div style={pageStyles.innerContainer}>
+          <View style={styles.header}>
+            <Text style={styles.headerTitle}>마이페이지</Text>
+            <TouchableOpacity
+              onPress={() => navigate('/settings')}
+              accessibilityLabel="설정"
+              // @ts-ignore
+              style={{ cursor: 'pointer' }}
+            >
+              <Icon name="settings" size={22} color={COLORS.text.primary} />
+            </TouchableOpacity>
+          </View>
+          <View style={styles.skeletonWrapper}>
+            <ProfileSkeleton />
+          </View>
+        </div>
+      </div>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <div style={pageStyles.wrapper}>
+      <div style={pageStyles.innerContainer}>
       {/* 헤더 */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>마이페이지</Text>
@@ -215,7 +219,7 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ user: propsUser }) => {
           // @ts-ignore
           style={{ cursor: 'pointer' }}
         >
-          <Icon name="settings" size={22} color="#121212" />
+          <Icon name="settings" size={22} color={COLORS.text.primary} />
         </TouchableOpacity>
       </View>
 
@@ -237,14 +241,14 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ user: propsUser }) => {
               accessibilityLabel="프로필 수정"
             >
               <Text style={styles.userName}>{user?.name || '사용자'}</Text>
-              <Icon name="edit" size={16} color="#878B94" />
+              <Icon name="edit" size={16} color={COLORS.text.tertiary} />
             </TouchableOpacity>
           </View>
         </FadeIn>
 
         {/* 밥알지수 카드 */}
         <FadeIn delay={50}>
-          <div style={cardStyle}>
+          <div style={riceCardStyle}>
             <div style={{
               display: 'flex',
               flexDirection: 'row',
@@ -255,12 +259,14 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ user: propsUser }) => {
               <span style={{
                 fontSize: 16,
                 fontWeight: 600,
-                color: '#121212',
+                color: COLORS.text.primary,
+                fontFamily: 'system-ui, -apple-system, sans-serif',
               }}>밥알지수</span>
               <span style={{
                 fontSize: 16,
                 fontWeight: 700,
-                color: '#FFA529',
+                color: COLORS.primary.main,
+                fontFamily: 'system-ui, -apple-system, sans-serif',
               }}>
                 {userStats.riceIndex} 밥알 {riceGrade.emoji}
               </span>
@@ -268,17 +274,17 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ user: propsUser }) => {
             {/* Progress bar */}
             <div style={{
               height: 8,
-              backgroundColor: '#f1f2f3',
-              borderRadius: 4,
+              backgroundColor: COLORS.neutral.light,
+              borderRadius: BORDER_RADIUS.sm,
               overflow: 'hidden',
-              marginBottom: 8,
+              marginBottom: SPACING.sm,
             }}>
               <div style={{
                 height: '100%',
-                borderRadius: 4,
-                backgroundColor: '#FFA529',
+                borderRadius: BORDER_RADIUS.sm,
+                backgroundColor: COLORS.primary.main,
                 width: `${Math.min(userStats.riceIndex, 100)}%`,
-                transition: 'width 800ms cubic-bezier(0, 0, 0.2, 1)',
+                transition: `width 800ms cubic-bezier(0, 0, 0.2, 1)`,
               }} />
             </div>
             <div style={{
@@ -286,8 +292,8 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ user: propsUser }) => {
               flexDirection: 'row',
               justifyContent: 'space-between',
             }}>
-              <span style={{ fontSize: 12, color: '#878B94' }}>0 밥알</span>
-              <span style={{ fontSize: 12, color: '#878B94' }}>100 밥알</span>
+              <span style={{ fontSize: 12, color: COLORS.text.tertiary, fontFamily: 'system-ui, -apple-system, sans-serif' }}>0 밥알</span>
+              <span style={{ fontSize: 12, color: COLORS.text.tertiary, fontFamily: 'system-ui, -apple-system, sans-serif' }}>100 밥알</span>
             </div>
           </div>
         </FadeIn>
@@ -381,64 +387,83 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ user: propsUser }) => {
       </ScrollView>
 
       <ConfirmDialog {...dialog} />
-    </View>
+      </div>
+    </div>
   );
 };
 
-// Inline style for card containers (CSS-in-JS for web-specific properties)
-const cardStyle: React.CSSProperties = {
-  backgroundColor: '#FFFFFF',
-  borderRadius: 16,
-  padding: 20,
-  marginLeft: 20,
-  marginRight: 20,
-  marginBottom: 16,
-  boxShadow: CSS_SHADOWS.small,
+// Web wrapper styles for maxWidth: 480 centered container
+const pageStyles: Record<string, React.CSSProperties> = {
+  wrapper: {
+    minHeight: '100vh',
+    backgroundColor: COLORS.neutral.background,
+  },
+  innerContainer: {
+    maxWidth: 480,
+    margin: '0 auto',
+    backgroundColor: COLORS.neutral.background,
+    minHeight: '100vh',
+  },
+};
+
+// Inline style for rice-index card (CSS-in-JS for web-specific properties)
+const riceCardStyle: React.CSSProperties = {
+  backgroundColor: COLORS.surface.primary,
+  borderRadius: BORDER_RADIUS.xxl,
+  padding: SPACING.screen.horizontal,
+  marginLeft: SPACING.screen.horizontal,
+  marginRight: SPACING.screen.horizontal,
+  marginBottom: SPACING.lg,
+  boxShadow: CSS_SHADOWS.card,
+  border: `1px solid ${CARD_STYLE.borderColor}`,
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.neutral.background,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#efefef',
+    paddingHorizontal: HEADER_STYLE.main.paddingHorizontal,
+    paddingTop: HEADER_STYLE.main.paddingTop,
+    paddingBottom: HEADER_STYLE.main.paddingBottom,
+    backgroundColor: HEADER_STYLE.main.backgroundColor,
+    borderBottomWidth: HEADER_STYLE.main.borderBottomWidth,
+    borderBottomColor: HEADER_STYLE.main.borderBottomColor,
     // @ts-ignore
     position: 'sticky',
     top: 0,
     zIndex: 10,
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#121212',
-    letterSpacing: -0.3,
+    fontSize: HEADER_STYLE.title.fontSize,
+    fontWeight: HEADER_STYLE.title.fontWeight,
+    color: HEADER_STYLE.title.color,
+    letterSpacing: HEADER_STYLE.title.letterSpacing,
+    // @ts-ignore
+    fontFamily: 'system-ui, -apple-system, sans-serif',
   },
   scrollContent: {
     flex: 1,
   },
   skeletonWrapper: {
-    padding: 24,
-    backgroundColor: '#FFFFFF',
+    padding: SPACING.xl,
+    backgroundColor: COLORS.neutral.background,
   },
 
   // 프로필 섹션
   profileSection: {
     alignItems: 'center',
-    paddingTop: 32,
-    paddingBottom: 28,
+    paddingTop: SPACING.xxl,
+    paddingBottom: SPACING.section.paddingBottom,
   },
   avatarWrapper: {
     width: 100,
     height: 100,
-    borderRadius: 50,
+    borderRadius: BORDER_RADIUS.full,
     overflow: 'hidden',
     marginBottom: 14,
   },
@@ -452,27 +477,33 @@ const styles = StyleSheet.create({
   userName: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#121212',
+    color: COLORS.text.primary,
     letterSpacing: -0.3,
+    // @ts-ignore
+    fontFamily: 'system-ui, -apple-system, sans-serif',
   },
 
   // 섹션 카드
   sectionCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    paddingVertical: 4,
-    paddingHorizontal: 20,
-    marginHorizontal: 20,
-    marginBottom: 16,
+    backgroundColor: COLORS.surface.primary,
+    borderRadius: BORDER_RADIUS.xxl,
+    paddingVertical: SPACING.xs,
+    paddingHorizontal: SPACING.screen.horizontal,
+    marginHorizontal: SPACING.screen.horizontal,
+    marginBottom: SPACING.lg,
     // @ts-ignore
-    boxShadow: CSS_SHADOWS.small,
+    boxShadow: CSS_SHADOWS.card,
+    borderWidth: 1,
+    borderColor: CARD_STYLE.borderColor,
   },
   sectionHeader: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#121212',
-    paddingTop: 16,
-    paddingBottom: 4,
+    fontSize: 17,
+    fontWeight: '700',
+    color: COLORS.text.primary,
+    paddingTop: SPACING.lg,
+    paddingBottom: SPACING.xs,
+    // @ts-ignore
+    fontFamily: 'system-ui, -apple-system, sans-serif',
   },
 
   // 메뉴 행
@@ -480,65 +511,73 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 16,
+    paddingVertical: SPACING.lg,
     // @ts-ignore
     cursor: 'pointer',
-    transition: 'background-color 150ms ease',
+    transition: `background-color ${TRANSITIONS.fast}`,
   },
   menuRowBorder: {
     borderBottomWidth: 1,
-    borderBottomColor: '#efefef',
+    borderBottomColor: CARD_STYLE.borderColor,
   },
   menuRowLabel: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '500',
-    color: '#090909',
+    color: COLORS.text.primary,
+    // @ts-ignore
+    fontFamily: 'system-ui, -apple-system, sans-serif',
   },
   menuRowRight: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: SPACING.xs,
   },
   menuRowValue: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '500',
-    color: '#090909',
+    color: COLORS.text.secondary,
+    // @ts-ignore
+    fontFamily: 'system-ui, -apple-system, sans-serif',
   },
   statRowLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: SPACING.md,
   },
 
   // 하단 액션
   bottomActions: {
     alignItems: 'center',
-    marginTop: 16,
-    paddingHorizontal: 20,
-    paddingBottom: 20,
+    marginTop: SPACING.lg,
+    paddingHorizontal: SPACING.screen.horizontal,
+    paddingBottom: SPACING.screen.horizontal,
   },
   logoutButton: {
-    paddingVertical: 10,
+    paddingVertical: SPACING.md,
     // @ts-ignore
     cursor: 'pointer',
-    transition: 'opacity 150ms ease',
+    transition: `opacity ${TRANSITIONS.fast}`,
   },
   logoutText: {
     fontSize: 14,
     fontWeight: '400',
-    color: '#878B94',
+    color: COLORS.text.tertiary,
+    // @ts-ignore
+    fontFamily: 'system-ui, -apple-system, sans-serif',
   },
   deleteButton: {
-    marginTop: 8,
+    marginTop: SPACING.sm,
     paddingVertical: 6,
     // @ts-ignore
     cursor: 'pointer',
-    transition: 'opacity 150ms ease',
+    transition: `opacity ${TRANSITIONS.fast}`,
   },
   deleteText: {
     fontSize: 12,
     fontWeight: '400',
-    color: '#878B94',
+    color: COLORS.text.tertiary,
+    // @ts-ignore
+    fontFamily: 'system-ui, -apple-system, sans-serif',
   },
 });
 
