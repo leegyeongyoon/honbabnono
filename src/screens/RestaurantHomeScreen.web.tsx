@@ -47,7 +47,7 @@ const RestaurantHomeScreen: React.FC = () => {
       ]);
       if (popularRes.status === 'fulfilled') {
         const data = popularRes.value;
-        setPopularRestaurants(Array.isArray(data) ? data : data.restaurants || []);
+        setPopularRestaurants(data.restaurants || []);
       }
     } catch {
       // silent
@@ -213,7 +213,7 @@ const RestaurantHomeScreen: React.FC = () => {
                 {popularRestaurants.length > 0 ? (
                   popularRestaurants.map(renderRestaurantCard)
                 ) : (
-                  <div style={pageStyles.emptyText}>매장 정보를 불러오는 중...</div>
+                  <div style={pageStyles.emptyText}>주변에 등록된 매장이 없습니다. 곧 새로운 매장이 추가될 예정이에요!</div>
                 )}
               </div>
             </div>

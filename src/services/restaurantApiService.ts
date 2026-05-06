@@ -81,6 +81,39 @@ export interface Payment {
   paidAt?: string;
 }
 
+// ---------- snake_case → camelCase 변환 ----------
+
+const mapRestaurant = (r: any): Restaurant => ({
+  id: r.id,
+  name: r.name,
+  description: r.description,
+  category: r.category,
+  phone: r.phone,
+  address: r.address,
+  addressDetail: r.address_detail ?? r.addressDetail,
+  latitude: r.latitude ? Number(r.latitude) : undefined,
+  longitude: r.longitude ? Number(r.longitude) : undefined,
+  imageUrl: r.image_url ?? r.imageUrl,
+  images: r.images,
+  operatingHours: r.operating_hours ?? r.operatingHours,
+  seatCount: r.seat_count ?? r.seatCount,
+  isActive: r.is_active ?? r.isActive,
+  avgRating: r.avg_rating != null ? Number(r.avg_rating) : r.avgRating,
+  reviewCount: r.review_count != null ? Number(r.review_count) : r.reviewCount,
+});
+
+const mapMenuItem = (m: any): MenuItem => ({
+  id: m.id,
+  restaurantId: m.restaurant_id ?? m.restaurantId,
+  name: m.name,
+  description: m.description,
+  price: m.price,
+  imageUrl: m.image_url ?? m.imageUrl,
+  category: m.category_name ?? m.category,
+  isAvailable: m.is_active ?? m.isAvailable ?? true,
+  options: m.options,
+});
+
 // ---------- Restaurants ----------
 
 const getRestaurants = async (params?: {
@@ -89,7 +122,9 @@ const getRestaurants = async (params?: {
   limit?: number;
 }): Promise<{ restaurants: Restaurant[]; pagination?: any }> => {
   const response = await apiClient.get('/restaurants', { params });
-  return response.data.data ?? response.data;
+  const data = response.data.data ?? response.data;
+  const restaurants = (data.restaurants || []).map(mapRestaurant);
+  return { restaurants, pagination: data.pagination };
 };
 
 const getNearbyRestaurants = async (
@@ -100,19 +135,34 @@ const getNearbyRestaurants = async (
   const response = await apiClient.get('/restaurants/nearby', {
     params: { lat, lng, radius },
   });
-  return response.data.data ?? response.data;
+  const data = response.data.data ?? response.data;
+  const list = data.restaurants || data;
+  return Array.isArray(list) ? list.map(mapRestaurant) : [];
 };
 
 const searchRestaurants = async (keyword: string): Promise<Restaurant[]> => {
   const response = await apiClient.get('/restaurants/search', {
     params: { keyword },
   });
-  return response.data.data ?? response.data;
+  const data = response.data.data ?? response.data;
+  const list = data.restaurants || data;
+  return Array.isArray(list) ? list.map(mapRestaurant) : [];
 };
 
-const getRestaurantById = async (id: string): Promise<Restaurant> => {
+const getRestaurantById = async (id: string): Promise<Restaurant & { menus?: MenuItem[]; menusByCategory?: Record<string, MenuItem[]>; timeSlots?: any[] }> => {
   const response = await apiClient.get(`/restaurants/${id}`);
-  return response.data.data ?? response.data;
+  const data = response.data.data ?? response.data;
+  const restaurant = mapRestaurant(data);
+  const menus = Array.isArray(data.menus) ? data.menus.map(mapMenuItem) : undefined;
+  const menusByCategory = data.menusByCategory
+    ? Object.fromEntries(
+        Object.entries(data.menusByCategory).map(([cat, items]) => [
+          cat,
+          (items as any[]).map(mapMenuItem),
+        ]),
+      )
+    : undefined;
+  return { ...restaurant, menus, menusByCategory, timeSlots: data.timeSlots };
 };
 
 const getTimeSlots = async (
@@ -123,7 +173,13 @@ const getTimeSlots = async (
     `/restaurants/${restaurantId}/time-slots`,
     { params: { date } },
   );
-  return response.data.data ?? response.data;
+  const data = response.data.data ?? response.data;
+  const list = Array.isArray(data) ? data : [];
+  return list.map((s: any) => ({
+    time: s.slot_time ?? s.time,
+    available: s.is_active !== false && (s.current_reservations ?? 0) < (s.max_reservations ?? 5),
+    remainingSeats: (s.max_reservations ?? 5) - (s.current_reservations ?? 0),
+  }));
 };
 
 const toggleFavorite = async (
@@ -157,12 +213,15 @@ const getMenusByRestaurant = async (
   const response = await apiClient.get(
     `/menus/restaurant/${restaurantId}`,
   );
-  return response.data.data ?? response.data;
+  const data = response.data.data ?? response.data;
+  const list = data.menus || data;
+  return Array.isArray(list) ? list.map(mapMenuItem) : [];
 };
 
 const getMenuById = async (id: string): Promise<MenuItem> => {
   const response = await apiClient.get(`/menus/${id}`);
-  return response.data.data ?? response.data;
+  const data = response.data.data ?? response.data;
+  return mapMenuItem(data);
 };
 
 // ---------- Reservations ----------
