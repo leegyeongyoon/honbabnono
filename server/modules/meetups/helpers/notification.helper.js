@@ -236,7 +236,7 @@ const refundDepositsForMeetup = async (meetupId, client = null) => {
 
     // 포인트 거래 내역 추가
     await db.query(`
-      INSERT INTO point_transactions (user_id, transaction_type, amount, description, created_at)
+      INSERT INTO point_transactions (user_id, type, amount, description, created_at)
       VALUES ($1, 'earned', $2, $3, NOW())
     `, [deposit.user_id, deposit.amount, `모임 취소로 인한 약속금 환불 (모임 ID: ${meetupId})`]);
 

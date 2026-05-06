@@ -115,7 +115,7 @@ async function run() {
         `, [host.host_id, BEST_HOST_BONUS]);
 
         await client.query(`
-          INSERT INTO point_transactions (user_id, transaction_type, amount, description, created_at)
+          INSERT INTO point_transactions (user_id, type, amount, description, created_at)
           VALUES ($1, 'best_host_bonus', $2, '월간 우수 호스트 보너스 포인트', NOW())
         `, [host.host_id, BEST_HOST_BONUS]);
 

@@ -401,7 +401,7 @@ exports.refundPayment = async (req, res) => {
       if (payment.payment_method === 'points') {
         // 포인트 환불
         await client.query(`
-          INSERT INTO user_points (user_id, total_points, available_points, used_points)
+          INSERT INTO user_points (user_id, total_earned, available_points, total_used)
           VALUES ($1, $2, $2, 0)
           ON CONFLICT (user_id)
           DO UPDATE SET

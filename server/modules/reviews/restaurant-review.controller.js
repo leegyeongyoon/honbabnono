@@ -62,17 +62,15 @@ exports.createRestaurantReview = async (req, res) => {
       return res.status(409).json({ success: false, error: '이미 리뷰를 작성한 예약입니다.' });
     }
 
-    const overallRating = parseFloat(((taste_rating + service_rating + ambiance_rating) / 3).toFixed(2));
-
     await client.query('BEGIN');
 
-    // INSERT 리뷰
+    // INSERT 리뷰 (overall_rating은 GENERATED ALWAYS AS 컬럼 — DB가 자동 계산)
     const insertResult = await client.query(
       `INSERT INTO restaurant_reviews
-        (reservation_id, restaurant_id, user_id, taste_rating, service_rating, ambiance_rating, overall_rating, content)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        (reservation_id, restaurant_id, user_id, taste_rating, service_rating, ambiance_rating, content)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
        RETURNING *`,
-      [reservation_id, restaurant_id, userId, taste_rating, service_rating, ambiance_rating, overallRating, content.trim()]
+      [reservation_id, restaurant_id, userId, taste_rating, service_rating, ambiance_rating, content.trim()]
     );
 
     // UPDATE 매장 평점 집계

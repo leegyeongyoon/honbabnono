@@ -353,7 +353,7 @@ exports.updateRestaurant = async (req, res) => {
     const merchantRestaurantId = req.merchant.restaurantId;
 
     // 본인 식당인지 확인
-    if (parseInt(id) !== parseInt(merchantRestaurantId)) {
+    if (String(id) !== String(merchantRestaurantId)) {
       return res.status(403).json({
         success: false,
         error: '본인 식당만 수정할 수 있습니다.',

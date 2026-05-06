@@ -136,7 +136,7 @@ async function awardHostRewardPoints(meetup) {
 
     // point_transactions에 거래 내역 기록
     await client.query(`
-      INSERT INTO point_transactions (user_id, transaction_type, amount, description, created_at)
+      INSERT INTO point_transactions (user_id, type, amount, description, created_at)
       VALUES ($1, 'host_reward', $2, $3, NOW())
     `, [meetup.host_id, rewardAmount, `모임 호스팅 리워드 (${participants}명 참가)`]);
 

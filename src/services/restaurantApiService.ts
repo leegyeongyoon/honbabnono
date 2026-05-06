@@ -188,7 +188,13 @@ const createReservation = async (data: {
   partySize: number;
   specialRequest?: string;
 }): Promise<Reservation> => {
-  const response = await apiClient.post('/reservations', data);
+  const response = await apiClient.post('/reservations', {
+    restaurant_id: data.restaurantId,
+    reservation_date: data.reservationDate,
+    reservation_time: data.reservationTime,
+    party_size: data.partySize,
+    special_request: data.specialRequest,
+  });
   return response.data.data ?? response.data;
 };
 
@@ -196,14 +202,14 @@ const cancelReservation = async (
   id: string,
   reason?: string,
 ): Promise<void> => {
-  await apiClient.put(`/reservations/${id}/cancel`, { reason });
+  await apiClient.put(`/reservations/${id}/cancel`, { cancel_reason: reason });
 };
 
 const updateArrival = async (
   id: string,
   status: string,
 ): Promise<void> => {
-  await apiClient.put(`/reservations/${id}/arrival`, { status });
+  await apiClient.put(`/reservations/${id}/arrival`, { arrival_status: status });
 };
 
 const checkin = async (id: string): Promise<void> => {

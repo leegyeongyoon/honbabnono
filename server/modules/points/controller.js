@@ -9,8 +9,8 @@ exports.getPoints = async (req, res) => {
     const result = await pool.query(`
       SELECT
         COALESCE(available_points, 0) as available_points,
-        COALESCE(total_points, 0) as total_points,
-        COALESCE(used_points, 0) as used_points
+        COALESCE(total_earned, 0) as total_earned,
+        COALESCE(total_used, 0) as total_used
       FROM user_points
       WHERE user_id = $1
     `, [userId]);
@@ -18,7 +18,7 @@ exports.getPoints = async (req, res) => {
     if (result.rows.length === 0) {
       // 포인트 레코드 생성
       await pool.query(`
-        INSERT INTO user_points (user_id, available_points, total_points, used_points)
+        INSERT INTO user_points (user_id, available_points, total_earned, total_used)
         VALUES ($1, 0, 0, 0)
       `, [userId]);
 
@@ -36,8 +36,8 @@ exports.getPoints = async (req, res) => {
       success: true,
       points: {
         available: result.rows[0].available_points,
-        totalEarned: result.rows[0].total_points,
-        totalUsed: result.rows[0].used_points
+        totalEarned: result.rows[0].total_earned,
+        totalUsed: result.rows[0].total_used
       }
     });
 
@@ -98,12 +98,12 @@ exports.earnPoints = async (req, res) => {
 
       // 포인트 증가
       await client.query(`
-        INSERT INTO user_points (user_id, available_points, total_points)
+        INSERT INTO user_points (user_id, available_points, total_earned)
         VALUES ($1, $2, $2)
         ON CONFLICT (user_id)
         DO UPDATE SET
           available_points = user_points.available_points + $2,
-          total_points = user_points.total_points + $2
+          total_earned = user_points.total_earned + $2
       `, [userId, amount]);
 
       // 거래 내역 기록
@@ -160,7 +160,7 @@ exports.usePoints = async (req, res) => {
       await client.query(`
         UPDATE user_points
         SET available_points = available_points - $2,
-            used_points = used_points + $2
+            total_used = total_used + $2
         WHERE user_id = $1
       `, [userId, amount]);
 
