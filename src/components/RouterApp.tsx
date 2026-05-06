@@ -55,7 +55,7 @@ import SearchRestaurantsScreen from '../screens/SearchRestaurantsScreen.web';
 // Components
 import BottomTabBar from './BottomTabBar';
 
-const ONBOARDING_STORAGE_KEY = 'has_seen_onboarding';
+const ONBOARDING_STORAGE_KEY = 'has_seen_onboarding_v2';
 
 const RouterApp: React.FC = () => {
   const { user, isLoggedIn, login, logout, setUser, setToken } = useUserStore();
@@ -254,6 +254,18 @@ const RouterApp: React.FC = () => {
         window.location.href = '/onboarding';
       } else if (screenName === 'Home') {
         window.location.href = '/home';
+      } else if (screenName === 'RestaurantDetail') {
+        window.location.href = `/restaurant/${params?.restaurantId || params?.id}`;
+      } else if (screenName === 'ReservationForm') {
+        window.location.href = `/reservation/${params?.restaurantId}`;
+      } else if (screenName === 'ReservationPayment') {
+        window.location.href = `/payment/${params?.reservationId}`;
+      } else if (screenName === 'ReservationConfirm') {
+        window.location.href = `/reservation-confirm/${params?.reservationId}`;
+      } else if (screenName === 'MyReservations') {
+        window.location.href = '/my-reservations';
+      } else if (screenName === 'SearchRestaurants') {
+        window.location.href = '/search-restaurants';
       }
     },
     navigateToNotifications: () => {
@@ -323,7 +335,8 @@ const RouterApp: React.FC = () => {
           <Route path="/chat/:id" element={protectedElement(<MainLayout><ChatScreen {...getNavigationProps()} /></MainLayout>)} />
           <Route path="/meetup/:id/deposit-payment" element={protectedElement(<DepositPaymentScreen />)} />
           <Route path="/meetup/:id" element={protectedElement(<MeetupDetailScreen user={user} />)} />
-          <Route path="/home" element={protectedElement(<MainLayout><HomeScreen user={user} navigation={getReactRouterNavigation()} /></MainLayout>)} />
+          <Route path="/home" element={protectedElement(<MainLayout><RestaurantHomeScreen /></MainLayout>)} />
+          <Route path="/legacy-home" element={protectedElement(<MainLayout><HomeScreen user={user} navigation={getReactRouterNavigation()} /></MainLayout>)} />
           <Route path="/search" element={protectedElement(<MainLayout><SearchScreen user={user} navigation={getReactRouterNavigation()} /></MainLayout>)} />
           <Route path="/ai-search" element={protectedElement(<AISearchResultScreen user={user} navigation={getReactRouterNavigation()} />)} />
           <Route path="/notifications" element={protectedElement(<MainLayout><NotificationScreen user={user} navigation={getReactRouterNavigation()} /></MainLayout>)} />
@@ -351,7 +364,7 @@ const RouterApp: React.FC = () => {
           <Route path="/settings" element={protectedElement(<SettingsScreen />)} />
 
           {/* v2 피벗: 매장/예약 라우트 */}
-          <Route path="/restaurants" element={protectedElement(<MainLayout><RestaurantHomeScreen /></MainLayout>)} />
+          <Route path="/restaurants" element={<Navigate to="/home" replace />} />
           <Route path="/restaurant/:id" element={protectedElement(<RestaurantDetailScreen />)} />
           <Route path="/reservation/:restaurantId" element={protectedElement(<ReservationFormScreen />)} />
           <Route path="/payment/:reservationId" element={protectedElement(<ReservationPaymentScreen />)} />

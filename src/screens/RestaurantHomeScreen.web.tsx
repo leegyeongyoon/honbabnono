@@ -147,7 +147,9 @@ const RestaurantHomeScreen: React.FC = () => {
       <div style={pageStyles.container}>
         {/* 헤더 */}
         <div style={pageStyles.header}>
-          <div style={pageStyles.headerTitle}>잇테이블</div>
+          <div style={pageStyles.headerTitle}>잇테이블
+            <span style={{ fontSize: 12, fontWeight: '400', color: COLORS.text.tertiary, marginLeft: 8 }}>예약하고, 도착하면, 바로 식사</span>
+          </div>
           <TouchableOpacity onPress={() => navigate('/notifications')}>
             <Icon name="bell" size={22} color={COLORS.text.secondary} />
           </TouchableOpacity>
@@ -158,10 +160,11 @@ const RestaurantHomeScreen: React.FC = () => {
           <Icon name="search" size={18} color={COLORS.neutral.grey400} />
           <input
             type="text"
-            placeholder="매장명, 카테고리 검색"
+            placeholder="오늘은 어디서 먹을까?"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSearchSubmit()}
+            onFocus={() => navigate('/search-restaurants')}
             style={pageStyles.searchInput}
           />
         </div>

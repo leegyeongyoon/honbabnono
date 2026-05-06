@@ -50,7 +50,7 @@ interface QuickMenuItem {
 }
 
 const QUICK_MENUS: QuickMenuItem[] = [
-  { id: 'my-meetups', label: '내 약속', icon: 'calendar', screen: 'MyMeetups', iconBg: '#FFF3E0', iconColor: '#E65100' },
+  { id: 'my-reservations', label: '내 예약', icon: 'calendar', screen: 'MyReservations', iconBg: '#E8EAF6', iconColor: '#283593' },
   { id: 'wishlist', label: '찜 목록', icon: 'heart', screen: 'Wishlist', iconBg: '#FCE4EC', iconColor: '#C62828' },
   { id: 'point-charge', label: '포인트', icon: 'credit-card', screen: 'PointCharge', iconBg: '#E8F5E9', iconColor: '#2E7D32' },
   { id: 'my-reviews', label: '리뷰', icon: 'star', screen: 'MyReviews', iconBg: '#FFF8E1', iconColor: '#F57F17' },

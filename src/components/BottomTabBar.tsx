@@ -1,98 +1,50 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { COLORS } from '../styles/colors';
 import NavIcon from './NavIcon';
-import apiClient from '../services/apiClient';
-import chatService from '../services/chatService';
 
 const BottomTabBar: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const [unreadChatCount, setUnreadChatCount] = useState(0);
 
-  // Figma 기준 탭 순서: 홈 / 탐색 / 채팅 / 내약속 / 마이페이지
+  // v2: 매장 중심 탭 구조
   const tabs = [
     { key: 'home', title: '홈', navIcon: 'home' as const, path: '/home' },
-    { key: 'explore', title: '탐색', navIcon: 'explore' as const, path: '/explore' },
-    { key: 'chat', title: '채팅', navIcon: 'chat' as const, path: '/chat' },
-    { key: 'my-meetups', title: '내약속', navIcon: 'mymeetups' as const, path: '/my-meetups' },
+    { key: 'search', title: '검색', navIcon: 'search' as const, path: '/search-restaurants' },
+    { key: 'reservations', title: '내 예약', navIcon: 'reservation' as const, path: '/my-reservations' },
     { key: 'mypage', title: '마이페이지', navIcon: 'mypage' as const, path: '/mypage' },
   ];
 
   const getActiveTab = () => {
     const currentPath = location.pathname;
 
-    if (currentPath.startsWith('/chat')) {
-      return 'chat';
-    }
-    if (currentPath.startsWith('/my-meetups') || currentPath.startsWith('/joined-meetups')) {
-      return 'my-meetups';
-    }
-    if (currentPath.startsWith('/explore') || currentPath.startsWith('/meetup-list') || currentPath.startsWith('/search') || currentPath.startsWith('/ai-search')) {
-      return 'explore';
-    }
-    if (currentPath.startsWith('/mypage') || currentPath.startsWith('/my-page') || currentPath.startsWith('/my-reviews') || currentPath.startsWith('/my-activities')) {
-      return 'mypage';
-    }
-    if (currentPath.startsWith('/meetup')) {
+    // 매장 상세, 예약폼, 결제 → 홈 탭
+    if (currentPath.startsWith('/restaurant') && !currentPath.startsWith('/restaurants')) {
       return 'home';
+    }
+    if (currentPath.startsWith('/reservation/') || currentPath.startsWith('/payment/')) {
+      return 'home';
+    }
+
+    // 검색 관련
+    if (currentPath.startsWith('/search-restaurants')) {
+      return 'search';
+    }
+
+    // 내 예약 관련
+    if (currentPath.startsWith('/my-reservations') || currentPath.startsWith('/reservation-confirm') || currentPath.startsWith('/write-restaurant-review')) {
+      return 'reservations';
+    }
+
+    // 마이페이지 관련
+    if (currentPath.startsWith('/mypage') || currentPath.startsWith('/my-page') || currentPath.startsWith('/settings') || currentPath.startsWith('/my-reviews') || currentPath.startsWith('/my-badges') || currentPath.startsWith('/point') || currentPath.startsWith('/blocked-users') || currentPath.startsWith('/notification-settings') || currentPath.startsWith('/privacy-settings') || currentPath.startsWith('/recent-views')) {
+      return 'mypage';
     }
 
     const activeTab = tabs.find(tab => tab.path === currentPath);
     return activeTab?.key || 'home';
   };
-
-  const handleTabPress = (path: string) => {
-    if (path === '/chat') {
-      setUnreadChatCount(0);
-    }
-    navigate(path);
-  };
-
-  const fetchUnreadChatCount = async () => {
-    try {
-      const response = await apiClient.get('/chat/unread-count');
-      if (response.data.success) {
-        const count = response.data.unreadCount || 0;
-        setUnreadChatCount(count);
-      }
-    } catch (error) {
-      setUnreadChatCount(0);
-    }
-  };
-
-  useEffect(() => {
-    fetchUnreadChatCount();
-
-    chatService.connect();
-
-    const interval = setInterval(() => {
-      fetchUnreadChatCount();
-    }, 30 * 1000);
-
-    const handleUnreadCountUpdate = (data: { unreadCount: number }) => {
-      setUnreadChatCount(data.unreadCount);
-    };
-
-    chatService.onUnreadCountUpdated(handleUnreadCountUpdate);
-
-    return () => {
-      clearInterval(interval);
-      chatService.offUnreadCountUpdated(handleUnreadCountUpdate);
-    };
-  }, []);
-
-  useEffect(() => {
-    if (location.pathname.startsWith('/chat')) {
-      setUnreadChatCount(0);
-      setTimeout(() => {
-        fetchUnreadChatCount();
-      }, 200);
-    } else {
-      fetchUnreadChatCount();
-    }
-  }, [location.pathname]);
 
   const activeTab = getActiveTab();
 
@@ -100,13 +52,12 @@ const BottomTabBar: React.FC = () => {
     <View style={styles.tabBar}>
       {tabs.map(tab => {
         const isActive = activeTab === tab.key;
-        const showChatBadge = tab.key === 'chat' && unreadChatCount > 0;
 
         return (
           <TouchableOpacity
             key={tab.key}
             style={styles.tabItem}
-            onPress={() => handleTabPress(tab.path)}
+            onPress={() => navigate(tab.path)}
             activeOpacity={0.7}
             accessibilityRole="tab"
             accessibilityState={{ selected: isActive }}
@@ -118,13 +69,6 @@ const BottomTabBar: React.FC = () => {
                 size={24}
                 color={isActive ? '#151515' : '#8F99A9'}
               />
-              {showChatBadge && (
-                <View style={styles.chatBadge}>
-                  <Text style={styles.chatBadgeText}>
-                    {unreadChatCount > 99 ? '99+' : unreadChatCount.toString()}
-                  </Text>
-                </View>
-              )}
             </View>
             <Text style={[
               styles.tabLabel,
@@ -167,26 +111,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 5,
-  },
-  chatBadge: {
-    position: 'absolute',
-    top: -4,
-    right: -10,
-    backgroundColor: COLORS.functional.error,
-    borderRadius: 8,
-    minWidth: 16,
-    height: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 4,
-    borderWidth: 1.5,
-    borderColor: COLORS.neutral.white,
-  },
-  chatBadgeText: {
-    color: COLORS.text.white,
-    fontSize: 9,
-    fontWeight: '700',
-    lineHeight: 11,
   },
   tabLabel: {
     fontSize: 12,

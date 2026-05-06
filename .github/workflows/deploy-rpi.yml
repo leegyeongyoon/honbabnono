@@ -58,11 +58,13 @@ jobs:
           --exclude='.env' \
           --exclude='.env.development' \
           --exclude='.env.test' \
+          --exclude='merchant/node_modules' \
+          --exclude='admin/node_modules' \
           ./ ${{ secrets.DEPLOY_USER }}@deploy.eattable.kr:/home/gyoungyoon/eattable/app/
 
     - name: Build and deploy
       run: |
-        ssh ${{ secrets.DEPLOY_USER }}@deploy.eattable.kr << 'EOF'
+        ssh -o ServerAliveInterval=15 -o ServerAliveCountMax=10 ${{ secrets.DEPLOY_USER }}@deploy.eattable.kr << 'EOF'
           cd /home/gyoungyoon/eattable
           echo "=== Docker build ==="
           docker compose up -d --build app 2>&1 | tail -20
@@ -76,7 +78,7 @@ jobs:
             echo "Deploy SUCCESS"
           else
             echo "Deploy WARNING - check logs"
-            docker logs eattable-app --tail 10
+            docker logs eattable-app --tail 20
             exit 1
           fi
         EOF

@@ -12,7 +12,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { COLORS, CSS_SHADOWS } from '../styles/colors';
 
-const STORAGE_KEY = 'has_seen_onboarding';
+const STORAGE_KEY = 'has_seen_onboarding_v2';
 
 interface OnboardingSlide {
   icon: string;
@@ -23,23 +23,23 @@ interface OnboardingSlide {
 const SLIDES: OnboardingSlide[] = [
   {
     icon: '🍽️🔍',
-    title: '모임 찾기',
-    subtitle: '내 주변의 식사 모임을 찾아보세요\n카테고리, 위치, 날짜로 원하는 모임을 쉽게 찾을 수 있어요',
+    title: '맛집 탐색',
+    subtitle: '내 주변 맛집을 찾아보세요\n카테고리, 위치, 리뷰로 원하는 매장을 쉽게 찾을 수 있어요',
   },
   {
-    icon: '🤝💰',
-    title: '참가 & 약속금',
-    subtitle: '약속금으로 서로의 신뢰를 만들어요\n노쇼 없는 즐거운 식사 모임, 출석하면 약속금이 돌아와요',
+    icon: '📋💳',
+    title: '메뉴 미리 선택 & 선결제',
+    subtitle: '방문 전 메뉴를 미리 골라 선결제하세요\n도착하면 기다림 없이 바로 식사!',
   },
   {
-    icon: '📍✅',
-    title: 'GPS 체크인',
-    subtitle: '만남 장소에서 간편하게 체크인\nGPS 또는 QR코드로 출석을 확인하세요',
+    icon: '📅✅',
+    title: '예약 & 조리 준비',
+    subtitle: '예약 시간에 맞춰 매장이 준비해요\n메뉴 전액 선결제로 노쇼 걱정 없는 안전한 예약',
   },
   {
-    icon: '⭐📈',
-    title: '리뷰 & 바발스코어',
-    subtitle: '리뷰를 남기고 신뢰를 쌓아가세요\n바발스코어가 올라갈수록 더 좋은 모임에 참여할 수 있어요',
+    icon: '🏃‍♂️🍳',
+    title: '도착 즉시 식사',
+    subtitle: 'QR 체크인 후 바로 식사를 시작하세요\n대기시간 0분의 새로운 외식 경험',
   },
 ];
 

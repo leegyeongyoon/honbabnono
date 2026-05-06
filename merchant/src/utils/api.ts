@@ -4,13 +4,12 @@ const getApiBaseUrl = (): string => {
   if (typeof window === 'undefined') {
     return 'https://eattable.kr';
   }
-  if (window.location.hostname === 'merchant.eattable.kr') {
-    return 'https://eattable.kr';
-  }
+  // 로컬 개발 환경
   if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
     return 'http://localhost:3001';
   }
-  return 'https://eattable.kr';
+  // 프로덕션: nginx가 /api/를 프록시하므로 상대경로 사용
+  return '';
 };
 
 export const API_BASE_URL = getApiBaseUrl();
