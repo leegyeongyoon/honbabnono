@@ -67,7 +67,9 @@ jobs:
         ssh -o ServerAliveInterval=15 -o ServerAliveCountMax=10 ${{ secrets.DEPLOY_USER }}@deploy.eattable.kr << 'EOF'
           cd /home/gyoungyoon/eattable
           echo "=== Docker build ==="
-          docker compose up -d --build app 2>&1 | tail -20
+          docker compose build --no-cache app 2>&1 | tail -30
+          echo "=== Starting container ==="
+          docker compose up -d --force-recreate app 2>&1 | tail -10
           echo "=== Waiting for startup ==="
           sleep 30
           HTTP=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:80/)
