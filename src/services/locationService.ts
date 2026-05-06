@@ -198,9 +198,9 @@ class LocationService {
 
       let message = '';
       if (isNearMeetupLocation) {
-        message = `약속 장소 근처에 있습니다! (${Math.round(distance)}m 거리)`;
+        message = `매장 근처에 있습니다! (${Math.round(distance)}m 거리)`;
       } else {
-        message = `약속 장소에서 너무 멀리 있습니다. (${Math.round(distance)}m 거리, 최대 ${maxDistance}m)`;
+        message = `매장에서 너무 멀리 있습니다. (${Math.round(distance)}m 거리, 최대 ${maxDistance}m)`;
       }
 
       return {

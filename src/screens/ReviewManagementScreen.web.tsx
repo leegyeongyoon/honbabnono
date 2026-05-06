@@ -201,7 +201,7 @@ const ReviewManagementScreen: React.FC = () => {
             </View>
             <View style={styles.headerInfo}>
               <View style={styles.nameStarsRow}>
-                <Text style={styles.reviewerName}>{review.meetup_title || '약속'}</Text>
+                <Text style={styles.reviewerName}>{review.meetup_title || '매장'}</Text>
                 {!isEditing && renderStars(review.rating ?? 0, 12)}
               </View>
               {!isEditing && (
@@ -357,7 +357,7 @@ const ReviewManagementScreen: React.FC = () => {
           {/* Reply */}
           {review.reply ? (
             <View style={styles.replyContainer}>
-              <Icon name="corner-down-right" size={14} color="#878B94" />
+              <Icon name="arrow-right" size={14} color="#878B94" />
               <View style={styles.replyBody}>
                 <Text style={styles.replyLabel}>내 답변</Text>
                 <Text style={styles.replyText}>{review.reply}</Text>
@@ -502,11 +502,11 @@ const ReviewManagementScreen: React.FC = () => {
             title={selectedFilter === 'written' ? '작성한 리뷰가 없습니다' : '받은 리뷰가 없습니다'}
             description={
               selectedFilter === 'written'
-                ? '참여한 약속에 대한 리뷰를 작성해보세요!'
-                : '약속을 호스팅하면 리뷰를 받을 수 있어요'
+                ? '이용한 매장에 대한 리뷰를 작성해보세요!'
+                : '매장을 이용하면 리뷰를 받을 수 있어요'
             }
-            actionLabel={selectedFilter === 'written' ? '내 약속 보기' : undefined}
-            onAction={selectedFilter === 'written' ? () => navigate('/my-meetups') : undefined}
+            actionLabel={selectedFilter === 'written' ? '내 예약 보기' : undefined}
+            onAction={selectedFilter === 'written' ? () => navigate('/my-reservations') : undefined}
           />
         ) : (
           <View style={styles.reviewsList}>

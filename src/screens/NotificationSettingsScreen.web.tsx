@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch } from 'react-native';
 import { useNavigate } from 'react-router-dom';
+import { Icon } from '../components/Icon';
 import apiClient from '../services/apiClient';
 
 interface NotificationSettings {
@@ -130,7 +131,7 @@ const NotificationSettingsScreen: React.FC = () => {
       <View style={styles.container}>
         <View style={styles.header}>
           <TouchableOpacity style={styles.backButton} onPress={() => navigate('/mypage')}>
-            <Text style={styles.backArrow}>{'<'}</Text>
+            <Icon name="chevron-left" size={24} color="#121212" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>알림설정</Text>
           <View style={styles.placeholder} />
@@ -163,7 +164,7 @@ const NotificationSettingsScreen: React.FC = () => {
           style={styles.backButton}
           onPress={() => navigate('/mypage')}
         >
-          <Text style={styles.backArrow}>{'<'}</Text>
+          <Icon name="chevron-left" size={24} color="#121212" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>알림설정</Text>
         <View style={styles.placeholder} />
@@ -188,18 +189,18 @@ const NotificationSettingsScreen: React.FC = () => {
 
         <View style={styles.sectionDivider} />
 
-        {/* 모임 알림 */}
+        {/* 예약 알림 */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>모임 알림</Text>
+          <Text style={styles.sectionTitle}>예약 알림</Text>
           {renderSettingItem(
             'meetupReminders',
-            '모임 리마인더',
-            '모임 시작 전 미리 알려드립니다'
+            '예약 리마인더',
+            '예약 시간 전에 미리 알려드립니다'
           )}
           {renderSettingItem(
             'chatMessages',
             '채팅 메시지',
-            '모임 채팅방의 새 메시지 알림',
+            '매장 문의 채팅의 새 메시지 알림',
             true
           )}
         </View>

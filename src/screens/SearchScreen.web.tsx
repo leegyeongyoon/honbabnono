@@ -467,7 +467,7 @@ const SearchScreen: React.FC<SearchScreenProps> = ({ navigation, user }) => {
           <Icon name="search" size={16} color={searchInputFocused ? '#121212' : '#878B94'} />
           <TextInput
             style={styles.searchInput}
-            placeholder="약속이나 장소를 검색해보세요"
+            placeholder="매장명이나 지역을 검색해보세요"
             value={searchText}
             onChangeText={(text) => {
               setSearchText(text);
@@ -739,7 +739,7 @@ const SearchScreen: React.FC<SearchScreenProps> = ({ navigation, user }) => {
           fontWeight: 500,
           fontFamily: 'Pretendard, -apple-system, sans-serif',
         }}>
-          총 {filteredMeetups.length}개의 약속
+          총 {filteredMeetups.length}개의 매장
           {searchText && aiSearchService.isAIEnabled() && ' (AI 필터링 적용)'}
         </span>
         {searchText && (

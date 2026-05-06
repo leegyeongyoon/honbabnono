@@ -54,7 +54,7 @@ const NoticesScreen: React.FC = () => {
 
   const renderEmpty = () => (
     <div style={styles.emptyState}>
-      <Icon name="bell-off" size={48} color="#b7bbbf" />
+      <Icon name="bell" size={48} color="#b7bbbf" />
       <div style={styles.emptyTitle}>등록된 공지사항이 없습니다</div>
       <div style={styles.emptyDescription}>새로운 소식이 있으면 알려드릴게요!</div>
     </div>

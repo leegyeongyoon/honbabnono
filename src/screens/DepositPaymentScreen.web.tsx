@@ -120,7 +120,7 @@ const DepositPaymentScreen: React.FC = () => {
         const m = meetupData.data || meetupData.meetup || meetupData;
         const meetupInfo: MeetupInfo = {
           id: m.id,
-          title: m.title || '약속',
+          title: m.title || '예약',
           date: m.date || '',
           time: m.time || '',
           location: m.location || '',
@@ -139,7 +139,7 @@ const DepositPaymentScreen: React.FC = () => {
               method: 'POST',
               headers: getAuthHeader(),
             });
-            showSuccess('무료 모임입니다. 약속에 참여되었습니다!');
+            showSuccess('무료 예약입니다. 예약이 완료되었습니다!');
             setTimeout(() => navigate(`/meetup/${id}`), 1500);
             return;
           } catch (_err) {
@@ -383,7 +383,7 @@ const DepositPaymentScreen: React.FC = () => {
           <TouchableOpacity onPress={() => navigate(`/meetup/${id}`)} style={styles.backButton}>
             <Icon name="chevron-left" size={24} color={COLORS.text.primary} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>약속금 결제</Text>
+          <Text style={styles.headerTitle}>보증금 결제</Text>
         </View>
         <View style={styles.centerContainer}>
           <ActivityIndicator size="large" color={COLORS.primary.accent} />
@@ -416,19 +416,19 @@ const DepositPaymentScreen: React.FC = () => {
               {depositAmount.toLocaleString()}원
             </Text>
             <Text style={styles.successMessage}>
-              약속금이 결제되었습니다.{'\n'}
-              약속에 참여되었어요!
+              보증금이 결제되었습니다.{'\n'}
+              예약이 완료되었어요!
             </Text>
 
             <View style={styles.successInfoBox}>
               <View style={styles.successInfoRow}>
                 <Icon name="calendar" size={16} color={COLORS.text.secondary} />
                 <Text style={styles.successInfoText}>
-                  {meetup?.title || '약속'}
+                  {meetup?.title || '예약'}
                 </Text>
               </View>
               <View style={styles.successInfoRow}>
-                <Icon name="shield" size={16} color={COLORS.functional.success} />
+                <Icon name="check-circle" size={16} color={COLORS.functional.success} />
                 <Text style={styles.successInfoText}>
                   정상 참석 + 리뷰 작성 시 24시간 내 전액 환불
                 </Text>
@@ -457,7 +457,7 @@ const DepositPaymentScreen: React.FC = () => {
                 style={styles.secondaryButton}
                 onPress={() => navigate(`/meetup/${id}`)}
               >
-                <Text style={styles.secondaryButtonText}>약속 상세보기</Text>
+                <Text style={styles.secondaryButtonText}>예약 상세보기</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -474,7 +474,7 @@ const DepositPaymentScreen: React.FC = () => {
           <TouchableOpacity onPress={() => navigate(`/meetup/${id}`)} style={styles.backButton}>
             <Icon name="chevron-left" size={24} color={COLORS.text.primary} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>약속금 결제</Text>
+          <Text style={styles.headerTitle}>보증금 결제</Text>
         </View>
         <FadeIn>
           <View style={styles.centerContainer}>
@@ -492,7 +492,7 @@ const DepositPaymentScreen: React.FC = () => {
             </div>
             <Text style={styles.alreadyPaidTitle}>이미 결제 완료</Text>
             <Text style={styles.alreadyPaidMessage}>
-              이 약속의 약속금은 이미 결제되었습니다.
+              이 예약의 보증금은 이미 결제되었습니다.
             </Text>
             {existingDeposit && (
               <Text style={styles.alreadyPaidAmount}>
@@ -522,7 +522,7 @@ const DepositPaymentScreen: React.FC = () => {
                 style={styles.secondaryButton}
                 onPress={() => navigate(`/meetup/${id}`)}
               >
-                <Text style={styles.secondaryButtonText}>약속 상세보기</Text>
+                <Text style={styles.secondaryButtonText}>예약 상세보기</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -539,7 +539,7 @@ const DepositPaymentScreen: React.FC = () => {
           <TouchableOpacity onPress={() => navigate(`/meetup/${id}`)} style={styles.backButton}>
             <Icon name="chevron-left" size={24} color={COLORS.text.primary} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>약속금 결제</Text>
+          <Text style={styles.headerTitle}>보증금 결제</Text>
         </View>
         <FadeIn>
           <View style={styles.centerContainer}>
@@ -573,7 +573,7 @@ const DepositPaymentScreen: React.FC = () => {
                   style={styles.retryButton}
                   onPress={handleRetry}
                 >
-                  <Icon name="refresh-cw" size={18} color={COLORS.neutral.white} />
+                  <Icon name="zap" size={18} color={COLORS.neutral.white} />
                   <Text style={styles.retryButtonText}>다시 시도</Text>
                 </TouchableOpacity>
               </div>
@@ -581,7 +581,7 @@ const DepositPaymentScreen: React.FC = () => {
                 style={styles.secondaryButton}
                 onPress={() => navigate(`/meetup/${id}`)}
               >
-                <Text style={styles.secondaryButtonText}>약속으로 돌아가기</Text>
+                <Text style={styles.secondaryButtonText}>예약으로 돌아가기</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -598,7 +598,7 @@ const DepositPaymentScreen: React.FC = () => {
           <TouchableOpacity onPress={() => navigate(`/meetup/${id}`)} style={styles.backButton}>
             <Icon name="chevron-left" size={24} color={COLORS.text.primary} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>약속금 결제</Text>
+          <Text style={styles.headerTitle}>보증금 결제</Text>
         </View>
         <View style={styles.centerContainer}>
           <ActivityIndicator size="large" color={COLORS.primary.accent} />
@@ -619,7 +619,7 @@ const DepositPaymentScreen: React.FC = () => {
         <TouchableOpacity onPress={() => navigate(`/meetup/${id}`)} style={styles.backButton}>
           <Icon name="chevron-left" size={24} color={COLORS.text.primary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>서로의 신뢰를 위해{'\n'}약속금을 미리 걸어둬요</Text>
+        <Text style={styles.headerTitle}>서로의 신뢰를 위해{'\n'}보증금을 미리 걸어둬요</Text>
       </View>
 
       <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
@@ -643,7 +643,7 @@ const DepositPaymentScreen: React.FC = () => {
 
           {/* 약속금 정보 */}
           <View style={styles.amountSection}>
-            <Text style={styles.amountLabel}>약속금</Text>
+            <Text style={styles.amountLabel}>보증금</Text>
             <Text style={styles.amountValue}>{depositAmount.toLocaleString()}원</Text>
             <View style={styles.warningBox}>
               <Icon name="info" size={14} color={COLORS.functional.info} />

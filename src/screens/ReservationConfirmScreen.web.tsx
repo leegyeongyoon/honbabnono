@@ -5,6 +5,7 @@ import { Icon } from '../components/Icon';
 import { COLORS, CSS_SHADOWS, CARD_STYLE } from '../styles/colors';
 import { BORDER_RADIUS } from '../styles/spacing';
 import useReservationStore from '../store/reservationStore';
+import { QRCodeSVG } from 'qrcode.react';
 
 // ============================================================
 // ReservationConfirmScreen — 잇테이블 v2 예약 확정
@@ -87,7 +88,13 @@ const ReservationConfirmScreen: React.FC = () => {
               <div style={s.qrSection}>
                 <div style={s.qrLabel}>체크인 QR 코드</div>
                 <div style={s.qrBox}>
-                  <div style={s.qrText}>{reservation.qrCode}</div>
+                  <QRCodeSVG
+                    value={reservation.qrCode}
+                    size={160}
+                    level="M"
+                    bgColor="#FFFFFF"
+                    fgColor="#121212"
+                  />
                   <div style={s.qrHint}>
                     매장 도착 시 이 코드를 보여주세요.
                   </div>
@@ -191,12 +198,11 @@ const s: Record<string, React.CSSProperties> = {
     fontFamily: FONT, marginBottom: 10,
   },
   qrBox: {
-    padding: 20, borderRadius: BORDER_RADIUS.md,
-    backgroundColor: COLORS.neutral.light, textAlign: 'center' as const,
-  },
-  qrText: {
-    fontSize: 18, fontWeight: 700, fontFamily: 'monospace',
-    color: COLORS.text.primary, letterSpacing: 2, marginBottom: 8,
+    padding: 24, borderRadius: BORDER_RADIUS.md,
+    backgroundColor: '#FFFFFF', textAlign: 'center' as const,
+    display: 'flex', flexDirection: 'column' as const,
+    alignItems: 'center', gap: 12,
+    border: '1px solid rgba(17,17,17,0.08)',
   },
   qrHint: { fontSize: 12, color: COLORS.text.tertiary, fontFamily: FONT },
 

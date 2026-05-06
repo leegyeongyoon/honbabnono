@@ -38,7 +38,7 @@ const BottomTabBar: React.FC = () => {
     }
 
     // 마이페이지 관련
-    if (currentPath.startsWith('/mypage') || currentPath.startsWith('/my-page') || currentPath.startsWith('/settings') || currentPath.startsWith('/my-reviews') || currentPath.startsWith('/my-badges') || currentPath.startsWith('/point') || currentPath.startsWith('/blocked-users') || currentPath.startsWith('/notification-settings') || currentPath.startsWith('/privacy-settings') || currentPath.startsWith('/recent-views')) {
+    if (currentPath.startsWith('/mypage') || currentPath.startsWith('/my-page') || currentPath.startsWith('/settings') || currentPath.startsWith('/my-reviews') || currentPath.startsWith('/my-badges') || currentPath.startsWith('/point') || currentPath.startsWith('/blocked-users') || currentPath.startsWith('/notification-settings') || currentPath.startsWith('/privacy-settings') || currentPath.startsWith('/recent-views') || currentPath.startsWith('/wishlist')) {
       return 'mypage';
     }
 
@@ -91,7 +91,12 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#F5F5F5',
     ...(Platform.OS === 'web' ? {
-      // @ts-ignore: web-only boxShadow
+      // @ts-ignore: web-only properties
+      position: 'fixed',
+      bottom: 0,
+      left: 0,
+      right: 0,
+      zIndex: 1000,
       boxShadow: '0 -1px 0 rgba(17,17,17,0.04)',
     } : {}),
   },

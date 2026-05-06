@@ -118,7 +118,7 @@ const NoticeDetailScreen: React.FC = () => {
             navigator.clipboard.writeText(window.location.href);
           }
         }}>
-          <Icon name="share" size={20} color={COLORS.text.primary} />
+          <Icon name="share-2" size={20} color={COLORS.text.primary} />
         </TouchableOpacity>
       </View>
 
@@ -133,7 +133,7 @@ const NoticeDetailScreen: React.FC = () => {
                 </View>
                 {notice.is_pinned && (
                   <View style={styles.pinnedTag}>
-                    <Icon name="pin" size={14} color={COLORS.primary.main} />
+                    <Icon name="map-pin" size={14} color={COLORS.primary.main} />
                     <Text style={styles.pinnedText}>고정</Text>
                   </View>
                 )}

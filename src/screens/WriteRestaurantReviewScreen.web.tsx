@@ -137,7 +137,7 @@ const WriteRestaurantReviewScreen: React.FC = () => {
       {/* Header */}
       <div style={styles.header}>
         <span onClick={() => navigate(-1)} style={{ cursor: 'pointer', fontSize: 20 }}>
-          <Icon name="arrow-back" size={22} color={COLORS.text.primary} />
+          <Icon name="arrow-left" size={22} color={COLORS.text.primary} />
         </span>
         <span style={styles.headerTitle}>리뷰 작성</span>
         <span style={{ width: 22 }} />

@@ -154,7 +154,7 @@ const LoginScreen = () => {
             </div>
             <Text style={styles.appName}>잇테이블</Text>
           </View>
-          <Text style={styles.tagline}>함께 먹으면 더 맛있으니까</Text>
+          <Text style={styles.tagline}>예약하고, 도착하면, 바로 식사</Text>
         </View>
       </FadeIn>
 
@@ -280,7 +280,7 @@ const LoginScreen = () => {
                   }}>
                     <Icon name="map-pin" size={20} color={COLORS.primary.accent} />
                   </div>
-                  <Text style={styles.featureLabel}>내 주변 약속</Text>
+                  <Text style={styles.featureLabel}>내 주변 맛집</Text>
                 </View>
                 <View style={styles.featureItem}>
                   <div style={{
@@ -294,9 +294,9 @@ const LoginScreen = () => {
                     marginBottom: 8,
                     border: `1px solid ${COLORS.neutral.grey100}`,
                   }}>
-                    <Icon name="users" size={20} color={COLORS.primary.accent} />
+                    <Icon name="calendar" size={20} color={COLORS.primary.accent} />
                   </div>
-                  <Text style={styles.featureLabel}>새로운 인연</Text>
+                  <Text style={styles.featureLabel}>간편 예약</Text>
                 </View>
                 <View style={styles.featureItem}>
                   <div style={{
@@ -312,7 +312,7 @@ const LoginScreen = () => {
                   }}>
                     <Icon name="star" size={20} color={COLORS.primary.accent} />
                   </div>
-                  <Text style={styles.featureLabel}>맞춤 추천</Text>
+                  <Text style={styles.featureLabel}>메뉴 추천</Text>
                 </View>
               </View>
             </View>

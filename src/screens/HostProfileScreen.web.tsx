@@ -266,7 +266,7 @@ const HostProfileScreen: React.FC = () => {
                   <Icon name="users" size={18} color={COLORS.primary.main} />
                 </View>
                 <Text style={styles.statNumber}>{stats.totalHosted}</Text>
-                <Text style={styles.statLabel}>주최 모임</Text>
+                <Text style={styles.statLabel}>등록 매장</Text>
               </View>
               <View style={styles.statDivider} />
               <View style={styles.statItem}>
@@ -321,7 +321,7 @@ const HostProfileScreen: React.FC = () => {
         <FadeIn delay={300}>
           <div style={sectionCardStyle}>
             <View style={styles.sectionHeader}>
-              <Icon name="message-square" size={18} color={COLORS.primary.main} />
+              <Icon name="message-circle" size={18} color={COLORS.primary.main} />
               <Text style={styles.sectionTitle}>받은 리뷰</Text>
               <Text style={styles.sectionCount}>{stats.totalReviews}개</Text>
             </View>
@@ -368,17 +368,17 @@ const HostProfileScreen: React.FC = () => {
           </div>
         </FadeIn>
 
-        {/* 최근 주최 모임 섹션 */}
+        {/* 최근 등록 매장 섹션 */}
         <FadeIn delay={400}>
           <div style={sectionCardStyle}>
             <View style={styles.sectionHeader}>
               <Icon name="calendar" size={18} color={COLORS.primary.main} />
-              <Text style={styles.sectionTitle}>최근 주최 모임</Text>
+              <Text style={styles.sectionTitle}>최근 등록 매장</Text>
             </View>
 
             {recentMeetups.length === 0 ? (
               <View style={styles.emptyReviews}>
-                <Text style={styles.emptyText}>아직 주최한 모임이 없습니다</Text>
+                <Text style={styles.emptyText}>아직 등록된 매장이 없습니다</Text>
               </View>
             ) : (
               <>
@@ -440,7 +440,7 @@ const HostProfileScreen: React.FC = () => {
                     style={styles.moreButton}
                     onPress={() => navigate(`/meetup-list?hostId=${userId}`)}
                   >
-                    <Text style={styles.moreButtonText}>이 호스트의 모임 더보기</Text>
+                    <Text style={styles.moreButtonText}>이 호스트의 매장 더보기</Text>
                     <Icon name="chevron-right" size={16} color={COLORS.primary.main} />
                   </TouchableOpacity>
                 )}

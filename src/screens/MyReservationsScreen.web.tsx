@@ -106,7 +106,7 @@ const MyReservationsScreen: React.FC = () => {
       <div
         key={reservation.id}
         style={s.card}
-        onClick={() => navigate(`/reservation-detail/${reservation.id}`)}
+        onClick={() => navigate(`/reservation-confirm/${reservation.id}`)}
       >
         <div style={s.cardHeader}>
           <div style={s.cardRestaurant}>{reservation.restaurantName || '매장'}</div>

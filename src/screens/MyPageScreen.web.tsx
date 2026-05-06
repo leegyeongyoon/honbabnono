@@ -48,14 +48,13 @@ interface MenuRow {
 }
 
 const ACTIVITY_MENUS: MenuRow[] = [
-  { id: 'wishlist', label: '찜 모임', path: '/wishlist' },
-  { id: 'recent-views', label: '최근 본 모임', path: '/recent-views' },
+  { id: 'my-reservations', label: '내 예약 내역', path: '/my-reservations' },
+  { id: 'wishlist', label: '찜한 매장', path: '/wishlist' },
+  { id: 'recent-views', label: '최근 본 매장', path: '/recent-views' },
   { id: 'blocked-users', label: '차단 사용자 관리', path: '/blocked-users' },
 ];
 
 const PAYMENT_MENUS: MenuRow[] = [
-  { id: 'payment-methods', label: '결제 수단 관리' },
-  { id: 'deposit-payment', label: '약속금 결제/환불' },
   { id: 'point-charge', label: '포인트 충전/사용', path: '/point-charge' },
 ];
 
@@ -303,10 +302,10 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ user: propsUser }) => {
               onPress={() => navigate('/point-history')}
             />
             <HoverStatRow
-              icon="users"
-              label="참가한 모임"
-              value={`${userStats.totalMeetups}모임`}
-              onPress={() => navigate('/joined-meetups')}
+              icon="calendar"
+              label="이용한 예약"
+              value={`${userStats.totalMeetups}회`}
+              onPress={() => navigate('/my-reservations')}
             />
             <HoverStatRow
               icon="star"

@@ -16,7 +16,7 @@ const VARIANT_DEFAULTS: Record<string, { icon: IconName; title: string }> = {
 };
 
 const CONTEXT_DEFAULTS: Record<EmptyStateContext, { emoji: string; hint: string }> = {
-  home: { emoji: '\uD83C\uDF7D\uFE0F', hint: '새로운 모임을 만들어보세요' },
+  home: { emoji: '\uD83C\uDF7D\uFE0F', hint: '새로운 매장을 검색해보세요' },
   explore: { emoji: '\uD83D\uDCCD', hint: '반경을 넓혀보세요' },
   search: { emoji: '\uD83D\uDD0D', hint: '다른 검색어를 시도해보세요' },
   category: { emoji: '\uD83C\uDF72', hint: '다른 카테고리를 둘러보세요' },

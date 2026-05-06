@@ -73,18 +73,18 @@ const FilterAccordion: React.FC<{
 
       {isExpanded && (
         <View style={styles.accordionContent}>
-          {/* 약속금 정보 */}
+          {/* 보증금 정보 */}
           {hasDepositInfo && (
             <View style={styles.filterSection}>
               <View style={{flexDirection: 'row', alignItems: 'center', gap: 6}}>
                 <Icon name="dollar-sign" size={16} color={COLORS.text.secondary} />
-                <Text style={styles.filterSectionTitle}>약속금</Text>
+                <Text style={styles.filterSectionTitle}>보증금</Text>
               </View>
               <View style={styles.filterItem}>
                 <Text style={styles.filterValue}>
                   {promiseDepositAmount?.toLocaleString()}원
                 </Text>
-                <Text style={styles.filterDescription}>노쇼 방지를 위한 약속금입니다</Text>
+                <Text style={styles.filterDescription}>노쇼 방지를 위한 보증금입니다</Text>
               </View>
             </View>
           )}
@@ -371,7 +371,7 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
     checkWishlistStatus();
   }, [currentMeetup, user]);
 
-  // 약속금 결제 상태 확인
+  // 보증금 결제 상태 확인
   React.useEffect(() => {
     const checkDepositStatus = async () => {
       if (!currentMeetup || !user) {return;}
@@ -467,7 +467,7 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
       const userGenderLabel = genderMap[user.gender || ''] || user.gender;
       const requiredGender = meetup.genderPreference.replace('만', '');
       if (userGenderLabel !== requiredGender && user.gender !== requiredGender) {
-        return `${meetup.genderPreference} 전용 약속입니다`;
+        return `${meetup.genderPreference} 전용 예약입니다`;
       }
     }
 
@@ -488,15 +488,15 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
       }
 
       if (meetup?.promiseDepositRequired && meetup?.promiseDepositAmount > 0) {
-        // 약속금이 필요한 모임 - 결제 페이지로 이동
+        // 보증금이 필요한 모임 - 결제 페이지로 이동
         navigate(`/meetup/${id}/deposit-payment`);
       } else {
         // 무료 모임 - 바로 참가
         await joinMeetup(id, user.id);
-        showSuccess('약속에 참여되었습니다!');
+        showSuccess('예약이 완료되었습니다!');
       }
     } catch (_error) {
-      showError('약속 참여에 실패했습니다. 다시 시도해주세요.');
+      showError('예약에 실패했습니다. 다시 시도해주세요.');
     }
   };
 
@@ -510,7 +510,7 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
 
       // 호스트가 모임을 취소한 경우 홈으로 리다이렉트
       if (result?.isHostCancellation) {
-        showInfo('약속이 취소되었습니다. 모든 참가자가 자동으로 나가게 됩니다.');
+        showInfo('예약이 취소되었습니다.');
         navigate('/home');
       }
     } catch (error) {
@@ -533,7 +533,7 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
     }
   };
 
-  // 약속금 결제 완료 후 모임 참여
+  // 보증금 결제 완료 후 모임 참여
   const handleDepositPaid = async (depositId: string, amount: number) => {
     if (!user || !id) {
       return;
@@ -543,12 +543,12 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
       const result = await joinMeetup(id, user.id);
 
       if (amount > 0) {
-        showSuccess('약속금 ' + amount.toLocaleString() + '원이 결제되었습니다! 약속에 참여되었습니다.');
+        showSuccess('보증금 ' + amount.toLocaleString() + '원이 결제되었습니다! 예약이 완료되었습니다.');
       } else {
-        showSuccess('약속에 참여되었습니다!');
+        showSuccess('예약이 완료되었습니다!');
       }
     } catch (error) {
-      showError('약속 참여에 실패했습니다. 다시 시도해주세요.');
+      showError('예약에 실패했습니다. 다시 시도해주세요.');
     }
   };
 
@@ -573,7 +573,7 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
         const chatRoomId = data.data.chatRoomId;
         navigate(`/chat/${chatRoomId}`);
       } else {
-        showError('채팅방을 찾을 수 없습니다. 약속에 참여해주세요.');
+        showError('채팅방을 찾을 수 없습니다. 예약을 먼저 해주세요.');
       }
     } catch (error) {
       showError('채팅방 이동 중 오류가 발생했습니다.');
@@ -595,7 +595,7 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
         await fetchMeetupById(id);
         setShowHostModal(false);
 
-        const message = action === 'confirm' ? '약속이 확정되었습니다!' : '약속이 취소되었습니다.';
+        const message = action === 'confirm' ? '예약이 확정되었습니다!' : '예약이 취소되었습니다.';
         showSuccess(message);
       } else {
         showError(response.data.error || '처리 중 오류가 발생했습니다.');
@@ -622,7 +622,7 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
         );
 
         if (confirmed) {
-          // 약속금 결제 화면으로 이동
+          // 보증금 결제 화면으로 이동
           navigate(`/meetup/${id}/deposit-payment`);
           return;
         } else {
@@ -634,7 +634,7 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
       // 포인트 사용 API 호출
       const usePointsResponse = await apiClient.post('/users/use-points', {
         amount: depositAmt,
-        description: `약속 참여비: ${meetup.title}`
+        description: `예약 참여비: ${meetup.title}`
       });
 
       if (!usePointsResponse.data.success) {
@@ -647,9 +647,9 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
       await joinMeetup(id, user.id);
       setShowPromiseModal(false);
 
-      showSuccess('약속 참여가 완료되었습니다! 사용된 포인트: ' + depositAmt.toLocaleString() + '원');
+      showSuccess('예약이 완료되었습니다! 사용된 포인트: ' + depositAmt.toLocaleString() + '원');
     } catch (error) {
-      showError('약속 참여 중 오류가 발생했습니다.');
+      showError('예약 중 오류가 발생했습니다.');
       setShowPromiseModal(false);
     }
   };
@@ -990,7 +990,7 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
               role="button"
               aria-label="주소 복사"
             >
-              <Icon name="clipboard" size={14} color="#868B94" />
+              <Icon name="list" size={14} color="#868B94" />
               <span style={{ fontSize: 14, color: '#868B94' }}>
                 {addressCopied ? '복사됨' : '복사'}
               </span>
@@ -1131,10 +1131,10 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
           }}>
             <span style={{ fontSize: 16, fontWeight: '600', color: '#5F5F5F' }}>
               {meetup.status === '완료' || meetup.status === '종료' ?
-                '완료된 약속이에요' :
+                '완료된 예약이에요' :
                 meetup.status === '취소' ?
-                '취소된 약속이에요' :
-                '파토된 약속이에요'
+                '취소된 예약이에요' :
+                '불발된 예약이에요'
               }
             </span>
           </div>
@@ -1143,7 +1143,7 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
           <>
             {(participants.some(p => p.id === user?.id) || isHost) ? (
               <div style={{ display: 'flex', flexDirection: 'row', gap: 12 }}>
-                {/* 약속금 미결제 참가자: 결제 버튼 표시 */}
+                {/* 보증금 미결제 참가자: 결제 버튼 표시 */}
                 {!isHost && meetup.promiseDepositRequired && depositAmountState > 0 && depositStatus !== 'paid' ? (
                   <>
                     <div
@@ -1161,7 +1161,7 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
                       role="button"
                     >
                       <span style={{ fontSize: 15, fontWeight: '700', color: '#FFFFFF' }}>
-                        {`약속금 ${(meetup.promiseDepositAmount || 3000).toLocaleString()}원 결제하기`}
+                        {`보증금 ${(meetup.promiseDepositAmount || 3000).toLocaleString()}원 결제하기`}
                       </span>
                     </div>
                     <div
@@ -1191,7 +1191,7 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
                         padding: '4px 10px',
                         alignSelf: 'center',
                       }}>
-                        <span style={{ fontSize: 12, fontWeight: '600', color: COLORS.functional.success }}>약속금 결제완료</span>
+                        <span style={{ fontSize: 12, fontWeight: '600', color: COLORS.functional.success }}>보증금 결제완료</span>
                       </div>
                     )}
                     {/* 채팅방 가기 버튼 */}
@@ -1229,7 +1229,7 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
                         role="button"
                       >
                         <span style={{ fontSize: 14, fontWeight: '600', color: '#FFFFFF' }}>
-                          {meetup.status === 'confirmed' ? '약속취소' : '약속확정'}
+                          {meetup.status === 'confirmed' ? '예약취소' : '예약확정'}
                         </span>
                       </div>
                     )}
@@ -1338,12 +1338,12 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
       {showPromiseModal && (
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
-            <Text style={styles.modalTitle}>서로의 신뢰를 위해{'\n'}약속금을 미리 걸어두요</Text>
+            <Text style={styles.modalTitle}>서로의 신뢰를 위해{'\n'}보증금을 미리 걸어두요</Text>
             <Text style={styles.modalDescription}>
-              노쇼 방지 약속금이며, 1일 이내에 다시 입금됩니다.
+              노쇼 방지 보증금이며, 1일 이내에 다시 입금됩니다.
             </Text>
             <View style={styles.modalAmountContainer}>
-              <Text style={styles.modalAmount}>{`약속금 ${(meetup.promiseDepositAmount || 3000).toLocaleString()}원`}</Text>
+              <Text style={styles.modalAmount}>{`보증금 ${(meetup.promiseDepositAmount || 3000).toLocaleString()}원`}</Text>
             </View>
             <View style={styles.modalButtonContainer}>
               <TouchableOpacity
@@ -1368,12 +1368,12 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
             <Text style={styles.modalTitle}>
-              {isHost ? '약속을 취소하시겠어요?' : '약속에서 나가시겠어요?'}
+              {isHost ? '예약을 취소하시겠어요?' : '예약을 취소하시겠어요?'}
             </Text>
             <Text style={styles.modalDescription}>
               {isHost ?
-                '약속을 취소하면 모든 참가자가 나가게 되고,\n채팅방도 삭제됩니다. 취소하시겠어요?' :
-                '약속을 나가면 채팅방에서도 나가게 되며,\n다시 참여하려면 새로 신청해야 해요.'
+                '예약을 취소하면\n채팅방도 삭제됩니다. 취소하시겠어요?' :
+                '예약을 취소하면\n다시 참여하려면 새로 신청해야 해요.'
               }
             </Text>
             <View style={styles.modalButtonContainer}>
@@ -1388,7 +1388,7 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
                 onPress={handleConfirmLeave}
               >
                 <Text style={styles.modalLeaveText}>
-                  {isHost ? '약속취소' : '나가기'}
+                  {isHost ? '예약취소' : '나가기'}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -1401,12 +1401,12 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
             <Text style={styles.modalTitle}>
-              {meetup.status === 'confirmed' ? '약속을 취소하시겠어요?' : '약속을 확정하시겠어요?'}
+              {meetup.status === 'confirmed' ? '예약을 취소하시겠어요?' : '예약을 확정하시겠어요?'}
             </Text>
             <Text style={styles.modalDescription}>
               {meetup.status === 'confirmed' ?
-                '확정된 약속을 취소하면 취소 시점에 따라\n참가자들에게 부분 환불됩니다.' :
-                `현재 ${participants.length}명이 참여중입니다.\n약속을 확정하면 취소 시 패널티가 적용됩니다.`
+                '확정된 예약을 취소하면 취소 시점에 따라\n참가자들에게 부분 환불됩니다.' :
+                `현재 ${participants.length}명이 참여중입니다.\n예약을 확정하면 취소 시 패널티가 적용됩니다.`
               }
             </Text>
             <View style={styles.modalButtonContainer}>
@@ -1421,7 +1421,7 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
                 onPress={handleMeetupAction}
               >
                 <Text style={styles.modalConfirmText}>
-                  {meetup.status === 'confirmed' ? '약속취소' : '약속확정'}
+                  {meetup.status === 'confirmed' ? '예약취소' : '예약확정'}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -1429,7 +1429,7 @@ const MeetupDetailScreen: React.FC<MeetupDetailScreenProps> = ({ user: propsUser
         </View>
       )}
 
-      {/* 약속금 결제 모달 */}
+      {/* 보증금 결제 모달 */}
       <DepositSelector
         visible={showDepositSelector}
         onClose={() => setShowDepositSelector(false)}

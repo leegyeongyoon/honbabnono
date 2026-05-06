@@ -8,6 +8,7 @@ import restaurantApiService from '../services/restaurantApiService';
 import useCartStore from '../store/cartStore';
 import useReservationStore from '../store/reservationStore';
 import usePaymentStore from '../store/paymentStore';
+import { useUserStore } from '../store/userStore';
 
 // ============================================================
 // PaymentScreen — 잇테이블 v2 선결제
@@ -33,6 +34,7 @@ const PaymentScreen: React.FC = () => {
   const cartStore = useCartStore();
   const reservationStore = useReservationStore();
   const paymentStore = usePaymentStore();
+  const currentUser = useUserStore((state) => state.user);
 
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
@@ -113,7 +115,7 @@ const PaymentScreen: React.FC = () => {
         return;
       }
 
-      const merchantUid = paymentData.merchantUid || `order_${Date.now()}`;
+      const merchantUid = paymentData.merchantUid ?? paymentData.merchant_uid ?? `order_${Date.now()}`;
 
       window.IMP.request_pay(
         {
@@ -124,8 +126,8 @@ const PaymentScreen: React.FC = () => {
             ? `${reservation.restaurantName} 예약 결제`
             : '잇테이블 예약 결제',
           amount: totalAmount,
-          buyer_name: '',
-          buyer_tel: '',
+          buyer_name: currentUser?.name || '잇테이블 사용자',
+          buyer_email: currentUser?.email || '',
         },
         async (response: any) => {
           if (response.success) {

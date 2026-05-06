@@ -213,7 +213,7 @@ const LocationSelector: React.FC<{
 
   return (
     <View style={styles.mapSelectorContainer}>
-      <Text style={styles.mapSelectorTitle}>약속 장소 선택</Text>
+      <Text style={styles.mapSelectorTitle}>매장 위치 선택</Text>
       
       {/* 검색과 지도 선택 */}
           {/* 검색 입력창 */}
@@ -394,22 +394,22 @@ const CreateMeetupScreen: React.FC<CreateMeetupScreenProps> = ({ user }) => {
 
   const validateForm = () => {
     if (!formData.title.trim()) {
-      Alert.alert('오류', '약속 제목을 입력해주세요.');
+      Alert.alert('오류', '매장 이름을 입력해주세요.');
       return false;
     }
 
     if (!formData.location.trim()) {
-      Alert.alert('오류', '약속 장소를 입력해주세요.');
+      Alert.alert('오류', '매장 주소를 입력해주세요.');
       return false;
     }
 
     if (!formData.date || formData.date.trim() === '') {
-      Alert.alert('오류', '약속 날짜를 입력해주세요.');
+      Alert.alert('오류', '예약 날짜를 입력해주세요.');
       return false;
     }
 
     if (!formData.time || formData.time.trim() === '') {
-      Alert.alert('오류', '약속 시간을 입력해주세요.');
+      Alert.alert('오류', '예약 시간을 입력해주세요.');
       return false;
     }
 
@@ -469,14 +469,14 @@ const CreateMeetupScreen: React.FC<CreateMeetupScreenProps> = ({ user }) => {
       return;
     }
 
-    // 모임 데이터를 임시로 저장하고 약속금 결제 팝업만 표시
+    // 모임 데이터를 임시로 저장하고 보증금 결제 팝업만 표시
     setTempMeetupData({ meetupId: '', formData, preferenceFilter });
     setShowDepositSelector(true);
   };
 
   const createActualMeetup = async (depositId: string) => {
     if (!tempMeetupData) {
-      showError('약속 데이터를 찾을 수 없습니다.');
+      showError('예약 데이터를 찾을 수 없습니다.');
       return null;
     }
 
@@ -502,7 +502,7 @@ const CreateMeetupScreen: React.FC<CreateMeetupScreenProps> = ({ user }) => {
       formDataToSend.append('priceRange', meetupFormData.priceRange);
       formDataToSend.append('requirements', meetupFormData.requirements);
       formDataToSend.append('allowDirectChat', meetupFormData.allowDirectChat.toString());
-      formDataToSend.append('depositId', depositId); // 결제된 약속금 ID 추가
+      formDataToSend.append('depositId', depositId); // 결제된 보증금 ID 추가
       
       // 필터 정보 추가
       formDataToSend.append('genderFilter', meetupPreferenceFilter.genderFilter);
@@ -536,7 +536,7 @@ const CreateMeetupScreen: React.FC<CreateMeetupScreenProps> = ({ user }) => {
         const meetupId = data.meetup?.id;
         return meetupId;
       } else {
-        showError(data.error || '약속 생성에 실패했습니다.');
+        showError(data.error || '예약 생성에 실패했습니다.');
         return null;
       }
     } catch (error) {
@@ -549,11 +549,11 @@ const CreateMeetupScreen: React.FC<CreateMeetupScreenProps> = ({ user }) => {
   };
 
   const handleDepositPaid = async (depositId: string, amount: number) => {
-    // 약속금 결제 완료 후 실제 모임 생성
+    // 보증금 결제 완료 후 실제 모임 생성
     const meetupId = await createActualMeetup(depositId);
     
     if (!meetupId) {
-      showError('약속 생성에 실패했습니다.');
+      showError('예약 생성에 실패했습니다.');
       return;
     }
 
@@ -590,7 +590,7 @@ const CreateMeetupScreen: React.FC<CreateMeetupScreenProps> = ({ user }) => {
         }
       }
       
-      showSuccess('약속이 성공적으로 생성되고 약속금이 결제되었습니다! 🎉');
+      showSuccess('예약이 성공적으로 완료되었습니다!');
       
       // 모임 상세 페이지로 이동
       setTimeout(() => {
@@ -603,7 +603,7 @@ const CreateMeetupScreen: React.FC<CreateMeetupScreenProps> = ({ user }) => {
       
     } catch (error) {
       // silently handle error
-      showError('약속 생성 완료 중 오류가 발생했습니다.');
+      showError('예약 생성 완료 중 오류가 발생했습니다.');
     }
   };
 
@@ -623,7 +623,7 @@ const CreateMeetupScreen: React.FC<CreateMeetupScreenProps> = ({ user }) => {
         >
           <Icon name="chevron-left" size={24} color={COLORS.text.primary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>약속 만들기</Text>
+        <Text style={styles.headerTitle}>예약 등록</Text>
         <View style={{ width: 24 }} />
       </View>
 
@@ -633,7 +633,7 @@ const CreateMeetupScreen: React.FC<CreateMeetupScreenProps> = ({ user }) => {
           <Text style={styles.sectionTitle}>기본 정보</Text>
           
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>약속 제목 *</Text>
+            <Text style={styles.label}>매장 이름 *</Text>
             <TextInput
               style={styles.input}
               placeholder="예) 강남 맛집 탐방"
@@ -644,10 +644,10 @@ const CreateMeetupScreen: React.FC<CreateMeetupScreenProps> = ({ user }) => {
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>약속 설명</Text>
+            <Text style={styles.label}>매장 설명</Text>
             <TextInput
               style={[styles.input, styles.textArea]}
-              placeholder="약속에 대한 설명을 작성해주세요"
+              placeholder="매장에 대한 설명을 작성해주세요"
               value={formData.description}
               onChangeText={(value) => handleInputChange('description', value)}
               multiline
@@ -658,13 +658,13 @@ const CreateMeetupScreen: React.FC<CreateMeetupScreenProps> = ({ user }) => {
 
           {/* 이미지 업로드 */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>약속 이미지</Text>
+            <Text style={styles.label}>매장 이미지</Text>
             <View style={styles.imageUploadContainer}>
               {formData.imagePreview ? (
                 <View style={styles.imagePreviewContainer}>
                   <img 
                     src={formData.imagePreview} 
-                    alt="약속 이미지 미리보기" 
+                    alt="매장 이미지 미리보기" 
                     style={styles.imagePreview}
                   />
                   <TouchableOpacity 
@@ -741,7 +741,7 @@ const CreateMeetupScreen: React.FC<CreateMeetupScreenProps> = ({ user }) => {
               localizer={localizer}
               events={selectedDate ? [{
                 id: 1,
-                title: '약속 일정',
+                title: '예약 일정',
                 start: selectedDate,
                 end: new Date(selectedDate.getTime() + 60 * 60 * 1000),
                 resource: null
@@ -860,9 +860,9 @@ const CreateMeetupScreen: React.FC<CreateMeetupScreenProps> = ({ user }) => {
           </View>
         </View>
 
-        {/* 약속 설정 */}
+        {/* 예약 설정 */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>약속 설정</Text>
+          <Text style={styles.sectionTitle}>예약 설정</Text>
           
           <View style={styles.inputGroup}>
             <Text style={styles.label}>최대 참가자 수 *</Text>
@@ -940,7 +940,7 @@ const CreateMeetupScreen: React.FC<CreateMeetupScreenProps> = ({ user }) => {
 
           {/* 1대1 채팅 허용 설정 */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>약속 내 1대1 채팅</Text>
+            <Text style={styles.label}>1대1 채팅</Text>
             <TouchableOpacity 
               style={styles.checkboxContainer} 
               onPress={() => handleInputChange('allowDirectChat', !formData.allowDirectChat)}
@@ -950,10 +950,10 @@ const CreateMeetupScreen: React.FC<CreateMeetupScreenProps> = ({ user }) => {
                   <Text style={styles.checkboxCheck}>✓</Text>
                 )}
               </View>
-              <Text style={styles.checkboxLabel}>약속 참가자 간 1대1 채팅 허용</Text>
+              <Text style={styles.checkboxLabel}>예약 참가자 간 1대1 채팅 허용</Text>
             </TouchableOpacity>
             <Text style={styles.helperText}>
-              체크 시 약속 참가자들이 서로 개인 메시지를 주고받을 수 있습니다
+              체크 시 예약 참가자들이 서로 개인 메시지를 주고받을 수 있습니다
             </Text>
           </View>
         </View>
@@ -963,7 +963,7 @@ const CreateMeetupScreen: React.FC<CreateMeetupScreenProps> = ({ user }) => {
           <Text style={styles.sectionTitle}>필수 성향 필터</Text>
           
           <Text style={styles.sectionSubtitle}>
-            약속 참가 시 필수로 설정되는 기본 조건입니다
+            예약 이용 시 필수로 설정되는 기본 조건입니다
           </Text>
 
           <View style={styles.filterGroup}>
@@ -1256,11 +1256,11 @@ const CreateMeetupScreen: React.FC<CreateMeetupScreenProps> = ({ user }) => {
           )}
         </View>
 
-        {/* 약속금 설정 */}
+        {/* 보증금 설정 */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>약속금 정책</Text>
+          <Text style={styles.sectionTitle}>보증금 정책</Text>
           <Text style={styles.sectionSubtitle}>
-            이 약속은 노쇼 방지와 신뢰도 향상을 위해 약속금 제도를 운영합니다
+            노쇼 방지와 신뢰도 향상을 위해 보증금 제도를 운영합니다
           </Text>
           
           <View style={styles.depositPolicyInfo}>
@@ -1271,10 +1271,10 @@ const CreateMeetupScreen: React.FC<CreateMeetupScreenProps> = ({ user }) => {
                 </View>
                 <View style={styles.depositToggleInfo}>
                   <Text style={styles.depositToggleTitle}>
-                    약속금 3,000원
+                    보증금 3,000원
                   </Text>
                   <Text style={styles.depositToggleDesc}>
-                    약속 참가 신청 시 결제됩니다
+                    예약 신청 시 결제됩니다
                   </Text>
                 </View>
               </View>
@@ -1291,12 +1291,12 @@ const CreateMeetupScreen: React.FC<CreateMeetupScreenProps> = ({ user }) => {
             </View>
             <View style={styles.policyItem}>
               <Text style={styles.policyLabel}>• 노쇼</Text>
-              <Text style={styles.policyValue}>약속금 몰수</Text>
+              <Text style={styles.policyValue}>보증금 몰수</Text>
             </View>
             
             <View style={styles.policyNote}>
               <Text style={styles.policyNoteText}>
-                💡 약속금은 약속 참가 신청 시에 결제되며, 참석 및 후기 작성 시 자동 환불됩니다.
+                💡 보증금은 예약 신청 시에 결제되며, 참석 및 후기 작성 시 자동 환불됩니다.
               </Text>
             </View>
           </View>
@@ -1333,7 +1333,7 @@ const CreateMeetupScreen: React.FC<CreateMeetupScreenProps> = ({ user }) => {
           }}
           disabled={loading}
         >
-          {loading ? '약속 생성 중...' : '약속 만들기'}
+          {loading ? '예약 생성 중...' : '예약 등록'}
         </button>
 
         <View style={{ height: 40 }} />
@@ -1557,7 +1557,7 @@ const styles = StyleSheet.create({
     color: COLORS.text.primary,
     flex: 1,
   },
-  // 약속금 관련 스타일
+  // 보증금 관련 스타일
   depositToggleRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1803,7 +1803,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
   },
-  // 약속금 정책 안내 스타일 추가
+  // 보증금 정책 안내 스타일 추가
   policyNote: {
     backgroundColor: COLORS.functional.infoLight,
     borderRadius: 8,

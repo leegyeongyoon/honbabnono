@@ -126,15 +126,15 @@ export const PointsModal: React.FC<PointsModalProps> = ({
         <View style={styles.earnMethod}>
           <Text style={styles.earnMethodIcon}>✨</Text>
           <View style={styles.earnMethodInfo}>
-            <Text style={styles.earnMethodTitle}>약속 참석</Text>
-            <Text style={styles.earnMethodDesc}>후기 미작성시 약속금의 100%를 포인트로 전환</Text>
+            <Text style={styles.earnMethodTitle}>예약 이용</Text>
+            <Text style={styles.earnMethodDesc}>후기 미작성시 보증금의 100%를 포인트로 전환</Text>
           </View>
         </View>
         <View style={styles.earnMethod}>
           <Text style={styles.earnMethodIcon}>🎁</Text>
           <View style={styles.earnMethodInfo}>
             <Text style={styles.earnMethodTitle}>노쇼자 분배</Text>
-            <Text style={styles.earnMethodDesc}>노쇼자의 약속금을 참석자에게 분배</Text>
+            <Text style={styles.earnMethodDesc}>노쇼자의 보증금을 참석자에게 분배</Text>
           </View>
         </View>
       </View>

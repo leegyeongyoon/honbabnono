@@ -144,7 +144,7 @@ export const DepositSelector: React.FC<DepositSelectorProps> = ({
             </View>
             <Text style={styles.successTitle}>결제 완료!</Text>
             <Text style={styles.successMessage}>
-              약속금이 성공적으로 결제되었습니다
+              보증금이 성공적으로 결제되었습니다
             </Text>
             <Text style={styles.successAmount}>
               {defaultPolicy.amount.toLocaleString()}원
@@ -158,7 +158,7 @@ export const DepositSelector: React.FC<DepositSelectorProps> = ({
             {/* 헤더 */}
             <View style={styles.header}>
           <View style={styles.headerLeft} />
-          <Text style={styles.title}>약속금 결제</Text>
+          <Text style={styles.title}>보증금 결제</Text>
           <TouchableOpacity style={styles.closeButton} onPress={onClose}>
             <Icon name="x" size={24} color={COLORS.text.secondary} />
           </TouchableOpacity>
@@ -187,7 +187,7 @@ export const DepositSelector: React.FC<DepositSelectorProps> = ({
               </View>
               <View style={styles.policyItem}>
                 <Text style={styles.policyLabel}>노쇼</Text>
-                <Text style={styles.policyValue}>약속금 몰수</Text>
+                <Text style={styles.policyValue}>보증금 몰수</Text>
               </View>
             </View>
           </View>

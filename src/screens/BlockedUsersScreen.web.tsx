@@ -140,7 +140,7 @@ const BlockedUsersScreen: React.FC = () => {
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {blockedUsers.length === 0 ? (
           <EmptyState
-            icon="shield"
+            icon="user"
             title="차단한 회원이 없습니다"
             description="불편을 끼치는 회원이 있다면 차단 기능을 이용하세요."
             actionLabel="홈으로 돌아가기"

@@ -106,7 +106,7 @@ const NeighborhoodSelector: React.FC<NeighborhoodSelectorProps> = ({
             {/* 안내 */}
             <View style={styles.guideWrap}>
               <Text style={styles.guideText}>
-                동네 설정에 따라 주변 밥약속이 표시됩니다
+                동네 설정에 따라 주변 매장이 표시됩니다
               </Text>
             </View>
           </View>

@@ -175,7 +175,7 @@ const CheckInButton: React.FC<CheckInButtonProps> = ({
           if (distance && maxDistance) {
             Alert.alert(
               '체크인 실패',
-              `현재 위치가 약속 장소에서 ${distance}m 떨어져 있습니다.\n체크인 가능 거리: ${maxDistance}m 이내\n\nQR 체크인을 사용해보세요.`,
+              `현재 위치가 매장에서 ${distance}m 떨어져 있습니다.\n체크인 가능 거리: ${maxDistance}m 이내\n\nQR 체크인을 사용해보세요.`,
               [
                 { text: '확인' },
                 { text: 'QR 체크인', onPress: () => setScanModalVisible(true) },

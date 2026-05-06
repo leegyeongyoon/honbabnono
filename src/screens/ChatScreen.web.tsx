@@ -466,7 +466,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation }) => {
           icon="message-circle"
           iconSize={56}
           title={selectedTab === 'direct' ? '1:1 채팅이 없어요' : '아직 모임채팅이 없어요'}
-          description="모임에 참가하면 채팅이 시작돼요"
+          description="매장에 예약하면 채팅이 시작돼요"
         />
       );
     }

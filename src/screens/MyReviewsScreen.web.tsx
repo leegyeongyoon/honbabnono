@@ -209,7 +209,7 @@ const MyReviewsScreen: React.FC = () => {
                 <Icon name="edit" size={16} color={'#FFA529'} />
               </View>
               <View style={styles.titleWrap}>
-                <Text style={styles.reviewTitle} numberOfLines={1}>{review.meetup_title || '약속'}</Text>
+                <Text style={styles.reviewTitle} numberOfLines={1}>{review.meetup_title || '매장'}</Text>
                 {isEditing ? (
                   <View style={styles.editStarsRow}>
                     {renderStars(editRating, 20, true, setEditRating)}
@@ -338,7 +338,7 @@ const MyReviewsScreen: React.FC = () => {
                 <Icon name="star" size={16} color={'#FFA529'} />
               </View>
               <View style={styles.titleWrap}>
-                <Text style={styles.reviewTitle} numberOfLines={1}>{review.meetup_title || '약속'}</Text>
+                <Text style={styles.reviewTitle} numberOfLines={1}>{review.meetup_title || '매장'}</Text>
                 <View style={styles.ratingContainer}>
                   <Text style={styles.reviewerLabel}>{review.reviewer_name}</Text>
                   <View style={styles.ratingDot} />
@@ -368,7 +368,7 @@ const MyReviewsScreen: React.FC = () => {
           {/* Reply section */}
           {review.reply ? (
             <View style={styles.replyContainer}>
-              <Icon name="corner-down-right" size={14} color={'#878B94'} />
+              <Icon name="arrow-right" size={14} color={'#878B94'} />
               <View style={styles.replyBody}>
                 <Text style={styles.replyLabel}>내 답변</Text>
                 <Text style={styles.replyText}>{review.reply}</Text>
@@ -526,11 +526,11 @@ const MyReviewsScreen: React.FC = () => {
             title={activeTab === 'written' ? '작성한 리뷰가 없습니다' : '받은 리뷰가 없습니다'}
             description={
               activeTab === 'written'
-                ? '참여한 약속에 대한 리뷰를 작성해보세요!'
-                : '약속을 호스팅하면 리뷰를 받을 수 있어요'
+                ? '이용한 매장에 대한 리뷰를 작성해보세요!'
+                : '매장을 이용하면 리뷰를 받을 수 있어요'
             }
-            actionLabel={activeTab === 'written' ? '내 약속 보기' : undefined}
-            onAction={activeTab === 'written' ? () => navigate('/my-meetups') : undefined}
+            actionLabel={activeTab === 'written' ? '내 예약 보기' : undefined}
+            onAction={activeTab === 'written' ? () => navigate('/my-reservations') : undefined}
           />
         ) : (
           <View style={styles.reviewsList}>

@@ -131,8 +131,8 @@ class NotificationService {
     time: string;
   }): Promise<any> {
     return this.showNotification({
-      title: '🍽️ 잇테이블 약속 알림',
-      body: `"${meetup.title}" 약속이 30분 후에 시작됩니다!\n📍 ${meetup.location}`,
+      title: '🍽️ 잇테이블 예약 알림',
+      body: `"${meetup.title}" 예약이 30분 후에 시작됩니다!\n📍 ${meetup.location}`,
       icon: '/favicon.ico',
       tag: `meetup-reminder-${meetup.id}`,
       data: {
@@ -151,8 +151,8 @@ class NotificationService {
     location: string;
   }): Promise<any> {
     return this.showNotification({
-      title: '🎉 밥약속이 시작되었습니다!',
-      body: `"${meetup.title}" 약속이 지금 시작됩니다!\n📍 ${meetup.location}에서 확인해보세요.`,
+      title: '🎉 예약 시간이 되었습니다!',
+      body: `"${meetup.title}" 예약 시간입니다!\n📍 ${meetup.location}에서 확인해보세요.`,
       icon: '/favicon.ico',
       tag: `meetup-start-${meetup.id}`,
       data: {
@@ -193,8 +193,8 @@ class NotificationService {
     time: string;
   }): Promise<any> {
     return this.showNotification({
-      title: '✅ 약속 참가가 승인되었습니다!',
-      body: `"${meetup.title}" 약속에 참가하실 수 있습니다.\n📅 ${meetup.date} ${meetup.time}`,
+      title: '✅ 예약이 확정되었습니다!',
+      body: `"${meetup.title}" 예약이 확정되었습니다.\n📅 ${meetup.date} ${meetup.time}`,
       icon: '/favicon.ico',
       tag: `join-approved-${meetup.id}`,
       data: {

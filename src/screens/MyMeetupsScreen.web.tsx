@@ -24,9 +24,9 @@ interface MyMeetupsScreenProps {
 type TabKey = 'applied' | 'created' | 'past';
 
 const TAB_ITEMS: { key: TabKey; label: string; placeholder: string }[] = [
-  { key: 'applied', label: '신청한 모임', placeholder: '신청한 모임을 찾아봐요' },
-  { key: 'created', label: '내가 만든 모임', placeholder: '내가 만든 모임을 찾아봐요' },
-  { key: 'past', label: '지난 모임', placeholder: '지난 모임을 찾아봐요' },
+  { key: 'applied', label: '이전 예약', placeholder: '이전 예약을 찾아봐요' },
+  { key: 'created', label: '자주 가는 매장', placeholder: '자주 가는 매장을 찾아봐요' },
+  { key: 'past', label: '지난 예약', placeholder: '지난 예약을 찾아봐요' },
 ];
 
 // --- Skeleton loader (Figma home/list pattern) ---
@@ -233,9 +233,9 @@ const MyMeetupsScreen: React.FC<MyMeetupsScreenProps> = ({ user: propsUser }) =>
         return (
           <EmptyState
             icon="calendar"
-            title="아직 신청한 모임이 없어요"
-            description="홈에서 모임을 찾아보세요!"
-            actionLabel="모임 찾아보기"
+            title="아직 예약 내역이 없어요"
+            description="홈에서 매장을 찾아보세요!"
+            actionLabel="매장 찾아보기"
             onAction={() => navigate('/')}
           />
         );
@@ -243,9 +243,9 @@ const MyMeetupsScreen: React.FC<MyMeetupsScreenProps> = ({ user: propsUser }) =>
         return (
           <EmptyState
             icon="plus-circle"
-            title="모임을 만들어보세요!"
-            description="새로운 모임을 만들어보세요!"
-            actionLabel="모임 만들기"
+            title="매장을 예약해보세요!"
+            description="매장을 검색해보세요!"
+            actionLabel="매장 검색하기"
             onAction={() => navigate('/create')}
           />
         );
@@ -253,8 +253,8 @@ const MyMeetupsScreen: React.FC<MyMeetupsScreenProps> = ({ user: propsUser }) =>
         return (
           <EmptyState
             icon="clock"
-            title="아직 지난 모임이 없어요"
-            description="모임에 참여해보세요!"
+            title="지난 예약이 없어요"
+            description="매장을 예약해보세요!"
           />
         );
     }
@@ -271,7 +271,7 @@ const MyMeetupsScreen: React.FC<MyMeetupsScreenProps> = ({ user: propsUser }) =>
           <EmptyState
             icon="search"
             title="검색 결과가 없어요"
-            description={`"${searchQuery}"에 대한 모임을 찾을 수 없어요`}
+            description={`"${searchQuery}"에 대한 매장을 찾을 수 없어요`}
           />
         );
       }
@@ -298,7 +298,7 @@ const MyMeetupsScreen: React.FC<MyMeetupsScreenProps> = ({ user: propsUser }) =>
     <View style={styles.container}>
       {/* 헤더 — Figma pattern */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>내 약속</Text>
+        <Text style={styles.headerTitle}>내 예약</Text>
         <View style={styles.headerIcons}>
           <NotificationBell
             userId={user?.id?.toString()}
@@ -369,7 +369,7 @@ const MyMeetupsScreen: React.FC<MyMeetupsScreenProps> = ({ user: propsUser }) =>
       <button
         onClick={() => navigate('/create')}
         style={styles_web.fab as React.CSSProperties}
-        aria-label="모임 만들기"
+        aria-label="매장 검색"
       >
         <Icon name="plus" size={28} color="#fff" />
       </button>

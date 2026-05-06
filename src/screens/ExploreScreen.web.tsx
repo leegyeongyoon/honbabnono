@@ -137,7 +137,7 @@ const ExploreScreen: React.FC = () => {
     );
   }, []);
 
-  // 모임 목록 로드
+  // 매장 목록 로드
   const fetchMeetups = useCallback(async (lat?: number, lng?: number, bounds?: MapBounds | null) => {
     try {
       setLoading(true);
@@ -267,7 +267,7 @@ const ExploreScreen: React.FC = () => {
   );
 
   const hasActiveFilters = selectedGender !== '' || selectedAge !== '';
-  const listTitle = selectedCategory ? `${selectedCategory} 약속` : '전체 약속';
+  const listTitle = selectedCategory ? `${selectedCategory} 매장` : '전체 매장';
   const showLocationBanner = locationPermission === 'denied' && !locationBannerDismissed && viewMode === 'map';
 
   return (
@@ -299,7 +299,7 @@ const ExploreScreen: React.FC = () => {
           }}>
             <TextInput
               style={styles.searchInput}
-              placeholder="신청한 모임을 찾아봐요"
+              placeholder="매장을 검색해보세요"
               placeholderTextColor="#7E8082"
               value={searchQuery}
               onChangeText={setSearchQuery}
@@ -564,7 +564,7 @@ const ExploreScreen: React.FC = () => {
                   fontWeight: 500,
                   lineHeight: '18px',
                 }}>
-                  위치 권한을 허용하면 내 주변 모임을 볼 수 있어요
+                  위치 권한을 허용하면 내 주변 매장을 볼 수 있어요
                 </span>
               </div>
               <div
@@ -600,7 +600,7 @@ const ExploreScreen: React.FC = () => {
             {/* 내 위치 버튼 — Figma: 52x52 circle, bottom right */}
             <MyLocationButton onClick={handleMyLocationClick} hasLocation={locationPermission === 'granted'} />
 
-            {/* 선택된 모임 바텀 카드 — Figma: white card, borderRadius, padding 28px */}
+            {/* 선택된 매장 바텀 카드 — Figma: white card, borderRadius, padding 28px */}
             {selectedMeetup && (
               <div
                 ref={bottomCardRef}
@@ -743,13 +743,13 @@ const ExploreScreen: React.FC = () => {
             )}
           </div>
 
-          {/* 지도 아래 모임 리스트 */}
+          {/* 지도 아래 매장 리스트 */}
           <ScrollView style={styles.mapListBelow} showsVerticalScrollIndicator={false}>
             <View style={styles.listTitleRow}>
               <Text style={styles.mapListTitle}>{listTitle}</Text>
               {visibleMeetups.length > 0 && (
                 <Text style={styles.listCount}>
-                  {mapBounds ? `지도 영역 ${visibleMeetups.length}개` : `총 ${visibleMeetups.length}개의 약속`}
+                  {mapBounds ? `지도 영역 ${visibleMeetups.length}개` : `총 ${visibleMeetups.length}개의 매장`}
                 </Text>
               )}
             </View>
@@ -762,7 +762,7 @@ const ExploreScreen: React.FC = () => {
                 <EmptyState
                   compact
                   icon="search"
-                  title={selectedCategory ? `${selectedCategory} 약속이 없어요` : searchQuery ? '조건에 맞는 약속이 없어요' : '이 지역에 약속이 없어요'}
+                  title={selectedCategory ? `${selectedCategory} 매장이 없어요` : searchQuery ? '조건에 맞는 매장이 없어요' : '이 지역에 매장이 없어요'}
                   description={selectedCategory ? '다른 카테고리를 선택해보세요' : '지도를 이동하거나 검색 조건을 변경해보세요'}
                   context="explore"
                 />
@@ -796,7 +796,7 @@ const ExploreScreen: React.FC = () => {
             <FadeIn>
               <EmptyState
                 icon={searchQuery ? 'search' : 'map-pin'}
-                title={selectedCategory ? `${selectedCategory} 약속이 없어요` : searchQuery ? '조건에 맞는 약속이 없어요' : '주변에 약속이 없어요'}
+                title={selectedCategory ? `${selectedCategory} 매장이 없어요` : searchQuery ? '조건에 맞는 매장이 없어요' : '주변에 매장이 없어요'}
                 description={selectedCategory ? '다른 카테고리를 선택해보세요' : searchQuery ? '검색어를 변경하거나 조건을 변경해보세요' : '위치를 변경해보세요'}
                 context="explore"
               />
@@ -832,9 +832,9 @@ const ExploreScreen: React.FC = () => {
         </ScrollView>
       )}
 
-      {/* FAB: 56x56 orange circle with + — visible in both map & list views */}
+      {/* FAB: 56x56 orange circle with + — 홈으로 이동 */}
       <div
-        onClick={() => navigate('/create-meetup')}
+        onClick={() => navigate('/home')}
         style={{
           position: 'fixed',
           bottom: 80,
@@ -852,7 +852,7 @@ const ExploreScreen: React.FC = () => {
           transition: `transform ${TRANSITIONS.normal}`,
         }}
         role="button"
-        aria-label="새 모임 만들기"
+        aria-label="홈으로 이동"
       >
         <span style={{
           fontSize: 24,

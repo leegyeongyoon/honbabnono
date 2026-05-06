@@ -364,7 +364,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
           }}>
             <TextInput
               style={styles.searchInput}
-              placeholder="신청한 모임을 찾아봐요"
+              placeholder="매장을 검색해보세요"
               placeholderTextColor="#7E8082"
               value={searchQuery}
               onChangeText={handleSearchInput}
@@ -372,7 +372,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
               autoCapitalize="none"
               autoCorrect={false}
               returnKeyType="search"
-              aria-label="약속 검색"
+              aria-label="매장 검색"
             />
             {searchQuery.length > 0 ? (
               <TouchableOpacity onPress={clearSearch} style={{ padding: 4 }}>
@@ -532,7 +532,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
               }}
             >
               <span style={{ fontSize: 15, fontWeight: 600, color: '#fff' }}>
-                지금 바로 모임을 만들어보세요!
+                지금 바로 매장을 검색해보세요!
               </span>
             </div>
           )}
@@ -674,13 +674,13 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
               fontWeight: 600,
               color: '#121212',
             }}>
-              아직 등록된 밥약속이 없어요
+              아직 등록된 매장이 없어요
             </span>
             <span style={{
               fontSize: 14,
               color: '#878B94',
             }}>
-              첫 번째 밥약속을 만들어보세요!
+              주변 맛집을 검색해보세요!
             </span>
             <div
               onClick={() => setShowCreateMeetup(true)}
@@ -698,7 +698,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
                 cursor: 'pointer',
               }}
             >
-              약속 만들기
+              매장 검색하기
             </div>
           </div>
         )}
@@ -734,7 +734,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigateToLogin, navigation, us
           transform: fabPressed ? 'scale(0.93)' : fabHovered ? 'scale(1.05)' : 'none',
         }}
         role="button"
-        aria-label="새 약속 만들기"
+        aria-label="매장 검색"
       >
         <Icon name="plus" size={26} color="#FFFFFF" />
       </div>

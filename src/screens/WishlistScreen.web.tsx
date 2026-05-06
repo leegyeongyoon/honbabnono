@@ -3,36 +3,13 @@ import { View, StyleSheet, ScrollView } from 'react-native';
 import { useNavigate } from 'react-router-dom';
 import { Icon } from '../components/Icon';
 import { Heart } from 'lucide-react';
-import apiClient from '../services/apiClient';
+import restaurantApiService, { Restaurant } from '../services/restaurantApiService';
 import EmptyState from '../components/EmptyState';
 import ErrorState from '../components/ErrorState';
-import { processImageUrl } from '../utils/imageUtils';
-
-interface WishlistItem {
-  wishlist_id: string;
-  wishlisted_at: string;
-  id: string;
-  title: string;
-  description: string;
-  date: string;
-  time: string;
-  location: string;
-  address: string;
-  category: string;
-  max_participants: number;
-  current_participants: number;
-  deposit_amount: number;
-  image?: string;
-  status: string;
-  host_name: string;
-  host_profile_image?: string;
-  is_ended: boolean;
-  created_at: string;
-}
 
 const WishlistScreen: React.FC = () => {
   const navigate = useNavigate();
-  const [wishlist, setWishlist] = useState<WishlistItem[]>([]);
+  const [wishlist, setWishlist] = useState<Restaurant[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
@@ -40,15 +17,8 @@ const WishlistScreen: React.FC = () => {
     try {
       setLoading(true);
       setError(false);
-      const response = await apiClient.get('/user/wishlists', {
-        params: { page: 1, limit: 50 }
-      });
-
-      if (response.data && response.data.success) {
-        setWishlist(response.data.data || []);
-      } else {
-        setWishlist([]);
-      }
+      const list = await restaurantApiService.getFavorites();
+      setWishlist(list);
     } catch (err) {
       setWishlist([]);
       setError(true);
@@ -61,13 +31,10 @@ const WishlistScreen: React.FC = () => {
     fetchWishlist();
   }, []);
 
-  const removeFromWishlist = async (meetupId: string) => {
+  const removeFromWishlist = async (restaurantId: string) => {
     try {
-      const response = await apiClient.delete(`/meetups/${meetupId}/wishlist`);
-
-      if (response.data && response.data.success) {
-        setWishlist(prev => prev.filter(item => item.id !== meetupId));
-      }
+      await restaurantApiService.toggleFavorite(restaurantId);
+      setWishlist(prev => prev.filter(item => item.id !== restaurantId));
     } catch (error) {
       // silently fail
     }
@@ -99,15 +66,12 @@ const WishlistScreen: React.FC = () => {
   );
 
   // ---- Wishlist item row ----
-  const WishlistRow = ({ item }: { item: WishlistItem }) => {
+  const WishlistRow = ({ item }: { item: Restaurant }) => {
     const [hovered, setHovered] = useState(false);
-    const imageUrl = processImageUrl(item.image, item.category);
-    const location = item.location || item.address || '';
-    const description = item.description || item.category || '';
 
     return (
       <div
-        onClick={() => navigate(`/meetup/${item.id}`)}
+        onClick={() => navigate(`/restaurant/${item.id}`)}
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
         style={{
@@ -119,22 +83,36 @@ const WishlistScreen: React.FC = () => {
           cursor: 'pointer',
           backgroundColor: hovered ? '#FAFAFA' : '#FFFFFF',
           transition: 'background-color 150ms ease',
-          opacity: item.is_ended ? 0.5 : 1,
         }}
       >
         {/* Thumbnail */}
-        <img
-          src={imageUrl}
-          alt={item.title || ''}
-          style={{
+        {item.imageUrl ? (
+          <img
+            src={item.imageUrl}
+            alt={item.name || ''}
+            style={{
+              width: 70,
+              height: 70,
+              borderRadius: 16,
+              objectFit: 'cover',
+              flexShrink: 0,
+              backgroundColor: '#F5F5F5',
+            }}
+          />
+        ) : (
+          <div style={{
             width: 70,
             height: 70,
             borderRadius: 16,
-            objectFit: 'cover',
-            flexShrink: 0,
             backgroundColor: '#F5F5F5',
-          }}
-        />
+            flexShrink: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}>
+            <Icon name="utensils" size={24} color="#CCC" />
+          </div>
+        )}
 
         {/* Text area */}
         <div style={{
@@ -144,7 +122,7 @@ const WishlistScreen: React.FC = () => {
           flex: 1,
           minWidth: 0,
         }}>
-          {/* Title */}
+          {/* Name */}
           <div style={{
             fontSize: 16,
             fontWeight: 600,
@@ -154,20 +132,19 @@ const WishlistScreen: React.FC = () => {
             textOverflow: 'ellipsis',
             whiteSpace: 'nowrap',
           }}>
-            {item.title || ''}
+            {item.name || ''}
           </div>
-          {/* Description */}
-          <div style={{
-            fontSize: 14,
-            fontWeight: 400,
-            color: '#293038',
-            lineHeight: '20px',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-          }}>
-            {description}
-          </div>
+          {/* Category */}
+          {item.category && (
+            <div style={{
+              fontSize: 14,
+              fontWeight: 400,
+              color: '#293038',
+              lineHeight: '20px',
+            }}>
+              {item.category}
+            </div>
+          )}
           {/* Meta row */}
           <div style={{
             display: 'flex',
@@ -178,21 +155,25 @@ const WishlistScreen: React.FC = () => {
             fontWeight: 400,
             lineHeight: '20px',
           }}>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: '#878B94' }}>
-              <Icon name="map-pin" size={13} color="#878B94" />
-              <span style={{
-                maxWidth: 100,
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-              }}>
-                {location}
+            {item.address && (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: '#878B94' }}>
+                <Icon name="map-pin" size={13} color="#878B94" />
+                <span style={{
+                  maxWidth: 140,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}>
+                  {item.address}
+                </span>
               </span>
-            </span>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: '#878B94' }}>
-              <Icon name="users" size={13} color="#878B94" />
-              {item.current_participants ?? 0}/{item.max_participants ?? 4}명
-            </span>
+            )}
+            {item.avgRating != null && item.avgRating > 0 && (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: '#FFA529' }}>
+                <Icon name="star" size={13} color="#FFA529" />
+                {item.avgRating.toFixed(1)}
+              </span>
+            )}
           </div>
         </div>
 
@@ -248,21 +229,14 @@ const WishlistScreen: React.FC = () => {
           cursor: 'pointer',
         }}
       >
-        <span style={{
-          fontSize: 22,
-          fontWeight: 300,
-          color: '#121212',
-          lineHeight: '22px',
-        }}>
-          &lt;
-        </span>
+        <Icon name="arrow-left" size={20} color="#121212" />
       </div>
       <span style={{
         fontSize: 16,
         fontWeight: 600,
         color: '#121212',
       }}>
-        찜 모임
+        찜한 매장
       </span>
     </div>
   );
@@ -286,7 +260,7 @@ const WishlistScreen: React.FC = () => {
       <View style={styles.container}>
         {renderHeader()}
         <ErrorState
-          title="위시리스트를 불러올 수 없습니다"
+          title="찜한 매장을 불러올 수 없습니다"
           description="네트워크 상태를 확인하고 다시 시도해주세요"
           onRetry={fetchWishlist}
         />
@@ -303,15 +277,15 @@ const WishlistScreen: React.FC = () => {
           <EmptyState
             variant="no-data"
             icon="heart"
-            title="아직 찜한 약속이 없어요"
-            description="마음에 드는 밥약속을 찜해보세요! 언제든지 다시 확인할 수 있어요."
-            actionLabel="약속 찾아보기"
+            title="아직 찜한 매장이 없어요"
+            description="마음에 드는 매장을 찜해보세요! 언제든지 다시 확인할 수 있어요."
+            actionLabel="매장 찾아보기"
             onAction={() => navigate('/home')}
           />
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column' }}>
             {wishlist.map((item) => (
-              <WishlistRow key={item.wishlist_id} item={item} />
+              <WishlistRow key={item.id} item={item} />
             ))}
           </div>
         )}

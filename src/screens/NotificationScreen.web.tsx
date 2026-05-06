@@ -8,6 +8,7 @@ import {
   RefreshControl,
   ActivityIndicator,
 } from 'react-native';
+import { Icon } from '../components/Icon';
 import { FadeIn } from '../components/animated';
 import { Notification } from '../types/notification';
 import notificationApiService from '../services/notificationApiService';
@@ -231,7 +232,7 @@ const NotificationScreen: React.FC<NotificationScreenProps> = ({ navigation, use
           onPress={handleBackPress}
           activeOpacity={0.7}
         >
-          <Text style={styles.backArrow}>{'<'}</Text>
+          <Icon name="chevron-left" size={24} color="#121212" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>알림</Text>
         <View style={styles.headerRight} />

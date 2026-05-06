@@ -116,12 +116,30 @@ const mapMenuItem = (m: any): MenuItem => ({
 
 // ---------- Restaurants ----------
 
+// 카테고리 ID → DB에 저장된 한글 이름으로 매핑
+const CATEGORY_MAP: Record<string, string> = {
+  shabu: '샤브샤브',
+  meat: '고깃집',
+  stew: '전골/찜',
+  hotpot: '훠궈',
+  course: '코스요리',
+  korean: '한식',
+  japanese: '일식',
+  chinese: '중식',
+  western: '양식',
+  buffet: '뷔페',
+};
+
 const getRestaurants = async (params?: {
   category?: string;
   page?: number;
   limit?: number;
 }): Promise<{ restaurants: Restaurant[]; pagination?: any }> => {
-  const response = await apiClient.get('/restaurants', { params });
+  const queryParams = params ? {
+    ...params,
+    category: params.category ? (CATEGORY_MAP[params.category] || params.category) : undefined,
+  } : undefined;
+  const response = await apiClient.get('/restaurants', { params: queryParams });
   const data = response.data.data ?? response.data;
   const restaurants = (data.restaurants || []).map(mapRestaurant);
   return { restaurants, pagination: data.pagination };
@@ -175,11 +193,16 @@ const getTimeSlots = async (
   );
   const data = response.data.data ?? response.data;
   const list = Array.isArray(data) ? data : [];
-  return list.map((s: any) => ({
-    time: s.slot_time ?? s.time,
-    available: s.is_active !== false && (s.current_reservations ?? 0) < (s.max_reservations ?? 5),
-    remainingSeats: (s.max_reservations ?? 5) - (s.current_reservations ?? 0),
-  }));
+  return list.map((s: any) => {
+    // slot_time은 "11:30:00" 형태 → "11:30"으로 변환
+    const rawTime = s.slot_time ?? s.time ?? '';
+    const time = rawTime.length > 5 ? rawTime.slice(0, 5) : rawTime;
+    return {
+      time,
+      available: s.is_active !== false && (s.current_reservations ?? 0) < (s.max_reservations ?? 5),
+      remainingSeats: (s.max_reservations ?? 5) - (s.current_reservations ?? 0),
+    };
+  });
 };
 
 const toggleFavorite = async (
@@ -188,7 +211,9 @@ const toggleFavorite = async (
   const response = await apiClient.post(
     `/restaurants/${restaurantId}/favorite`,
   );
-  return response.data.data ?? response.data;
+  const data = response.data.data ?? response.data;
+  // 백엔드는 isFavorited, 프론트는 favorited 사용
+  return { favorited: data.isFavorited ?? data.favorited ?? false };
 };
 
 const recordView = async (restaurantId: string): Promise<void> => {
@@ -197,12 +222,16 @@ const recordView = async (restaurantId: string): Promise<void> => {
 
 const getFavorites = async (): Promise<Restaurant[]> => {
   const response = await apiClient.get('/restaurants/favorites');
-  return response.data.data ?? response.data;
+  const data = response.data.data ?? response.data;
+  const list = data.restaurants || data;
+  return Array.isArray(list) ? list.map(mapRestaurant) : [];
 };
 
 const getRecentViews = async (): Promise<Restaurant[]> => {
   const response = await apiClient.get('/restaurants/recent-views');
-  return response.data.data ?? response.data;
+  const data = response.data.data ?? response.data;
+  const list = data.restaurants || data;
+  return Array.isArray(list) ? list.map(mapRestaurant) : [];
 };
 
 // ---------- Menus ----------
@@ -214,6 +243,19 @@ const getMenusByRestaurant = async (
     `/menus/restaurant/${restaurantId}`,
   );
   const data = response.data.data ?? response.data;
+
+  // 응답이 {categories: [{category_name, menus: [...]}]} 형태인 경우
+  if (data.categories && Array.isArray(data.categories)) {
+    const allMenus: any[] = [];
+    for (const cat of data.categories) {
+      const catMenus = cat.menus || [];
+      for (const m of catMenus) {
+        allMenus.push({ ...m, category_name: m.category_name || cat.category_name });
+      }
+    }
+    return allMenus.map(mapMenuItem);
+  }
+
   const list = data.menus || data;
   return Array.isArray(list) ? list.map(mapMenuItem) : [];
 };
@@ -232,12 +274,46 @@ const getMyReservations = async (
   const response = await apiClient.get('/reservations/my', {
     params: status ? { status } : undefined,
   });
-  return response.data.data ?? response.data;
+  const data = response.data.data ?? response.data;
+  // 백엔드는 {reservations: [...]} 형태로 반환
+  const list = data.reservations || data;
+  return Array.isArray(list) ? list.map((r: any) => ({
+    id: r.id,
+    restaurantId: r.restaurant_id ?? r.restaurantId,
+    restaurantName: r.restaurant_name ?? r.restaurantName,
+    reservationDate: r.reservation_date ?? r.reservationDate,
+    reservationTime: r.reservation_time ?? r.reservationTime,
+    partySize: r.party_size ?? r.partySize,
+    status: r.status,
+    arrivalStatus: r.arrival_status ?? r.arrivalStatus,
+    qrCode: r.qr_code ?? r.qrCode,
+    checkedInAt: r.checked_in_at ?? r.checkedInAt,
+    specialRequest: r.special_request ?? r.specialRequest,
+    order: r.order,
+    payment: r.payment,
+  })) : [];
 };
 
 const getReservationById = async (id: string): Promise<Reservation> => {
   const response = await apiClient.get(`/reservations/${id}`);
-  return response.data.data ?? response.data;
+  const data = response.data.data ?? response.data;
+  // 백엔드는 {reservation, order} 형태로 반환
+  const r = data.reservation || data;
+  return {
+    id: r.id,
+    restaurantId: r.restaurant_id ?? r.restaurantId,
+    restaurantName: r.restaurant_name ?? r.restaurantName,
+    reservationDate: r.reservation_date ?? r.reservationDate,
+    reservationTime: r.reservation_time ?? r.reservationTime,
+    partySize: r.party_size ?? r.partySize,
+    status: r.status,
+    arrivalStatus: r.arrival_status ?? r.arrivalStatus,
+    qrCode: r.qr_code ?? r.qrCode,
+    checkedInAt: r.checked_in_at ?? r.checkedInAt,
+    specialRequest: r.special_request ?? r.specialRequest,
+    order: data.order ?? r.order,
+    payment: r.payment,
+  };
 };
 
 const createReservation = async (data: {
@@ -254,7 +330,22 @@ const createReservation = async (data: {
     party_size: data.partySize,
     special_request: data.specialRequest,
   });
-  return response.data.data ?? response.data;
+  const resData = response.data.data ?? response.data;
+  // 백엔드는 {reservation: {...}} 형태로 반환
+  const r = resData.reservation || resData;
+  return {
+    id: r.id,
+    restaurantId: r.restaurant_id ?? r.restaurantId,
+    restaurantName: r.restaurant_name ?? r.restaurantName,
+    reservationDate: r.reservation_date ?? r.reservationDate,
+    reservationTime: r.reservation_time ?? r.reservationTime,
+    partySize: r.party_size ?? r.partySize,
+    status: r.status,
+    arrivalStatus: r.arrival_status ?? r.arrivalStatus,
+    qrCode: r.qr_code ?? r.qrCode,
+    checkedInAt: r.checked_in_at ?? r.checkedInAt,
+    specialRequest: r.special_request ?? r.specialRequest,
+  };
 };
 
 const cancelReservation = async (
@@ -282,15 +373,37 @@ const createOrder = async (
   items: { menuId: string; quantity: number; options?: any[] }[],
 ): Promise<Order> => {
   const response = await apiClient.post('/orders', {
-    reservationId,
-    items,
+    reservation_id: reservationId,
+    items: items.map(item => ({
+      menu_id: item.menuId,
+      quantity: item.quantity,
+      options: item.options,
+    })),
   });
-  return response.data.data ?? response.data;
+  const data = response.data.data ?? response.data;
+  const order = data.order || data;
+  return {
+    id: order.id,
+    reservationId: order.reservation_id ?? order.reservationId,
+    items: order.items || [],
+    totalAmount: order.total_amount ?? order.totalAmount,
+    status: order.cooking_status ?? order.status,
+    createdAt: order.created_at ?? order.createdAt,
+  };
 };
 
 const getOrderById = async (id: string): Promise<Order> => {
   const response = await apiClient.get(`/orders/${id}`);
-  return response.data.data ?? response.data;
+  const data = response.data.data ?? response.data;
+  const order = data.order || data;
+  return {
+    id: order.id,
+    reservationId: order.reservation_id ?? order.reservationId,
+    items: order.items || [],
+    totalAmount: order.total_amount ?? order.totalAmount,
+    status: order.cooking_status ?? order.status,
+    createdAt: order.created_at ?? order.createdAt,
+  };
 };
 
 const getOrderByReservation = async (
@@ -299,7 +412,17 @@ const getOrderByReservation = async (
   const response = await apiClient.get(
     `/orders/reservation/${reservationId}`,
   );
-  return response.data.data ?? response.data;
+  const data = response.data.data ?? response.data;
+  const order = data.order || data;
+  if (!order || !order.id) return order;
+  return {
+    id: order.id,
+    reservationId: order.reservation_id ?? order.reservationId,
+    items: order.items || [],
+    totalAmount: order.total_amount ?? order.totalAmount,
+    status: order.cooking_status ?? order.status,
+    createdAt: order.created_at ?? order.createdAt,
+  };
 };
 
 // ---------- Payments ----------
@@ -309,15 +432,32 @@ const preparePayment = async (data: {
   amount: number;
   paymentMethod?: string;
 }): Promise<any> => {
-  const response = await apiClient.post('/payments/prepare', data);
-  return response.data.data ?? response.data;
+  const response = await apiClient.post('/payments/prepare', {
+    reservation_id: data.reservationId,
+    amount: data.amount,
+    payment_method: data.paymentMethod,
+  });
+  const resData = response.data.data ?? response.data;
+  const pd = resData.paymentData || resData;
+  return {
+    paymentId: pd.paymentId ?? pd.payment_id,
+    merchantUid: pd.merchantUid ?? pd.merchant_uid,
+    amount: pd.amount,
+    storeId: pd.storeId ?? pd.store_id,
+    name: pd.name,
+    buyerName: pd.buyerName ?? pd.buyer_name,
+    buyerEmail: pd.buyerEmail ?? pd.buyer_email,
+  };
 };
 
 const verifyPayment = async (data: {
   impUid: string;
   merchantUid: string;
 }): Promise<any> => {
-  const response = await apiClient.post('/payments/verify', data);
+  const response = await apiClient.post('/payments/verify', {
+    imp_uid: data.impUid,
+    merchant_uid: data.merchantUid,
+  });
   return response.data.data ?? response.data;
 };
 
@@ -327,7 +467,21 @@ const getPaymentByReservation = async (
   const response = await apiClient.get(
     `/payments/reservation/${reservationId}`,
   );
-  return response.data.data ?? response.data;
+  const data = response.data.data ?? response.data;
+  const p = data.payment || data;
+  if (!p || !p.id) return p;
+  return {
+    id: p.id,
+    reservationId: p.reservation_id ?? p.reservationId,
+    orderId: p.order_id ?? p.orderId,
+    amount: p.amount,
+    paymentMethod: p.payment_method ?? p.paymentMethod,
+    status: p.status,
+    merchantUid: p.merchant_uid ?? p.merchantUid,
+    impUid: p.imp_uid ?? p.impUid,
+    refundAmount: p.refund_amount ?? p.refundAmount,
+    paidAt: p.paid_at ?? p.paidAt,
+  };
 };
 
 const refundPayment = async (

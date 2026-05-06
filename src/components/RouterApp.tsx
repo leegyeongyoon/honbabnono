@@ -371,7 +371,7 @@ const RouterApp: React.FC = () => {
           <Route path="/reservation-confirm/:reservationId" element={protectedElement(<ReservationConfirmScreen />)} />
           <Route path="/my-reservations" element={protectedElement(<MainLayout><MyReservationsScreenV2 /></MainLayout>)} />
           <Route path="/write-restaurant-review/:reservationId" element={protectedElement(<WriteRestaurantReviewScreen />)} />
-          <Route path="/search-restaurants" element={protectedElement(<SearchRestaurantsScreen />)} />
+          <Route path="/search-restaurants" element={protectedElement(<MainLayout><SearchRestaurantsScreen /></MainLayout>)} />
 
           {/* 온보딩 페이지 */}
           <Route path="/onboarding" element={hasSeenOnboarding ? <Navigate to="/login" replace /> : <OnboardingScreen />} />
@@ -403,6 +403,8 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       <View style={styles.content}>
         {children}
       </View>
+      {/* 고정 탭바 높이만큼 spacer */}
+      <View style={{ height: 64 }} />
       <BottomTabBar />
     </View>
   );

@@ -4,32 +4,21 @@ import { useNavigate } from 'react-router-dom';
 import { COLORS, CSS_SHADOWS } from '../styles/colors';
 import { BORDER_RADIUS, SPACING } from '../styles/spacing';
 import { Icon } from '../components/Icon';
-import apiClient from '../services/apiClient';
+import restaurantApiService, { Restaurant } from '../services/restaurantApiService';
 
 // ============================================================
 // SearchRestaurantsScreen — 잇테이블 v2 매장/메뉴 검색
 // ============================================================
 
-interface RestaurantResult {
-  id: string;
-  name: string;
-  category: string;
-  image_url?: string;
-  avg_rating?: number;
-  review_count?: number;
-  address?: string;
-  short_address?: string;
-}
-
 const POPULAR_CATEGORIES = [
+  { label: '샤브샤브', icon: '🫕', value: '샤브샤브' },
+  { label: '고깃집', icon: '🥩', value: '고깃집' },
+  { label: '전골/찜', icon: '🍲', value: '전골/찜' },
+  { label: '훠궈', icon: '🥘', value: '훠궈' },
+  { label: '코스요리', icon: '🍷', value: '코스요리' },
   { label: '한식', icon: '🍚', value: '한식' },
   { label: '일식', icon: '🍣', value: '일식' },
-  { label: '중식', icon: '🥟', value: '중식' },
   { label: '양식', icon: '🍝', value: '양식' },
-  { label: '카페', icon: '☕', value: '카페' },
-  { label: '분식', icon: '🍢', value: '분식' },
-  { label: '치킨', icon: '🍗', value: '치킨' },
-  { label: '피자', icon: '🍕', value: '피자' },
 ];
 
 const RECENT_KEY = 'eattable_recent_searches';
@@ -37,7 +26,7 @@ const RECENT_KEY = 'eattable_recent_searches';
 const SearchRestaurantsScreen: React.FC = () => {
   const navigate = useNavigate();
   const [query, setQuery] = useState('');
-  const [results, setResults] = useState<RestaurantResult[]>([]);
+  const [results, setResults] = useState<Restaurant[]>([]);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
@@ -83,8 +72,7 @@ const SearchRestaurantsScreen: React.FC = () => {
     setLoading(true);
     setSearched(true);
     try {
-      const res = await apiClient.get('/restaurants/search', { params: { keyword: trimmed } });
-      const list = res.data?.restaurants || res.data?.data || res.data || [];
+      const list = await restaurantApiService.searchRestaurants(trimmed);
       setResults(Array.isArray(list) ? list : []);
       saveRecentSearch(trimmed);
     } catch {
@@ -129,7 +117,7 @@ const SearchRestaurantsScreen: React.FC = () => {
       {/* Header */}
       <div style={styles.header}>
         <span onClick={() => navigate(-1)} style={{ cursor: 'pointer', display: 'flex' }}>
-          <Icon name="arrow-back" size={22} color={COLORS.text.primary} />
+          <Icon name="arrow-left" size={22} color={COLORS.text.primary} />
         </span>
         <span style={styles.headerTitle}>매장 검색</span>
         <span style={{ width: 22 }} />
@@ -151,7 +139,7 @@ const SearchRestaurantsScreen: React.FC = () => {
             onClick={() => { setQuery(''); setResults([]); setSearched(false); }}
             style={{ cursor: 'pointer', display: 'flex' }}
           >
-            <Icon name="close" size={16} color={COLORS.text.tertiary} />
+            <Icon name="x" size={16} color={COLORS.text.tertiary} />
           </span>
         )}
       </div>
@@ -200,7 +188,7 @@ const SearchRestaurantsScreen: React.FC = () => {
         </div>
       ) : results.length === 0 ? (
         <div style={styles.emptyState}>
-          <Icon name="search-off" size={48} color={COLORS.neutral.grey300} />
+          <Icon name="search" size={48} color={COLORS.neutral.grey300} />
           <p style={{ color: COLORS.text.tertiary, fontSize: 14, margin: '12px 0 0' }}>
             '{query}'에 대한 검색 결과가 없습니다.
           </p>
@@ -216,24 +204,24 @@ const SearchRestaurantsScreen: React.FC = () => {
               onClick={() => navigate(`/restaurant/${r.id}`)}
               style={styles.resultCard}
             >
-              {r.image_url ? (
-                <img src={r.image_url} alt="" style={styles.resultImage} />
+              {r.imageUrl ? (
+                <img src={r.imageUrl} alt="" style={styles.resultImage} />
               ) : (
                 <div style={{ ...styles.resultImage, background: COLORS.neutral.grey100, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Icon name="restaurant" size={24} color={COLORS.neutral.grey300} />
+                  <Icon name="utensils" size={24} color={COLORS.neutral.grey300} />
                 </div>
               )}
               <div style={{ flex: 1, minWidth: 0 }}>
                 <p style={styles.resultName}>{r.name}</p>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
                   <span style={styles.categoryBadge}>{r.category}</span>
-                  {renderRating(r.avg_rating, r.review_count)}
+                  {renderRating(r.avgRating, r.reviewCount)}
                 </div>
-                {(r.short_address || r.address) && (
-                  <p style={styles.addressText}>{r.short_address || r.address}</p>
+                {r.address && (
+                  <p style={styles.addressText}>{r.address}</p>
                 )}
               </div>
-              <Icon name="chevron-right" size={18} color={COLORS.neutral.grey300} />
+              <Icon name="chevron-right" size={18} color={COLORS.text.tertiary} />
             </div>
           ))}
         </div>

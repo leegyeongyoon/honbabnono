@@ -138,7 +138,7 @@ const PointHistoryScreen: React.FC = () => {
         onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.opacity = '0.6'; }}
         onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.opacity = '1'; }}
       >
-        <span style={headerStyles.backArrow}>&lt;</span>
+        <Icon name="chevron-left" size={24} color="#121212" />
       </div>
       <span style={headerStyles.title}>포인트</span>
       <div style={headerStyles.rightSpacer} />
@@ -201,7 +201,7 @@ const PointHistoryScreen: React.FC = () => {
           </div>
           <div
             style={cardStyles.actionButton}
-            onClick={() => navigate('/point-withdraw')}
+            onClick={() => alert('포인트 인출 기능은 준비 중입니다.')}
             onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.backgroundColor = 'rgba(255,255,255,0.30)'; }}
             onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.backgroundColor = 'rgba(255,255,255,0.18)'; }}
           >
@@ -285,7 +285,7 @@ const PointHistoryScreen: React.FC = () => {
           <EmptyState
             icon="dollar-sign"
             title="포인트 사용 내역이 없습니다"
-            description="포인트를 충전하고 약속에 참여해보세요!"
+            description="포인트를 충전하고 매장 예약에 사용해보세요!"
             actionLabel="포인트 충전하기"
             onAction={() => navigate('/point-charge')}
           />

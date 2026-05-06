@@ -126,15 +126,15 @@ const JoinedMeetupsScreen: React.FC = () => {
   };
 
   const tabs: { key: TabType; label: string }[] = [
-    { key: 'applied', label: '신청한 모임' },
-    { key: 'created', label: '내가 만든 모임' },
-    { key: 'past', label: '지난 모임' },
+    { key: 'applied', label: '이전 예약' },
+    { key: 'created', label: '자주 가는 매장' },
+    { key: 'past', label: '지난 예약' },
   ];
 
   const searchPlaceholders: Record<TabType, string> = {
-    applied: '신청한 모임을 찾아봐요',
-    created: '내가 만든 모임을 찾아봐요',
-    past: '지난 모임을 찾아봐요',
+    applied: '이전 예약을 찾아봐요',
+    created: '자주 가는 매장을 찾아봐요',
+    past: '지난 예약을 찾아봐요',
   };
 
   const renderSkeleton = () => (
@@ -146,7 +146,7 @@ const JoinedMeetupsScreen: React.FC = () => {
         >
           <span style={{ fontSize: 20, color: '#121212' }}>&#8249;</span>
         </div>
-        <span style={styles.headerTitle}>참가한 모임</span>
+        <span style={styles.headerTitle}>예약 내역</span>
         <div style={{ width: 44 }} />
       </div>
       <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -252,7 +252,7 @@ const JoinedMeetupsScreen: React.FC = () => {
             <polyline points="15 18 9 12 15 6" />
           </svg>
         </div>
-        <span style={styles.headerTitle}>참가한 모임</span>
+        <span style={styles.headerTitle}>예약 내역</span>
         <div style={{ width: 44 }} />
       </div>
 
@@ -314,18 +314,18 @@ const JoinedMeetupsScreen: React.FC = () => {
               <line x1="3" y1="10" x2="21" y2="10" />
             </svg>
             <span style={{ fontSize: 16, fontWeight: 600, color: '#121212', marginTop: 16 }}>
-              {activeTab === 'applied' ? '신청한 모임이 없어요' :
-               activeTab === 'created' ? '만든 모임이 없어요' :
-               '지난 모임이 없어요'}
+              {activeTab === 'applied' ? '예약 내역이 없어요' :
+               activeTab === 'created' ? '자주 가는 매장이 없어요' :
+               '지난 예약이 없어요'}
             </span>
             <span style={{ fontSize: 14, color: '#878b94', marginTop: 8 }}>
-              새로운 모임을 찾아 참여해보세요!
+              매장을 찾아 예약해보세요!
             </span>
             <div
               style={styles.exploreButton}
               onClick={() => navigate('/home')}
             >
-              모임 찾아보기
+              매장 찾아보기
             </div>
           </div>
         ) : (

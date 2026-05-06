@@ -497,7 +497,7 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
       case 4: return true; // 성별/연령은 기본값 있음
       case 5: return meetupData.location !== '';
       case 6: return meetupData.title.trim() !== '';
-      case 7: return meetupData.deposit > 0; // 약속금 입력 필수
+      case 7: return meetupData.deposit > 0; // 보증금 입력 필수
       case 8: return paymentMethod === 'card' || (paymentMethod === 'points' && userPoints >= meetupData.deposit); // 결제 방법 선택 및 포인트 충분한지 확인
       default: return false;
     }
@@ -583,17 +583,17 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
         
         // 필터 설정 API는 현재 미구현으로 스킵
 
-        // 약속금이 있는 경우 결제 단계로 이동
+        // 보증금이 있는 경우 결제 단계로 이동
         if (meetupData.deposit > 0) {
           setCreatedMeetupId(meetupId);
           setCurrentStep(8); // 새로운 결제 단계
-          showToast('약속이 생성되었습니다. 약속금을 결제해 주세요.', 'success');
+          showToast('예약이 생성되었습니다. 보증금을 결제해 주세요.', 'success');
         } else {
-          showToast('약속이 성공적으로 생성되었습니다!', 'success');
+          showToast('예약이 성공적으로 생성되었습니다!', 'success');
           navigation.navigate('/home');
         }
       } else {
-        showToast(data.message || '약속 생성에 실패했습니다.', 'error');
+        showToast(data.message || '예약 생성에 실패했습니다.', 'error');
       }
     } catch (error) {
       // silently handle error
@@ -625,7 +625,7 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
   // 결제 처리
   const handlePayment = async () => {
     if (!createdMeetupId) {
-      showToast('약속 정보를 찾을 수 없습니다.', 'error');
+      showToast('예약 정보를 찾을 수 없습니다.', 'error');
       return;
     }
 
@@ -664,7 +664,7 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
       const data = await response.json();
 
       if (response.ok && data.success) {
-        showToast('약속금 결제가 완료되었습니다!', 'success');
+        showToast('보증금 결제가 완료되었습니다!', 'success');
         
         // 최소 1초는 로딩 상태를 보여준 후 페이지 이동
         const elapsedTime = Date.now() - startTime;
@@ -704,7 +704,7 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
     }
   }, [currentStep]);
 
-  const stepLabels = ['카테고리', '일시', '인원', '성향', '위치', '상세정보', '약속금', '결제'];
+  const stepLabels = ['카테고리', '일시', '인원', '성향', '위치', '상세정보', '보증금', '결제'];
   const renderStepIndicator = () => {
     // Determine total visible steps based on current progress
     // Show all 8 steps if we're at step 7 or 8, otherwise show first 6
@@ -904,7 +904,7 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
           </View>
 
           <View style={styles.dateTimeRow}>
-            <Text style={styles.dateTimeRowLabel}>약속 전 나에게 알림</Text>
+            <Text style={styles.dateTimeRowLabel}>예약 전 나에게 알림</Text>
             <TouchableOpacity style={styles.dropdownButton} onPress={() => setShowAlarmModal(true)}>
               <Text style={styles.dropdownButtonText}>{selectedAlarm}</Text>
               <Text style={styles.dropdownArrow}>▼</Text>
@@ -1189,7 +1189,7 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
 
   const renderStep3 = () => (
     <View style={styles.stepContainer}>
-      <Text style={styles.stepTitle}>몇명의 약속으로 할까요?</Text>
+      <Text style={styles.stepTitle}>몇명이서 식사할까요?</Text>
       <View style={styles.participantSelector}>
         {[
           { value: 1, label: '1명' },
@@ -1547,9 +1547,9 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
 
   const renderStep6 = () => (
     <View style={styles.stepContainer}>
-      <Text style={styles.stepTitle}>약속에 대해 설명해주세요</Text>
+      <Text style={styles.stepTitle}>매장에 대해 설명해주세요</Text>
       <View style={styles.titleSection}>
-        <Text style={styles.inputLabel}>약속 제목</Text>
+        <Text style={styles.inputLabel}>매장 이름</Text>
         <TextInput
           style={[
             styles.titleInput,
@@ -1558,7 +1558,7 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
               boxShadow: '0 0 0 3px rgba(212,136,44,0.2)',
             } as any,
           ]}
-          placeholder="약속 제목을 입력하세요"
+          placeholder="매장 이름을 입력하세요"
           value={meetupData.title}
           onChangeText={(text) => updateMeetupData('title', text)}
           onFocus={() => setFocusedInput('title')}
@@ -1567,7 +1567,7 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
       </View>
       
       <View style={styles.descriptionSection}>
-        <Text style={styles.inputLabel}>약속 소개</Text>
+        <Text style={styles.inputLabel}>매장 소개</Text>
         <TextInput
           style={[
             styles.descriptionInput,
@@ -1576,7 +1576,7 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
               boxShadow: '0 0 0 3px rgba(212,136,44,0.2)',
             } as any,
           ]}
-          placeholder="약속에 대해 자유롭게 소개해주세요"
+          placeholder="매장에 대해 자유롭게 소개해주세요"
           value={meetupData.description}
           onChangeText={(text) => updateMeetupData('description', text)}
           multiline
@@ -1587,7 +1587,7 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
       </View>
       
       <View style={styles.imageSection}>
-        <Text style={styles.inputLabel}>약속 사진 (선택사항)</Text>
+        <Text style={styles.inputLabel}>매장 사진 (선택사항)</Text>
         <TouchableOpacity 
           style={styles.imageUploadButton}
           onPress={() => {
@@ -1617,7 +1617,7 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
             <View style={styles.imageUploadContainer}>
               <Text style={styles.imageUploadIcon}>📷</Text>
               <Text style={styles.imageUploadText}>사진 추가하기</Text>
-              <Text style={styles.imageUploadSubText}>약속을 더 잘 표현할 수 있는 사진을 업로드하세요</Text>
+              <Text style={styles.imageUploadSubText}>매장을 더 잘 표현할 수 있는 사진을 업로드하세요</Text>
             </View>
           )}
         </TouchableOpacity>
@@ -1650,10 +1650,10 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
 
   const renderStep7 = () => (
     <View style={styles.stepContainer}>
-      <Text style={styles.stepTitle}>약속금을 설정해주세요</Text>
-      <Text style={styles.stepSubtitle}>약속금은 약속 참여의 신뢰성을 높여줍니다</Text>
+      <Text style={styles.stepTitle}>보증금을 설정해주세요</Text>
+      <Text style={styles.stepSubtitle}>보증금은 예약 이용의 신뢰성을 높여줍니다</Text>
       <View style={styles.depositSection}>
-        <Text style={styles.inputLabel}>약속금 금액</Text>
+        <Text style={styles.inputLabel}>보증금 금액</Text>
         <View style={styles.depositAmountContainer}>
           <TextInput
             style={[
@@ -1698,7 +1698,7 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
         
         <View style={styles.depositInfo}>
           <Text style={styles.depositInfoText}>
-            💡 약속금은 약속 참여 후 자동으로 환불됩니다
+            💡 보증금은 예약 이용 후 자동으로 환불됩니다
           </Text>
         </View>
       </View>
@@ -1754,12 +1754,12 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
     </View>
   );
 
-  // Step 8: 약속금 결제
+  // Step 8: 보증금 결제
   const renderStep8 = () => (
     <View style={styles.stepContainer}>
-      <Text style={styles.stepTitle}>약속금 결제</Text>
+      <Text style={styles.stepTitle}>보증금 결제</Text>
       <Text style={styles.stepSubtitle}>
-        약속 참여를 위한 약속금을 결제해 주세요
+        예약 이용를 위한 보증금을 결제해 주세요
       </Text>
 
       {/* 결제 정보 */}
@@ -1823,11 +1823,11 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
 
       {/* 결제 안내 */}
       <View style={styles.paymentNoticeContainer}>
-        <Text style={styles.paymentNoticeTitle}>💡 약속금 안내</Text>
+        <Text style={styles.paymentNoticeTitle}>💡 보증금 안내</Text>
         <Text style={styles.paymentNoticeText}>
-          • 약속금은 약속 참석 시 100% 환불됩니다{'\n'}
-          • 무단 불참 시 약속금은 차감됩니다{'\n'}
-          • 약속 취소 시 즉시 환불 처리됩니다
+          • 보증금은 예약 이용 시 100% 환불됩니다{'\n'}
+          • 무단 불참 시 보증금은 차감됩니다{'\n'}
+          • 예약 취소 시 즉시 환불 처리됩니다
         </Text>
       </View>
     </View>
@@ -1877,7 +1877,7 @@ const CreateMeetupWizard: React.FC<CreateMeetupWizardProps> = ({ user }) => {
             styles.nextButtonText,
             !canProceed() ? styles.nextButtonTextDisabled : null
           ]}>
-            {currentStep === 8 && isPaymentLoading ? '결제 중...' : currentStep === 7 ? '약속 만들기' : currentStep === 8 ? '결제하기' : '다음'}
+            {currentStep === 8 && isPaymentLoading ? '결제 중...' : currentStep === 7 ? '예약 등록' : currentStep === 8 ? '결제하기' : '다음'}
           </Text>
         </TouchableOpacity>
       </View>
@@ -2626,7 +2626,7 @@ const styles = StyleSheet.create({
     color: COLORS.neutral.grey300,
   },
   
-  // Step 7 - 약속금 결제 스타일
+  // Step 7 - 보증금 결제 스타일
   stepSubtitle: {
     fontSize: 16,
     fontWeight: '400',

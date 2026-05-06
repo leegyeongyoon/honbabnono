@@ -28,7 +28,7 @@ const WebTabNavigator = () => {
     {key: 'Home', title: '홈', navIcon: 'home' as const, component: HomeScreen},
     {key: 'Explore', title: '탐색', navIcon: 'explore' as const, component: ExploreScreen},
     {key: 'Chat', title: '채팅', navIcon: 'chat' as const, component: ChatScreen},
-    {key: 'MyMeetups', title: '내약속', navIcon: 'mymeetups' as const, component: MyMeetupsScreen},
+    {key: 'MyMeetups', title: '내 예약', navIcon: 'mymeetups' as const, component: MyMeetupsScreen},
     {key: 'MyPage', title: '마이페이지', navIcon: 'mypage' as const, component: MyPageScreen},
   ];
 
