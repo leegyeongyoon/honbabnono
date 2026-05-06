@@ -1,7 +1,8 @@
 # 잇테이블 피벗 계획: 선주문/선결제형 외식 예약 플랫폼
 
 > 작성일: 2026-04-28
-> 상태: 계획 수립 완료, 실행 대기
+> 최종 수정일: 2026-05-06
+> 상태: Phase 0~9 구현 완료, 배포 준비 중
 
 ---
 
@@ -308,60 +309,67 @@ src/store/
 
 ## 12. 구현 로드맵 (14~18주)
 
-### Phase 0: 사전 준비 (1주)
-- [ ] `pivot/v2` 브랜치 생성, 기존 main 태그 보존 (`v1.0-meetup-era`)
-- [ ] DB 마이그레이션 러너 도입 (`server/migrations/`)
-- [ ] 문서 정리 (이 파일 + README 업데이트)
-- [ ] CLAUDE.md 업데이트
-- [ ] 환경 변수 추가
+### Phase 0: 사전 준비 (1주) -- DONE (commit: 5c1cfa4)
+- [x] `pivot/v2` 브랜치 생성, 기존 main 태그 보존 (`v1.0-meetup-era`)
+- [x] DB 마이그레이션 러너 도입 (`server/migrations/runner.js`)
+- [x] 문서 정리 (PIVOT-PLAN.md + README-BUSINESS.md)
+- [x] CLAUDE.md 업데이트
+- [x] 환경 변수 추가
 
-### Phase 1: DB + 핵심 백엔드 (3주)
-- [ ] 새 테이블 13개 생성 (마이그레이션)
-- [ ] `restaurants` 모듈 - 매장 CRUD, 검색, 위치 기반
-- [ ] `merchants` 모듈 - 점주 등록, 사업자 인증
-- [ ] `menus` 모듈 - 메뉴 CRUD, 카테고리
-- [ ] `reservations` 모듈 - 예약 상태 머신, 시간 슬롯
-- [ ] `orders` 모듈 - 주문 생성, 조리 상태
-- [ ] `payments` 모듈 리팩토링 (deposits → payments)
+### Phase 1: DB + 핵심 백엔드 (3주) -- DONE (commit: 5c1cfa4)
+- [x] 새 테이블 13개 생성 (`server/migrations/100_create_pivot_v2_tables.sql`)
+- [x] `restaurants` 모듈 - 매장 CRUD, 검색, 위치 기반
+- [x] `merchants` 모듈 - 점주 등록, 사업자 인증
+- [x] `menus` 모듈 - 메뉴 CRUD, 카테고리
+- [x] `reservations` 모듈 - 예약 상태 머신, 시간 슬롯
+- [x] `orders` 모듈 - 주문 생성, 조리 상태
+- [x] `payments` 모듈 리팩토링 (deposits -> payments)
 
-### Phase 2: 점주 대시보드 (2주)
-- [ ] 점주 인증 미들웨어 (`authenticateMerchant`)
-- [ ] `merchant/` 앱 생성 (admin/ 구조 복제)
-- [ ] 대시보드, 예약 보드, 주문 관리, 메뉴 관리
-- [ ] `settlements` 모듈 - 정산 집계/내역
+### Phase 2: 점주 대시보드 (2주) -- DONE (commit: c7d1e3d)
+- [x] 점주 인증 미들웨어 (`authenticateMerchant`)
+- [x] `merchant/` 앱 생성 (admin/ 구조 복제)
+- [x] 대시보드, 예약 보드, 주문 관리, 메뉴 관리, 정산, 매장 설정
+- [x] `settlements` 모듈 - 정산 집계/내역
 
-### Phase 3: 고객 프론트엔드 핵심 (3주)
-- [ ] RestaurantHomeScreen - 위치 기반 매장 추천
-- [ ] RestaurantDetailScreen - 매장 상세 + 메뉴 탭
-- [ ] MenuSelectionScreen - 메뉴 선택 + 장바구니
-- [ ] ReservationFormScreen - 날짜/시간/인원
-- [ ] PaymentScreen 리팩토링 - 선결제 UI
-- [ ] ReservationConfirmScreen - 예약 확정
-- [ ] 새 Store 4개 (restaurant, cart, reservation, payment)
-- [ ] 새 API Service 5개
+### Phase 3: 고객 프론트엔드 핵심 (3주) -- DONE (commit: 01120fd)
+- [x] RestaurantHomeScreen - 위치 기반 매장 추천
+- [x] RestaurantDetailScreen - 매장 상세 + 메뉴 탭
+- [x] SearchRestaurantsScreen - 매장 검색
+- [x] ReservationFormScreen - 날짜/시간/인원
+- [x] PaymentScreen 리팩토링 - 선결제 UI
+- [x] ReservationConfirmScreen - 예약 확정
+- [x] MyReservationsScreen - 내 예약 목록
+- [x] 새 Store 4개 (restaurantStore, cartStore, reservationStore, paymentStore)
+- [x] 새 API Service (restaurantApiService.ts)
 
-### Phase 4: 실시간 시스템 (2주)
-- [ ] Socket.IO 이벤트 재설계 (reservation/order 상태)
-- [ ] 조리 타이밍 알림 스케줄러
-- [ ] QR 체크인 시스템
-- [ ] 도착 예정 버튼 + 매장 실시간 표시
+### Phase 4+5: 실시간 시스템 + 리뷰/검색 전환 -- DONE (commit: f2bd606)
+- [x] Socket.IO 이벤트 재설계 (`server/modules/reservations/socket.js`)
+- [x] 조리 타이밍 알림 스케줄러 (`server/scheduler/jobs/arrivalReminder.js`)
+- [x] QR 체크인 시스템
+- [x] 도착 예정 버튼 + 매장 실시간 표시
+- [x] 3축 리뷰 (맛/서비스/분위기) 전환 (`restaurant-review.controller.js`)
+- [x] WriteRestaurantReviewScreen 구현
+- [x] 매장/메뉴명 검색 전환
 
-### Phase 5: 리뷰 + 검색 + AI (1주)
-- [ ] 3축 리뷰 (맛/서비스/분위기) 전환
-- [ ] 매장/메뉴명 검색 전환
-- [ ] AI 매장 추천
+### Phase 6: Admin 업데이트 -- DONE (commit: 91c2e4c)
+- [x] 매장 관리 (RestaurantManagement.tsx)
+- [x] 예약 모니터링 (ReservationMonitoring.tsx)
+- [x] Admin API 확장 (매장/예약/정산 관리)
 
-### Phase 6: Admin 업데이트 (1주)
-- [ ] 대시보드 통계 (매장수, 예약수, 매출)
-- [ ] 매장 승인/관리
-- [ ] 예약 모니터링
-- [ ] 정산 관리
+### Phase 7: 정리 + 테스트 -- DONE (commit: 279187c)
+- [x] 레거시 테스트 `e2e/legacy/`로 이동
+- [x] v2 E2E 테스트 5개 작성 (restaurant-browse, reservation-flow, merchant-dashboard, admin)
+- [x] Unit 테스트 (restaurants, reservations, orders, payments, menus)
 
-### Phase 7: 정리 + 테스트 (2주)
-- [ ] 레거시 코드 정리 (meetup 관련 deprecated)
-- [ ] E2E 테스트 재작성 (핵심 플로우)
-- [ ] README/API 문서 최종화
-- [ ] 배포 + 검증
+### Phase 8: 스키마 drift 수정 + 시드 인프라 -- DONE (commit: 1c57119)
+- [x] v2 컨트롤러 스키마 drift 수정
+- [x] 시드 인프라 보강 (e2e/helpers/seed.ts)
+- [x] 스케줄러 보강
+
+### Phase 9: 화면-API 정합성 + 누락 라우트 -- DONE (commit: 7acee45)
+- [x] 전수 정합성 수정
+- [x] 누락 라우트 보강
+- [x] main 통합 머지 (commit: e1590cc)
 
 ---
 
