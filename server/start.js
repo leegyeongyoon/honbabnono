@@ -12,15 +12,33 @@ async function ensureV2Tables() {
   const pool = require('./config/database');
   try {
     const { rows } = await pool.query("SELECT to_regclass('public.restaurants') AS exists");
-    if (!rows[0].exists) {
-      logger.info('v2 tables not found — creating directly...');
-      const sql = fs.readFileSync(
-        path.join(__dirname, 'migrations/100_create_pivot_v2_tables.sql'),
-        'utf8'
-      );
-      await pool.query(sql);
-      logger.info('v2 pivot tables created successfully');
+    if (rows[0].exists) return;
+
+    logger.info('v2 tables not found — creating directly...');
+    const sql = fs.readFileSync(
+      path.join(__dirname, 'migrations/100_create_pivot_v2_tables.sql'),
+      'utf8'
+    );
+
+    // Split into individual statements to avoid single-transaction rollback
+    // when one statement fails (e.g., conflicting existing tables)
+    const statements = sql
+      .split(';')
+      .map(s => s.replace(/--[^\n]*/g, '').trim())
+      .filter(s => s.length > 0);
+
+    let ok = 0;
+    let skipped = 0;
+    for (const stmt of statements) {
+      try {
+        await pool.query(stmt);
+        ok++;
+      } catch (err) {
+        skipped++;
+        logger.warn(`v2 migration statement skipped: ${err.message}`);
+      }
     }
+    logger.info(`v2 tables: ${ok} statements ok, ${skipped} skipped`);
   } catch (err) {
     logger.error('v2 tables fallback failed:', err.message);
   }

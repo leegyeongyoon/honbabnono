@@ -221,24 +221,15 @@ apiRouter.get('/health', async (req, res) => {
     diag.db_host = process.env.DB_HOST || '(not set)';
     diag.db_name = process.env.DB_NAME || '(not set)';
   }
-  // Trigger v2 table creation
-  if (req.query.create_v2 === '1') {
+  // Check orders table schema
+  if (req.query.diag === '1') {
     try {
-      const fs = require('fs');
-      const path = require('path');
-      const migrationPath = path.join(__dirname, 'migrations/100_create_pivot_v2_tables.sql');
-      diag.migration_file_exists = fs.existsSync(migrationPath);
-      if (diag.migration_file_exists) {
-        const sql = fs.readFileSync(migrationPath, 'utf8');
-        diag.sql_length = sql.length;
-        await pool.query(sql);
-        diag.v2_creation = 'success';
-      }
+      const { rows: cols } = await pool.query(
+        "SELECT column_name, data_type FROM information_schema.columns WHERE table_name='orders' ORDER BY ordinal_position"
+      );
+      diag.orders_columns = cols.map(c => c.column_name);
     } catch (e) {
-      diag.v2_creation_error = e.message;
-      diag.v2_error_detail = e.detail || null;
-      diag.v2_error_hint = e.hint || null;
-      diag.v2_error_position = e.position || null;
+      diag.orders_error = e.message;
     }
   }
   res.json({
