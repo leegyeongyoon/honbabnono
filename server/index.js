@@ -208,12 +208,29 @@ const apiRouter = express.Router();
 apiRouter.use(apiLimiter);
 
 // Health check
-apiRouter.get('/health', (req, res) => {
+apiRouter.get('/health', async (req, res) => {
+  const diag = {};
+  if (req.query.diag === '1') {
+    try {
+      const { rows } = await pool.query("SELECT to_regclass('public.restaurants') AS tbl");
+      diag.restaurants_table = rows[0].tbl ? 'exists' : 'missing';
+      const { rows: tbls } = await pool.query(
+        "SELECT tablename FROM pg_tables WHERE schemaname='public' ORDER BY tablename"
+      );
+      diag.tables = tbls.map(r => r.tablename);
+    } catch (e) {
+      diag.db_error = e.message;
+    }
+    diag.node_env = process.env.NODE_ENV || '(not set)';
+    diag.db_host = process.env.DB_HOST || '(not set)';
+    diag.db_name = process.env.DB_NAME || '(not set)';
+  }
   res.json({
     status: 'ok',
     message: '잇테이블 API 서버가 정상 동작 중입니다.',
     timestamp: new Date().toISOString(),
-    version: '2.0.0-modular'
+    version: '2.0.0-modular',
+    ...diag,
   });
 });
 
