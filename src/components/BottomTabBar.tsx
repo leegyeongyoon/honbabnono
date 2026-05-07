@@ -8,42 +8,21 @@ const BottomTabBar: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // v2: 매장 중심 탭 구조
   const tabs = [
     { key: 'home', title: '홈', navIcon: 'home' as const, path: '/home' },
     { key: 'search', title: '검색', navIcon: 'search' as const, path: '/search-restaurants' },
     { key: 'reservations', title: '내 예약', navIcon: 'reservation' as const, path: '/my-reservations' },
-    { key: 'mypage', title: '마이페이지', navIcon: 'mypage' as const, path: '/mypage' },
+    { key: 'mypage', title: '마이', navIcon: 'mypage' as const, path: '/mypage' },
   ];
 
   const getActiveTab = () => {
-    const currentPath = location.pathname;
-
-    // 매장 상세, 예약폼, 결제 → 홈 탭
-    if (currentPath.startsWith('/restaurant') && !currentPath.startsWith('/restaurants')) {
-      return 'home';
-    }
-    if (currentPath.startsWith('/reservation/') || currentPath.startsWith('/payment/')) {
-      return 'home';
-    }
-
-    // 검색 관련
-    if (currentPath.startsWith('/search-restaurants')) {
-      return 'search';
-    }
-
-    // 내 예약 관련
-    if (currentPath.startsWith('/my-reservations') || currentPath.startsWith('/reservation-confirm') || currentPath.startsWith('/write-restaurant-review')) {
-      return 'reservations';
-    }
-
-    // 마이페이지 관련
-    if (currentPath.startsWith('/mypage') || currentPath.startsWith('/my-page') || currentPath.startsWith('/settings') || currentPath.startsWith('/my-reviews') || currentPath.startsWith('/my-badges') || currentPath.startsWith('/point') || currentPath.startsWith('/blocked-users') || currentPath.startsWith('/notification-settings') || currentPath.startsWith('/privacy-settings') || currentPath.startsWith('/recent-views') || currentPath.startsWith('/wishlist')) {
-      return 'mypage';
-    }
-
-    const activeTab = tabs.find(tab => tab.path === currentPath);
-    return activeTab?.key || 'home';
+    const p = location.pathname;
+    if (p.startsWith('/restaurant') && !p.startsWith('/restaurants')) return 'home';
+    if (p.startsWith('/reservation/') || p.startsWith('/payment/')) return 'home';
+    if (p.startsWith('/search-restaurants')) return 'search';
+    if (p.startsWith('/my-reservations') || p.startsWith('/reservation-confirm') || p.startsWith('/write-restaurant-review')) return 'reservations';
+    if (p.startsWith('/mypage') || p.startsWith('/my-page') || p.startsWith('/settings') || p.startsWith('/my-reviews') || p.startsWith('/my-badges') || p.startsWith('/point') || p.startsWith('/blocked-users') || p.startsWith('/notification-settings') || p.startsWith('/privacy-settings') || p.startsWith('/recent-views') || p.startsWith('/wishlist')) return 'mypage';
+    return tabs.find(t => t.path === p)?.key || 'home';
   };
 
   const activeTab = getActiveTab();
@@ -52,7 +31,6 @@ const BottomTabBar: React.FC = () => {
     <View style={styles.tabBar}>
       {tabs.map(tab => {
         const isActive = activeTab === tab.key;
-
         return (
           <TouchableOpacity
             key={tab.key}
@@ -63,11 +41,22 @@ const BottomTabBar: React.FC = () => {
             accessibilityState={{ selected: isActive }}
             accessibilityLabel={`${tab.title} 탭`}
           >
+            {/* Active indicator dot */}
+            {isActive && Platform.OS === 'web' && (
+              <div style={{
+                position: 'absolute',
+                top: 4,
+                width: 4,
+                height: 4,
+                borderRadius: 2,
+                backgroundColor: COLORS.primary.main,
+              }} />
+            )}
             <View style={styles.tabIconContainer}>
               <NavIcon
                 name={tab.navIcon}
-                size={24}
-                color={isActive ? '#151515' : '#8F99A9'}
+                size={22}
+                color={isActive ? COLORS.text.primary : '#A0A5B0'}
               />
             </View>
             <Text style={[
@@ -86,46 +75,47 @@ const BottomTabBar: React.FC = () => {
 const styles = StyleSheet.create({
   tabBar: {
     flexDirection: 'row',
-    height: 64,
+    height: 60,
     backgroundColor: COLORS.neutral.white,
-    borderTopWidth: 1,
-    borderTopColor: '#F5F5F5',
+    borderTopWidth: 0,
     ...(Platform.OS === 'web' ? {
-      // @ts-ignore: web-only properties
+      // @ts-ignore
       position: 'fixed',
       bottom: 0,
       left: 0,
       right: 0,
       zIndex: 1000,
-      boxShadow: '0 -1px 0 rgba(17,17,17,0.04)',
+      boxShadow: '0 -1px 0 rgba(17,17,17,0.06), 0 -4px 12px rgba(17,17,17,0.03)',
+      backdropFilter: 'blur(20px)',
+      WebkitBackdropFilter: 'blur(20px)',
+      backgroundColor: 'rgba(255,255,255,0.92)',
     } : {}),
   },
   tabItem: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingTop: 8,
-    paddingBottom: 8,
+    paddingTop: 6,
+    paddingBottom: 6,
     minHeight: 44,
     position: 'relative',
   },
   tabIconContainer: {
-    position: 'relative',
     width: 24,
     height: 24,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 5,
+    marginBottom: 3,
   },
   tabLabel: {
-    fontSize: 12,
+    fontSize: 10,
     fontWeight: '500',
-    color: '#8F99A9',
-    letterSpacing: 0.2,
+    color: '#A0A5B0',
+    letterSpacing: 0.1,
   },
   activeTabLabel: {
-    color: '#151515',
-    fontWeight: '500',
+    color: COLORS.text.primary,
+    fontWeight: '600',
   },
 });
 

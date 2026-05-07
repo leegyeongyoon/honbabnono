@@ -23,7 +23,7 @@ import EmptyState from '../components/EmptyState';
 import { ChatListSkeleton } from '../components/skeleton';
 import { getAvatarColor, getInitials } from '../utils/avatarColor';
 
-const FONT_FAMILY = 'system-ui, -apple-system, sans-serif';
+const FONT_FAMILY = '"Pretendard Variable", Pretendard, system-ui, -apple-system, sans-serif';
 
 // --- Hover-aware wrapper for header icon buttons ---
 const WebHoverButton: React.FC<{
@@ -927,7 +927,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
     color: COLORS.text.white,
-    fontFamily: 'system-ui, -apple-system, sans-serif',
+    fontFamily: '"Pretendard Variable", Pretendard, system-ui, -apple-system, sans-serif',
   },
   chatInfo: {
     flex: 1,
@@ -945,7 +945,7 @@ const styles = StyleSheet.create({
     letterSpacing: -0.2,
     color: COLORS.text.primary,
     flexShrink: 1,
-    fontFamily: 'system-ui, -apple-system, sans-serif',
+    fontFamily: '"Pretendard Variable", Pretendard, system-ui, -apple-system, sans-serif',
   },
   chatTitleUnread: {
     fontWeight: '700',
@@ -960,14 +960,14 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '600',
     color: COLORS.text.tertiary,
-    fontFamily: 'system-ui, -apple-system, sans-serif',
+    fontFamily: '"Pretendard Variable", Pretendard, system-ui, -apple-system, sans-serif',
   },
   lastMessage: {
     fontSize: 13,
     fontWeight: '400',
     color: COLORS.text.tertiary,
     lineHeight: 18,
-    fontFamily: 'system-ui, -apple-system, sans-serif',
+    fontFamily: '"Pretendard Variable", Pretendard, system-ui, -apple-system, sans-serif',
   },
   lastMessageUnread: {
     color: COLORS.text.secondary,
@@ -983,7 +983,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: COLORS.text.tertiary,
     fontWeight: '400',
-    fontFamily: 'system-ui, -apple-system, sans-serif',
+    fontFamily: '"Pretendard Variable", Pretendard, system-ui, -apple-system, sans-serif',
   },
   chatTimeUnread: {
     color: COLORS.text.secondary,
@@ -1003,7 +1003,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: COLORS.neutral.white,
     lineHeight: 14,
-    fontFamily: 'system-ui, -apple-system, sans-serif',
+    fontFamily: '"Pretendard Variable", Pretendard, system-ui, -apple-system, sans-serif',
   },
 
   // === 빈 상태 / 로딩 ===
@@ -1051,7 +1051,7 @@ const styles = StyleSheet.create({
     letterSpacing: -0.2,
     color: COLORS.text.primary,
     textAlign: 'center',
-    fontFamily: 'system-ui, -apple-system, sans-serif',
+    fontFamily: '"Pretendard Variable", Pretendard, system-ui, -apple-system, sans-serif',
   },
   menuButton: {
     width: 44,
@@ -1087,7 +1087,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: COLORS.text.secondary,
     fontWeight: '600',
-    fontFamily: 'system-ui, -apple-system, sans-serif',
+    fontFamily: '"Pretendard Variable", Pretendard, system-ui, -apple-system, sans-serif',
   },
 
   // === 말풍선 ===
@@ -1110,7 +1110,7 @@ const styles = StyleSheet.create({
     fontWeight: '400',
     lineHeight: 20,
     color: COLORS.text.primary,
-    fontFamily: 'system-ui, -apple-system, sans-serif',
+    fontFamily: '"Pretendard Variable", Pretendard, system-ui, -apple-system, sans-serif',
   },
   myMessageText: {
     color: COLORS.neutral.white,
@@ -1119,7 +1119,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: COLORS.text.tertiary,
     marginTop: 4,
-    fontFamily: 'system-ui, -apple-system, sans-serif',
+    fontFamily: '"Pretendard Variable", Pretendard, system-ui, -apple-system, sans-serif',
   },
   myMessageTime: {
     textAlign: 'right',
@@ -1135,7 +1135,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: COLORS.text.tertiary,
     fontWeight: '400',
-    fontFamily: 'system-ui, -apple-system, sans-serif',
+    fontFamily: '"Pretendard Variable", Pretendard, system-ui, -apple-system, sans-serif',
   },
 
   // === 메시지 입력 바 ===
@@ -1178,7 +1178,7 @@ const styles = StyleSheet.create({
     color: COLORS.text.primary,
     maxHeight: 80,
     paddingVertical: 0,
-    fontFamily: 'system-ui, -apple-system, sans-serif',
+    fontFamily: '"Pretendard Variable", Pretendard, system-ui, -apple-system, sans-serif',
   },
   sendButton: {
     width: 34,
@@ -1228,7 +1228,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     color: COLORS.text.white,
-    fontFamily: 'system-ui, -apple-system, sans-serif',
+    fontFamily: '"Pretendard Variable", Pretendard, system-ui, -apple-system, sans-serif',
   },
   messageContentWrapper: {
     flex: 1,

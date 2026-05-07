@@ -260,13 +260,13 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ user: propsUser }) => {
                 fontSize: 16,
                 fontWeight: 600,
                 color: COLORS.text.primary,
-                fontFamily: 'system-ui, -apple-system, sans-serif',
+                fontFamily: '"Pretendard Variable", Pretendard, system-ui, -apple-system, sans-serif',
               }}>밥알지수</span>
               <span style={{
                 fontSize: 16,
                 fontWeight: 700,
                 color: COLORS.primary.main,
-                fontFamily: 'system-ui, -apple-system, sans-serif',
+                fontFamily: '"Pretendard Variable", Pretendard, system-ui, -apple-system, sans-serif',
               }}>
                 {userStats.riceIndex} 밥알 {riceGrade.emoji}
               </span>
@@ -292,8 +292,8 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ user: propsUser }) => {
               flexDirection: 'row',
               justifyContent: 'space-between',
             }}>
-              <span style={{ fontSize: 12, color: COLORS.text.tertiary, fontFamily: 'system-ui, -apple-system, sans-serif' }}>0 밥알</span>
-              <span style={{ fontSize: 12, color: COLORS.text.tertiary, fontFamily: 'system-ui, -apple-system, sans-serif' }}>100 밥알</span>
+              <span style={{ fontSize: 12, color: COLORS.text.tertiary, fontFamily: '"Pretendard Variable", Pretendard, system-ui, -apple-system, sans-serif' }}>0 밥알</span>
+              <span style={{ fontSize: 12, color: COLORS.text.tertiary, fontFamily: '"Pretendard Variable", Pretendard, system-ui, -apple-system, sans-serif' }}>100 밥알</span>
             </div>
           </div>
         </FadeIn>
@@ -444,7 +444,7 @@ const styles = StyleSheet.create({
     color: HEADER_STYLE.title.color,
     letterSpacing: HEADER_STYLE.title.letterSpacing,
     // @ts-ignore
-    fontFamily: 'system-ui, -apple-system, sans-serif',
+    fontFamily: '"Pretendard Variable", Pretendard, system-ui, -apple-system, sans-serif',
   },
   scrollContent: {
     flex: 1,
@@ -480,7 +480,7 @@ const styles = StyleSheet.create({
     color: COLORS.text.primary,
     letterSpacing: -0.3,
     // @ts-ignore
-    fontFamily: 'system-ui, -apple-system, sans-serif',
+    fontFamily: '"Pretendard Variable", Pretendard, system-ui, -apple-system, sans-serif',
   },
 
   // 섹션 카드
@@ -503,7 +503,7 @@ const styles = StyleSheet.create({
     paddingTop: SPACING.lg,
     paddingBottom: SPACING.xs,
     // @ts-ignore
-    fontFamily: 'system-ui, -apple-system, sans-serif',
+    fontFamily: '"Pretendard Variable", Pretendard, system-ui, -apple-system, sans-serif',
   },
 
   // 메뉴 행
@@ -525,7 +525,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: COLORS.text.primary,
     // @ts-ignore
-    fontFamily: 'system-ui, -apple-system, sans-serif',
+    fontFamily: '"Pretendard Variable", Pretendard, system-ui, -apple-system, sans-serif',
   },
   menuRowRight: {
     flexDirection: 'row',
@@ -537,7 +537,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: COLORS.text.secondary,
     // @ts-ignore
-    fontFamily: 'system-ui, -apple-system, sans-serif',
+    fontFamily: '"Pretendard Variable", Pretendard, system-ui, -apple-system, sans-serif',
   },
   statRowLeft: {
     flexDirection: 'row',
@@ -563,7 +563,7 @@ const styles = StyleSheet.create({
     fontWeight: '400',
     color: COLORS.text.tertiary,
     // @ts-ignore
-    fontFamily: 'system-ui, -apple-system, sans-serif',
+    fontFamily: '"Pretendard Variable", Pretendard, system-ui, -apple-system, sans-serif',
   },
   deleteButton: {
     marginTop: SPACING.sm,
@@ -577,7 +577,7 @@ const styles = StyleSheet.create({
     fontWeight: '400',
     color: COLORS.text.tertiary,
     // @ts-ignore
-    fontFamily: 'system-ui, -apple-system, sans-serif',
+    fontFamily: '"Pretendard Variable", Pretendard, system-ui, -apple-system, sans-serif',
   },
 });
 

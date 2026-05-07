@@ -1,14 +1,16 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, TextInput, ActivityIndicator } from 'react-native';
+import { ActivityIndicator } from 'react-native';
 import { useNavigate } from 'react-router-dom';
-import { Icon } from '../components/Icon';
-import { COLORS, CSS_SHADOWS, CARD_STYLE, LAYOUT } from '../styles/colors';
-import { SPACING, BORDER_RADIUS, HEADER_STYLE } from '../styles/spacing';
+import { Icon, IconName } from '../components/Icon';
+import { COLORS, CSS_SHADOWS, CARD_STYLE, TRANSITIONS } from '../styles/colors';
+import { SPACING, BORDER_RADIUS } from '../styles/spacing';
 import restaurantApiService, { Restaurant } from '../services/restaurantApiService';
 
 // ============================================================
-// RestaurantHomeScreen — 잇테이블 v2 매장 추천 홈
+// RestaurantHomeScreen — 잇테이블 v2 프로덕션 홈
 // ============================================================
+
+const FONT = '"Pretendard Variable", Pretendard, system-ui, -apple-system, sans-serif';
 
 const CATEGORIES = [
   { id: 'all', label: '전체', emoji: '🍽️' },
@@ -24,9 +26,15 @@ const CATEGORIES = [
   { id: 'buffet', label: '뷔페', emoji: '🥗' },
 ];
 
+const QUICK_ACTIONS: { icon: IconName; label: string; path: string }[] = [
+  { icon: 'map-pin', label: '내 주변', path: '/explore' },
+  { icon: 'heart', label: '찜한 매장', path: '/wishlist' },
+  { icon: 'clock', label: '최근 본', path: '/recent-views' },
+  { icon: 'calendar', label: '내 예약', path: '/my-reservations' },
+];
+
 const RestaurantHomeScreen: React.FC = () => {
   const navigate = useNavigate();
-  const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [popularRestaurants, setPopularRestaurants] = useState<Restaurant[]>([]);
   const [nearbyRestaurants, setNearbyRestaurants] = useState<Restaurant[]>([]);
@@ -41,13 +49,12 @@ const RestaurantHomeScreen: React.FC = () => {
     setLoading(true);
     try {
       const params = selectedCategory !== 'all' ? { category: selectedCategory } : undefined;
-      const [popularRes, nearbyRes] = await Promise.allSettled([
+      const [popularRes] = await Promise.allSettled([
         restaurantApiService.getRestaurants({ ...params, limit: 10 }),
         loadNearby(),
       ]);
       if (popularRes.status === 'fulfilled') {
-        const data = popularRes.value;
-        setPopularRestaurants(data.restaurants || []);
+        setPopularRestaurants(popularRes.value.restaurants || []);
       }
     } catch {
       // silent
@@ -68,164 +75,259 @@ const RestaurantHomeScreen: React.FC = () => {
         );
         setNearbyRestaurants(Array.isArray(nearby) ? nearby : []);
       }
-    } catch {
-      // 위치 권한 없으면 무시
-    }
+    } catch { /* ignore */ }
   };
-
-  const handleSearchSubmit = useCallback(() => {
-    if (searchQuery.trim()) {
-      navigate(`/search-restaurants?q=${encodeURIComponent(searchQuery.trim())}`);
-    }
-  }, [searchQuery, navigate]);
 
   const handleCardClick = useCallback((id: string) => {
     navigate(`/restaurant/${id}`);
   }, [navigate]);
 
   const formatRating = (rating?: number) => rating ? rating.toFixed(1) : '-';
-  const formatPrice = (n: number) => n.toLocaleString('ko-KR');
 
-  // ── 렌더 ──
+  // ── Skeleton Loader ──
+  const renderSkeleton = () => (
+    <div style={{ padding: '0 20px' }}>
+      {[0, 1, 2].map((i) => (
+        <div key={i} className="card-hover" style={{
+          display: 'flex', borderRadius: CARD_STYLE.borderRadius,
+          border: `1px solid ${CARD_STYLE.borderColor}`, backgroundColor: '#fff',
+          overflow: 'hidden', marginBottom: 12,
+        }}>
+          <div className="skeleton" style={{ width: 120, minHeight: 120, borderRadius: 0 }} />
+          <div style={{ flex: 1, padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div className="skeleton" style={{ height: 16, width: '60%' }} />
+            <div className="skeleton" style={{ height: 13, width: '40%' }} />
+            <div className="skeleton" style={{ height: 12, width: '75%' }} />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
 
-  const renderRestaurantCard = (restaurant: Restaurant) => {
+  // ── Restaurant Card ──
+  const renderRestaurantCard = (restaurant: Restaurant, index: number) => {
     const isHovered = hoveredCardId === restaurant.id;
     return (
       <div
         key={restaurant.id}
+        className="card-hover"
         onClick={() => handleCardClick(restaurant.id)}
         onMouseEnter={() => setHoveredCardId(restaurant.id)}
         onMouseLeave={() => setHoveredCardId(null)}
         style={{
-          ...cardStyles.container,
-          boxShadow: isHovered ? CSS_SHADOWS.cardHover : CSS_SHADOWS.card,
-          transform: isHovered ? 'translateY(-2px)' : 'none',
+          display: 'flex',
+          borderRadius: 12,
+          border: `1px solid ${CARD_STYLE.borderColor}`,
+          backgroundColor: '#FFFFFF',
+          overflow: 'hidden',
           cursor: 'pointer',
+          animationDelay: `${index * 60}ms`,
         }}
       >
-        {/* 이미지 */}
-        <div style={cardStyles.imageWrapper}>
+        {/* Image */}
+        <div style={{ position: 'relative', width: 120, minHeight: 120, flexShrink: 0 }}>
           {restaurant.imageUrl ? (
             <img
               src={restaurant.imageUrl}
               alt={restaurant.name}
-              style={cardStyles.image}
+              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+              loading="lazy"
             />
           ) : (
-            <div style={cardStyles.imagePlaceholder}>
-              <span style={{ fontSize: 32 }}>🍽️</span>
+            <div style={{
+              width: '100%', height: '100%', display: 'flex',
+              alignItems: 'center', justifyContent: 'center',
+              background: 'linear-gradient(135deg, #FFF8F0 0%, #F5F5F5 100%)',
+            }}>
+              <span style={{ fontSize: 36, opacity: 0.7 }}>🍽️</span>
             </div>
           )}
           {restaurant.category && (
-            <div style={cardStyles.categoryBadge}>{restaurant.category}</div>
+            <div style={{
+              position: 'absolute', top: 8, left: 8,
+              backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)',
+              WebkitBackdropFilter: 'blur(4px)',
+              color: '#fff', fontSize: 11, fontWeight: 600,
+              padding: '3px 8px', borderRadius: 4, fontFamily: FONT,
+            }}>
+              {restaurant.category}
+            </div>
           )}
         </div>
 
-        {/* 정보 */}
-        <div style={cardStyles.info}>
-          <div style={cardStyles.name}>{restaurant.name}</div>
-          <div style={cardStyles.meta}>
-            <span style={cardStyles.rating}>
+        {/* Info */}
+        <div style={{ flex: 1, padding: '14px 16px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 4 }}>
+          <div style={{
+            fontSize: 15, fontWeight: 600, color: COLORS.text.primary,
+            fontFamily: FONT, lineHeight: '20px',
+            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          }}>
+            {restaurant.name}
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{
+              color: COLORS.primary.main, fontWeight: 700, fontSize: 13, fontFamily: FONT,
+            }}>
               ★ {formatRating(restaurant.avgRating)}
             </span>
-            {restaurant.reviewCount != null && (
-              <span style={cardStyles.reviewCount}>
+            {restaurant.reviewCount != null && restaurant.reviewCount > 0 && (
+              <span style={{ color: COLORS.text.tertiary, fontSize: 12, fontFamily: FONT }}>
                 리뷰 {restaurant.reviewCount}
               </span>
             )}
           </div>
           {restaurant.address && (
-            <div style={cardStyles.address}>{restaurant.address}</div>
+            <div style={{
+              fontSize: 12, color: COLORS.text.tertiary, fontFamily: FONT,
+              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              lineHeight: '16px', marginTop: 2,
+            }}>
+              <Icon name="map-pin" size={11} color={COLORS.text.tertiary} />
+              <span style={{ marginLeft: 3 }}>{restaurant.address}</span>
+            </div>
           )}
+        </div>
+
+        {/* Right arrow */}
+        <div style={{
+          display: 'flex', alignItems: 'center', paddingRight: 12, flexShrink: 0,
+          opacity: isHovered ? 0.6 : 0.3, transition: 'opacity 200ms',
+        }}>
+          <Icon name="chevron-right" size={16} color={COLORS.text.tertiary} />
         </div>
       </div>
     );
   };
 
   return (
-    <div style={pageStyles.wrapper}>
-      <div style={pageStyles.container}>
-        {/* 헤더 */}
-        <div style={pageStyles.header}>
-          <div style={pageStyles.headerTitle}>잇테이블
-            <span style={{ fontSize: 12, fontWeight: '400', color: COLORS.text.tertiary, marginLeft: 8 }}>예약하고, 도착하면, 바로 식사</span>
+    <div style={S.wrapper}>
+      <div style={S.container}>
+        {/* ── Header ── */}
+        <div style={S.header}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{
+              width: 32, height: 32, borderRadius: 8,
+              background: `linear-gradient(135deg, ${COLORS.primary.main}, ${COLORS.primary.dark})`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: '0 2px 8px rgba(255,165,41,0.25)',
+            }}>
+              <span style={{ color: '#fff', fontSize: 14, fontWeight: 800, fontFamily: FONT }}>E</span>
+            </div>
+            <div>
+              <div style={{ fontSize: 18, fontWeight: 700, color: COLORS.text.primary, fontFamily: FONT, letterSpacing: -0.3 }}>
+                잇테이블
+              </div>
+            </div>
           </div>
-          <TouchableOpacity onPress={() => navigate('/notifications')}>
-            <Icon name="bell" size={22} color={COLORS.text.secondary} />
-          </TouchableOpacity>
-        </div>
-
-        {/* 검색바 */}
-        <div style={pageStyles.searchBar}>
-          <Icon name="search" size={18} color={COLORS.neutral.grey400} />
-          <input
-            type="text"
-            placeholder="오늘은 어디서 먹을까?"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSearchSubmit()}
-            onFocus={() => navigate('/search-restaurants')}
-            style={pageStyles.searchInput}
-          />
-        </div>
-
-        {/* 카테고리 필터 */}
-        <div style={pageStyles.categoryScroll}>
-          {CATEGORIES.map((cat) => (
-            <div
-              key={cat.id}
-              onClick={() => setSelectedCategory(cat.id)}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <button
+              onClick={() => navigate('/notifications')}
+              className="btn-press"
               style={{
-                ...pageStyles.categoryChip,
-                backgroundColor: selectedCategory === cat.id
-                  ? COLORS.primary.main
-                  : COLORS.secondary.light,
-                color: selectedCategory === cat.id
-                  ? '#FFFFFF'
-                  : COLORS.text.secondary,
-                cursor: 'pointer',
+                width: 40, height: 40, borderRadius: 20, border: 'none',
+                background: 'transparent', display: 'flex', alignItems: 'center',
+                justifyContent: 'center', cursor: 'pointer', position: 'relative',
               }}
             >
-              <span style={{ marginRight: 4 }}>{cat.emoji}</span>
-              {cat.label}
+              <Icon name="bell" size={21} color={COLORS.text.secondary} />
+            </button>
+          </div>
+        </div>
+
+        {/* ── Search Bar ── */}
+        <div style={S.searchBarWrap}>
+          <div
+            onClick={() => navigate('/search-restaurants')}
+            className="btn-press"
+            style={S.searchBar}
+          >
+            <Icon name="search" size={18} color={COLORS.neutral.grey400} />
+            <span style={{
+              flex: 1, fontSize: 14, color: COLORS.neutral.grey400, fontFamily: FONT,
+            }}>
+              오늘은 어디서 먹을까?
+            </span>
+          </div>
+        </div>
+
+        {/* ── Quick Actions ── */}
+        <div style={S.quickActionWrap}>
+          {QUICK_ACTIONS.map((action) => (
+            <div
+              key={action.label}
+              onClick={() => navigate(action.path)}
+              className="btn-press"
+              style={S.quickActionItem}
+            >
+              <div style={S.quickActionIcon}>
+                <Icon name={action.icon} size={20} color={COLORS.primary.main} />
+              </div>
+              <span style={S.quickActionLabel}>{action.label}</span>
             </div>
           ))}
         </div>
 
-        {loading ? (
-          <div style={pageStyles.loadingWrap}>
-            <ActivityIndicator size="large" color={COLORS.primary.main} />
-          </div>
-        ) : (
+        {/* ── Category Filter ── */}
+        <div style={S.categoryScroll}>
+          {CATEGORIES.map((cat) => {
+            const isActive = selectedCategory === cat.id;
+            return (
+              <div
+                key={cat.id}
+                onClick={() => setSelectedCategory(cat.id)}
+                className="btn-press"
+                style={{
+                  ...S.categoryChip,
+                  backgroundColor: isActive ? COLORS.primary.main : COLORS.secondary.light,
+                  color: isActive ? '#FFFFFF' : COLORS.text.secondary,
+                  fontWeight: isActive ? 600 : 500,
+                  boxShadow: isActive ? '0 2px 8px rgba(255,165,41,0.25)' : 'none',
+                }}
+              >
+                <span style={{ marginRight: 3, fontSize: 13 }}>{cat.emoji}</span>
+                {cat.label}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* ── Content ── */}
+        {loading ? renderSkeleton() : (
           <>
             {/* 인기 매장 */}
-            <div style={pageStyles.section}>
-              <div style={pageStyles.sectionHeader}>
-                <div style={pageStyles.sectionTitle}>인기 매장</div>
-                <div
-                  onClick={() => navigate('/search-restaurants?sort=popular')}
-                  style={pageStyles.seeAll}
-                >
-                  더보기
+            <div style={S.section}>
+              <div style={S.sectionHeader}>
+                <div style={S.sectionTitle}>인기 매장</div>
+                <div onClick={() => navigate('/search-restaurants?sort=popular')} style={S.seeAll} className="btn-press">
+                  더보기 <Icon name="chevron-right" size={12} color={COLORS.text.tertiary} />
                 </div>
               </div>
-              <div style={pageStyles.cardGrid}>
+              <div style={S.cardGrid}>
                 {popularRestaurants.length > 0 ? (
-                  popularRestaurants.map(renderRestaurantCard)
+                  popularRestaurants.map((r, i) => renderRestaurantCard(r, i))
                 ) : (
-                  <div style={pageStyles.emptyText}>주변에 등록된 매장이 없습니다. 곧 새로운 매장이 추가될 예정이에요!</div>
+                  <div style={S.emptyState}>
+                    <div style={S.emptyIcon}>
+                      <Icon name="utensils" size={32} color={COLORS.neutral.grey300} />
+                    </div>
+                    <div style={S.emptyTitle}>아직 등록된 매장이 없어요</div>
+                    <div style={S.emptyDesc}>곧 새로운 매장이 추가될 예정이에요!</div>
+                  </div>
                 )}
               </div>
             </div>
 
             {/* 내 주변 매장 */}
             {nearbyRestaurants.length > 0 && (
-              <div style={pageStyles.section}>
-                <div style={pageStyles.sectionHeader}>
-                  <div style={pageStyles.sectionTitle}>내 주변 매장</div>
+              <div style={S.section}>
+                <div style={S.sectionHeader}>
+                  <div style={S.sectionTitle}>
+                    <Icon name="map-pin" size={16} color={COLORS.primary.main} />
+                    <span style={{ marginLeft: 6 }}>내 주변 매장</span>
+                  </div>
                 </div>
-                <div style={pageStyles.cardGrid}>
-                  {nearbyRestaurants.map(renderRestaurantCard)}
+                <div style={S.cardGrid}>
+                  {nearbyRestaurants.map((r, i) => renderRestaurantCard(r, i))}
                 </div>
               </div>
             )}
@@ -241,7 +343,7 @@ const RestaurantHomeScreen: React.FC = () => {
 
 // ── Styles ──
 
-const pageStyles: Record<string, React.CSSProperties> = {
+const S: Record<string, React.CSSProperties> = {
   wrapper: {
     minHeight: '100vh',
     backgroundColor: COLORS.neutral.background,
@@ -249,58 +351,79 @@ const pageStyles: Record<string, React.CSSProperties> = {
   container: {
     maxWidth: 480,
     margin: '0 auto',
-    paddingBottom: 20,
   },
   header: {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: '16px 20px 12px',
+    padding: '14px 20px 10px',
     backgroundColor: '#FFFFFF',
-    borderBottom: `1px solid rgba(17,17,17,0.06)`,
+    position: 'sticky',
+    top: 0,
+    zIndex: 10,
+    borderBottom: `1px solid rgba(17,17,17,0.04)`,
   },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: 700,
-    letterSpacing: -0.3,
-    color: COLORS.text.primary,
-    fontFamily: 'system-ui, -apple-system, sans-serif',
+  searchBarWrap: {
+    padding: '8px 20px 4px',
+    backgroundColor: '#FFFFFF',
   },
   searchBar: {
     display: 'flex',
     alignItems: 'center',
-    gap: 8,
-    margin: '12px 20px 0',
-    padding: '10px 14px',
+    gap: 10,
+    padding: '11px 16px',
     backgroundColor: COLORS.neutral.light,
     borderRadius: BORDER_RADIUS.pill,
-    border: '1px solid rgba(17,17,17,0.06)',
+    border: '1px solid rgba(17,17,17,0.05)',
+    cursor: 'pointer',
+    transition: `all ${TRANSITIONS.normal}`,
   },
-  searchInput: {
-    flex: 1,
-    border: 'none',
-    outline: 'none',
-    backgroundColor: 'transparent',
-    fontSize: 14,
-    color: COLORS.text.primary,
-    fontFamily: 'system-ui, -apple-system, sans-serif',
-  } as any,
+  quickActionWrap: {
+    display: 'flex',
+    justifyContent: 'space-around',
+    padding: '16px 20px 8px',
+    backgroundColor: '#FFFFFF',
+  },
+  quickActionItem: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: 6,
+    cursor: 'pointer',
+  },
+  quickActionIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: COLORS.primary.light,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    transition: `transform ${TRANSITIONS.normal}`,
+  },
+  quickActionLabel: {
+    fontSize: 12,
+    fontWeight: 500,
+    color: COLORS.text.secondary,
+    fontFamily: FONT,
+  },
   categoryScroll: {
     display: 'flex',
     gap: 8,
     padding: '12px 20px',
-    overflowX: 'auto' as const,
-    WebkitOverflowScrolling: 'touch',
+    overflowX: 'auto',
+    backgroundColor: '#FFFFFF',
+    borderBottom: '1px solid rgba(17,17,17,0.04)',
   },
   categoryChip: {
     flexShrink: 0,
-    padding: '6px 14px',
+    padding: '7px 14px',
     borderRadius: BORDER_RADIUS.pill,
     fontSize: 13,
-    fontWeight: 500,
-    whiteSpace: 'nowrap' as const,
-    transition: 'all 200ms ease-out',
-    fontFamily: 'system-ui, -apple-system, sans-serif',
+    whiteSpace: 'nowrap',
+    transition: `all ${TRANSITIONS.normal}`,
+    fontFamily: FONT,
+    cursor: 'pointer',
   },
   section: {
     marginTop: 24,
@@ -311,116 +434,58 @@ const pageStyles: Record<string, React.CSSProperties> = {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 14,
   },
   sectionTitle: {
-    fontSize: 17,
+    fontSize: 18,
     fontWeight: 700,
     color: COLORS.text.primary,
-    fontFamily: 'system-ui, -apple-system, sans-serif',
+    fontFamily: FONT,
+    letterSpacing: -0.3,
+    display: 'flex',
+    alignItems: 'center',
   },
   seeAll: {
     fontSize: 13,
     color: COLORS.text.tertiary,
     cursor: 'pointer',
-    fontFamily: 'system-ui, -apple-system, sans-serif',
+    fontFamily: FONT,
+    display: 'flex',
+    alignItems: 'center',
+    gap: 2,
   },
   cardGrid: {
     display: 'flex',
-    flexDirection: 'column' as const,
+    flexDirection: 'column',
     gap: 12,
   },
-  loadingWrap: {
+  emptyState: {
     display: 'flex',
-    justifyContent: 'center',
+    flexDirection: 'column',
     alignItems: 'center',
-    paddingTop: 80,
+    padding: '48px 20px',
   },
-  emptyText: {
-    fontSize: 14,
-    color: COLORS.text.tertiary,
-    textAlign: 'center' as const,
-    padding: 32,
-    fontFamily: 'system-ui, -apple-system, sans-serif',
-  },
-};
-
-const cardStyles: Record<string, React.CSSProperties> = {
-  container: {
-    display: 'flex',
-    flexDirection: 'row' as const,
-    borderRadius: CARD_STYLE.borderRadius,
-    border: `1px solid ${CARD_STYLE.borderColor}`,
-    backgroundColor: '#FFFFFF',
-    overflow: 'hidden',
-    transition: 'all 200ms ease-out',
-  },
-  imageWrapper: {
-    position: 'relative' as const,
-    width: 110,
-    minHeight: 110,
-    flexShrink: 0,
-  },
-  image: {
-    width: '100%',
-    height: '100%',
-    objectFit: 'cover' as const,
-  },
-  imagePlaceholder: {
-    width: '100%',
-    height: '100%',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
+  emptyIcon: {
+    width: 72,
+    height: 72,
+    borderRadius: '50%',
     backgroundColor: COLORS.neutral.light,
-  },
-  categoryBadge: {
-    position: 'absolute' as const,
-    top: 8,
-    left: 8,
-    backgroundColor: 'rgba(0,0,0,0.55)',
-    color: '#FFFFFF',
-    fontSize: 11,
-    fontWeight: 600,
-    padding: '2px 8px',
-    borderRadius: 4,
-    fontFamily: 'system-ui, -apple-system, sans-serif',
-  },
-  info: {
-    flex: 1,
-    padding: '12px 14px',
     display: 'flex',
-    flexDirection: 'column' as const,
-    gap: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
   },
-  name: {
-    fontSize: 15,
+  emptyTitle: {
+    fontSize: 16,
     fontWeight: 600,
     color: COLORS.text.primary,
-    fontFamily: 'system-ui, -apple-system, sans-serif',
+    fontFamily: FONT,
+    marginBottom: 4,
   },
-  meta: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 8,
-    fontSize: 13,
-    fontFamily: 'system-ui, -apple-system, sans-serif',
-  },
-  rating: {
-    color: COLORS.primary.main,
-    fontWeight: 600,
-  },
-  reviewCount: {
+  emptyDesc: {
+    fontSize: 14,
     color: COLORS.text.tertiary,
-  },
-  address: {
-    fontSize: 12,
-    color: COLORS.text.tertiary,
-    marginTop: 2,
-    fontFamily: 'system-ui, -apple-system, sans-serif',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap' as const,
+    fontFamily: FONT,
   },
 };
 

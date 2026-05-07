@@ -245,7 +245,7 @@ const MyReservationsScreen: React.FC = () => {
 
 // ── Styles ──
 
-const FONT = 'system-ui, -apple-system, sans-serif';
+const FONT = '"Pretendard Variable", Pretendard, system-ui, -apple-system, sans-serif';
 
 const s: Record<string, React.CSSProperties> = {
   wrapper: { minHeight: '100vh', backgroundColor: COLORS.neutral.background },

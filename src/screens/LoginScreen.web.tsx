@@ -338,7 +338,7 @@ const LoginScreen = () => {
 
       {/* 푸터 */}
       <View style={styles.footer}>
-        <Text style={styles.footerText}>© 2025 잇테이블</Text>
+        <Text style={styles.footerText}>© 2026 잇테이블</Text>
       </View>
 
       <Toast message={toast.message} type={toast.type} visible={toast.visible} onHide={hideToast} />
@@ -541,6 +541,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: 'rgba(255,255,255,0.35)',
     textAlign: 'center',
+    fontFamily: '"Pretendard Variable", Pretendard, system-ui, -apple-system, sans-serif',
   },
 });
 

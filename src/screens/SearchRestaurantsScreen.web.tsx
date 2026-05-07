@@ -373,7 +373,7 @@ const SearchRestaurantsScreen: React.FC = () => {
 
 // ── Page Styles (홈 화면 디자인 시스템과 통일) ──
 
-const FONT_FAMILY = 'system-ui, -apple-system, sans-serif';
+const FONT_FAMILY = '"Pretendard Variable", Pretendard, system-ui, -apple-system, sans-serif';
 
 const pageStyles: Record<string, React.CSSProperties> = {
   wrapper: {

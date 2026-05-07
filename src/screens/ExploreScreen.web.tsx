@@ -12,7 +12,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { COLORS, SHADOWS, CSS_SHADOWS, CARD_STYLE, TRANSITIONS, Z_INDEX } from '../styles/colors';
 import { BORDER_RADIUS, LIST_ITEM_STYLE, HEADER_STYLE, SPACING } from '../styles/spacing';
 
-const FONT_FAMILY = 'system-ui, -apple-system, sans-serif';
+const FONT_FAMILY = '"Pretendard Variable", Pretendard, system-ui, -apple-system, sans-serif';
 import { Icon } from '../components/Icon';
 import WebKakaoMap, { MapMarker, MapBounds } from '../components/WebKakaoMap';
 import MeetupCard from '../components/MeetupCard';
