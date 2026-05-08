@@ -58,7 +58,9 @@ const ReservationFormScreen: React.FC = () => {
   }, [restaurantId, selectedDate]);
 
   const formatPrice = (n: number) => n.toLocaleString('ko-KR');
-  const totalAmount = cartStore.totalAmount;
+  // 현재 매장 장바구니만 사용
+  const isCurrentCart = restaurantId && cartStore.restaurantId === restaurantId;
+  const totalAmount = isCurrentCart ? cartStore.totalAmount : 0;
 
   const handleSubmit = useCallback(async () => {
     if (!restaurantId || !selectedDate || !selectedTime || submitting) return;
@@ -205,7 +207,7 @@ const ReservationFormScreen: React.FC = () => {
         </div>
 
         {/* 장바구니 요약 */}
-        {cartStore.items.length > 0 && (
+        {isCurrentCart && cartStore.items.length > 0 && (
           <div style={s.section}>
             <div style={s.label}>선택 메뉴</div>
             <div style={s.cartList}>

@@ -195,11 +195,25 @@ const cleanupExpiredRefreshTokens = async () => {
 const cleanupInterval = setInterval(cleanupExpiredRefreshTokens, 60 * 60 * 1000);
 cleanupInterval.unref();
 
+// 선택적 인증 미들웨어 — 토큰이 있으면 req.user 세팅, 없어도 next()
+const optionalAuth = (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  const token = authHeader && authHeader.split(' ')[1];
+  if (!token) return next();
+  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+    if (!err) {
+      req.user = { userId: user.userId || user.id, email: user.email, name: user.name };
+    }
+    next();
+  });
+};
+
 module.exports = {
   authenticateToken,
   authenticateAdmin,
   authenticateAdminNew,
   authenticateMerchant,
+  optionalAuth,
   generateJWT,
   generateRefreshToken,
   verifyRefreshToken,

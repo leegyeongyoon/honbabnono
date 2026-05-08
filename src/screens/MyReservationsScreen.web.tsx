@@ -5,6 +5,7 @@ import { Icon } from '../components/Icon';
 import { COLORS, CSS_SHADOWS, CARD_STYLE, TRANSITIONS } from '../styles/colors';
 import { SPACING, BORDER_RADIUS, HEADER_STYLE } from '../styles/spacing';
 import useReservationStore, { Reservation } from '../store/reservationStore';
+import restaurantApiService from '../services/restaurantApiService';
 
 // ============================================================
 // MyReservationsScreen — 잇테이블 v2 내 예약 목록
@@ -64,9 +65,7 @@ const MyReservationsScreen: React.FC = () => {
 
   const handleArrivalNotify = useCallback(async (id: string) => {
     try {
-      await import('../services/restaurantApiService').then((mod) =>
-        mod.default.updateArrival(id, 'on_the_way'),
-      );
+      await restaurantApiService.updateArrival(id, 'on_the_way');
       alert('도착 알림을 보냈습니다.');
     } catch {
       alert('알림 전송에 실패했습니다.');
@@ -165,6 +164,19 @@ const MyReservationsScreen: React.FC = () => {
                 취소
               </div>
             )}
+          </div>
+        )}
+        {activeTab === 'completed' && (
+          <div
+            style={s.cardActions}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div
+              style={s.actionButtonPrimary}
+              onClick={() => navigate(`/write-restaurant-review/${reservation.id}`)}
+            >
+              리뷰 작성
+            </div>
           </div>
         )}
       </div>

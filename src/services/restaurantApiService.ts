@@ -180,7 +180,7 @@ const getRestaurantById = async (id: string): Promise<Restaurant & { menus?: Men
         ]),
       )
     : undefined;
-  return { ...restaurant, menus, menusByCategory, timeSlots: data.timeSlots };
+  return { ...restaurant, menus, menusByCategory, timeSlots: data.timeSlots, isFavorited: data.isFavorited ?? data.is_favorited ?? false };
 };
 
 const getTimeSlots = async (
@@ -419,7 +419,7 @@ const getOrderByReservation = async (
   );
   const data = response.data.data ?? response.data;
   const order = data.order || data;
-  if (!order || !order.id) return null as any;
+  if (!order || !order.id) throw new Error('주문 정보를 찾을 수 없습니다.');
   return {
     id: order.id,
     reservationId: order.reservation_id ?? order.reservationId,
@@ -474,7 +474,7 @@ const getPaymentByReservation = async (
   );
   const data = response.data.data ?? response.data;
   const p = data.payment || data;
-  if (!p || !p.id) return p;
+  if (!p || !p.id) throw new Error('결제 정보를 찾을 수 없습니다.');
   return {
     id: p.id,
     reservationId: p.reservation_id ?? p.reservationId,

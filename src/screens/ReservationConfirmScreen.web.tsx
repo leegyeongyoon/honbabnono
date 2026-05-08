@@ -109,8 +109,21 @@ const ReservationConfirmScreen: React.FC = () => {
                 {reservation.order.items.map((item: any, idx: number) => (
                   <div key={idx} style={s.menuRow}>
                     <span>{item.menu_name || item.menuName || item.name} x{item.quantity}</span>
+                    {item.unit_price && (
+                      <span style={{ color: COLORS.text.tertiary, fontSize: 13 }}>
+                        {(item.unit_price * item.quantity).toLocaleString('ko-KR')}원
+                      </span>
+                    )}
                   </div>
                 ))}
+                {reservation.order.total_amount && (
+                  <div style={{ ...s.menuRow, borderTop: '1px solid rgba(17,17,17,0.06)', marginTop: 8, paddingTop: 8, fontWeight: 700 }}>
+                    <span>총 금액</span>
+                    <span style={{ color: COLORS.primary.main }}>
+                      {Number(reservation.order.total_amount).toLocaleString('ko-KR')}원
+                    </span>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -209,7 +222,7 @@ const s: Record<string, React.CSSProperties> = {
   // 메뉴
   menuSection: { marginTop: 16, paddingTop: 16, borderTop: '1px solid rgba(17,17,17,0.06)' },
   menuSectionTitle: { fontSize: 13, fontWeight: 600, color: COLORS.text.secondary, fontFamily: FONT, marginBottom: 8 },
-  menuRow: { fontSize: 14, color: COLORS.text.primary, fontFamily: FONT, padding: '4px 0' },
+  menuRow: { fontSize: 14, color: COLORS.text.primary, fontFamily: FONT, padding: '4px 0', display: 'flex', justifyContent: 'space-between' },
 
   // 안내
   noticeBox: {

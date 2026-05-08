@@ -43,6 +43,7 @@ const RestaurantDetailScreen: React.FC = () => {
       setRestaurant(rest);
       setMenus(Array.isArray(menuList) ? menuList : []);
       setReviews(reviewData.reviews);
+      setFavorited((rest as any).isFavorited ?? false);
     } catch {
       // error
     } finally {
@@ -83,13 +84,19 @@ const RestaurantDetailScreen: React.FC = () => {
     [cartStore],
   );
 
+  // 현재 매장의 장바구니만 표시
+  const isCurrentRestaurantCart = restaurant && cartStore.restaurantId === restaurant.id;
+
   const getCartQuantity = (menuId: string) => {
+    if (!isCurrentRestaurantCart) return 0;
     return cartStore.items.find((i) => i.menuId === menuId)?.quantity || 0;
   };
 
   const formatPrice = (n: number) => n.toLocaleString('ko-KR');
-  const totalAmount = cartStore.totalAmount;
-  const totalCount = cartStore.items.reduce((s, i) => s + i.quantity, 0);
+  const totalAmount = isCurrentRestaurantCart ? cartStore.totalAmount : 0;
+  const totalCount = isCurrentRestaurantCart
+    ? cartStore.items.reduce((s, i) => s + i.quantity, 0)
+    : 0;
 
   // 메뉴를 카테고리별로 그룹
   const menusByCategory = menus.reduce<Record<string, MenuItem[]>>((acc, m) => {

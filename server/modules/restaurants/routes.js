@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const controller = require('./controller');
-const { authenticateToken, authenticateMerchant } = require('../../middleware/auth');
+const { authenticateToken, authenticateMerchant, optionalAuth } = require('../../middleware/auth');
 const validate = require('../../middleware/validate');
 const {
   createRestaurantSchema,
@@ -37,8 +37,8 @@ router.get('/recent-views', authenticateToken, controller.getRecentViews);
 // 식당 목록 조회
 router.get('/', controller.getRestaurants);
 
-// 식당 상세 조회
-router.get('/:id', controller.getRestaurantById);
+// 식당 상세 조회 (optionalAuth로 찜 상태 포함)
+router.get('/:id', optionalAuth, controller.getRestaurantById);
 
 // 식당 타임슬롯 조회
 router.get('/:id/time-slots', controller.getTimeSlots);

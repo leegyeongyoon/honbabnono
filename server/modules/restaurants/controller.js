@@ -207,11 +207,24 @@ exports.getRestaurantById = async (req, res) => {
       ORDER BY day_of_week, slot_time
     `;
 
-    const [restaurantResult, menusResult, timeSlotsResult] = await Promise.all([
+    const queries = [
       pool.query(restaurantQuery, [id]),
       pool.query(menusQuery, [id]),
       pool.query(timeSlotsQuery, [id]),
-    ]);
+    ];
+
+    // 로그인 사용자면 찜 여부도 조회
+    const userId = req.user?.userId;
+    if (userId) {
+      queries.push(
+        pool.query(
+          'SELECT 1 FROM restaurant_favorites WHERE user_id = $1 AND restaurant_id = $2',
+          [userId, id],
+        ),
+      );
+    }
+
+    const [restaurantResult, menusResult, timeSlotsResult, favResult] = await Promise.all(queries);
 
     if (restaurantResult.rows.length === 0) {
       return res.status(404).json({ success: false, error: '식당을 찾을 수 없습니다.' });
@@ -234,6 +247,7 @@ exports.getRestaurantById = async (req, res) => {
         menus: menusResult.rows,
         menusByCategory,
         timeSlots: timeSlotsResult.rows,
+        isFavorited: favResult ? favResult.rows.length > 0 : false,
       },
     });
   } catch (error) {
