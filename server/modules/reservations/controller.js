@@ -1,6 +1,7 @@
 const pool = require('../../config/database');
 const logger = require('../../config/logger');
 const crypto = require('crypto');
+const { createNotification } = require('../notifications/controller');
 
 /**
  * 예약 생성
@@ -80,6 +81,14 @@ exports.createReservation = async (req, res) => {
     );
 
     await client.query('COMMIT');
+
+    // 예약 생성 알림
+    const restaurantName = restaurantResult.rows[0].name;
+    createNotification(userId, 'reservation',
+      `${restaurantName} 예약 접수`,
+      `${reservation_date} 예약이 접수되었습니다. 결제를 완료해주세요.`,
+      { reservationId: reservationResult.rows[0].id, restaurantId: restaurant_id }
+    ).catch(() => {});
 
     res.status(201).json({
       success: true,
@@ -387,6 +396,15 @@ exports.cancelReservation = async (req, res) => {
 
     await client.query('COMMIT');
 
+    // 알림 전송 (비동기, 트랜잭션 외부)
+    const refundMsg = refundInfo
+      ? ` 환불 ${refundInfo.refundAmount.toLocaleString('ko-KR')}원 (${refundInfo.refundRate}%)`
+      : '';
+    createNotification(userId, 'reservation', '예약 취소',
+      `예약이 취소되었습니다.${refundMsg}`,
+      { reservationId: id, restaurantId: reservation.restaurant_id }
+    ).catch(() => {});
+
     res.json({
       success: true,
       message: '예약이 취소되었습니다.',
@@ -525,6 +543,13 @@ exports.checkin = async (req, res) => {
       });
     }
 
+    // 체크인 알림
+    createNotification(userId, 'reservation',
+      `${reservation.restaurant_name} 체크인 완료`,
+      '체크인이 완료되었습니다. 맛있는 식사 되세요!',
+      { reservationId: id, restaurantId: reservation.restaurant_id }
+    ).catch(() => {});
+
     res.json({
       success: true,
       message: '체크인이 완료되었습니다.',
@@ -547,7 +572,11 @@ exports.updateStatus = async (req, res) => {
 
     // 1. 소유권 확인
     const reservationResult = await pool.query(
-      'SELECT id, restaurant_id, status FROM reservations WHERE id = $1',
+      `SELECT r.id, r.restaurant_id, r.user_id, r.status,
+              rst.name AS restaurant_name
+       FROM reservations r
+       JOIN restaurants rst ON r.restaurant_id = rst.id
+       WHERE r.id = $1`,
       [id]
     );
 
@@ -594,6 +623,20 @@ exports.updateStatus = async (req, res) => {
         restaurantId: reservation.restaurant_id,
       });
     }
+
+    // 앱 내 알림 전송
+    const statusLabels = {
+      preparing: '조리가 시작되었습니다',
+      ready: '음식이 준비되었습니다',
+      seated: '착석 처리되었습니다',
+      completed: '식사가 완료되었습니다',
+    };
+    const statusMsg = statusLabels[status] || `상태가 ${status}(으)로 변경되었습니다`;
+    createNotification(reservation.user_id, 'reservation',
+      `${reservation.restaurant_name} 예약`,
+      statusMsg,
+      { reservationId: id, restaurantId: reservation.restaurant_id, status }
+    ).catch(() => {});
 
     res.json({
       success: true,
