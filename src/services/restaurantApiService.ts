@@ -134,14 +134,19 @@ const getRestaurants = async (params?: {
   category?: string;
   page?: number;
   limit?: number;
-}): Promise<{ restaurants: Restaurant[]; pagination?: any }> => {
+  sort?: 'rating' | 'reviews' | 'name' | 'newest';
+  price_range?: string;
+}): Promise<{ restaurants: (Restaurant & { isFavorited?: boolean })[]; pagination?: any }> => {
   const queryParams = params ? {
     ...params,
     category: params.category ? (CATEGORY_MAP[params.category] || params.category) : undefined,
   } : undefined;
   const response = await apiClient.get('/restaurants', { params: queryParams });
   const data = response.data.data ?? response.data;
-  const restaurants = (data.restaurants || []).map(mapRestaurant);
+  const restaurants = (data.restaurants || []).map((r: any) => ({
+    ...mapRestaurant(r),
+    isFavorited: r.is_favorited ?? false,
+  }));
   return { restaurants, pagination: data.pagination };
 };
 
@@ -158,9 +163,12 @@ const getNearbyRestaurants = async (
   return Array.isArray(list) ? list.map(mapRestaurant) : [];
 };
 
-const searchRestaurants = async (keyword: string): Promise<Restaurant[]> => {
+const searchRestaurants = async (
+  keyword: string,
+  sort?: 'rating' | 'reviews' | 'name' | 'newest',
+): Promise<Restaurant[]> => {
   const response = await apiClient.get('/restaurants/search', {
-    params: { keyword },
+    params: { keyword, sort },
   });
   const data = response.data.data ?? response.data;
   const list = data.restaurants || data;

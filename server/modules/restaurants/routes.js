@@ -34,8 +34,8 @@ router.get('/recent-views', authenticateToken, controller.getRecentViews);
 // Public 조회 API (파라미터 경로)
 // ============================================
 
-// 식당 목록 조회
-router.get('/', controller.getRestaurants);
+// 식당 목록 조회 (optionalAuth로 찜 상태 포함)
+router.get('/', optionalAuth, controller.getRestaurants);
 
 // 식당 상세 조회 (optionalAuth로 찜 상태 포함)
 router.get('/:id', optionalAuth, controller.getRestaurantById);

@@ -48,9 +48,15 @@ const RestaurantHomeScreen: React.FC = () => {
   const loadRestaurants = async () => {
     setLoading(true);
     try {
-      const params = selectedCategory !== 'all' ? { category: selectedCategory } : undefined;
+      const params: Parameters<typeof restaurantApiService.getRestaurants>[0] = {
+        limit: 10,
+        sort: 'rating',
+      };
+      if (selectedCategory !== 'all') {
+        params.category = selectedCategory;
+      }
       const [popularRes] = await Promise.allSettled([
-        restaurantApiService.getRestaurants({ ...params, limit: 10 }),
+        restaurantApiService.getRestaurants(params),
         loadNearby(),
       ]);
       if (popularRes.status === 'fulfilled') {

@@ -43,8 +43,11 @@ const PaymentScreen: React.FC = () => {
   const [errorMsg, setErrorMsg] = useState('');
 
   const reservation = reservationStore.currentReservation;
-  const totalAmount = cartStore.totalAmount;
-  const items = cartStore.items;
+
+  // 장바구니가 현재 예약의 매장과 일치하는지 검증
+  const isCartValid = reservation && cartStore.restaurantId === reservation.restaurantId;
+  const totalAmount = isCartValid ? cartStore.totalAmount : 0;
+  const items = isCartValid ? cartStore.items : [];
 
   // PortOne SDK 로드
   useEffect(() => {
@@ -82,6 +85,10 @@ const PaymentScreen: React.FC = () => {
 
   const handlePayment = useCallback(async () => {
     if (!reservationId || processing) return;
+    if (totalAmount <= 0 || items.length === 0) {
+      setErrorMsg('주문할 메뉴가 없습니다. 매장에서 메뉴를 선택해주세요.');
+      return;
+    }
     setProcessing(true);
     setErrorMsg('');
 

@@ -6,43 +6,67 @@ const logger = require('../../config/logger');
 // ============================================
 
 /**
- * 식당 목록 조회 (페이지네이션, 카테고리 필터)
- * GET /restaurants?page=1&limit=20&category=한식
+ * 식당 목록 조회 (페이지네이션, 카테고리/가격대 필터, 정렬)
+ * GET /restaurants?page=1&limit=20&category=한식&sort=rating&price_range=1-2만원
  */
 exports.getRestaurants = async (req, res) => {
   try {
     const page = Math.max(1, parseInt(req.query.page) || 1);
     const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 20));
     const offset = (page - 1) * limit;
-    const { category } = req.query;
+    const { category, sort, price_range } = req.query;
+
+    const conditions = ['r.is_active = true'];
+    const params = [];
+    const countConditions = ['is_active = true'];
+    const countParams = [];
+
+    if (category) {
+      params.push(category);
+      conditions.push(`r.category = $${params.length}`);
+      countParams.push(category);
+      countConditions.push(`category = $${countParams.length}`);
+    }
+
+    if (price_range) {
+      params.push(price_range);
+      conditions.push(`r.price_range = $${params.length}`);
+      countParams.push(price_range);
+      countConditions.push(`price_range = $${countParams.length}`);
+    }
+
+    // 정렬 기준
+    const sortOptions = {
+      rating: 'avg_rating DESC NULLS LAST, review_count DESC',
+      reviews: 'review_count DESC, avg_rating DESC NULLS LAST',
+      name: 'r.name ASC',
+      newest: 'r.created_at DESC',
+    };
+    const orderBy = sortOptions[sort] || sortOptions.rating;
+
+    // 찜 여부 (로그인 시)
+    const userId = req.user?.userId;
+    const favSelect = userId
+      ? `, EXISTS(SELECT 1 FROM restaurant_favorites rf WHERE rf.user_id = $${params.length + 1} AND rf.restaurant_id = r.id) AS is_favorited`
+      : '';
+    if (userId) params.push(userId);
 
     let query = `
       SELECT r.*,
              COALESCE(AVG(rv.overall_rating), 0) AS avg_rating,
              COUNT(DISTINCT rv.id) AS review_count
+             ${favSelect}
       FROM restaurants r
       LEFT JOIN restaurant_reviews rv ON rv.restaurant_id = r.id
-      WHERE r.is_active = true
+      WHERE ${conditions.join(' AND ')}
+      GROUP BY r.id
+      ORDER BY ${orderBy}
     `;
-    const params = [];
-
-    if (category) {
-      params.push(category);
-      query += ` AND r.category = $${params.length}`;
-    }
-
-    query += ` GROUP BY r.id ORDER BY r.created_at DESC`;
-
-    // Count query
-    let countQuery = `SELECT COUNT(*) FROM restaurants WHERE is_active = true`;
-    const countParams = [];
-    if (category) {
-      countParams.push(category);
-      countQuery += ` AND category = $${countParams.length}`;
-    }
 
     params.push(limit, offset);
     query += ` LIMIT $${params.length - 1} OFFSET $${params.length}`;
+
+    const countQuery = `SELECT COUNT(*) FROM restaurants WHERE ${countConditions.join(' AND ')}`;
 
     const [restaurantsResult, countResult] = await Promise.all([
       pool.query(query, params),
@@ -123,12 +147,12 @@ exports.getNearbyRestaurants = async (req, res) => {
 };
 
 /**
- * 식당 검색 (키워드/카테고리)
- * GET /restaurants/search?keyword=파스타&category=양식
+ * 식당 검색 (키워드/카테고리/정렬)
+ * GET /restaurants/search?keyword=파스타&category=양식&sort=rating
  */
 exports.searchRestaurants = async (req, res) => {
   try {
-    const { keyword, category, limit = 20, offset = 0 } = req.query;
+    const { keyword, category, sort, limit = 20, offset = 0 } = req.query;
 
     const params = [];
     const conditions = ['r.is_active = true'];
@@ -144,6 +168,14 @@ exports.searchRestaurants = async (req, res) => {
       conditions.push(`r.category = $${params.length}`);
     }
 
+    const sortOptions = {
+      rating: 'avg_rating DESC NULLS LAST, review_count DESC',
+      reviews: 'review_count DESC',
+      name: 'r.name ASC',
+      newest: 'r.created_at DESC',
+    };
+    const orderBy = sortOptions[sort] || sortOptions.rating;
+
     params.push(limit, offset);
 
     const query = `
@@ -154,7 +186,7 @@ exports.searchRestaurants = async (req, res) => {
       LEFT JOIN restaurant_reviews rv ON rv.restaurant_id = r.id
       WHERE ${conditions.join(' AND ')}
       GROUP BY r.id
-      ORDER BY r.name ASC
+      ORDER BY ${orderBy}
       LIMIT $${params.length - 1} OFFSET $${params.length}
     `;
 

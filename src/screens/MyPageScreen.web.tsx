@@ -33,12 +33,14 @@ interface MyPageScreenProps {
   onLogout?: () => void;
 }
 
-// 밥알지수 등급 계산
+// 밥알지수 등급 계산 (피라미드 구조: 시작 36.5, 범위 0~99)
 const getRiceGrade = (score: number): { label: string; emoji: string } => {
-  if (score >= 86) return { label: '밥알마스터', emoji: '👑' };
-  if (score >= 61) return { label: '밥알고수', emoji: '⭐' };
-  if (score >= 31) return { label: '밥알친구', emoji: '🍚' };
-  return { label: '밥알초보', emoji: '🌱' };
+  if (score >= 60) return { label: '전설', emoji: '👑' };
+  if (score >= 50) return { label: '고수', emoji: '⭐' };
+  if (score >= 42) return { label: '단골', emoji: '🍽' };
+  if (score >= 36.5) return { label: '밥친구', emoji: '🍚' };
+  if (score >= 30) return { label: '새싹', emoji: '🌱' };
+  return { label: '주의', emoji: '⚠' };
 };
 
 // 메뉴 아이템 (활동 관리 / 결제 관리)
