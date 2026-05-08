@@ -24,6 +24,9 @@ import SettingsIcon from '@mui/icons-material/Settings';
 import LogoutIcon from '@mui/icons-material/Logout';
 
 import Login from './components/Login';
+import Signup from './components/Signup';
+import MerchantRegister from './components/MerchantRegister';
+import StoreRegister from './components/StoreRegister';
 import Dashboard from './components/Dashboard';
 import ReservationBoard from './components/ReservationBoard';
 import OrderManagement from './components/OrderManagement';
@@ -202,10 +205,14 @@ function AppContent({ merchantData, onLogout }: { merchantData: any; onLogout: (
   );
 }
 
+type AppView = 'login' | 'signup' | 'register' | 'store-register' | 'dashboard';
+
 function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [view, setView] = useState<AppView>('login');
   const [merchantData, setMerchantData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [pendingToken, setPendingToken] = useState('');
+  const [pendingStatus, setPendingStatus] = useState<string | null>(null);
 
   useEffect(() => {
     checkAuthStatus();
@@ -219,9 +226,8 @@ function App() {
       try {
         const info = JSON.parse(storedData);
         setMerchantData(info);
-        setIsAuthenticated(true);
+        setView('dashboard');
       } catch (error) {
-        console.error('저장된 데이터 파싱 오류:', error);
         handleLogout();
       }
     }
@@ -229,15 +235,28 @@ function App() {
   };
 
   const handleLoginSuccess = (token: string, data: any) => {
-    setIsAuthenticated(true);
     setMerchantData(data);
+    // If merchant has no restaurant yet, show store registration
+    if (!data.restaurant_id && !data.restaurantId) {
+      setView('store-register');
+    } else {
+      setView('dashboard');
+    }
+  };
+
+  const handleNeedRegister = (token: string, status?: string) => {
+    setPendingToken(token);
+    setPendingStatus(status || null);
+    setView('register');
   };
 
   const handleLogout = () => {
     localStorage.removeItem('merchantToken');
     localStorage.removeItem('merchantData');
-    setIsAuthenticated(false);
+    setView('login');
     setMerchantData(null);
+    setPendingToken('');
+    setPendingStatus(null);
   };
 
   if (loading) {
@@ -259,11 +278,50 @@ function App() {
     );
   }
 
-  if (!isAuthenticated) {
+  if (view === 'signup') {
     return (
       <ThemeProvider theme={theme}>
         <CssBaseline />
-        <Login onLoginSuccess={handleLoginSuccess} />
+        <Signup
+          onGoLogin={() => setView('login')}
+          onSignupComplete={() => setView('login')}
+        />
+      </ThemeProvider>
+    );
+  }
+
+  if (view === 'register') {
+    return (
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
+        <MerchantRegister
+          token={pendingToken}
+          existingStatus={pendingStatus}
+          onBack={() => { handleLogout(); }}
+        />
+      </ThemeProvider>
+    );
+  }
+
+  if (view === 'store-register') {
+    return (
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
+        <Box sx={{ backgroundColor: '#FAF6F3', minHeight: '100vh', px: 2 }}>
+          <StoreRegister onComplete={() => {
+            // Reload merchant data and go to dashboard
+            window.location.reload();
+          }} />
+        </Box>
+      </ThemeProvider>
+    );
+  }
+
+  if (view === 'login') {
+    return (
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
+        <Login onLoginSuccess={handleLoginSuccess} onNeedRegister={handleNeedRegister} onGoSignup={() => setView('signup')} />
       </ThemeProvider>
     );
   }

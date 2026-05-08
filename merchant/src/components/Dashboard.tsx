@@ -79,12 +79,14 @@ const Dashboard: React.FC = () => {
       ]);
 
       if (reservationRes.status === 'fulfilled') {
-        const data = reservationRes.value.data;
+        const raw = reservationRes.value.data;
+        const data = raw.data || raw;
         setReservations(Array.isArray(data) ? data : data.reservations || []);
       }
 
       if (orderRes.status === 'fulfilled') {
-        const data = orderRes.value.data;
+        const raw = orderRes.value.data;
+        const data = raw.data || raw;
         setOrders(Array.isArray(data) ? data : data.orders || []);
       }
 
@@ -136,7 +138,7 @@ const Dashboard: React.FC = () => {
 
       {/* 오늘 요약 */}
       <Grid container spacing={2} sx={{ mb: 3 }}>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <Card sx={{ borderRadius: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
             <CardContent sx={{ textAlign: 'center' }}>
               <EventIcon sx={{ fontSize: 32, color: '#C4A08A', mb: 1 }} />
@@ -149,7 +151,7 @@ const Dashboard: React.FC = () => {
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <Card sx={{ borderRadius: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
             <CardContent sx={{ textAlign: 'center' }}>
               <AttachMoneyIcon sx={{ fontSize: 32, color: '#2E7D4F', mb: 1 }} />
@@ -162,7 +164,7 @@ const Dashboard: React.FC = () => {
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <Card sx={{ borderRadius: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
             <CardContent sx={{ textAlign: 'center' }}>
               <CheckCircleIcon sx={{ fontSize: 32, color: '#1976D2', mb: 1 }} />
@@ -175,7 +177,7 @@ const Dashboard: React.FC = () => {
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <Card sx={{ borderRadius: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
             <CardContent sx={{ textAlign: 'center' }}>
               <CancelIcon sx={{ fontSize: 32, color: '#D32F2F', mb: 1 }} />
@@ -192,7 +194,7 @@ const Dashboard: React.FC = () => {
 
       <Grid container spacing={3}>
         {/* 오늘의 예약 */}
-        <Grid item xs={12} md={7}>
+        <Grid size={{ xs: 12, md: 7 }}>
           <Card sx={{ borderRadius: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
             <CardContent>
               <Typography variant="h6" sx={{ mb: 2 }}>
@@ -247,7 +249,7 @@ const Dashboard: React.FC = () => {
         </Grid>
 
         {/* 최근 주문 */}
-        <Grid item xs={12} md={5}>
+        <Grid size={{ xs: 12, md: 5 }}>
           <Card sx={{ borderRadius: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
             <CardContent>
               <Typography variant="h6" sx={{ mb: 2 }}>

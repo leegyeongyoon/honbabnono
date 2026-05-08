@@ -70,10 +70,13 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
 
       const data = response.data as any;
 
-      if (data.success && data.data && data.data.token) {
-        localStorage.setItem('adminToken', data.data.token);
-        localStorage.setItem('adminData', JSON.stringify(data.data.admin));
-        onLoginSuccess(data.data.token, data.data.admin);
+      const token = data.token || data.data?.token;
+      const admin = data.admin || data.data?.admin;
+
+      if (data.success && token) {
+        localStorage.setItem('adminToken', token);
+        localStorage.setItem('adminData', JSON.stringify(admin));
+        onLoginSuccess(token, admin);
       } else {
         throw new Error(data.error || '유효하지 않은 응답 형식');
       }

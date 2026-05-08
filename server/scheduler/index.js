@@ -23,6 +23,7 @@ const noShowProcessing = require('./jobs/noShowProcessing');
 const autoCancelMinParticipants = require('./jobs/autoCancelMinParticipants');
 const monthlyBestHost = require('./jobs/monthlyBestHost');
 const arrivalReminder = require('./jobs/arrivalReminder');
+const settlementProcess = require('./jobs/settlementProcess');
 
 const scheduledJobs = [];
 
@@ -107,6 +108,17 @@ function startScheduler() {
   });
   scheduledJobs.push(arrivalReminderJob);
   logger.info('  [예약 도착 리마인더]: 매 1분');
+
+  // 8. 정산 처리 - 매일 자정 (00:00)
+  const settlementJob = cron.schedule('0 0 * * *', async () => {
+    try {
+      await settlementProcess.run();
+    } catch (error) {
+      logger.error('[정산 처리] 실행 실패:', error);
+    }
+  });
+  scheduledJobs.push(settlementJob);
+  logger.info('  [정산 처리]: 매일 자정');
 
   logger.system('===============================================');
 }

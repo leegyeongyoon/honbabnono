@@ -1,5 +1,6 @@
 const pool = require('../../config/database');
 const logger = require('../../config/logger');
+const portone = require('../../config/portone');
 
 /**
  * 주문 생성
@@ -353,5 +354,154 @@ exports.updateCookingStatus = async (req, res) => {
   } catch (error) {
     logger.error('조리 상태 업데이트 실패:', error);
     res.status(500).json({ success: false, error: '조리 상태 업데이트 중 오류가 발생했습니다.' });
+  }
+};
+
+/**
+ * 주문 거절 (점주)
+ * PUT /orders/:id/reject
+ */
+exports.rejectOrder = async (req, res) => {
+  const client = await pool.connect();
+  try {
+    const { id } = req.params;
+    const restaurantId = req.merchant.restaurantId;
+    const { reject_reason } = req.body;
+
+    await client.query('BEGIN');
+
+    // 1. 주문 조회 + 매장 확인
+    const orderResult = await client.query(
+      'SELECT id, restaurant_id, reservation_id, user_id, total_amount, cooking_status FROM orders WHERE id = $1',
+      [id]
+    );
+
+    if (orderResult.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ success: false, error: '주문을 찾을 수 없습니다.' });
+    }
+
+    const order = orderResult.rows[0];
+
+    if (order.restaurant_id !== restaurantId) {
+      await client.query('ROLLBACK');
+      return res.status(403).json({ success: false, error: '해당 식당의 주문이 아닙니다.' });
+    }
+
+    // 2. pending 상태에서만 거절 가능
+    if (order.cooking_status !== 'pending') {
+      await client.query('ROLLBACK');
+      return res.status(400).json({
+        success: false,
+        error: `대기중(pending) 상태의 주문만 거절할 수 있습니다. (현재: ${order.cooking_status})`,
+      });
+    }
+
+    // 3. 주문 상태 → rejected, 거절 사유 기록
+    await client.query(`
+      UPDATE orders
+      SET cooking_status = 'rejected', reject_reason = $1, updated_at = NOW()
+      WHERE id = $2
+    `, [reject_reason || '점주 거절', id]);
+
+    // 4. 연결된 예약 상태 → cancelled
+    if (order.reservation_id) {
+      await client.query(`
+        UPDATE reservations
+        SET status = 'cancelled', cancelled_by = 'merchant', updated_at = NOW()
+        WHERE id = $1
+      `, [order.reservation_id]);
+    }
+
+    // 5. 환불 처리 - payments 테이블에서 해당 주문의 결제 정보 조회
+    const paymentResult = await client.query(
+      'SELECT id, imp_uid, amount, status, payment_method FROM payments WHERE reservation_id = $1 AND status = $2',
+      [order.reservation_id, 'paid']
+    );
+
+    let refundResult = null;
+
+    if (paymentResult.rows.length > 0) {
+      const payment = paymentResult.rows[0];
+
+      if (payment.payment_method === 'points') {
+        // 포인트 환불
+        await client.query(`
+          INSERT INTO user_points (user_id, total_earned, available_points, total_used)
+          VALUES ($1, $2, $2, 0)
+          ON CONFLICT (user_id)
+          DO UPDATE SET
+            available_points = user_points.available_points + $2,
+            updated_at = NOW()
+        `, [order.user_id, payment.amount]);
+
+        await client.query(`
+          INSERT INTO point_transactions (user_id, type, amount, description, created_at)
+          VALUES ($1, 'earned', $2, $3, NOW())
+        `, [order.user_id, payment.amount, `주문 거절에 의한 환불 (주문 ID: ${id})`]);
+      } else if (payment.imp_uid) {
+        // PortOne 결제 취소 (전액 환불)
+        try {
+          await portone.cancelPayment(
+            payment.imp_uid,
+            reject_reason || '점주에 의한 주문 거절'
+          );
+        } catch (cancelError) {
+          logger.error('주문 거절 환불 실패:', cancelError);
+          // 환불 실패해도 주문 거절은 진행 (수동 처리 필요)
+        }
+      }
+
+      // payments 상태 업데이트
+      await client.query(`
+        UPDATE payments
+        SET status = 'refunded', refund_amount = amount, refund_rate = 100, refunded_at = NOW(), updated_at = NOW()
+        WHERE id = $1
+      `, [payment.id]);
+
+      refundResult = {
+        paymentId: payment.id,
+        refundAmount: payment.amount,
+      };
+    }
+
+    await client.query('COMMIT');
+
+    // 소켓을 통해 고객에게 주문 거절 알림
+    if (order.reservation_id) {
+      const io = req.app.get('io');
+      if (io) {
+        try {
+          const { emitCookingUpdate } = require('../reservations/socket');
+          emitCookingUpdate(io, order.reservation_id, {
+            orderId: order.id,
+            cookingStatus: 'rejected',
+            previousStatus: 'pending',
+            restaurantId: order.restaurant_id,
+            rejectReason: reject_reason,
+          });
+        } catch (socketError) {
+          logger.error('주문 거절 소켓 알림 실패:', socketError.message);
+        }
+      }
+    }
+
+    logger.info('주문 거절 완료:', { orderId: id, restaurantId, reject_reason });
+
+    res.json({
+      success: true,
+      message: '주문이 거절되었습니다.',
+      data: {
+        orderId: id,
+        reject_reason: reject_reason || '점주 거절',
+        refund: refundResult,
+      },
+    });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    logger.error('주문 거절 실패:', error);
+    res.status(500).json({ success: false, error: '주문 거절 중 오류가 발생했습니다.' });
+  } finally {
+    client.release();
   }
 };

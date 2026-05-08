@@ -122,6 +122,58 @@ describe('RestaurantsController', () => {
     });
   });
 
+  describe('getTimeSlots', () => {
+    it('should return time slots with availability for a date', async () => {
+      mockReq = createMockRequest({
+        params: { id: 'r-1' },
+        query: { date: '2026-05-12' },
+      });
+
+      // 1st: slots query
+      mockPool.query
+        .mockResolvedValueOnce({
+          rows: [
+            { id: 1, day_of_week: 2, slot_time: '11:30:00', max_reservations: 5, is_active: true },
+            { id: 2, day_of_week: 2, slot_time: '12:00:00', max_reservations: 5, is_active: true },
+          ],
+          rowCount: 2,
+        })
+        // 2nd: booked count query
+        .mockResolvedValueOnce({
+          rows: [{ reservation_time: '11:30:00', booked: 3 }],
+          rowCount: 1,
+        });
+
+      await restaurantsController.getTimeSlots(mockReq, mockRes);
+
+      const response = mockRes.json.mock.calls[0][0];
+      expect(response.success).toBe(true);
+      expect(response.data).toHaveLength(2);
+      expect(response.data[0].current_reservations).toBe(3);
+      expect(response.data[0].remaining).toBe(2);
+      expect(response.data[1].current_reservations).toBe(0);
+      expect(response.data[1].remaining).toBe(5);
+    });
+
+    it('should return slots without date filter', async () => {
+      mockReq = createMockRequest({
+        params: { id: 'r-1' },
+        query: {},
+      });
+
+      mockPool.query.mockResolvedValueOnce({
+        rows: [{ id: 1, day_of_week: 1, slot_time: '11:30:00', max_reservations: 5, is_active: true }],
+        rowCount: 1,
+      });
+
+      await restaurantsController.getTimeSlots(mockReq, mockRes);
+
+      const response = mockRes.json.mock.calls[0][0];
+      expect(response.success).toBe(true);
+      expect(response.data).toHaveLength(1);
+    });
+  });
+
   describe('createRestaurant', () => {
     it('should create restaurant successfully', async () => {
       mockReq = createMockRequest({
@@ -136,8 +188,9 @@ describe('RestaurantsController', () => {
       const inserted = { id: 10, name: '잇테이블', address: '서울시 강남구', merchant_id: 5 };
 
       mockPool.query
-        .mockResolvedValueOnce({ rows: [inserted], rowCount: 1 }) // INSERT
-        .mockResolvedValueOnce({ rows: [], rowCount: 1 }); // UPDATE merchants
+        .mockResolvedValueOnce({ rows: [inserted], rowCount: 1 }) // INSERT restaurant
+        .mockResolvedValueOnce({ rows: [], rowCount: 1 }) // UPDATE merchants
+        .mockResolvedValueOnce({ rows: [], rowCount: 42 }); // INSERT default time slots
 
       await restaurantsController.createRestaurant(mockReq, mockRes);
 
@@ -158,6 +211,34 @@ describe('RestaurantsController', () => {
       expect(mockRes.status).toHaveBeenCalledWith(400);
       const response = mockRes.json.mock.calls[0][0];
       expect(response.success).toBe(false);
+    });
+  });
+
+  describe('generateDefaultTimeSlots', () => {
+    it('should generate default slots for own restaurant', async () => {
+      mockReq = createMockRequest({
+        params: { id: 'r-1' },
+      });
+      mockReq.merchant = { id: 5, restaurantId: 'r-1' };
+
+      mockPool.query.mockResolvedValueOnce({ rows: [], rowCount: 42 });
+
+      await restaurantsController.generateDefaultTimeSlots(mockReq, mockRes);
+
+      const response = mockRes.json.mock.calls[0][0];
+      expect(response.success).toBe(true);
+      expect(response.message).toContain('42');
+    });
+
+    it('should return 403 for non-own restaurant', async () => {
+      mockReq = createMockRequest({
+        params: { id: 'r-other' },
+      });
+      mockReq.merchant = { id: 5, restaurantId: 'r-1' };
+
+      await restaurantsController.generateDefaultTimeSlots(mockReq, mockRes);
+
+      expect(mockRes.status).toHaveBeenCalledWith(403);
     });
   });
 

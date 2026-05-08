@@ -7,6 +7,7 @@ const {
   registerMerchantSchema,
   updateMerchantSchema,
 } = require('../../middleware/schemas/merchants.schemas');
+const { documentUpload, uploadDocument } = require('./upload');
 
 // ============================================
 // 점주 등록/관리 API
@@ -23,5 +24,8 @@ router.put('/me', authenticateMerchant, validate({ body: updateMerchantSchema })
 
 // 인증 상태 확인
 router.get('/verification-status', authenticateToken, controller.getVerificationStatus);
+
+// 서류 사진 업로드 (사업자등록증, 영업신고증, 통장사본)
+router.post('/upload-doc', authenticateToken, documentUpload.single('document'), uploadDocument);
 
 module.exports = router;

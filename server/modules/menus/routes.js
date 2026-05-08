@@ -37,6 +37,29 @@ router.put(
 // 카테고리 삭제 (점주 전용)
 router.delete('/categories/:id', authenticateMerchant, controller.deleteCategory);
 
+// AI 메뉴판 사진 분석 (점주 전용)
+router.post('/analyze-image', authenticateMerchant, controller.analyzeMenuImage);
+
+// 일괄 가격 조정 (점주 전용)
+router.post('/bulk-price', authenticateMerchant, controller.bulkPriceAdjust);
+
+// === 옵션 그룹/아이템 엔드포인트 (/:id보다 먼저 정의) ===
+
+// 옵션 그룹 수정 (점주 전용)
+router.put('/options/:groupId', authenticateMerchant, controller.updateOptionGroup);
+
+// 옵션 그룹 삭제 (점주 전용)
+router.delete('/options/:groupId', authenticateMerchant, controller.deleteOptionGroup);
+
+// 옵션 아이템 생성 (점주 전용)
+router.post('/options/:groupId/items', authenticateMerchant, controller.createOptionItem);
+
+// 옵션 아이템 수정 (점주 전용)
+router.put('/options/items/:itemId', authenticateMerchant, controller.updateOptionItem);
+
+// 옵션 아이템 삭제 (점주 전용)
+router.delete('/options/items/:itemId', authenticateMerchant, controller.deleteOptionItem);
+
 // === 일반 엔드포인트 ===
 
 // 메뉴 상세 조회 (public)
@@ -60,5 +83,11 @@ router.put(
 
 // 메뉴 삭제 (점주 전용, 소프트 삭제)
 router.delete('/:id', authenticateMerchant, controller.deleteMenu);
+
+// 메뉴별 옵션 그룹 목록 조회 (public)
+router.get('/:menuId/options', controller.getOptionGroups);
+
+// 옵션 그룹 생성 (점주 전용)
+router.post('/:menuId/options', authenticateMerchant, controller.createOptionGroup);
 
 module.exports = router;

@@ -100,6 +100,7 @@ const menusRoutes = require('./modules/menus/routes');
 const reservationsRoutes = require('./modules/reservations/routes');
 const ordersRoutes = require('./modules/orders/routes');
 const paymentsRoutes = require('./modules/payments/routes');
+const settlementsRoutes = require('./modules/settlements/routes');
 const { authenticateToken } = require('./middleware/auth');
 const userController = require('./modules/user/controller');
 
@@ -187,8 +188,8 @@ app.use(cors({
   origin: ['http://localhost:3000', 'https://eattable.kr', 'https://admin.eattable.kr', 'http://localhost:3002', 'http://localhost:3003'],
   credentials: true
 }));
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(express.json({ limit: '30mb' }));
+app.use(express.urlencoded({ extended: true, limit: '30mb' }));
 app.use(cookieParser());
 
 // 정적 파일 제공
@@ -252,6 +253,7 @@ apiRouter.use('/menus', menusRoutes);
 apiRouter.use('/reservations', reservationsRoutes);
 apiRouter.use('/orders', ordersRoutes);
 apiRouter.use('/payments', paymentsRoutes);
+apiRouter.use('/settlements', settlementsRoutes);
 
 // Legal endpoints
 apiRouter.get('/legal/terms', supportController.getTerms);
@@ -572,9 +574,11 @@ apiRouter.get('/geocode/reverse', async (req, res) => {
   }
 });
 
-// PortOne 결제 웹훅 (인증 불필요 - PortOne 서버에서 직접 호출)
+// PortOne 결제 웹훅 - 레거시 약속금 (인증 불필요 - PortOne 서버에서 직접 호출)
 const depositsController = require('./modules/deposits/controller');
-app.post('/api/payments/webhook', depositsController.handleWebhook);
+app.post('/api/deposits/webhook', depositsController.handleWebhook);
+// 레거시 경로 호환: /api/payments/webhook -> deposit_ 건만 deposits 핸들러로 전달
+// reservation_ 건은 payments 모듈 라우터에서 처리됨
 
 // API 라우터를 /api 경로에 마운트
 app.use('/api', apiRouter);

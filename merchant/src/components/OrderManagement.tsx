@@ -10,6 +10,14 @@ import {
   Divider,
   CircularProgress,
   Alert,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  List,
+  ListItemButton,
+  ListItemText,
+  TextField,
 } from '@mui/material';
 import {
   AccessTime,
@@ -17,6 +25,7 @@ import {
   Group,
   ArrowForward,
   Refresh,
+  Cancel,
 } from '@mui/icons-material';
 import apiClient from '../utils/api';
 
@@ -33,9 +42,12 @@ interface Order {
   party_size: number;
   order_items: OrderItem[];
   cooking_status: CookingStatus;
+  total_amount?: number;
+  cooking_started_at?: string;
+  cooking_ready_at?: string;
 }
 
-type CookingStatus = 'pending' | 'preparing' | 'cooking' | 'ready' | 'served';
+type CookingStatus = 'pending' | 'preparing' | 'cooking' | 'ready' | 'served' | 'rejected';
 
 // ── Constants ──────────────────────────────────────────────────
 const BRAND = '#C4A08A';
@@ -62,11 +74,34 @@ const NEXT_LABEL: Record<string, string> = {
   ready:     '서빙 완료',
 };
 
+const REJECT_REASONS = [
+  '재료 소진',
+  '영업 종료',
+  '주문 과다',
+  '기타',
+];
+
+// ── Helper ─────────────────────────────────────────────────────
+const estimatePrepEnd = (order: Order): string | null => {
+  if (!order.cooking_started_at) return null;
+  const start = new Date(order.cooking_started_at);
+  // 기본 20분 예상
+  const est = new Date(start.getTime() + 20 * 60 * 1000);
+  return est.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
+};
+
 // ── Component ──────────────────────────────────────────────────
 const OrderManagement: React.FC = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // Reject dialog state
+  const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
+  const [rejectTargetOrder, setRejectTargetOrder] = useState<Order | null>(null);
+  const [selectedRejectReason, setSelectedRejectReason] = useState('');
+  const [customRejectReason, setCustomRejectReason] = useState('');
+  const [rejecting, setRejecting] = useState(false);
 
   const today = new Date().toISOString().slice(0, 10);
 
@@ -75,7 +110,8 @@ const OrderManagement: React.FC = () => {
       setLoading(true);
       setError('');
       const res = await apiClient.get('/api/orders/merchant', { params: { date: today } });
-      setOrders(res.data.orders ?? res.data);
+      const d = res.data.data || res.data;
+      setOrders(d.orders ?? (Array.isArray(d) ? d : []));
     } catch (err: any) {
       setError(err.response?.data?.message || '주문 목록을 불러오지 못했습니다.');
     } finally {
@@ -100,7 +136,35 @@ const OrderManagement: React.FC = () => {
       await apiClient.put(`/api/orders/${orderId}/cooking-status`, { cooking_status: next });
       fetchOrders();
     } catch (err: any) {
-      alert(err.response?.data?.message || '상태 변경에 실패했습니다.');
+      alert(err.response?.data?.error || err.response?.data?.message || '상태 변경에 실패했습니다.');
+    }
+  };
+
+  const openRejectDialog = (order: Order) => {
+    setRejectTargetOrder(order);
+    setSelectedRejectReason('');
+    setCustomRejectReason('');
+    setRejectDialogOpen(true);
+  };
+
+  const handleReject = async () => {
+    if (!rejectTargetOrder) return;
+    const reason = selectedRejectReason === '기타' ? customRejectReason : selectedRejectReason;
+    if (!reason.trim()) {
+      alert('거절 사유를 선택하거나 입력해주세요.');
+      return;
+    }
+
+    setRejecting(true);
+    try {
+      await apiClient.put(`/api/orders/${rejectTargetOrder.id}/reject`, { reject_reason: reason });
+      setRejectDialogOpen(false);
+      setRejectTargetOrder(null);
+      fetchOrders();
+    } catch (err: any) {
+      alert(err.response?.data?.error || err.response?.data?.message || '주문 거절에 실패했습니다.');
+    } finally {
+      setRejecting(false);
     }
   };
 
@@ -140,7 +204,7 @@ const OrderManagement: React.FC = () => {
         {COLUMNS.map((col) => {
           const items = ordersByStatus(col.status);
           return (
-            <Grid item xs={12} sm={6} md={3} key={col.status}>
+            <Grid size={{ xs: 12, sm: 6, md: 3 }} key={col.status}>
               <Box
                 sx={{
                   bgcolor: col.color,
@@ -202,25 +266,53 @@ const OrderManagement: React.FC = () => {
                         </Typography>
                       ))}
 
-                      {/* Next step button */}
-                      {NEXT_STATUS[order.cooking_status] && (
-                        <Button
-                          fullWidth
-                          size="small"
-                          variant="contained"
-                          endIcon={<ArrowForward />}
-                          sx={{
-                            mt: 1.5,
-                            bgcolor: BRAND,
-                            '&:hover': { bgcolor: BRAND_DARK },
-                            textTransform: 'none',
-                            fontWeight: 600,
-                          }}
-                          onClick={() => advanceStatus(order.id, order.cooking_status)}
-                        >
-                          {NEXT_LABEL[order.cooking_status]}
-                        </Button>
+                      {/* Estimated prep end time */}
+                      {(order.cooking_status === 'preparing' || order.cooking_status === 'cooking') && (
+                        <Typography variant="caption" sx={{ display: 'block', mt: 0.5, color: '#E65100' }}>
+                          예상 완료: {estimatePrepEnd(order) || '-'}
+                        </Typography>
                       )}
+
+                      {/* Action buttons */}
+                      <Box sx={{ display: 'flex', gap: 1, mt: 1.5 }}>
+                        {/* Reject button (only for pending) */}
+                        {order.cooking_status === 'pending' && (
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            color="error"
+                            startIcon={<Cancel />}
+                            sx={{
+                              flex: 1,
+                              textTransform: 'none',
+                              fontWeight: 600,
+                            }}
+                            onClick={() => openRejectDialog(order)}
+                          >
+                            거절
+                          </Button>
+                        )}
+
+                        {/* Next step button */}
+                        {NEXT_STATUS[order.cooking_status] && (
+                          <Button
+                            fullWidth={order.cooking_status !== 'pending'}
+                            size="small"
+                            variant="contained"
+                            endIcon={<ArrowForward />}
+                            sx={{
+                              flex: 1,
+                              bgcolor: BRAND,
+                              '&:hover': { bgcolor: BRAND_DARK },
+                              textTransform: 'none',
+                              fontWeight: 600,
+                            }}
+                            onClick={() => advanceStatus(order.id, order.cooking_status)}
+                          >
+                            {NEXT_LABEL[order.cooking_status]}
+                          </Button>
+                        )}
+                      </Box>
                     </CardContent>
                   </Card>
                 ))}
@@ -229,6 +321,61 @@ const OrderManagement: React.FC = () => {
           );
         })}
       </Grid>
+
+      {/* Reject Reason Dialog */}
+      <Dialog
+        open={rejectDialogOpen}
+        onClose={() => setRejectDialogOpen(false)}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle>주문 거절 사유 선택</DialogTitle>
+        <DialogContent>
+          <List>
+            {REJECT_REASONS.map((reason) => (
+              <ListItemButton
+                key={reason}
+                selected={selectedRejectReason === reason}
+                onClick={() => setSelectedRejectReason(reason)}
+                sx={{
+                  borderRadius: 1.5,
+                  mb: 0.5,
+                  '&.Mui-selected': {
+                    bgcolor: '#FFF3E0',
+                    '&:hover': { bgcolor: '#FFE0B2' },
+                  },
+                }}
+              >
+                <ListItemText primary={reason} />
+              </ListItemButton>
+            ))}
+          </List>
+          {selectedRejectReason === '기타' && (
+            <TextField
+              fullWidth
+              multiline
+              rows={2}
+              placeholder="거절 사유를 입력해주세요..."
+              value={customRejectReason}
+              onChange={(e) => setCustomRejectReason(e.target.value)}
+              sx={{ mt: 1 }}
+            />
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setRejectDialogOpen(false)} sx={{ color: '#666' }}>
+            취소
+          </Button>
+          <Button
+            onClick={handleReject}
+            variant="contained"
+            color="error"
+            disabled={rejecting || !selectedRejectReason || (selectedRejectReason === '기타' && !customRejectReason.trim())}
+          >
+            {rejecting ? <CircularProgress size={20} color="inherit" /> : '거절 확인'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

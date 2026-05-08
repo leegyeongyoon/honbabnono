@@ -62,12 +62,17 @@ describe('PaymentsController', () => {
           rows: [{ id: 100, total_amount: 30000 }],
           rowCount: 1,
         })
-        // 3. INSERT payment
+        // 3. SELECT existing pending payment (none)
+        .mockResolvedValueOnce({
+          rows: [],
+          rowCount: 0,
+        })
+        // 4. INSERT payment
         .mockResolvedValueOnce({
           rows: [{ id: 200 }],
           rowCount: 1,
         })
-        // 4. SELECT user
+        // 5. SELECT user
         .mockResolvedValueOnce({
           rows: [{ name: '홍길동', email: 'hong@test.com' }],
           rowCount: 1,
@@ -120,7 +125,7 @@ describe('PaymentsController', () => {
     });
   });
 
-  describe('verifyPayment', () => {
+  describe('completePayment', () => {
     it('should return 404 if payment not found', async () => {
       mockReq = createMockRequest({
         body: { imp_uid: 'imp-1', merchant_uid: 'reservation_999' },
@@ -129,7 +134,7 @@ describe('PaymentsController', () => {
 
       mockPool.query.mockResolvedValueOnce({ rows: [], rowCount: 0 });
 
-      await paymentsController.verifyPayment(mockReq, mockRes);
+      await paymentsController.completePayment(mockReq, mockRes);
 
       expect(mockRes.status).toHaveBeenCalledWith(404);
     });
@@ -141,11 +146,11 @@ describe('PaymentsController', () => {
       });
 
       mockPool.query.mockResolvedValueOnce({
-        rows: [{ id: 200, status: 'paid', amount: 30000 }],
+        rows: [{ id: 200, user_id: 'u-1', status: 'paid', amount: 30000 }],
         rowCount: 1,
       });
 
-      await paymentsController.verifyPayment(mockReq, mockRes);
+      await paymentsController.completePayment(mockReq, mockRes);
 
       const response = mockRes.json.mock.calls[0][0];
       expect(response.success).toBe(true);

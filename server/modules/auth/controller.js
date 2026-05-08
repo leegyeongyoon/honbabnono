@@ -648,8 +648,8 @@ exports.register = async (req, res) => {
 
     // 사용자 생성
     const result = await pool.query(`
-      INSERT INTO users (email, password, name, provider, is_verified, created_at)
-      VALUES ($1, $2, $3, 'email', false, NOW())
+      INSERT INTO users (id, email, password, name, provider, is_verified, created_at, updated_at)
+      VALUES (gen_random_uuid(), $1, $2, $3, 'email', false, NOW(), NOW())
       RETURNING id, email, name, provider, is_verified, created_at
     `, [email, hashedPassword, name]);
 

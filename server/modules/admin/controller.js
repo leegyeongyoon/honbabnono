@@ -2394,3 +2394,117 @@ exports.getReservationsForAdmin = async (req, res) => {
     res.status(500).json({ success: false, error: '예약 목록 조회에 실패했습니다.' });
   }
 };
+
+// ============================================
+// 점주 관리 (관리자)
+// ============================================
+
+/**
+ * 점주 목록 조회
+ * GET /admin/merchants?status=pending&page=1&limit=20
+ */
+exports.getMerchants = async (req, res) => {
+  try {
+    const { status, search, page = 1, limit = 20 } = req.query;
+    const offset = (parseInt(page) - 1) * parseInt(limit);
+    const params = [];
+    const conditions = [];
+
+    if (status && status !== 'all') {
+      params.push(status);
+      conditions.push(`m.verification_status = $${params.length}`);
+    }
+
+    if (search) {
+      params.push(`%${search}%`);
+      conditions.push(`(m.business_name ILIKE $${params.length} OR m.business_number ILIKE $${params.length} OR u.name ILIKE $${params.length} OR u.email ILIKE $${params.length})`);
+    }
+
+    const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+    params.push(parseInt(limit), offset);
+
+    const sql = `
+      SELECT m.*,
+             u.name AS username, u.email, u.phone AS phone_number,
+             r.name AS restaurant_name,
+             COUNT(*) OVER() AS total_count
+      FROM merchants m
+      LEFT JOIN users u ON u.id = m.user_id
+      LEFT JOIN restaurants r ON r.id = m.restaurant_id
+      ${where}
+      ORDER BY
+        CASE m.verification_status
+          WHEN 'pending' THEN 0
+          WHEN 'rejected' THEN 1
+          WHEN 'verified' THEN 2
+        END,
+        m.created_at DESC
+      LIMIT $${params.length - 1} OFFSET $${params.length}
+    `;
+
+    const result = await pool.query(sql, params);
+    const total = result.rows.length ? parseInt(result.rows[0].total_count) : 0;
+
+    // Status counts
+    const countsResult = await pool.query(`
+      SELECT verification_status, COUNT(*) AS cnt
+      FROM merchants
+      GROUP BY verification_status
+    `);
+    const counts = { pending: 0, verified: 0, rejected: 0, total: 0 };
+    for (const row of countsResult.rows) {
+      counts[row.verification_status] = parseInt(row.cnt);
+      counts.total += parseInt(row.cnt);
+    }
+
+    res.json({
+      success: true,
+      merchants: result.rows,
+      counts,
+      pagination: { page: parseInt(page), limit: parseInt(limit), total },
+    });
+  } catch (error) {
+    logger.error('관리자 점주 목록 조회 오류:', error);
+    res.status(500).json({ success: false, error: '점주 목록 조회에 실패했습니다.' });
+  }
+};
+
+/**
+ * 점주 인증 상태 변경 (승인/거절)
+ * PATCH /admin/merchants/:id/verify
+ */
+exports.verifyMerchant = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, reject_reason } = req.body;
+
+    if (!['verified', 'rejected'].includes(status)) {
+      return res.status(400).json({ success: false, error: 'status는 verified 또는 rejected만 가능합니다.' });
+    }
+
+    const result = await pool.query(
+      `UPDATE merchants
+       SET verification_status = $1,
+           rejection_reason = $2,
+           updated_at = NOW()
+       WHERE id = $3
+       RETURNING *`,
+      [status, status === 'rejected' ? (reject_reason || null) : null, id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, error: '점주를 찾을 수 없습니다.' });
+    }
+
+    logger.info(`점주 인증 상태 변경: merchantId=${id}, status=${status}`, reject_reason ? { reject_reason } : undefined);
+
+    res.json({
+      success: true,
+      data: result.rows[0],
+    });
+  } catch (error) {
+    logger.error('점주 인증 상태 변경 오류:', error);
+    res.status(500).json({ success: false, error: '점주 인증 상태 변경에 실패했습니다.' });
+  }
+};

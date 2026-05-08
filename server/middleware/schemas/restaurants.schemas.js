@@ -67,6 +67,17 @@ const createRestaurantSchema = z.object({
     .min(1, '좌석 수는 1 이상이어야 합니다.')
     .max(9999, '좌석 수는 9999 이하여야 합니다.')
     .optional(),
+
+  auto_accept_orders: z
+    .boolean()
+    .optional(),
+
+  default_prep_time: z
+    .number()
+    .int('조리시간은 정수여야 합니다.')
+    .min(1, '조리시간은 1분 이상이어야 합니다.')
+    .max(120, '조리시간은 120분 이하여야 합니다.')
+    .optional(),
 });
 
 /**

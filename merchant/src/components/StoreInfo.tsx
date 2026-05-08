@@ -102,7 +102,8 @@ const StoreInfo: React.FC = () => {
       ]);
 
       if (storeRes?.data) {
-        const d = storeRes.data.restaurant || storeRes.data;
+        const raw = storeRes.data.data || storeRes.data;
+        const d = raw.restaurant || raw;
         setStoreData({
           name: d.name || '',
           description: d.description || '',
@@ -117,7 +118,7 @@ const StoreInfo: React.FC = () => {
       }
 
       if (merchantRes?.data) {
-        const m = merchantRes.data;
+        const m = merchantRes.data.data || merchantRes.data;
         setMerchantInfo({
           business_number: m.business_number || '',
           representative_name: m.representative_name || '',
@@ -126,9 +127,8 @@ const StoreInfo: React.FC = () => {
           bank_holder: m.bank_holder || '',
         });
       }
-    } catch (err: any) {
+    } catch {
       setError('매장 정보를 불러오는데 실패했습니다.');
-      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -268,7 +268,7 @@ const StoreInfo: React.FC = () => {
           )}
 
           <Grid container spacing={2}>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
                 label="매장명"
@@ -277,7 +277,7 @@ const StoreInfo: React.FC = () => {
                 disabled={!editing}
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <FormControl fullWidth disabled={!editing}>
                 <InputLabel>카테고리</InputLabel>
                 <Select
@@ -291,7 +291,7 @@ const StoreInfo: React.FC = () => {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <TextField
                 fullWidth
                 multiline
@@ -302,7 +302,7 @@ const StoreInfo: React.FC = () => {
                 disabled={!editing}
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
                 label="전화번호"
@@ -311,7 +311,7 @@ const StoreInfo: React.FC = () => {
                 disabled={!editing}
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
                 label="좌석 수"
@@ -321,7 +321,7 @@ const StoreInfo: React.FC = () => {
                 disabled={!editing}
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
                 label="주소"
@@ -330,7 +330,7 @@ const StoreInfo: React.FC = () => {
                 disabled={!editing}
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
                 label="상세 주소"
@@ -349,10 +349,10 @@ const StoreInfo: React.FC = () => {
           <Typography variant="h6" sx={{ mb: 2 }}>영업시간</Typography>
           {DAY_KEYS.map((dayKey, idx) => (
             <Grid container spacing={2} key={dayKey} sx={{ mb: 1, alignItems: 'center' }}>
-              <Grid item xs={2} sm={1}>
+              <Grid size={{ xs: 2, sm: 1 }}>
                 <Typography sx={{ fontWeight: 600, textAlign: 'center' }}>{DAYS[idx]}</Typography>
               </Grid>
-              <Grid item xs={5} sm={3}>
+              <Grid size={{ xs: 5, sm: 3 }}>
                 <TextField
                   fullWidth
                   type="time"
@@ -364,7 +364,7 @@ const StoreInfo: React.FC = () => {
                   InputLabelProps={{ shrink: true }}
                 />
               </Grid>
-              <Grid item xs={5} sm={3}>
+              <Grid size={{ xs: 5, sm: 3 }}>
                 <TextField
                   fullWidth
                   type="time"
@@ -386,7 +386,7 @@ const StoreInfo: React.FC = () => {
         <CardContent sx={{ p: 3 }}>
           <Typography variant="h6" sx={{ mb: 2 }}>사업자 정보</Typography>
           <Grid container spacing={2} sx={{ mb: 3 }}>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
                 label="사업자번호"
@@ -394,7 +394,7 @@ const StoreInfo: React.FC = () => {
                 disabled
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
                 label="대표자명"
@@ -443,7 +443,7 @@ const StoreInfo: React.FC = () => {
             )}
           </Box>
           <Grid container spacing={2}>
-            <Grid item xs={12} sm={4}>
+            <Grid size={{ xs: 12, sm: 4 }}>
               <TextField
                 fullWidth
                 label="은행명"
@@ -452,7 +452,7 @@ const StoreInfo: React.FC = () => {
                 disabled={!editingBank}
               />
             </Grid>
-            <Grid item xs={12} sm={4}>
+            <Grid size={{ xs: 12, sm: 4 }}>
               <TextField
                 fullWidth
                 label="계좌번호"
@@ -461,7 +461,7 @@ const StoreInfo: React.FC = () => {
                 disabled={!editingBank}
               />
             </Grid>
-            <Grid item xs={12} sm={4}>
+            <Grid size={{ xs: 12, sm: 4 }}>
               <TextField
                 fullWidth
                 label="예금주"

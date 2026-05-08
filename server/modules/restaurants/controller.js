@@ -255,7 +255,6 @@ exports.getTimeSlots = async (req, res) => {
     let dayFilter = '';
 
     if (date) {
-      // date 문자열로부터 요일 계산 (0=일, 1=월, ..., 6=토)
       const dayOfWeek = new Date(date).getDay();
       params.push(dayOfWeek);
       dayFilter = `AND rts.day_of_week = $${params.length}`;
@@ -263,7 +262,7 @@ exports.getTimeSlots = async (req, res) => {
 
     const query = `
       SELECT rts.id, rts.day_of_week, rts.slot_time,
-             rts.max_reservations, rts.current_reservations, rts.is_active
+             rts.max_reservations, rts.is_active
       FROM restaurant_time_slots rts
       WHERE rts.restaurant_id = $1
         AND rts.is_active = true
@@ -272,6 +271,36 @@ exports.getTimeSlots = async (req, res) => {
     `;
 
     const result = await pool.query(query, params);
+
+    // date가 주어지면 해당 날짜의 실제 예약 수를 계산
+    if (date) {
+      const bookedResult = await pool.query(
+        `SELECT reservation_time, COUNT(*)::int AS booked
+         FROM reservations
+         WHERE restaurant_id = $1
+           AND reservation_date = $2
+           AND status NOT IN ('cancelled', 'no_show')
+         GROUP BY reservation_time`,
+        [id, date]
+      );
+      const bookedMap = {};
+      for (const row of bookedResult.rows) {
+        bookedMap[row.reservation_time] = row.booked;
+      }
+
+      const slots = result.rows.map((slot) => {
+        // slot_time is TIME "HH:MM:SS", reservation_time is "HH:MM"
+        const slotTimeShort = String(slot.slot_time).slice(0, 5);
+        const booked = bookedMap[slotTimeShort] || bookedMap[slot.slot_time] || 0;
+        return {
+          ...slot,
+          current_reservations: booked,
+          remaining: slot.max_reservations - booked,
+        };
+      });
+
+      return res.json({ success: true, data: slots });
+    }
 
     res.json({
       success: true,
@@ -331,6 +360,30 @@ exports.createRestaurant = async (req, res) => {
       [restaurant.id, merchantId]
     );
 
+    // 기본 타임슬롯 자동 생성 (월~토, 점심/저녁 시간대)
+    const defaultSlots = [];
+    const defaultTimes = ['11:30', '12:00', '12:30', '17:30', '18:00', '18:30', '19:00'];
+    const defaultDays = [1, 2, 3, 4, 5, 6]; // 월~토
+    for (const day of defaultDays) {
+      for (const time of defaultTimes) {
+        defaultSlots.push([restaurant.id, day, time, 4, true]);
+      }
+    }
+    if (defaultSlots.length > 0) {
+      const valuePlaceholders = defaultSlots.map((_, i) => {
+        const base = i * 5;
+        return `($${base + 1}, $${base + 2}, $${base + 3}, $${base + 4}, $${base + 5})`;
+      }).join(', ');
+      const flatParams = defaultSlots.flat();
+      await pool.query(
+        `INSERT INTO restaurant_time_slots (restaurant_id, day_of_week, slot_time, max_reservations, is_active)
+         VALUES ${valuePlaceholders}
+         ON CONFLICT (restaurant_id, day_of_week, slot_time) DO NOTHING`,
+        flatParams
+      );
+      logger.info('기본 타임슬롯 생성 완료:', { restaurantId: restaurant.id, count: defaultSlots.length });
+    }
+
     logger.info('식당 등록 완료:', { restaurantId: restaurant.id, merchantId });
 
     res.status(201).json({
@@ -363,6 +416,7 @@ exports.updateRestaurant = async (req, res) => {
     const {
       name, description, category, phone, address, address_detail,
       latitude, longitude, image_url, images, operating_hours, seat_count,
+      auto_accept_orders, default_prep_time,
     } = req.body;
 
     // 동적 업데이트 쿼리 생성
@@ -388,6 +442,8 @@ exports.updateRestaurant = async (req, res) => {
     addField('images', images);
     addField('operating_hours', operating_hours);
     addField('seat_count', seat_count);
+    addField('auto_accept_orders', auto_accept_orders);
+    addField('default_prep_time', default_prep_time);
 
     if (fields.length === 0) {
       return res.status(400).json({ success: false, error: '수정할 항목이 없습니다.' });
@@ -602,6 +658,51 @@ exports.createTimeSlot = async (req, res) => {
   }
 };
 
+/**
+ * 기본 타임슬롯 일괄 생성
+ * POST /restaurants/:id/time-slots/generate-defaults
+ */
+exports.generateDefaultTimeSlots = async (req, res) => {
+  try {
+    const { id: restaurantId } = req.params;
+    const merchantRestaurantId = req.merchant && req.merchant.restaurantId;
+    if (!merchantRestaurantId || merchantRestaurantId !== restaurantId) {
+      return res.status(403).json({ success: false, error: '본인 매장만 슬롯을 생성할 수 있습니다.' });
+    }
+
+    const defaultTimes = ['11:30', '12:00', '12:30', '17:30', '18:00', '18:30', '19:00'];
+    const defaultDays = [1, 2, 3, 4, 5, 6]; // 월~토
+    const maxReservations = 4;
+
+    const slots = [];
+    for (const day of defaultDays) {
+      for (const time of defaultTimes) {
+        slots.push([restaurantId, day, time, maxReservations, true]);
+      }
+    }
+
+    const valuePlaceholders = slots.map((_, i) => {
+      const base = i * 5;
+      return `($${base + 1}, $${base + 2}, $${base + 3}, $${base + 4}, $${base + 5})`;
+    }).join(', ');
+
+    await pool.query(
+      `INSERT INTO restaurant_time_slots (restaurant_id, day_of_week, slot_time, max_reservations, is_active)
+       VALUES ${valuePlaceholders}
+       ON CONFLICT (restaurant_id, day_of_week, slot_time)
+       DO UPDATE SET max_reservations = EXCLUDED.max_reservations, is_active = true`,
+      slots.flat()
+    );
+
+    logger.info('기본 타임슬롯 일괄 생성:', { restaurantId, count: slots.length });
+
+    res.json({ success: true, message: `${slots.length}개 기본 타임슬롯이 생성되었습니다.` });
+  } catch (error) {
+    logger.error('기본 타임슬롯 일괄 생성 오류:', error);
+    res.status(500).json({ success: false, error: '타임슬롯 생성 중 오류가 발생했습니다.' });
+  }
+};
+
 exports.deleteTimeSlot = async (req, res) => {
   try {
     const { id: restaurantId, slotId } = req.params;
@@ -623,5 +724,115 @@ exports.deleteTimeSlot = async (req, res) => {
   } catch (error) {
     logger.error('타임슬롯 삭제 오류:', error);
     res.status(500).json({ success: false, error: '타임슬롯 삭제 중 오류가 발생했습니다.' });
+  }
+};
+
+// ============================================
+// 환불 정책 API
+// ============================================
+
+/**
+ * 환불 정책 조회
+ * GET /restaurants/:id/refund-policy
+ */
+exports.getRefundPolicy = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // 식당 존재 확인
+    const restaurantCheck = await pool.query(
+      'SELECT id FROM restaurants WHERE id = $1 AND is_active = true',
+      [id]
+    );
+
+    if (restaurantCheck.rows.length === 0) {
+      return res.status(404).json({ success: false, error: '식당을 찾을 수 없습니다.' });
+    }
+
+    const result = await pool.query(
+      'SELECT id, days_before, refund_rate, created_at FROM restaurant_refund_policies WHERE restaurant_id = $1 ORDER BY days_before DESC',
+      [id]
+    );
+
+    res.json({
+      success: true,
+      data: result.rows,
+    });
+  } catch (error) {
+    logger.error('환불 정책 조회 오류:', error);
+    res.status(500).json({ success: false, error: '환불 정책을 불러오는 중 오류가 발생했습니다.' });
+  }
+};
+
+/**
+ * 환불 정책 설정 (점주 전용)
+ * POST /restaurants/:id/refund-policy
+ *
+ * body: { policies: [{ days_before: 3, refund_rate: 100 }, { days_before: 1, refund_rate: 50 }, { days_before: 0, refund_rate: 0 }] }
+ */
+exports.setRefundPolicy = async (req, res) => {
+  try {
+    const { id: restaurantId } = req.params;
+    const merchantRestaurantId = req.merchant && req.merchant.restaurantId;
+
+    if (!merchantRestaurantId || String(merchantRestaurantId) !== String(restaurantId)) {
+      return res.status(403).json({ success: false, error: '본인 매장의 환불 정책만 설정할 수 있습니다.' });
+    }
+
+    const { policies } = req.body;
+
+    if (!Array.isArray(policies)) {
+      return res.status(400).json({ success: false, error: 'policies는 배열이어야 합니다.' });
+    }
+
+    // 입력 검증
+    for (const policy of policies) {
+      if (typeof policy.days_before !== 'number' || policy.days_before < 0) {
+        return res.status(400).json({ success: false, error: 'days_before는 0 이상의 정수여야 합니다.' });
+      }
+      if (typeof policy.refund_rate !== 'number' || policy.refund_rate < 0 || policy.refund_rate > 100) {
+        return res.status(400).json({ success: false, error: 'refund_rate는 0~100 사이여야 합니다.' });
+      }
+    }
+
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      // 기존 정책 삭제
+      await client.query(
+        'DELETE FROM restaurant_refund_policies WHERE restaurant_id = $1',
+        [restaurantId]
+      );
+
+      // 새 정책 삽입
+      const insertedPolicies = [];
+      for (const policy of policies) {
+        const result = await client.query(
+          `INSERT INTO restaurant_refund_policies (restaurant_id, days_before, refund_rate)
+           VALUES ($1, $2, $3)
+           RETURNING id, days_before, refund_rate, created_at`,
+          [restaurantId, policy.days_before, policy.refund_rate]
+        );
+        insertedPolicies.push(result.rows[0]);
+      }
+
+      await client.query('COMMIT');
+
+      logger.info('환불 정책 설정 완료:', { restaurantId, count: policies.length });
+
+      res.json({
+        success: true,
+        data: insertedPolicies,
+      });
+    } catch (txError) {
+      await client.query('ROLLBACK');
+      throw txError;
+    } finally {
+      client.release();
+    }
+  } catch (error) {
+    logger.error('환불 정책 설정 오류:', error);
+    res.status(500).json({ success: false, error: '환불 정책 설정 중 오류가 발생했습니다.' });
   }
 };

@@ -11,9 +11,11 @@ import apiClient from '../utils/api';
 
 interface LoginProps {
   onLoginSuccess: (token: string, merchantData: any) => void;
+  onNeedRegister?: (token: string, status?: string) => void;
+  onGoSignup?: () => void;
 }
 
-const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
+const Login: React.FC<LoginProps> = ({ onLoginSuccess, onNeedRegister, onGoSignup }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -27,7 +29,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
     try {
       // 1. 로그인
       const loginRes = await apiClient.post('/api/auth/login', { email, password });
-      const { accessToken } = loginRes.data;
+      const accessToken = loginRes.data.accessToken || loginRes.data.token;
 
       if (!accessToken) {
         setError('로그인 응답에 토큰이 없습니다.');
@@ -40,20 +42,26 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
       // 2. 점주 정보 조회
       try {
         const merchantRes = await apiClient.get('/api/merchants/me');
-        const merchantInfo = merchantRes.data;
+        const merchantInfo = merchantRes.data.data || merchantRes.data;
 
         if (!merchantInfo || !merchantInfo.id) {
           localStorage.removeItem('merchantToken');
-          setError('점주 등록이 필요합니다. 관리자에게 문의해 주세요.');
+          if (onNeedRegister) {
+            onNeedRegister(accessToken);
+          } else {
+            setError('점주 등록이 필요합니다.');
+          }
           setLoading(false);
           return;
         }
 
         if (merchantInfo.verification_status !== 'verified') {
           localStorage.removeItem('merchantToken');
-          setError(
-            `사업자 인증 대기 중입니다. (현재 상태: ${merchantInfo.verification_status || '미인증'})\n관리자 승인 후 이용 가능합니다.`
-          );
+          if (onNeedRegister) {
+            onNeedRegister(accessToken, merchantInfo.verification_status);
+          } else {
+            setError(`사업자 인증 대기 중입니다. (현재 상태: ${merchantInfo.verification_status || '미인증'})`);
+          }
           setLoading(false);
           return;
         }
@@ -63,7 +71,11 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
       } catch (merchantErr: any) {
         localStorage.removeItem('merchantToken');
         if (merchantErr.response?.status === 404) {
-          setError('점주 등록이 필요합니다. 관리자에게 문의해 주세요.');
+          if (onNeedRegister) {
+            onNeedRegister(accessToken);
+          } else {
+            setError('점주 등록이 필요합니다.');
+          }
         } else {
           setError('점주 정보를 불러올 수 없습니다.');
         }
@@ -161,6 +173,26 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
             >
               {loading ? <CircularProgress size={24} sx={{ color: '#fff' }} /> : '로그인'}
             </Button>
+          </Box>
+
+          <Box sx={{ textAlign: 'center', mt: 2.5 }}>
+            <Typography variant="body2" sx={{ color: '#999' }}>
+              아직 계정이 없으신가요?{' '}
+              {onGoSignup ? (
+                <Button
+                  variant="text"
+                  onClick={onGoSignup}
+                  sx={{ color: '#A88068', fontWeight: 600, p: 0, minWidth: 'auto', textTransform: 'none' }}
+                >
+                  회원가입
+                </Button>
+              ) : (
+                <span style={{ color: '#A88068', fontWeight: 600 }}>회원가입</span>
+              )}
+            </Typography>
+            <Typography variant="caption" sx={{ color: '#BBB', mt: 0.5, display: 'block' }}>
+              점주 회원가입 후 사업자 인증을 진행합니다.
+            </Typography>
           </Box>
         </CardContent>
       </Card>

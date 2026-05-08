@@ -100,7 +100,8 @@ const ReservationBoard: React.FC = () => {
       const params: Record<string, string> = { date: selectedDate };
       if (statusFilter !== 'all') params.status = statusFilter;
       const res = await apiClient.get('/api/reservations/merchant', { params });
-      setReservations(res.data.reservations ?? res.data);
+      const d = res.data.data || res.data;
+      setReservations(d.reservations ?? (Array.isArray(d) ? d : []));
     } catch (err: any) {
       setError(err.response?.data?.message || '예약 목록을 불러오지 못했습니다.');
     } finally {
@@ -265,7 +266,7 @@ const ReservationBoard: React.FC = () => {
       {/* Cards */}
       <Grid container spacing={2}>
         {reservations.map((r) => (
-          <Grid item xs={12} sm={6} md={4} key={r.id}>
+          <Grid size={{ xs: 12, sm: 6, md: 4 }} key={r.id}>
             <Card
               variant="outlined"
               sx={{

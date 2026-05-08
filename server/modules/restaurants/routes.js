@@ -43,11 +43,20 @@ router.get('/:id', controller.getRestaurantById);
 // 식당 타임슬롯 조회
 router.get('/:id/time-slots', controller.getTimeSlots);
 
+// 기본 타임슬롯 일괄 생성 (점주) — 반드시 /:id/time-slots 앞에 위치
+router.post('/:id/time-slots/generate-defaults', authenticateMerchant, controller.generateDefaultTimeSlots);
+
 // 타임슬롯 생성 (점주)
 router.post('/:id/time-slots', authenticateMerchant, controller.createTimeSlot);
 
 // 타임슬롯 삭제 (점주)
 router.delete('/:id/time-slots/:slotId', authenticateMerchant, controller.deleteTimeSlot);
+
+// 환불 정책 조회 (공개)
+router.get('/:id/refund-policy', controller.getRefundPolicy);
+
+// 환불 정책 설정 (점주 전용)
+router.post('/:id/refund-policy', authenticateMerchant, controller.setRefundPolicy);
 
 // ============================================
 // 점주 전용 API

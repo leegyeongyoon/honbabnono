@@ -27,4 +27,7 @@ router.get('/:id', authenticateToken, controller.getOrderById);
 // 조리 상태 업데이트 (점주)
 router.put('/:id/cooking-status', authenticateMerchant, validate({ body: updateCookingStatusSchema }), controller.updateCookingStatus);
 
+// 주문 거절 (점주)
+router.put('/:id/reject', authenticateMerchant, controller.rejectOrder);
+
 module.exports = router;

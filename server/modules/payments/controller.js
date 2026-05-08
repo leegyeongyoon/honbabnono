@@ -4,6 +4,7 @@ const portone = require('../../config/portone');
 
 // ============================================
 // 결제 준비 (merchant_uid 생성 및 pending 레코드 생성)
+// POST /payments/prepare
 // ============================================
 exports.preparePayment = async (req, res) => {
   try {
@@ -54,19 +55,45 @@ exports.preparePayment = async (req, res) => {
       });
     }
 
-    // 4. merchant_uid 생성
+    // 4. 이미 pending 결제가 있는지 확인 (중복 방지)
+    const existingPayment = await pool.query(
+      "SELECT id, merchant_uid FROM payments WHERE reservation_id = $1 AND status = 'pending'",
+      [reservation_id]
+    );
+
+    if (existingPayment.rows.length > 0) {
+      // 기존 pending 결제가 있으면 재사용
+      const existing = existingPayment.rows[0];
+      const userResult = await pool.query('SELECT name, email FROM users WHERE id = $1', [userId]);
+      const user = userResult.rows[0] || {};
+
+      return res.json({
+        success: true,
+        paymentData: {
+          paymentId: existing.id,
+          merchantUid: existing.merchant_uid,
+          amount,
+          storeId: process.env.PORTONE_STORE_ID,
+          name: '잇테이블 예약 결제',
+          buyerName: user.name || '사용자',
+          buyerEmail: user.email || '',
+        },
+      });
+    }
+
+    // 5. merchant_uid 생성
     const merchantUid = `reservation_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
 
-    // 5. payments 레코드 생성
+    // 6. payments 레코드 생성
     const paymentResult = await pool.query(`
       INSERT INTO payments (reservation_id, order_id, user_id, amount, payment_method, status, merchant_uid, created_at, updated_at)
       VALUES ($1, $2, $3, $4, $5, 'pending', $6, NOW(), NOW())
       RETURNING id
-    `, [reservation_id, order.id, userId, amount, payment_method, merchantUid]);
+    `, [reservation_id, order.id, userId, amount, payment_method || 'card', merchantUid]);
 
     const paymentId = paymentResult.rows[0].id;
 
-    // 6. 사용자 정보 조회 (buyerName, buyerEmail)
+    // 7. 사용자 정보 조회 (buyerName, buyerEmail)
     const userResult = await pool.query(
       'SELECT name, email FROM users WHERE id = $1',
       [userId]
@@ -79,7 +106,7 @@ exports.preparePayment = async (req, res) => {
       success: true,
       paymentData: {
         paymentId,
-        merchantUid: merchantUid,
+        merchantUid,
         amount,
         storeId: process.env.PORTONE_STORE_ID,
         name: '잇테이블 예약 결제',
@@ -94,14 +121,15 @@ exports.preparePayment = async (req, res) => {
 };
 
 // ============================================
-// 결제 검증 (클라이언트 결제 완료 후 호출)
+// 결제 완료 확인 (imp_uid로 PortOne 검증, 상태 업데이트)
+// POST /payments/complete
 // ============================================
-exports.verifyPayment = async (req, res) => {
+exports.completePayment = async (req, res) => {
   try {
     const userId = req.user.userId;
     const { imp_uid, merchant_uid } = req.body;
 
-    logger.info('결제 검증 요청:', { userId, imp_uid, merchant_uid });
+    logger.info('결제 완료 확인 요청:', { userId, imp_uid, merchant_uid });
 
     // 1. payments 테이블에서 merchant_uid로 조회
     const paymentResult = await pool.query(
@@ -114,6 +142,11 @@ exports.verifyPayment = async (req, res) => {
     }
 
     const payment = paymentResult.rows[0];
+
+    // 본인 확인
+    if (payment.user_id !== userId) {
+      return res.status(403).json({ success: false, error: '본인의 결제만 확인할 수 있습니다.' });
+    }
 
     // 2. 이미 paid면 바로 성공 반환 (멱등성)
     if (payment.status === 'paid') {
@@ -152,10 +185,24 @@ exports.verifyPayment = async (req, res) => {
 
       const updatedPayment = await client.query(`
         UPDATE payments
-        SET status = 'paid', imp_uid = $1, paid_at = NOW(), updated_at = NOW()
+        SET status = 'paid',
+            imp_uid = $1,
+            paid_at = NOW(),
+            pg_provider = $3,
+            card_name = $4,
+            card_number = $5,
+            receipt_url = $6,
+            updated_at = NOW()
         WHERE id = $2
         RETURNING *
-      `, [imp_uid, payment.id]);
+      `, [
+        imp_uid,
+        payment.id,
+        paymentData.pg_provider || null,
+        paymentData.card_name || null,
+        paymentData.card_number || null,
+        paymentData.receipt_url || null,
+      ]);
 
       await client.query(`
         UPDATE reservations
@@ -165,7 +212,7 @@ exports.verifyPayment = async (req, res) => {
 
       await client.query('COMMIT');
 
-      logger.info('결제 검증 완료:', { paymentId: payment.id, imp_uid, amount: payment.amount });
+      logger.info('결제 완료 확인 성공:', { paymentId: payment.id, imp_uid, amount: payment.amount });
 
       res.json({ success: true, payment: updatedPayment.rows[0] });
     } catch (txError) {
@@ -175,13 +222,14 @@ exports.verifyPayment = async (req, res) => {
       client.release();
     }
   } catch (error) {
-    logger.error('결제 검증 실패:', error);
-    res.status(500).json({ success: false, error: '결제 검증 중 오류가 발생했습니다.' });
+    logger.error('결제 완료 확인 실패:', error);
+    res.status(500).json({ success: false, error: '결제 확인 중 오류가 발생했습니다.' });
   }
 };
 
 // ============================================
-// PortOne 웹훅 핸들러
+// PortOne 웹훅 핸들러 (결제 상태 변경 시 자동 처리)
+// POST /payments/webhook
 // ============================================
 exports.handleWebhook = async (req, res) => {
   try {
@@ -200,7 +248,7 @@ exports.handleWebhook = async (req, res) => {
     }
 
     // PortOne API로 실제 결제 정보 조회
-    const paymentData = await portone.verifyPayment(imp_uid);
+    const paymentData = await portone.verifyWebhookPayment(imp_uid, merchant_uid);
 
     // payments 테이블에서 merchant_uid로 조회
     const paymentResult = await pool.query(
@@ -216,7 +264,7 @@ exports.handleWebhook = async (req, res) => {
     const payment = paymentResult.rows[0];
 
     // 멱등성: 이미 최종 상태면 무시
-    if (['paid', 'refunded', 'partial_refund'].includes(payment.status) && paymentData.status === 'paid' && payment.status === 'paid') {
+    if (payment.status === 'paid' && paymentData.status === 'paid') {
       logger.info('웹훅: 이미 처리 완료 (멱등성 스킵):', { paymentId: payment.id });
       return res.status(200).json({ success: true, message: '이미 처리됨' });
     }
@@ -232,11 +280,34 @@ exports.handleWebhook = async (req, res) => {
       await client.query('BEGIN');
 
       switch (paymentData.status) {
-        case 'paid':
+        case 'paid': {
+          // 금액 일치 확인
+          if (paymentData.amount !== payment.amount) {
+            logger.error('웹훅: 금액 불일치, 결제 취소 시도:', {
+              expected: payment.amount,
+              actual: paymentData.amount,
+            });
+            try {
+              await portone.cancelPayment(imp_uid, '금액 불일치로 인한 자동 취소');
+            } catch (cancelErr) {
+              logger.error('웹훅: 자동 취소 실패:', cancelErr);
+            }
+            break;
+          }
+
           await client.query(`
-            UPDATE payments SET status = 'paid', imp_uid = $1, paid_at = NOW(), updated_at = NOW()
+            UPDATE payments
+            SET status = 'paid', imp_uid = $1, paid_at = NOW(),
+                pg_provider = $3, card_name = $4, card_number = $5, receipt_url = $6,
+                updated_at = NOW()
             WHERE id = $2 AND status = 'pending'
-          `, [imp_uid, payment.id]);
+          `, [
+            imp_uid, payment.id,
+            paymentData.pg_provider || null,
+            paymentData.card_name || null,
+            paymentData.card_number || null,
+            paymentData.receipt_url || null,
+          ]);
 
           await client.query(`
             UPDATE reservations SET status = 'confirmed', updated_at = NOW()
@@ -245,10 +316,11 @@ exports.handleWebhook = async (req, res) => {
 
           logger.info('웹훅: 결제 확정:', { paymentId: payment.id, imp_uid });
           break;
+        }
 
         case 'cancelled':
           await client.query(`
-            UPDATE payments SET status = 'refunded', updated_at = NOW()
+            UPDATE payments SET status = 'refunded', refunded_at = NOW(), updated_at = NOW()
             WHERE id = $1
           `, [payment.id]);
 
@@ -281,6 +353,7 @@ exports.handleWebhook = async (req, res) => {
 
 // ============================================
 // 예약별 결제 조회
+// GET /payments/reservation/:reservationId
 // ============================================
 exports.getPaymentByReservation = async (req, res) => {
   try {
@@ -288,7 +361,7 @@ exports.getPaymentByReservation = async (req, res) => {
     const { reservationId } = req.params;
 
     const result = await pool.query(
-      'SELECT * FROM payments WHERE reservation_id = $1',
+      'SELECT * FROM payments WHERE reservation_id = $1 ORDER BY created_at DESC LIMIT 1',
       [reservationId]
     );
 
@@ -311,7 +384,8 @@ exports.getPaymentByReservation = async (req, res) => {
 };
 
 // ============================================
-// 결제 환불
+// 결제 환불 (매장별 환불 정책 적용)
+// POST /payments/:id/refund
 // ============================================
 exports.refundPayment = async (req, res) => {
   try {
@@ -354,39 +428,63 @@ exports.refundPayment = async (req, res) => {
     );
     const order = orderResult.rows[0];
 
-    // 3. 환불율 계산 (조리 상태 기반)
+    // 3. 매장별 환불 정책 적용
     let refundRate = 100;
 
-    if (order) {
-      const cookingStatus = order.cooking_status;
+    if (reservation && reservation.restaurant_id) {
+      // 매장 환불 정책 조회
+      const policyResult = await pool.query(
+        'SELECT days_before, refund_rate FROM restaurant_refund_policies WHERE restaurant_id = $1 ORDER BY days_before ASC',
+        [reservation.restaurant_id]
+      );
 
-      if (cookingStatus === 'ready' || cookingStatus === 'served') {
-        refundRate = 0;
-      } else if (cookingStatus === 'cooking') {
-        refundRate = 50;
-      } else if (cookingStatus === 'preparing') {
-        refundRate = 90;
+      if (policyResult.rows.length > 0) {
+        // 예약 시간까지 남은 일수 계산
+        const reservationTime = new Date(reservation.reservation_date || reservation.reservation_time);
+        const now = new Date();
+        const daysUntilReservation = Math.floor((reservationTime.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+
+        // 매칭되는 정책 찾기 (가장 가까운 days_before 이하)
+        let matchedPolicy = null;
+        for (const policy of policyResult.rows) {
+          if (daysUntilReservation <= policy.days_before) {
+            matchedPolicy = policy;
+            break;
+          }
+        }
+
+        if (matchedPolicy) {
+          refundRate = matchedPolicy.refund_rate;
+        }
       } else {
-        // 'pending' 또는 기타: 100%
-        refundRate = 100;
-      }
-    }
+        // 매장 정책이 없으면 기본 조리 상태 기반 환불
+        if (order) {
+          const cookingStatus = order.cooking_status;
+          if (cookingStatus === 'ready' || cookingStatus === 'served') {
+            refundRate = 0;
+          } else if (cookingStatus === 'cooking') {
+            refundRate = 50;
+          } else if (cookingStatus === 'preparing') {
+            refundRate = 90;
+          }
+        }
 
-    // 예약 시간 3시간 이전이면 무조건 100%
-    if (reservation && reservation.reservation_time) {
-      const reservationTime = new Date(reservation.reservation_time);
-      const now = new Date();
-      const hoursBeforeReservation = (reservationTime - now) / (1000 * 60 * 60);
-
-      if (hoursBeforeReservation >= 3) {
-        refundRate = 100;
+        // 예약 시간 3시간 이전이면 무조건 100%
+        if (reservation && (reservation.reservation_time || reservation.reservation_date)) {
+          const reservationTime = new Date(reservation.reservation_time || reservation.reservation_date);
+          const now = new Date();
+          const hoursBeforeReservation = (reservationTime.getTime() - now.getTime()) / (1000 * 60 * 60);
+          if (hoursBeforeReservation >= 3) {
+            refundRate = 100;
+          }
+        }
       }
     }
 
     if (refundRate === 0) {
       return res.status(400).json({
         success: false,
-        error: '현재 조리 상태에서는 환불이 불가합니다.',
+        error: '현재 환불이 불가합니다.',
         refundRate: 0,
       });
     }
@@ -426,9 +524,10 @@ exports.refundPayment = async (req, res) => {
       const newStatus = refundAmount === payment.amount ? 'refunded' : 'partial_refund';
       await client.query(`
         UPDATE payments
-        SET status = $1, refund_amount = $2, refund_rate = $3, refunded_at = NOW(), updated_at = NOW()
-        WHERE id = $4
-      `, [newStatus, refundAmount, refundRate, paymentId]);
+        SET status = $1, refund_amount = $2, refund_rate = $3, refund_reason = $4,
+            refunded_at = NOW(), updated_at = NOW()
+        WHERE id = $5
+      `, [newStatus, refundAmount, refundRate, reason || null, paymentId]);
 
       // reservations 상태 업데이트
       await client.query(`

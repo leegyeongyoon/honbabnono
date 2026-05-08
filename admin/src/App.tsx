@@ -33,8 +33,10 @@ import ChatIcon from '@mui/icons-material/Chat';
 import RateReviewIcon from '@mui/icons-material/RateReview';
 import RestaurantIcon from '@mui/icons-material/Restaurant';
 import EventAvailableIcon from '@mui/icons-material/EventAvailable';
+import StorefrontIcon from '@mui/icons-material/Storefront';
 
 import Dashboard from './components/Dashboard';
+import MerchantManagement from './components/MerchantManagement';
 import RestaurantManagement from './components/RestaurantManagement';
 import ReservationMonitoring from './components/ReservationMonitoring';
 import UserManagement from './components/UserManagement';
@@ -90,6 +92,7 @@ const drawerWidth = 240;
 const menuItems: Array<{ text: string; icon?: React.ReactNode; path?: string; divider?: boolean }> = [
   { text: '대시보드', icon: <DashboardIcon />, path: '/dashboard' },
   { text: '---', divider: true },
+  { text: '점주 관리', icon: <StorefrontIcon />, path: '/merchants' },
   { text: '매장 관리', icon: <RestaurantIcon />, path: '/restaurants' },
   { text: '예약 모니터링', icon: <EventAvailableIcon />, path: '/reservations' },
   { text: '---', divider: true },
@@ -272,6 +275,7 @@ function App() {
             <Routes>
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
               <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/merchants" element={<MerchantManagement />} />
               <Route path="/restaurants" element={<RestaurantManagement />} />
               <Route path="/reservations" element={<ReservationMonitoring />} />
               <Route path="/users" element={<UserManagement />} />
