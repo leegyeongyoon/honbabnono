@@ -328,11 +328,69 @@ exports.cancelReservation = async (req, res) => {
       [reservation.restaurant_id, dayOfWeek, reservation.reservation_time]
     );
 
+    // 5. 결제가 있으면 자동 환불 처리
+    let refundInfo = null;
+    const paymentResult = await client.query(
+      "SELECT id, amount, payment_method, status FROM payments WHERE reservation_id = $1 AND status = 'paid'",
+      [id]
+    );
+
+    if (paymentResult.rows.length > 0) {
+      const payment = paymentResult.rows[0];
+
+      // 환불 정책 적용: 예약일까지 남은 일수 기반
+      const daysUntil = Math.ceil(
+        (new Date(reservation.reservation_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
+      );
+
+      // 매장 환불 정책 조회
+      const policyResult = await client.query(
+        'SELECT days_before, refund_rate FROM restaurant_refund_policies WHERE restaurant_id = $1 ORDER BY days_before ASC',
+        [reservation.restaurant_id]
+      );
+
+      let refundRate = 100;
+      if (policyResult.rows.length > 0) {
+        const matched = policyResult.rows.filter(p => daysUntil >= p.days_before);
+        if (matched.length > 0) {
+          refundRate = matched[matched.length - 1].refund_rate;
+        } else {
+          refundRate = policyResult.rows[0].refund_rate;
+        }
+      } else {
+        // 기본 정책: 당일 50%, 1일 전 90%, 그외 100%
+        if (daysUntil <= 0) refundRate = 50;
+        else if (daysUntil <= 1) refundRate = 90;
+      }
+
+      const refundAmount = Math.floor(payment.amount * refundRate / 100);
+
+      if (refundAmount > 0) {
+        if (payment.payment_method === 'points') {
+          await client.query(
+            'UPDATE users SET points = points + $2 WHERE id = $1',
+            [userId, refundAmount]
+          );
+        }
+
+        const newStatus = refundAmount === payment.amount ? 'refunded' : 'partial_refund';
+        await client.query(
+          `UPDATE payments SET status = $1, refund_amount = $2, refund_rate = $3,
+                  refund_reason = $4, refunded_at = NOW(), updated_at = NOW()
+           WHERE id = $5`,
+          [newStatus, refundAmount, refundRate, cancel_reason || '예약 취소에 의한 환불', payment.id]
+        );
+
+        refundInfo = { refundRate, refundAmount, originalAmount: payment.amount };
+      }
+    }
+
     await client.query('COMMIT');
 
     res.json({
       success: true,
       message: '예약이 취소되었습니다.',
+      refund: refundInfo,
     });
   } catch (error) {
     await client.query('ROLLBACK');

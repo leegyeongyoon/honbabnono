@@ -48,7 +48,13 @@ const MyReservationsScreen: React.FC = () => {
   const handleCancel = useCallback(async (id: string) => {
     if (!window.confirm('예약을 취소하시겠습니까?')) return;
     try {
-      await reservationStore.cancelReservation(id);
+      const result = await reservationStore.cancelReservation(id);
+      if (result?.refund) {
+        const { refundRate, refundAmount } = result.refund;
+        alert(`예약이 취소되었습니다.\n환불: ${refundAmount.toLocaleString('ko-KR')}원 (${refundRate}%)`);
+      } else {
+        alert('예약이 취소되었습니다.');
+      }
     } catch (err: any) {
       alert(err.message || '취소에 실패했습니다.');
     }

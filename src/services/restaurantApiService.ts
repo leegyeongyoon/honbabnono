@@ -356,8 +356,10 @@ const createReservation = async (data: {
 const cancelReservation = async (
   id: string,
   reason?: string,
-): Promise<void> => {
-  await apiClient.put(`/reservations/${id}/cancel`, { cancel_reason: reason });
+): Promise<{ refund?: { refundRate: number; refundAmount: number; originalAmount: number } }> => {
+  const response = await apiClient.put(`/reservations/${id}/cancel`, { cancel_reason: reason });
+  const data = response.data.data ?? response.data;
+  return { refund: data.refund ?? null };
 };
 
 const updateArrival = async (

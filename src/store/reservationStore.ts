@@ -39,7 +39,7 @@ interface ReservationState {
     partySize: number;
     specialRequest?: string;
   }) => Promise<string>;
-  cancelReservation: (id: string, reason?: string) => Promise<void>;
+  cancelReservation: (id: string, reason?: string) => Promise<any>;
   updateArrival: (id: string, status: string) => Promise<void>;
   checkin: (id: string) => Promise<void>;
   clearCurrent: () => void;
@@ -103,7 +103,7 @@ const useReservationStore = create<ReservationState>((set, get) => ({
   cancelReservation: async (id, reason?) => {
     set({ loading: true, error: null });
     try {
-      await restaurantApiService.cancelReservation(id, reason);
+      const result = await restaurantApiService.cancelReservation(id, reason);
 
       // 로컬 상태 업데이트
       set((state) => ({
@@ -116,6 +116,8 @@ const useReservationStore = create<ReservationState>((set, get) => ({
             : state.currentReservation,
         loading: false,
       }));
+
+      return result;
     } catch (err: any) {
       const message =
         err?.response?.data?.message ?? err?.message ?? '예약 취소에 실패했습니다.';
