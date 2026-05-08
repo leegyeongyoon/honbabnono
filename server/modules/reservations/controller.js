@@ -53,7 +53,7 @@ exports.createReservation = async (req, res) => {
        WHERE restaurant_id = $1
          AND reservation_date = $2
          AND reservation_time = $3
-         AND status NOT IN ('cancelled', 'no_show', 'pending_payment')`,
+         AND status NOT IN ('cancelled', 'pending_payment')`,
       [restaurant_id, reservation_date, reservation_time]
     );
 

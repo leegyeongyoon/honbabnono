@@ -188,20 +188,20 @@ exports.completePayment = async (req, res) => {
         SET status = 'paid',
             imp_uid = $1,
             paid_at = NOW(),
-            pg_provider = $3,
-            card_name = $4,
-            card_number = $5,
-            receipt_url = $6,
+            pg_provider = $2,
+            card_name = $3,
+            card_number = $4,
+            receipt_url = $5,
             updated_at = NOW()
-        WHERE id = $2
+        WHERE id = $6
         RETURNING *
       `, [
         imp_uid,
-        payment.id,
         paymentData.pg_provider || null,
         paymentData.card_name || null,
         paymentData.card_number || null,
         paymentData.receipt_url || null,
+        payment.id,
       ]);
 
       await client.query(`
@@ -298,15 +298,16 @@ exports.handleWebhook = async (req, res) => {
           await client.query(`
             UPDATE payments
             SET status = 'paid', imp_uid = $1, paid_at = NOW(),
-                pg_provider = $3, card_name = $4, card_number = $5, receipt_url = $6,
+                pg_provider = $2, card_name = $3, card_number = $4, receipt_url = $5,
                 updated_at = NOW()
-            WHERE id = $2 AND status = 'pending'
+            WHERE id = $6 AND status = 'pending'
           `, [
-            imp_uid, payment.id,
+            imp_uid,
             paymentData.pg_provider || null,
             paymentData.card_name || null,
             paymentData.card_number || null,
             paymentData.receipt_url || null,
+            payment.id,
           ]);
 
           await client.query(`

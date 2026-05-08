@@ -385,7 +385,7 @@ const createOrder = async (
   return {
     id: order.id,
     reservationId: order.reservation_id ?? order.reservationId,
-    items: order.items || [],
+    items: order.items || order.order_items || [],
     totalAmount: order.total_amount ?? order.totalAmount,
     status: order.cooking_status ?? order.status,
     createdAt: order.created_at ?? order.createdAt,
@@ -399,7 +399,7 @@ const getOrderById = async (id: string): Promise<Order> => {
   return {
     id: order.id,
     reservationId: order.reservation_id ?? order.reservationId,
-    items: order.items || [],
+    items: order.items || order.order_items || [],
     totalAmount: order.total_amount ?? order.totalAmount,
     status: order.cooking_status ?? order.status,
     createdAt: order.created_at ?? order.createdAt,
@@ -414,11 +414,11 @@ const getOrderByReservation = async (
   );
   const data = response.data.data ?? response.data;
   const order = data.order || data;
-  if (!order || !order.id) return order;
+  if (!order || !order.id) return null as any;
   return {
     id: order.id,
     reservationId: order.reservation_id ?? order.reservationId,
-    items: order.items || [],
+    items: order.items || order.order_items || [],
     totalAmount: order.total_amount ?? order.totalAmount,
     status: order.cooking_status ?? order.status,
     createdAt: order.created_at ?? order.createdAt,

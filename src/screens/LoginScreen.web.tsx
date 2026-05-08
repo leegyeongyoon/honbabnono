@@ -6,6 +6,7 @@ import {
   StyleSheet,
   Platform,
 } from 'react-native';
+import { useNavigate } from 'react-router-dom';
 import {COLORS, SHADOWS, CSS_SHADOWS} from '../styles/colors';
 import {TYPOGRAPHY, FONT_WEIGHTS} from '../styles/typography';
 import {SPACING, BORDER_RADIUS} from '../styles/spacing';
@@ -21,6 +22,7 @@ const LoginScreen = () => {
   const [loading, setLoading] = useState(false);
   const { toast, showSuccess, showError, hideToast } = useToast();
   const { login } = useUserStore();
+  const navigate = useNavigate();
 
   useEffect(() => {
     // URL에서 OAuth 결과 확인 (서버가 query string으로 리다이렉트)
@@ -44,7 +46,7 @@ const LoginScreen = () => {
         login(userData, token);
       }
       showSuccess('카카오 로그인이 완료되었습니다.');
-      window.location.href = '/home';
+      navigate('/home');
     } else if (error) {
       const errorMessages: { [key: string]: string } = {
         'kakao_auth_failed': '카카오 인증에 실패했습니다.',
@@ -78,7 +80,7 @@ const LoginScreen = () => {
         localStorage.setItem('user', JSON.stringify(data.user));
         login(data.user, data.token);
         showSuccess(data.user.name + '으로 로그인되었습니다.');
-        window.location.href = '/home';
+        navigate('/home');
       } else {
         showError('빠른 테스트 로그인에 실패했습니다.');
       }
@@ -99,7 +101,7 @@ const LoginScreen = () => {
         localStorage.setItem('user', JSON.stringify(response.data.user));
         login(response.data.user, response.data.token);
         showSuccess(name + '으로 로그인되었습니다.');
-        window.location.href = '/home';
+        navigate('/home');
       } else {
         showError('테스트 로그인에 실패했습니다.');
       }

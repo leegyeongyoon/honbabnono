@@ -1,5 +1,5 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { View, StyleSheet } from 'react-native';
 import { COLORS } from '../styles/colors';
 import { useUserStore } from '../store/userStore';
@@ -46,7 +46,8 @@ import TermsScreen from '../screens/TermsScreen.web';
 import RestaurantHomeScreen from '../screens/RestaurantHomeScreen.web';
 import RestaurantDetailScreen from '../screens/RestaurantDetailScreen.web';
 import ReservationFormScreen from '../screens/ReservationFormScreen.web';
-import ReservationPaymentScreen from '../screens/PaymentScreen.web';
+// ReservationPaymentScreen는 PaymentScreen과 동일 컴포넌트 (line 16에서 이미 import)
+const ReservationPaymentScreen = PaymentScreen;
 import ReservationConfirmScreen from '../screens/ReservationConfirmScreen.web';
 import MyReservationsScreenV2 from '../screens/MyReservationsScreen.web';
 import WriteRestaurantReviewScreen from '../screens/WriteRestaurantReviewScreen.web';
@@ -187,95 +188,41 @@ const RouterApp: React.FC = () => {
     }
   }, [isLoggedIn, user, fetchMeetups]);
 
-  // 보호된 라우트 헬퍼 (컴포넌트가 아닌 함수로 — 매 렌더 재생성 방지)
-  const protectedElement = (children: React.ReactNode) => {
-    return isLoggedIn ? children : <Navigate to="/login" replace />;
+  // screenName→path 매핑 (React Navigation 호환 네비게이션 어댑터)
+  const screenRouteMap: Record<string, string | ((params?: any) => string)> = {
+    Notifications: '/notifications',
+    MeetupDetail: (p: any) => `/meetup/${p?.meetupId}`,
+    CreateMeetup: '/create-meetup',
+    Chat: (p: any) => `/chat/${p?.meetupId}?title=${encodeURIComponent(p?.meetupTitle || '')}`,
+    Settings: '/settings',
+    HostProfile: (p: any) => `/host-profile/${p?.userId}`,
+    EditProfile: '/mypage',
+    Profile: '/mypage',
+    MyMeetups: '/my-meetups',
+    Wishlist: '/wishlist',
+    PointCharge: '/point-charge',
+    MyReviews: '/my-reviews',
+    RecentViews: '/recent-views',
+    Notices: '/notices',
+    FAQ: '/faq',
+    Terms: '/terms',
+    WriteReview: (p: any) => `/meetup/${p?.meetupId}`,
+    DepositPayment: (p: any) => `/meetup/${p?.meetupId}/deposit-payment`,
+    Explore: '/explore',
+    Payment: '/payment',
+    ReviewManagement: '/review-management',
+    UserVerification: '/mypage',
+    MyBadges: '/my-badges',
+    OnboardingScreen: '/onboarding',
+    Onboarding: '/onboarding',
+    Home: '/home',
+    RestaurantDetail: (p: any) => `/restaurant/${p?.restaurantId || p?.id}`,
+    ReservationForm: (p: any) => `/reservation/${p?.restaurantId}`,
+    ReservationPayment: (p: any) => `/payment/${p?.reservationId}`,
+    ReservationConfirm: (p: any) => `/reservation-confirm/${p?.reservationId}`,
+    MyReservations: '/my-reservations',
+    SearchRestaurants: '/search-restaurants',
   };
-
-  // 로그인된 사용자 리다이렉트 헬퍼
-  const loginRedirectElement = (children: React.ReactNode) => {
-    return isLoggedIn ? <Navigate to="/home" replace /> : children;
-  };
-
-  // 공통 네비게이션 props
-  const getNavigationProps = () => ({
-    user,
-    logout: handleLogout,
-  });
-
-  // React Router 기반 네비게이션 객체
-  const getReactRouterNavigation = () => ({
-    navigate: (screenName: string, params?: any) => {
-      if (screenName === 'Notifications') {
-        window.location.href = '/notifications';
-      } else if (screenName === 'MeetupDetail') {
-        window.location.href = `/meetup/${params.meetupId}`;
-      } else if (screenName === 'CreateMeetup') {
-        window.location.href = '/create-meetup';
-      } else if (screenName === 'Chat') {
-        window.location.href = `/chat/${params.meetupId}?title=${encodeURIComponent(params.meetupTitle)}`;
-      } else if (screenName === 'Settings') {
-        window.location.href = '/settings';
-      } else if (screenName === 'HostProfile') {
-        window.location.href = `/host-profile/${params?.userId}`;
-      } else if (screenName === 'EditProfile' || screenName === 'Profile') {
-        window.location.href = '/mypage';
-      } else if (screenName === 'MyMeetups') {
-        window.location.href = '/my-meetups';
-      } else if (screenName === 'Wishlist') {
-        window.location.href = '/wishlist';
-      } else if (screenName === 'PointCharge') {
-        window.location.href = '/point-charge';
-      } else if (screenName === 'MyReviews') {
-        window.location.href = '/my-reviews';
-      } else if (screenName === 'RecentViews') {
-        window.location.href = '/recent-views';
-      } else if (screenName === 'Notices') {
-        window.location.href = '/notices';
-      } else if (screenName === 'FAQ') {
-        window.location.href = '/faq';
-      } else if (screenName === 'Terms') {
-        window.location.href = '/terms';
-      } else if (screenName === 'WriteReview') {
-        window.location.href = `/meetup/${params?.meetupId}`;
-      } else if (screenName === 'DepositPayment') {
-        window.location.href = `/meetup/${params?.meetupId}/deposit-payment`;
-      } else if (screenName === 'Explore') {
-        window.location.href = '/explore';
-      } else if (screenName === 'Payment') {
-        window.location.href = '/payment';
-      } else if (screenName === 'ReviewManagement') {
-        window.location.href = '/review-management';
-      } else if (screenName === 'UserVerification') {
-        window.location.href = '/mypage';
-      } else if (screenName === 'MyBadges') {
-        window.location.href = '/my-badges';
-      } else if (screenName === 'OnboardingScreen' || screenName === 'Onboarding') {
-        window.location.href = '/onboarding';
-      } else if (screenName === 'Home') {
-        window.location.href = '/home';
-      } else if (screenName === 'RestaurantDetail') {
-        window.location.href = `/restaurant/${params?.restaurantId || params?.id}`;
-      } else if (screenName === 'ReservationForm') {
-        window.location.href = `/reservation/${params?.restaurantId}`;
-      } else if (screenName === 'ReservationPayment') {
-        window.location.href = `/payment/${params?.reservationId}`;
-      } else if (screenName === 'ReservationConfirm') {
-        window.location.href = `/reservation-confirm/${params?.reservationId}`;
-      } else if (screenName === 'MyReservations') {
-        window.location.href = '/my-reservations';
-      } else if (screenName === 'SearchRestaurants') {
-        window.location.href = '/search-restaurants';
-      }
-    },
-    navigateToNotifications: () => {
-      window.location.href = '/notifications';
-    },
-    goBack: () => {
-      window.history.back();
-    },
-    user: user
-  });
 
   // 로딩 중이면 로딩 화면 표시
   if (isLoading) {
@@ -322,77 +269,122 @@ const RouterApp: React.FC = () => {
 
   return (
     <Router>
-      <View style={styles.container}>
-        <Routes>
-          {/* 공개 라우트들 - 로그인 불필요 */}
-          <Route path="/advertisement/:id" element={<AdvertisementDetailScreen user={user} navigation={getReactRouterNavigation()} />} />
-          <Route path="/notices" element={<NoticesScreen />} />
-          <Route path="/notices/:id" element={<NoticeDetailScreen />} />
-          <Route path="/faq" element={<FAQScreen />} />
-          <Route path="/terms" element={<TermsScreen />} />
-
-          {/* 보호된 라우트들 */}
-          <Route path="/chat/:id" element={protectedElement(<MainLayout><ChatScreen {...getNavigationProps()} /></MainLayout>)} />
-          <Route path="/meetup/:id/deposit-payment" element={protectedElement(<DepositPaymentScreen />)} />
-          <Route path="/meetup/:id" element={protectedElement(<MeetupDetailScreen user={user} />)} />
-          <Route path="/home" element={protectedElement(<MainLayout><RestaurantHomeScreen /></MainLayout>)} />
-          <Route path="/legacy-home" element={protectedElement(<MainLayout><HomeScreen user={user} navigation={getReactRouterNavigation()} /></MainLayout>)} />
-          <Route path="/search" element={protectedElement(<MainLayout><SearchScreen user={user} navigation={getReactRouterNavigation()} /></MainLayout>)} />
-          <Route path="/ai-search" element={protectedElement(<AISearchResultScreen user={user} navigation={getReactRouterNavigation()} />)} />
-          <Route path="/notifications" element={protectedElement(<MainLayout><NotificationScreen user={user} navigation={getReactRouterNavigation()} /></MainLayout>)} />
-          <Route path="/my-meetups" element={protectedElement(<MainLayout><MyMeetupsScreen user={user} /></MainLayout>)} />
-          <Route path="/chat" element={protectedElement(<MainLayout><ChatScreen user={user} /></MainLayout>)} />
-          <Route path="/mypage" element={protectedElement(<MainLayout><MyPageScreen user={user} onLogout={handleLogout} /></MainLayout>)} />
-          <Route path="/create-meetup" element={protectedElement(<CreateMeetupWizard user={user} />)} />
-          <Route path="/explore" element={protectedElement(<MainLayout><ExploreScreen /></MainLayout>)} />
-          <Route path="/meetup-list" element={protectedElement(<MeetupListScreen />)} />
-          <Route path="/payment" element={protectedElement(<PaymentScreen />)} />
-          <Route path="/my-activities" element={protectedElement(<MyActivitiesScreen />)} />
-          <Route path="/wishlist" element={protectedElement(<WishlistScreen />)} />
-          <Route path="/my-reviews" element={protectedElement(<MyReviewsScreen />)} />
-          <Route path="/joined-meetups" element={protectedElement(<JoinedMeetupsScreen />)} />
-          <Route path="/point-history" element={protectedElement(<PointHistoryScreen />)} />
-          <Route path="/point-charge" element={protectedElement(<PointChargeScreen />)} />
-          <Route path="/review-management" element={protectedElement(<ReviewManagementScreen />)} />
-          <Route path="/notification-settings" element={protectedElement(<NotificationSettingsScreen />)} />
-          <Route path="/privacy-settings" element={protectedElement(<PrivacySettingsScreen />)} />
-          <Route path="/my-badges" element={protectedElement(<MyBadgesScreen />)} />
-          <Route path="/point-balance" element={protectedElement(<PointBalanceScreen />)} />
-          <Route path="/recent-views" element={protectedElement(<RecentViewsScreen />)} />
-          <Route path="/blocked-users" element={protectedElement(<BlockedUsersScreen />)} />
-          <Route path="/host-profile/:userId" element={protectedElement(<HostProfileScreen />)} />
-          <Route path="/settings" element={protectedElement(<SettingsScreen />)} />
-
-          {/* v2 피벗: 매장/예약 라우트 */}
-          <Route path="/restaurants" element={<Navigate to="/home" replace />} />
-          <Route path="/restaurant/:id" element={protectedElement(<RestaurantDetailScreen />)} />
-          <Route path="/reservation/:restaurantId" element={protectedElement(<ReservationFormScreen />)} />
-          <Route path="/payment/:reservationId" element={protectedElement(<ReservationPaymentScreen />)} />
-          <Route path="/reservation-confirm/:reservationId" element={protectedElement(<ReservationConfirmScreen />)} />
-          <Route path="/my-reservations" element={protectedElement(<MainLayout><MyReservationsScreenV2 /></MainLayout>)} />
-          <Route path="/write-restaurant-review/:reservationId" element={protectedElement(<WriteRestaurantReviewScreen />)} />
-          <Route path="/search-restaurants" element={protectedElement(<MainLayout><SearchRestaurantsScreen /></MainLayout>)} />
-
-          {/* 온보딩 페이지 */}
-          <Route path="/onboarding" element={hasSeenOnboarding ? <Navigate to="/login" replace /> : <OnboardingScreen />} />
-
-          {/* 로그인 페이지 */}
-          <Route path="/login" element={loginRedirectElement(<LoginScreen />)} />
-
-          {/* 루트 경로 - 온보딩 → 로그인 → 홈 순서로 리다이렉트 */}
-          <Route path="/" element={
-            !hasSeenOnboarding
-              ? <Navigate to="/onboarding" replace />
-              : isLoggedIn
-                ? <Navigate to="/home" replace />
-                : <Navigate to="/login" replace />
-          } />
-
-          {/* 404 — 로그인 안 됐으면 /login으로, 됐으면 /home으로 */}
-          <Route path="*" element={isLoggedIn ? <Navigate to="/home" replace /> : <Navigate to="/login" replace />} />
-        </Routes>
-      </View>
+      <AppRoutes
+        user={user}
+        isLoggedIn={isLoggedIn}
+        hasSeenOnboarding={hasSeenOnboarding}
+        handleLogout={handleLogout}
+        screenRouteMap={screenRouteMap}
+      />
     </Router>
+  );
+};
+
+/** Router 내부 컴포넌트 — useNavigate() 사용 가능 */
+const AppRoutes: React.FC<{
+  user: any;
+  isLoggedIn: boolean;
+  hasSeenOnboarding: boolean;
+  handleLogout: () => void;
+  screenRouteMap: Record<string, string | ((params?: any) => string)>;
+}> = ({ user, isLoggedIn, hasSeenOnboarding, handleLogout, screenRouteMap }) => {
+  const routerNavigate = useNavigate();
+
+  const getReactRouterNavigation = useMemo(() => () => ({
+    navigate: (screenName: string, params?: any) => {
+      const route = screenRouteMap[screenName];
+      if (route) {
+        const path = typeof route === 'function' ? route(params) : route;
+        routerNavigate(path);
+      }
+    },
+    navigateToNotifications: () => routerNavigate('/notifications'),
+    goBack: () => routerNavigate(-1 as any),
+    user,
+  }), [routerNavigate, screenRouteMap, user]);
+
+  const protectedElement = (children: React.ReactNode) =>
+    isLoggedIn ? children : <Navigate to="/login" replace />;
+
+  const loginRedirectElement = (children: React.ReactNode) =>
+    isLoggedIn ? <Navigate to="/home" replace /> : children;
+
+  const getNavigationProps = () => ({
+    user,
+    logout: handleLogout,
+  });
+
+  return (
+    <View style={styles.container}>
+      <Routes>
+        {/* 공개 라우트들 - 로그인 불필요 */}
+        <Route path="/advertisement/:id" element={<AdvertisementDetailScreen user={user} navigation={getReactRouterNavigation()} />} />
+        <Route path="/notices" element={<NoticesScreen />} />
+        <Route path="/notices/:id" element={<NoticeDetailScreen />} />
+        <Route path="/faq" element={<FAQScreen />} />
+        <Route path="/terms" element={<TermsScreen />} />
+
+        {/* 보호된 라우트들 */}
+        <Route path="/chat/:id" element={protectedElement(<MainLayout><ChatScreen {...getNavigationProps()} /></MainLayout>)} />
+        <Route path="/meetup/:id/deposit-payment" element={protectedElement(<DepositPaymentScreen />)} />
+        <Route path="/meetup/:id" element={protectedElement(<MeetupDetailScreen user={user} />)} />
+        <Route path="/home" element={protectedElement(<MainLayout><RestaurantHomeScreen /></MainLayout>)} />
+        <Route path="/legacy-home" element={protectedElement(<MainLayout><HomeScreen user={user} navigation={getReactRouterNavigation()} /></MainLayout>)} />
+        <Route path="/search" element={protectedElement(<MainLayout><SearchScreen user={user} navigation={getReactRouterNavigation()} /></MainLayout>)} />
+        <Route path="/ai-search" element={protectedElement(<AISearchResultScreen user={user} navigation={getReactRouterNavigation()} />)} />
+        <Route path="/notifications" element={protectedElement(<MainLayout><NotificationScreen user={user} navigation={getReactRouterNavigation()} /></MainLayout>)} />
+        <Route path="/my-meetups" element={protectedElement(<MainLayout><MyMeetupsScreen user={user} /></MainLayout>)} />
+        <Route path="/chat" element={protectedElement(<MainLayout><ChatScreen user={user} /></MainLayout>)} />
+        <Route path="/mypage" element={protectedElement(<MainLayout><MyPageScreen user={user} onLogout={handleLogout} /></MainLayout>)} />
+        <Route path="/create-meetup" element={protectedElement(<CreateMeetupWizard user={user} />)} />
+        <Route path="/explore" element={protectedElement(<MainLayout><ExploreScreen /></MainLayout>)} />
+        <Route path="/meetup-list" element={protectedElement(<MeetupListScreen />)} />
+        <Route path="/payment" element={protectedElement(<PaymentScreen />)} />
+        <Route path="/my-activities" element={protectedElement(<MyActivitiesScreen />)} />
+        <Route path="/wishlist" element={protectedElement(<WishlistScreen />)} />
+        <Route path="/my-reviews" element={protectedElement(<MyReviewsScreen />)} />
+        <Route path="/joined-meetups" element={protectedElement(<JoinedMeetupsScreen />)} />
+        <Route path="/point-history" element={protectedElement(<PointHistoryScreen />)} />
+        <Route path="/point-charge" element={protectedElement(<PointChargeScreen />)} />
+        <Route path="/review-management" element={protectedElement(<ReviewManagementScreen />)} />
+        <Route path="/notification-settings" element={protectedElement(<NotificationSettingsScreen />)} />
+        <Route path="/privacy-settings" element={protectedElement(<PrivacySettingsScreen />)} />
+        <Route path="/my-badges" element={protectedElement(<MyBadgesScreen />)} />
+        <Route path="/point-balance" element={protectedElement(<PointBalanceScreen />)} />
+        <Route path="/recent-views" element={protectedElement(<RecentViewsScreen />)} />
+        <Route path="/blocked-users" element={protectedElement(<BlockedUsersScreen />)} />
+        <Route path="/host-profile/:userId" element={protectedElement(<HostProfileScreen />)} />
+        <Route path="/settings" element={protectedElement(<SettingsScreen />)} />
+
+        {/* v2 피벗: 매장/예약 라우트 */}
+        <Route path="/restaurants" element={<Navigate to="/home" replace />} />
+        <Route path="/restaurant/:id" element={protectedElement(<RestaurantDetailScreen />)} />
+        <Route path="/reservation/:restaurantId" element={protectedElement(<ReservationFormScreen />)} />
+        <Route path="/payment/:reservationId" element={protectedElement(<ReservationPaymentScreen />)} />
+        <Route path="/reservation-confirm/:reservationId" element={protectedElement(<ReservationConfirmScreen />)} />
+        <Route path="/my-reservations" element={protectedElement(<MainLayout><MyReservationsScreenV2 /></MainLayout>)} />
+        <Route path="/write-restaurant-review/:reservationId" element={protectedElement(<WriteRestaurantReviewScreen />)} />
+        <Route path="/search-restaurants" element={protectedElement(<MainLayout><SearchRestaurantsScreen /></MainLayout>)} />
+
+        {/* 온보딩 페이지 */}
+        <Route path="/onboarding" element={hasSeenOnboarding ? <Navigate to="/login" replace /> : <OnboardingScreen />} />
+
+        {/* 로그인 페이지 */}
+        <Route path="/login" element={loginRedirectElement(<LoginScreen />)} />
+
+        {/* 루트 경로 - 온보딩 → 로그인 → 홈 순서로 리다이렉트 */}
+        <Route path="/" element={
+          !hasSeenOnboarding
+            ? <Navigate to="/onboarding" replace />
+            : isLoggedIn
+              ? <Navigate to="/home" replace />
+              : <Navigate to="/login" replace />
+        } />
+
+        {/* 404 — 로그인 안 됐으면 /login으로, 됐으면 /home으로 */}
+        <Route path="*" element={isLoggedIn ? <Navigate to="/home" replace /> : <Navigate to="/login" replace />} />
+      </Routes>
+    </View>
   );
 };
 

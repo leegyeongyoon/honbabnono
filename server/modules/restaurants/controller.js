@@ -279,7 +279,7 @@ exports.getTimeSlots = async (req, res) => {
          FROM reservations
          WHERE restaurant_id = $1
            AND reservation_date = $2
-           AND status NOT IN ('cancelled', 'no_show')
+           AND status NOT IN ('cancelled', 'pending_payment')
          GROUP BY reservation_time`,
         [id, date]
       );

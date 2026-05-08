@@ -99,12 +99,12 @@ const useCartStore = create<CartState>((set, get) => ({
   setRestaurantId: (id) => {
     const { restaurantId } = get();
 
-    // 다른 매장으로 변경 시 기존 장바구니 클리어
+    // 다른 매장으로 변경 시 기존 장바구니 클리어 + restaurantId 동시 업데이트
     if (restaurantId && restaurantId !== id) {
-      set({ items: [], totalAmount: 0 });
+      set({ items: [], totalAmount: 0, restaurantId: id });
+    } else {
+      set({ restaurantId: id });
     }
-
-    set({ restaurantId: id });
   },
 }));
 

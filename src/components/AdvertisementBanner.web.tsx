@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { useNavigate } from 'react-router-dom';
 import { COLORS, SHADOWS } from '../styles/colors';
 import { Icon } from './Icon';
 import advertisementApiService, { Advertisement } from '../services/advertisementApiService';
@@ -16,6 +17,7 @@ const AdvertisementBannerWeb: React.FC<AdvertisementBannerProps> = ({
   const [advertisements, setAdvertisements] = useState<Advertisement[]>([]);
   const [currentAdIndex, setCurrentAdIndex] = useState(0);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
     loadAdvertisements();
@@ -53,8 +55,8 @@ const AdvertisementBannerWeb: React.FC<AdvertisementBannerProps> = ({
 
       // 디테일 페이지 사용 여부에 따라 분기
       if (advertisement.useDetailPage) {
-        // 디테일 페이지로 이동 (웹용 URL 변경)
-        window.location.href = `/advertisement/${advertisement.id}`;
+        // 디테일 페이지로 이동
+        navigate(`/advertisement/${advertisement.id}`);
       } else if (advertisement.linkUrl) {
         // 외부 링크로 이동
         if (advertisement.linkUrl.startsWith('http')) {
