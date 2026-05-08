@@ -108,7 +108,7 @@ const ReservationConfirmScreen: React.FC = () => {
                 <div style={s.menuSectionTitle}>주문 메뉴</div>
                 {reservation.order.items.map((item: any, idx: number) => (
                   <div key={idx} style={s.menuRow}>
-                    <span>{item.menuName || item.name} x{item.quantity}</span>
+                    <span>{item.menu_name || item.menuName || item.name} x{item.quantity}</span>
                   </div>
                 ))}
               </div>

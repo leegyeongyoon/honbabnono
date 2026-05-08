@@ -77,12 +77,19 @@ exports.createOrder = async (req, res) => {
 
     const order = orderResult.rows[0];
 
-    // 4. INSERT order_items
-    for (const item of orderItems) {
+    // 4. INSERT order_items (배치)
+    if (orderItems.length > 0) {
+      const values = [];
+      const params = [];
+      orderItems.forEach((item, i) => {
+        const offset = i * 7;
+        values.push(`($${offset+1}, $${offset+2}, $${offset+3}, $${offset+4}, $${offset+5}, $${offset+6}, $${offset+7})`);
+        params.push(order.id, item.menu_id, item.menu_name, item.unit_price, item.quantity, item.subtotal, item.options ? JSON.stringify(item.options) : null);
+      });
       await client.query(
         `INSERT INTO order_items (order_id, menu_id, menu_name, unit_price, quantity, subtotal, options)
-         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-        [order.id, item.menu_id, item.menu_name, item.unit_price, item.quantity, item.subtotal, item.options ? JSON.stringify(item.options) : null]
+         VALUES ${values.join(', ')}`,
+        params
       );
     }
 
@@ -233,10 +240,21 @@ exports.getMerchantOrders = async (req, res) => {
       SELECT o.id, o.reservation_id, o.total_amount, o.cooking_status,
              o.cooking_started_at, o.cooking_ready_at, o.created_at,
              r.reservation_date, r.reservation_time, r.party_size,
-             u.name AS user_name
+             u.name AS user_name,
+             COALESCE(
+               json_agg(
+                 json_build_object(
+                   'id', oi.id, 'menu_id', oi.menu_id, 'menu_name', oi.menu_name,
+                   'unit_price', oi.unit_price, 'quantity', oi.quantity,
+                   'subtotal', oi.subtotal, 'options', oi.options
+                 ) ORDER BY oi.id
+               ) FILTER (WHERE oi.id IS NOT NULL),
+               '[]'::json
+             ) AS items
       FROM orders o
       JOIN reservations r ON o.reservation_id = r.id
       JOIN users u ON o.user_id = u.id
+      LEFT JOIN order_items oi ON oi.order_id = o.id
       WHERE o.restaurant_id = $1
     `;
     const params = [restaurantId];
@@ -246,29 +264,14 @@ exports.getMerchantOrders = async (req, res) => {
       query += ` AND r.reservation_date = $${params.length}`;
     }
 
+    query += ' GROUP BY o.id, r.reservation_date, r.reservation_time, r.party_size, u.name';
     query += ' ORDER BY o.created_at DESC';
 
     const ordersResult = await pool.query(query, params);
 
-    // 각 주문의 항목도 조회
-    const orders = [];
-    for (const order of ordersResult.rows) {
-      const itemsResult = await pool.query(
-        `SELECT id, menu_id, menu_name, unit_price, quantity, subtotal, options
-         FROM order_items
-         WHERE order_id = $1
-         ORDER BY id ASC`,
-        [order.id]
-      );
-      orders.push({
-        ...order,
-        items: itemsResult.rows,
-      });
-    }
-
     res.json({
       success: true,
-      orders,
+      orders: ordersResult.rows,
     });
   } catch (error) {
     logger.error('점주 주문 목록 조회 실패:', error);

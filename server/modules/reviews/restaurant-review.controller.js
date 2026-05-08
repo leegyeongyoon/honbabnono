@@ -88,7 +88,8 @@ exports.createRestaurantReview = async (req, res) => {
 
     await client.query('COMMIT');
 
-    logger.info(`매장 리뷰 작성: user=${userId}, restaurant=${restaurant_id}, overall=${overallRating}`);
+    const review = insertResult.rows[0];
+    logger.info(`매장 리뷰 작성: user=${userId}, restaurant=${restaurant_id}, overall=${review.overall_rating}`);
 
     res.status(201).json({
       success: true,

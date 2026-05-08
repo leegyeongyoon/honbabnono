@@ -266,6 +266,11 @@ const getMenuById = async (id: string): Promise<MenuItem> => {
   return mapMenuItem(data);
 };
 
+// ---------- Helpers ----------
+
+// PostgreSQL TIME returns "HH:MM:SS"; frontend expects "HH:MM"
+const sliceTime = (t?: string) => t && t.length > 5 ? t.slice(0, 5) : t;
+
 // ---------- Reservations ----------
 
 const getMyReservations = async (
@@ -282,7 +287,7 @@ const getMyReservations = async (
     restaurantId: r.restaurant_id ?? r.restaurantId,
     restaurantName: r.restaurant_name ?? r.restaurantName,
     reservationDate: r.reservation_date ?? r.reservationDate,
-    reservationTime: r.reservation_time ?? r.reservationTime,
+    reservationTime: sliceTime(r.reservation_time ?? r.reservationTime),
     partySize: r.party_size ?? r.partySize,
     status: r.status,
     arrivalStatus: r.arrival_status ?? r.arrivalStatus,
@@ -304,7 +309,7 @@ const getReservationById = async (id: string): Promise<Reservation> => {
     restaurantId: r.restaurant_id ?? r.restaurantId,
     restaurantName: r.restaurant_name ?? r.restaurantName,
     reservationDate: r.reservation_date ?? r.reservationDate,
-    reservationTime: r.reservation_time ?? r.reservationTime,
+    reservationTime: sliceTime(r.reservation_time ?? r.reservationTime),
     partySize: r.party_size ?? r.partySize,
     status: r.status,
     arrivalStatus: r.arrival_status ?? r.arrivalStatus,
@@ -338,7 +343,7 @@ const createReservation = async (data: {
     restaurantId: r.restaurant_id ?? r.restaurantId,
     restaurantName: r.restaurant_name ?? r.restaurantName,
     reservationDate: r.reservation_date ?? r.reservationDate,
-    reservationTime: r.reservation_time ?? r.reservationTime,
+    reservationTime: sliceTime(r.reservation_time ?? r.reservationTime),
     partySize: r.party_size ?? r.partySize,
     status: r.status,
     arrivalStatus: r.arrival_status ?? r.arrivalStatus,
@@ -494,6 +499,51 @@ const refundPayment = async (
   return response.data.data ?? response.data;
 };
 
+// ---------- Reviews ----------
+
+export interface RestaurantReview {
+  id: string;
+  userName: string;
+  rating: number;
+  tasteRating: number;
+  serviceRating: number;
+  ambianceRating: number;
+  content: string;
+  reply?: string;
+  repliedAt?: string;
+  createdAt: string;
+}
+
+const mapReview = (r: any): RestaurantReview => ({
+  id: r.id,
+  userName: r.reviewer_name ?? r.user_name ?? r.userName ?? '익명',
+  rating: r.overall_rating ?? r.rating ?? 0,
+  tasteRating: r.taste_rating ?? r.tasteRating ?? 0,
+  serviceRating: r.service_rating ?? r.serviceRating ?? 0,
+  ambianceRating: r.ambiance_rating ?? r.ambianceRating ?? 0,
+  content: r.content ?? '',
+  reply: r.reply,
+  repliedAt: r.replied_at ?? r.repliedAt,
+  createdAt: r.created_at ?? r.createdAt ?? '',
+});
+
+const getRestaurantReviews = async (
+  restaurantId: string,
+  page: number = 1,
+  limit: number = 10,
+): Promise<{ reviews: RestaurantReview[]; total: number }> => {
+  const response = await apiClient.get(
+    `/reviews/restaurant/${restaurantId}`,
+    { params: { page, limit } },
+  );
+  const data = response.data.data ?? response.data;
+  const reviews = (data.reviews || []).map(mapReview);
+  return {
+    reviews,
+    total: data.pagination?.total ?? reviews.length,
+  };
+};
+
 // ---------- Export ----------
 
 const restaurantApiService = {
@@ -521,6 +571,8 @@ const restaurantApiService = {
   createOrder,
   getOrderById,
   getOrderByReservation,
+  // reviews
+  getRestaurantReviews,
   // payments
   preparePayment,
   verifyPayment,

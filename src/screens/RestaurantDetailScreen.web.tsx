@@ -4,7 +4,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Icon } from '../components/Icon';
 import { COLORS, CSS_SHADOWS, CARD_STYLE, TRANSITIONS, CTA_STYLE } from '../styles/colors';
 import { SPACING, BORDER_RADIUS, HEADER_STYLE } from '../styles/spacing';
-import restaurantApiService, { Restaurant, MenuItem } from '../services/restaurantApiService';
+import restaurantApiService, { Restaurant, MenuItem, RestaurantReview } from '../services/restaurantApiService';
 import useCartStore from '../store/cartStore';
 
 // ============================================================
@@ -13,17 +13,6 @@ import useCartStore from '../store/cartStore';
 
 type TabType = 'menu' | 'info' | 'review';
 
-interface Review {
-  id: string;
-  userName: string;
-  rating: number;
-  tasteRating?: number;
-  serviceRating?: number;
-  ambianceRating?: number;
-  content: string;
-  createdAt: string;
-}
-
 const RestaurantDetailScreen: React.FC = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
@@ -31,7 +20,7 @@ const RestaurantDetailScreen: React.FC = () => {
 
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
   const [menus, setMenus] = useState<MenuItem[]>([]);
-  const [reviews, setReviews] = useState<Review[]>([]);
+  const [reviews, setReviews] = useState<RestaurantReview[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<TabType>('menu');
   const [favorited, setFavorited] = useState(false);
@@ -46,12 +35,14 @@ const RestaurantDetailScreen: React.FC = () => {
     if (!id) return;
     setLoading(true);
     try {
-      const [rest, menuList] = await Promise.all([
+      const [rest, menuList, reviewData] = await Promise.all([
         restaurantApiService.getRestaurantById(id),
         restaurantApiService.getMenusByRestaurant(id),
+        restaurantApiService.getRestaurantReviews(id).catch(() => ({ reviews: [], total: 0 })),
       ]);
       setRestaurant(rest);
       setMenus(Array.isArray(menuList) ? menuList : []);
+      setReviews(reviewData.reviews);
     } catch {
       // error
     } finally {

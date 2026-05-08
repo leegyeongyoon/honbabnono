@@ -128,7 +128,7 @@ const MyReservationsScreen: React.FC = () => {
             <div style={s.cardMenuSummary}>
               {reservation.order.items
                 .slice(0, 2)
-                .map((item: any) => item.menuName || item.name)
+                .map((item: any) => item.menu_name || item.menuName || item.name)
                 .join(', ')}
               {reservation.order.items.length > 2 && ` 외 ${reservation.order.items.length - 2}개`}
             </div>

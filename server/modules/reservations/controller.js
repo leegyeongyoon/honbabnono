@@ -109,7 +109,24 @@ exports.getMyReservations = async (req, res) => {
              r.status, r.arrival_status, r.special_request, r.qr_code,
              r.checked_in_at, r.created_at,
              rst.id AS restaurant_id, rst.name AS restaurant_name,
-             rst.address AS restaurant_address, rst.image_url AS restaurant_image
+             rst.address AS restaurant_address, rst.image_url AS restaurant_image,
+             (
+               SELECT json_build_object(
+                 'id', o.id,
+                 'total_amount', o.total_amount,
+                 'items', COALESCE(
+                   (SELECT json_agg(json_build_object(
+                     'menu_name', oi.menu_name,
+                     'quantity', oi.quantity,
+                     'unit_price', oi.unit_price
+                   ))
+                   FROM order_items oi WHERE oi.order_id = o.id),
+                   '[]'::json
+                 )
+               )
+               FROM orders o WHERE o.reservation_id = r.id
+               LIMIT 1
+             ) AS "order"
       FROM reservations r
       JOIN restaurants rst ON r.restaurant_id = rst.id
       WHERE r.user_id = $1

@@ -16,7 +16,7 @@ interface ReservationInfo {
   restaurant_id: string;
   restaurant_name: string;
   restaurant_image?: string;
-  reserved_date: string;
+  reservation_date: string;
   party_size: number;
 }
 
@@ -156,7 +156,7 @@ const WriteRestaurantReviewScreen: React.FC = () => {
           <div>
             <p style={styles.restaurantName}>{reservation.restaurant_name || '매장'}</p>
             <p style={styles.metaText}>
-              {reservation.reserved_date} · {reservation.party_size}명
+              {reservation.reservation_date} · {reservation.party_size}명
             </p>
           </div>
         </div>
