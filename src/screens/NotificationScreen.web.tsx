@@ -53,6 +53,8 @@ const getNotificationCategory = (type: string): string => {
       return '포인트 차감';
     case 'point_refund':
       return '포인트 환불';
+    case 'reservation':
+      return '예약';
     case 'system_announcement':
       return '공지사항';
     case 'app_update':
@@ -146,21 +148,34 @@ const NotificationScreen: React.FC<NotificationScreenProps> = ({ navigation, use
         );
       }
 
-      // 알림 타입별로 적절한 화면으로 이동하는 로직
+      // 알림 타입별로 적절한 화면으로 이동
+      const data = typeof notification.data === 'string'
+        ? JSON.parse(notification.data || '{}')
+        : notification.data || {};
+
       switch (notification.type) {
+        case 'reservation':
+          if (data.reservationId) {
+            navigation?.navigate?.('ReservationConfirm', { reservationId: data.reservationId });
+          }
+          break;
         case 'chat_message':
-          // 채팅방으로 이동
+          if (data.meetupId || notification.meetupId) {
+            navigation?.navigate?.('Chat', { meetupId: data.meetupId || notification.meetupId });
+          }
           break;
         case 'meetup_join_request':
         case 'meetup_join_approved':
         case 'meetup_join_rejected':
-          // 해당 모임 상세 화면으로 이동
-          break;
-        case 'direct_chat_request':
-          // 1대1 채팅 요청 화면으로 이동
+        case 'meetup_reminder':
+        case 'meetup_start':
+        case 'meetup_cancelled':
+        case 'meetup_updated':
+          if (data.meetupId || notification.meetupId) {
+            navigation?.navigate?.('MeetupDetail', { meetupId: data.meetupId || notification.meetupId });
+          }
           break;
         default:
-          // 기본 동작
           break;
       }
     } catch (error) {
