@@ -135,7 +135,8 @@ exports.searchRestaurants = async (req, res) => {
 
     if (keyword) {
       params.push(`%${keyword}%`);
-      conditions.push(`(r.name ILIKE $${params.length} OR r.category ILIKE $${params.length})`);
+      const kIdx = params.length;
+      conditions.push(`(r.name ILIKE $${kIdx} OR r.category ILIKE $${kIdx} OR r.description ILIKE $${kIdx} OR r.address ILIKE $${kIdx} OR EXISTS (SELECT 1 FROM menus m WHERE m.restaurant_id = r.id AND m.is_active = true AND (m.name ILIKE $${kIdx} OR m.description ILIKE $${kIdx})))`);
     }
 
     if (category) {
