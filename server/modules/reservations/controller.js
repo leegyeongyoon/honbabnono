@@ -659,7 +659,11 @@ exports.processNoShow = async (req, res) => {
 
     // 1. 소유권 확인
     const reservationResult = await pool.query(
-      'SELECT id, restaurant_id, status FROM reservations WHERE id = $1',
+      `SELECT r.id, r.restaurant_id, r.user_id, r.status,
+              rst.name AS restaurant_name
+       FROM reservations r
+       JOIN restaurants rst ON r.restaurant_id = rst.id
+       WHERE r.id = $1`,
       [id]
     );
 
@@ -689,6 +693,13 @@ exports.processNoShow = async (req, res) => {
        WHERE id = $1`,
       [id]
     );
+
+    // 4. 노쇼 알림 전송
+    createNotification(reservation.user_id, 'reservation',
+      `${reservation.restaurant_name} 노쇼 처리`,
+      '예약 시간에 미방문으로 노쇼 처리되었습니다.',
+      { reservationId: id, restaurantId: reservation.restaurant_id, noshow: true }
+    ).catch(() => {});
 
     res.json({
       success: true,
