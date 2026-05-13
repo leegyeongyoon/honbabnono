@@ -35,10 +35,10 @@ exports.getRestaurants = async (req, res) => {
       countConditions.push(`price_range = $${countParams.length}`);
     }
 
-    // 정렬 기준
+    // 정렬 기준 — r.* 와 AVG() 별칭이 동일 이름(avg_rating)이라 ORDER BY는 r. 접두사로 명시
     const sortOptions = {
-      rating: 'avg_rating DESC NULLS LAST, review_count DESC',
-      reviews: 'review_count DESC, avg_rating DESC NULLS LAST',
+      rating: 'r.avg_rating DESC NULLS LAST, r.review_count DESC',
+      reviews: 'r.review_count DESC, r.avg_rating DESC NULLS LAST',
       name: 'r.name ASC',
       newest: 'r.created_at DESC',
     };
@@ -169,8 +169,8 @@ exports.searchRestaurants = async (req, res) => {
     }
 
     const sortOptions = {
-      rating: 'avg_rating DESC NULLS LAST, review_count DESC',
-      reviews: 'review_count DESC',
+      rating: 'r.avg_rating DESC NULLS LAST, r.review_count DESC',
+      reviews: 'r.review_count DESC',
       name: 'r.name ASC',
       newest: 'r.created_at DESC',
     };
