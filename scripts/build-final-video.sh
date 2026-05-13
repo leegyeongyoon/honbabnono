@@ -67,38 +67,38 @@ echo " Part 1: 스토리 인트로 10장면 (90초)"
 echo "═══════════════════════════════════════════════"
 
 echo "[1/10] 후크 - 이런 경험"
-make_card 8 $BG_DARK "이런 경험, 있으셨죠?" 96 $WHITE "" 0 "" $OUT/s01.mp4
+make_card 6 $BG_DARK "이런 경험, 있으셨죠?" 96 $WHITE "" 0 "" $OUT/s01.mp4
 
 echo "[2/10] 문제1 - 15분 줄 서기"
-make_big_number_card 8 $BG_DARK "15분" $ACCENT_RED "줄 서서 대기" $OUT/s02.mp4
+make_big_number_card 6 $BG_DARK "15분" $ACCENT_RED "줄 서서 대기" $OUT/s02.mp4
 
 echo "[3/10] 문제2 - 10분 메뉴"
-make_big_number_card 8 $BG_DARK "10분" $ACCENT_ORANGE "자리에 앉아 메뉴 고민" $OUT/s03.mp4
+make_big_number_card 6 $BG_DARK "10분" $ACCENT_ORANGE "자리에 앉아 메뉴 고민" $OUT/s03.mp4
 
 echo "[4/10] 문제3 - 20분 음식 대기"
-make_big_number_card 8 $BG_DARK "20분" $ACCENT_YELLOW "주문 후 음식 대기" $OUT/s04.mp4
+make_big_number_card 6 $BG_DARK "20분" $ACCENT_YELLOW "주문 후 음식 대기" $OUT/s04.mp4
 
 echo "[5/10] 인사이트 - 총 45분"
-make_big_number_card 12 $BG_WARM_DARK "45분" $ACCENT_GOLD "식사를 시작하기까지 걸리는 시간" $OUT/s05.mp4
+make_big_number_card 10 $BG_WARM_DARK "45분" $ACCENT_GOLD "식사를 시작하기까지 걸리는 시간" $OUT/s05.mp4
 
 echo "[6/10] 갭 - 예약해도"
-make_card 10 $BG_WARM_DARK "예약하면 자리는 잡혀요" 80 $OFF_WHITE "하지만, 그 뒤로는?" 44 $ACCENT_BEIGE $OUT/s06.mp4
+make_card 7 $BG_WARM_DARK "예약하면 자리는 잡혀요" 80 $OFF_WHITE "하지만, 그 뒤로는?" 44 $ACCENT_BEIGE $OUT/s06.mp4
 
 echo "[7/10] 아이디어 - 예약·메뉴·결제 모두 미리"
-make_card 10 $BG_WARM_DARK "예약, 메뉴 주문, 결제" 80 $OFF_WHITE "집에서 미리, 한 번에 끝낼 수 있다면?" 40 $ACCENT_BEIGE $OUT/s07.mp4
+make_card 7 $BG_WARM_DARK "예약, 메뉴 주문, 결제" 80 $OFF_WHITE "집에서 미리, 한 번에 끝낼 수 있다면?" 40 $ACCENT_BEIGE $OUT/s07.mp4
 
 echo "[8/10] 비전 - 가서 먹기만"
-make_card 10 $BG_BEIGE "가서, 먹기만 하면 된다면?" 80 "#1a1a1a" "도착 즉시 시작되는 식사" 44 "#3a2a1a" $OUT/s08.mp4
+make_card 7 $BG_BEIGE "가서, 먹기만 하면 된다면?" 80 "#1a1a1a" "도착 즉시 시작되는 식사" 44 "#3a2a1a" $OUT/s08.mp4
 
 echo "[9/10] 브랜드 reveal"
-$FFMPEG -y -f lavfi -i "color=c=$BG_BEIGE:s=${WIDTH}x${HEIGHT}:d=8" \
+$FFMPEG -y -f lavfi -i "color=c=$BG_BEIGE:s=${WIDTH}x${HEIGHT}:d=7" \
   -vf "drawtext=fontfile=$FONT:text='잇테이블':fontsize=180:fontcolor=#1a1a1a:x=(w-text_w)/2:y=(h-text_h)/2-60,\
 drawtext=fontfile=$FONT:text='EatTable':fontsize=56:fontcolor=#3a2a1a:x=(w-text_w)/2:y=(h-text_h)/2+100" \
-  -c:v libx264 -preset medium -crf 22 -pix_fmt yuv420p -r 30 -t 8 \
+  -c:v libx264 -preset medium -crf 22 -pix_fmt yuv420p -r 30 -t 7 \
   $OUT/s09.mp4 2>&1 | tail -1
 
 echo "[10/10] 핵심 가치 제안"
-make_card 8 $BG_BEIGE "멀리서 미리 다 끝내고" 68 "#1a1a1a" "가서 바로 먹기만" 56 "#3a2a1a" $OUT/s10.mp4
+make_card 7 $BG_BEIGE "멀리서 미리 다 끝내고" 68 "#1a1a1a" "가서 바로 먹기만" 56 "#3a2a1a" $OUT/s10.mp4
 
 echo ""
 echo "═══════════════════════════════════════════════"
