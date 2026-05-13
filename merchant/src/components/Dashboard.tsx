@@ -18,6 +18,7 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
 import { format } from 'date-fns';
 import apiClient from '../utils/api';
+import { formatReservationTime } from '../utils/formatTime';
 
 interface Reservation {
   id: number;
@@ -110,7 +111,7 @@ const Dashboard: React.FC = () => {
   };
 
   const sortedReservations = [...reservations].sort(
-    (a, b) => new Date(a.reservation_time).getTime() - new Date(b.reservation_time).getTime()
+    (a, b) => (a.reservation_time || '').localeCompare(b.reservation_time || '')
   );
 
   if (loading) {
@@ -218,7 +219,7 @@ const Dashboard: React.FC = () => {
                   </TableHead>
                   <TableBody>
                     {sortedReservations.map((reservation) => {
-                      const time = format(new Date(reservation.reservation_time), 'HH:mm');
+                      const time = formatReservationTime(reservation.reservation_time);
                       const status = statusConfig[reservation.status] || { label: reservation.status, color: 'default' as const };
                       return (
                         <TableRow key={reservation.id} hover>

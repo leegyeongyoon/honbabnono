@@ -200,12 +200,14 @@ const ReservationBoard: React.FC = () => {
     return buttons;
   };
 
-  const formatTime = (iso: string) => {
-    try {
-      return new Date(iso).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
-    } catch {
-      return iso;
+  const formatTime = (value: string | null | undefined): string => {
+    if (!value) return '-';
+    if (typeof value === 'string' && /^\d{2}:\d{2}(:\d{2})?$/.test(value)) {
+      return value.slice(0, 5);
     }
+    const d = new Date(value);
+    if (isNaN(d.getTime())) return '-';
+    return d.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
   };
 
   // ── JSX ──

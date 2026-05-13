@@ -217,7 +217,7 @@ const ReviewManagement: React.FC = () => {
           <Card>
             <CardContent sx={{ textAlign: 'center' }}>
               <StarIcon sx={{ fontSize: 32, color: '#FFD700', mb: 0.5 }} />
-              <Typography variant="h5" sx={{ fontWeight: 700 }}>{stats.avg_rating.toFixed(1)}</Typography>
+              <Typography variant="h5" sx={{ fontWeight: 700 }}>{Number(stats.avg_rating || 0).toFixed(1)}</Typography>
               <Typography variant="caption" color="text.secondary">평균 평점</Typography>
             </CardContent>
           </Card>
@@ -335,7 +335,7 @@ const ReviewManagement: React.FC = () => {
                           variant="body2"
                           sx={{ fontWeight: 600, color: getRatingColor(review.rating) }}
                         >
-                          {review.rating.toFixed(1)}
+                          {Number(review.rating || 0).toFixed(1)}
                         </Typography>
                       </Box>
                     </TableCell>

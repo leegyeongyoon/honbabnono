@@ -2111,7 +2111,6 @@ exports.getReviewsManage = async (req, res) => {
         r.rating,
         r.content,
         r.tags,
-        r.images,
         r.is_anonymous,
         r.created_at,
         r.updated_at,
@@ -2126,7 +2125,7 @@ exports.getReviewsManage = async (req, res) => {
 
     const reviews = reviewsResult.rows.map(row => ({
       ...row,
-      images: typeof row.images === 'string' ? JSON.parse(row.images) : (row.images || []),
+      images: [],
     }));
 
     res.json({
@@ -2151,7 +2150,6 @@ exports.getReceivedReviews = async (req, res) => {
         r.rating,
         r.content as comment,
         r.tags,
-        r.images,
         r.is_anonymous,
         r.reply,
         r.reply_at,
@@ -2174,7 +2172,7 @@ exports.getReceivedReviews = async (req, res) => {
 
     const reviews = reviewsResult.rows.map(row => ({
       ...row,
-      images: typeof row.images === 'string' ? JSON.parse(row.images) : (row.images || []),
+      images: [],
       can_reply: row.host_id === userId && !row.reply,
     }));
 
