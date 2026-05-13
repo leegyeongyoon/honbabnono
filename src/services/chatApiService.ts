@@ -25,7 +25,10 @@ export interface ChatMessage {
   isMe: boolean;
   isRead: boolean;
   profileImage?: string;
-  riceIndex?: number;
+  riceIndex?: {
+    calculatedIndex: number;
+    level: { emoji: string; label: string };
+  };
 }
 
 export interface SendMessageRequest {

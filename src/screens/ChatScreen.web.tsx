@@ -209,11 +209,15 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation }) => {
   const checkDirectChatPermission = async (targetUserId: string) => {
     try {
       const meetupId = currentChatRoom?.meetupId;
-      const response = await fetch(`${chatApiService.baseURL}/check-direct-chat-permission?currentUserId=${userId}&targetUserId=${targetUserId}&meetupId=${meetupId || ''}`);
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${chatApiService.baseURL}/check-direct-chat-permission?currentUserId=${userId}&targetUserId=${targetUserId}&meetupId=${meetupId || ''}`, {
+        headers: {
+          'Authorization': token ? `Bearer ${token}` : '',
+        },
+      });
       const data = await response.json();
       return data.data || { allowed: false };
-    } catch (error) {
-      // silently handle error
+    } catch {
       return { allowed: false };
     }
   };
@@ -375,19 +379,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation }) => {
       ));
 
       // 채팅방 읽음 처리 API 호출 (즉시 배지 제거)
-      try {
-        const response = await fetch(`${chatApiService.baseURL}/rooms/${roomId}/read`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
-            'Content-Type': 'application/json'
-          }
-        });
-
-        // silently handle read status
-      } catch (error) {
-        // silently handle error
-      }
+      chatApiService.markAsRead(roomId).catch(() => {});
 
     } catch (error) {
       // silently handle error
@@ -776,7 +768,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation }) => {
 
       {/* Figma FAB 추가 버튼 */}
       <button
-        onClick={() => navigate('/create')}
+        onClick={() => navigate('/search-restaurants')}
         style={{
           position: 'fixed',
           bottom: 103,
@@ -794,7 +786,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation }) => {
           transition: `transform ${TRANSITIONS.fast}`,
           zIndex: 20,
         }}
-        aria-label="새 채팅"
+        aria-label="매장 검색"
       >
         <Icon name="plus" size={28} color={COLORS.text.white} />
       </button>
