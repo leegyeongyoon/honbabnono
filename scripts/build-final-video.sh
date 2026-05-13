@@ -1,13 +1,11 @@
 #!/bin/bash
-# 잇테이블 v2 최종 영상 빌더 (약 4분)
+# 잇테이블 v3 영상 빌더 — 30분 분해 + 25분 절약 가설
 #
 # 구조:
-#   Part 1 (0:00 ~ 1:30): 스토리 인트로 10장면 — Why we built EatTable
-#   Part 2 (1:30 ~ 1:34): 전환 카드 "이렇게 작동합니다"
-#   Part 3 (1:34 ~ 3:30): 시연 데모 4시나리오 (고객/점주/관리자/신규점주)
-#   Part 4 (3:30 ~ 4:00): 클로징
-#
-# 산출물: /tmp/demo-videos/combined/eattable-demo-v2.mp4
+#   Part 1 (0:00 ~ 1:22): 스토리 12장면 — 30분 단계별 분해 → 25분 절약
+#   Part 2 (1:22 ~ 1:26): 전환 카드
+#   Part 3 (1:26 ~ 3:22): 시연 데모 4시나리오
+#   Part 4 (3:22 ~ 3:52): 클로징
 
 set -e
 
@@ -21,162 +19,152 @@ FONT=/System/Library/Fonts/AppleSDGothicNeo.ttc
 WIDTH=1920
 HEIGHT=1080
 
-# 색상 팔레트 (잇테이블 베이지 시스템)
 BG_DARK="0x1a1a1a"
 BG_WARM_DARK="0x2a2018"
 BG_BEIGE="0xC4A08A"
-BG_BEIGE_LIGHT="0xE8D4C2"
 ACCENT_RED="#E84A5F"
 ACCENT_ORANGE="#FF8C42"
 ACCENT_YELLOW="#F4C95D"
 ACCENT_BEIGE="#C4A08A"
 ACCENT_GOLD="#D4A574"
+ACCENT_GREEN="#5BBA6F"
 WHITE="white"
 OFF_WHITE="#F4E4D7"
 
-# 카드 1개 생성 함수
-# args: duration | bg_hex | main_text | main_size | main_color | sub_text | sub_size | sub_color | output
 make_card() {
   local dur=$1 bg=$2 main="$3" main_size=$4 main_color=$5 sub="$6" sub_size=$7 sub_color=$8 out=$9
-
   local filters="drawtext=fontfile=$FONT:text='$main':fontsize=$main_size:fontcolor=$main_color:x=(w-text_w)/2:y=(h-text_h)/2-30"
-
   if [ -n "$sub" ]; then
     filters="$filters,drawtext=fontfile=$FONT:text='$sub':fontsize=$sub_size:fontcolor=$sub_color:x=(w-text_w)/2:y=(h-text_h)/2+90"
   fi
-
   $FFMPEG -y -f lavfi -i "color=c=$bg:s=${WIDTH}x${HEIGHT}:d=$dur" \
     -vf "$filters" \
     -c:v libx264 -preset medium -crf 22 -pix_fmt yuv420p -r 30 -t $dur \
     $out 2>&1 | tail -1
 }
 
-# 큰 숫자 강조 카드 (숫자가 매우 크고, 아래 라벨)
-make_big_number_card() {
-  local dur=$1 bg=$2 number="$3" number_color=$4 label="$5" out=$6
-
+# 큰 숫자 + 라벨 (단계 카드)
+make_step_card() {
+  local dur=$1 bg=$2 step_num="$3" step_label="$4" minutes="$5" min_color=$6 out=$7
   $FFMPEG -y -f lavfi -i "color=c=$bg:s=${WIDTH}x${HEIGHT}:d=$dur" \
-    -vf "drawtext=fontfile=$FONT:text='$number':fontsize=320:fontcolor=$number_color:x=(w-text_w)/2:y=(h-text_h)/2-100,\
-drawtext=fontfile=$FONT:text='$label':fontsize=48:fontcolor=$WHITE:x=(w-text_w)/2:y=(h-text_h)/2+200" \
+    -vf "drawtext=fontfile=$FONT:text='$step_num':fontsize=44:fontcolor=$ACCENT_BEIGE:x=(w-text_w)/2:y=(h-text_h)/2-260,\
+drawtext=fontfile=$FONT:text='$step_label':fontsize=80:fontcolor=$WHITE:x=(w-text_w)/2:y=(h-text_h)/2-160,\
+drawtext=fontfile=$FONT:text='$minutes':fontsize=240:fontcolor=$min_color:x=(w-text_w)/2:y=(h-text_h)/2+50" \
     -c:v libx264 -preset medium -crf 22 -pix_fmt yuv420p -r 30 -t $dur \
     $out 2>&1 | tail -1
 }
 
 echo "═══════════════════════════════════════════════"
-echo " Part 1: 스토리 인트로 10장면 (90초)"
+echo " Part 1: 스토리 12장면 (82초)"
 echo "═══════════════════════════════════════════════"
 
-echo "[1/10] 후크 - 이런 경험"
-make_card 6 $BG_DARK "이런 경험, 있으셨죠?" 96 $WHITE "" 0 "" $OUT/s01.mp4
+echo "[1/12] 후크"
+make_card 6 $BG_DARK "외식 한 끼, 시작하기까지" 84 $WHITE "얼마나 걸릴까요?" 48 $ACCENT_BEIGE $OUT/s01.mp4
 
-echo "[2/10] 문제1 - 15분 줄 서기"
-make_big_number_card 6 $BG_DARK "15분" $ACCENT_RED "줄 서서 대기" $OUT/s02.mp4
+echo "[2/12] 단계 ① 줄 서기 8분"
+make_step_card 6 $BG_DARK "STEP 1" "줄 서기 · 자리 안내" "8분" $ACCENT_YELLOW $OUT/s02.mp4
 
-echo "[3/10] 문제2 - 10분 메뉴"
-make_big_number_card 6 $BG_DARK "10분" $ACCENT_ORANGE "자리에 앉아 메뉴 고민" $OUT/s03.mp4
+echo "[3/12] 단계 ② 메뉴 고민 5분"
+make_step_card 6 $BG_DARK "STEP 2" "메뉴 고민" "5분" $ACCENT_ORANGE $OUT/s03.mp4
 
-echo "[4/10] 문제3 - 20분 음식 대기"
-make_big_number_card 6 $BG_DARK "20분" $ACCENT_YELLOW "주문 후 음식 대기" $OUT/s04.mp4
+echo "[4/12] 단계 ③ 주문/결제 5분"
+make_step_card 6 $BG_DARK "STEP 3" "주문 · 결제" "5분" $ACCENT_ORANGE $OUT/s04.mp4
 
-echo "[5/10] 인사이트 - 총 45분"
-make_big_number_card 10 $BG_WARM_DARK "45분" $ACCENT_GOLD "식사를 시작하기까지 걸리는 시간" $OUT/s05.mp4
+echo "[5/12] 단계 ④ 음식 대기 12분"
+make_step_card 6 $BG_DARK "STEP 4" "음식 나오기" "12분" $ACCENT_RED $OUT/s05.mp4
 
-echo "[6/10] 갭 - 예약해도"
-make_card 7 $BG_WARM_DARK "예약하면 자리는 잡혀요" 80 $OFF_WHITE "하지만, 그 뒤로는?" 44 $ACCENT_BEIGE $OUT/s06.mp4
+echo "[6/12] 인사이트 - 합계 30분"
+$FFMPEG -y -f lavfi -i "color=c=$BG_WARM_DARK:s=${WIDTH}x${HEIGHT}:d=9" \
+  -vf "drawtext=fontfile=$FONT:text='총':fontsize=56:fontcolor=$OFF_WHITE:x=(w-text_w)/2:y=(h-text_h)/2-280,\
+drawtext=fontfile=$FONT:text='30분':fontsize=320:fontcolor=$ACCENT_GOLD:x=(w-text_w)/2:y=(h-text_h)/2-50,\
+drawtext=fontfile=$FONT:text='식사를 시작하기까지':fontsize=48:fontcolor=$WHITE:x=(w-text_w)/2:y=(h-text_h)/2+220" \
+  -c:v libx264 -preset medium -crf 22 -pix_fmt yuv420p -r 30 -t 9 \
+  $OUT/s06.mp4 2>&1 | tail -1
 
-echo "[7/10] 아이디어 - 예약·메뉴·결제 모두 미리"
-make_card 7 $BG_WARM_DARK "예약, 메뉴 주문, 결제" 80 $OFF_WHITE "집에서 미리, 한 번에 끝낼 수 있다면?" 40 $ACCENT_BEIGE $OUT/s07.mp4
+echo "[7/12] 전환 가설"
+make_card 7 $BG_WARM_DARK "잇테이블로 바꾸면?" 80 $OFF_WHITE "단계별 시간을 줄여봅니다" 40 $ACCENT_BEIGE $OUT/s07.mp4
 
-echo "[8/10] 비전 - 가서 먹기만"
-make_card 7 $BG_BEIGE "가서, 먹기만 하면 된다면?" 80 "#1a1a1a" "도착 즉시 시작되는 식사" 44 "#3a2a1a" $OUT/s08.mp4
+echo "[8/12] 절약 ① 예약·메뉴·결제 0분"
+$FFMPEG -y -f lavfi -i "color=c=$BG_WARM_DARK:s=${WIDTH}x${HEIGHT}:d=7" \
+  -vf "drawtext=fontfile=$FONT:text='예약 · 메뉴 · 결제':fontsize=68:fontcolor=$OFF_WHITE:x=(w-text_w)/2:y=(h-text_h)/2-170,\
+drawtext=fontfile=$FONT:text='집에서 미리, 모두 끝':fontsize=40:fontcolor=$ACCENT_BEIGE:x=(w-text_w)/2:y=(h-text_h)/2-60,\
+drawtext=fontfile=$FONT:text='→  0분':fontsize=200:fontcolor=$ACCENT_GREEN:x=(w-text_w)/2:y=(h-text_h)/2+120" \
+  -c:v libx264 -preset medium -crf 22 -pix_fmt yuv420p -r 30 -t 7 \
+  $OUT/s08.mp4 2>&1 | tail -1
 
-echo "[9/10] 브랜드 reveal"
+echo "[9/12] 절약 ② 음식 대기 5분"
+$FFMPEG -y -f lavfi -i "color=c=$BG_WARM_DARK:s=${WIDTH}x${HEIGHT}:d=7" \
+  -vf "drawtext=fontfile=$FONT:text='음식 대기':fontsize=68:fontcolor=$OFF_WHITE:x=(w-text_w)/2:y=(h-text_h)/2-170,\
+drawtext=fontfile=$FONT:text='도착 시간에 맞춰 조리 시작':fontsize=40:fontcolor=$ACCENT_BEIGE:x=(w-text_w)/2:y=(h-text_h)/2-60,\
+drawtext=fontfile=$FONT:text='→  약 5분':fontsize=170:fontcolor=$ACCENT_GREEN:x=(w-text_w)/2:y=(h-text_h)/2+130" \
+  -c:v libx264 -preset medium -crf 22 -pix_fmt yuv420p -r 30 -t 7 \
+  $OUT/s09.mp4 2>&1 | tail -1
+
+echo "[10/12] 임팩트 - 25분 절약"
+$FFMPEG -y -f lavfi -i "color=c=$BG_BEIGE:s=${WIDTH}x${HEIGHT}:d=9" \
+  -vf "drawtext=fontfile=$FONT:text='약':fontsize=72:fontcolor=#3a2a1a:x=(w-text_w)/2:y=(h-text_h)/2-280,\
+drawtext=fontfile=$FONT:text='25분':fontsize=340:fontcolor=#1a1a1a:x=(w-text_w)/2:y=(h-text_h)/2-30,\
+drawtext=fontfile=$FONT:text='절약':fontsize=64:fontcolor=$ACCENT_RED:x=(w-text_w)/2:y=(h-text_h)/2+220" \
+  -c:v libx264 -preset medium -crf 22 -pix_fmt yuv420p -r 30 -t 9 \
+  $OUT/s10.mp4 2>&1 | tail -1
+
+echo "[11/12] 브랜드 reveal"
 $FFMPEG -y -f lavfi -i "color=c=$BG_BEIGE:s=${WIDTH}x${HEIGHT}:d=7" \
   -vf "drawtext=fontfile=$FONT:text='잇테이블':fontsize=180:fontcolor=#1a1a1a:x=(w-text_w)/2:y=(h-text_h)/2-60,\
 drawtext=fontfile=$FONT:text='EatTable':fontsize=56:fontcolor=#3a2a1a:x=(w-text_w)/2:y=(h-text_h)/2+100" \
   -c:v libx264 -preset medium -crf 22 -pix_fmt yuv420p -r 30 -t 7 \
-  $OUT/s09.mp4 2>&1 | tail -1
+  $OUT/s11.mp4 2>&1 | tail -1
 
-echo "[10/10] 핵심 가치 제안"
-make_card 7 $BG_BEIGE "멀리서 미리 다 끝내고" 68 "#1a1a1a" "가서 바로 먹기만" 56 "#3a2a1a" $OUT/s10.mp4
+echo "[12/12] 가치 제안"
+make_card 7 $BG_BEIGE "멀리서 미리 다 끝내고" 68 "#1a1a1a" "가서 바로 먹기만" 56 "#3a2a1a" $OUT/s12.mp4
 
 echo ""
 echo "═══════════════════════════════════════════════"
-echo " Part 2: 시연 전환 카드 (4초)"
+echo " Part 2: 전환 카드 (4초)"
 echo "═══════════════════════════════════════════════"
 make_card 4 $BG_WARM_DARK "이렇게 작동합니다" 80 $OFF_WHITE "고객 · 점주 · 관리자 시점" 40 $ACCENT_BEIGE $OUT/transition.mp4
 
 echo ""
 echo "═══════════════════════════════════════════════"
-echo " Part 3: 시연 데모 4시나리오"
+echo " Part 3: 시연 데모"
 echo "═══════════════════════════════════════════════"
 
 normalize() {
-  local input="$1"
-  local out="$2"
-  $FFMPEG -y -i "$input" \
+  $FFMPEG -y -i "$1" \
     -vf "scale=$WIDTH:$HEIGHT:force_original_aspect_ratio=decrease,pad=$WIDTH:$HEIGHT:(ow-iw)/2:(oh-ih)/2:color=$BG_DARK,setsar=1,fps=30" \
     -c:v libx264 -preset medium -crf 22 -pix_fmt yuv420p \
-    -an "$out" 2>&1 | tail -1
+    -an "$2" 2>&1 | tail -1
 }
 
-# 시나리오 라벨 카드 + 정규화된 영상 페어
 make_section() {
-  local label_text="$1"
-  local sub_text="$2"
-  local src_mp4="$3"
-  local label_out="$4"
-  local video_out="$5"
-
+  local label="$1" sub="$2" src_mp4="$3" label_out="$4" video_out="$5"
   $FFMPEG -y -f lavfi -i "color=c=$BG_DARK:s=${WIDTH}x${HEIGHT}:d=2.5" \
-    -vf "drawtext=fontfile=$FONT:text='$label_text':fontsize=100:fontcolor=$WHITE:x=(w-text_w)/2:y=(h-text_h)/2-40,\
-drawtext=fontfile=$FONT:text='$sub_text':fontsize=40:fontcolor=$ACCENT_BEIGE:x=(w-text_w)/2:y=(h-text_h)/2+80" \
+    -vf "drawtext=fontfile=$FONT:text='$label':fontsize=100:fontcolor=$WHITE:x=(w-text_w)/2:y=(h-text_h)/2-40,\
+drawtext=fontfile=$FONT:text='$sub':fontsize=40:fontcolor=$ACCENT_BEIGE:x=(w-text_w)/2:y=(h-text_h)/2+80" \
     -c:v libx264 -preset medium -crf 22 -pix_fmt yuv420p -r 30 -t 2.5 \
     $label_out 2>&1 | tail -1
-
   normalize "$src_mp4" "$video_out"
 }
 
-echo "[1/4] 고객"
-make_section "고객" "검색 → 메뉴 → 예약 → 결제" \
-  $SRC/customer-reservation/customer-reservation.mp4 \
-  $OUT/d1-label.mp4 $OUT/d1-video.mp4
-
-echo "[2/4] 점주"
-make_section "점주" "예약 보드 · 메뉴 관리 · 정산" \
-  $SRC/merchant-pos/merchant-pos.mp4 \
-  $OUT/d2-label.mp4 $OUT/d2-video.mp4
-
-echo "[3/4] 관리자"
-make_section "관리자" "점주 검토 · 매장 승인" \
-  $SRC/admin-approval/admin-approval.mp4 \
-  $OUT/d3-label.mp4 $OUT/d3-video.mp4
-
-echo "[4/4] 신규 점주"
-make_section "신규 점주" "가입 → 사업자 등록" \
-  $SRC/merchant-onboarding/merchant-onboarding.mp4 \
-  $OUT/d4-label.mp4 $OUT/d4-video.mp4
+make_section "고객" "검색 → 메뉴 → 예약 → 결제" $SRC/customer-reservation/customer-reservation.mp4 $OUT/d1-label.mp4 $OUT/d1-video.mp4
+make_section "점주" "예약 보드 · 메뉴 관리 · 정산" $SRC/merchant-pos/merchant-pos.mp4 $OUT/d2-label.mp4 $OUT/d2-video.mp4
+make_section "관리자" "점주 검토 · 매장 승인" $SRC/admin-approval/admin-approval.mp4 $OUT/d3-label.mp4 $OUT/d3-video.mp4
+make_section "신규 점주" "가입 → 사업자 등록" $SRC/merchant-onboarding/merchant-onboarding.mp4 $OUT/d4-label.mp4 $OUT/d4-video.mp4
 
 echo ""
 echo "═══════════════════════════════════════════════"
 echo " Part 4: 클로징 (30초)"
 echo "═══════════════════════════════════════════════"
-echo "[1/3] 핵심 메시지"
-make_card 10 $BG_WARM_DARK "멀리서, 예약·주문·결제까지" 64 $OFF_WHITE "도착하면 바로 먹기만" 52 $ACCENT_BEIGE $OUT/c01.mp4
-
-echo "[2/3] 가치 요약"
-make_card 10 $BG_BEIGE "고객에겐 시간을, 매장에겐 효율을" 56 "#1a1a1a" "잇테이블이 만드는 새로운 외식" 36 "#3a2a1a" $OUT/c02.mp4
-
-echo "[3/3] CTA"
+make_card 10 $BG_WARM_DARK "멀리서, 예약·메뉴·결제까지" 64 $OFF_WHITE "도착하면 바로 먹기만" 52 $ACCENT_BEIGE $OUT/c01.mp4
+make_card 10 $BG_BEIGE "고객엔 시간을, 매장엔 효율을" 56 "#1a1a1a" "잇테이블이 만드는 새로운 외식" 36 "#3a2a1a" $OUT/c02.mp4
 $FFMPEG -y -f lavfi -i "color=c=$BG_DARK:s=${WIDTH}x${HEIGHT}:d=10" \
   -vf "drawtext=fontfile=$FONT:text='지금 시작하세요':fontsize=72:fontcolor=$WHITE:x=(w-text_w)/2:y=(h-text_h)/2-100,\
 drawtext=fontfile=$FONT:text='eattable.kr':fontsize=140:fontcolor=$ACCENT_BEIGE:x=(w-text_w)/2:y=(h-text_h)/2+60" \
-  -c:v libx264 -preset medium -crf 22 -pix_fmt yuv420p -r 30 -t 10 \
-  $OUT/c03.mp4 2>&1 | tail -1
+  -c:v libx264 -preset medium -crf 22 -pix_fmt yuv420p -r 30 -t 10 $OUT/c03.mp4 2>&1 | tail -1
 
 echo ""
 echo "═══════════════════════════════════════════════"
-echo " 최종 concat"
+echo " 최종 concat (재인코딩 — 영상 글리치 방지)"
 echo "═══════════════════════════════════════════════"
 cat > $OUT/concat.txt <<EOF
 file '$OUT/s01.mp4'
@@ -189,6 +177,8 @@ file '$OUT/s07.mp4'
 file '$OUT/s08.mp4'
 file '$OUT/s09.mp4'
 file '$OUT/s10.mp4'
+file '$OUT/s11.mp4'
+file '$OUT/s12.mp4'
 file '$OUT/transition.mp4'
 file '$OUT/d1-label.mp4'
 file '$OUT/d1-video.mp4'
@@ -203,10 +193,13 @@ file '$OUT/c02.mp4'
 file '$OUT/c03.mp4'
 EOF
 
-$FFMPEG -y -f concat -safe 0 -i $OUT/concat.txt -c copy $OUT/eattable-demo-v2-mute.mp4 2>&1 | tail -1
+# 재인코딩 concat (-c copy 대신 libx264) — 키프레임/PTS 정렬로 글리치 제거
+$FFMPEG -y -f concat -safe 0 -i $OUT/concat.txt \
+  -c:v libx264 -preset medium -crf 22 -pix_fmt yuv420p -r 30 \
+  $OUT/eattable-demo-v2-mute.mp4 2>&1 | tail -1
 
 DUR=$($FFPROBE -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 $OUT/eattable-demo-v2-mute.mp4)
 echo ""
 echo "✅ v2 무음 영상: $OUT/eattable-demo-v2-mute.mp4"
 ls -lh $OUT/eattable-demo-v2-mute.mp4
-echo "총 길이: $DUR 초 ($(awk -v d=$DUR 'BEGIN{printf "%d:%02d", int(d/60), int(d%60)}'))"
+echo "총 길이: $(awk -v d=$DUR 'BEGIN{printf "%d:%02d", int(d/60), int(d%60)}')"
