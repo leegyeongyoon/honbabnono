@@ -235,6 +235,60 @@ def q4_time_saving():
     print("[6/6] Q4-time-saving.jpg")
 
 
+# ─────────────────────────────────────────────
+# Q3-3: 노쇼 시각화 (예약 카드 + NO SHOW 스탬프)
+# ─────────────────────────────────────────────
+def q3_noshow_scene():
+    img = Image.new("RGB", (W, H), DARK_WARM)
+    d = ImageDraw.Draw(img)
+
+    center_text(d, "예약하셨는데, 손님은 오지 않습니다", 80, 44, OFF_WHITE)
+
+    # 예약 카드 (흰색 카드)
+    cx, cy, cw, ch = 360, 220, 1200, 640
+    # 그림자
+    d.rectangle([cx + 12, cy + 12, cx + cw + 12, cy + ch + 12], fill=(0, 0, 0))
+    # 카드 본체
+    d.rectangle([cx, cy, cx + cw, cy + ch], fill=WHITE)
+    # 카드 헤더 띠
+    d.rectangle([cx, cy, cx + cw, cy + 80], fill=BEIGE)
+    text_at(d, "예약 확정", cx + 40, cy + 22, 36, DARK, bold=True)
+    text_at(d, "오늘 19:00", cx + cw - 220, cy + 22, 36, DARK)
+
+    # 카드 본문
+    text_at(d, "잇테이블 데모 샤브샤브", cx + 50, cy + 120, 44, DARK, bold=True)
+    text_at(d, "강남점 · 4인 테이블", cx + 50, cy + 185, 28, GREY_MID)
+
+    text_at(d, "주문 메뉴", cx + 50, cy + 270, 26, GREY_DARK)
+    text_at(d, "· 한우 샤브샤브 코스 (2인) × 2", cx + 50, cy + 320, 30, DARK)
+    text_at(d, "· 야채 추가 × 2", cx + 50, cy + 365, 30, DARK)
+    text_at(d, "· 칼국수 사리 × 2", cx + 50, cy + 410, 30, DARK)
+
+    text_at(d, "재료 준비 완료", cx + 50, cy + 490, 28, GREEN, bold=True)
+    text_at(d, "예약 시간 19:00 도착 대기 중", cx + 50, cy + 530, 26, GREY_MID)
+
+    # NO SHOW 스탬프 (회전 효과는 PIL에서 별도 레이어로)
+    stamp = Image.new("RGBA", (700, 200), (0, 0, 0, 0))
+    sd = ImageDraw.Draw(stamp)
+    # 빨강 outline 박스
+    sd.rectangle([10, 10, 690, 190], outline=RED, width=10)
+    # NO SHOW 텍스트
+    f_stamp = f(120, True)
+    bbox = sd.textbbox((0, 0), "NO SHOW", font=f_stamp)
+    tw = bbox[2] - bbox[0]
+    sd.text(((700 - tw) // 2, 35), "NO SHOW", font=f_stamp, fill=RED)
+    # 회전
+    rotated = stamp.rotate(-15, expand=True, resample=Image.BICUBIC)
+    img.paste(rotated, (1050, 380), rotated)
+
+    # 하단 결과
+    center_text(d, "이 한 번으로 평균 44만원이 사라집니다", 920, 36, RED, bold=True)
+    center_text(d, "재료 폐기 + 매출 손실 + 다른 손님을 받지 못한 기회비용", 980, 24, GREY_LIGHT)
+
+    img.save(OUT / "Q3-noshow-scene.jpg", quality=92)
+    print("[7/7] Q3-noshow-scene.jpg")
+
+
 if __name__ == "__main__":
     q1_hero()
     q2_market_stats()
@@ -242,4 +296,5 @@ if __name__ == "__main__":
     q3_before_after()
     q4_prototype_collage()
     q4_time_saving()
-    print(f"\n✓ 6장 생성 완료 → {OUT}")
+    q3_noshow_scene()
+    print(f"\n✓ 7장 생성 완료 → {OUT}")
