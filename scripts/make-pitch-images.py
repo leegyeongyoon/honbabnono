@@ -388,6 +388,111 @@ def render_article_card(news_path: str, article_url: str, source_label: str,
     print(f"   ✓ {output}")
 
 
+def q3_chat_flexibility():
+    """선결제 후에도 도착 전 채팅으로 유연하게 메뉴 변경 가능 — 핵심 차별점"""
+    img = Image.new("RGB", (W, H), DARK_WARM)
+    d = ImageDraw.Draw(img)
+    center_text(d, "선결제도 유연하게 — 도착 전 채팅 조정", 50, 44, OFF_WHITE)
+    center_text(d, "메뉴 변경 · 인원 변동 · 알레르기 — 채팅 한 번으로 해결", 110, 26, BEIGE)
+
+    # 좌측: 채팅 인터페이스 (모바일 프레임)
+    phone_x, phone_y = 80, 180
+    phone_w, phone_h = 760, 800
+
+    # 폰 프레임
+    d.rounded_rectangle([phone_x, phone_y, phone_x + phone_w, phone_y + phone_h],
+                        radius=40, fill=(20, 20, 20))
+    # 내부 화면
+    sx, sy = phone_x + 14, phone_y + 14
+    sw, sh = phone_w - 28, phone_h - 28
+    d.rounded_rectangle([sx, sy, sx + sw, sy + sh], radius=30, fill=WHITE)
+
+    # 상단 헤더
+    d.rectangle([sx, sy + 30, sx + sw, sy + 110], fill=BEIGE)
+    text_at(d, "잇테이블 데모 샤브샤브", sx + 30, sy + 50, 26, DARK, bold=True)
+    text_at(d, "● 응답 중", sx + sw - 130, sy + 56, 18, GREEN)
+
+    # 채팅 메시지 (좌/우 번갈아)
+    # [발신자: customer/merchant, 시간, 텍스트]
+    messages = [
+        ("customer", "18:32", "안녕하세요, 오늘 19시\n4인 예약 했는데요"),
+        ("merchant", "18:33", "네 사장입니다 :)\n어떻게 도와드릴까요?"),
+        ("customer", "18:34", "1명 늦게 합류해서\n코스 1개 추가 부탁드려요"),
+        ("merchant", "18:35", "바로 반영했습니다.\n추가 결제도 자동 처리됐어요"),
+        ("customer", "18:35", "감사합니다 :)\n알레르기 한 분 계셔서 새우 빼주세요"),
+        ("merchant", "18:36", "확인했습니다. 안전하게 준비하겠습니다."),
+    ]
+
+    msg_y = sy + 140
+    for sender, time, text in messages:
+        is_customer = sender == "customer"
+        bubble_color = (255, 230, 215) if is_customer else (235, 235, 235)
+        text_color = DARK
+        lines = text.split("\n")
+
+        # 메시지 너비 계산
+        max_line_w = 0
+        for line in lines:
+            bbox = d.textbbox((0, 0), line, font=f(20))
+            max_line_w = max(max_line_w, bbox[2] - bbox[0])
+        bubble_w = max_line_w + 40
+        bubble_h = 30 + len(lines) * 30
+
+        # 정렬
+        if is_customer:
+            bx = sx + sw - 30 - bubble_w
+            tx_time = bx - 50
+        else:
+            bx = sx + 30
+            tx_time = bx + bubble_w + 8
+
+        # 버블
+        d.rounded_rectangle([bx, msg_y, bx + bubble_w, msg_y + bubble_h],
+                            radius=14, fill=bubble_color)
+
+        # 텍스트
+        for i, line in enumerate(lines):
+            text_at(d, line, bx + 20, msg_y + 14 + i * 28, 20, text_color)
+
+        # 시간
+        text_at(d, time, tx_time, msg_y + bubble_h - 28, 14, GREY_MID)
+
+        msg_y += bubble_h + 18
+
+    # 우측: 가치 제안 3개
+    rx, rw = 900, 980
+
+    # 메인 메시지
+    text_at(d, "기존 선결제 시스템의 한계", rx, 200, 32, GREY_LIGHT)
+    text_at(d, "잇테이블의 해법", rx, 290, 44, OFF_WHITE, bold=True)
+    d.rectangle([rx, 350, rx + 60, 356], fill=RED)
+
+    # 3가지 시나리오
+    scenarios = [
+        ("👥", "인원 변동", "1명 늦게 / 1명 빠지는 등 변동을 채팅으로 즉시 반영"),
+        ("🍽", "메뉴 변경 · 알레르기", "조리 시작 전이라면 추가/삭제/교체 자유"),
+        ("⏱", "도착 시간 조율", "늦어질 것 같으면 알림 → 점주가 조리 타이밍 조정"),
+    ]
+
+    for i, (icon, title, desc) in enumerate(scenarios):
+        sy0 = 420 + i * 175
+        # 박스
+        d.rectangle([rx, sy0, rx + rw, sy0 + 155], fill=DARK)
+        # 좌측 강조 바
+        d.rectangle([rx, sy0, rx + 8, sy0 + 155], fill=GREEN)
+        # 제목
+        text_at(d, title, rx + 40, sy0 + 25, 34, OFF_WHITE, bold=True)
+        # 설명 (2줄 분할)
+        text_at(d, desc, rx + 40, sy0 + 85, 22, GREY_LIGHT)
+
+    # 하단 캡션
+    center_text(d, "조리 시작 전 채팅 → 추가 결제·환불 자동 처리 → 매장은 정확한 준비, 고객은 안심", 980, 22, BEIGE)
+
+    img.save(OUT / "Q3-chat-flexibility.jpg", quality=92)
+    print("[Q3 채팅 유연성 카드]")
+    print("   ✓ Q3-chat-flexibility.jpg")
+
+
 def q2_siren_order():
     print("[Q2 사이렌오더 카드]")
     render_article_card(
@@ -428,4 +533,5 @@ if __name__ == "__main__":
     q3_noshow_scene()
     q2_siren_order()
     q2_lunch_shift()
-    print(f"\n✓ 9장 생성 완료 → {OUT}")
+    q3_chat_flexibility()
+    print(f"\n✓ 10장 생성 완료 → {OUT}")
