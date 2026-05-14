@@ -30,6 +30,16 @@ const ARTICLES = [
     url: 'https://www.sedaily.com/NewsView/2K74UN4HFM',
     waitFor: 'h1, .article_head, .title',
   },
+  {
+    name: 'herald-siren-order',
+    url: 'https://biz.heraldcorp.com/article/10658035',
+    waitFor: 'h1, .article-title, [class*=title]',
+  },
+  {
+    name: 'khan-lunch-shift',
+    url: 'https://www.khan.co.kr/article/202401120730001',
+    waitFor: 'h1, .art_subject, [class*=title]',
+  },
 ];
 
 (async () => {
@@ -83,8 +93,8 @@ const ARTICLES = [
         const elem = page.locator(sel).first();
         if (await elem.isVisible().catch(() => false)) {
           const box = await elem.boundingBox().catch(() => null);
-          if (box && box.height > 200) {
-            // 본문 컨테이너 시작 ~ 본문 컨테이너 시작 + 1200px (헤드라인 + lead + body)
+          // 충분히 wide + tall할 때만 (좁거나 짧으면 헤드라인/본문 잘림)
+          if (box && box.height > 600 && box.width >= 800) {
             await page.screenshot({
               path: path.join(OUT, `${a.name}.png`),
               clip: {
@@ -101,16 +111,17 @@ const ARTICLES = [
         }
       }
 
-      // 폴백: 전체 페이지 헤드라인 기준
+      // 폴백: 헤드라인(h1) 위치를 찾고 wider clip 캡처
       if (!captured) {
         const h1 = page.locator('h1').first();
         const box = await h1.boundingBox().catch(() => null);
-        const startY = box ? Math.max(0, box.y - 20) : 0;
+        const startY = box ? Math.max(0, box.y - 30) : 0;
+        const startX = box ? Math.max(0, box.x - 30) : 0;
         await page.screenshot({
           path: path.join(OUT, `${a.name}.png`),
-          clip: { x: 0, y: startY, width: 1100, height: 1100 },
+          clip: { x: startX, y: startY, width: 1200, height: 1100 },
         });
-        console.log(`   ✓ ${a.name}.png (fallback)`);
+        console.log(`   ✓ ${a.name}.png (h1-based clip y=${startY})`);
       }
     } catch (e: any) {
       console.error(`   ✗ ${a.name}: ${e.message?.slice(0, 100)}`);

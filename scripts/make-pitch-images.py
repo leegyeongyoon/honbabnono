@@ -335,6 +335,89 @@ def q3_noshow_scene():
     print("[7/7] Q3-noshow-scene.jpg")
 
 
+def render_article_card(news_path: str, article_url: str, source_label: str,
+                         right_stats: list, title: str, output: str):
+    """좌측 기사 임베드 카드 + 우측 통계 강조 박스 공통 레이아웃
+
+    right_stats: [(label, big_value, sub_text), ...] 최대 2개
+    """
+    img = Image.new("RGB", (W, H), DARK_WARM)
+    d = ImageDraw.Draw(img)
+    center_text(d, title, 40, 40, OFF_WHITE)
+
+    # 좌측 카드
+    card_x, card_y = 50, 120
+    card_w, card_h = 1100, 940
+    d.rectangle([card_x, card_y, card_x + card_w, card_y + card_h], fill=WHITE)
+    d.rectangle([card_x, card_y, card_x + card_w, card_y + 70], fill=BEIGE)
+    text_at(d, source_label, card_x + 24, card_y + 20, 28, DARK, bold=True)
+    text_at(d, "기사 원문 ↗", card_x + card_w - 180, card_y + 22, 24, BROWN_DARK, bold=True)
+
+    if Path(news_path).exists():
+        news = Image.open(news_path)
+        avail_h = card_h - 70 - 110
+        avail_w = card_w - 40
+        ratio = min(avail_w / news.width, avail_h / news.height)
+        new_w = int(news.width * ratio)
+        new_h = int(news.height * ratio)
+        resized = news.resize((new_w, new_h), Image.LANCZOS)
+        px = card_x + (card_w - new_w) // 2
+        py = card_y + 80
+        img.paste(resized, (px, py))
+
+        url_y = card_y + card_h - 90
+        d.rectangle([card_x + 20, url_y, card_x + card_w - 20, url_y + 70], fill=(245, 240, 235))
+        text_at(d, "원문 URL", card_x + 36, url_y + 8, 18, GREY_DARK)
+        text_at(d, article_url, card_x + 36, url_y + 32, 22, DARK, bold=True)
+    else:
+        text_at(d, "(news capture missing)", card_x + 50, card_y + 400, 32, GREY_MID)
+
+    # 우측: 통계 박스들
+    rx, rw = 1190, 690
+    box_height = (940 - 30 * (len(right_stats) - 1)) // len(right_stats) if right_stats else 940
+    for i, (label, big, sub) in enumerate(right_stats):
+        y0 = 120 + i * (box_height + 30)
+        d.rectangle([rx, y0, rx + rw, y0 + box_height], fill=DARK)
+        text_at(d, label, rx + 40, y0 + 40, 30, GREY_LIGHT)
+        # 큰 숫자 크기 조정 (글자 수에 따라)
+        big_size = 200 if len(big) <= 4 else 150
+        text_at(d, big, rx + 40, y0 + 100, big_size, RED, bold=True)
+        text_at(d, sub, rx + 40, y0 + box_height - 60, 24, OFF_WHITE)
+
+    img.save(OUT / output, quality=92)
+    print(f"   ✓ {output}")
+
+
+def q2_siren_order():
+    print("[Q2 사이렌오더 카드]")
+    render_article_card(
+        news_path="/tmp/news-screenshots/herald-siren-order.png",
+        article_url="biz.heraldcorp.com/article/10658035",
+        source_label="헤럴드경제 · 2026.01.19",
+        title="레퍼런스 — 음료는 이미 선결제가 일상",
+        right_stats=[
+            ("사이렌오더 결제 비중", "40%", "2019 (20%) → 2025 (40%)"),
+            ("누적 주문 건수", "7억건", "50대 절반 / 60대 1/3 이용"),
+        ],
+        output="Q2-siren-order.jpg",
+    )
+
+
+def q2_lunch_shift():
+    print("[Q2 점심시간 변화 카드]")
+    render_article_card(
+        news_path="/tmp/news-screenshots/khan-lunch-shift.png",
+        article_url="khan.co.kr/article/202401120730001",
+        source_label="경향신문 · 2024.01.12",
+        title="직장인의 식사 시간이 점점 빨라집니다",
+        right_stats=[
+            ("점심 카드 결제 피크", "12:10대", "12:40대 → 12:10대 (30분 이동)"),
+            ("11시 30분", "만석", "강남·여의도 식당 줄 서기 시작"),
+        ],
+        output="Q2-lunch-shift.jpg",
+    )
+
+
 if __name__ == "__main__":
     q1_hero()
     q2_market_stats()
@@ -343,4 +426,6 @@ if __name__ == "__main__":
     q4_prototype_collage()
     q4_time_saving()
     q3_noshow_scene()
-    print(f"\n✓ 7장 생성 완료 → {OUT}")
+    q2_siren_order()
+    q2_lunch_shift()
+    print(f"\n✓ 9장 생성 완료 → {OUT}")
