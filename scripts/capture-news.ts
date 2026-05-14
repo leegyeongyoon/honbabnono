@@ -47,37 +47,71 @@ const ARTICLES = [
       await page.goto(a.url, { waitUntil: 'domcontentloaded', timeout: 20000 });
       await page.waitForTimeout(3000);
 
-      // 광고/마케팅 div 숨기기 (시각적 깔끔하게)
+      // 광고/네비/사이드바 숨기기 → 기사 본문 영역만 깨끗하게
       await page.evaluate(() => {
         const selectors = [
           '.banner', '.ad', '[class*="advertisement"]', '[class*="ad-"]',
           '[id*="banner"]', '[id*="googima"]', 'iframe[src*="ads"]',
           '.subscribe', '[class*="subscribe"]',
+          // 사이드바 / 인기뉴스
+          'aside', '[class*="sidebar"]', '[class*="popular"]', '[class*="rank"]',
+          '[class*="recommend"]', '[class*="related"]', '.r-content',
+          // 상단 글로벌 네비 (사이트 헤더)
+          'header', '[class*="gnb"]', '[class*="header-"]', '[class*="topbar"]',
+          // 카테고리/서브메뉴
+          '[class*="category-nav"]', '.category', 'nav',
         ];
-        selectors.forEach(sel => document.querySelectorAll(sel).forEach(el => (el as HTMLElement).style.display = 'none'));
+        selectors.forEach(sel => document.querySelectorAll(sel).forEach(el => {
+          (el as HTMLElement).style.display = 'none';
+        }));
       }).catch(() => null);
+      await page.waitForTimeout(1000);
 
-      // 기사 헤드라인 요소 찾기
-      const headlineSelectors = ['h1', '.article_head .title', '.headline', '[class*=article-title]', '[class*=title]'];
-      let headlineY = 0;
-      for (const sel of headlineSelectors) {
-        const elem = await page.locator(sel).first();
+      // 기사 본문 컨테이너 찾아 그것만 스크린샷
+      const bodySelectors = [
+        'article',
+        '#articletxt',
+        '.article-body',
+        '[class*="article-cont"]',
+        '[class*="article_body"]',
+        '[class*="article-view"]',
+        'main',
+      ];
+
+      let captured = false;
+      for (const sel of bodySelectors) {
+        const elem = page.locator(sel).first();
         if (await elem.isVisible().catch(() => false)) {
           const box = await elem.boundingBox().catch(() => null);
-          if (box && box.y > 0) {
-            headlineY = box.y;
+          if (box && box.height > 200) {
+            // 본문 컨테이너 시작 ~ 본문 컨테이너 시작 + 1200px (헤드라인 + lead + body)
+            await page.screenshot({
+              path: path.join(OUT, `${a.name}.png`),
+              clip: {
+                x: Math.max(0, box.x - 20),
+                y: Math.max(0, box.y - 10),
+                width: Math.min(1280, box.width + 40),
+                height: Math.min(1200, box.height),
+              },
+            });
+            console.log(`   ✓ ${a.name}.png (${sel} ${Math.round(box.width)}×${Math.round(box.height)})`);
+            captured = true;
             break;
           }
         }
       }
 
-      // 헤드라인부터 본문 일부까지 (헤드라인 시작점 - 30px 부터 1100px 높이)
-      const startY = Math.max(0, headlineY - 30);
-      await page.screenshot({
-        path: path.join(OUT, `${a.name}.png`),
-        clip: { x: 0, y: startY, width: 1280, height: 1100 },
-      });
-      console.log(`   ✓ ${a.name}.png (headline y=${headlineY})`);
+      // 폴백: 전체 페이지 헤드라인 기준
+      if (!captured) {
+        const h1 = page.locator('h1').first();
+        const box = await h1.boundingBox().catch(() => null);
+        const startY = box ? Math.max(0, box.y - 20) : 0;
+        await page.screenshot({
+          path: path.join(OUT, `${a.name}.png`),
+          clip: { x: 0, y: startY, width: 1100, height: 1100 },
+        });
+        console.log(`   ✓ ${a.name}.png (fallback)`);
+      }
     } catch (e: any) {
       console.error(`   ✗ ${a.name}: ${e.message?.slice(0, 100)}`);
     }

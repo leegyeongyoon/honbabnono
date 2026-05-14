@@ -94,59 +94,71 @@ def q2_market_stats():
 def q3_noshow_stats():
     img = Image.new("RGB", (W, H), DARK_WARM)
     d = ImageDraw.Draw(img)
-    center_text(d, "외식업 점주가 마주하는 현실", 50, 44, OFF_WHITE)
+    center_text(d, "외식업 점주가 마주하는 현실", 40, 40, OFF_WHITE)
 
-    # 좌측: 한국경제 기사 캡처 (헤드라인 + 본문 + 사진)
+    # 좌측 카드 (기사 본문 임베드)
     news_path = "/tmp/news-screenshots/hankyung-noshow-44.png"
-    card_x, card_y = 60, 150
-    card_w, card_h = 1080, 880
+    article_url = "hankyung.com/article/2026010165597"
+    card_x, card_y = 50, 120
+    card_w, card_h = 1100, 940
+
+    # 카드 배경
+    d.rectangle([card_x, card_y, card_x + card_w, card_y + card_h], fill=WHITE)
+    # 카드 헤더 (베이지)
+    d.rectangle([card_x, card_y, card_x + card_w, card_y + 70], fill=BEIGE)
+    text_at(d, "한국경제 · 2026.01.01", card_x + 24, card_y + 20, 28, DARK, bold=True)
+    text_at(d, "기사 원문 ↗", card_x + card_w - 180, card_y + 22, 24, BROWN_DARK, bold=True)
 
     if Path(news_path).exists():
         news = Image.open(news_path)
-        # 사이드바 제거: 좌측 70%만 사용 (x: 0~896)
-        body_only = news.crop((0, 0, 896, news.height))
-        # 카드 너비에 맞춰 리사이즈
-        target_w = card_w - 40
-        ratio = target_w / body_only.width
-        target_h = int(body_only.height * ratio)
-        body_only = body_only.resize((target_w, target_h), Image.LANCZOS)
+        # 카드에 충분히 들어갈 높이로 리사이즈 (header 70 + footer 100 = 170 차감)
+        avail_h = card_h - 70 - 110  # 헤더 + URL/캡션 영역 확보
+        avail_w = card_w - 40
 
-        # 카드 영역에 들어갈 높이로 추가 크롭
-        max_h = card_h - 100  # 헤더 + 푸터 공간 제외
-        if body_only.height > max_h:
-            body_only = body_only.crop((0, 0, body_only.width, max_h))
+        # 비율에 따라 fit
+        ratio_w = avail_w / news.width
+        ratio_h = avail_h / news.height
+        ratio = min(ratio_w, ratio_h)
+        new_w = int(news.width * ratio)
+        new_h = int(news.height * ratio)
+        resized = news.resize((new_w, new_h), Image.LANCZOS)
 
-        # 카드 배경
-        d.rectangle([card_x, card_y, card_x + card_w, card_y + card_h], fill=WHITE)
-        # 카드 헤더
-        d.rectangle([card_x, card_y, card_x + card_w, card_y + 60], fill=BEIGE)
-        text_at(d, "한국경제 (2026.01.01) · 기사 원문", card_x + 20, card_y + 16, 26, DARK, bold=True)
-        text_at(d, "hankyung.com", card_x + card_w - 200, card_y + 18, 24, BROWN_DARK)
+        # 중앙 정렬
+        px = card_x + (card_w - new_w) // 2
+        py = card_y + 80
+        img.paste(resized, (px, py))
 
-        # 헤드라인 + 본문 캡처
-        img.paste(body_only, (card_x + 20, card_y + 80))
+        # 하단 URL 박스 (회색 배경 + URL)
+        url_y = card_y + card_h - 90
+        d.rectangle([card_x + 20, url_y, card_x + card_w - 20, url_y + 70], fill=(245, 240, 235))
+        text_at(d, "원문 URL", card_x + 36, url_y + 8, 18, GREY_DARK)
+        text_at(d, "https://www." + article_url, card_x + 36, url_y + 32, 24, DARK, bold=True)
+
     else:
-        d.rectangle([card_x, card_y, card_x + card_w, card_y + card_h], fill=WHITE)
         text_at(d, "(news capture missing)", card_x + 50, card_y + 400, 32, GREY_MID)
 
     # 우측: 핵심 수치 강조 박스 2개
-    rx = 1180
-    rw = 680
+    rx = 1190
+    rw = 690
     # 65%
-    d.rectangle([rx, 150, rx + rw, 540], fill=DARK)
-    text_at(d, "노쇼 피해 매장", rx + 40, 195, 30, GREY_LIGHT)
-    text_at(d, "65%", rx + 40, 250, 200, RED, bold=True)
-    text_at(d, "외식 점포 10곳 중 6곳 이상", rx + 40, 470, 24, OFF_WHITE)
+    d.rectangle([rx, 120, rx + rw, 510], fill=DARK)
+    text_at(d, "노쇼 피해 매장", rx + 40, 165, 30, GREY_LIGHT)
+    text_at(d, "65%", rx + 40, 220, 200, RED, bold=True)
+    text_at(d, "외식 점포 10곳 중 6곳 이상", rx + 40, 440, 24, OFF_WHITE)
 
     # 44만원
-    d.rectangle([rx, 580, rx + rw, 970], fill=DARK)
-    text_at(d, "1회 노쇼당 평균 손실", rx + 40, 625, 30, GREY_LIGHT)
-    text_at(d, "44만원", rx + 40, 690, 150, RED, bold=True)
-    text_at(d, "재료 폐기 + 매출 손실 + 기회비용", rx + 40, 900, 24, OFF_WHITE)
+    d.rectangle([rx, 540, rx + rw, 930], fill=DARK)
+    text_at(d, "1회 노쇼당 평균 손실", rx + 40, 585, 30, GREY_LIGHT)
+    text_at(d, "44만원", rx + 40, 650, 150, RED, bold=True)
+    text_at(d, "재료 폐기 + 매출 손실 + 기회비용", rx + 40, 860, 24, OFF_WHITE)
 
-    center_text(d, "출처: 한국경제 · 중소벤처기업부 · 한국외식업중앙회 (2025.12, 214개 사업체)", 1040, 22, GREY_DARK)
+    # 우측 하단 추가 통계
+    d.rectangle([rx, 950, rx + rw, 1060], fill=DARK)
+    text_at(d, "피해 점포 평균 8.6회 / 일식 매장 16.3회", rx + 40, 985, 22, OFF_WHITE)
+
+    center_text(d, "출처: 한국경제 (2026.01.01) · 중소벤처기업부 발표 · 한국외식업중앙회 214개 사업체 조사", 1070, 18, GREY_DARK)
     img.save(OUT / "Q3-noshow-stats.jpg", quality=92)
-    print("[3/6] Q3-noshow-stats.jpg (with full news screenshot)")
+    print("[3/6] Q3-noshow-stats.jpg (with full article + URL)")
 
 
 # ─────────────────────────────────────────────
