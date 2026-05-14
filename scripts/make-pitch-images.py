@@ -94,57 +94,59 @@ def q2_market_stats():
 def q3_noshow_stats():
     img = Image.new("RGB", (W, H), DARK_WARM)
     d = ImageDraw.Draw(img)
-    center_text(d, "외식업 점주가 마주하는 현실", 60, 44, OFF_WHITE)
+    center_text(d, "외식업 점주가 마주하는 현실", 50, 44, OFF_WHITE)
 
-    # 좌측: 한국경제 기사 헤드라인 캡처 임베드
+    # 좌측: 한국경제 기사 캡처 (헤드라인 + 본문 + 사진)
     news_path = "/tmp/news-screenshots/hankyung-noshow-44.png"
+    card_x, card_y = 60, 150
+    card_w, card_h = 1080, 880
+
     if Path(news_path).exists():
         news = Image.open(news_path)
-        # 헤드라인 영역만 크롭 (광고 영역 제거: y=520~700)
-        cropped = news.crop((0, 510, 1280, 700))
-        # 80% 너비 카드에 맞춰 리사이즈
-        target_w = 880
-        ratio = target_w / cropped.width
-        target_h = int(cropped.height * ratio)
-        cropped = cropped.resize((target_w, target_h), Image.LANCZOS)
+        # 사이드바 제거: 좌측 70%만 사용 (x: 0~896)
+        body_only = news.crop((0, 0, 896, news.height))
+        # 카드 너비에 맞춰 리사이즈
+        target_w = card_w - 40
+        ratio = target_w / body_only.width
+        target_h = int(body_only.height * ratio)
+        body_only = body_only.resize((target_w, target_h), Image.LANCZOS)
 
-        # 카드 배경 (흰색 카드 with border)
-        card_x, card_y = 100, 180
-        card_w, card_h = 920, 740
+        # 카드 영역에 들어갈 높이로 추가 크롭
+        max_h = card_h - 100  # 헤더 + 푸터 공간 제외
+        if body_only.height > max_h:
+            body_only = body_only.crop((0, 0, body_only.width, max_h))
+
+        # 카드 배경
         d.rectangle([card_x, card_y, card_x + card_w, card_y + card_h], fill=WHITE)
+        # 카드 헤더
         d.rectangle([card_x, card_y, card_x + card_w, card_y + 60], fill=BEIGE)
-        text_at(d, "한국경제 · 2026.01.01", card_x + 20, card_y + 16, 26, DARK, bold=True)
-        text_at(d, "기사 원문", card_x + card_w - 130, card_y + 16, 24, BROWN_DARK)
+        text_at(d, "한국경제 (2026.01.01) · 기사 원문", card_x + 20, card_y + 16, 26, DARK, bold=True)
+        text_at(d, "hankyung.com", card_x + card_w - 200, card_y + 18, 24, BROWN_DARK)
 
-        # 헤드라인 캡처 붙이기
-        img.paste(cropped, (card_x + 20, card_y + 100))
-
-        # 강조 표시 (밑줄)
-        text_at(d, "중소벤처기업부 발표 · 외식업 214개 사업체 조사", card_x + 20, card_y + 580, 22, GREY_MID)
-        text_at(d, "메인 데이터 출처", card_x + 20, card_y + 640, 24, RED, bold=True)
-        text_at(d, "65% / 1회 44만원", card_x + 20, card_y + 680, 36, DARK, bold=True)
-
+        # 헤드라인 + 본문 캡처
+        img.paste(body_only, (card_x + 20, card_y + 80))
     else:
-        # 폴백: 캡처 없으면 텍스트만
-        d.rectangle([100, 180, 1020, 920], fill=DARK)
-        text_at(d, "(news screenshot)", 200, 500, 32, GREY_MID)
+        d.rectangle([card_x, card_y, card_x + card_w, card_y + card_h], fill=WHITE)
+        text_at(d, "(news capture missing)", card_x + 50, card_y + 400, 32, GREY_MID)
 
     # 우측: 핵심 수치 강조 박스 2개
+    rx = 1180
+    rw = 680
     # 65%
-    d.rectangle([1060, 180, 1820, 540], fill=DARK)
-    text_at(d, "노쇼 피해 매장", 1100, 220, 32, GREY_LIGHT)
-    text_at(d, "65%", 1100, 280, 200, RED, bold=True)
-    text_at(d, "외식 점포 10곳 중 6곳 이상", 1100, 480, 26, OFF_WHITE)
+    d.rectangle([rx, 150, rx + rw, 540], fill=DARK)
+    text_at(d, "노쇼 피해 매장", rx + 40, 195, 30, GREY_LIGHT)
+    text_at(d, "65%", rx + 40, 250, 200, RED, bold=True)
+    text_at(d, "외식 점포 10곳 중 6곳 이상", rx + 40, 470, 24, OFF_WHITE)
 
     # 44만원
-    d.rectangle([1060, 560, 1820, 920], fill=DARK)
-    text_at(d, "1회 노쇼당 평균 손실", 1100, 600, 32, GREY_LIGHT)
-    text_at(d, "44만원", 1100, 670, 150, RED, bold=True)
-    text_at(d, "재료 폐기 + 매출 손실 + 기회비용", 1100, 860, 26, OFF_WHITE)
+    d.rectangle([rx, 580, rx + rw, 970], fill=DARK)
+    text_at(d, "1회 노쇼당 평균 손실", rx + 40, 625, 30, GREY_LIGHT)
+    text_at(d, "44만원", rx + 40, 690, 150, RED, bold=True)
+    text_at(d, "재료 폐기 + 매출 손실 + 기회비용", rx + 40, 900, 24, OFF_WHITE)
 
-    center_text(d, "출처: 한국경제 · 중소벤처기업부 · 한국외식업중앙회 (2025.12, 214개 사업체)", 990, 22, GREY_DARK)
+    center_text(d, "출처: 한국경제 · 중소벤처기업부 · 한국외식업중앙회 (2025.12, 214개 사업체)", 1040, 22, GREY_DARK)
     img.save(OUT / "Q3-noshow-stats.jpg", quality=92)
-    print("[3/6] Q3-noshow-stats.jpg (with news screenshot)")
+    print("[3/6] Q3-noshow-stats.jpg (with full news screenshot)")
 
 
 # ─────────────────────────────────────────────
