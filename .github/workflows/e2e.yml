@@ -1,0 +1,77 @@
+name: E2E Tests (Nightly)
+
+# 느린 브라우저 테스트라 PR 게이트에서 제외 — 매일 새벽 + 수동 실행
+on:
+  schedule:
+    - cron: '0 18 * * *'   # UTC 18:00 = KST 03:00
+  workflow_dispatch:
+
+jobs:
+  e2e:
+    name: Playwright E2E (v2)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: honbabnono_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Install Playwright browsers
+      run: npx playwright install --with-deps chromium
+
+    # 테스트 DB 스키마/마이그레이션 선적용 (globalSetup과 동일 경로를 CLI로)
+    - name: Bootstrap test DB
+      run: |
+        PGPASSWORD=postgres psql -h localhost -U postgres -d honbabnono_test -v ON_ERROR_STOP=1 -f database_schema_clean.sql
+        NODE_ENV=test node server/migrations/runner.js
+      env:
+        DB_HOST: localhost
+        DB_PORT: '5432'
+        DB_NAME: honbabnono_test
+        DB_USER: postgres
+        DB_PASSWORD: postgres
+        DB_SSL: 'false'
+
+    # webServer(playwright.config.ts)가 API(3001)+웹(3000)을 자동 기동
+    - name: Run E2E tests
+      run: npx playwright test
+      env:
+        NODE_ENV: test
+        DB_HOST: localhost
+        DB_PORT: '5432'
+        DB_NAME: honbabnono_test
+        DB_USER: postgres
+        DB_PASSWORD: postgres
+        DB_SSL: 'false'
+
+    - name: Upload report
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: playwright-report
+        path: playwright-report/
+        retention-days: 7
