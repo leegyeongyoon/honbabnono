@@ -43,8 +43,53 @@ const calculateDistance = (lat1, lon1, lat2, lon2) => {
   return Math.round(R * c); // 미터 단위로 반환
 };
 
+// 예약일(DATE)과 예약시각(TIME)을 합쳐 로컬 타임스탬프 Date 객체로 변환
+// - date: 'YYYY-MM-DD' 문자열 또는 Date 객체 (pg DATE 컬럼은 Date 객체로 반환됨)
+// - time: 'HH:MM' 또는 'HH:MM:SS' 문자열 (pg TIME 컬럼은 문자열로 반환됨)
+// 주의: new Date('18:00:00')은 Invalid Date — 반드시 이 헬퍼로 합산할 것
+const combineReservationDateTime = (date, time) => {
+  if (!date) return null;
+
+  let base;
+  if (date instanceof Date) {
+    base = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  } else if (typeof date === 'string') {
+    const m = date.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (!m) return null;
+    base = new Date(parseInt(m[1], 10), parseInt(m[2], 10) - 1, parseInt(m[3], 10));
+  } else {
+    return null;
+  }
+  if (Number.isNaN(base.getTime())) return null;
+
+  if (typeof time === 'string') {
+    const t = time.match(/^(\d{1,2}):(\d{2})/);
+    if (t) {
+      base.setHours(parseInt(t[1], 10), parseInt(t[2], 10), 0, 0);
+    }
+  }
+  return base;
+};
+
+// 매장 환불 정책에서 적용 요율 선택 (예약/결제 환불 공통)
+// - policies: [{ days_before, refund_rate }]
+// - daysUntil: 예약까지 남은 일수
+// 의미: days_before일 이상 남았으면 해당 요율 적용 (충족하는 가장 큰 구간 선택).
+//       어느 구간도 충족 못 하면(매우 임박) 가장 임박한 구간의 요율 적용.
+const pickRefundRate = (policies, daysUntil) => {
+  if (!policies || policies.length === 0) return null;
+  const sorted = [...policies].sort((a, b) => a.days_before - b.days_before);
+  const matched = sorted.filter((p) => daysUntil >= p.days_before);
+  if (matched.length > 0) {
+    return matched[matched.length - 1].refund_rate;
+  }
+  return sorted[0].refund_rate;
+};
+
 module.exports = {
   getDefaultImageByCategory,
   processImageUrl,
-  calculateDistance
+  calculateDistance,
+  combineReservationDateTime,
+  pickRefundRate
 };

@@ -1,6 +1,7 @@
 const pool = require('../../config/database');
 const logger = require('../../config/logger');
 const portone = require('../../config/portone');
+const { combineReservationDateTime, pickRefundRate } = require('../../utils/helpers');
 
 // ============================================
 // 결제 준비 (merchant_uid 생성 및 pending 레코드 생성)
@@ -440,23 +441,13 @@ exports.refundPayment = async (req, res) => {
       );
 
       if (policyResult.rows.length > 0) {
-        // 예약 시간까지 남은 일수 계산
-        const reservationTime = new Date(reservation.reservation_date || reservation.reservation_time);
-        const now = new Date();
-        const daysUntilReservation = Math.floor((reservationTime.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+        // 예약 시각(일자+시각 합산)까지 남은 일수 계산
+        // 주의: new Date(TIME 문자열)은 Invalid Date — 반드시 합산 헬퍼 사용
+        const reservationAt = combineReservationDateTime(reservation.reservation_date, reservation.reservation_time);
+        const daysUntilReservation = Math.ceil((reservationAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
 
-        // 매칭되는 정책 찾기 (가장 가까운 days_before 이하)
-        let matchedPolicy = null;
-        for (const policy of policyResult.rows) {
-          if (daysUntilReservation <= policy.days_before) {
-            matchedPolicy = policy;
-            break;
-          }
-        }
-
-        if (matchedPolicy) {
-          refundRate = matchedPolicy.refund_rate;
-        }
+        // 정책 매칭 (cancelReservation과 동일 의미: days_before일 이상 남았으면 해당 요율)
+        refundRate = pickRefundRate(policyResult.rows, daysUntilReservation);
       } else {
         // 매장 정책이 없으면 기본 조리 상태 기반 환불
         if (order) {
@@ -471,10 +462,9 @@ exports.refundPayment = async (req, res) => {
         }
 
         // 예약 시간 3시간 이전이면 무조건 100%
-        if (reservation && (reservation.reservation_time || reservation.reservation_date)) {
-          const reservationTime = new Date(reservation.reservation_time || reservation.reservation_date);
-          const now = new Date();
-          const hoursBeforeReservation = (reservationTime.getTime() - now.getTime()) / (1000 * 60 * 60);
+        if (reservation && reservation.reservation_date) {
+          const reservationAt = combineReservationDateTime(reservation.reservation_date, reservation.reservation_time);
+          const hoursBeforeReservation = (reservationAt.getTime() - Date.now()) / (1000 * 60 * 60);
           if (hoursBeforeReservation >= 3) {
             refundRate = 100;
           }
