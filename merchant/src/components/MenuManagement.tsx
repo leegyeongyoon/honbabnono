@@ -56,6 +56,7 @@ import {
   AddCircleOutline,
 } from '@mui/icons-material';
 import apiClient from '../utils/api';
+import getRestaurantId from '../utils/getRestaurantId';
 
 // ── Types ──────────────────────────────────────────────────────
 interface MenuCategory {
@@ -126,8 +127,8 @@ const BRAND_LIGHT = '#FAF6F3';
 
 // ── Component ──────────────────────────────────────────────────
 const MenuManagement: React.FC = () => {
-  const merchantData = JSON.parse(localStorage.getItem('merchantData') || '{}');
-  const restaurantId = merchantData.restaurant_id || merchantData.id;
+  // merchant PK(id)를 매장 ID로 오용하던 폴백 제거 — 매장 미등록이면 null
+  const restaurantId = getRestaurantId();
 
   const [menus, setMenus] = useState<MenuItemData[]>([]);
   const [categories, setCategories] = useState<MenuCategory[]>([]);
@@ -193,9 +194,13 @@ const MenuManagement: React.FC = () => {
   }, [restaurantId]);
 
   useEffect(() => {
+    if (!restaurantId) {
+      setError('매장 등록을 먼저 완료해주세요. (매장 정보 탭에서 등록 가능)');
+      return;
+    }
     fetchMenus();
     fetchCategories();
-  }, [fetchMenus, fetchCategories]);
+  }, [restaurantId, fetchMenus, fetchCategories]);
 
   // ── Option Groups ──
   const fetchOptionGroups = useCallback(async (menuId: number) => {

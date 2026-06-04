@@ -61,7 +61,7 @@ const StoreRegister: React.FC<StoreRegisterProps> = ({ onComplete }) => {
         try {
           const data = JSON.parse(stored);
           data.restaurant_id = res.data.data?.id || res.data.id;
-          data.restaurantId = data.restaurant_id;
+          delete data.restaurantId; // 과거 이중 키 잔재 정리 — restaurant_id 단일 키 사용
           localStorage.setItem('merchantData', JSON.stringify(data));
         } catch {
           // ignore parse error

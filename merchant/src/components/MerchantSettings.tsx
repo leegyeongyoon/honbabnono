@@ -24,6 +24,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
 import LogoutIcon from '@mui/icons-material/Logout';
 import apiClient from '../utils/api';
+import getRestaurantId from '../utils/getRestaurantId';
 
 const DAYS = ['월', '화', '수', '목', '금', '토', '일'];
 const DAY_VALUES = [1, 2, 3, 4, 5, 6, 0]; // DB 요일 값 (0=일, 1=월, ...)
@@ -86,8 +87,7 @@ const MerchantSettings: React.FC = () => {
   const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
 
-  const merchantData = JSON.parse(localStorage.getItem('merchantData') || '{}');
-  const restaurantId = merchantData.restaurant_id || merchantData.restaurantId;
+  const restaurantId = getRestaurantId();
 
   useEffect(() => {
     loadUserInfo();

@@ -321,12 +321,13 @@ exports.getTimeSlots = async (req, res) => {
 
     // date가 주어지면 해당 날짜의 실제 예약 수를 계산
     if (date) {
+      // createReservation의 정원 카운트와 동일 기준: pending_payment도 좌석 점유
       const bookedResult = await pool.query(
         `SELECT reservation_time, COUNT(*)::int AS booked
          FROM reservations
          WHERE restaurant_id = $1
            AND reservation_date = $2
-           AND status NOT IN ('cancelled', 'pending_payment')
+           AND status != 'cancelled'
          GROUP BY reservation_time`,
         [id, date]
       );

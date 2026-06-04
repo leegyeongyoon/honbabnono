@@ -205,10 +205,13 @@ const getTimeSlots = async (
     // slot_time은 "11:30:00" 형태 → "11:30"으로 변환
     const rawTime = s.slot_time ?? s.time ?? '';
     const time = rawTime.length > 5 ? rawTime.slice(0, 5) : rawTime;
+    // 백엔드가 날짜별로 재계산한 remaining을 우선 사용 (current_reservations 누적 카운터는 폐기됨)
+    const max = s.max_reservations ?? 5;
+    const remaining = s.remaining ?? (max - (s.current_reservations ?? 0));
     return {
       time,
-      available: s.is_active !== false && (s.current_reservations ?? 0) < (s.max_reservations ?? 5),
-      remainingSeats: (s.max_reservations ?? 5) - (s.current_reservations ?? 0),
+      available: s.is_active !== false && remaining > 0,
+      remainingSeats: remaining,
     };
   });
 };

@@ -17,6 +17,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import SaveIcon from '@mui/icons-material/Save';
 import CancelIcon from '@mui/icons-material/Cancel';
 import apiClient from '../utils/api';
+import getRestaurantId from '../utils/getRestaurantId';
 
 const CATEGORIES = [
   '샤브샤브', '고깃집', '전골찜', '훠궈', '코스요리',
@@ -85,8 +86,7 @@ const StoreInfo: React.FC = () => {
   const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
 
-  const merchantData = JSON.parse(localStorage.getItem('merchantData') || '{}');
-  const restaurantId = merchantData.restaurant_id || merchantData.restaurantId;
+  const restaurantId = getRestaurantId();
 
   useEffect(() => {
     fetchData();

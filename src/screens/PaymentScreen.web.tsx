@@ -122,7 +122,13 @@ const PaymentScreen: React.FC = () => {
         return;
       }
 
-      const merchantUid = paymentData.merchantUid ?? paymentData.merchant_uid ?? `order_${Date.now()}`;
+      // 서버가 발급한 merchant_uid만 사용 — 임의 생성 uid는 서버 검증(reservation_... 형식)에 실패함
+      const merchantUid = paymentData.merchantUid ?? paymentData.merchant_uid;
+      if (!merchantUid) {
+        setErrorMsg('결제 정보를 생성하지 못했습니다. 잠시 후 다시 시도해주세요.');
+        setProcessing(false);
+        return;
+      }
 
       window.IMP.request_pay(
         {
