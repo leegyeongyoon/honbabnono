@@ -400,6 +400,22 @@ exports.rejectOrder = async (req, res) => {
       });
     }
 
+    // 2-1. 연결 예약이 이미 착석/완료 상태면 거절 불가 (FOR UPDATE — 거절 처리 중 상태 변경 차단)
+    if (order.reservation_id) {
+      const reservationCheck = await client.query(
+        'SELECT status FROM reservations WHERE id = $1 FOR UPDATE',
+        [order.reservation_id]
+      );
+      const reservationStatus = reservationCheck.rows[0]?.status;
+      if (['seated', 'completed'].includes(reservationStatus)) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({
+          success: false,
+          error: `이미 착석/완료된 예약(${reservationStatus})의 주문은 거절할 수 없습니다.`,
+        });
+      }
+    }
+
     // 3. 주문 상태 → rejected, 거절 사유 기록
     await client.query(`
       UPDATE orders

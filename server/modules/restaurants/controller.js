@@ -758,6 +758,27 @@ exports.deleteTimeSlot = async (req, res) => {
       return res.status(403).json({ success: false, error: '본인 매장의 슬롯만 삭제할 수 있습니다.' });
     }
 
+    // 해당 슬롯(요일+시각)에 미래 활성 예약이 있으면 삭제 차단 (기존 예약 정보 부정합 방지)
+    const inUse = await pool.query(
+      `SELECT 1
+       FROM reservations r
+       JOIN restaurant_time_slots s ON s.id = $1 AND s.restaurant_id = $2
+       WHERE r.restaurant_id = $2
+         AND r.reservation_time = s.slot_time
+         AND EXTRACT(DOW FROM r.reservation_date) = s.day_of_week
+         AND r.reservation_date >= CURRENT_DATE
+         AND r.status NOT IN ('cancelled', 'completed')
+       LIMIT 1`,
+      [slotId, restaurantId]
+    );
+
+    if (inUse.rows.length > 0) {
+      return res.status(409).json({
+        success: false,
+        error: '예약이 있는 시간대는 삭제할 수 없습니다. 예약 처리 후 다시 시도해주세요.',
+      });
+    }
+
     const result = await pool.query(
       `DELETE FROM restaurant_time_slots WHERE id = $1 AND restaurant_id = $2 RETURNING id`,
       [slotId, restaurantId]
