@@ -49,6 +49,12 @@ interface Merchant {
   verification_status: string;
   verification_docs?: Record<string, string>;
   rejection_reason?: string;
+  // 국세청 진위확인 결과 (참고 신호 — 최종 게이트는 verification_status)
+  nts_status?: string | null; // nts_passed | nts_failed | null(미조회)
+  nts_b_stt?: string | null; // 계속사업자 | 휴업자 | 폐업자
+  nts_valid?: boolean | null;
+  nts_checked_at?: string | null;
+  business_start_date?: string | null;
   restaurant_id?: string;
   restaurant_name?: string;
   username?: string;
@@ -75,6 +81,16 @@ const DOC_TYPE_LABELS: Record<string, string> = {
   business_license: '사업자등록증',
   business_permit: '영업신고증',
   bank_account_copy: '통장사본',
+};
+
+// 국세청 진위확인 뱃지 구성
+const ntsChip = (m: Merchant): { label: string; color: 'success' | 'error' | 'default' } => {
+  if (m.nts_status === 'nts_passed') return { label: `국세청 확인 ✓ (${m.nts_b_stt || '계속사업자'})`, color: 'success' };
+  if (m.nts_status === 'nts_failed') {
+    const reason = m.nts_valid === false ? '정보 불일치' : (m.nts_b_stt || '휴폐업');
+    return { label: `국세청 확인 ✗ (${reason})`, color: 'error' };
+  }
+  return { label: '국세청 미조회', color: 'default' };
 };
 
 const MerchantManagement: React.FC = () => {
@@ -398,6 +414,9 @@ const MerchantManagement: React.FC = () => {
                 {detailMerchant.bank_name && (
                   <Typography variant="body2"><strong>정산계좌:</strong> {detailMerchant.bank_name} {detailMerchant.bank_account} ({detailMerchant.bank_holder})</Typography>
                 )}
+                {detailMerchant.business_start_date && (
+                  <Typography variant="body2"><strong>개업일자:</strong> {formatDate(detailMerchant.business_start_date)}</Typography>
+                )}
                 <Typography variant="body2"><strong>신청일:</strong> {formatDate(detailMerchant.created_at)}</Typography>
                 <Typography variant="body2">
                   <strong>상태:</strong>{' '}
@@ -406,6 +425,8 @@ const MerchantManagement: React.FC = () => {
                     color={(STATUS_CHIPS[detailMerchant.verification_status] || { color: 'default' as const }).color}
                     size="small"
                   />
+                  {' '}
+                  <Chip label={ntsChip(detailMerchant).label} color={ntsChip(detailMerchant).color} size="small" variant="outlined" />
                 </Typography>
                 {detailMerchant.rejection_reason && (
                   <Typography variant="body2" sx={{ mt: 1, color: '#D32F2F' }}>

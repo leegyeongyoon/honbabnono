@@ -2487,6 +2487,7 @@ exports.verifyMerchant = async (req, res) => {
       `UPDATE merchants
        SET verification_status = $1,
            rejection_reason = $2,
+           verified_at = CASE WHEN $1 = 'verified' THEN NOW() ELSE verified_at END,
            updated_at = NOW()
        WHERE id = $3
        RETURNING *`,

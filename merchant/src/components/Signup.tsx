@@ -66,6 +66,7 @@ const Signup: React.FC<SignupProps> = ({ onGoLogin, onSignupComplete }) => {
   const [businessNumber, setBusinessNumber] = useState('');
   const [businessName, setBusinessName] = useState('');
   const [representativeName, setRepresentativeName] = useState('');
+  const [startDt, setStartDt] = useState(''); // 개업일자 YYYYMMDD — 국세청 진위확인용
   const [bankName, setBankName] = useState('');
   const [bankAccount, setBankAccount] = useState('');
   const [bankHolder, setBankHolder] = useState('');
@@ -97,7 +98,8 @@ const Signup: React.FC<SignupProps> = ({ onGoLogin, onSignupComplete }) => {
   const isStep2Valid =
     businessNumber.replace(/\D/g, '').length === 10 &&
     businessName.trim().length > 0 &&
-    representativeName.trim().length > 0;
+    representativeName.trim().length > 0 &&
+    /^\d{8}$/.test(startDt);
 
   // File upload handler
   const handleFileSelect = async (
@@ -202,6 +204,7 @@ const Signup: React.FC<SignupProps> = ({ onGoLogin, onSignupComplete }) => {
         bank_name: bankName.trim() || undefined,
         bank_account: bankAccount.trim() || undefined,
         bank_holder: bankHolder.trim() || undefined,
+        start_dt: startDt, // 개업일자 — 국세청 진위확인 자동 조회
       });
       setActiveStep(2);
     } catch (err: any) {
@@ -449,6 +452,12 @@ const Signup: React.FC<SignupProps> = ({ onGoLogin, onSignupComplete }) => {
                 fullWidth label="대표자명"
                 value={representativeName} onChange={(e) => setRepresentativeName(e.target.value)}
                 required sx={{ mb: 2 }}
+              />
+              <TextField
+                fullWidth label="개업일자" placeholder="YYYYMMDD (예: 20230115)"
+                value={startDt} onChange={(e) => setStartDt(e.target.value.replace(/\D/g, '').slice(0, 8))}
+                required sx={{ mb: 2 }} inputProps={{ maxLength: 8 }}
+                helperText="사업자등록증의 개업연월일 8자리 — 국세청 진위확인에 사용됩니다"
               />
 
               <Divider sx={{ my: 2 }}>

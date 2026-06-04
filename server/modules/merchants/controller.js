@@ -1,5 +1,6 @@
 const pool = require('../../config/database');
 const logger = require('../../config/logger');
+const nts = require('../../config/nts');
 
 // ============================================
 // 점주 등록/관리 API
@@ -31,22 +32,66 @@ exports.registerMerchant = async (req, res) => {
     const {
       business_number, business_name, representative_name,
       bank_name, bank_account, bank_holder, verification_doc_url,
+      start_dt, // 개업일자 (YYYYMMDD) — 국세청 진위확인 입력값
     } = req.body;
+
+    // 국세청 진위확인/상태조회 — 결과는 참고 신호로만 기록.
+    // 호출 실패/키 미설정 시에도 등록은 진행 (관리자 수동 승인이 최종 게이트).
+    let ntsStatus = null;
+    let ntsBStt = null;
+    let ntsValid = null;
+    let ntsRaw = null;
+    let ntsCheckedAt = null;
+
+    if (nts.isEnabled()) {
+      try {
+        const statusInfo = await nts.checkStatus(business_number);
+        ntsBStt = statusInfo.b_stt || null;
+        ntsRaw = { status: statusInfo };
+
+        if (start_dt && representative_name) {
+          const validation = await nts.validateBusiness({
+            b_no: business_number,
+            start_dt,
+            p_nm: representative_name,
+          });
+          ntsValid = validation.valid;
+          ntsRaw.validate = validation.raw;
+        }
+
+        const isOngoing = ntsBStt === '계속사업자';
+        if (ntsValid === false || (ntsBStt && !isOngoing)) {
+          ntsStatus = 'nts_failed';
+        } else if (ntsValid === true && isOngoing) {
+          ntsStatus = 'nts_passed';
+        }
+        ntsCheckedAt = new Date();
+      } catch (ntsError) {
+        logger.error('국세청 진위확인 호출 실패 (수동 승인으로 진행):', ntsError.message);
+      }
+    }
+
+    // 개업일자 YYYYMMDD → DATE
+    const businessStartDate = start_dt && /^\d{8}$/.test(start_dt)
+      ? `${start_dt.slice(0, 4)}-${start_dt.slice(4, 6)}-${start_dt.slice(6, 8)}`
+      : null;
 
     const result = await pool.query(`
       INSERT INTO merchants (
         user_id, business_number, business_name, representative_name,
         bank_name, bank_account, bank_holder, verification_doc_url,
-        verification_status
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'pending')
+        verification_status, business_start_date,
+        nts_status, nts_b_stt, nts_valid, nts_checked_at, nts_raw
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'pending', $9, $10, $11, $12, $13, $14)
       RETURNING *
     `, [
       userId, business_number, business_name || null, representative_name || null,
       bank_name || null, bank_account || null, bank_holder || null,
-      verification_doc_url || null,
+      verification_doc_url || null, businessStartDate,
+      ntsStatus, ntsBStt, ntsValid, ntsCheckedAt, ntsRaw ? JSON.stringify(ntsRaw) : null,
     ]);
 
-    logger.info('점주 등록 신청:', { userId, merchantId: result.rows[0].id });
+    logger.info('점주 등록 신청:', { userId, merchantId: result.rows[0].id, ntsStatus });
 
     res.status(201).json({
       success: true,

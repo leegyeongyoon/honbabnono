@@ -38,6 +38,11 @@ const registerMerchantSchema = z.object({
     .string()
     .url('유효한 서류 URL을 입력해주세요.')
     .optional(),
+
+  start_dt: z
+    .string()
+    .regex(/^\d{8}$/, '개업일자는 YYYYMMDD 8자리로 입력해주세요.')
+    .optional(),
 });
 
 /**

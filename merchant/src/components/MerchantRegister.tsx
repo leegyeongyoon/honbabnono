@@ -59,6 +59,7 @@ const MerchantRegister: React.FC<MerchantRegisterProps> = ({ onBack, token, exis
   const [businessNumber, setBusinessNumber] = useState('');
   const [businessName, setBusinessName] = useState('');
   const [representativeName, setRepresentativeName] = useState('');
+  const [startDt, setStartDt] = useState(''); // 개업일자 YYYYMMDD — 국세청 진위확인용
 
   // Step 2: Document uploads
   const [businessLicense, setBusinessLicense] = useState<DocUploadState>({ ...INITIAL_DOC_STATE });
@@ -84,7 +85,11 @@ const MerchantRegister: React.FC<MerchantRegisterProps> = ({ onBack, token, exis
     setBusinessNumber(formatBusinessNumber(e.target.value));
   };
 
-  const isStep1Valid = businessNumber.replace(/\D/g, '').length === 10 && businessName.trim() && representativeName.trim();
+  const isStep1Valid =
+    businessNumber.replace(/\D/g, '').length === 10 &&
+    businessName.trim() &&
+    representativeName.trim() &&
+    /^\d{8}$/.test(startDt);
   const isStep2Valid = businessLicense.uploaded; // 사업자등록증은 필수
   const isStep3Valid = bankName.trim() && bankAccount.trim() && bankHolder.trim();
 
@@ -169,6 +174,7 @@ const MerchantRegister: React.FC<MerchantRegisterProps> = ({ onBack, token, exis
         bank_name: bankName.trim(),
         bank_account: bankAccount.trim(),
         bank_holder: bankHolder.trim(),
+        start_dt: startDt, // 개업일자 — 국세청 진위확인 자동 조회
       });
 
       setActiveStep(2);
@@ -479,7 +485,18 @@ const MerchantRegister: React.FC<MerchantRegisterProps> = ({ onBack, token, exis
                 value={representativeName}
                 onChange={(e) => setRepresentativeName(e.target.value)}
                 required
+                sx={{ mb: 2 }}
+              />
+              <TextField
+                fullWidth
+                label="개업일자"
+                placeholder="YYYYMMDD (예: 20230115)"
+                value={startDt}
+                onChange={(e) => setStartDt(e.target.value.replace(/\D/g, '').slice(0, 8))}
+                required
                 sx={{ mb: 3 }}
+                helperText="사업자등록증의 개업연월일 8자리 — 국세청 진위확인에 사용됩니다"
+                inputProps={{ maxLength: 8 }}
               />
               <Button
                 fullWidth
