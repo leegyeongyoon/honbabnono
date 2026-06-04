@@ -19,7 +19,7 @@
     "test:api": "NODE_ENV=test jest tests/",
     "test:simple": "NODE_ENV=test jest tests/simple.test.js",
     "test:unit": "NODE_ENV=test jest --selectProjects unit",
-    "test:integration": "NODE_ENV=test jest --selectProjects integration",
+    "test:integration": "NODE_ENV=test jest --selectProjects integration --runInBand",
     "test:flows": "NODE_ENV=test jest --selectProjects flows",
     "test:legacy": "NODE_ENV=test jest --selectProjects legacy",
     "test:coverage": "NODE_ENV=test jest --coverage",

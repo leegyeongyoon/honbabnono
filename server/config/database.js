@@ -14,7 +14,8 @@ if (mode === 'production') {
   envFile = '.env.development';
 }
 
-dotenv.config({ path: envFile, override: true });
+// override: false — CI 등에서 미리 주입한 env(DB_HOST=localhost 등)가 .env 파일에 덮이지 않게 함
+dotenv.config({ path: envFile, override: false });
 
 // PostgreSQL 연결 설정
 const dbConfig = {

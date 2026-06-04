@@ -7,5 +7,7 @@ ALTER TABLE meetups ADD COLUMN IF NOT EXISTS parent_meetup_id UUID REFERENCES me
 ALTER TABLE meetups ADD COLUMN IF NOT EXISTS is_recurring BOOLEAN DEFAULT false;
 
 -- Index for finding recurring meetups
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_meetups_is_recurring ON meetups(is_recurring) WHERE is_recurring = true;
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_meetups_parent_id ON meetups(parent_meetup_id) WHERE parent_meetup_id IS NOT NULL;
+-- NOTE: CONCURRENTLY 제거 — 러너가 트랜잭션 안에서 실행하므로 사용 불가.
+--       IF NOT EXISTS 라서 이미 적용된 DB(프로덕션)에서는 no-op.
+CREATE INDEX IF NOT EXISTS idx_meetups_is_recurring ON meetups(is_recurring) WHERE is_recurring = true;
+CREATE INDEX IF NOT EXISTS idx_meetups_parent_id ON meetups(parent_meetup_id) WHERE parent_meetup_id IS NOT NULL;
