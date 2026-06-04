@@ -76,8 +76,6 @@ describe('ReservationsController', () => {
           }],
           rowCount: 1,
         },
-        // 5. UPDATE restaurant_time_slots
-        { rows: [], rowCount: 1 },
       ]);
 
       await reservationsController.createReservation(mockReq, mockRes);

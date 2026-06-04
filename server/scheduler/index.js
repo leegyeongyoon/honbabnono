@@ -24,6 +24,7 @@ const autoCancelMinParticipants = require('./jobs/autoCancelMinParticipants');
 const monthlyBestHost = require('./jobs/monthlyBestHost');
 const arrivalReminder = require('./jobs/arrivalReminder');
 const settlementProcess = require('./jobs/settlementProcess');
+const expirePendingReservations = require('./jobs/expirePendingReservations');
 
 const scheduledJobs = [];
 
@@ -119,6 +120,17 @@ function startScheduler() {
   });
   scheduledJobs.push(settlementJob);
   logger.info('  [정산 처리]: 매일 자정');
+
+  // 9. 미결제 예약 자동 만료 - 매 5분마다
+  const expirePendingJob = cron.schedule('*/5 * * * *', async () => {
+    try {
+      await expirePendingReservations.run();
+    } catch (error) {
+      logger.error('[미결제 예약 만료] 실행 실패:', error);
+    }
+  });
+  scheduledJobs.push(expirePendingJob);
+  logger.info('  [미결제 예약 만료]: 매 5분');
 
   logger.system('===============================================');
 }

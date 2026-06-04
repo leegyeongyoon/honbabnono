@@ -2,6 +2,7 @@ const pool = require('../../config/database');
 const logger = require('../../config/logger');
 const crypto = require('crypto');
 const { createNotification } = require('../notifications/controller');
+const { combineReservationDateTime, pickRefundRate } = require('../../utils/helpers');
 
 /**
  * 예약 생성
@@ -32,11 +33,13 @@ exports.createReservation = async (req, res) => {
     }
 
     // 2. time_slot 잔여 확인 (요일 기반 슬롯 + 같은 날짜 내 이미 잡힌 예약 수)
+    // FOR UPDATE: 같은 슬롯에 대한 동시 예약 요청을 직렬화 (오버부킹 방지)
     const dayOfWeek = new Date(reservation_date).getDay();
     const slotResult = await client.query(
       `SELECT id, max_reservations
        FROM restaurant_time_slots
-       WHERE restaurant_id = $1 AND day_of_week = $2 AND slot_time = $3 AND is_active = true`,
+       WHERE restaurant_id = $1 AND day_of_week = $2 AND slot_time = $3 AND is_active = true
+       FOR UPDATE`,
       [restaurant_id, dayOfWeek, reservation_time]
     );
 
@@ -47,14 +50,15 @@ exports.createReservation = async (req, res) => {
 
     const slot = slotResult.rows[0];
 
-    // 같은 날짜/시간에 이미 confirmed/preparing 예약 수 카운트
+    // 같은 날짜/시간의 활성 예약 수 카운트
+    // pending_payment도 좌석을 점유함 (미결제 방치 건은 스케줄러가 15분 후 자동 취소)
     const bookedResult = await client.query(
       `SELECT COUNT(*)::int AS booked
        FROM reservations
        WHERE restaurant_id = $1
          AND reservation_date = $2
          AND reservation_time = $3
-         AND status NOT IN ('cancelled', 'pending_payment')`,
+         AND status != 'cancelled'`,
       [restaurant_id, reservation_date, reservation_time]
     );
 
@@ -74,12 +78,8 @@ exports.createReservation = async (req, res) => {
       [userId, restaurant_id, reservation_date, reservation_time, party_size, special_request || null, qrCode]
     );
 
-    // 5. time_slot current_reservations +1 (요일 슬롯의 누적 카운터)
-    await client.query(
-      'UPDATE restaurant_time_slots SET current_reservations = current_reservations + 1 WHERE id = $1',
-      [slot.id]
-    );
-
+    // NOTE: 과거의 current_reservations 누적 카운터(+1)는 제거됨 —
+    //       가용성은 항상 날짜별 COUNT 쿼리로 계산하며 카운터는 아무도 읽지 않음
     await client.query('COMMIT');
 
     // 예약 생성 알림
@@ -321,21 +321,19 @@ exports.cancelReservation = async (req, res) => {
       return res.status(400).json({ success: false, error: `현재 상태(${reservation.status})에서는 취소할 수 없습니다.` });
     }
 
-    // 3. UPDATE status
-    await client.query(
+    // 3. UPDATE status (조건부 — SELECT 이후 점주가 상태를 바꿨다면 실패 처리, 레이스 방지)
+    const cancelUpdate = await client.query(
       `UPDATE reservations SET status = 'cancelled', cancel_reason = $1, cancelled_by = 'customer', updated_at = NOW()
-       WHERE id = $2`,
+       WHERE id = $2 AND status NOT IN ('cancelled', 'completed', 'seated')`,
       [cancel_reason || null, id]
     );
 
-    // 4. time_slot current_reservations -1 (요일 기반)
-    const dayOfWeek = new Date(reservation.reservation_date).getDay();
-    await client.query(
-      `UPDATE restaurant_time_slots
-       SET current_reservations = GREATEST(current_reservations - 1, 0)
-       WHERE restaurant_id = $1 AND day_of_week = $2 AND slot_time = $3`,
-      [reservation.restaurant_id, dayOfWeek, reservation.reservation_time]
-    );
+    if (cancelUpdate.rowCount === 0) {
+      await client.query('ROLLBACK');
+      return res.status(409).json({ success: false, error: '예약 상태가 이미 변경되어 취소할 수 없습니다. 새로고침 후 다시 확인해주세요.' });
+    }
+
+    // NOTE: 과거의 current_reservations 누적 카운터(-1)는 제거됨 — createReservation 참고
 
     // 5. 결제가 있으면 자동 환불 처리
     let refundInfo = null;
@@ -347,10 +345,9 @@ exports.cancelReservation = async (req, res) => {
     if (paymentResult.rows.length > 0) {
       const payment = paymentResult.rows[0];
 
-      // 환불 정책 적용: 예약일까지 남은 일수 기반
-      const daysUntil = Math.ceil(
-        (new Date(reservation.reservation_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
-      );
+      // 환불 정책 적용: 예약 시각(일자+시각 합산)까지 남은 일수 기반
+      const reservationAt = combineReservationDateTime(reservation.reservation_date, reservation.reservation_time);
+      const daysUntil = Math.ceil((reservationAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
 
       // 매장 환불 정책 조회
       const policyResult = await client.query(
@@ -360,12 +357,7 @@ exports.cancelReservation = async (req, res) => {
 
       let refundRate = 100;
       if (policyResult.rows.length > 0) {
-        const matched = policyResult.rows.filter(p => daysUntil >= p.days_before);
-        if (matched.length > 0) {
-          refundRate = matched[matched.length - 1].refund_rate;
-        } else {
-          refundRate = policyResult.rows[0].refund_rate;
-        }
+        refundRate = pickRefundRate(policyResult.rows, daysUntil);
       } else {
         // 기본 정책: 당일 50%, 1일 전 90%, 그외 100%
         if (daysUntil <= 0) refundRate = 50;
@@ -606,12 +598,19 @@ exports.updateStatus = async (req, res) => {
       });
     }
 
-    // 3. UPDATE status
+    // 3. UPDATE status (조건부 — SELECT 이후 고객 취소 등으로 상태가 바뀌었으면 실패 처리, 레이스 방지)
     const previousStatus = reservation.status;
-    await pool.query(
-      'UPDATE reservations SET status = $1, updated_at = NOW() WHERE id = $2',
-      [status, id]
+    const statusUpdate = await pool.query(
+      'UPDATE reservations SET status = $1, updated_at = NOW() WHERE id = $2 AND status = $3',
+      [status, id, previousStatus]
     );
+
+    if (statusUpdate.rowCount === 0) {
+      return res.status(409).json({
+        success: false,
+        error: '예약 상태가 이미 변경되어 처리할 수 없습니다. 새로고침 후 다시 확인해주세요.',
+      });
+    }
 
     // 소켓을 통해 고객에게 상태 변경 알림
     const io = req.app.get('io');
@@ -685,14 +684,21 @@ exports.processNoShow = async (req, res) => {
       });
     }
 
-    // 3. UPDATE
-    await pool.query(
+    // 3. UPDATE (조건부 — SELECT 이후 상태 변경 시 실패 처리, 레이스 방지)
+    const noshowUpdate = await pool.query(
       `UPDATE reservations
        SET status = 'cancelled', cancelled_by = 'merchant', cancel_reason = '노쇼',
            arrival_status = 'noshow', updated_at = NOW()
-       WHERE id = $1`,
+       WHERE id = $1 AND status IN ('confirmed', 'preparing')`,
       [id]
     );
+
+    if (noshowUpdate.rowCount === 0) {
+      return res.status(409).json({
+        success: false,
+        error: '예약 상태가 이미 변경되어 노쇼 처리할 수 없습니다. 새로고침 후 다시 확인해주세요.',
+      });
+    }
 
     // 4. 노쇼 알림 전송
     createNotification(reservation.user_id, 'reservation',
