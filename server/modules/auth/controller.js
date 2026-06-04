@@ -490,11 +490,11 @@ exports.testSeedV2 = async (req, res) => {
     return res.status(404).json({ error: 'Not found' });
   }
 
-  const TEST_USER_ID = '11111111-1111-1111-1111-111111111111';
-  const TEST_USER_2_ID = '22222222-2222-2222-2222-222222222222';
-  const TEST_MERCHANT_USER_ID = '33333333-3333-3333-3333-333333333333';
-  const TEST_RESTAURANT_ID = '99999999-1111-1111-1111-111111111111';
-  const TEST_MERCHANT_ID = '99999999-2222-2222-2222-222222222222';
+  // 테스트 ID 단일 소스 — e2e/helpers/seed.ts와 공유 (tests/fixtures/v2-ids.js)
+  const {
+    TEST_USER_ID, TEST_USER_2_ID, TEST_MERCHANT_USER_ID,
+    TEST_RESTAURANT_ID, TEST_MERCHANT_ID,
+  } = require('../../../tests/fixtures/v2-ids');
 
   try {
     // 1. 사용자 보장 (UPSERT)
@@ -516,18 +516,22 @@ exports.testSeedV2 = async (req, res) => {
       ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name
     `, [TEST_MERCHANT_USER_ID]);
 
-    // 2. restaurant
+    // 2. restaurant (과거 ID로 남은 동명 시드 매장은 비활성화 — 중복 노출 방지)
+    await pool.query(
+      `UPDATE restaurants SET is_active = false WHERE name = 'E2E 샤브샤브' AND id != $1`,
+      [TEST_RESTAURANT_ID]
+    );
     await pool.query(`
       INSERT INTO restaurants (id, name, description, category, phone, address, latitude, longitude, seat_count, is_active)
       VALUES ($1, 'E2E 샤브샤브', '테스트용 샤브샤브 매장', '샤브샤브', '02-123-4567', '서울특별시 강남구 강남대로 396', 37.4979, 127.0276, 30, true)
       ON CONFLICT (id) DO UPDATE SET is_active = true, updated_at = NOW()
     `, [TEST_RESTAURANT_ID]);
 
-    // 3. merchant (verified)
+    // 3. merchant (verified) — user_id 유니크 제약 기준 UPSERT (시드 ID 변경에도 안전)
     await pool.query(`
       INSERT INTO merchants (id, user_id, restaurant_id, business_number, business_name, representative_name, verification_status, verified_at)
       VALUES ($1, $2, $3, '123-45-67890', 'E2E 사업자', 'E2E 점주', 'verified', NOW())
-      ON CONFLICT (id) DO UPDATE SET verification_status = 'verified', verified_at = NOW()
+      ON CONFLICT (user_id) DO UPDATE SET restaurant_id = EXCLUDED.restaurant_id, verification_status = 'verified', verified_at = NOW()
     `, [TEST_MERCHANT_ID, TEST_MERCHANT_USER_ID, TEST_RESTAURANT_ID]);
 
     // 4. menus (3개) — 멱등 보장 위해 기존 삭제 후 INSERT

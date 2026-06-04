@@ -8,6 +8,22 @@ export default defineConfig({
   fullyParallel: false,
   workers: 1,
   retries: 1,
+  // API(3001) + 웹(3000) 자동 기동 — 이미 떠 있으면 재사용
+  webServer: [
+    {
+      command: 'npm run server',
+      port: 3001,
+      reuseExistingServer: true,
+      timeout: 120_000,
+      env: { NODE_ENV: 'test', E2E_LISTEN: 'true' },
+    },
+    {
+      command: 'npm run web',
+      port: 3000,
+      reuseExistingServer: true,
+      timeout: 180_000,
+    },
+  ],
   reporter: [
     ['html', { open: 'never' }],
     ['list'],

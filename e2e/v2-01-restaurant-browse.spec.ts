@@ -10,12 +10,9 @@ test.describe('v2: 매장 탐색 플로우', () => {
   let seedRestaurantId: string;
 
   test.beforeAll(async () => {
-    try {
-      const seed = await seedV2Restaurant();
-      seedRestaurantId = seed.restaurantId;
-    } catch (e) {
-      console.warn('v2 시드 실패 — API 서버 미기동일 수 있음:', (e as Error).message);
-    }
+    // 시드 실패는 인프라 문제 — 조용히 스킵하지 않고 suite 실패로 드러냄
+    const seed = await seedV2Restaurant();
+    seedRestaurantId = seed.restaurantId;
   });
 
   test.beforeEach(async ({ page }) => {
@@ -41,8 +38,6 @@ test.describe('v2: 매장 탐색 플로우', () => {
   });
 
   test('매장 상세 화면 라우트 응답 (시드된 매장 ID로 직접 진입)', async ({ page }) => {
-    test.skip(!seedRestaurantId, 'v2 시드 미적용');
-
     await page.goto(`/restaurant/${seedRestaurantId}`);
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(2000);

@@ -781,8 +781,9 @@ app.use((req, res) => {
   });
 });
 
-// 서버 시작 (테스트 환경에서는 자동 시작하지 않음)
-if (mode !== 'test') {
+// 서버 시작 (테스트 환경에서는 자동 시작하지 않음 — supertest가 app을 직접 사용)
+// E2E는 E2E_LISTEN=true로 테스트 env를 유지한 채 강제 기동 (playwright.config.ts webServer)
+if (mode !== 'test' || process.env.E2E_LISTEN === 'true') {
   server.listen(PORT, () => {
     logger.system('===============================================');
     logger.system('   잇테이블 API 서버 (모듈화 버전)');

@@ -3,10 +3,14 @@
  * API를 직접 호출하여 테스트에 필요한 모임/참가/출석 데이터를 생성
  */
 
+// 테스트 ID 단일 소스 — server testSeedV2(auth/controller.js)와 공유
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const V2_IDS = require('../../tests/fixtures/v2-ids');
+
 const API_URL = 'http://localhost:3001/api';
 
-const USER1_ID = '11111111-1111-1111-1111-111111111111'; // 호스트
-const USER2_ID = '22222222-2222-2222-2222-222222222222'; // 참가자
+const USER1_ID = V2_IDS.TEST_USER_ID; // 호스트
+const USER2_ID = V2_IDS.TEST_USER_2_ID; // 참가자
 
 // 토큰 캐시
 const apiTokenCache: Map<string, string> = new Map();
@@ -266,17 +270,55 @@ let v2SeedCache: V2SeedResult | null = null;
 /**
  * v2 시드 — 매장/메뉴/시간슬롯/점주 생성 (멱등)
  * 한 세션에서 한 번만 호출됨
+ *
+ * 주의: 실패 시 반드시 throw — spec에서 try/catch로 삼키지 말 것 (조용한 스킵 금지).
+ *       playwright.config.ts의 webServer가 API 서버(3001)를 자동 기동한다.
  */
 export async function seedV2Restaurant(): Promise<V2SeedResult> {
   if (v2SeedCache) return v2SeedCache;
 
   const res = await fetch(`${API_URL}/auth/test-seed-v2`, { method: 'POST' });
   if (!res.ok) {
-    throw new Error(`v2 시드 실패: ${await res.text()}`);
+    throw new Error(`v2 시드 실패(${res.status}): ${await res.text()} — API 서버(3001)/테스트 DB 상태를 확인하세요.`);
   }
   const data = await res.json();
   v2SeedCache = data.seeded;
   return v2SeedCache!;
+}
+
+/**
+ * v2 점주 토큰 발급 (시드된 점주 계정)
+ */
+export async function getMerchantToken(): Promise<string> {
+  return getApiToken(V2_IDS.TEST_MERCHANT_USER_ID);
+}
+
+/**
+ * v2 매장의 메뉴 목록 조회
+ */
+export async function getV2Menus(restaurantId: string): Promise<any[]> {
+  const res = await fetch(`${API_URL}/menus/restaurant/${restaurantId}`);
+  if (!res.ok) throw new Error(`메뉴 조회 실패: ${await res.text()}`);
+  const data = await res.json();
+  const d = data.data ?? data;
+  return d.menus ?? (Array.isArray(d) ? d : []);
+}
+
+/**
+ * v2 주문 생성 (예약에 연결)
+ */
+export async function createV2Order(
+  token: string,
+  reservationId: string,
+  items: Array<{ menu_id: string; quantity: number }>
+): Promise<any> {
+  const res = await fetch(`${API_URL}/orders`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ reservation_id: reservationId, items }),
+  });
+  if (!res.ok) throw new Error(`v2 주문 생성 실패: ${await res.text()}`);
+  return await res.json();
 }
 
 /**
