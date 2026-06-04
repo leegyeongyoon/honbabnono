@@ -229,6 +229,26 @@ describe('ReservationsController', () => {
 
       expect(mockRes.status).toHaveBeenCalledWith(403);
     });
+
+    it('should return 409 if status changed concurrently (rowCount 0)', async () => {
+      mockReq = createMockRequest({
+        params: { id: '50' },
+        body: { status: 'preparing' },
+      });
+      mockReq.merchant = { restaurantId: 1 };
+
+      mockPool.query
+        .mockResolvedValueOnce({
+          rows: [{ id: 50, restaurant_id: 1, status: 'confirmed' }],
+          rowCount: 1,
+        })
+        // SELECT 직후 고객 취소 등으로 상태가 변경됨 → 조건부 UPDATE 0건
+        .mockResolvedValueOnce({ rows: [], rowCount: 0 });
+
+      await reservationsController.updateStatus(mockReq, mockRes);
+
+      expect(mockRes.status).toHaveBeenCalledWith(409);
+    });
   });
 
   describe('processNoShow', () => {

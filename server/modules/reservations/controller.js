@@ -3,6 +3,7 @@ const logger = require('../../config/logger');
 const crypto = require('crypto');
 const { createNotification } = require('../notifications/controller');
 const { combineReservationDateTime, pickRefundRate } = require('../../utils/helpers');
+const portone = require('../../config/portone');
 
 /**
  * 예약 생성
@@ -338,7 +339,7 @@ exports.cancelReservation = async (req, res) => {
     // 5. 결제가 있으면 자동 환불 처리
     let refundInfo = null;
     const paymentResult = await client.query(
-      "SELECT id, amount, payment_method, status FROM payments WHERE reservation_id = $1 AND status = 'paid'",
+      "SELECT id, amount, payment_method, status, imp_uid FROM payments WHERE reservation_id = $1 AND status = 'paid'",
       [id]
     );
 
@@ -372,6 +373,17 @@ exports.cancelReservation = async (req, res) => {
             'UPDATE users SET points = points + $2 WHERE id = $1',
             [userId, refundAmount]
           );
+        } else if (payment.imp_uid) {
+          // PG 결제는 실제 PortOne 취소 호출 (기존엔 DB 상태만 바꿔 실환불이 누락됐음)
+          try {
+            await portone.cancelPayment(
+              payment.imp_uid,
+              cancel_reason || '예약 취소에 의한 환불',
+              refundAmount < payment.amount ? refundAmount : undefined
+            );
+          } catch (cancelError) {
+            logger.error('예약 취소 환불 실패 (수동 처리 필요):', { paymentId: payment.id, error: cancelError.message });
+          }
         }
 
         const newStatus = refundAmount === payment.amount ? 'refunded' : 'partial_refund';

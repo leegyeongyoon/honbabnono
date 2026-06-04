@@ -211,4 +211,57 @@ describe('OrdersController', () => {
       expect(mockRes.status).toHaveBeenCalledWith(403);
     });
   });
+
+  describe('rejectOrder', () => {
+    const setupRejectClient = (reservationStatus) => {
+      const client = mockPool._mockClient;
+      client.query.mockReset();
+      client.query.mockResolvedValueOnce({}); // BEGIN
+      client.query.mockResolvedValueOnce({
+        rows: [{
+          id: 'order-1', restaurant_id: 'r1', reservation_id: 'res-1',
+          user_id: 'user-1', total_amount: 10000, cooking_status: 'pending',
+        }],
+      }); // SELECT order
+      client.query.mockResolvedValueOnce({
+        rows: [{ status: reservationStatus }],
+      }); // SELECT reservation FOR UPDATE
+      return client;
+    };
+
+    it('should reject pending order and cancel linked reservation', async () => {
+      const client = setupRejectClient('confirmed');
+      client.query.mockResolvedValueOnce({ rows: [], rowCount: 1 }); // UPDATE orders
+      client.query.mockResolvedValueOnce({ rows: [], rowCount: 1 }); // UPDATE reservations
+      client.query.mockResolvedValueOnce({ rows: [], rowCount: 0 }); // SELECT payments (없음)
+      client.query.mockResolvedValueOnce({}); // COMMIT
+
+      const req = createMockRequest({
+        params: { id: 'order-1' },
+        body: { reject_reason: '재료 소진' },
+      });
+      req.merchant = { restaurantId: 'r1' };
+
+      await ordersController.rejectOrder(req, mockRes);
+
+      const response = mockRes.json.mock.calls[0][0];
+      expect(response.success).toBe(true);
+    });
+
+    it('should return 400 when linked reservation is already seated', async () => {
+      setupRejectClient('seated');
+
+      const req = createMockRequest({
+        params: { id: 'order-1' },
+        body: { reject_reason: '거절 시도' },
+      });
+      req.merchant = { restaurantId: 'r1' };
+
+      await ordersController.rejectOrder(req, mockRes);
+
+      expect(mockRes.status).toHaveBeenCalledWith(400);
+      const response = mockRes.json.mock.calls[0][0];
+      expect(response.error).toContain('착석');
+    });
+  });
 });
