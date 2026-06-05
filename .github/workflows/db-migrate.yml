@@ -149,10 +149,13 @@ jobs:
           echo "=== 적용 후 상태 ==="
           docker exec eattable-app node server/migrations/runner.js --status
 
-          echo "=== 검증: users.is_blocked (108) ==="
-          PG=$(docker ps --format '{{.Names}}' | grep -i postgres | head -1)
-          docker exec "$PG" psql -U postgres -d honbabnono -c \
-            "SELECT column_name FROM information_schema.columns WHERE table_name='users' AND column_name='is_blocked';"
+          echo "=== 검증: users.is_blocked (108) — 앱 컨테이너 DB풀 경유 ==="
+          docker exec eattable-app node -e "
+            const pool = require('/app/server/config/database');
+            pool.query(\"SELECT column_name FROM information_schema.columns WHERE table_name='users' AND column_name='is_blocked'\")
+              .then(r => { console.log('is_blocked:', r.rows[0] ? '존재' : '없음!'); process.exit(0); })
+              .catch(e => { console.error(e.message); process.exit(0); });
+          "
 
           echo "=== 헬스체크 ==="
           curl -s -o /dev/null -w "API health: %{http_code}\n" http://localhost:80/api/health
