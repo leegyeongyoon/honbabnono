@@ -10,6 +10,7 @@ export interface Reservation {
   id: string;
   restaurantId: string;
   restaurantName?: string;
+  restaurantPhone?: string;
   reservationDate: string;
   reservationTime: string;
   partySize: number;

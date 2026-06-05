@@ -5,6 +5,7 @@ import { COLORS, CSS_SHADOWS, CARD_STYLE } from '../styles/colors';
 import { BORDER_RADIUS, SPACING } from '../styles/spacing';
 import { Icon } from '../components/Icon';
 import apiClient from '../services/apiClient';
+import restaurantApiService from '../services/restaurantApiService';
 
 // ============================================================
 // WriteRestaurantReviewScreen — 잇테이블 v2 매장 리뷰 작성
@@ -39,6 +40,31 @@ const WriteRestaurantReviewScreen: React.FC = () => {
   const [ambianceRating, setAmbianceRating] = useState(0);
   const [content, setContent] = useState('');
 
+  // 리뷰 사진 (최대 3장) — 선택 즉시 업로드해 URL 보관
+  const MAX_IMAGES = 3;
+  const [images, setImages] = useState<{ url: string; uploading?: boolean }[]>([]);
+  const fileInputRef = React.useRef<HTMLInputElement | null>(null);
+
+  const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file || images.length >= MAX_IMAGES) return;
+
+    const placeholder = { url: URL.createObjectURL(file), uploading: true };
+    setImages((prev) => [...prev, placeholder]);
+    try {
+      const url = await restaurantApiService.uploadReviewImage(file);
+      setImages((prev) => prev.map((img) => (img === placeholder ? { url } : img)));
+    } catch (err: any) {
+      setImages((prev) => prev.filter((img) => img !== placeholder));
+      alert(err?.response?.data?.error || '이미지 업로드에 실패했습니다.');
+    }
+  };
+
+  const removeImage = (index: number) => {
+    setImages((prev) => prev.filter((_, i) => i !== index));
+  };
+
   const ratings = { taste_rating: tasteRating, service_rating: serviceRating, ambiance_rating: ambianceRating };
   const setters = {
     taste_rating: setTasteRating,
@@ -63,7 +89,9 @@ const WriteRestaurantReviewScreen: React.FC = () => {
     }
   };
 
-  const isValid = tasteRating > 0 && serviceRating > 0 && ambianceRating > 0 && content.trim().length >= 10;
+  const isValid = tasteRating > 0 && serviceRating > 0 && ambianceRating > 0
+    && content.trim().length >= 10
+    && !images.some((img) => img.uploading);
 
   const handleSubmit = async () => {
     if (!isValid || !reservation || submitting) return;
@@ -76,6 +104,7 @@ const WriteRestaurantReviewScreen: React.FC = () => {
         service_rating: serviceRating,
         ambiance_rating: ambianceRating,
         content: content.trim(),
+        images: images.filter((img) => !img.uploading).map((img) => img.url),
       });
       alert('리뷰가 등록되었습니다');
       navigate(-1);
@@ -198,6 +227,35 @@ const WriteRestaurantReviewScreen: React.FC = () => {
         <p style={styles.charCount}>{content.length} / 1000</p>
       </div>
 
+      {/* Photos */}
+      <div style={styles.card}>
+        <p style={styles.sectionTitle}>사진 첨부 (선택, 최대 {MAX_IMAGES}장)</p>
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' as const }}>
+          {images.map((img, i) => (
+            <div key={i} style={styles.photoThumbWrap}>
+              <img src={img.url} alt={`첨부 ${i + 1}`} style={{ ...styles.photoThumb, opacity: img.uploading ? 0.5 : 1 }} />
+              {img.uploading ? (
+                <span style={styles.photoUploading}>업로드 중…</span>
+              ) : (
+                <span style={styles.photoRemove} onClick={() => removeImage(i)}>✕</span>
+              )}
+            </div>
+          ))}
+          {images.length < MAX_IMAGES && (
+            <div style={styles.photoAdd} onClick={() => fileInputRef.current?.click()}>
+              <span style={{ fontSize: 22, color: COLORS.text.tertiary }}>＋</span>
+            </div>
+          )}
+        </div>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          style={{ display: 'none' }}
+          onChange={handleImageSelect}
+        />
+      </div>
+
       {/* Submit */}
       <button
         onClick={handleSubmit}
@@ -304,6 +362,23 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 12,
     color: COLORS.text.tertiary,
     margin: '6px 0 0',
+  },
+  photoThumbWrap: { position: 'relative' as const },
+  photoThumb: { width: 84, height: 84, borderRadius: 10, objectFit: 'cover' as const },
+  photoRemove: {
+    position: 'absolute' as const, top: -6, right: -6,
+    width: 22, height: 22, borderRadius: 11, backgroundColor: 'rgba(0,0,0,0.65)',
+    color: '#fff', fontSize: 11, display: 'flex', alignItems: 'center',
+    justifyContent: 'center', cursor: 'pointer',
+  },
+  photoUploading: {
+    position: 'absolute' as const, bottom: 4, left: 0, right: 0,
+    textAlign: 'center' as const, fontSize: 11, color: COLORS.text.secondary,
+  },
+  photoAdd: {
+    width: 84, height: 84, borderRadius: 10,
+    border: `1.5px dashed ${COLORS.neutral.grey200}`,
+    display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
   },
   submitButton: {
     width: '100%',

@@ -41,13 +41,31 @@ const PaymentScreen: React.FC = () => {
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethod>('card');
   const [impReady, setImpReady] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  // 재결제(결제 대기 예약 재진입) 시 기존 주문 — 카트가 비어 있으면 이걸로 결제
+  const [existingOrder, setExistingOrder] = useState<any | null>(null);
 
   const reservation = reservationStore.currentReservation;
 
   // 장바구니가 현재 예약의 매장과 일치하는지 검증
   const isCartValid = reservation && cartStore.restaurantId === reservation.restaurantId;
-  const totalAmount = isCartValid ? cartStore.totalAmount : 0;
-  const items = isCartValid ? cartStore.items : [];
+  const cartItems = isCartValid ? cartStore.items : [];
+
+  // 카트 우선, 비어 있으면 기존 주문 폴백 (재결제 플로우 — createOrder 재호출 금지)
+  const usingExistingOrder = cartItems.length === 0 && !!existingOrder;
+  const items = usingExistingOrder
+    ? (existingOrder.items || []).map((it: any) => ({
+        menuId: it.menu_id ?? it.menuId,
+        menuName: it.menu_name ?? it.menuName,
+        quantity: it.quantity,
+        subtotal: it.subtotal ?? (it.unit_price ?? 0) * it.quantity,
+        optionLabel: Array.isArray(it.options)
+          ? it.options.map((o: any) => o.name).filter(Boolean).join(', ')
+          : undefined,
+      }))
+    : cartItems;
+  const totalAmount = usingExistingOrder
+    ? Number(existingOrder.totalAmount)
+    : (isCartValid ? cartStore.totalAmount : 0);
 
   // PortOne SDK 로드
   useEffect(() => {
@@ -73,11 +91,20 @@ const PaymentScreen: React.FC = () => {
     document.body.appendChild(script);
   }, []);
 
-  // 예약 정보 로드
+  // 예약 정보 로드 (+ 카트가 비어 있으면 기존 주문 로드 — 재결제 진입)
   useEffect(() => {
     if (!reservationId) return;
     reservationStore
       .fetchReservationById(reservationId)
+      .then(() => {
+        if (cartStore.items.length === 0) {
+          return restaurantApiService
+            .getOrderByReservation(reservationId)
+            .then((order) => setExistingOrder(order))
+            .catch(() => setExistingOrder(null));
+        }
+        return undefined;
+      })
       .finally(() => setLoading(false));
   }, [reservationId]);
 
@@ -93,13 +120,15 @@ const PaymentScreen: React.FC = () => {
     setErrorMsg('');
 
     try {
-      // 1. 주문 생성
-      const orderItems = items.map((item) => ({
-        menuId: item.menuId,
-        quantity: item.quantity,
-        options: item.options,
-      }));
-      const order = await restaurantApiService.createOrder(reservationId, orderItems);
+      // 1. 주문 생성 — 재결제(기존 주문 존재)면 중복 생성 금지, 바로 결제 준비로
+      if (!usingExistingOrder) {
+        const orderItems = items.map((item: any) => ({
+          menuId: item.menuId,
+          quantity: item.quantity,
+          options: item.options,
+        }));
+        await restaurantApiService.createOrder(reservationId, orderItems);
+      }
 
       // 2. 결제 준비
       const paymentData = await paymentStore.preparePayment(
@@ -162,7 +191,7 @@ const PaymentScreen: React.FC = () => {
       setErrorMsg(err.message || '결제 처리 중 오류가 발생했습니다.');
       setProcessing(false);
     }
-  }, [reservationId, processing, items, totalAmount, selectedMethod, reservation, paymentStore, cartStore, navigate]);
+  }, [reservationId, processing, items, totalAmount, selectedMethod, reservation, usingExistingOrder, paymentStore, cartStore, navigate]);
 
   if (loading) {
     return (
@@ -215,14 +244,26 @@ const PaymentScreen: React.FC = () => {
           </div>
         </div>
 
+        {/* 결제 대기 안내 (재결제 진입) */}
+        {reservation?.status === 'pending_payment' && (
+          <div style={s.pendingNotice}>
+            예약 후 15분 내 결제하지 않으면 자동 취소됩니다.
+          </div>
+        )}
+
         {/* 메뉴 목록 */}
         {items.length > 0 && (
           <div style={s.section}>
             <div style={s.sectionTitle}>주문 메뉴</div>
             <div style={s.infoCard}>
-              {items.map((item) => (
+              {items.map((item: any) => (
                 <div key={item.menuId} style={s.menuRow}>
-                  <span>{item.menuName} x{item.quantity}</span>
+                  <span>
+                    {item.menuName} x{item.quantity}
+                    {item.optionLabel ? (
+                      <span style={s.menuOptionLabel}> ({item.optionLabel})</span>
+                    ) : null}
+                  </span>
                   <span style={s.menuPrice}>{formatPrice(item.subtotal)}원</span>
                 </div>
               ))}
@@ -343,6 +384,13 @@ const s: Record<string, React.CSSProperties> = {
     fontSize: 14, fontFamily: FONT, color: COLORS.text.primary,
   },
   menuPrice: { fontWeight: 600, color: COLORS.text.secondary },
+  menuOptionLabel: { fontSize: 12, color: COLORS.text.tertiary },
+  pendingNotice: {
+    margin: '12px 20px 0', padding: '10px 14px',
+    backgroundColor: COLORS.functional.warningLight,
+    borderRadius: BORDER_RADIUS.md,
+    fontSize: 13, fontWeight: 600, color: COLORS.functional.warning, fontFamily: FONT,
+  },
   totalRow: {
     display: 'flex', justifyContent: 'space-between', padding: '12px 0 0',
     borderTop: '1px solid rgba(17,17,17,0.06)', marginTop: 8,

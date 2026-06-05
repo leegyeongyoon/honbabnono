@@ -6,6 +6,7 @@ import { COLORS, CSS_SHADOWS, CARD_STYLE, TRANSITIONS } from '../styles/colors';
 import { SPACING, BORDER_RADIUS, HEADER_STYLE } from '../styles/spacing';
 import useReservationStore, { Reservation } from '../store/reservationStore';
 import restaurantApiService from '../services/restaurantApiService';
+import useReservationSocket from '../hooks/useReservationSocket';
 
 // ============================================================
 // MyReservationsScreen — 잇테이블 v2 내 예약 목록
@@ -38,6 +39,15 @@ const MyReservationsScreen: React.FC = () => {
       .fetchMyReservations()
       .finally(() => setLoading(false));
   }, []);
+
+  // 진행중 예약 실시간 구독 — 점주가 상태를 바꾸면 카드 즉시 갱신
+  const activeIds = reservationStore.reservations
+    .filter((r) => ACTIVE_STATUSES.includes(r.status))
+    .map((r) => r.id);
+  useReservationSocket(activeIds, {
+    onStatusUpdate: () => { reservationStore.fetchMyReservations().catch(() => {}); },
+    onCookingUpdate: () => { reservationStore.fetchMyReservations().catch(() => {}); },
+  });
 
   const filteredReservations = reservationStore.reservations.filter((r) => {
     if (activeTab === 'active') return ACTIVE_STATUSES.includes(r.status);
@@ -106,6 +116,7 @@ const MyReservationsScreen: React.FC = () => {
     const canCancel = ['pending_payment', 'confirmed'].includes(reservation.status);
     const canCheckin = ['confirmed', 'preparing'].includes(reservation.status);
     const canNotify = ACTIVE_STATUSES.includes(reservation.status);
+    const needsPayment = reservation.status === 'pending_payment';
 
     return (
       <div
@@ -140,12 +151,27 @@ const MyReservationsScreen: React.FC = () => {
           )}
         </div>
 
+        {/* 결제 대기 안내 — 15분 내 미결제 시 자동 취소 */}
+        {needsPayment && (
+          <div style={s.pendingPaymentNotice}>
+            예약 후 15분 내 결제하지 않으면 자동 취소됩니다.
+          </div>
+        )}
+
         {/* 액션 버튼들 */}
         {activeTab === 'active' && (
           <div
             style={s.cardActions}
             onClick={(e) => e.stopPropagation()}
           >
+            {needsPayment && (
+              <div
+                style={s.actionButtonPrimary}
+                onClick={() => navigate(`/payment/${reservation.id}`)}
+              >
+                결제하기
+              </div>
+            )}
             {canNotify && (
               <div
                 style={s.actionButton}
@@ -323,6 +349,13 @@ const s: Record<string, React.CSSProperties> = {
     fontSize: 12, color: COLORS.text.tertiary, fontFamily: FONT,
     marginTop: SPACING.xs, overflow: 'hidden', textOverflow: 'ellipsis',
     whiteSpace: 'nowrap' as const,
+  },
+
+  // 결제 대기 안내
+  pendingPaymentNotice: {
+    marginTop: SPACING.sm, padding: `${SPACING.xs + 2}px ${SPACING.md}px`,
+    borderRadius: BORDER_RADIUS.sm, backgroundColor: COLORS.functional.warningLight,
+    color: COLORS.functional.warning, fontSize: 12, fontWeight: 600, fontFamily: FONT,
   },
 
   // 액션 버튼

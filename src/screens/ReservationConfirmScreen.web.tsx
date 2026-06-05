@@ -5,6 +5,7 @@ import { Icon } from '../components/Icon';
 import { COLORS, CSS_SHADOWS, CARD_STYLE } from '../styles/colors';
 import { BORDER_RADIUS } from '../styles/spacing';
 import useReservationStore from '../store/reservationStore';
+import useReservationSocket from '../hooks/useReservationSocket';
 import { QRCodeSVG } from 'qrcode.react';
 
 // ============================================================
@@ -25,6 +26,16 @@ const ReservationConfirmScreen: React.FC = () => {
       .fetchReservationById(reservationId)
       .finally(() => setLoading(false));
   }, [reservationId]);
+
+  // 점주의 상태 변경(준비중/픽업완료 등)을 실시간 반영
+  useReservationSocket(reservationId ?? null, {
+    onStatusUpdate: () => {
+      if (reservationId) reservationStore.fetchReservationById(reservationId).catch(() => {});
+    },
+    onCookingUpdate: () => {
+      if (reservationId) reservationStore.fetchReservationById(reservationId).catch(() => {});
+    },
+  });
 
   if (loading) {
     return (
@@ -147,6 +158,14 @@ const ReservationConfirmScreen: React.FC = () => {
           >
             예약 내역 보기
           </div>
+          {reservation?.restaurantPhone && (
+            <a
+              href={`tel:${reservation.restaurantPhone}`}
+              style={{ ...s.secondaryButton, textDecoration: 'none', display: 'block' }}
+            >
+              📞 매장에 전화
+            </a>
+          )}
           <div
             style={s.secondaryButton}
             onClick={() => navigate('/')}

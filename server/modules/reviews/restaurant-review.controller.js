@@ -62,15 +62,20 @@ exports.createRestaurantReview = async (req, res) => {
       return res.status(409).json({ success: false, error: '이미 리뷰를 작성한 예약입니다.' });
     }
 
+    // 리뷰 이미지 (최대 3장, URL 배열)
+    const { images } = req.body;
+    const reviewImages = Array.isArray(images) ? images.filter((u) => typeof u === 'string').slice(0, 3) : [];
+
     await client.query('BEGIN');
 
     // INSERT 리뷰 (overall_rating은 GENERATED ALWAYS AS 컬럼 — DB가 자동 계산)
     const insertResult = await client.query(
       `INSERT INTO restaurant_reviews
-        (reservation_id, restaurant_id, user_id, taste_rating, service_rating, ambiance_rating, content)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
+        (reservation_id, restaurant_id, user_id, taste_rating, service_rating, ambiance_rating, content, images)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
        RETURNING *`,
-      [reservation_id, restaurant_id, userId, taste_rating, service_rating, ambiance_rating, content.trim()]
+      [reservation_id, restaurant_id, userId, taste_rating, service_rating, ambiance_rating, content.trim(),
+       JSON.stringify(reviewImages)]
     );
 
     // UPDATE 매장 평점 집계
@@ -240,5 +245,33 @@ exports.replyToReview = async (req, res) => {
   } catch (error) {
     logger.error('매장 리뷰 답변 오류:', error);
     res.status(500).json({ success: false, error: '서버 오류가 발생했습니다.' });
+  }
+};
+
+/**
+ * 리뷰 이미지 업로드 (S3)
+ * POST /api/reviews/restaurant/upload-image
+ * multipart/form-data: image (jpeg/png/webp, 최대 10MB)
+ */
+exports.uploadReviewImage = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, error: '이미지 파일이 필요합니다.' });
+    }
+
+    const { uploadImageToS3 } = require('../../utils/imageUpload');
+    const url = await uploadImageToS3(
+      req.file.buffer,
+      req.file.mimetype,
+      `review-images/${req.user.userId}`
+    );
+
+    res.json({ success: true, data: { url } });
+  } catch (error) {
+    if (error.code === 'S3_UNAVAILABLE') {
+      return res.status(503).json({ success: false, error: error.message });
+    }
+    logger.error('리뷰 이미지 업로드 오류:', error);
+    res.status(500).json({ success: false, error: '이미지 업로드 중 오류가 발생했습니다.' });
   }
 };

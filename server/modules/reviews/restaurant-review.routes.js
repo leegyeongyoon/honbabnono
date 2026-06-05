@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const controller = require('./restaurant-review.controller');
 const { authenticateToken, authenticateMerchant } = require('../../middleware/auth');
+const { imageUpload } = require('../../utils/imageUpload');
 
 // ============================================================
 // 매장 리뷰 라우트 — 잇테이블 v2
@@ -10,6 +11,9 @@ const { authenticateToken, authenticateMerchant } = require('../../middleware/au
 
 // 내가 작성한 매장 리뷰 목록 (※ :restaurantId 보다 먼저 선언해야 'my'가 파라미터로 잡히지 않음)
 router.get('/my', authenticateToken, controller.getMyRestaurantReviews);
+
+// 리뷰 이미지 업로드 (S3 — 리뷰 작성 전 개별 업로드 후 URL을 본문에 포함)
+router.post('/upload-image', authenticateToken, imageUpload.single('image'), controller.uploadReviewImage);
 
 // 특정 매장의 리뷰 목록 (public)
 router.get('/:restaurantId', controller.getRestaurantReviews);

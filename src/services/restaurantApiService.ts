@@ -21,6 +21,8 @@ export interface Restaurant {
   operatingHours?: any;
   seatCount?: number;
   isActive?: boolean;
+  isAcceptingReservations?: boolean;
+  pauseReason?: string;
   avgRating?: number;
   reviewCount?: number;
 }
@@ -37,6 +39,21 @@ export interface MenuItem {
   options?: any[];
 }
 
+export interface MenuOptionItem {
+  id: string;
+  name: string;
+  additionalPrice: number;
+}
+
+export interface MenuOptionGroup {
+  id: string;
+  name: string;
+  isRequired: boolean;
+  minSelect: number;
+  maxSelect: number;
+  items: MenuOptionItem[];
+}
+
 export interface TimeSlot {
   time: string;
   available: boolean;
@@ -47,6 +64,7 @@ export interface Reservation {
   id: string;
   restaurantId: string;
   restaurantName?: string;
+  restaurantPhone?: string;
   reservationDate: string;
   reservationTime: string;
   partySize: number;
@@ -98,6 +116,8 @@ const mapRestaurant = (r: any): Restaurant => ({
   operatingHours: r.operating_hours ?? r.operatingHours,
   seatCount: r.seat_count ?? r.seatCount,
   isActive: r.is_active ?? r.isActive,
+  isAcceptingReservations: r.is_accepting_reservations ?? r.isAcceptingReservations ?? true,
+  pauseReason: r.pause_reason ?? r.pauseReason,
   avgRating: r.avg_rating != null ? Number(r.avg_rating) : r.avgRating,
   reviewCount: r.review_count != null ? Number(r.review_count) : r.reviewCount,
 });
@@ -277,6 +297,26 @@ const getMenuById = async (id: string): Promise<MenuItem> => {
   return mapMenuItem(data);
 };
 
+const getMenuOptions = async (menuId: string): Promise<MenuOptionGroup[]> => {
+  const response = await apiClient.get(`/menus/${menuId}/options`);
+  const data = response.data.data ?? response.data;
+  const groups = Array.isArray(data) ? data : [];
+  return groups.map((g: any) => ({
+    id: g.id,
+    name: g.name,
+    isRequired: g.is_required ?? g.isRequired ?? false,
+    minSelect: g.min_select ?? g.minSelect ?? 0,
+    maxSelect: g.max_select ?? g.maxSelect ?? 1,
+    items: (g.items || [])
+      .filter((it: any) => it.is_active !== false)
+      .map((it: any) => ({
+        id: it.id,
+        name: it.name,
+        additionalPrice: it.additional_price ?? it.additionalPrice ?? 0,
+      })),
+  }));
+};
+
 // ---------- Helpers ----------
 
 // PostgreSQL TIME returns "HH:MM:SS"; frontend expects "HH:MM"
@@ -319,6 +359,7 @@ const getReservationById = async (id: string): Promise<Reservation> => {
     id: r.id,
     restaurantId: r.restaurant_id ?? r.restaurantId,
     restaurantName: r.restaurant_name ?? r.restaurantName,
+    restaurantPhone: r.restaurant_phone ?? r.restaurantPhone,
     reservationDate: r.reservation_date ?? r.reservationDate,
     reservationTime: sliceTime(r.reservation_time ?? r.reservationTime),
     partySize: r.party_size ?? r.partySize,
@@ -522,6 +563,7 @@ export interface RestaurantReview {
   serviceRating: number;
   ambianceRating: number;
   content: string;
+  images?: string[];
   reply?: string;
   repliedAt?: string;
   createdAt: string;
@@ -535,10 +577,23 @@ const mapReview = (r: any): RestaurantReview => ({
   serviceRating: r.service_rating ?? r.serviceRating ?? 0,
   ambianceRating: r.ambiance_rating ?? r.ambianceRating ?? 0,
   content: r.content ?? '',
+  images: Array.isArray(r.images) ? r.images : [],
   reply: r.reply,
   repliedAt: r.replied_at ?? r.repliedAt,
   createdAt: r.created_at ?? r.createdAt ?? '',
 });
+
+/** 리뷰 이미지 업로드 — S3 URL 반환 */
+const uploadReviewImage = async (file: File): Promise<string> => {
+  const formData = new FormData();
+  formData.append('image', file);
+  const response = await apiClient.post('/reviews/restaurant/upload-image', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  const data = response.data.data ?? response.data;
+  if (!data.url) throw new Error('이미지 업로드에 실패했습니다.');
+  return data.url;
+};
 
 const getRestaurantReviews = async (
   restaurantId: string,
@@ -573,6 +628,7 @@ const restaurantApiService = {
   // menus
   getMenusByRestaurant,
   getMenuById,
+  getMenuOptions,
   // reservations
   getMyReservations,
   getReservationById,
@@ -586,6 +642,7 @@ const restaurantApiService = {
   getOrderByReservation,
   // reviews
   getRestaurantReviews,
+  uploadReviewImage,
   // payments
   preparePayment,
   verifyPayment,

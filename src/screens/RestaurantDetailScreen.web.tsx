@@ -4,8 +4,10 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Icon } from '../components/Icon';
 import { COLORS, CSS_SHADOWS, CARD_STYLE, TRANSITIONS, CTA_STYLE } from '../styles/colors';
 import { SPACING, BORDER_RADIUS, HEADER_STYLE } from '../styles/spacing';
-import restaurantApiService, { Restaurant, MenuItem, RestaurantReview } from '../services/restaurantApiService';
+import restaurantApiService, { Restaurant, MenuItem, MenuOptionGroup, RestaurantReview } from '../services/restaurantApiService';
 import useCartStore from '../store/cartStore';
+import MenuOptionModal from '../components/MenuOptionModal.web';
+import { formatOperatingHours, buildKakaoMapUrl } from '../utils/operatingHours';
 
 // ============================================================
 // RestaurantDetailScreen — 잇테이블 v2 매장 상세
@@ -24,6 +26,10 @@ const RestaurantDetailScreen: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<TabType>('menu');
   const [favorited, setFavorited] = useState(false);
+
+  // 메뉴 옵션 모달 (옵션 그룹은 메뉴별로 캐시)
+  const [optionModal, setOptionModal] = useState<{ menu: MenuItem; groups: MenuOptionGroup[] } | null>(null);
+  const optionCache = React.useRef<Record<string, MenuOptionGroup[]>>({});
 
   useEffect(() => {
     if (!id) return;
@@ -62,8 +68,25 @@ const RestaurantDetailScreen: React.FC = () => {
   };
 
   const handleAddToCart = useCallback(
-    (menu: MenuItem) => {
+    async (menu: MenuItem) => {
       if (!restaurant) return;
+
+      // 옵션 그룹 조회 (메뉴별 캐시) — 옵션이 있으면 선택 모달 오픈
+      let groups = optionCache.current[menu.id];
+      if (!groups) {
+        try {
+          groups = await restaurantApiService.getMenuOptions(menu.id);
+        } catch {
+          groups = [];
+        }
+        optionCache.current[menu.id] = groups;
+      }
+
+      if (groups.length > 0) {
+        setOptionModal({ menu, groups });
+        return;
+      }
+
       cartStore.setRestaurantId(restaurant.id);
       cartStore.addItem({
         menuId: menu.id,
@@ -74,6 +97,27 @@ const RestaurantDetailScreen: React.FC = () => {
     },
     [restaurant, cartStore],
   );
+
+  const handleOptionConfirm = useCallback(
+    (result: { options: any[]; optionLabel: string; optionsPrice: number }) => {
+      if (!restaurant || !optionModal) return;
+      cartStore.setRestaurantId(restaurant.id);
+      cartStore.addItem({
+        menuId: optionModal.menu.id,
+        menuName: optionModal.menu.name,
+        unitPrice: optionModal.menu.price,
+        quantity: 1,
+        options: result.options,
+        optionLabel: result.optionLabel,
+        optionsPrice: result.optionsPrice,
+      });
+      setOptionModal(null);
+    },
+    [restaurant, optionModal, cartStore],
+  );
+
+  // 예약 일시중지 여부 (점주 토글)
+  const isPaused = restaurant?.isAcceptingReservations === false;
 
   const handleUpdateQuantity = useCallback(
     (menuId: string, delta: number) => {
@@ -176,7 +220,14 @@ const RestaurantDetailScreen: React.FC = () => {
             <div style={s.addressText}>{restaurant.address}</div>
           )}
           {restaurant.phone && (
-            <div style={s.phoneText}>{restaurant.phone}</div>
+            <a href={`tel:${restaurant.phone}`} style={{ ...s.phoneText, ...s.phoneLink }}>
+              📞 {restaurant.phone}
+            </a>
+          )}
+          {isPaused && (
+            <div style={s.pausedBadge}>
+              예약 일시 중지{restaurant.pauseReason ? ` — ${restaurant.pauseReason}` : ''}
+            </div>
           )}
         </div>
 
@@ -241,8 +292,8 @@ const RestaurantDetailScreen: React.FC = () => {
                               </>
                             ) : (
                               <div
-                                style={s.addButton}
-                                onClick={() => handleAddToCart(menu)}
+                                style={{ ...s.addButton, ...(isPaused ? s.addButtonDisabled : {}) }}
+                                onClick={() => { if (!isPaused) handleAddToCart(menu); }}
                               >
                                 담기
                               </div>
@@ -268,23 +319,31 @@ const RestaurantDetailScreen: React.FC = () => {
                   {restaurant.address}
                   {restaurant.addressDetail ? ` ${restaurant.addressDetail}` : ''}
                 </div>
+                {(() => {
+                  const mapUrl = buildKakaoMapUrl(
+                    restaurant.name, restaurant.latitude, restaurant.longitude, restaurant.address,
+                  );
+                  return mapUrl ? (
+                    <a href={mapUrl} target="_blank" rel="noreferrer" style={s.mapLink}>
+                      🗺️ 지도에서 보기
+                    </a>
+                  ) : null;
+                })()}
               </div>
               {restaurant.phone && (
                 <div style={s.infoRow}>
                   <div style={s.infoLabel}>전화번호</div>
-                  <div style={s.infoValue}>{restaurant.phone}</div>
+                  <a href={`tel:${restaurant.phone}`} style={{ ...s.infoValue, ...s.phoneLink }}>
+                    {restaurant.phone}
+                  </a>
                 </div>
               )}
-              {restaurant.operatingHours && (
-                <div style={s.infoRow}>
-                  <div style={s.infoLabel}>영업시간</div>
-                  <div style={s.infoValue}>
-                    {typeof restaurant.operatingHours === 'string'
-                      ? restaurant.operatingHours
-                      : JSON.stringify(restaurant.operatingHours)}
-                  </div>
+              {formatOperatingHours(restaurant.operatingHours).map((row) => (
+                <div key={row.label} style={s.infoRow}>
+                  <div style={s.infoLabel}>{row.label}</div>
+                  <div style={s.infoValue}>{row.value}</div>
                 </div>
-              )}
+              ))}
               {restaurant.seatCount && (
                 <div style={s.infoRow}>
                   <div style={s.infoLabel}>좌석수</div>
@@ -311,6 +370,25 @@ const RestaurantDetailScreen: React.FC = () => {
                       </div>
                     )}
                     <div style={s.reviewContent}>{review.content}</div>
+                    {review.images && review.images.length > 0 && (
+                      <div style={s.reviewImages}>
+                        {review.images.map((url, i) => (
+                          <img
+                            key={i}
+                            src={url}
+                            alt={`리뷰 사진 ${i + 1}`}
+                            style={s.reviewImage}
+                            onClick={() => window.open(url, '_blank')}
+                          />
+                        ))}
+                      </div>
+                    )}
+                    {review.reply && (
+                      <div style={s.reviewReply}>
+                        <div style={s.reviewReplyLabel}>사장님 답글</div>
+                        <div style={s.reviewReplyText}>{review.reply}</div>
+                      </div>
+                    )}
                     <div style={s.reviewDate}>
                       {new Date(review.createdAt).toLocaleDateString('ko-KR')}
                     </div>
@@ -338,6 +416,16 @@ const RestaurantDetailScreen: React.FC = () => {
               </span>
             </div>
           </div>
+        )}
+
+        {/* 메뉴 옵션 선택 모달 */}
+        {optionModal && (
+          <MenuOptionModal
+            menu={optionModal.menu}
+            groups={optionModal.groups}
+            onConfirm={handleOptionConfirm}
+            onClose={() => setOptionModal(null)}
+          />
         )}
       </div>
     </div>
@@ -392,6 +480,17 @@ const s: Record<string, React.CSSProperties> = {
   reviewCountText: { fontSize: 13, color: COLORS.text.tertiary, fontFamily: FONT },
   addressText: { fontSize: 13, color: COLORS.text.tertiary, fontFamily: FONT, marginBottom: 2 },
   phoneText: { fontSize: 13, color: COLORS.text.tertiary, fontFamily: FONT },
+  phoneLink: { textDecoration: 'none', cursor: 'pointer', display: 'inline-block' },
+  pausedBadge: {
+    marginTop: SPACING.sm, display: 'inline-block',
+    fontSize: 12, fontWeight: 700, padding: '4px 12px',
+    borderRadius: BORDER_RADIUS.pill, backgroundColor: COLORS.functional.errorLight,
+    color: COLORS.functional.error, fontFamily: FONT,
+  },
+  mapLink: {
+    display: 'inline-block', marginTop: 6, fontSize: 13, fontWeight: 600,
+    color: COLORS.primary.main, fontFamily: FONT, textDecoration: 'none', cursor: 'pointer',
+  },
 
   // 탭
   tabBar: {
@@ -438,6 +537,7 @@ const s: Record<string, React.CSSProperties> = {
     color: COLORS.text.white, fontSize: 13, fontWeight: 600, cursor: 'pointer',
     fontFamily: FONT, boxShadow: CSS_SHADOWS.cta, transition: TRANSITIONS.normal,
   },
+  addButtonDisabled: { opacity: 0.4, cursor: 'not-allowed' },
 
   // 정보 탭
   infoTab: { paddingTop: SPACING.lg },
@@ -455,6 +555,14 @@ const s: Record<string, React.CSSProperties> = {
   reviewRating: { fontSize: 13, fontWeight: 600, color: COLORS.primary.main, fontFamily: FONT },
   reviewSubRatings: { display: 'flex', gap: SPACING.md, fontSize: 12, color: COLORS.text.tertiary, fontFamily: FONT, marginBottom: 6 },
   reviewContent: { fontSize: 14, color: COLORS.text.primary, fontFamily: FONT, lineHeight: '1.5', marginBottom: SPACING.xs },
+  reviewImages: { display: 'flex', gap: SPACING.sm, overflowX: 'auto' as const, marginBottom: SPACING.sm },
+  reviewImage: { width: 84, height: 84, borderRadius: BORDER_RADIUS.md, objectFit: 'cover' as const, cursor: 'pointer', flexShrink: 0 },
+  reviewReply: {
+    backgroundColor: COLORS.neutral.light, borderRadius: BORDER_RADIUS.md,
+    padding: SPACING.md, marginBottom: SPACING.xs,
+  },
+  reviewReplyLabel: { fontSize: 12, fontWeight: 700, color: COLORS.text.secondary, fontFamily: FONT, marginBottom: 4 },
+  reviewReplyText: { fontSize: 13, color: COLORS.text.primary, fontFamily: FONT, lineHeight: '1.5' },
   reviewDate: { fontSize: 12, color: COLORS.text.tertiary, fontFamily: FONT },
 
   emptyText: { fontSize: 14, color: COLORS.text.tertiary, textAlign: 'center' as const, padding: 40, fontFamily: FONT },

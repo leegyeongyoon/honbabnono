@@ -81,7 +81,9 @@ const ReservationFormScreen: React.FC = () => {
     }
   }, [restaurantId, selectedDate, selectedTime, partySize, specialRequest, submitting, reservationStore, navigate]);
 
-  const canSubmit = selectedDate && selectedTime && partySize > 0 && !submitting;
+  // 선주문이 핵심 서비스 — 메뉴 1개 이상 필수
+  const hasMenu = !!isCurrentCart && cartStore.items.length > 0;
+  const canSubmit = selectedDate && selectedTime && partySize > 0 && hasMenu && !submitting;
 
   if (loading) {
     return (
@@ -138,7 +140,10 @@ const ReservationFormScreen: React.FC = () => {
           ) : loadingSlots ? (
             <ActivityIndicator size="small" color={COLORS.primary.main} />
           ) : timeSlots.length === 0 ? (
-            <div style={s.hintText}>예약 가능한 시간이 없습니다.</div>
+            <div style={s.hintText}>
+              이 날짜는 예약 가능한 시간이 없어요.
+              <br />다른 날짜를 선택하거나 매장에 전화로 문의해보세요.
+            </div>
           ) : (
             <div style={s.slotGrid}>
               {timeSlots.map((slot) => (
@@ -207,7 +212,7 @@ const ReservationFormScreen: React.FC = () => {
         </div>
 
         {/* 장바구니 요약 */}
-        {isCurrentCart && cartStore.items.length > 0 && (
+        {hasMenu ? (
           <div style={s.section}>
             <div style={s.label}>선택 메뉴</div>
             <div style={s.cartList}>
@@ -215,6 +220,9 @@ const ReservationFormScreen: React.FC = () => {
                 <div key={item.menuId} style={s.cartItem}>
                   <span style={s.cartItemName}>
                     {item.menuName} x{item.quantity}
+                    {item.optionLabel ? (
+                      <span style={{ fontSize: 12, color: COLORS.text.tertiary }}> ({item.optionLabel})</span>
+                    ) : null}
                   </span>
                   <span style={s.cartItemPrice}>
                     {formatPrice(item.subtotal)}원
@@ -227,6 +235,19 @@ const ReservationFormScreen: React.FC = () => {
                   {formatPrice(totalAmount)}원
                 </span>
               </div>
+            </div>
+          </div>
+        ) : (
+          <div style={s.section}>
+            <div style={s.label}>선택 메뉴</div>
+            <div style={s.hintText}>
+              선주문할 메뉴를 1개 이상 선택해주세요.
+            </div>
+            <div
+              style={s.selectMenuButton}
+              onClick={() => restaurantId && navigate(`/restaurant/${restaurantId}`)}
+            >
+              메뉴 선택하러 가기
             </div>
           </div>
         )}
@@ -292,7 +313,13 @@ const s: Record<string, React.CSSProperties> = {
 
   section: { padding: '20px 20px 0' },
   label: { fontSize: 14, fontWeight: 600, color: COLORS.text.primary, fontFamily: FONT, marginBottom: 10 },
-  hintText: { fontSize: 13, color: COLORS.text.tertiary, fontFamily: FONT },
+  hintText: { fontSize: 13, color: COLORS.text.tertiary, fontFamily: FONT, lineHeight: '1.6' },
+  selectMenuButton: {
+    marginTop: 10, padding: '10px 0', textAlign: 'center' as const,
+    border: `1px solid ${COLORS.primary.main}`, borderRadius: BORDER_RADIUS.md,
+    color: COLORS.primary.main, fontSize: 14, fontWeight: 600,
+    cursor: 'pointer', fontFamily: FONT,
+  },
 
   dateInput: {
     width: '100%', padding: '10px 14px', borderRadius: BORDER_RADIUS.md,
