@@ -20,8 +20,11 @@ import EditIcon from '@mui/icons-material/Edit';
 import SaveIcon from '@mui/icons-material/Save';
 import CancelIcon from '@mui/icons-material/Cancel';
 import PhotoCameraIcon from '@mui/icons-material/PhotoCamera';
+import ImageIcon from '@mui/icons-material/Image';
+import EventBusyIcon from '@mui/icons-material/EventBusy';
 import apiClient from '../utils/api';
 import getRestaurantId from '../utils/getRestaurantId';
+import { PageHeader, EmptyState, LoadingSkeleton } from './common';
 
 const CATEGORIES = [
   '샤브샤브', '고깃집', '전골찜', '훠궈', '코스요리',
@@ -295,32 +298,33 @@ const StoreInfo: React.FC = () => {
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
-        <CircularProgress sx={{ color: '#C4A08A' }} />
+      <Box>
+        <Typography variant="h4" gutterBottom>
+          매장 정보
+        </Typography>
+        <LoadingSkeleton variant="cards" count={4} />
       </Box>
     );
   }
 
   return (
     <Box>
-      <Typography variant="h4" gutterBottom>
-        매장 정보
-      </Typography>
+      <PageHeader title="매장 정보" />
 
       {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>{error}</Alert>}
       {success && <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess('')}>{success}</Alert>}
 
       {/* 매장 기본 정보 */}
-      <Card sx={{ mb: 3, borderRadius: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+      <Card sx={{ mb: 3 }}>
         <CardContent sx={{ p: 3 }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
             <Typography variant="h6">기본 정보</Typography>
             {!editing ? (
               <Button
                 variant="outlined"
+                color="primary"
                 startIcon={<EditIcon />}
                 onClick={() => setEditing(true)}
-                sx={{ borderColor: '#C4A08A', color: '#C4A08A' }}
               >
                 수정
               </Button>
@@ -328,21 +332,18 @@ const StoreInfo: React.FC = () => {
               <Box sx={{ display: 'flex', gap: 1 }}>
                 <Button
                   variant="contained"
+                  color="primary"
                   startIcon={<SaveIcon />}
                   onClick={handleSaveStore}
                   disabled={saving}
-                  sx={{
-                    background: 'linear-gradient(135deg, #C4A08A 0%, #D8BCA8 100%)',
-                    '&:hover': { background: 'linear-gradient(135deg, #A88068 0%, #C4A08A 100%)' },
-                  }}
                 >
                   저장
                 </Button>
                 <Button
                   variant="outlined"
+                  color="inherit"
                   startIcon={<CancelIcon />}
                   onClick={() => { setEditing(false); fetchData(); }}
-                  sx={{ borderColor: '#999', color: '#666' }}
                 >
                   취소
                 </Button>
@@ -367,24 +368,27 @@ const StoreInfo: React.FC = () => {
                   mx: 'auto',
                   mb: 1.5,
                   borderRadius: 2,
-                  bgcolor: '#FAF6F3',
-                  border: '1px dashed #D8BCA8',
+                  bgcolor: 'custom.brandSoft',
+                  border: '1px dashed',
+                  borderColor: 'primary.light',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}
               >
-                <Typography variant="body2" color="text.secondary">
-                  등록된 대표 이미지가 없습니다.
-                </Typography>
+                <EmptyState
+                  icon={<ImageIcon />}
+                  title="등록된 대표 이미지가 없습니다"
+                  dense
+                />
               </Box>
             )}
             <Button
               variant="outlined"
+              color="primary"
               component="label"
               startIcon={uploadingImage ? <CircularProgress size={16} /> : <PhotoCameraIcon />}
               disabled={uploadingImage}
-              sx={{ borderColor: '#C4A08A', color: '#C4A08A' }}
             >
               {uploadingImage ? '업로드 중...' : '이미지 변경'}
               <input type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={handleImageUpload} />
@@ -468,7 +472,7 @@ const StoreInfo: React.FC = () => {
       </Card>
 
       {/* 영업시간 */}
-      <Card sx={{ mb: 3, borderRadius: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+      <Card sx={{ mb: 3 }}>
         <CardContent sx={{ p: 3 }}>
           <Typography variant="h6" sx={{ mb: 2 }}>영업시간</Typography>
           {DAY_KEYS.map((dayKey, idx) => (
@@ -506,7 +510,7 @@ const StoreInfo: React.FC = () => {
       </Card>
 
       {/* 예약 운영 / 휴무일 */}
-      <Card sx={{ mb: 3, borderRadius: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+      <Card sx={{ mb: 3 }}>
         <CardContent sx={{ p: 3 }}>
           <Typography variant="h6" sx={{ mb: 2 }}>예약 운영</Typography>
 
@@ -563,23 +567,27 @@ const StoreInfo: React.FC = () => {
             />
             <Button
               variant="outlined"
+              color="primary"
               onClick={handleAddHoliday}
               disabled={!editing || !holidayInput}
-              sx={{ borderColor: '#C4A08A', color: '#C4A08A' }}
             >
               추가
             </Button>
           </Box>
           <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
             {storeData.holidays.length === 0 ? (
-              <Typography variant="body2" color="text.secondary">등록된 휴무일이 없습니다.</Typography>
+              <EmptyState
+                icon={<EventBusyIcon />}
+                title="등록된 휴무일이 없습니다"
+                dense
+              />
             ) : (
               storeData.holidays.map((date) => (
                 <Chip
                   key={date}
                   label={date}
                   onDelete={editing ? () => handleRemoveHoliday(date) : undefined}
-                  sx={{ bgcolor: '#FAF6F3' }}
+                  sx={{ bgcolor: 'custom.brandSoft' }}
                 />
               ))
             )}
@@ -594,7 +602,7 @@ const StoreInfo: React.FC = () => {
       </Card>
 
       {/* 사업자 정보 / 정산 계좌 */}
-      <Card sx={{ borderRadius: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+      <Card>
         <CardContent sx={{ p: 3 }}>
           <Typography variant="h6" sx={{ mb: 2 }}>사업자 정보</Typography>
           <Grid container spacing={2} sx={{ mb: 3 }}>
@@ -623,9 +631,9 @@ const StoreInfo: React.FC = () => {
             {!editingBank ? (
               <Button
                 variant="outlined"
+                color="primary"
                 startIcon={<EditIcon />}
                 onClick={() => setEditingBank(true)}
-                sx={{ borderColor: '#C4A08A', color: '#C4A08A' }}
               >
                 수정
               </Button>
@@ -633,21 +641,18 @@ const StoreInfo: React.FC = () => {
               <Box sx={{ display: 'flex', gap: 1 }}>
                 <Button
                   variant="contained"
+                  color="primary"
                   startIcon={<SaveIcon />}
                   onClick={handleSaveBank}
                   disabled={saving}
-                  sx={{
-                    background: 'linear-gradient(135deg, #C4A08A 0%, #D8BCA8 100%)',
-                    '&:hover': { background: 'linear-gradient(135deg, #A88068 0%, #C4A08A 100%)' },
-                  }}
                 >
                   저장
                 </Button>
                 <Button
                   variant="outlined"
+                  color="inherit"
                   startIcon={<CancelIcon />}
                   onClick={() => { setEditingBank(false); fetchData(); }}
-                  sx={{ borderColor: '#999', color: '#666' }}
                 >
                   취소
                 </Button>

@@ -1,11 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import Box from '@mui/material/Box';
 import Grid from '@mui/material/Grid';
-import Card from '@mui/material/Card';
-import CardContent from '@mui/material/CardContent';
-import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
 import Chip from '@mui/material/Chip';
+// Card/CardContent/Paper 대체: SectionCard/StatCard 공통 컴포넌트 사용
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableRow from '@mui/material/TableRow';
@@ -22,6 +20,8 @@ import CancelIcon from '@mui/icons-material/Cancel';
 import { format } from 'date-fns';
 import apiClient from '../utils/api';
 import { formatReservationTime } from '../utils/formatTime';
+import { RESERVATION_STATUS, COOKING_STATUS } from '../theme';
+import { StatCard, SectionCard, StatusChip, LoadingSkeleton, EmptyState } from './common';
 
 interface Reservation {
   id: number;
@@ -63,24 +63,6 @@ interface SalesStats {
 }
 
 type StatsPeriod = '7d' | '30d';
-
-const statusConfig: Record<string, { label: string; color: 'primary' | 'warning' | 'success' | 'secondary' | 'default' | 'info' | 'error' }> = {
-  confirmed: { label: '확정', color: 'info' },
-  preparing: { label: '준비 중', color: 'warning' },
-  ready: { label: '준비 완료', color: 'success' },
-  seated: { label: '착석', color: 'secondary' },
-  completed: { label: '완료', color: 'default' },
-  cancelled: { label: '취소', color: 'error' },
-  pending: { label: '대기', color: 'default' },
-};
-
-const cookingStatusConfig: Record<string, { label: string; color: 'primary' | 'warning' | 'success' | 'default' | 'info' | 'error' }> = {
-  pending: { label: '접수', color: 'default' },
-  cooking: { label: '조리 중', color: 'warning' },
-  ready: { label: '조리 완료', color: 'success' },
-  served: { label: '서빙 완료', color: 'info' },
-  cancelled: { label: '취소', color: 'error' },
-};
 
 const Dashboard: React.FC = () => {
   const [reservations, setReservations] = useState<Reservation[]>([]);
@@ -169,8 +151,14 @@ const Dashboard: React.FC = () => {
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
-        <CircularProgress sx={{ color: '#C4A08A' }} />
+      <Box>
+        <Typography variant="h4" gutterBottom>
+          대시보드
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+          {format(new Date(), 'yyyy년 MM월 dd일')} 현황
+        </Typography>
+        <LoadingSkeleton variant="dashboard" />
       </Box>
     );
   }
@@ -193,181 +181,151 @@ const Dashboard: React.FC = () => {
       {/* 오늘 요약 */}
       <Grid container spacing={2} sx={{ mb: 3 }}>
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <Card sx={{ borderRadius: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
-            <CardContent sx={{ textAlign: 'center' }}>
-              <EventIcon sx={{ fontSize: 32, color: '#C4A08A', mb: 1 }} />
-              <Typography variant="h4" sx={{ fontWeight: 700 }}>
-                {summary.total}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                오늘 예약
-              </Typography>
-            </CardContent>
-          </Card>
+          <StatCard
+            label="오늘 예약"
+            value={summary.total}
+            icon={<EventIcon />}
+            color="primary"
+          />
         </Grid>
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <Card sx={{ borderRadius: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
-            <CardContent sx={{ textAlign: 'center' }}>
-              <AttachMoneyIcon sx={{ fontSize: 32, color: '#2E7D4F', mb: 1 }} />
-              <Typography variant="h4" sx={{ fontWeight: 700 }}>
-                {summary.expectedRevenue.toLocaleString()}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                예상 매출 (원)
-              </Typography>
-            </CardContent>
-          </Card>
+          <StatCard
+            label="예상 매출 (원)"
+            value={summary.expectedRevenue.toLocaleString()}
+            icon={<AttachMoneyIcon />}
+            color="success"
+          />
         </Grid>
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <Card sx={{ borderRadius: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
-            <CardContent sx={{ textAlign: 'center' }}>
-              <CheckCircleIcon sx={{ fontSize: 32, color: '#1976D2', mb: 1 }} />
-              <Typography variant="h4" sx={{ fontWeight: 700 }}>
-                {summary.completed}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                완료
-              </Typography>
-            </CardContent>
-          </Card>
+          <StatCard
+            label="완료"
+            value={summary.completed}
+            icon={<CheckCircleIcon />}
+            color="info"
+          />
         </Grid>
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <Card sx={{ borderRadius: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
-            <CardContent sx={{ textAlign: 'center' }}>
-              <CancelIcon sx={{ fontSize: 32, color: '#D32F2F', mb: 1 }} />
-              <Typography variant="h4" sx={{ fontWeight: 700 }}>
-                {summary.noShow}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                노쇼
-              </Typography>
-            </CardContent>
-          </Card>
+          <StatCard
+            label="노쇼"
+            value={summary.noShow}
+            icon={<CancelIcon />}
+            color="error"
+          />
         </Grid>
       </Grid>
 
       <Grid container spacing={3}>
         {/* 오늘의 예약 */}
         <Grid size={{ xs: 12, md: 7 }}>
-          <Card sx={{ borderRadius: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
-            <CardContent>
-              <Typography variant="h6" sx={{ mb: 2 }}>
-                오늘의 예약
-              </Typography>
-              {sortedReservations.length === 0 ? (
-                <Typography color="text.secondary" sx={{ py: 4, textAlign: 'center' }}>
-                  오늘 예약이 없습니다.
-                </Typography>
-              ) : (
-                <Table size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>시간</TableCell>
-                      <TableCell>고객명</TableCell>
-                      <TableCell align="center">인원</TableCell>
-                      <TableCell>메뉴</TableCell>
-                      <TableCell align="center">도착</TableCell>
-                      <TableCell align="center">상태</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {sortedReservations.map((reservation) => {
-                      const time = formatReservationTime(reservation.reservation_time);
-                      const status = statusConfig[reservation.status] || { label: reservation.status, color: 'default' as const };
-                      return (
-                        <TableRow key={reservation.id} hover>
-                          <TableCell sx={{ fontWeight: 600 }}>{time}</TableCell>
-                          <TableCell>{reservation.customer_name || '-'}</TableCell>
-                          <TableCell align="center">{reservation.party_size}명</TableCell>
-                          <TableCell>{reservation.menu_name || '-'}</TableCell>
-                          <TableCell align="center">
-                            {reservation.arrival_status === 'arrived' ? (
-                              <Chip label="도착" size="small" color="success" variant="outlined" />
-                            ) : reservation.arrival_status === 'no_show' ? (
-                              <Chip label="노쇼" size="small" color="error" variant="outlined" />
-                            ) : (
-                              <Chip label="대기" size="small" variant="outlined" />
-                            )}
-                          </TableCell>
-                          <TableCell align="center">
-                            <Chip label={status.label} size="small" color={status.color} />
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              )}
-            </CardContent>
-          </Card>
+          <SectionCard title="오늘의 예약">
+            {sortedReservations.length === 0 ? (
+              <EmptyState
+                icon={<EventIcon />}
+                title="오늘 예약이 없습니다"
+                description="새로운 예약이 들어오면 이곳에 표시됩니다."
+                dense
+              />
+            ) : (
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell>시간</TableCell>
+                    <TableCell>고객명</TableCell>
+                    <TableCell align="center">인원</TableCell>
+                    <TableCell>메뉴</TableCell>
+                    <TableCell align="center">도착</TableCell>
+                    <TableCell align="center">상태</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {sortedReservations.map((reservation) => {
+                    const time = formatReservationTime(reservation.reservation_time);
+                    return (
+                      <TableRow key={reservation.id} hover>
+                        <TableCell sx={{ fontWeight: 600 }}>{time}</TableCell>
+                        <TableCell>{reservation.customer_name || '-'}</TableCell>
+                        <TableCell align="center">{reservation.party_size}명</TableCell>
+                        <TableCell>{reservation.menu_name || '-'}</TableCell>
+                        <TableCell align="center">
+                          {reservation.arrival_status === 'arrived' ? (
+                            <Chip label="도착" size="small" color="success" variant="outlined" />
+                          ) : reservation.arrival_status === 'no_show' ? (
+                            <Chip label="노쇼" size="small" color="error" variant="outlined" />
+                          ) : (
+                            <Chip label="대기" size="small" variant="outlined" />
+                          )}
+                        </TableCell>
+                        <TableCell align="center">
+                          <StatusChip status={reservation.status} map={RESERVATION_STATUS} />
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            )}
+          </SectionCard>
         </Grid>
 
         {/* 최근 주문 */}
         <Grid size={{ xs: 12, md: 5 }}>
-          <Card sx={{ borderRadius: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
-            <CardContent>
-              <Typography variant="h6" sx={{ mb: 2 }}>
-                최근 주문
-              </Typography>
-              {orders.length === 0 ? (
-                <Typography color="text.secondary" sx={{ py: 4, textAlign: 'center' }}>
-                  최근 주문이 없습니다.
-                </Typography>
-              ) : (
-                <Table size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>주문번호</TableCell>
-                      <TableCell align="right">금액</TableCell>
-                      <TableCell align="center">상태</TableCell>
+          <SectionCard title="최근 주문">
+            {orders.length === 0 ? (
+              <EmptyState
+                icon={<AttachMoneyIcon />}
+                title="최근 주문이 없습니다"
+                description="주문이 들어오면 이곳에 표시됩니다."
+                dense
+              />
+            ) : (
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell>주문번호</TableCell>
+                    <TableCell align="right">금액</TableCell>
+                    <TableCell align="center">상태</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {orders.slice(0, 5).map((order) => (
+                    <TableRow key={order.id} hover>
+                      <TableCell sx={{ fontWeight: 500 }}>
+                        {order.order_number || `#${order.id}`}
+                      </TableCell>
+                      <TableCell align="right">
+                        {order.total_amount?.toLocaleString() || 0}원
+                      </TableCell>
+                      <TableCell align="center">
+                        <StatusChip status={order.cooking_status} map={COOKING_STATUS} />
+                      </TableCell>
                     </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {orders.slice(0, 5).map((order) => {
-                      const cookingStatus = cookingStatusConfig[order.cooking_status] || {
-                        label: order.cooking_status || '-',
-                        color: 'default' as const,
-                      };
-                      return (
-                        <TableRow key={order.id} hover>
-                          <TableCell sx={{ fontWeight: 500 }}>
-                            {order.order_number || `#${order.id}`}
-                          </TableCell>
-                          <TableCell align="right">
-                            {order.total_amount?.toLocaleString() || 0}원
-                          </TableCell>
-                          <TableCell align="center">
-                            <Chip label={cookingStatus.label} size="small" color={cookingStatus.color} />
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              )}
-            </CardContent>
-          </Card>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </SectionCard>
         </Grid>
       </Grid>
 
       {/* 매출 통계 */}
-      <Paper sx={{ mt: 3, p: 3, borderRadius: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 1 }}>
-          <Typography variant="h6">매출 통계</Typography>
-          <ToggleButtonGroup
-            value={statsPeriod}
-            exclusive
-            size="small"
-            onChange={(_e, val) => { if (val) setStatsPeriod(val); }}
-          >
-            <ToggleButton value="7d">최근 7일</ToggleButton>
-            <ToggleButton value="30d">최근 30일</ToggleButton>
-          </ToggleButtonGroup>
-        </Box>
-
+      <Box sx={{ mt: 3 }}>
+        <SectionCard
+          title="매출 통계"
+          action={
+            <ToggleButtonGroup
+              value={statsPeriod}
+              exclusive
+              size="small"
+              onChange={(_e, val) => { if (val) setStatsPeriod(val); }}
+            >
+              <ToggleButton value="7d">최근 7일</ToggleButton>
+              <ToggleButton value="30d">최근 30일</ToggleButton>
+            </ToggleButtonGroup>
+          }
+        >
         {statsLoading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-            <CircularProgress sx={{ color: '#C4A08A' }} />
+            <CircularProgress color="primary" />
           </Box>
         ) : !stats ? (
           <Typography color="text.secondary" sx={{ py: 4, textAlign: 'center' }}>
@@ -378,17 +336,17 @@ const Dashboard: React.FC = () => {
             {/* 요약 */}
             <Grid container spacing={2} sx={{ mb: 3 }}>
               <Grid size={{ xs: 6 }}>
-                <Box sx={{ textAlign: 'center', p: 2, bgcolor: '#FAF6F3', borderRadius: 2 }}>
+                <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'custom.brandSoft', borderRadius: 2 }}>
                   <Typography variant="body2" color="text.secondary">총 매출</Typography>
-                  <Typography variant="h5" sx={{ fontWeight: 700, color: '#2E7D4F' }}>
+                  <Typography variant="h5" sx={{ fontWeight: 700, color: 'success.main' }}>
                     {stats.total_sales.toLocaleString()}원
                   </Typography>
                 </Box>
               </Grid>
               <Grid size={{ xs: 6 }}>
-                <Box sx={{ textAlign: 'center', p: 2, bgcolor: '#FAF6F3', borderRadius: 2 }}>
+                <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'custom.brandSoft', borderRadius: 2 }}>
                   <Typography variant="body2" color="text.secondary">총 예약</Typography>
-                  <Typography variant="h5" sx={{ fontWeight: 700, color: '#1976D2' }}>
+                  <Typography variant="h5" sx={{ fontWeight: 700, color: 'info.main' }}>
                     {stats.total_reservations.toLocaleString()}건
                   </Typography>
                 </Box>
@@ -431,7 +389,7 @@ const Dashboard: React.FC = () => {
                             height: '100%',
                           }}
                         >
-                          <Typography variant="caption" sx={{ fontSize: 10, color: '#666', mb: 0.5, whiteSpace: 'nowrap' }}>
+                          <Typography variant="caption" sx={{ fontSize: 10, color: 'text.secondary', mb: 0.5, whiteSpace: 'nowrap' }}>
                             {d.sales > 0 ? `${Math.round(d.sales / 1000)}k` : ''}
                           </Typography>
                           <Box
@@ -440,12 +398,12 @@ const Dashboard: React.FC = () => {
                               width: '70%',
                               minHeight: d.sales > 0 ? 2 : 0,
                               height: `${heightPct}%`,
-                              bgcolor: '#C4A08A',
+                              bgcolor: 'primary.main',
                               borderRadius: '4px 4px 0 0',
                               transition: 'height 0.3s',
                             }}
                           />
-                          <Typography variant="caption" sx={{ fontSize: 10, color: '#999', mt: 0.5, whiteSpace: 'nowrap' }}>
+                          <Typography variant="caption" sx={{ fontSize: 10, color: 'text.disabled', mt: 0.5, whiteSpace: 'nowrap' }}>
                             {mmdd}
                           </Typography>
                         </Box>
@@ -472,11 +430,12 @@ const Dashboard: React.FC = () => {
                       alignItems: 'center',
                       justifyContent: 'space-between',
                       py: 1,
-                      borderBottom: i < Math.min(stats.top_menus.length, 5) - 1 ? '1px solid rgba(0,0,0,0.06)' : 'none',
+                      borderBottom: i < Math.min(stats.top_menus.length, 5) - 1 ? 1 : 0,
+                      borderColor: 'divider',
                     }}
                   >
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, minWidth: 0 }}>
-                      <Chip label={i + 1} size="small" sx={{ bgcolor: '#C4A08A', color: '#fff', fontWeight: 700, width: 28 }} />
+                      <Chip label={i + 1} size="small" color="primary" sx={{ fontWeight: 700, width: 28 }} />
                       <Typography variant="body2" sx={{ fontWeight: 500 }} noWrap>
                         {m.menu_name}
                       </Typography>
@@ -484,7 +443,7 @@ const Dashboard: React.FC = () => {
                         x{m.qty}
                       </Typography>
                     </Box>
-                    <Typography variant="body2" sx={{ fontWeight: 600, color: '#2E7D4F', whiteSpace: 'nowrap', ml: 1 }}>
+                    <Typography variant="body2" sx={{ fontWeight: 600, color: 'success.main', whiteSpace: 'nowrap', ml: 1 }}>
                       {(m.sales || 0).toLocaleString()}원
                     </Typography>
                   </Box>
@@ -493,7 +452,8 @@ const Dashboard: React.FC = () => {
             )}
           </>
         )}
-      </Paper>
+        </SectionCard>
+      </Box>
     </Box>
   );
 };

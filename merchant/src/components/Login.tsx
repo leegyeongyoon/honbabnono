@@ -100,7 +100,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onNeedRegister, onGoSignu
         justifyContent: 'center',
         alignItems: 'center',
         minHeight: '100vh',
-        backgroundColor: '#FAF6F3',
+        backgroundColor: 'background.default',
       }}
     >
       <Card
@@ -108,19 +108,17 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onNeedRegister, onGoSignu
           width: '100%',
           maxWidth: 420,
           mx: 2,
-          borderRadius: 3,
-          boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
         }}
       >
         <CardContent sx={{ p: 4 }}>
           <Box sx={{ textAlign: 'center', mb: 4 }}>
             <Typography
               variant="h5"
-              sx={{ fontWeight: 700, color: '#C4A08A', mb: 0.5 }}
+              sx={{ fontWeight: 700, color: 'custom.brand', mb: 0.5 }}
             >
               잇테이블
             </Typography>
-            <Typography variant="body1" sx={{ color: '#666' }}>
+            <Typography variant="body1" color="text.secondary">
               점주 대시보드
             </Typography>
           </Box>
@@ -156,41 +154,32 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onNeedRegister, onGoSignu
               fullWidth
               type="submit"
               variant="contained"
+              color="primary"
               size="large"
               disabled={loading || !email || !password}
-              sx={{
-                py: 1.5,
-                background: 'linear-gradient(135deg, #C4A08A 0%, #D8BCA8 100%)',
-                fontWeight: 600,
-                fontSize: '1rem',
-                '&:hover': {
-                  background: 'linear-gradient(135deg, #A88068 0%, #C4A08A 100%)',
-                },
-                '&.Mui-disabled': {
-                  background: '#E0E0E0',
-                },
-              }}
+              sx={{ py: 1.5, fontSize: '1rem' }}
             >
               {loading ? <CircularProgress size={24} sx={{ color: '#fff' }} /> : '로그인'}
             </Button>
           </Box>
 
           <Box sx={{ textAlign: 'center', mt: 2.5 }}>
-            <Typography variant="body2" sx={{ color: '#999' }}>
+            <Typography variant="body2" color="text.secondary">
               아직 계정이 없으신가요?{' '}
               {onGoSignup ? (
                 <Button
                   variant="text"
+                  color="primary"
                   onClick={onGoSignup}
-                  sx={{ color: '#A88068', fontWeight: 600, p: 0, minWidth: 'auto', textTransform: 'none' }}
+                  sx={{ fontWeight: 600, p: 0, minWidth: 'auto' }}
                 >
                   회원가입
                 </Button>
               ) : (
-                <span style={{ color: '#A88068', fontWeight: 600 }}>회원가입</span>
+                <Box component="span" sx={{ color: 'primary.dark', fontWeight: 600 }}>회원가입</Box>
               )}
             </Typography>
-            <Typography variant="caption" sx={{ color: '#BBB', mt: 0.5, display: 'block' }}>
+            <Typography variant="caption" color="text.disabled" sx={{ mt: 0.5, display: 'block' }}>
               점주 회원가입 후 사업자 인증을 진행합니다.
             </Typography>
           </Box>

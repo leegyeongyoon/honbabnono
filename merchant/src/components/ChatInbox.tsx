@@ -11,9 +11,12 @@ import Button from '@mui/material/Button';
 import Chip from '@mui/material/Chip';
 import CircularProgress from '@mui/material/CircularProgress';
 import Alert from '@mui/material/Alert';
+import Skeleton from '@mui/material/Skeleton';
 import SendIcon from '@mui/icons-material/Send';
+import ChatIcon from '@mui/icons-material/Chat';
 import apiClient from '../utils/api';
 import getRestaurantId from '../utils/getRestaurantId';
+import { PageHeader, EmptyState } from './common';
 
 // ── Types ──────────────────────────────────────────────────────
 interface ChatRoom {
@@ -38,10 +41,6 @@ interface ChatMessage {
 }
 
 // ── Style constants ────────────────────────────────────────────
-const BRAND = '#C4A08A';
-const BRAND_DARK = '#A88068';
-const BRAND_LIGHT = '#FAF6F3';
-
 const formatTime = (iso?: string) => {
   if (!iso) return '';
   try {
@@ -137,21 +136,24 @@ const ChatInbox: React.FC = () => {
 
   return (
     <Box>
-      <Typography variant="h4" gutterBottom>문의</Typography>
+      <PageHeader title="문의" />
 
       {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>{error}</Alert>}
 
       <Box sx={{ display: 'flex', gap: 2, height: 'calc(100vh - 180px)', minHeight: 480 }}>
         {/* 좌측: 문의 목록 */}
-        <Paper sx={{ width: 320, flexShrink: 0, overflowY: 'auto', borderRadius: 2 }}>
+        <Paper sx={{ width: 320, flexShrink: 0, overflowY: 'auto' }}>
           {loading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
-              <CircularProgress sx={{ color: BRAND }} />
+            <Box sx={{ p: 2 }}>
+              {Array.from({ length: 6 }).map((_, i) => (
+                <Box key={i} sx={{ py: 1.5, borderBottom: 1, borderColor: 'divider' }}>
+                  <Skeleton variant="text" width="60%" />
+                  <Skeleton variant="text" width="85%" />
+                </Box>
+              ))}
             </Box>
           ) : rooms.length === 0 ? (
-            <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 6 }}>
-              아직 문의가 없습니다.
-            </Typography>
+            <EmptyState icon={<ChatIcon />} title="아직 문의가 없습니다" dense />
           ) : (
             <List disablePadding>
               {rooms.map((room) => (
@@ -160,8 +162,9 @@ const ChatInbox: React.FC = () => {
                   selected={selectedRoom?.id === room.id}
                   onClick={() => setSelectedRoom(room)}
                   sx={{
-                    borderBottom: '1px solid #F0F0F0',
-                    '&.Mui-selected': { backgroundColor: BRAND_LIGHT },
+                    borderBottom: 1,
+                    borderColor: 'divider',
+                    '&.Mui-selected': { backgroundColor: 'custom.brandSoft' },
                   }}
                 >
                   <ListItemText
@@ -189,17 +192,19 @@ const ChatInbox: React.FC = () => {
         </Paper>
 
         {/* 우측: 대화 */}
-        <Paper sx={{ flex: 1, display: 'flex', flexDirection: 'column', borderRadius: 2 }}>
+        <Paper sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
           {!selectedRoom ? (
             <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Typography variant="body2" color="text.secondary">
-                좌측에서 문의를 선택하세요.
-              </Typography>
+              <EmptyState
+                icon={<ChatIcon />}
+                title="문의를 선택하세요"
+                description="좌측 목록에서 고객 문의를 선택하면 대화를 시작할 수 있습니다."
+              />
             </Box>
           ) : (
             <>
               {/* 대화 헤더 */}
-              <Box sx={{ p: 2, borderBottom: '1px solid #F0F0F0', display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider', display: 'flex', alignItems: 'center', gap: 1 }}>
                 <Typography variant="subtitle1" fontWeight={700}>{selectedRoom.customer_name}</Typography>
                 <Chip
                   size="small"
@@ -208,7 +213,7 @@ const ChatInbox: React.FC = () => {
               </Box>
 
               {/* 메시지 목록 */}
-              <Box sx={{ flex: 1, overflowY: 'auto', p: 2, backgroundColor: '#FCFAF8' }}>
+              <Box sx={{ flex: 1, overflowY: 'auto', p: 2, backgroundColor: 'custom.brandSoft' }}>
                 {messages.map((m) => {
                   const mine = m.sender_role === 'merchant';
                   return (
@@ -216,9 +221,10 @@ const ChatInbox: React.FC = () => {
                       <Box
                         sx={{
                           maxWidth: '70%', px: 1.8, py: 1, borderRadius: 2.5,
-                          backgroundColor: mine ? BRAND : '#FFFFFF',
-                          color: mine ? '#FFFFFF' : 'text.primary',
-                          border: mine ? 'none' : '1px solid #EEE',
+                          backgroundColor: mine ? 'primary.main' : 'background.paper',
+                          color: mine ? 'primary.contrastText' : 'text.primary',
+                          border: mine ? 'none' : 1,
+                          borderColor: 'divider',
                         }}
                       >
                         <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
@@ -238,7 +244,7 @@ const ChatInbox: React.FC = () => {
               </Box>
 
               {/* 입력 */}
-              <Box sx={{ display: 'flex', gap: 1, p: 2, borderTop: '1px solid #F0F0F0' }}>
+              <Box sx={{ display: 'flex', gap: 1, p: 2, borderTop: 1, borderColor: 'divider' }}>
                 <TextField
                   fullWidth
                   size="small"
@@ -250,10 +256,11 @@ const ChatInbox: React.FC = () => {
                 />
                 <Button
                   variant="contained"
-                  endIcon={<SendIcon />}
+                  color="primary"
+                  endIcon={sending ? <CircularProgress size={16} color="inherit" /> : <SendIcon />}
                   disabled={!input.trim() || sending}
                   onClick={handleSend}
-                  sx={{ backgroundColor: BRAND, '&:hover': { backgroundColor: BRAND_DARK }, flexShrink: 0 }}
+                  sx={{ flexShrink: 0 }}
                 >
                   전송
                 </Button>

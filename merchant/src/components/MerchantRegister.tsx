@@ -38,9 +38,6 @@ interface DocUploadState {
 
 const steps = ['사업자 정보 입력', '계좌 정보 입력', '서류 업로드', '신청 완료'];
 
-const BRAND = '#C4A08A';
-const BRAND_DARK = '#A88068';
-
 const INITIAL_DOC_STATE: DocUploadState = {
   file: null,
   preview: null,
@@ -211,12 +208,12 @@ const MerchantRegister: React.FC<MerchantRegisterProps> = ({ onBack, token, exis
     <Box
       sx={{
         border: '2px dashed',
-        borderColor: state.uploaded ? '#4CAF50' : state.error ? '#D32F2F' : '#DDD',
+        borderColor: state.uploaded ? 'success.main' : state.error ? 'error.main' : 'divider',
         borderRadius: 2,
         p: 2,
         mb: 2,
         textAlign: 'center',
-        backgroundColor: state.uploaded ? '#F1F8E9' : '#FAFAFA',
+        backgroundColor: state.uploaded ? 'success.light' : 'background.default',
         transition: 'all 0.2s',
       }}
     >
@@ -230,7 +227,7 @@ const MerchantRegister: React.FC<MerchantRegisterProps> = ({ onBack, token, exis
 
       {state.uploading ? (
         <Box sx={{ py: 2 }}>
-          <CircularProgress size={32} sx={{ color: BRAND }} />
+          <CircularProgress size={32} color="primary" />
           <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
             업로드 중...
           </Typography>
@@ -238,12 +235,12 @@ const MerchantRegister: React.FC<MerchantRegisterProps> = ({ onBack, token, exis
       ) : state.uploaded ? (
         <Box>
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, mb: 1 }}>
-            <CheckCircleIcon sx={{ color: '#4CAF50', fontSize: 20 }} />
-            <Typography variant="body2" sx={{ fontWeight: 600, color: '#4CAF50' }}>
+            <CheckCircleIcon sx={{ color: 'success.main', fontSize: 20 }} />
+            <Typography variant="body2" sx={{ fontWeight: 600, color: 'success.main' }}>
               업로드 완료
             </Typography>
             <IconButton size="small" onClick={() => handleRemoveFile(setter)} sx={{ ml: 0.5 }}>
-              <DeleteIcon sx={{ fontSize: 16, color: '#999' }} />
+              <DeleteIcon sx={{ fontSize: 16, color: 'text.disabled' }} />
             </IconButton>
           </Box>
           {state.preview ? (
@@ -259,7 +256,7 @@ const MerchantRegister: React.FC<MerchantRegisterProps> = ({ onBack, token, exis
               }}
             />
           ) : (
-            <InsertDriveFileIcon sx={{ fontSize: 40, color: '#999' }} />
+            <InsertDriveFileIcon sx={{ fontSize: 40, color: 'text.disabled' }} />
           )}
           <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
             {state.file?.name}
@@ -270,7 +267,7 @@ const MerchantRegister: React.FC<MerchantRegisterProps> = ({ onBack, token, exis
           onClick={() => inputRef.current?.click()}
           sx={{ cursor: 'pointer', py: 1 }}
         >
-          <CloudUploadIcon sx={{ fontSize: 36, color: '#BBB', mb: 0.5 }} />
+          <CloudUploadIcon sx={{ fontSize: 36, color: 'text.disabled', mb: 0.5 }} />
           <Typography variant="body2" sx={{ fontWeight: 600 }}>
             {label} {required ? '(필수)' : '(선택)'}
           </Typography>
@@ -300,11 +297,11 @@ const MerchantRegister: React.FC<MerchantRegisterProps> = ({ onBack, token, exis
           justifyContent: 'center',
           alignItems: 'center',
           minHeight: '100vh',
-          backgroundColor: '#FAF6F3',
+          backgroundColor: 'background.default',
           px: 2,
         }}
       >
-        <Card sx={{ width: '100%', maxWidth: 500, borderRadius: 3, boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}>
+        <Card sx={{ width: '100%', maxWidth: 500 }}>
           <CardContent sx={{ p: 4, textAlign: 'center' }}>
             <Box sx={{ mb: 3 }}>
               {isRejected ? (
@@ -313,7 +310,7 @@ const MerchantRegister: React.FC<MerchantRegisterProps> = ({ onBack, token, exis
                     width: 80,
                     height: 80,
                     borderRadius: '50%',
-                    backgroundColor: '#FFEBEE',
+                    backgroundColor: 'error.light',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -321,7 +318,7 @@ const MerchantRegister: React.FC<MerchantRegisterProps> = ({ onBack, token, exis
                     mb: 2,
                   }}
                 >
-                  <Typography sx={{ fontSize: 36 }}>!</Typography>
+                  <Typography sx={{ fontSize: 36, color: 'error.main' }}>!</Typography>
                 </Box>
               ) : (
                 <Box
@@ -329,7 +326,7 @@ const MerchantRegister: React.FC<MerchantRegisterProps> = ({ onBack, token, exis
                     width: 80,
                     height: 80,
                     borderRadius: '50%',
-                    backgroundColor: '#FFF8E1',
+                    backgroundColor: 'warning.light',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -337,7 +334,7 @@ const MerchantRegister: React.FC<MerchantRegisterProps> = ({ onBack, token, exis
                     mb: 2,
                   }}
                 >
-                  <HourglassEmptyIcon sx={{ fontSize: 36, color: '#F9A825' }} />
+                  <HourglassEmptyIcon sx={{ fontSize: 36, color: 'warning.main' }} />
                 </Box>
               )}
             </Box>
@@ -353,14 +350,14 @@ const MerchantRegister: React.FC<MerchantRegisterProps> = ({ onBack, token, exis
 
             <Box
               sx={{
-                backgroundColor: '#FAF6F3',
+                backgroundColor: 'background.default',
                 borderRadius: 2,
                 p: 2.5,
                 mb: 3,
               }}
             >
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
-                <CheckCircleOutlineIcon sx={{ color: '#4CAF50', fontSize: 20 }} />
+                <CheckCircleOutlineIcon sx={{ color: 'success.main', fontSize: 20 }} />
                 <Typography variant="body2" sx={{ fontWeight: 600 }}>
                   처리 절차
                 </Typography>
@@ -375,14 +372,9 @@ const MerchantRegister: React.FC<MerchantRegisterProps> = ({ onBack, token, exis
             <Button
               fullWidth
               variant="outlined"
+              color="primary"
               onClick={handleLogoutAndBack}
-              sx={{
-                py: 1.2,
-                borderColor: BRAND,
-                color: BRAND_DARK,
-                fontWeight: 600,
-                '&:hover': { borderColor: BRAND_DARK, backgroundColor: '#FAF6F3' },
-              }}
+              sx={{ py: 1.2 }}
             >
               로그인 화면으로 돌아가기
             </Button>
@@ -399,12 +391,12 @@ const MerchantRegister: React.FC<MerchantRegisterProps> = ({ onBack, token, exis
         justifyContent: 'center',
         alignItems: 'center',
         minHeight: '100vh',
-        backgroundColor: '#FAF6F3',
+        backgroundColor: 'background.default',
         px: 2,
         py: 4,
       }}
     >
-      <Card sx={{ width: '100%', maxWidth: 560, borderRadius: 3, boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}>
+      <Card sx={{ width: '100%', maxWidth: 560 }}>
         <CardContent sx={{ p: 4 }}>
           {/* Header */}
           <Box sx={{ textAlign: 'center', mb: 3 }}>
@@ -413,7 +405,7 @@ const MerchantRegister: React.FC<MerchantRegisterProps> = ({ onBack, token, exis
                 width: 56,
                 height: 56,
                 borderRadius: '50%',
-                background: `linear-gradient(135deg, ${BRAND} 0%, ${BRAND_DARK} 100%)`,
+                bgcolor: 'primary.main',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -423,7 +415,7 @@ const MerchantRegister: React.FC<MerchantRegisterProps> = ({ onBack, token, exis
             >
               <StoreIcon sx={{ color: '#fff', fontSize: 28 }} />
             </Box>
-            <Typography variant="h5" sx={{ fontWeight: 700, color: '#333' }}>
+            <Typography variant="h5" sx={{ fontWeight: 700, color: 'text.primary' }}>
               점주 등록 신청
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
@@ -438,8 +430,8 @@ const MerchantRegister: React.FC<MerchantRegisterProps> = ({ onBack, token, exis
                 <StepLabel
                   StepIconProps={{
                     sx: {
-                      '&.Mui-active': { color: BRAND },
-                      '&.Mui-completed': { color: BRAND },
+                      '&.Mui-active': { color: 'primary.main' },
+                      '&.Mui-completed': { color: 'primary.main' },
                     },
                   }}
                 >
@@ -501,17 +493,11 @@ const MerchantRegister: React.FC<MerchantRegisterProps> = ({ onBack, token, exis
               <Button
                 fullWidth
                 variant="contained"
+                color="primary"
                 size="large"
                 disabled={!isStep1Valid}
                 onClick={() => setActiveStep(1)}
-                sx={{
-                  py: 1.5,
-                  background: `linear-gradient(135deg, ${BRAND} 0%, #D8BCA8 100%)`,
-                  fontWeight: 600,
-                  fontSize: '1rem',
-                  '&:hover': { background: `linear-gradient(135deg, ${BRAND_DARK} 0%, ${BRAND} 100%)` },
-                  '&.Mui-disabled': { background: '#E0E0E0' },
-                }}
+                sx={{ py: 1.5, fontSize: '1rem' }}
               >
                 다음
               </Button>
@@ -555,7 +541,7 @@ const MerchantRegister: React.FC<MerchantRegisterProps> = ({ onBack, token, exis
               <Divider sx={{ my: 2 }} />
 
               {/* Summary */}
-              <Box sx={{ backgroundColor: '#FAF6F3', borderRadius: 2, p: 2, mb: 3 }}>
+              <Box sx={{ backgroundColor: 'background.default', borderRadius: 2, p: 2, mb: 3 }}>
                 <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>
                   입력 정보 확인
                 </Typography>
@@ -576,30 +562,18 @@ const MerchantRegister: React.FC<MerchantRegisterProps> = ({ onBack, token, exis
               <Box sx={{ display: 'flex', gap: 1.5 }}>
                 <Button
                   variant="outlined"
+                  color="inherit"
                   onClick={() => setActiveStep(0)}
-                  sx={{
-                    flex: 1,
-                    py: 1.3,
-                    borderColor: '#CCC',
-                    color: '#666',
-                    fontWeight: 600,
-                  }}
+                  sx={{ flex: 1, py: 1.3 }}
                 >
                   이전
                 </Button>
                 <Button
                   variant="contained"
+                  color="primary"
                   onClick={handleSubmit}
                   disabled={loading || !isStep3Valid}
-                  sx={{
-                    flex: 2,
-                    py: 1.3,
-                    background: `linear-gradient(135deg, ${BRAND} 0%, #D8BCA8 100%)`,
-                    fontWeight: 600,
-                    fontSize: '1rem',
-                    '&:hover': { background: `linear-gradient(135deg, ${BRAND_DARK} 0%, ${BRAND} 100%)` },
-                    '&.Mui-disabled': { background: '#E0E0E0' },
-                  }}
+                  sx={{ flex: 2, py: 1.3, fontSize: '1rem' }}
                 >
                   {loading ? <CircularProgress size={24} sx={{ color: '#fff' }} /> : '다음'}
                 </Button>
@@ -644,30 +618,18 @@ const MerchantRegister: React.FC<MerchantRegisterProps> = ({ onBack, token, exis
               <Box sx={{ display: 'flex', gap: 1.5, mt: 1 }}>
                 <Button
                   variant="outlined"
+                  color="inherit"
                   onClick={() => setActiveStep(3)}
-                  sx={{
-                    flex: 1,
-                    py: 1.3,
-                    borderColor: '#CCC',
-                    color: '#666',
-                    fontWeight: 600,
-                  }}
+                  sx={{ flex: 1, py: 1.3 }}
                 >
                   건너뛰기
                 </Button>
                 <Button
                   variant="contained"
+                  color="primary"
                   disabled={!isStep2Valid}
                   onClick={() => setActiveStep(3)}
-                  sx={{
-                    flex: 2,
-                    py: 1.3,
-                    background: `linear-gradient(135deg, ${BRAND} 0%, #D8BCA8 100%)`,
-                    fontWeight: 600,
-                    fontSize: '1rem',
-                    '&:hover': { background: `linear-gradient(135deg, ${BRAND_DARK} 0%, ${BRAND} 100%)` },
-                    '&.Mui-disabled': { background: '#E0E0E0' },
-                  }}
+                  sx={{ flex: 2, py: 1.3, fontSize: '1rem' }}
                 >
                   완료
                 </Button>
@@ -679,8 +641,9 @@ const MerchantRegister: React.FC<MerchantRegisterProps> = ({ onBack, token, exis
           <Box sx={{ mt: 2, textAlign: 'center' }}>
             <Button
               variant="text"
+              color="inherit"
               onClick={handleLogoutAndBack}
-              sx={{ color: '#999', fontSize: '0.85rem' }}
+              sx={{ color: 'text.disabled', fontSize: '0.85rem' }}
             >
               로그인 화면으로 돌아가기
             </Button>

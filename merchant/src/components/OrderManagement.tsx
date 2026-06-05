@@ -26,10 +26,13 @@ import {
   ArrowForward,
   Refresh,
   Cancel,
+  RestaurantMenu,
 } from '@mui/icons-material';
 import apiClient from '../utils/api';
 import useRestaurantSocket from '../hooks/useRestaurantSocket';
 import { formatOptionsLabel } from '../utils/formatOptions';
+import { KANBAN_COLUMNS } from '../theme';
+import { EmptyState, PageHeader } from './common';
 
 // ── Types ──────────────────────────────────────────────────────
 interface OrderItem {
@@ -54,15 +57,8 @@ interface Order {
 type CookingStatus = 'pending' | 'preparing' | 'cooking' | 'ready' | 'served' | 'rejected';
 
 // ── Constants ──────────────────────────────────────────────────
-const BRAND = '#C4A08A';
-const BRAND_DARK = '#A88068';
-
-const COLUMNS: { status: CookingStatus; label: string; color: string }[] = [
-  { status: 'pending',   label: '대기중', color: '#E0E0E0' },
-  { status: 'preparing', label: '준비중', color: '#FFF3E0' },
-  { status: 'cooking',   label: '조리중', color: '#FFF8E1' },
-  { status: 'ready',     label: '완료',   color: '#E8F5E9' },
-];
+// 칸반 컬럼 정의(배경 bg + accent)는 중앙 테마(KANBAN_COLUMNS)에서 가져옴
+const COLUMNS = KANBAN_COLUMNS;
 
 const NEXT_STATUS: Record<string, CookingStatus> = {
   pending:   'preparing',
@@ -191,20 +187,29 @@ const OrderManagement: React.FC = () => {
   return (
     <Box>
       {/* Header */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
-        <Typography variant="h5" fontWeight={700}>주문 관리</Typography>
-        <Chip label={today} size="small" />
-        <Button startIcon={<Refresh />} onClick={fetchOrders} variant="outlined" size="small"
-          sx={{ borderColor: BRAND, color: BRAND_DARK, ml: 'auto' }}>
-          새로고침
-        </Button>
-      </Box>
+      <PageHeader
+        title="주문 관리"
+        actions={
+          <>
+            <Chip label={today} size="small" />
+            <Button
+              startIcon={<Refresh />}
+              onClick={fetchOrders}
+              variant="outlined"
+              color="primary"
+              size="small"
+            >
+              새로고침
+            </Button>
+          </>
+        }
+      />
 
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
       {loading && (
         <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
-          <CircularProgress sx={{ color: BRAND }} />
+          <CircularProgress color="primary" />
         </Box>
       )}
 
@@ -216,54 +221,55 @@ const OrderManagement: React.FC = () => {
             <Grid size={{ xs: 12, sm: 6, md: 3 }} key={col.status}>
               <Box
                 sx={{
-                  bgcolor: col.color,
+                  bgcolor: col.bg,
                   borderRadius: 2.5,
                   p: 2,
                   minHeight: 400,
                 }}
               >
-                {/* Column header */}
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                  <Typography variant="subtitle1" fontWeight={700}>{col.label}</Typography>
-                  <Chip label={items.length} size="small" sx={{ fontWeight: 700 }} />
+                {/* Column header — accent 색 바 + 칩으로 의미 강화 */}
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                  <Box sx={{ width: 4, height: 18, borderRadius: 2, bgcolor: col.accent }} />
+                  <Typography variant="subtitle1" fontWeight={700} sx={{ color: col.accent }}>
+                    {col.label}
+                  </Typography>
+                  <Chip
+                    label={items.length}
+                    size="small"
+                    sx={{ ml: 'auto', fontWeight: 700, bgcolor: col.accent, color: '#fff' }}
+                  />
                 </Box>
 
                 {/* Cards */}
                 {items.length === 0 && (
-                  <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 4 }}>
-                    주문 없음
-                  </Typography>
+                  <EmptyState icon={<RestaurantMenu />} title="주문 없음" dense />
                 )}
 
                 {items.map((order) => (
                   <Card
                     key={order.id}
                     variant="outlined"
-                    sx={{
-                      mb: 1.5,
-                      borderRadius: 2,
-                      borderColor: 'rgba(17,17,17,0.06)',
-                    }}
+                    sx={{ mb: 1.5 }}
                   >
                     <CardContent sx={{ pb: '12px !important' }}>
                       {/* Time + party */}
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                          <AccessTime fontSize="small" sx={{ color: BRAND_DARK }} />
-                          <Typography variant="body2" fontWeight={700}>
+                          <AccessTime fontSize="small" sx={{ color: 'primary.dark' }} />
+                          <Typography variant="subtitle1" fontWeight={700}>
                             {formatTime(order.reservation_time)}
                           </Typography>
                         </Box>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                          <Group fontSize="small" />
-                          <Typography variant="body2">{order.party_size}명</Typography>
+                          <Group fontSize="small" sx={{ color: 'text.secondary' }} />
+                          <Typography variant="body2" color="text.secondary">{order.party_size}명</Typography>
                         </Box>
                       </Box>
 
                       {/* Customer */}
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1 }}>
-                        <Person fontSize="small" />
-                        <Typography variant="body2">{order.customer_name}</Typography>
+                        <Person fontSize="small" sx={{ color: 'text.secondary' }} />
+                        <Typography variant="body2" color="text.secondary">{order.customer_name}</Typography>
                       </Box>
 
                       <Divider sx={{ mb: 1 }} />
@@ -287,7 +293,7 @@ const OrderManagement: React.FC = () => {
 
                       {/* Estimated prep end time */}
                       {(order.cooking_status === 'preparing' || order.cooking_status === 'cooking') && (
-                        <Typography variant="caption" sx={{ display: 'block', mt: 0.5, color: '#E65100' }}>
+                        <Typography variant="caption" sx={{ display: 'block', mt: 0.5, color: 'warning.main', fontWeight: 600 }}>
                           예상 완료: {estimatePrepEnd(order) || '-'}
                         </Typography>
                       )}
@@ -301,11 +307,7 @@ const OrderManagement: React.FC = () => {
                             variant="outlined"
                             color="error"
                             startIcon={<Cancel />}
-                            sx={{
-                              flex: 1,
-                              textTransform: 'none',
-                              fontWeight: 600,
-                            }}
+                            sx={{ flex: 1 }}
                             onClick={() => openRejectDialog(order)}
                           >
                             거절
@@ -318,14 +320,9 @@ const OrderManagement: React.FC = () => {
                             fullWidth={order.cooking_status !== 'pending'}
                             size="small"
                             variant="contained"
+                            color="primary"
                             endIcon={<ArrowForward />}
-                            sx={{
-                              flex: 1,
-                              bgcolor: BRAND,
-                              '&:hover': { bgcolor: BRAND_DARK },
-                              textTransform: 'none',
-                              fontWeight: 600,
-                            }}
+                            sx={{ flex: 1 }}
                             onClick={() => advanceStatus(order.id, order.cooking_status)}
                           >
                             {NEXT_LABEL[order.cooking_status]}
@@ -360,8 +357,8 @@ const OrderManagement: React.FC = () => {
                   borderRadius: 1.5,
                   mb: 0.5,
                   '&.Mui-selected': {
-                    bgcolor: '#FFF3E0',
-                    '&:hover': { bgcolor: '#FFE0B2' },
+                    bgcolor: 'warning.light',
+                    '&:hover': { bgcolor: 'warning.light' },
                   },
                 }}
               >
@@ -382,7 +379,7 @@ const OrderManagement: React.FC = () => {
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setRejectDialogOpen(false)} sx={{ color: '#666' }}>
+          <Button onClick={() => setRejectDialogOpen(false)} color="inherit">
             취소
           </Button>
           <Button

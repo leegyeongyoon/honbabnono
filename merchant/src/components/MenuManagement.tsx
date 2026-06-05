@@ -54,9 +54,11 @@ import {
   CheckCircle,
   ExpandMore,
   AddCircleOutline,
+  RestaurantMenu,
 } from '@mui/icons-material';
 import apiClient from '../utils/api';
 import getRestaurantId from '../utils/getRestaurantId';
+import { PageHeader, EmptyState, LoadingSkeleton } from './common';
 
 // ── Types ──────────────────────────────────────────────────────
 interface MenuCategory {
@@ -121,10 +123,10 @@ const EMPTY_FORM: MenuForm = {
   category_id: '',
 };
 
-// ── Style constants ────────────────────────────────────────────
-const BRAND = '#C4A08A';
-const BRAND_DARK = '#A88068';
-const BRAND_LIGHT = '#FAF6F3';
+// ── Style constants (테마 토큰 경로 — sx의 bgcolor/color/borderColor가 팔레트 경로를 해석) ──
+const BRAND = 'primary.main';
+const BRAND_DARK = 'primary.dark';
+const BRAND_LIGHT = 'custom.brandSoft';
 
 // ── Component ──────────────────────────────────────────────────
 const MenuManagement: React.FC = () => {
@@ -699,47 +701,44 @@ const MenuManagement: React.FC = () => {
   return (
     <Box>
       {/* Header */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3, flexWrap: 'wrap' }}>
-        <Typography variant="h5" fontWeight={700}>메뉴 관리</Typography>
-        <Box sx={{ ml: 'auto', display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-          <Button
-            startIcon={<PhotoCamera />}
-            variant="outlined"
-            component="label"
-            sx={{ borderColor: '#4CAF50', color: '#388E3C' }}
-          >
-            AI 메뉴판 인식
-            <input type="file" accept="image/*" hidden onChange={handleImageUpload} />
-          </Button>
-          {menus.length > 0 && (
-            <Button startIcon={<TuneRounded />} variant="outlined" onClick={() => setBulkDialogOpen(true)}
-              sx={{ borderColor: BRAND, color: BRAND_DARK }}>
-              일괄 가격 조정
+      <PageHeader
+        title="메뉴 관리"
+        actions={
+          <>
+            <Button
+              startIcon={<PhotoCamera />}
+              variant="outlined"
+              color="success"
+              component="label"
+            >
+              AI 메뉴판 인식
+              <input type="file" accept="image/*" hidden onChange={handleImageUpload} />
             </Button>
-          )}
-          <Button startIcon={<Category />} variant="outlined" onClick={() => setCatDialogOpen(true)}
-            sx={{ borderColor: BRAND, color: BRAND_DARK }}>
-            카테고리 관리
-          </Button>
-          <Button startIcon={<Add />} variant="contained" onClick={openAddMenu}
-            sx={{ bgcolor: BRAND, '&:hover': { bgcolor: BRAND_DARK } }}>
-            메뉴 추가
-          </Button>
-        </Box>
-      </Box>
+            {menus.length > 0 && (
+              <Button startIcon={<TuneRounded />} variant="outlined" color="primary" onClick={() => setBulkDialogOpen(true)}>
+                일괄 가격 조정
+              </Button>
+            )}
+            <Button startIcon={<Category />} variant="outlined" color="primary" onClick={() => setCatDialogOpen(true)}>
+              카테고리 관리
+            </Button>
+            <Button startIcon={<Add />} variant="contained" color="primary" onClick={openAddMenu}>
+              메뉴 추가
+            </Button>
+          </>
+        }
+      />
 
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
-      {loading && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
-          <CircularProgress sx={{ color: BRAND }} />
-        </Box>
-      )}
+      {loading && <LoadingSkeleton variant="cards" count={6} />}
 
       {!loading && menus.length === 0 && (
-        <Typography color="text.secondary" sx={{ textAlign: 'center', py: 8 }}>
-          등록된 메뉴가 없습니다. 메뉴를 추가해주세요.
-        </Typography>
+        <EmptyState
+          icon={<RestaurantMenu />}
+          title="등록된 메뉴가 없습니다"
+          description="메뉴를 추가하거나 AI 메뉴판 인식으로 빠르게 등록해보세요."
+        />
       )}
 
       {/* Menu cards grouped by category */}
@@ -753,11 +752,7 @@ const MenuManagement: React.FC = () => {
               <Grid size={{ xs: 12, sm: 6, md: 4 }} key={item.id}>
                 <Card
                   variant="outlined"
-                  sx={{
-                    borderRadius: 2.5,
-                    borderColor: 'rgba(17,17,17,0.06)',
-                    opacity: item.is_active ? 1 : 0.55,
-                  }}
+                  sx={{ opacity: item.is_active ? 1 : 0.55 }}
                 >
                   <CardContent>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 1 }}>
@@ -887,11 +882,11 @@ const MenuManagement: React.FC = () => {
               <Box
                 sx={{
                   width: 72, height: 72, borderRadius: 1.5, flexShrink: 0,
-                  bgcolor: BRAND_LIGHT, border: '1px dashed #D8BCA8',
+                  bgcolor: BRAND_LIGHT, border: '1px dashed', borderColor: 'primary.light',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}
               >
-                <PhotoCamera fontSize="small" sx={{ color: '#C4A08A' }} />
+                <PhotoCamera fontSize="small" sx={{ color: 'primary.main' }} />
               </Box>
             )}
             <Button
@@ -927,9 +922,11 @@ const MenuManagement: React.FC = () => {
           )}
 
           {!optionGroupsLoading && optionGroups.length === 0 && (
-            <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 2 }}>
-              등록된 옵션 그룹이 없습니다.
-            </Typography>
+            <EmptyState
+              icon={<TuneRounded />}
+              title="등록된 옵션 그룹이 없습니다"
+              dense
+            />
           )}
 
           {optionGroups.map((group, groupIdx) => (
@@ -1076,15 +1073,15 @@ const MenuManagement: React.FC = () => {
       {/* ── AI Menu Analysis Dialog ── */}
       <Dialog open={aiDialogOpen} onClose={() => !aiLoading && !aiSaving && setAiDialogOpen(false)} maxWidth="md" fullWidth>
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <PhotoCamera sx={{ color: '#4CAF50' }} />
+          <PhotoCamera sx={{ color: 'success.main' }} />
           AI 메뉴판 인식 결과
         </DialogTitle>
         <DialogContent>
           {aiLoading && (
             <Box sx={{ textAlign: 'center', py: 4 }}>
-              <CircularProgress sx={{ color: '#4CAF50', mb: 2 }} />
+              <CircularProgress color="success" sx={{ mb: 2 }} />
               <Typography color="text.secondary">메뉴판을 분석 중입니다...</Typography>
-              <LinearProgress sx={{ mt: 2, '& .MuiLinearProgress-bar': { bgcolor: '#4CAF50' } }} />
+              <LinearProgress color="success" sx={{ mt: 2 }} />
             </Box>
           )}
 
@@ -1186,9 +1183,9 @@ const MenuManagement: React.FC = () => {
           <Button
             onClick={handleAiSave}
             variant="contained"
+            color="success"
             disabled={aiLoading || aiSaving || aiResults.filter((r) => r.selected).length === 0}
             startIcon={aiSaving ? <CircularProgress size={16} /> : <CheckCircle />}
-            sx={{ bgcolor: '#4CAF50', '&:hover': { bgcolor: '#388E3C' } }}
           >
             {aiSaving ? '등록 중...' : `${aiResults.filter((r) => r.selected).length}개 메뉴 등록`}
           </Button>
@@ -1278,9 +1275,11 @@ const MenuManagement: React.FC = () => {
           {/* Category list */}
           <List>
             {categories.length === 0 && (
-              <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 2 }}>
-                등록된 카테고리가 없습니다.
-              </Typography>
+              <EmptyState
+                icon={<Category />}
+                title="등록된 카테고리가 없습니다"
+                dense
+              />
             )}
             {categories.map((cat) => (
               <ListItem

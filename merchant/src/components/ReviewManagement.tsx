@@ -13,9 +13,10 @@ import {
   Snackbar,
   Chip,
 } from '@mui/material';
-import { Reply as ReplyIcon, Edit as EditIcon } from '@mui/icons-material';
+import { Reply as ReplyIcon, Edit as EditIcon, RateReview as RateReviewIcon } from '@mui/icons-material';
 import apiClient from '../utils/api';
 import getRestaurantId from '../utils/getRestaurantId';
+import { PageHeader, EmptyState, LoadingSkeleton } from './common';
 
 // ── Types ──────────────────────────────────────────────────────
 interface Review {
@@ -33,9 +34,6 @@ interface Review {
 }
 
 // ── Style constants ────────────────────────────────────────────
-const BRAND = '#C4A08A';
-const BRAND_DARK = '#A88068';
-const BRAND_LIGHT = '#FAF6F3';
 const PAGE_SIZE = 10;
 
 const formatDate = (value: string | null | undefined): string => {
@@ -129,7 +127,7 @@ const ReviewManagement: React.FC = () => {
   if (!restaurantId) {
     return (
       <Box>
-        <Typography variant="h5" fontWeight={700} sx={{ mb: 2 }}>리뷰 관리</Typography>
+        <PageHeader title="리뷰 관리" />
         <Alert severity="info">
           매장 등록을 먼저 완료해주세요. (매장 정보 탭에서 등록 가능)
         </Alert>
@@ -139,23 +137,29 @@ const ReviewManagement: React.FC = () => {
 
   return (
     <Box>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3, flexWrap: 'wrap' }}>
-        <Typography variant="h5" fontWeight={700}>리뷰 관리</Typography>
-        <Chip label={`총 ${total}건`} size="small" sx={{ bgcolor: BRAND_LIGHT, color: BRAND_DARK, fontWeight: 600 }} />
-      </Box>
+      <PageHeader
+        title="리뷰 관리"
+        actions={
+          <Chip
+            label={`총 ${total}건`}
+            size="small"
+            sx={{ bgcolor: 'custom.brandSoft', color: 'primary.dark', fontWeight: 600 }}
+          />
+        }
+      />
 
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
       {loading && reviews.length === 0 && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
-          <CircularProgress sx={{ color: BRAND }} />
-        </Box>
+        <LoadingSkeleton variant="cards" count={4} />
       )}
 
       {!loading && reviews.length === 0 && !error && (
-        <Typography color="text.secondary" sx={{ textAlign: 'center', py: 8 }}>
-          아직 등록된 리뷰가 없습니다.
-        </Typography>
+        <EmptyState
+          icon={<RateReviewIcon />}
+          title="아직 등록된 리뷰가 없습니다"
+          description="고객이 리뷰를 남기면 이곳에서 답글을 달 수 있습니다."
+        />
       )}
 
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -163,18 +167,14 @@ const ReviewManagement: React.FC = () => {
           const isEditing = editingReplyId === review.id;
           const hasReply = !!review.reply;
           return (
-            <Card
-              key={review.id}
-              variant="outlined"
-              sx={{ borderRadius: 2.5, borderColor: 'rgba(17,17,17,0.06)' }}
-            >
+            <Card key={review.id} variant="outlined">
               <CardContent>
                 {/* Header: reviewer + overall + date */}
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 1 }}>
                   <Box>
                     <Typography variant="subtitle1" fontWeight={700}>{review.reviewer_name || '익명'}</Typography>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                      <Rating value={Number(review.overall_rating) || 0} precision={0.5} size="small" readOnly />
+                      <Rating value={Number(review.overall_rating) || 0} precision={0.5} size="medium" readOnly />
                       <Typography variant="body2" color="text.secondary">
                         {(Number(review.overall_rating) || 0).toFixed(1)}
                       </Typography>
@@ -225,16 +225,16 @@ const ReviewManagement: React.FC = () => {
 
                 {/* 답글 영역 */}
                 {hasReply && !isEditing ? (
-                  <Box sx={{ bgcolor: BRAND_LIGHT, borderRadius: 2, p: 1.5 }}>
+                  <Box sx={{ bgcolor: 'custom.brandSoft', borderRadius: 2, p: 1.5 }}>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
-                      <Typography variant="caption" fontWeight={700} sx={{ color: BRAND_DARK }}>
+                      <Typography variant="caption" fontWeight={700} sx={{ color: 'primary.dark' }}>
                         사장님 답글
                       </Typography>
                       <Button
                         size="small"
+                        color="primary"
                         startIcon={<EditIcon fontSize="small" />}
                         onClick={() => startEditReply(review)}
-                        sx={{ color: BRAND_DARK }}
                       >
                         수정
                       </Button>
@@ -261,17 +261,17 @@ const ReviewManagement: React.FC = () => {
                     />
                     <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, mt: 1 }}>
                       {isEditing && (
-                        <Button size="small" onClick={() => setEditingReplyId(null)} sx={{ color: '#666' }}>
+                        <Button size="small" color="inherit" onClick={() => setEditingReplyId(null)}>
                           취소
                         </Button>
                       )}
                       <Button
                         size="small"
                         variant="contained"
+                        color="primary"
                         startIcon={submittingId === review.id ? <CircularProgress size={16} color="inherit" /> : <ReplyIcon />}
                         disabled={submittingId === review.id || !(replyDrafts[review.id] ?? '').trim()}
                         onClick={() => submitReply(review)}
-                        sx={{ bgcolor: BRAND, '&:hover': { bgcolor: BRAND_DARK } }}
                       >
                         {isEditing ? '답글 수정' : '답글 등록'}
                       </Button>
@@ -289,11 +289,11 @@ const ReviewManagement: React.FC = () => {
         <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
           <Button
             variant="outlined"
+            color="primary"
             onClick={handleLoadMore}
             disabled={loading}
-            sx={{ borderColor: BRAND, color: BRAND_DARK }}
           >
-            {loading ? <CircularProgress size={20} sx={{ color: BRAND }} /> : '더보기'}
+            {loading ? <CircularProgress size={20} color="inherit" /> : '더보기'}
           </Button>
         </Box>
       )}

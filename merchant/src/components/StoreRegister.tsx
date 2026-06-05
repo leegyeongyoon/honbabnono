@@ -24,9 +24,6 @@ const CATEGORIES = [
   '전골찜', '훠궈', '코스요리', '카페', '기타',
 ];
 
-const BRAND = '#C4A08A';
-const BRAND_DARK = '#A88068';
-
 const StoreRegister: React.FC<StoreRegisterProps> = ({ onComplete }) => {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -84,7 +81,7 @@ const StoreRegister: React.FC<StoreRegisterProps> = ({ onComplete }) => {
             width: 64,
             height: 64,
             borderRadius: '50%',
-            background: `linear-gradient(135deg, ${BRAND} 0%, ${BRAND_DARK} 100%)`,
+            bgcolor: 'primary.main',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -104,9 +101,9 @@ const StoreRegister: React.FC<StoreRegisterProps> = ({ onComplete }) => {
 
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
-      <Card sx={{ borderRadius: 2.5, boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+      <Card>
         <CardContent sx={{ p: 3 }}>
-          <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2, color: BRAND_DARK }}>
+          <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2, color: 'primary.dark' }}>
             기본 정보
           </Typography>
 
@@ -141,7 +138,7 @@ const StoreRegister: React.FC<StoreRegisterProps> = ({ onComplete }) => {
 
           <Divider sx={{ my: 2.5 }} />
 
-          <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2, color: BRAND_DARK }}>
+          <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2, color: 'primary.dark' }}>
             연락처 및 위치
           </Typography>
 
@@ -188,18 +185,11 @@ const StoreRegister: React.FC<StoreRegisterProps> = ({ onComplete }) => {
         <Button
           fullWidth
           variant="contained"
+          color="primary"
           size="large"
           disabled={loading || !isValid}
           onClick={handleSubmit}
-          sx={{
-            py: 1.5,
-            background: `linear-gradient(135deg, ${BRAND} 0%, #D8BCA8 100%)`,
-            fontWeight: 600,
-            fontSize: '1rem',
-            borderRadius: 2,
-            '&:hover': { background: `linear-gradient(135deg, ${BRAND_DARK} 0%, ${BRAND} 100%)` },
-            '&.Mui-disabled': { background: '#E0E0E0' },
-          }}
+          sx={{ py: 1.5, fontSize: '1rem' }}
         >
           {loading ? <CircularProgress size={24} sx={{ color: '#fff' }} /> : '매장 등록하기'}
         </Button>

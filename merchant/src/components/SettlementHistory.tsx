@@ -14,8 +14,6 @@ import TableCell from '@mui/material/TableCell';
 import TableContainer from '@mui/material/TableContainer';
 import Paper from '@mui/material/Paper';
 import Alert from '@mui/material/Alert';
-import CircularProgress from '@mui/material/CircularProgress';
-import Chip from '@mui/material/Chip';
 import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
@@ -29,7 +27,10 @@ import SearchIcon from '@mui/icons-material/Search';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import CloseIcon from '@mui/icons-material/Close';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
+import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import apiClient from '../utils/api';
+import { SETTLEMENT_STATUS, resolveStatus } from '../theme';
+import { PageHeader, StatCard, SectionCard, StatusChip, LoadingSkeleton, EmptyState } from './common';
 
 // ── Types ──────────────────────────────────────────────────────
 interface Settlement {
@@ -82,23 +83,7 @@ const formatCurrency = (amount: number) => {
   return (amount || 0).toLocaleString('ko-KR') + '원';
 };
 
-const getStatusColor = (status: string): 'warning' | 'success' | 'error' | 'default' => {
-  switch (status) {
-    case 'pending': return 'warning';
-    case 'paid': return 'success';
-    case 'rejected': return 'error';
-    default: return 'default';
-  }
-};
-
-const getStatusLabel = (status: string): string => {
-  switch (status) {
-    case 'pending': return '정산 대기';
-    case 'paid': return '정산 완료';
-    case 'rejected': return '정산 거절';
-    default: return status;
-  }
-};
+// 상태 라벨/색은 중앙 테마(SETTLEMENT_STATUS)에서 해석 (StatusChip / resolveStatus)
 
 // CSV 셀 값 이스케이프: 콤마/따옴표/줄바꿈 포함 시 따옴표로 감싸고 내부 따옴표는 두 번
 const csvEscape = (value: unknown): string => {
@@ -227,7 +212,7 @@ const SettlementHistory: React.FC = () => {
       s.platform_fee ?? 0,
       s.payment_fee ?? 0,
       s.settlement_amount ?? 0,
-      getStatusLabel(s.status),
+      resolveStatus(SETTLEMENT_STATUS, s.status).label,
       s.paid_at ? formatDate(s.paid_at) : '',
     ]);
 
@@ -249,14 +234,12 @@ const SettlementHistory: React.FC = () => {
 
   return (
     <Box>
-      <Typography variant="h4" gutterBottom>
-        정산 내역
-      </Typography>
+      <PageHeader title="정산 내역" />
 
       {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>{error}</Alert>}
 
       {/* 기간 선택 (월별) */}
-      <Card sx={{ mb: 3, borderRadius: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+      <Card sx={{ mb: 3 }}>
         <CardContent sx={{ p: 3 }}>
           <Grid container spacing={2} alignItems="center">
             <Grid size={{ xs: 12, sm: 8 }}>
@@ -277,14 +260,11 @@ const SettlementHistory: React.FC = () => {
               <Button
                 fullWidth
                 variant="contained"
+                color="primary"
                 startIcon={<SearchIcon />}
                 onClick={fetchData}
                 disabled={loading}
-                sx={{
-                  py: 1.8,
-                  background: 'linear-gradient(135deg, #C4A08A 0%, #D8BCA8 100%)',
-                  '&:hover': { background: 'linear-gradient(135deg, #A88068 0%, #C4A08A 100%)' },
-                }}
+                sx={{ py: 1.8 }}
               >
                 조회
               </Button>
@@ -295,102 +275,88 @@ const SettlementHistory: React.FC = () => {
 
       {/* 정산 요약 카드 */}
       <Grid container spacing={2} sx={{ mb: 3 }}>
-        {[
-          { label: '총 주문금액', value: formatCurrency(summary.total_sales), color: '#2E7D4F' },
-          { label: '플랫폼 수수료 (5%)', value: formatCurrency(summary.total_platform_fee), color: '#E69100' },
-          { label: '결제 수수료 (3%)', value: formatCurrency(summary.total_payment_fee), color: '#E65100' },
-          { label: '순정산금액', value: formatCurrency(summary.total_settlement), color: '#1976D2' },
-        ].map((item) => (
-          <Grid size={{ xs: 6, md: 3 }} key={item.label}>
-            <Card sx={{ borderRadius: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
-              <CardContent sx={{ textAlign: 'center', py: 3 }}>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                  {item.label}
-                </Typography>
-                <Typography variant="h5" sx={{ fontWeight: 700, color: item.color }}>
-                  {item.value}
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-        ))}
+        <Grid size={{ xs: 6, md: 3 }}>
+          <StatCard label="총 주문금액" value={formatCurrency(summary.total_sales)} color="success" />
+        </Grid>
+        <Grid size={{ xs: 6, md: 3 }}>
+          <StatCard label="플랫폼 수수료 (5%)" value={formatCurrency(summary.total_platform_fee)} color="warning" />
+        </Grid>
+        <Grid size={{ xs: 6, md: 3 }}>
+          <StatCard label="결제 수수료 (3%)" value={formatCurrency(summary.total_payment_fee)} color="warning" />
+        </Grid>
+        <Grid size={{ xs: 6, md: 3 }}>
+          <StatCard label="순정산금액" value={formatCurrency(summary.total_settlement)} color="info" />
+        </Grid>
       </Grid>
 
       {/* 정산 목록 테이블 */}
-      <Card sx={{ borderRadius: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
-        <CardContent sx={{ p: 0 }}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 3, pb: 1, gap: 1, flexWrap: 'wrap' }}>
-            <Typography variant="h6">
-              정산 목록 ({summary.settlement_count}건)
-            </Typography>
-            <Button
-              variant="outlined"
-              size="small"
-              startIcon={<FileDownloadIcon />}
-              onClick={handleExportCsv}
-              disabled={settlements.length === 0}
-              sx={{ borderColor: '#C4A08A', color: '#C4A08A' }}
-            >
-              CSV 내보내기
-            </Button>
-          </Box>
-          {loading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-              <CircularProgress sx={{ color: '#C4A08A' }} />
-            </Box>
-          ) : settlements.length === 0 ? (
-            <Typography color="text.secondary" sx={{ p: 3, textAlign: 'center' }}>
-              해당 기간의 정산 내역이 없습니다.
-            </Typography>
-          ) : (
-            <TableContainer component={Paper} elevation={0}>
-              <Table>
-                <TableHead>
-                  <TableRow sx={{ backgroundColor: '#FAF6F3' }}>
-                    <TableCell sx={{ fontWeight: 600 }}>정산 기간</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }} align="center">주문 수</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }} align="right">매출</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }} align="right">수수료</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }} align="right">정산금</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }} align="center">상태</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }} align="center">상세</TableCell>
+      <SectionCard
+        title={`정산 목록 (${summary.settlement_count}건)`}
+        noPadding
+        action={
+          <Button
+            variant="outlined"
+            color="primary"
+            size="small"
+            startIcon={<FileDownloadIcon />}
+            onClick={handleExportCsv}
+            disabled={settlements.length === 0}
+          >
+            CSV 내보내기
+          </Button>
+        }
+      >
+        {loading ? (
+          <LoadingSkeleton variant="table" columns={7} />
+        ) : settlements.length === 0 ? (
+          <EmptyState
+            icon={<ReceiptLongIcon />}
+            title="해당 기간의 정산 내역이 없습니다"
+            description="다른 기간을 선택해보세요."
+          />
+        ) : (
+          <TableContainer component={Paper} elevation={0}>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell>정산 기간</TableCell>
+                  <TableCell align="center">주문 수</TableCell>
+                  <TableCell align="right">매출</TableCell>
+                  <TableCell align="right">수수료</TableCell>
+                  <TableCell align="right">정산금</TableCell>
+                  <TableCell align="center">상태</TableCell>
+                  <TableCell align="center">상세</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {settlements.map((s) => (
+                  <TableRow key={s.id} hover>
+                    <TableCell>
+                      {formatDate(s.period_start)} ~ {formatDate(s.period_end)}
+                    </TableCell>
+                    <TableCell align="center">{s.order_count}건</TableCell>
+                    <TableCell align="right">{formatCurrency(s.total_sales)}</TableCell>
+                    <TableCell align="right" sx={{ color: 'warning.main' }}>
+                      {formatCurrency(s.platform_fee + s.payment_fee)}
+                    </TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 700, color: 'info.main' }}>
+                      {formatCurrency(s.settlement_amount)}
+                    </TableCell>
+                    <TableCell align="center">
+                      <StatusChip status={s.status} map={SETTLEMENT_STATUS} variant="outlined" />
+                    </TableCell>
+                    <TableCell align="center">
+                      <IconButton size="small" onClick={() => openDetail(s)} color="primary">
+                        <VisibilityIcon fontSize="small" />
+                      </IconButton>
+                    </TableCell>
                   </TableRow>
-                </TableHead>
-                <TableBody>
-                  {settlements.map((s) => (
-                    <TableRow key={s.id} hover>
-                      <TableCell>
-                        {formatDate(s.period_start)} ~ {formatDate(s.period_end)}
-                      </TableCell>
-                      <TableCell align="center">{s.order_count}건</TableCell>
-                      <TableCell align="right">{formatCurrency(s.total_sales)}</TableCell>
-                      <TableCell align="right" sx={{ color: '#E69100' }}>
-                        {formatCurrency(s.platform_fee + s.payment_fee)}
-                      </TableCell>
-                      <TableCell align="right" sx={{ fontWeight: 700, color: '#1976D2' }}>
-                        {formatCurrency(s.settlement_amount)}
-                      </TableCell>
-                      <TableCell align="center">
-                        <Chip
-                          label={getStatusLabel(s.status)}
-                          color={getStatusColor(s.status)}
-                          size="small"
-                          variant="outlined"
-                        />
-                      </TableCell>
-                      <TableCell align="center">
-                        <IconButton size="small" onClick={() => openDetail(s)} sx={{ color: '#C4A08A' }}>
-                          <VisibilityIcon fontSize="small" />
-                        </IconButton>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          )}
-        </CardContent>
-      </Card>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        )}
+      </SectionCard>
 
       {/* 정산 상세 다이얼로그 */}
       <Dialog
@@ -423,13 +389,13 @@ const SettlementHistory: React.FC = () => {
               </Grid>
               <Grid size={{ xs: 4 }}>
                 <Typography variant="body2" color="text.secondary">총 수수료</Typography>
-                <Typography variant="h6" sx={{ fontWeight: 700, color: '#E69100' }}>
+                <Typography variant="h6" sx={{ fontWeight: 700, color: 'warning.main' }}>
                   {formatCurrency(detailSettlement.platform_fee + detailSettlement.payment_fee)}
                 </Typography>
               </Grid>
               <Grid size={{ xs: 4 }}>
                 <Typography variant="body2" color="text.secondary">정산금</Typography>
-                <Typography variant="h6" sx={{ fontWeight: 700, color: '#1976D2' }}>
+                <Typography variant="h6" sx={{ fontWeight: 700, color: 'info.main' }}>
                   {formatCurrency(detailSettlement.settlement_amount)}
                 </Typography>
               </Grid>
@@ -437,25 +403,21 @@ const SettlementHistory: React.FC = () => {
           )}
 
           {detailLoading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-              <CircularProgress sx={{ color: '#C4A08A' }} />
-            </Box>
+            <LoadingSkeleton variant="table" columns={7} />
           ) : detailItems.length === 0 ? (
-            <Typography color="text.secondary" sx={{ textAlign: 'center', py: 3 }}>
-              상세 항목이 없습니다.
-            </Typography>
+            <EmptyState icon={<ReceiptLongIcon />} title="상세 항목이 없습니다" dense />
           ) : (
             <TableContainer component={Paper} elevation={0}>
               <Table size="small">
                 <TableHead>
-                  <TableRow sx={{ backgroundColor: '#FAF6F3' }}>
-                    <TableCell sx={{ fontWeight: 600 }}>날짜</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>고객</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }} align="center">인원</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }} align="right">주문금액</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }} align="right">플랫폼 수수료</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }} align="right">결제 수수료</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }} align="right">순수익</TableCell>
+                  <TableRow>
+                    <TableCell>날짜</TableCell>
+                    <TableCell>고객</TableCell>
+                    <TableCell align="center">인원</TableCell>
+                    <TableCell align="right">주문금액</TableCell>
+                    <TableCell align="right">플랫폼 수수료</TableCell>
+                    <TableCell align="right">결제 수수료</TableCell>
+                    <TableCell align="right">순수익</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -465,13 +427,13 @@ const SettlementHistory: React.FC = () => {
                       <TableCell>{item.customer_name || '-'}</TableCell>
                       <TableCell align="center">{item.party_size || '-'}</TableCell>
                       <TableCell align="right">{formatCurrency(item.order_amount)}</TableCell>
-                      <TableCell align="right" sx={{ color: '#E69100' }}>
+                      <TableCell align="right" sx={{ color: 'warning.main' }}>
                         {formatCurrency(item.platform_fee)}
                       </TableCell>
-                      <TableCell align="right" sx={{ color: '#E65100' }}>
+                      <TableCell align="right" sx={{ color: 'warning.main' }}>
                         {formatCurrency(item.payment_fee)}
                       </TableCell>
-                      <TableCell align="right" sx={{ fontWeight: 600, color: '#1976D2' }}>
+                      <TableCell align="right" sx={{ fontWeight: 600, color: 'info.main' }}>
                         {formatCurrency(item.net_amount)}
                       </TableCell>
                     </TableRow>
@@ -482,7 +444,7 @@ const SettlementHistory: React.FC = () => {
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDetailOpen(false)} sx={{ color: '#666' }}>닫기</Button>
+          <Button onClick={() => setDetailOpen(false)} color="inherit">닫기</Button>
         </DialogActions>
       </Dialog>
     </Box>

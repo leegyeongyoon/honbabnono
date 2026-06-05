@@ -33,6 +33,7 @@ import {
   Refresh,
   Add,
   NotificationsActive,
+  EventBusy,
 } from '@mui/icons-material';
 import apiClient from '../utils/api';
 import useRestaurantSocket from '../hooks/useRestaurantSocket';
@@ -43,6 +44,8 @@ import {
   playBeep,
   getNotificationPermission,
 } from '../utils/notify';
+import { ARRIVAL_STATUS, RESERVATION_STATUS } from '../theme';
+import { PageHeader, EmptyState, StatusChip } from './common';
 
 // ── Types ──────────────────────────────────────────────────────
 interface OrderItem {
@@ -78,27 +81,7 @@ type ReservationStatus =
 
 type ViewMode = 'day' | 'week';
 
-// ── Style constants ────────────────────────────────────────────
-const BRAND = '#C4A08A';
-const BRAND_DARK = '#A88068';
-const BRAND_LIGHT = '#FAF6F3';
-
-const ARRIVAL_CHIP: Record<string, { label: string; color: 'success' | 'warning' | 'info' | 'error' | 'default' }> = {
-  on_time:  { label: '정시 도착', color: 'success' },
-  delayed:  { label: '지연',      color: 'warning' },
-  nearby:   { label: '근처 도착', color: 'info' },
-  arrived:  { label: '도착',      color: 'success' },
-  noshow:   { label: '노쇼',      color: 'error' },
-};
-
-const STATUS_CHIP: Record<string, { label: string; color: 'info' | 'warning' | 'success' | 'secondary' | 'default' }> = {
-  confirmed:  { label: '확정',     color: 'info' },
-  preparing:  { label: '준비중',   color: 'warning' },
-  ready:      { label: '조리완료', color: 'success' },
-  seated:     { label: '착석',     color: 'secondary' },
-  completed:  { label: '완료',     color: 'default' },
-  cancelled:  { label: '취소',     color: 'default' },
-};
+// 상태색/도착색은 중앙 테마(ARRIVAL_STATUS / RESERVATION_STATUS)에서 가져옴
 
 // ── Date helpers ───────────────────────────────────────────────
 const toDateStr = (d: Date): string => {
@@ -279,16 +262,18 @@ const ReservationBoard: React.FC = () => {
   // ── Render helpers ──
   const renderArrivalChip = (arrival?: string) => {
     if (!arrival) return null;
-    const cfg = ARRIVAL_CHIP[arrival];
-    if (!cfg) return <Chip label={arrival} size="small" />;
-    return <Chip label={cfg.label} color={cfg.color} size="small" variant={arrival === 'arrived' ? 'filled' : 'outlined'} />;
+    return (
+      <StatusChip
+        status={arrival}
+        map={ARRIVAL_STATUS}
+        variant={arrival === 'arrived' ? 'filled' : 'outlined'}
+      />
+    );
   };
 
-  const renderStatusChip = (status: string) => {
-    const cfg = STATUS_CHIP[status];
-    if (!cfg) return <Chip label={status} size="small" />;
-    return <Chip label={cfg.label} color={cfg.color} size="small" />;
-  };
+  const renderStatusChip = (status: string) => (
+    <StatusChip status={status} map={RESERVATION_STATUS} />
+  );
 
   const renderOptions = (options: any) => {
     try {
@@ -309,7 +294,7 @@ const ReservationBoard: React.FC = () => {
 
     if (r.status === 'confirmed') {
       buttons.push(
-        <Button key="prep" size="small" variant="contained" sx={{ bgcolor: BRAND, '&:hover': { bgcolor: BRAND_DARK } }}
+        <Button key="prep" size="small" variant="contained" color="primary"
           onClick={() => updateStatus(r.id, 'preparing')}>
           준비 시작
         </Button>,
@@ -391,67 +376,67 @@ const ReservationBoard: React.FC = () => {
   return (
     <Box>
       {/* Header */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3, flexWrap: 'wrap' }}>
-        <Typography variant="h5" fontWeight={700}>예약 관리</Typography>
+      <PageHeader
+        title="예약 관리"
+        actions={
+          <>
+            <ToggleButtonGroup
+              value={viewMode}
+              exclusive
+              size="small"
+              onChange={(_e, val) => { if (val) setViewMode(val); }}
+            >
+              <ToggleButton value="day">일간</ToggleButton>
+              <ToggleButton value="week">주간</ToggleButton>
+            </ToggleButtonGroup>
 
-        <ToggleButtonGroup
-          value={viewMode}
-          exclusive
-          size="small"
-          onChange={(_e, val) => { if (val) setViewMode(val); }}
-        >
-          <ToggleButton value="day">일간</ToggleButton>
-          <ToggleButton value="week">주간</ToggleButton>
-        </ToggleButtonGroup>
+            <TextField
+              type="date"
+              size="small"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              sx={{ width: 180 }}
+            />
 
-        <TextField
-          type="date"
-          size="small"
-          value={selectedDate}
-          onChange={(e) => setSelectedDate(e.target.value)}
-          sx={{ width: 180 }}
-        />
+            <FormControl size="small" sx={{ minWidth: 140 }}>
+              <InputLabel>상태 필터</InputLabel>
+              <Select
+                value={statusFilter}
+                label="상태 필터"
+                onChange={(e: SelectChangeEvent) => setStatusFilter(e.target.value as ReservationStatus)}
+              >
+                <MenuItem value="all">전체</MenuItem>
+                <MenuItem value="confirmed">확정</MenuItem>
+                <MenuItem value="preparing">준비중</MenuItem>
+                <MenuItem value="ready">조리완료</MenuItem>
+                <MenuItem value="seated">착석</MenuItem>
+                <MenuItem value="completed">완료</MenuItem>
+                <MenuItem value="cancelled">취소</MenuItem>
+              </Select>
+            </FormControl>
 
-        <FormControl size="small" sx={{ minWidth: 140 }}>
-          <InputLabel>상태 필터</InputLabel>
-          <Select
-            value={statusFilter}
-            label="상태 필터"
-            onChange={(e: SelectChangeEvent) => setStatusFilter(e.target.value as ReservationStatus)}
-          >
-            <MenuItem value="all">전체</MenuItem>
-            <MenuItem value="confirmed">확정</MenuItem>
-            <MenuItem value="preparing">준비중</MenuItem>
-            <MenuItem value="ready">조리완료</MenuItem>
-            <MenuItem value="seated">착석</MenuItem>
-            <MenuItem value="completed">완료</MenuItem>
-            <MenuItem value="cancelled">취소</MenuItem>
-          </Select>
-        </FormControl>
+            <Button startIcon={<Refresh />} onClick={fetchReservations} variant="outlined" color="primary" size="small">
+              새로고침
+            </Button>
 
-        <Button startIcon={<Refresh />} onClick={fetchReservations} variant="outlined" size="small"
-          sx={{ borderColor: BRAND, color: BRAND_DARK }}>
-          새로고침
-        </Button>
+            <Button startIcon={<Add />} onClick={openManual} variant="contained" color="primary" size="small">
+              수동 예약 추가
+            </Button>
 
-        <Button startIcon={<Add />} onClick={openManual} variant="contained" size="small"
-          sx={{ bgcolor: BRAND, '&:hover': { bgcolor: BRAND_DARK } }}>
-          수동 예약 추가
-        </Button>
-
-        {notifPermission !== 'granted' && notifPermission !== 'unsupported' && (
-          <Button
-            startIcon={<NotificationsActive />}
-            onClick={handleRequestNotif}
-            variant="outlined"
-            size="small"
-            color="warning"
-            sx={{ ml: 'auto' }}
-          >
-            {notifPermission === 'denied' ? '알림 차단됨' : '알림 켜기'}
-          </Button>
-        )}
-      </Box>
+            {notifPermission !== 'granted' && notifPermission !== 'unsupported' && (
+              <Button
+                startIcon={<NotificationsActive />}
+                onClick={handleRequestNotif}
+                variant="outlined"
+                size="small"
+                color="warning"
+              >
+                {notifPermission === 'denied' ? '알림 차단됨' : '알림 켜기'}
+              </Button>
+            )}
+          </>
+        }
+      />
 
       {/* Error */}
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
@@ -459,7 +444,7 @@ const ReservationBoard: React.FC = () => {
       {/* Loading */}
       {loading && (
         <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
-          <CircularProgress sx={{ color: BRAND }} />
+          <CircularProgress color="primary" />
         </Box>
       )}
 
@@ -484,22 +469,29 @@ const ReservationBoard: React.FC = () => {
                 key={day.dateStr}
                 variant="outlined"
                 sx={{
-                  borderRadius: 2,
-                  borderColor: isSelected ? BRAND : 'rgba(17,17,17,0.06)',
+                  borderColor: isSelected ? 'primary.main' : 'divider',
                   borderWidth: isSelected ? 2 : 1,
                   minHeight: 220,
                   cursor: 'pointer',
-                  bgcolor: isSelected ? BRAND_LIGHT : '#fff',
+                  bgcolor: isSelected ? 'custom.brandSoft' : 'background.paper',
                 }}
                 onClick={() => setSelectedDate(day.dateStr)}
               >
                 <CardContent sx={{ p: 1.5 }}>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                    <Typography variant="subtitle2" fontWeight={700}>
+                    <Typography
+                      variant="subtitle2"
+                      fontWeight={700}
+                      sx={{ color: isSelected ? 'primary.dark' : 'text.primary' }}
+                    >
                       {day.dayLabel} {day.label}
                     </Typography>
-                    <Chip label={`${dayReservations.length}건`} size="small"
-                      sx={{ bgcolor: dayReservations.length ? BRAND : '#eee', color: dayReservations.length ? '#fff' : '#999', fontWeight: 700 }} />
+                    <Chip
+                      label={`${dayReservations.length}건`}
+                      size="small"
+                      color={dayReservations.length ? 'primary' : 'default'}
+                      sx={{ fontWeight: 700 }}
+                    />
                   </Box>
                   <Divider sx={{ mb: 1 }} />
                   {dayReservations.length === 0 ? (
@@ -526,32 +518,27 @@ const ReservationBoard: React.FC = () => {
         <>
           {/* Empty */}
           {reservations.length === 0 && (
-            <Typography color="text.secondary" sx={{ textAlign: 'center', py: 8 }}>
-              해당 날짜에 예약이 없습니다.
-            </Typography>
+            <EmptyState
+              icon={<EventBusy />}
+              title="해당 날짜에 예약이 없습니다"
+              description="다른 날짜를 선택하거나 수동 예약을 추가해보세요."
+            />
           )}
 
           {/* Cards */}
           <Grid container spacing={2}>
             {reservations.map((r) => (
               <Grid size={{ xs: 12, sm: 6, md: 4 }} key={r.id}>
-                <Card
-                  variant="outlined"
-                  sx={{
-                    borderRadius: 2.5,
-                    borderColor: 'rgba(17,17,17,0.06)',
-                    '&:hover': { boxShadow: '0 2px 12px rgba(17,17,17,0.08)' },
-                  }}
-                >
+                <Card variant="outlined">
                   <CardContent sx={{ pb: 1 }}>
                     {/* Time + status chips */}
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                        <AccessTime fontSize="small" sx={{ color: BRAND_DARK }} />
+                        <AccessTime fontSize="small" sx={{ color: 'primary.dark' }} />
                         <Typography variant="h6" fontWeight={700}>{formatTime(r.reservation_time)}</Typography>
                       </Box>
                       <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                        {r.is_manual && <Chip label="전화예약" size="small" sx={{ bgcolor: BRAND_LIGHT, color: BRAND_DARK }} />}
+                        {r.is_manual && <Chip label="전화예약" size="small" sx={{ bgcolor: 'custom.brandSoft', color: 'primary.dark' }} />}
                         {renderStatusChip(r.status)}
                         {renderArrivalChip(r.arrival_status)}
                       </Box>
@@ -562,11 +549,11 @@ const ReservationBoard: React.FC = () => {
                     {/* Info */}
                     <Box sx={{ display: 'flex', gap: 2, mb: 1 }}>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                        <Person fontSize="small" />
+                        <Person fontSize="small" sx={{ color: 'text.secondary' }} />
                         <Typography variant="body2">{r.customer_name}</Typography>
                       </Box>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                        <Group fontSize="small" />
+                        <Group fontSize="small" sx={{ color: 'text.secondary' }} />
                         <Typography variant="body2">{r.party_size}명</Typography>
                       </Box>
                     </Box>
@@ -575,7 +562,7 @@ const ReservationBoard: React.FC = () => {
                     {r.orders && r.orders.length > 0 && (
                       <Box sx={{ mt: 1 }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
-                          <Restaurant fontSize="small" sx={{ color: BRAND_DARK }} />
+                          <Restaurant fontSize="small" sx={{ color: 'primary.dark' }} />
                           <Typography variant="body2" fontWeight={600}>주문 메뉴</Typography>
                         </Box>
                         {r.orders.map((o, i) => (
@@ -681,8 +668,8 @@ const ReservationBoard: React.FC = () => {
           <Button
             onClick={handleManualSave}
             variant="contained"
+            color="primary"
             disabled={manualSaving || !manualForm.guest_name.trim() || !manualForm.reservation_date}
-            sx={{ bgcolor: BRAND, '&:hover': { bgcolor: BRAND_DARK } }}
           >
             {manualSaving ? <CircularProgress size={20} color="inherit" /> : '추가'}
           </Button>

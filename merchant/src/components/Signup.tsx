@@ -36,9 +36,6 @@ interface DocUploadState {
   error: string | null;
 }
 
-const BRAND = '#C4A08A';
-const BRAND_DARK = '#A88068';
-
 const steps = ['계정 생성', '사업자 정보', '서류 업로드', '신청 완료'];
 
 const INITIAL_DOC_STATE: DocUploadState = {
@@ -234,12 +231,12 @@ const Signup: React.FC<SignupProps> = ({ onGoLogin, onSignupComplete }) => {
     <Box
       sx={{
         border: '2px dashed',
-        borderColor: state.uploaded ? '#4CAF50' : state.error ? '#D32F2F' : '#DDD',
+        borderColor: state.uploaded ? 'success.main' : state.error ? 'error.main' : 'divider',
         borderRadius: 2,
         p: 2,
         mb: 2,
         textAlign: 'center',
-        backgroundColor: state.uploaded ? '#F1F8E9' : '#FAFAFA',
+        backgroundColor: state.uploaded ? 'success.light' : 'background.default',
         transition: 'all 0.2s',
       }}
     >
@@ -253,7 +250,7 @@ const Signup: React.FC<SignupProps> = ({ onGoLogin, onSignupComplete }) => {
 
       {state.uploading ? (
         <Box sx={{ py: 2 }}>
-          <CircularProgress size={28} sx={{ color: BRAND }} />
+          <CircularProgress size={28} color="primary" />
           <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
             업로드 중...
           </Typography>
@@ -261,12 +258,12 @@ const Signup: React.FC<SignupProps> = ({ onGoLogin, onSignupComplete }) => {
       ) : state.uploaded ? (
         <Box>
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, mb: 1 }}>
-            <CheckCircleIcon sx={{ color: '#4CAF50', fontSize: 20 }} />
-            <Typography variant="body2" sx={{ fontWeight: 600, color: '#4CAF50' }}>
+            <CheckCircleIcon sx={{ color: 'success.main', fontSize: 20 }} />
+            <Typography variant="body2" sx={{ fontWeight: 600, color: 'success.main' }}>
               업로드 완료
             </Typography>
             <IconButton size="small" onClick={() => handleRemoveFile(setter)} sx={{ ml: 0.5 }}>
-              <DeleteIcon sx={{ fontSize: 16, color: '#999' }} />
+              <DeleteIcon sx={{ fontSize: 16, color: 'text.disabled' }} />
             </IconButton>
           </Box>
           {state.preview ? (
@@ -277,7 +274,7 @@ const Signup: React.FC<SignupProps> = ({ onGoLogin, onSignupComplete }) => {
               sx={{ maxWidth: '100%', maxHeight: 100, objectFit: 'contain', borderRadius: 1 }}
             />
           ) : (
-            <InsertDriveFileIcon sx={{ fontSize: 36, color: '#999' }} />
+            <InsertDriveFileIcon sx={{ fontSize: 36, color: 'text.disabled' }} />
           )}
           <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
             {state.file?.name}
@@ -285,7 +282,7 @@ const Signup: React.FC<SignupProps> = ({ onGoLogin, onSignupComplete }) => {
         </Box>
       ) : (
         <Box onClick={() => inputRef.current?.click()} sx={{ cursor: 'pointer', py: 1 }}>
-          <CloudUploadIcon sx={{ fontSize: 32, color: '#BBB', mb: 0.5 }} />
+          <CloudUploadIcon sx={{ fontSize: 32, color: 'text.disabled', mb: 0.5 }} />
           <Typography variant="body2" sx={{ fontWeight: 600 }}>
             {label} {required ? '(필수)' : '(선택)'}
           </Typography>
@@ -306,11 +303,11 @@ const Signup: React.FC<SignupProps> = ({ onGoLogin, onSignupComplete }) => {
   // Step 4 (index 3): Complete
   if (activeStep === 3) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', backgroundColor: '#FAF6F3', px: 2 }}>
-        <Card sx={{ width: '100%', maxWidth: 480, borderRadius: 3, boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}>
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', backgroundColor: 'background.default', px: 2 }}>
+        <Card sx={{ width: '100%', maxWidth: 480 }}>
           <CardContent sx={{ p: 4, textAlign: 'center' }}>
-            <Box sx={{ width: 72, height: 72, borderRadius: '50%', backgroundColor: '#E8F5E9', display: 'flex', alignItems: 'center', justifyContent: 'center', mx: 'auto', mb: 2 }}>
-              <StoreIcon sx={{ fontSize: 36, color: '#4CAF50' }} />
+            <Box sx={{ width: 72, height: 72, borderRadius: '50%', backgroundColor: 'success.light', display: 'flex', alignItems: 'center', justifyContent: 'center', mx: 'auto', mb: 2 }}>
+              <StoreIcon sx={{ fontSize: 36, color: 'success.main' }} />
             </Box>
             <Typography variant="h5" sx={{ fontWeight: 700, mb: 1 }}>
               점주 등록 신청 완료
@@ -320,7 +317,7 @@ const Signup: React.FC<SignupProps> = ({ onGoLogin, onSignupComplete }) => {
               대시보드를 이용하실 수 있습니다.
             </Typography>
 
-            <Box sx={{ backgroundColor: '#FAF6F3', borderRadius: 2, p: 2.5, mb: 3, textAlign: 'left' }}>
+            <Box sx={{ backgroundColor: 'background.default', borderRadius: 2, p: 2.5, mb: 3, textAlign: 'left' }}>
               <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>처리 절차</Typography>
               <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.8 }}>
                 1. 사업자등록번호 검증 (자동)<br />
@@ -332,16 +329,12 @@ const Signup: React.FC<SignupProps> = ({ onGoLogin, onSignupComplete }) => {
             <Button
               fullWidth
               variant="contained"
+              color="primary"
               onClick={() => {
                 localStorage.removeItem('merchantToken');
                 onSignupComplete();
               }}
-              sx={{
-                py: 1.3,
-                background: `linear-gradient(135deg, ${BRAND} 0%, #D8BCA8 100%)`,
-                fontWeight: 600,
-                '&:hover': { background: `linear-gradient(135deg, ${BRAND_DARK} 0%, ${BRAND} 100%)` },
-              }}
+              sx={{ py: 1.3 }}
             >
               로그인 화면으로 이동
             </Button>
@@ -352,15 +345,15 @@ const Signup: React.FC<SignupProps> = ({ onGoLogin, onSignupComplete }) => {
   }
 
   return (
-    <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', backgroundColor: '#FAF6F3', px: 2, py: 4 }}>
-      <Card sx={{ width: '100%', maxWidth: 520, borderRadius: 3, boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}>
+    <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', backgroundColor: 'background.default', px: 2, py: 4 }}>
+      <Card sx={{ width: '100%', maxWidth: 520 }}>
         <CardContent sx={{ p: 4 }}>
           {/* Header */}
           <Box sx={{ textAlign: 'center', mb: 3 }}>
-            <Box sx={{ width: 52, height: 52, borderRadius: '50%', background: `linear-gradient(135deg, ${BRAND} 0%, ${BRAND_DARK} 100%)`, display: 'flex', alignItems: 'center', justifyContent: 'center', mx: 'auto', mb: 1.5 }}>
+            <Box sx={{ width: 52, height: 52, borderRadius: '50%', bgcolor: 'primary.main', display: 'flex', alignItems: 'center', justifyContent: 'center', mx: 'auto', mb: 1.5 }}>
               <StoreIcon sx={{ color: '#fff', fontSize: 26 }} />
             </Box>
-            <Typography variant="h5" sx={{ fontWeight: 700, color: '#333' }}>
+            <Typography variant="h5" sx={{ fontWeight: 700, color: 'text.primary' }}>
               점주 회원가입
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
@@ -372,7 +365,7 @@ const Signup: React.FC<SignupProps> = ({ onGoLogin, onSignupComplete }) => {
           <Stepper activeStep={activeStep} alternativeLabel sx={{ mb: 3 }}>
             {steps.slice(0, 3).map((label) => (
               <Step key={label}>
-                <StepLabel StepIconProps={{ sx: { '&.Mui-active': { color: BRAND }, '&.Mui-completed': { color: BRAND } } }}>
+                <StepLabel StepIconProps={{ sx: { '&.Mui-active': { color: 'primary.main' }, '&.Mui-completed': { color: 'primary.main' } } }}>
                   {label}
                 </StepLabel>
               </Step>
@@ -417,16 +410,10 @@ const Signup: React.FC<SignupProps> = ({ onGoLogin, onSignupComplete }) => {
                 helperText={passwordConfirm.length > 0 && password !== passwordConfirm ? '비밀번호가 일치하지 않습니다' : ''}
               />
               <Button
-                fullWidth variant="contained" size="large"
+                fullWidth variant="contained" color="primary" size="large"
                 disabled={loading || !isStep1Valid}
                 onClick={handleCreateAccount}
-                sx={{
-                  py: 1.5,
-                  background: `linear-gradient(135deg, ${BRAND} 0%, #D8BCA8 100%)`,
-                  fontWeight: 600, fontSize: '1rem',
-                  '&:hover': { background: `linear-gradient(135deg, ${BRAND_DARK} 0%, ${BRAND} 100%)` },
-                  '&.Mui-disabled': { background: '#E0E0E0' },
-                }}
+                sx={{ py: 1.5, fontSize: '1rem' }}
               >
                 {loading ? <CircularProgress size={24} sx={{ color: '#fff' }} /> : '다음'}
               </Button>
@@ -481,20 +468,14 @@ const Signup: React.FC<SignupProps> = ({ onGoLogin, onSignupComplete }) => {
               />
 
               <Box sx={{ display: 'flex', gap: 1.5 }}>
-                <Button variant="outlined" onClick={() => setActiveStep(0)}
-                  sx={{ flex: 1, py: 1.3, borderColor: '#CCC', color: '#666', fontWeight: 600 }}>
+                <Button variant="outlined" color="inherit" onClick={() => setActiveStep(0)}
+                  sx={{ flex: 1, py: 1.3 }}>
                   이전
                 </Button>
                 <Button
-                  variant="contained" onClick={handleRegisterMerchant}
+                  variant="contained" color="primary" onClick={handleRegisterMerchant}
                   disabled={loading || !isStep2Valid}
-                  sx={{
-                    flex: 2, py: 1.3,
-                    background: `linear-gradient(135deg, ${BRAND} 0%, #D8BCA8 100%)`,
-                    fontWeight: 600, fontSize: '1rem',
-                    '&:hover': { background: `linear-gradient(135deg, ${BRAND_DARK} 0%, ${BRAND} 100%)` },
-                    '&.Mui-disabled': { background: '#E0E0E0' },
-                  }}
+                  sx={{ flex: 2, py: 1.3, fontSize: '1rem' }}
                 >
                   {loading ? <CircularProgress size={24} sx={{ color: '#fff' }} /> : '다음'}
                 </Button>
@@ -539,22 +520,18 @@ const Signup: React.FC<SignupProps> = ({ onGoLogin, onSignupComplete }) => {
               <Box sx={{ display: 'flex', gap: 1.5, mt: 1 }}>
                 <Button
                   variant="outlined"
+                  color="inherit"
                   onClick={() => setActiveStep(3)}
-                  sx={{ flex: 1, py: 1.3, borderColor: '#CCC', color: '#666', fontWeight: 600 }}
+                  sx={{ flex: 1, py: 1.3 }}
                 >
                   건너뛰기
                 </Button>
                 <Button
                   variant="contained"
+                  color="primary"
                   disabled={!businessLicense.uploaded}
                   onClick={() => setActiveStep(3)}
-                  sx={{
-                    flex: 2, py: 1.3,
-                    background: `linear-gradient(135deg, ${BRAND} 0%, #D8BCA8 100%)`,
-                    fontWeight: 600, fontSize: '1rem',
-                    '&:hover': { background: `linear-gradient(135deg, ${BRAND_DARK} 0%, ${BRAND} 100%)` },
-                    '&.Mui-disabled': { background: '#E0E0E0' },
-                  }}
+                  sx={{ flex: 2, py: 1.3, fontSize: '1rem' }}
                 >
                   완료
                 </Button>
@@ -564,10 +541,10 @@ const Signup: React.FC<SignupProps> = ({ onGoLogin, onSignupComplete }) => {
 
           {/* Footer: go to login */}
           <Divider sx={{ my: 2.5 }} />
-          <Typography variant="body2" sx={{ textAlign: 'center', color: '#999' }}>
+          <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center' }}>
             이미 계정이 있으신가요?{' '}
-            <Button variant="text" onClick={onGoLogin}
-              sx={{ color: BRAND_DARK, fontWeight: 600, p: 0, minWidth: 'auto', textTransform: 'none' }}>
+            <Button variant="text" color="primary" onClick={onGoLogin}
+              sx={{ fontWeight: 600, p: 0, minWidth: 'auto' }}>
               로그인
             </Button>
           </Typography>

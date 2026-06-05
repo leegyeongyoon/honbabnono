@@ -23,8 +23,10 @@ import Chip from '@mui/material/Chip';
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
 import LogoutIcon from '@mui/icons-material/Logout';
+import ScheduleIcon from '@mui/icons-material/Schedule';
 import apiClient from '../utils/api';
 import getRestaurantId from '../utils/getRestaurantId';
+import { PageHeader, EmptyState } from './common';
 
 const DAYS = ['월', '화', '수', '목', '금', '토', '일'];
 const DAY_VALUES = [1, 2, 3, 4, 5, 6, 0]; // DB 요일 값 (0=일, 1=월, ...)
@@ -332,15 +334,13 @@ const MerchantSettings: React.FC = () => {
 
   return (
     <Box>
-      <Typography variant="h4" gutterBottom>
-        설정
-      </Typography>
+      <PageHeader title="설정" />
 
       {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>{error}</Alert>}
       {success && <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess('')}>{success}</Alert>}
 
       {/* 내 정보 */}
-      <Card sx={{ mb: 3, borderRadius: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+      <Card sx={{ mb: 3 }}>
         <CardContent sx={{ p: 3 }}>
           <Typography variant="h6" sx={{ mb: 2 }}>내 정보</Typography>
           <Grid container spacing={2}>
@@ -390,12 +390,9 @@ const MerchantSettings: React.FC = () => {
           <Box sx={{ mt: 2 }}>
             <Button
               variant="contained"
+              color="primary"
               onClick={handlePasswordChange}
               disabled={passwordLoading || !currentPassword || !newPassword || !confirmPassword}
-              sx={{
-                background: 'linear-gradient(135deg, #C4A08A 0%, #D8BCA8 100%)',
-                '&:hover': { background: 'linear-gradient(135deg, #A88068 0%, #C4A08A 100%)' },
-              }}
             >
               {passwordLoading ? <CircularProgress size={22} sx={{ color: '#fff' }} /> : '비밀번호 변경'}
             </Button>
@@ -404,15 +401,15 @@ const MerchantSettings: React.FC = () => {
       </Card>
 
       {/* 알림 설정 */}
-      <Card sx={{ mb: 3, borderRadius: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+      <Card sx={{ mb: 3 }}>
         <CardContent sx={{ p: 3 }}>
           <Typography variant="h6" sx={{ mb: 2 }}>알림 설정</Typography>
           <FormControlLabel
             control={
               <Switch
+                color="primary"
                 checked={notifications.newReservation}
                 onChange={() => handleNotificationChange('newReservation')}
-                sx={{ '& .MuiSwitch-switchBase.Mui-checked': { color: '#C4A08A' }, '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { backgroundColor: '#C4A08A' } }}
               />
             }
             label="새 예약 알림"
@@ -421,9 +418,9 @@ const MerchantSettings: React.FC = () => {
           <FormControlLabel
             control={
               <Switch
+                color="primary"
                 checked={notifications.customerArrival}
                 onChange={() => handleNotificationChange('customerArrival')}
-                sx={{ '& .MuiSwitch-switchBase.Mui-checked': { color: '#C4A08A' }, '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { backgroundColor: '#C4A08A' } }}
               />
             }
             label="고객 도착 알림"
@@ -432,9 +429,9 @@ const MerchantSettings: React.FC = () => {
           <FormControlLabel
             control={
               <Switch
+                color="primary"
                 checked={notifications.noShow}
                 onChange={() => handleNotificationChange('noShow')}
-                sx={{ '& .MuiSwitch-switchBase.Mui-checked': { color: '#C4A08A' }, '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { backgroundColor: '#C4A08A' } }}
               />
             }
             label="노쇼 알림"
@@ -447,12 +444,13 @@ const MerchantSettings: React.FC = () => {
       </Card>
 
       {/* 주문 자동접수 설정 */}
-      <Card sx={{ mb: 3, borderRadius: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+      <Card sx={{ mb: 3 }}>
         <CardContent sx={{ p: 3 }}>
           <Typography variant="h6" sx={{ mb: 2 }}>주문 설정</Typography>
           <FormControlLabel
             control={
               <Switch
+                color="primary"
                 checked={orderSettings.autoAcceptOrders}
                 onChange={() =>
                   setOrderSettings((prev) => ({
@@ -460,10 +458,6 @@ const MerchantSettings: React.FC = () => {
                     autoAcceptOrders: !prev.autoAcceptOrders,
                   }))
                 }
-                sx={{
-                  '& .MuiSwitch-switchBase.Mui-checked': { color: '#C4A08A' },
-                  '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { backgroundColor: '#C4A08A' },
-                }}
               />
             }
             label="주문 자동접수"
@@ -492,13 +486,10 @@ const MerchantSettings: React.FC = () => {
             <Grid size={{ xs: 12, sm: 6 }}>
               <Button
                 variant="contained"
+                color="primary"
                 onClick={handleSaveOrderSettings}
                 disabled={orderSettingsLoading}
-                sx={{
-                  py: 1.5,
-                  background: 'linear-gradient(135deg, #C4A08A 0%, #D8BCA8 100%)',
-                  '&:hover': { background: 'linear-gradient(135deg, #A88068 0%, #C4A08A 100%)' },
-                }}
+                sx={{ py: 1.5 }}
               >
                 {orderSettingsLoading ? <CircularProgress size={22} sx={{ color: '#fff' }} /> : '주문 설정 저장'}
               </Button>
@@ -508,7 +499,7 @@ const MerchantSettings: React.FC = () => {
       </Card>
 
       {/* 시간 슬롯 관리 */}
-      <Card sx={{ mb: 3, borderRadius: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+      <Card sx={{ mb: 3 }}>
         <CardContent sx={{ p: 3 }}>
           <Typography variant="h6" sx={{ mb: 1 }}>예약 시간 슬롯 관리</Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
@@ -527,20 +518,19 @@ const MerchantSettings: React.FC = () => {
                   label={day}
                   onClick={() => toggleDay(val)}
                   variant={isSelected ? 'filled' : 'outlined'}
+                  color={isSelected ? 'primary' : 'default'}
                   sx={{
                     fontWeight: 600,
                     fontSize: 14,
                     px: 1,
-                    ...(isSelected
-                      ? { backgroundColor: '#C4A08A', color: '#fff', '&:hover': { backgroundColor: '#A88068' } }
-                      : { borderColor: '#C4A08A', color: '#C4A08A', '&:hover': { backgroundColor: 'rgba(196,160,138,0.08)' } }),
+                    ...(isSelected ? {} : { borderColor: 'primary.main', color: 'primary.main' }),
                   }}
                 />
               );
             })}
           </Box>
           <Box sx={{ mb: 3 }}>
-            <Button size="small" onClick={selectAllDays} sx={{ color: '#C4A08A', textTransform: 'none', fontSize: 12 }}>
+            <Button size="small" color="primary" onClick={selectAllDays} sx={{ fontSize: 12 }}>
               {selectedDays.length === DAY_VALUES.length ? '전체 해제' : '전체 선택'}
             </Button>
           </Box>
@@ -548,10 +538,10 @@ const MerchantSettings: React.FC = () => {
           {/* 2. 시간 선택 */}
           <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>시간 선택</Typography>
           <Box sx={{ display: 'flex', gap: 0.5, mb: 1 }}>
-            <Button size="small" onClick={selectLunchTimes} sx={{ color: '#C4A08A', textTransform: 'none', fontSize: 12 }}>
+            <Button size="small" color="primary" onClick={selectLunchTimes} sx={{ fontSize: 12 }}>
               점심 일괄
             </Button>
-            <Button size="small" onClick={selectDinnerTimes} sx={{ color: '#C4A08A', textTransform: 'none', fontSize: 12 }}>
+            <Button size="small" color="primary" onClick={selectDinnerTimes} sx={{ fontSize: 12 }}>
               저녁 일괄
             </Button>
           </Box>
@@ -564,13 +554,9 @@ const MerchantSettings: React.FC = () => {
                   label={t.label}
                   onClick={() => toggleTime(t.value)}
                   variant={isSelected ? 'filled' : 'outlined'}
+                  color={isSelected ? 'primary' : 'default'}
                   size="small"
-                  sx={{
-                    fontWeight: 500,
-                    ...(isSelected
-                      ? { backgroundColor: '#C4A08A', color: '#fff', '&:hover': { backgroundColor: '#A88068' } }
-                      : { borderColor: 'rgba(0,0,0,0.2)', '&:hover': { backgroundColor: 'rgba(196,160,138,0.08)' } }),
-                  }}
+                  sx={{ fontWeight: 500 }}
                 />
               );
             })}
@@ -589,9 +575,9 @@ const MerchantSettings: React.FC = () => {
             <Button
               size="small"
               variant="outlined"
+              color="primary"
               onClick={handleAddCustomTime}
               disabled={!customTime}
-              sx={{ borderColor: '#C4A08A', color: '#C4A08A' }}
             >
               추가
             </Button>
@@ -610,15 +596,11 @@ const MerchantSettings: React.FC = () => {
             />
             <Button
               variant="contained"
+              color="primary"
               startIcon={<AddIcon />}
               onClick={handleBulkAddSlots}
               disabled={slotsLoading || selectedDays.length === 0 || selectedTimes.length === 0}
-              sx={{
-                px: 3,
-                background: 'linear-gradient(135deg, #C4A08A 0%, #D8BCA8 100%)',
-                '&:hover': { background: 'linear-gradient(135deg, #A88068 0%, #C4A08A 100%)' },
-                '&.Mui-disabled': { background: '#e0e0e0' },
-              }}
+              sx={{ px: 3 }}
             >
               {slotsLoading ? <CircularProgress size={22} sx={{ color: '#fff' }} /> :
                 `${selectedDays.length} × ${selectedTimes.length} = ${selectedDays.length * selectedTimes.length}개 슬롯 생성`}
@@ -633,12 +615,15 @@ const MerchantSettings: React.FC = () => {
           </Typography>
           {slotsLoading ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
-              <CircularProgress sx={{ color: '#C4A08A' }} size={28} />
+              <CircularProgress color="primary" size={28} />
             </Box>
           ) : timeSlots.length === 0 ? (
-            <Typography color="text.secondary" sx={{ textAlign: 'center', py: 2 }}>
-              등록된 시간 슬롯이 없습니다. 위에서 요일과 시간을 선택하여 생성하세요.
-            </Typography>
+            <EmptyState
+              icon={<ScheduleIcon />}
+              title="등록된 시간 슬롯이 없습니다"
+              description="위에서 요일과 시간을 선택하여 슬롯을 생성하세요."
+              dense
+            />
           ) : (
             (() => {
               // 요일별로 그룹화해서 표시
@@ -656,7 +641,7 @@ const MerchantSettings: React.FC = () => {
                 <Box>
                   {sortedDays.map((dayVal) => (
                     <Box key={dayVal} sx={{ mb: 2 }}>
-                      <Typography sx={{ fontWeight: 600, fontSize: 14, mb: 0.5, color: '#333' }}>
+                      <Typography sx={{ fontWeight: 600, fontSize: 14, mb: 0.5, color: 'text.primary' }}>
                         {getDayLabel(dayVal)}요일
                       </Typography>
                       <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
@@ -669,8 +654,8 @@ const MerchantSettings: React.FC = () => {
                               onDelete={slot.id ? () => handleDeleteSlot(slot.id!) : undefined}
                               size="small"
                               sx={{
-                                backgroundColor: 'rgba(196,160,138,0.1)',
-                                '& .MuiChip-deleteIcon': { color: '#D32F2F', fontSize: 16 },
+                                backgroundColor: 'custom.brandSoft',
+                                '& .MuiChip-deleteIcon': { color: 'error.main', fontSize: 16 },
                               }}
                             />
                           ))}
@@ -688,15 +673,10 @@ const MerchantSettings: React.FC = () => {
       <Box sx={{ mt: 4, textAlign: 'center' }}>
         <Button
           variant="contained"
+          color="error"
           startIcon={<LogoutIcon />}
           onClick={handleLogout}
-          sx={{
-            backgroundColor: '#D32F2F',
-            px: 4,
-            py: 1.5,
-            fontWeight: 600,
-            '&:hover': { backgroundColor: '#B71C1C' },
-          }}
+          sx={{ px: 4, py: 1.5 }}
         >
           로그아웃
         </Button>
