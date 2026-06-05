@@ -775,8 +775,9 @@ describe('AdminController', () => {
         },
       });
 
-      mockPool.query.mockResolvedValueOnce({ rows: [], rowCount: 0 });
+      mockPool.query.mockResolvedValueOnce({ rows: [], rowCount: 0 }); // 중복 확인
       bcrypt.hash.mockResolvedValueOnce('$2a$10$hashedpassword');
+      mockPool.query.mockResolvedValueOnce({ rows: [{ column_name: 'password_hash' }], rowCount: 1 }); // 컬럼 조회
       mockPool.query.mockResolvedValueOnce({
         rows: [{ id: 'new-admin-id', username: 'newadmin' }],
         rowCount: 1,

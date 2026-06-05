@@ -94,9 +94,16 @@ async function upsertAdmin(username, password, email) {
     return { id: existing.rows[0].id, created: false };
   }
 
+  // 스키마 드리프트 호환: 정본은 password_hash, 구(프로덕션) 스키마는 password
+  const colResult = await pool.query(
+    `SELECT column_name FROM information_schema.columns
+     WHERE table_name = 'admins' AND column_name IN ('password', 'password_hash')`
+  );
+  const pwColumn = colResult.rows.some((r) => r.column_name === 'password') ? 'password' : 'password_hash';
+
   const hash = await bcrypt.hash(password, 10);
   const result = await pool.query(
-    `INSERT INTO admins (username, email, password, role, is_active, created_at)
+    `INSERT INTO admins (username, email, ${pwColumn}, role, is_active, created_at)
      VALUES ($1, $2, $3, 'super_admin', true, NOW())
      RETURNING id`,
     [username, email, hash]

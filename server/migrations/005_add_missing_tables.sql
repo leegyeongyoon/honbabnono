@@ -44,6 +44,13 @@ CREATE TABLE IF NOT EXISTS advertisements (
   updated_at TIMESTAMP DEFAULT NOW()
 );
 
+-- 3-1. 구버전 프로덕션 호환: advertisements가 이미 존재하되 신규 컬럼이 없는 경우 보강
+--      (CREATE TABLE IF NOT EXISTS는 기존 테이블에 컬럼을 추가하지 않으므로 아래 인덱스가 깨짐)
+ALTER TABLE advertisements ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'draft';
+ALTER TABLE advertisements ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true;
+ALTER TABLE advertisements ADD COLUMN IF NOT EXISTS position VARCHAR(50) DEFAULT 'banner';
+ALTER TABLE advertisements ADD COLUMN IF NOT EXISTS priority INTEGER DEFAULT 0;
+
 -- 4. Performance indexes
 CREATE INDEX IF NOT EXISTS idx_meetups_status_date ON meetups(status, date);
 CREATE INDEX IF NOT EXISTS idx_meetups_host_id ON meetups(host_id);

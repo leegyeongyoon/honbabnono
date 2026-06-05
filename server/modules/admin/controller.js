@@ -5,6 +5,16 @@ const logger = require('../../config/logger');
 const portone = require('../../config/portone');
 const { createNotification } = require('../notifications/controller');
 
+// admins 비밀번호 컬럼명 해석 (스키마 드리프트 호환 — 정본: password_hash, 구 스키마: password)
+// 계정 생성/비번 변경 시에만 사용 (드문 경로라 매번 조회 — 캐시 없이 결정적)
+const getAdminPasswordColumn = async () => {
+  const { rows } = await pool.query(
+    `SELECT column_name FROM information_schema.columns
+     WHERE table_name = 'admins' AND column_name IN ('password', 'password_hash')`
+  );
+  return rows.some((r) => r.column_name === 'password') ? 'password' : 'password_hash';
+};
+
 // 관리자 로그인
 exports.login = async (req, res) => {
   try {
@@ -870,9 +880,10 @@ exports.createAccount = async (req, res) => {
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
+    const pwColumn = await getAdminPasswordColumn();
 
     const result = await pool.query(`
-      INSERT INTO admins (username, email, password, role, is_active, created_at)
+      INSERT INTO admins (username, email, ${pwColumn}, role, is_active, created_at)
       VALUES ($1, $2, $3, $4, true, NOW())
       RETURNING id, username, email, role, created_at
     `, [username, email, passwordHash, role || 'admin']);
@@ -936,9 +947,10 @@ exports.updateAccountPassword = async (req, res) => {
     }
 
     const passwordHash = await bcrypt.hash(newPassword, 10);
+    const pwColumn = await getAdminPasswordColumn();
 
     await pool.query(
-      'UPDATE admins SET password = $1, updated_at = NOW() WHERE id = $2',
+      `UPDATE admins SET ${pwColumn} = $1, updated_at = NOW() WHERE id = $2`,
       [passwordHash, adminId]
     );
 
