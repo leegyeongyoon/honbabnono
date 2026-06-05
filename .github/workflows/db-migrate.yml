@@ -1,0 +1,61 @@
+name: DB Migrate (Manual)
+
+# 프로덕션 RPi 컨테이너에서 마이그레이션 상태 확인/실행 (수동 트리거 전용)
+# 배경: server/start.js는 부팅 시 마이그레이션 실패를 삼키고 계속 부팅하므로,
+#       실패 시 이 워크플로우로 원인 확인 후 수동 적용한다.
+on:
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: '마이그레이션 실행 여부 (false면 상태/로그만 확인)'
+        type: boolean
+        default: false
+
+jobs:
+  migrate:
+    name: Migrate on Raspberry Pi
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+    - name: Install cloudflared
+      run: |
+        curl -fsSL https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb -o cloudflared.deb
+        sudo dpkg -i cloudflared.deb
+
+    - name: Setup SSH
+      run: |
+        mkdir -p ~/.ssh
+        echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+        cat >> ~/.ssh/config << 'SSHCONFIG'
+        Host deploy.eattable.kr
+          ProxyCommand cloudflared access ssh --hostname %h
+          StrictHostKeyChecking no
+          UserKnownHostsFile /dev/null
+        SSHCONFIG
+
+    - name: Diagnose (logs + status)
+      run: |
+        ssh -o ConnectTimeout=15 ${{ secrets.DEPLOY_USER }}@deploy.eattable.kr << 'EOF'
+          echo "=== 부팅 시 마이그레이션 로그 ==="
+          docker logs eattable-app 2>&1 | grep -iE "migration|마이그레이션" | tail -20 || true
+          echo ""
+          echo "=== 마이그레이션 상태 ==="
+          docker exec eattable-app node server/migrations/runner.js --status || true
+        EOF
+
+    - name: Apply migrations
+      if: ${{ inputs.apply }}
+      run: |
+        ssh -o ConnectTimeout=15 ${{ secrets.DEPLOY_USER }}@deploy.eattable.kr << 'EOF'
+          set -e
+          echo "=== 마이그레이션 실행 ==="
+          docker exec eattable-app node server/migrations/runner.js
+          echo ""
+          echo "=== 적용 후 상태 ==="
+          docker exec eattable-app node server/migrations/runner.js --status
+          echo ""
+          echo "=== 헬스체크 ==="
+          curl -s -o /dev/null -w "API: %{http_code}\n" http://localhost:80/api/health
+        EOF
