@@ -17,6 +17,8 @@ import EventIcon from '@mui/icons-material/Event';
 import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
+import BarChartIcon from '@mui/icons-material/BarChart';
+import RestaurantMenuIcon from '@mui/icons-material/RestaurantMenu';
 import { format } from 'date-fns';
 import apiClient from '../utils/api';
 import { formatReservationTime } from '../utils/formatTime';
@@ -356,9 +358,7 @@ const Dashboard: React.FC = () => {
             {/* 일별 매출 바 차트 (CSS) */}
             <Typography variant="subtitle2" sx={{ mb: 1.5, fontWeight: 600 }}>일별 매출</Typography>
             {stats.daily.length === 0 ? (
-              <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>
-                데이터가 없습니다.
-              </Typography>
+              <EmptyState icon={<BarChartIcon />} title="매출 데이터가 없습니다" description="결제 완료된 예약이 집계되면 표시됩니다." dense />
             ) : (
               (() => {
                 const maxSales = Math.max(1, ...stats.daily.map((d) => d.sales || 0));
@@ -417,9 +417,7 @@ const Dashboard: React.FC = () => {
             {/* 인기 메뉴 TOP5 */}
             <Typography variant="subtitle2" sx={{ mt: 3, mb: 1.5, fontWeight: 600 }}>인기 메뉴 TOP5</Typography>
             {stats.top_menus.length === 0 ? (
-              <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>
-                데이터가 없습니다.
-              </Typography>
+              <EmptyState icon={<RestaurantMenuIcon />} title="주문 데이터가 없습니다" description="주문이 쌓이면 인기 메뉴가 집계됩니다." dense />
             ) : (
               <Box>
                 {stats.top_menus.slice(0, 5).map((m, i) => (

@@ -184,7 +184,8 @@ const MenuManagement: React.FC = () => {
     try {
       setLoading(true);
       setError('');
-      const res = await apiClient.get(`/api/menus/restaurant/${restaurantId}`);
+      // 점주 화면은 품절 메뉴도 표시(토글 위해) → include_inactive
+      const res = await apiClient.get(`/api/menus/restaurant/${restaurantId}?include_inactive=true`);
       const d = res.data.data || res.data;
       setMenus(d.menus ?? d.categories?.flatMap((c: any) => c.menus || []) ?? (Array.isArray(d) ? d : []));
     } catch (err: any) {

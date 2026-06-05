@@ -40,8 +40,9 @@ const Reports: React.FC = () => {
   useEffect(() => {
     const fetchReportData = async () => {
       try {
-        const response = await apiClient.get<ReportData[]>(`/api/admin/reports/${reportType}`);
-        setReportData(Array.isArray(response.data) ? response.data : []);
+        const response = await apiClient.get(`/api/admin/reports/${reportType}`);
+        const d = response.data as any;
+        setReportData(Array.isArray(d) ? d : (d?.data ?? []));
       } catch (error) {
         console.error('리포트 데이터 로드 실패:', error);
         setReportData([]);

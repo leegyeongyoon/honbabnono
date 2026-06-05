@@ -147,8 +147,11 @@ const UserManagement: React.FC = () => {
 
   const fetchUsers = async () => {
     try {
-      const response = await apiClient.get<User[]>(`/api/admin/users`);
-      setUsers(Array.isArray(response.data) ? response.data : []);
+      const response = await apiClient.get(`/api/admin/users`);
+      // API 응답: { success, users: [...], pagination } — 과거 코드는 response.data를 배열로 기대해 항상 빈 목록이었음
+      const data = response.data as any;
+      const list = Array.isArray(data) ? data : (data?.users ?? []);
+      setUsers(list);
     } catch (error) {
       console.error('사용자 목록 로드 실패:', error);
       setUsers([]);

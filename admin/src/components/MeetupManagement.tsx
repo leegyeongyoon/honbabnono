@@ -133,8 +133,9 @@ const MeetupManagement: React.FC = () => {
 
   const fetchMeetups = async () => {
     try {
-      const response = await apiClient.get<Meetup[]>(`/api/admin/meetups`);
-      setMeetups(Array.isArray(response.data) ? response.data : []);
+      const response = await apiClient.get(`/api/admin/meetups`);
+      const data = response.data as any;
+      setMeetups(Array.isArray(data) ? data : (data?.meetups ?? []));
     } catch (error) {
       console.error('모임 목록 로드 실패:', error);
       setMeetups([]);

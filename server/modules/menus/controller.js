@@ -9,17 +9,20 @@ const OpenAI = require('openai');
 exports.getMenusByRestaurant = async (req, res) => {
   try {
     const { restaurantId } = req.params;
+    // 점주 관리 화면은 품절(is_active=false) 메뉴도 봐야 토글 가능 → include_inactive=true
+    // 고객 앱은 판매중만 (기본)
+    const includeInactive = req.query.include_inactive === 'true';
 
     const result = await pool.query(
       `SELECT
         m.id, m.restaurant_id, m.category_id, m.name, m.description,
         m.price, m.image_url, m.prep_time_min, m.min_order_qty, m.max_order_qty,
-        m.is_set_menu, m.serves, m.options, m.sort_order,
+        m.is_set_menu, m.serves, m.options, m.sort_order, m.is_active,
         m.created_at, m.updated_at,
         mc.name AS category_name, mc.sort_order AS category_sort_order
       FROM menus m
       LEFT JOIN menu_categories mc ON m.category_id = mc.id
-      WHERE m.restaurant_id = $1 AND m.is_active = true
+      WHERE m.restaurant_id = $1 ${includeInactive ? '' : 'AND m.is_active = true'}
       ORDER BY COALESCE(mc.sort_order, 999999), m.sort_order, m.name`,
       [restaurantId]
     );
