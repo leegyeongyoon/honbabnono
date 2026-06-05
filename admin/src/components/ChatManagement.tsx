@@ -6,11 +6,8 @@ import {
   Table,
   TableBody,
   TableCell,
-  TableContainer,
   TableHead,
   TableRow,
-  Card,
-  CardContent,
   Chip,
   Dialog,
   DialogTitle,
@@ -31,6 +28,7 @@ import {
   ListItemText,
   Divider,
   Tooltip,
+  Grid,
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import ChatIcon from '@mui/icons-material/Chat';
@@ -39,6 +37,8 @@ import GroupIcon from '@mui/icons-material/Group';
 import TodayIcon from '@mui/icons-material/Today';
 import DeleteIcon from '@mui/icons-material/Delete';
 import apiClient from '../utils/api';
+import { formatDateTime } from '../utils/format';
+import { PageHeader, EmptyState, StatCard, LoadingSkeleton, ResponsiveTableContainer } from './common';
 
 interface ChatRoom {
   id: string;
@@ -248,11 +248,6 @@ const ChatManagement: React.FC = () => {
     }
   };
 
-  const formatDate = (dateString: string | null) => {
-    if (!dateString) return '-';
-    return new Date(dateString).toLocaleString('ko-KR');
-  };
-
   const formatMessageTime = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleString('ko-KR', {
@@ -263,87 +258,32 @@ const ChatManagement: React.FC = () => {
     });
   };
 
-  const StatCard = ({ title, value, icon, color }: {
-    title: string;
-    value: number | string;
-    icon: React.ReactNode;
-    color: string;
-  }) => (
-    <Card>
-      <CardContent>
-        <Box display="flex" alignItems="center" justifyContent="space-between">
-          <Box>
-            <Typography color="textSecondary" gutterBottom>
-              {title}
-            </Typography>
-            <Typography variant="h5" component="div">
-              {value}
-            </Typography>
-          </Box>
-          <Box sx={{ color }}>
-            {icon}
-          </Box>
-        </Box>
-      </CardContent>
-    </Card>
-  );
-
-  if (loading && rooms.length === 0) {
-    return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight={400}>
-        <CircularProgress />
-      </Box>
-    );
-  }
-
   return (
     <Box>
-      <Typography variant="h4" gutterBottom>
-        채팅 관리
-      </Typography>
+      <PageHeader title="채팅 관리" />
 
       {/* 통계 카드 */}
       {stats && (
-        <Box sx={{
-          display: 'grid',
-          gridTemplateColumns: {
-            xs: '1fr',
-            sm: '1fr 1fr',
-            md: '1fr 1fr 1fr 1fr',
-          },
-          gap: 3,
-          mb: 4,
-        }}>
-          <StatCard
-            title="전체 채팅방"
-            value={stats.total_rooms}
-            icon={<ChatIcon fontSize="large" />}
-            color="#2196f3"
-          />
-          <StatCard
-            title="전체 메시지"
-            value={stats.total_messages.toLocaleString()}
-            icon={<ForumIcon fontSize="large" />}
-            color="#4caf50"
-          />
-          <StatCard
-            title="활성 채팅방"
-            value={stats.active_rooms}
-            icon={<GroupIcon fontSize="large" />}
-            color="#ff9800"
-          />
-          <StatCard
-            title="오늘 메시지"
-            value={stats.today_messages}
-            icon={<TodayIcon fontSize="large" />}
-            color="#9c27b0"
-          />
-        </Box>
+        <Grid container spacing={2} sx={{ mb: 4 }}>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <StatCard label="전체 채팅방" value={stats.total_rooms} icon={<ChatIcon />} color="info" />
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <StatCard label="전체 메시지" value={stats.total_messages.toLocaleString()} icon={<ForumIcon />} color="success" />
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <StatCard label="활성 채팅방" value={stats.active_rooms} icon={<GroupIcon />} color="warning" />
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <StatCard label="오늘 메시지" value={stats.today_messages} icon={<TodayIcon />} color="primary" />
+          </Grid>
+        </Grid>
       )}
 
       {/* 검색 */}
-      <Box sx={{ mb: 3, display: 'flex', gap: 2, alignItems: 'center' }}>
+      <Box sx={{ mb: 3, display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'center' }}>
         <TextField
+          size="small"
           placeholder="모임 제목으로 검색..."
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
@@ -355,105 +295,99 @@ const ChatManagement: React.FC = () => {
               </InputAdornment>
             ),
           }}
-          sx={{ flexGrow: 1, maxWidth: 400 }}
+          sx={{ width: { xs: '100%', sm: 360 } }}
         />
         <Button
           variant="contained"
+          color="primary"
           onClick={handleSearch}
-          sx={{
-            backgroundColor: '#C9B59C',
-            '&:hover': {
-              backgroundColor: '#A08B7A',
-            },
-          }}
         >
           검색
         </Button>
       </Box>
 
       {/* 채팅방 테이블 */}
-      <TableContainer component={Paper}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell>모임 제목</TableCell>
-              <TableCell align="center">참여자</TableCell>
-              <TableCell align="center">메시지 수</TableCell>
-              <TableCell>최근 활동</TableCell>
-              <TableCell>모임 상태</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {rooms.map((room) => (
-              <TableRow
-                key={room.id}
-                hover
-                sx={{ cursor: 'pointer' }}
-                onClick={() => handleRoomClick(room)}
-              >
-                <TableCell>
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      maxWidth: 300,
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    {room.meetup_title}
-                  </Typography>
-                </TableCell>
-                <TableCell align="center">
-                  <Chip
-                    label={`${room.participant_count}명`}
-                    size="small"
-                    variant="outlined"
-                  />
-                </TableCell>
-                <TableCell align="center">
-                  {room.message_count.toLocaleString()}
-                </TableCell>
-                <TableCell>{formatDate(room.last_message_at)}</TableCell>
-                <TableCell>
-                  <Chip
-                    label={MEETUP_STATUS_LABELS[room.meetup_status] || room.meetup_status}
-                    size="small"
-                    color={
-                      room.meetup_status === 'open'
-                        ? 'success'
-                        : room.meetup_status === 'confirmed'
-                        ? 'info'
-                        : room.meetup_status === 'completed'
-                        ? 'default'
-                        : 'error'
-                    }
-                  />
-                </TableCell>
-              </TableRow>
-            ))}
-            {rooms.length === 0 && (
+      {loading ? (
+        <LoadingSkeleton variant="table" columns={5} />
+      ) : rooms.length === 0 ? (
+        <EmptyState icon={<ChatIcon />} title="채팅방이 없습니다." />
+      ) : (
+        <ResponsiveTableContainer minWidth={780}>
+          <Table>
+            <TableHead>
               <TableRow>
-                <TableCell colSpan={5} align="center">
-                  <Typography color="textSecondary" sx={{ py: 4 }}>
-                    채팅방이 없습니다.
-                  </Typography>
-                </TableCell>
+                <TableCell>모임 제목</TableCell>
+                <TableCell align="center">참여자</TableCell>
+                <TableCell align="center" sx={{ display: { xs: 'none', md: 'table-cell' } }}>메시지 수</TableCell>
+                <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>최근 활동</TableCell>
+                <TableCell>모임 상태</TableCell>
               </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </TableContainer>
+            </TableHead>
+            <TableBody>
+              {rooms.map((room) => (
+                <TableRow
+                  key={room.id}
+                  hover
+                  sx={{ cursor: 'pointer' }}
+                  onClick={() => handleRoomClick(room)}
+                >
+                  <TableCell>
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        maxWidth: 300,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {room.meetup_title}
+                    </Typography>
+                  </TableCell>
+                  <TableCell align="center">
+                    <Chip
+                      label={`${room.participant_count}명`}
+                      size="small"
+                      variant="outlined"
+                    />
+                  </TableCell>
+                  <TableCell align="center" sx={{ display: { xs: 'none', md: 'table-cell' } }}>
+                    {room.message_count.toLocaleString()}
+                  </TableCell>
+                  <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>{formatDateTime(room.last_message_at)}</TableCell>
+                  <TableCell>
+                    <Chip
+                      label={MEETUP_STATUS_LABELS[room.meetup_status] || room.meetup_status}
+                      size="small"
+                      color={
+                        room.meetup_status === 'open'
+                          ? 'success'
+                          : room.meetup_status === 'confirmed'
+                          ? 'info'
+                          : room.meetup_status === 'completed'
+                          ? 'default'
+                          : 'error'
+                      }
+                    />
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </ResponsiveTableContainer>
+      )}
 
       {/* 페이지네이션 */}
-      <Box display="flex" justifyContent="center" mt={3}>
-        <Pagination
-          count={totalPages}
-          page={page}
-          onChange={(_, newPage) => setPage(newPage)}
-          color="primary"
-        />
-      </Box>
+      {!loading && rooms.length > 0 && (
+        <Box display="flex" justifyContent="center" mt={3}>
+          <Pagination
+            count={totalPages}
+            page={page}
+            onChange={(_, newPage) => setPage(newPage)}
+            color="primary"
+          />
+        </Box>
+      )}
 
       {/* 메시지 보기 다이얼로그 */}
       <Dialog
@@ -480,9 +414,7 @@ const ChatManagement: React.FC = () => {
               <CircularProgress />
             </Box>
           ) : messages.length === 0 ? (
-            <Box display="flex" justifyContent="center" py={4}>
-              <Typography color="textSecondary">메시지가 없습니다.</Typography>
-            </Box>
+            <EmptyState icon={<ForumIcon />} title="메시지가 없습니다." dense />
           ) : (
             <>
               <List sx={{ maxHeight: 500, overflow: 'auto' }}>
@@ -492,7 +424,7 @@ const ChatManagement: React.FC = () => {
                       alignItems="flex-start"
                       sx={{
                         opacity: message.is_deleted ? 0.5 : 1,
-                        backgroundColor: message.is_deleted ? '#f5f5f5' : 'transparent',
+                        backgroundColor: message.is_deleted ? 'background.default' : 'transparent',
                       }}
                       secondaryAction={
                         !message.is_deleted && (
@@ -511,7 +443,7 @@ const ChatManagement: React.FC = () => {
                       <ListItemAvatar>
                         <Avatar
                           src={message.sender_image || undefined}
-                          sx={{ backgroundColor: '#C9B59C' }}
+                          sx={{ backgroundColor: 'primary.main' }}
                         >
                           {message.sender_name?.[0] || '?'}
                         </Avatar>
@@ -583,7 +515,7 @@ const ChatManagement: React.FC = () => {
             이 메시지를 삭제하시겠습니까?
           </Typography>
           {messageToDelete && (
-            <Paper variant="outlined" sx={{ p: 2, mt: 1, backgroundColor: '#F9F8F6' }}>
+            <Paper variant="outlined" sx={{ p: 2, mt: 1, backgroundColor: 'background.default' }}>
               <Typography variant="subtitle2" gutterBottom>
                 {messageToDelete.sender_name}
               </Typography>

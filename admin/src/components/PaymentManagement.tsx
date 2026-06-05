@@ -5,16 +5,12 @@ import {
   Table,
   TableBody,
   TableCell,
-  TableContainer,
   TableHead,
   TableRow,
-  Paper,
   Button,
   Chip,
   Card,
-  CardContent,
   Grid,
-  CircularProgress,
   Alert,
   Snackbar,
   Dialog,
@@ -32,6 +28,9 @@ import {
 import PaymentsIcon from '@mui/icons-material/Payments';
 import MoneyOffIcon from '@mui/icons-material/MoneyOff';
 import apiClient from '../utils/api';
+import { PAYMENT_STATUS } from '../theme';
+import { won, formatDate, formatDateTime } from '../utils/format';
+import { PageHeader, EmptyState, StatCard, LoadingSkeleton, StatusChip, ResponsiveTableContainer } from './common';
 
 interface Payment {
   id: string;
@@ -60,21 +59,12 @@ interface Totals {
   refunded_amount: number;
 }
 
-const STATUS_CHIPS: Record<string, { label: string; color: 'warning' | 'success' | 'error' | 'info' | 'default' }> = {
-  pending: { label: '대기', color: 'warning' },
-  paid: { label: '결제완료', color: 'success' },
-  refunded: { label: '환불완료', color: 'error' },
-  partial_refund: { label: '부분환불', color: 'info' },
-};
-
 const METHOD_LABELS: Record<string, string> = {
   card: '카드',
   points: '포인트',
   kakao: '카카오페이',
   toss: '토스',
 };
-
-const won = (n: number | undefined) => `₩${Number(n ?? 0).toLocaleString('ko-KR')}`;
 
 const PaymentManagement: React.FC = () => {
   const [payments, setPayments] = useState<Payment[]>([]);
@@ -151,18 +141,6 @@ const PaymentManagement: React.FC = () => {
     }
   };
 
-  const formatDate = (dateStr?: string | null) => {
-    if (!dateStr) return '-';
-    return new Date(dateStr).toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' });
-  };
-
-  const formatDateTime = (dateStr?: string | null) => {
-    if (!dateStr) return '-';
-    return new Date(dateStr).toLocaleString('ko-KR', {
-      year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit',
-    });
-  };
-
   const partialInvalid =
     refundType === 'partial' &&
     dialogTarget != null &&
@@ -172,43 +150,23 @@ const PaymentManagement: React.FC = () => {
 
   return (
     <Box>
-      <Typography variant="h4" gutterBottom>
-        결제 관리
-      </Typography>
+      <PageHeader title="결제 관리" />
 
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
       {/* Summary cards */}
       <Grid container spacing={2} sx={{ mb: 3 }}>
-        {[
-          { label: '총 결제액', value: won(totals.paid_amount), icon: <PaymentsIcon />, color: '#2E7D32' },
-          { label: '총 환불액', value: won(totals.refunded_amount), icon: <MoneyOffIcon />, color: '#D32F2F' },
-        ].map((item) => (
-          <Grid size={{ xs: 12, md: 6 }} key={item.label}>
-            <Card sx={{ borderRadius: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
-              <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2, py: 2 }}>
-                <Box sx={{ color: item.color }}>{item.icon}</Box>
-                <Box>
-                  <Typography variant="body2" color="text.secondary">{item.label}</Typography>
-                  <Typography variant="h5" sx={{ fontWeight: 700 }}>{item.value}</Typography>
-                </Box>
-              </CardContent>
-            </Card>
-          </Grid>
-        ))}
+        <Grid size={{ xs: 12, md: 6 }}>
+          <StatCard label="총 결제액" value={won(totals.paid_amount)} icon={<PaymentsIcon />} color="success" />
+        </Grid>
+        <Grid size={{ xs: 12, md: 6 }}>
+          <StatCard label="총 환불액" value={won(totals.refunded_amount)} icon={<MoneyOffIcon />} color="error" />
+        </Grid>
       </Grid>
 
-      <Card sx={{ borderRadius: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+      <Card>
         <Box sx={{ borderBottom: 1, borderColor: 'divider', px: 2 }}>
-          <Tabs
-            value={tabIndex}
-            onChange={(_, v) => setTabIndex(v)}
-            sx={{
-              '& .MuiTab-root': { fontWeight: 600 },
-              '& .Mui-selected': { color: '#C9B59C' },
-              '& .MuiTabs-indicator': { backgroundColor: '#C9B59C' },
-            }}
-          >
+          <Tabs value={tabIndex} onChange={(_, v) => setTabIndex(v)}>
             <Tab label="전체" />
             <Tab label="결제완료" />
             <Tab label="환불완료" />
@@ -234,14 +192,14 @@ const PaymentManagement: React.FC = () => {
             value={periodEnd}
             onChange={(e) => setPeriodEnd(e.target.value)}
           />
-          <Button variant="outlined" onClick={fetchPayments} sx={{ borderColor: '#C9B59C', color: '#A08B7A' }}>
+          <Button variant="outlined" color="primary" onClick={fetchPayments}>
             조회
           </Button>
           {(periodStart || periodEnd) && (
             <Button
               variant="text"
+              color="inherit"
               onClick={() => { setPeriodStart(''); setPeriodEnd(''); }}
-              sx={{ color: '#999' }}
             >
               초기화
             </Button>
@@ -249,32 +207,27 @@ const PaymentManagement: React.FC = () => {
         </Box>
 
         {loading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
-            <CircularProgress sx={{ color: '#C9B59C' }} />
-          </Box>
+          <LoadingSkeleton variant="table" columns={9} />
         ) : payments.length === 0 ? (
-          <Typography color="text.secondary" sx={{ textAlign: 'center', py: 6 }}>
-            결제 내역이 없습니다.
-          </Typography>
+          <EmptyState icon={<PaymentsIcon />} title="결제 내역이 없습니다." />
         ) : (
-          <TableContainer component={Paper} elevation={0}>
+          <ResponsiveTableContainer minWidth={960}>
             <Table>
               <TableHead>
-                <TableRow sx={{ backgroundColor: '#F9F8F6' }}>
-                  <TableCell sx={{ fontWeight: 600 }}>고객</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>매장</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>예약일</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }} align="right">금액</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }} align="center">수단</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }} align="center">상태</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>결제일</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }} align="right">환불액</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }} align="center">관리</TableCell>
+                <TableRow>
+                  <TableCell>고객</TableCell>
+                  <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>매장</TableCell>
+                  <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>예약일</TableCell>
+                  <TableCell align="right">금액</TableCell>
+                  <TableCell align="center" sx={{ display: { xs: 'none', md: 'table-cell' } }}>수단</TableCell>
+                  <TableCell align="center">상태</TableCell>
+                  <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>결제일</TableCell>
+                  <TableCell align="right" sx={{ display: { xs: 'none', md: 'table-cell' } }}>환불액</TableCell>
+                  <TableCell align="center">관리</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {payments.map((p) => {
-                  const statusCfg = STATUS_CHIPS[p.status] || { label: p.status, color: 'default' as const };
                   const refundable = ['paid', 'partial_refund'].includes(p.status) && refundableBalance(p) > 0;
                   return (
                     <TableRow key={p.id} hover>
@@ -282,24 +235,24 @@ const PaymentManagement: React.FC = () => {
                         <Typography variant="body2" sx={{ fontWeight: 600 }}>{p.customer_name || '-'}</Typography>
                         <Typography variant="caption" color="text.secondary">{p.customer_email || ''}</Typography>
                       </TableCell>
-                      <TableCell>{p.restaurant_name || '-'}</TableCell>
-                      <TableCell>
+                      <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>{p.restaurant_name || '-'}</TableCell>
+                      <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
                         <Typography variant="body2">{formatDate(p.reservation_date)}</Typography>
                         <Typography variant="caption" color="text.secondary">
                           {p.reservation_time ? String(p.reservation_time).slice(0, 5) : ''}
                         </Typography>
                       </TableCell>
                       <TableCell align="right" sx={{ fontWeight: 600 }}>{won(p.amount)}</TableCell>
-                      <TableCell align="center">
+                      <TableCell align="center" sx={{ display: { xs: 'none', md: 'table-cell' } }}>
                         <Chip label={METHOD_LABELS[p.payment_method] || p.payment_method} size="small" variant="outlined" />
                       </TableCell>
                       <TableCell align="center">
-                        <Chip label={statusCfg.label} color={statusCfg.color} size="small" />
+                        <StatusChip status={p.status} map={PAYMENT_STATUS} />
                       </TableCell>
-                      <TableCell>
+                      <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
                         <Typography variant="body2">{formatDateTime(p.paid_at)}</Typography>
                       </TableCell>
-                      <TableCell align="right">
+                      <TableCell align="right" sx={{ display: { xs: 'none', md: 'table-cell' } }}>
                         {Number(p.refund_amount) > 0 ? (
                           <Typography variant="body2" color="error.main">{won(p.refund_amount)}</Typography>
                         ) : (
@@ -325,7 +278,7 @@ const PaymentManagement: React.FC = () => {
                 })}
               </TableBody>
             </Table>
-          </TableContainer>
+          </ResponsiveTableContainer>
         )}
       </Card>
 
@@ -335,16 +288,16 @@ const PaymentManagement: React.FC = () => {
         <DialogContent>
           {dialogTarget && (
             <Box>
-              <Box sx={{ backgroundColor: '#F9F8F6', borderRadius: 2, p: 2, mb: 2 }}>
+              <Box sx={{ backgroundColor: 'background.default', borderRadius: 2, p: 2, mb: 2 }}>
                 <Typography variant="body2"><strong>고객:</strong> {dialogTarget.customer_name}</Typography>
                 <Typography variant="body2"><strong>매장:</strong> {dialogTarget.restaurant_name || '-'}</Typography>
                 <Typography variant="body2"><strong>결제 금액:</strong> {won(dialogTarget.amount)}</Typography>
                 {Number(dialogTarget.refund_amount) > 0 && (
                   <Typography variant="body2"><strong>기존 환불액:</strong> {won(dialogTarget.refund_amount)}</Typography>
                 )}
-                <Typography variant="body2">
+                <Typography variant="body2" component="div">
                   <strong>환불 가능 잔액:</strong>{' '}
-                  <strong style={{ color: '#D32F2F' }}>{won(refundableBalance(dialogTarget))}</strong>
+                  <Box component="strong" sx={{ color: 'error.main' }}>{won(refundableBalance(dialogTarget))}</Box>
                 </Typography>
               </Box>
 

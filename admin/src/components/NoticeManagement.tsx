@@ -2,12 +2,10 @@ import React, { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
-  Paper,
   Button,
   Table,
   TableBody,
   TableCell,
-  TableContainer,
   TableHead,
   TableRow,
   IconButton,
@@ -26,7 +24,6 @@ import {
   Alert,
   Snackbar,
   Pagination,
-  CircularProgress,
   Tooltip,
 } from '@mui/material';
 import {
@@ -35,8 +32,11 @@ import {
   Delete as DeleteIcon,
   Visibility as VisibilityIcon,
   PushPin as PinIcon,
+  Campaign as CampaignIcon,
 } from '@mui/icons-material';
 import apiClient from '../utils/api';
+import { formatDateTime } from '../utils/format';
+import { PageHeader, EmptyState, LoadingSkeleton, ResponsiveTableContainer } from './common';
 
 interface Notice {
   id: number;
@@ -246,132 +246,123 @@ const NoticeManagement: React.FC = () => {
     return types[type] || types.general;
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString('ko-KR');
-  };
-
-  if (loading) {
-    return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight={400}>
-        <CircularProgress />
-      </Box>
-    );
-  }
-
   return (
     <Box>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4" gutterBottom>
-          공지사항 관리
-        </Typography>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={handleCreate}
-          sx={{ 
-            backgroundColor: '#C9B59C',
-            '&:hover': {
-              backgroundColor: '#A08B7A',
-            },
-          }}
-        >
-          공지사항 추가
-        </Button>
-      </Box>
+      <PageHeader
+        title="공지사항 관리"
+        actions={
+          <Button
+            variant="contained"
+            color="primary"
+            startIcon={<AddIcon />}
+            onClick={handleCreate}
+          >
+            공지사항 추가
+          </Button>
+        }
+      />
 
-      <TableContainer component={Paper}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell>ID</TableCell>
-              <TableCell>제목</TableCell>
-              <TableCell>타입</TableCell>
-              <TableCell>고정</TableCell>
-              <TableCell>조회수</TableCell>
-              <TableCell>작성일</TableCell>
-              <TableCell>활성화</TableCell>
-              <TableCell align="center">액션</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {Array.isArray(notices) && notices.map((notice) => {
-              const typeInfo = getTypeLabel(notice.type);
-              return (
-                <TableRow key={notice.id}>
-                  <TableCell>{notice.id}</TableCell>
-                  <TableCell>
-                    <Typography 
-                      variant="body2" 
-                      sx={{ 
-                        maxWidth: 200, 
-                        overflow: 'hidden', 
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                        fontWeight: notice.is_pinned ? 'bold' : 'normal'
-                      }}
-                    >
-                      {notice.title}
-                    </Typography>
-                  </TableCell>
-                  <TableCell>
-                    <Chip 
-                      label={typeInfo.label} 
-                      color={typeInfo.color as any}
-                      size="small" 
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <IconButton
-                      size="small"
-                      onClick={() => handleTogglePin(notice)}
-                      color={notice.is_pinned ? 'warning' : 'default'}
-                    >
-                      {notice.is_pinned ? <PinIcon /> : <PinIcon style={{ opacity: 0.3 }} />}
-                    </IconButton>
-                  </TableCell>
-                  <TableCell>{notice.views}</TableCell>
-                  <TableCell>{formatDate(notice.created_at)}</TableCell>
-                  <TableCell>
-                    <Chip 
-                      label={notice.is_active ? '활성' : '비활성'} 
-                      color={notice.is_active ? 'success' : 'default'}
-                      size="small" 
-                    />
-                  </TableCell>
-                  <TableCell align="center">
-                    <Box display="flex" gap={1}>
-                      <Tooltip title="보기">
-                        <IconButton size="small" onClick={() => handleView(notice)}>
-                          <VisibilityIcon />
-                        </IconButton>
-                      </Tooltip>
-                      <Tooltip title="수정">
-                        <IconButton size="small" onClick={() => handleEdit(notice)}>
-                          <EditIcon />
-                        </IconButton>
-                      </Tooltip>
-                      <Tooltip title="삭제">
-                        <IconButton size="small" onClick={() => handleDelete(notice.id)}>
-                          <DeleteIcon />
-                        </IconButton>
-                      </Tooltip>
-                    </Box>
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
-      </TableContainer>
+      {loading ? (
+        <LoadingSkeleton variant="table" columns={8} />
+      ) : notices.length === 0 ? (
+        <EmptyState icon={<CampaignIcon />} title="등록된 공지사항이 없습니다." />
+      ) : (
+        <ResponsiveTableContainer minWidth={900}>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>ID</TableCell>
+                <TableCell>제목</TableCell>
+                <TableCell>타입</TableCell>
+                <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>고정</TableCell>
+                <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>조회수</TableCell>
+                <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>작성일</TableCell>
+                <TableCell>활성화</TableCell>
+                <TableCell align="center">액션</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {notices.map((notice) => {
+                const typeInfo = getTypeLabel(notice.type);
+                return (
+                  <TableRow key={notice.id}>
+                    <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>{notice.id}</TableCell>
+                    <TableCell>
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          maxWidth: 200,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                          fontWeight: notice.is_pinned ? 'bold' : 'normal'
+                        }}
+                      >
+                        {notice.title}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Chip
+                        label={typeInfo.label}
+                        color={typeInfo.color as any}
+                        size="small"
+                      />
+                    </TableCell>
+                    <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
+                      <IconButton
+                        size="small"
+                        onClick={() => handleTogglePin(notice)}
+                        color={notice.is_pinned ? 'warning' : 'default'}
+                      >
+                        {notice.is_pinned ? <PinIcon /> : <PinIcon style={{ opacity: 0.3 }} />}
+                      </IconButton>
+                    </TableCell>
+                    <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>{notice.views}</TableCell>
+                    <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>{formatDateTime(notice.created_at)}</TableCell>
+                    <TableCell>
+                      <Chip
+                        label={notice.is_active ? '활성' : '비활성'}
+                        color={notice.is_active ? 'success' : 'default'}
+                        size="small"
+                      />
+                    </TableCell>
+                    <TableCell align="center">
+                      <Box display="flex" gap={1}>
+                        <Tooltip title="보기">
+                          <IconButton size="small" onClick={() => handleView(notice)}>
+                            <VisibilityIcon />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title="수정">
+                          <IconButton size="small" onClick={() => handleEdit(notice)}>
+                            <EditIcon />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title="삭제">
+                          <IconButton size="small" onClick={() => handleDelete(notice.id)}>
+                            <DeleteIcon />
+                          </IconButton>
+                        </Tooltip>
+                      </Box>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </ResponsiveTableContainer>
+      )}
 
-      <Box display="flex" justifyContent="center" mt={3}>
-        <Pagination 
-          count={totalPages} 
-          page={page} 
-          onChange={(_, newPage) => setPage(newPage)}
-          color="primary"
-        />
-      </Box>
+      {!loading && notices.length > 0 && (
+        <Box display="flex" justifyContent="center" mt={3}>
+          <Pagination
+            count={totalPages}
+            page={page}
+            onChange={(_, newPage) => setPage(newPage)}
+            color="primary"
+          />
+        </Box>
+      )}
 
       {/* 공지사항 생성/수정 다이얼로그 */}
       <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="md" fullWidth>
@@ -401,8 +392,8 @@ const NoticeManagement: React.FC = () => {
                   {selectedNotice.content}
                 </Typography>
                 <Box mt={3}>
-                  <Typography variant="caption" color="textSecondary">
-                    작성일: {formatDate(selectedNotice.created_at)} | 
+                  <Typography variant="caption" color="text.secondary">
+                    작성일: {formatDateTime(selectedNotice.created_at)} |
                     조회수: {selectedNotice.views}
                   </Typography>
                 </Box>
@@ -473,15 +464,10 @@ const NoticeManagement: React.FC = () => {
         <DialogActions>
           <Button onClick={() => setOpenDialog(false)}>취소</Button>
           {dialogMode !== 'view' && (
-            <Button 
-              onClick={handleSubmit} 
+            <Button
+              onClick={handleSubmit}
               variant="contained"
-              sx={{ 
-                backgroundColor: '#C9B59C',
-                '&:hover': {
-                  backgroundColor: '#A08B7A',
-                },
-              }}
+              color="primary"
             >
               {dialogMode === 'create' ? '생성' : '수정'}
             </Button>

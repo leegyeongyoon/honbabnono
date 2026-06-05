@@ -5,10 +5,8 @@ import {
   Table,
   TableBody,
   TableCell,
-  TableContainer,
   TableHead,
   TableRow,
-  Paper,
   Button,
   Chip,
   TextField,
@@ -25,6 +23,7 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  Grid,
   TablePagination,
 } from '@mui/material';
 import NotificationsIcon from '@mui/icons-material/Notifications';
@@ -35,6 +34,8 @@ import DesktopWindowsIcon from '@mui/icons-material/DesktopWindows';
 import CampaignIcon from '@mui/icons-material/Campaign';
 import SendIcon from '@mui/icons-material/Send';
 import apiClient from '../utils/api';
+import { formatDateTime } from '../utils/format';
+import { PageHeader, EmptyState, StatCard, LoadingSkeleton, ResponsiveTableContainer } from './common';
 
 interface Notification {
   id: string;
@@ -177,19 +178,6 @@ const NotificationManagement: React.FC = () => {
     return found ? found.label : type;
   };
 
-  const getTypeColor = (type: string): string => {
-    switch (type) {
-      case 'meetup': return '#C9B59C';
-      case 'chat': return '#2196F3';
-      case 'review': return '#FF9800';
-      case 'point': return '#4CAF50';
-      case 'system': return '#9C27B0';
-      case 'badge': return '#FFD700';
-      case 'deposit': return '#D32F2F';
-      default: return '#757575';
-    }
-  };
-
   const readRate = stats?.notifications
     ? stats.notifications.total > 0
       ? ((stats.notifications.read_count / stats.notifications.total) * 100).toFixed(1)
@@ -198,97 +186,80 @@ const NotificationManagement: React.FC = () => {
 
   return (
     <Box>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4">알림 관리</Typography>
-        <Button
-          variant="contained"
-          startIcon={<CampaignIcon />}
-          onClick={() => setBroadcastDialogOpen(true)}
-          sx={{
-            backgroundColor: '#C9B59C',
-            '&:hover': { backgroundColor: '#A08B7A' },
-          }}
-        >
-          전체 알림 발송
-        </Button>
-      </Box>
+      <PageHeader
+        title="알림 관리"
+        actions={
+          <Button
+            variant="contained"
+            color="primary"
+            startIcon={<CampaignIcon />}
+            onClick={() => setBroadcastDialogOpen(true)}
+          >
+            전체 알림 발송
+          </Button>
+        }
+      />
 
       {/* Stats Cards */}
       {stats && (
-        <Box sx={{
-          display: 'grid',
-          gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: 'repeat(4, 1fr)' },
-          gap: 2,
-          mb: 3,
-        }}>
-          <Card>
-            <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <NotificationsIcon sx={{ fontSize: 40, color: '#C9B59C' }} />
-              <Box>
-                <Typography variant="body2" color="text.secondary">전체 알림</Typography>
-                <Typography variant="h5" sx={{ fontWeight: 700 }}>
-                  {stats.notifications.total.toLocaleString()}
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  오늘 +{stats.notifications.today_count}
-                </Typography>
-              </Box>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <MarkEmailReadIcon sx={{ fontSize: 40, color: '#4CAF50' }} />
-              <Box>
-                <Typography variant="body2" color="text.secondary">읽음률</Typography>
-                <Typography variant="h5" sx={{ fontWeight: 700 }}>{readRate}%</Typography>
-                <Typography variant="caption" color="text.secondary">
-                  {stats.notifications.read_count} / {stats.notifications.total}
-                </Typography>
-              </Box>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <PhoneIphoneIcon sx={{ fontSize: 40, color: '#007AFF' }} />
-              <Box>
-                <Typography variant="body2" color="text.secondary">디바이스 토큰</Typography>
-                <Typography variant="h5" sx={{ fontWeight: 700 }}>
-                  {stats.devices.total_tokens.toLocaleString()}
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  iOS {stats.devices.ios_tokens}
-                </Typography>
-              </Box>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent>
-              <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1 }}>
-                <Box display="flex" alignItems="center" gap={0.5}>
-                  <PhoneAndroidIcon sx={{ fontSize: 18, color: '#3DDC84' }} />
-                  <Typography variant="body2">
-                    {stats.devices.android_tokens}
-                  </Typography>
+        <Grid container spacing={2} sx={{ mb: 3 }}>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <StatCard
+              label="전체 알림"
+              value={stats.notifications.total.toLocaleString()}
+              icon={<NotificationsIcon />}
+              color="primary"
+              subtitle={`오늘 +${stats.notifications.today_count}`}
+            />
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <StatCard
+              label="읽음률"
+              value={`${readRate}%`}
+              icon={<MarkEmailReadIcon />}
+              color="success"
+              subtitle={`${stats.notifications.read_count} / ${stats.notifications.total}`}
+            />
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <StatCard
+              label="디바이스 토큰"
+              value={stats.devices.total_tokens.toLocaleString()}
+              icon={<PhoneIphoneIcon />}
+              color="info"
+              subtitle={`iOS ${stats.devices.ios_tokens}`}
+            />
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <Card sx={{ height: '100%' }}>
+              <CardContent>
+                <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1 }}>
+                  <Box display="flex" alignItems="center" gap={0.5}>
+                    <PhoneAndroidIcon sx={{ fontSize: 18, color: 'success.main' }} />
+                    <Typography variant="body2">
+                      {stats.devices.android_tokens}
+                    </Typography>
+                  </Box>
+                  <Box display="flex" alignItems="center" gap={0.5}>
+                    <PhoneIphoneIcon sx={{ fontSize: 18, color: 'info.main' }} />
+                    <Typography variant="body2">
+                      {stats.devices.ios_tokens}
+                    </Typography>
+                  </Box>
+                  <Box display="flex" alignItems="center" gap={0.5}>
+                    <DesktopWindowsIcon sx={{ fontSize: 18, color: 'text.secondary' }} />
+                    <Typography variant="body2">
+                      {stats.devices.web_tokens}
+                    </Typography>
+                  </Box>
                 </Box>
-                <Box display="flex" alignItems="center" gap={0.5}>
-                  <PhoneIphoneIcon sx={{ fontSize: 18, color: '#007AFF' }} />
-                  <Typography variant="body2">
-                    {stats.devices.ios_tokens}
-                  </Typography>
-                </Box>
-                <Box display="flex" alignItems="center" gap={0.5}>
-                  <DesktopWindowsIcon sx={{ fontSize: 18, color: '#757575' }} />
-                  <Typography variant="body2">
-                    {stats.devices.web_tokens}
-                  </Typography>
-                </Box>
-              </Box>
-              <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                플랫폼별 디바이스
-              </Typography>
-            </CardContent>
-          </Card>
-        </Box>
+                <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                  플랫폼별 디바이스
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+        </Grid>
       )}
 
       {/* Filter */}
@@ -312,74 +283,59 @@ const NotificationManagement: React.FC = () => {
 
       {/* Notification List */}
       {loading ? (
-        <Box display="flex" justifyContent="center" p={4}>
-          <CircularProgress sx={{ color: '#C9B59C' }} />
-        </Box>
+        <LoadingSkeleton variant="table" columns={5} />
+      ) : notifications.length === 0 ? (
+        <EmptyState icon={<NotificationsIcon />} title="알림 내역이 없습니다." />
       ) : (
-        <TableContainer component={Paper}>
+        <ResponsiveTableContainer minWidth={780}>
           <Table>
             <TableHead>
               <TableRow>
                 <TableCell>사용자</TableCell>
                 <TableCell>제목</TableCell>
-                <TableCell>유형</TableCell>
+                <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>유형</TableCell>
                 <TableCell>읽음</TableCell>
-                <TableCell>일시</TableCell>
+                <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>일시</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {notifications.length > 0 ? (
-                notifications.map((notification) => (
-                  <TableRow key={notification.id} hover>
-                    <TableCell>
-                      <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                        {notification.user_name}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                        {notification.title}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary" noWrap sx={{ maxWidth: 300, display: 'block' }}>
-                        {notification.content}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Chip
-                        label={getTypeText(notification.type)}
-                        size="small"
-                        sx={{
-                          backgroundColor: `${getTypeColor(notification.type)}20`,
-                          color: getTypeColor(notification.type),
-                          fontWeight: 500,
-                        }}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Chip
-                        label={notification.is_read ? '읽음' : '안 읽음'}
-                        size="small"
-                        color={notification.is_read ? 'success' : 'default'}
-                        variant={notification.is_read ? 'filled' : 'outlined'}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2">
-                        {new Date(notification.created_at).toLocaleDateString()}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {new Date(notification.created_at).toLocaleTimeString()}
-                      </Typography>
-                    </TableCell>
-                  </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={5} align="center" sx={{ py: 4 }}>
-                    <Typography color="text.secondary">알림 내역이 없습니다.</Typography>
+              {notifications.map((notification) => (
+                <TableRow key={notification.id} hover>
+                  <TableCell>
+                    <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                      {notification.user_name}
+                    </Typography>
+                  </TableCell>
+                  <TableCell>
+                    <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                      {notification.title}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary" noWrap sx={{ maxWidth: 300, display: 'block' }}>
+                      {notification.content}
+                    </Typography>
+                  </TableCell>
+                  <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
+                    <Chip
+                      label={getTypeText(notification.type)}
+                      size="small"
+                      variant="outlined"
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Chip
+                      label={notification.is_read ? '읽음' : '안 읽음'}
+                      size="small"
+                      color={notification.is_read ? 'success' : 'default'}
+                      variant={notification.is_read ? 'filled' : 'outlined'}
+                    />
+                  </TableCell>
+                  <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
+                    <Typography variant="body2">
+                      {formatDateTime(notification.created_at)}
+                    </Typography>
                   </TableCell>
                 </TableRow>
-              )}
+              ))}
             </TableBody>
           </Table>
           <TablePagination
@@ -392,14 +348,14 @@ const NotificationManagement: React.FC = () => {
             rowsPerPageOptions={[10, 20, 50]}
             labelRowsPerPage="페이지당 행:"
           />
-        </TableContainer>
+        </ResponsiveTableContainer>
       )}
 
       {/* Broadcast Dialog */}
       <Dialog open={broadcastDialogOpen} onClose={() => setBroadcastDialogOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle>
           <Box display="flex" alignItems="center" gap={1}>
-            <CampaignIcon sx={{ color: '#C9B59C' }} />
+            <CampaignIcon sx={{ color: 'primary.main' }} />
             전체 알림 발송
           </Box>
         </DialogTitle>
@@ -445,12 +401,9 @@ const NotificationManagement: React.FC = () => {
           <Button
             onClick={handleBroadcast}
             variant="contained"
+            color="primary"
             startIcon={sending ? <CircularProgress size={16} /> : <SendIcon />}
             disabled={!broadcastTitle || !broadcastContent || sending}
-            sx={{
-              backgroundColor: '#C9B59C',
-              '&:hover': { backgroundColor: '#A08B7A' },
-            }}
           >
             {sending ? '발송 중...' : '발송'}
           </Button>

@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Typography,
-  Paper,
   Button,
   Chip,
   TextField,
@@ -14,7 +13,7 @@ import {
   Snackbar,
   Card,
   CardContent,
-  CircularProgress,
+  Grid,
   FormControl,
   InputLabel,
   Select,
@@ -32,6 +31,7 @@ import CategoryIcon from '@mui/icons-material/Category';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import apiClient from '../utils/api';
+import { PageHeader, EmptyState, StatCard, LoadingSkeleton } from './common';
 
 interface Badge {
   id: string;
@@ -223,14 +223,14 @@ const BadgeManagement: React.FC = () => {
     return found ? found.label : category;
   };
 
-  const getCategoryColor = (category: string): string => {
+  const getCategoryColor = (category: string): 'success' | 'primary' | 'warning' | 'info' | 'secondary' | 'default' => {
     switch (category) {
-      case 'attendance': return '#4CAF50';
-      case 'meetup': return '#C9B59C';
-      case 'review': return '#FF9800';
-      case 'social': return '#2196F3';
-      case 'special': return '#9C27B0';
-      default: return '#757575';
+      case 'attendance': return 'success';
+      case 'meetup': return 'primary';
+      case 'review': return 'warning';
+      case 'social': return 'info';
+      case 'special': return 'secondary';
+      default: return 'default';
     }
   };
 
@@ -248,71 +248,43 @@ const BadgeManagement: React.FC = () => {
 
   return (
     <Box>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4">뱃지 관리</Typography>
-        <Box display="flex" gap={1}>
-          <Button
-            variant="outlined"
-            startIcon={<PersonAddIcon />}
-            onClick={() => setAwardDialogOpen(true)}
-            sx={{
-              borderColor: '#C9B59C',
-              color: '#4C422C',
-              '&:hover': { borderColor: '#A08B7A', backgroundColor: '#F9F8F6' },
-            }}
-          >
-            뱃지 수여
-          </Button>
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={handleOpenCreateDialog}
-            sx={{
-              backgroundColor: '#C9B59C',
-              '&:hover': { backgroundColor: '#A08B7A' },
-            }}
-          >
-            뱃지 추가
-          </Button>
-        </Box>
-      </Box>
+      <PageHeader
+        title="뱃지 관리"
+        actions={
+          <>
+            <Button
+              variant="outlined"
+              color="primary"
+              startIcon={<PersonAddIcon />}
+              onClick={() => setAwardDialogOpen(true)}
+            >
+              뱃지 수여
+            </Button>
+            <Button
+              variant="contained"
+              color="primary"
+              startIcon={<AddIcon />}
+              onClick={handleOpenCreateDialog}
+            >
+              뱃지 추가
+            </Button>
+          </>
+        }
+      />
 
       {/* Stats Cards */}
       {stats && (
-        <Box sx={{
-          display: 'grid',
-          gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr 1fr' },
-          gap: 2,
-          mb: 3,
-        }}>
-          <Card>
-            <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <CardGiftcardIcon sx={{ fontSize: 40, color: '#C9B59C' }} />
-              <Box>
-                <Typography variant="body2" color="text.secondary">전체 뱃지</Typography>
-                <Typography variant="h5" sx={{ fontWeight: 700 }}>{stats.total_badges}</Typography>
-              </Box>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <EmojiEventsIcon sx={{ fontSize: 40, color: '#FFD700' }} />
-              <Box>
-                <Typography variant="body2" color="text.secondary">수여 횟수</Typography>
-                <Typography variant="h5" sx={{ fontWeight: 700 }}>{stats.total_awarded}</Typography>
-              </Box>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <PeopleIcon sx={{ fontSize: 40, color: '#4C422C' }} />
-              <Box>
-                <Typography variant="body2" color="text.secondary">보유 사용자</Typography>
-                <Typography variant="h5" sx={{ fontWeight: 700 }}>{stats.unique_users}</Typography>
-              </Box>
-            </CardContent>
-          </Card>
-        </Box>
+        <Grid container spacing={2} sx={{ mb: 3 }}>
+          <Grid size={{ xs: 12, sm: 4 }}>
+            <StatCard label="전체 뱃지" value={stats.total_badges} icon={<CardGiftcardIcon />} color="primary" />
+          </Grid>
+          <Grid size={{ xs: 12, sm: 4 }}>
+            <StatCard label="수여 횟수" value={stats.total_awarded} icon={<EmojiEventsIcon />} color="warning" />
+          </Grid>
+          <Grid size={{ xs: 12, sm: 4 }}>
+            <StatCard label="보유 사용자" value={stats.unique_users} icon={<PeopleIcon />} color="info" />
+          </Grid>
+        </Grid>
       )}
 
       {/* Category Filter */}
@@ -334,14 +306,14 @@ const BadgeManagement: React.FC = () => {
 
       {/* Badge List */}
       {loading ? (
-        <Box display="flex" justifyContent="center" p={4}>
-          <CircularProgress sx={{ color: '#C9B59C' }} />
-        </Box>
+        <LoadingSkeleton variant="cards" count={8} />
       ) : Object.keys(groupedBadges).length > 0 ? (
-        Object.entries(groupedBadges).map(([category, categoryBadges]) => (
+        Object.entries(groupedBadges).map(([category, categoryBadges]) => {
+          const catColor = getCategoryColor(category);
+          return (
           <Box key={category} sx={{ mb: 4 }}>
             <Box display="flex" alignItems="center" gap={1} mb={2}>
-              <CategoryIcon sx={{ color: getCategoryColor(category) }} />
+              <CategoryIcon color={catColor === 'default' ? 'inherit' : catColor} />
               <Typography variant="h6">
                 {getCategoryLabel(category)}
               </Typography>
@@ -353,7 +325,7 @@ const BadgeManagement: React.FC = () => {
                   <Card sx={{
                     height: '100%',
                     opacity: badge.is_active ? 1 : 0.6,
-                    border: badge.is_active ? undefined : '1px dashed #ccc',
+                    borderStyle: badge.is_active ? undefined : 'dashed',
                   }}>
                     <CardContent>
                       <Box display="flex" justifyContent="space-between" alignItems="flex-start">
@@ -393,10 +365,8 @@ const BadgeManagement: React.FC = () => {
                         <Chip
                           label={getCategoryLabel(badge.category)}
                           size="small"
-                          sx={{
-                            backgroundColor: `${getCategoryColor(badge.category)}20`,
-                            color: getCategoryColor(badge.category),
-                          }}
+                          color={getCategoryColor(badge.category)}
+                          variant="outlined"
                         />
                         <Typography variant="caption" color="text.secondary">
                           수여 {badge.awarded_count}회
@@ -411,11 +381,10 @@ const BadgeManagement: React.FC = () => {
               ))}
             </Box>
           </Box>
-        ))
+          );
+        })
       ) : (
-        <Paper sx={{ p: 4, textAlign: 'center' }}>
-          <Typography color="text.secondary">등록된 뱃지가 없습니다.</Typography>
-        </Paper>
+        <EmptyState icon={<CardGiftcardIcon />} title="등록된 뱃지가 없습니다." />
       )}
 
       {/* Create/Edit Badge Dialog */}
@@ -470,16 +439,9 @@ const BadgeManagement: React.FC = () => {
                   <Button
                     key={icon}
                     variant={formData.icon === icon ? 'contained' : 'outlined'}
+                    color="primary"
                     onClick={() => handleFormChange('icon', icon)}
-                    sx={{
-                      minWidth: 48,
-                      height: 48,
-                      fontSize: 24,
-                      backgroundColor: formData.icon === icon ? '#C9B59C' : undefined,
-                      '&:hover': {
-                        backgroundColor: formData.icon === icon ? '#A08B7A' : '#F9F8F6',
-                      },
-                    }}
+                    sx={{ minWidth: 48, height: 48, fontSize: 24 }}
                   >
                     {icon}
                   </Button>
@@ -493,11 +455,8 @@ const BadgeManagement: React.FC = () => {
           <Button
             onClick={handleSubmitBadge}
             variant="contained"
+            color="primary"
             disabled={!formData.name || !formData.description}
-            sx={{
-              backgroundColor: '#C9B59C',
-              '&:hover': { backgroundColor: '#A08B7A' },
-            }}
           >
             {editingBadge ? '수정' : '생성'}
           </Button>
@@ -508,7 +467,7 @@ const BadgeManagement: React.FC = () => {
       <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)} maxWidth="xs" fullWidth>
         <DialogTitle>
           <Box display="flex" alignItems="center" gap={1}>
-            <WarningAmberIcon sx={{ color: '#ED6C02' }} />
+            <WarningAmberIcon sx={{ color: 'warning.main' }} />
             뱃지 삭제
           </Box>
         </DialogTitle>
@@ -569,11 +528,8 @@ const BadgeManagement: React.FC = () => {
           <Button
             onClick={handleAwardBadge}
             variant="contained"
+            color="primary"
             disabled={!awardUserId || !awardBadgeId}
-            sx={{
-              backgroundColor: '#C9B59C',
-              '&:hover': { backgroundColor: '#A08B7A' },
-            }}
           >
             수여
           </Button>

@@ -5,21 +5,16 @@ import {
   Table,
   TableBody,
   TableCell,
-  TableContainer,
   TableHead,
   TableRow,
-  Paper,
   Button,
   Chip,
   TextField,
   InputAdornment,
-  IconButton,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
-  Card,
-  CardContent,
   Pagination,
   FormControl,
   InputLabel,
@@ -28,7 +23,6 @@ import {
   Grid,
   Alert,
   Checkbox,
-  FormControlLabel,
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import BlockIcon from '@mui/icons-material/Block';
@@ -37,7 +31,10 @@ import BarChartIcon from '@mui/icons-material/BarChart';
 import PersonIcon from '@mui/icons-material/Person';
 import ShieldIcon from '@mui/icons-material/Shield';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
+import GroupIcon from '@mui/icons-material/Group';
 import apiClient from '../utils/api';
+import { formatDateTime } from '../utils/format';
+import { PageHeader, EmptyState, StatCard, LoadingSkeleton, ResponsiveTableContainer } from './common';
 
 interface BlockedUser {
   block_id: string;
@@ -237,83 +234,52 @@ const BlockedUserManagement: React.FC = () => {
     }
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString('ko-KR');
-  };
-
-  const StatCard = ({ title, value, icon, color }: {
-    title: string;
-    value: number | string;
-    icon: React.ReactNode;
-    color: string;
-  }) => (
-    <Card>
-      <CardContent>
-        <Box display="flex" alignItems="center" justifyContent="space-between">
-          <Box>
-            <Typography color="textSecondary" gutterBottom>
-              {title}
-            </Typography>
-            <Typography variant="h5" component="div">
-              {value}
-            </Typography>
-          </Box>
-          <Box sx={{ color: color }}>
-            {icon}
-          </Box>
-        </Box>
-      </CardContent>
-    </Card>
-  );
-
   return (
     <Box>
-      <Typography variant="h4" gutterBottom>
-        차단 회원 관리
-      </Typography>
+      <PageHeader title="차단 회원 관리" />
 
       {/* 통계 카드 */}
       {stats && (
-        <Box sx={{ 
-          display: 'grid', 
-          gridTemplateColumns: { 
-            xs: '1fr', 
-            sm: '1fr 1fr', 
-            md: '1fr 1fr 1fr 1fr' 
-          }, 
-          gap: 3, 
-          mb: 4 
-        }}>
-          <StatCard
-            title="전체 차단"
-            value={stats.general_stats.total_blocks}
-            icon={<ShieldIcon fontSize="large" />}
-            color="#f44336"
-          />
-          <StatCard
-            title="관리자 차단"
-            value={stats.general_stats.admin_blocks}
-            icon={<PersonIcon fontSize="large" />}
-            color="#ff9800"
-          />
-          <StatCard
-            title="오늘 차단"
-            value={stats.general_stats.blocks_today}
-            icon={<TrendingUpIcon fontSize="large" />}
-            color="#2196f3"
-          />
-          <StatCard
-            title="이번 주 차단"
-            value={stats.general_stats.blocks_this_week}
-            icon={<BarChartIcon fontSize="large" />}
-            color="#4caf50"
-          />
-        </Box>
+        <Grid container spacing={2} sx={{ mb: 4 }}>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <StatCard
+              label="전체 차단"
+              value={stats.general_stats.total_blocks}
+              icon={<ShieldIcon />}
+              color="error"
+            />
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <StatCard
+              label="관리자 차단"
+              value={stats.general_stats.admin_blocks}
+              icon={<PersonIcon />}
+              color="warning"
+            />
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <StatCard
+              label="오늘 차단"
+              value={stats.general_stats.blocks_today}
+              icon={<TrendingUpIcon />}
+              color="info"
+            />
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <StatCard
+              label="이번 주 차단"
+              value={stats.general_stats.blocks_this_week}
+              icon={<BarChartIcon />}
+              color="success"
+            />
+          </Grid>
+        </Grid>
       )}
 
       {/* 검색 및 필터 */}
-      <Box sx={{ mb: 3, display: 'flex', gap: 2, alignItems: 'center' }}>
+      <Box sx={{ mb: 3, display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'center' }}>
         <TextField
+          size="small"
           placeholder="이름, 이메일, 차단 사유 검색..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
@@ -324,10 +290,10 @@ const BlockedUserManagement: React.FC = () => {
               </InputAdornment>
             ),
           }}
-          sx={{ flexGrow: 1, maxWidth: 400 }}
+          sx={{ width: { xs: '100%', sm: 360 } }}
         />
         
-        <FormControl sx={{ minWidth: 150 }}>
+        <FormControl size="small" sx={{ minWidth: 150 }}>
           <InputLabel>정렬 기준</InputLabel>
           <Select
             value={sortBy}
@@ -340,7 +306,7 @@ const BlockedUserManagement: React.FC = () => {
           </Select>
         </FormControl>
 
-        <FormControl sx={{ minWidth: 100 }}>
+        <FormControl size="small" sx={{ minWidth: 100 }}>
           <InputLabel>순서</InputLabel>
           <Select
             value={sortOrder}
@@ -371,104 +337,110 @@ const BlockedUserManagement: React.FC = () => {
       )}
 
       {/* 차단 회원 테이블 */}
-      <TableContainer component={Paper}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell padding="checkbox">
-                <Checkbox
-                  checked={blockedUsers.length > 0 && selectedUsers.length === blockedUsers.length}
-                  indeterminate={selectedUsers.length > 0 && selectedUsers.length < blockedUsers.length}
-                  onChange={handleSelectAll}
-                />
-              </TableCell>
-              <TableCell>회원 정보</TableCell>
-              <TableCell>차단 사유</TableCell>
-              <TableCell>차단한 사람</TableCell>
-              <TableCell>차단일시</TableCell>
-              <TableCell>관리</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {blockedUsers.map((blockedUser) => (
-              <TableRow key={blockedUser.block_id}>
+      {loading ? (
+        <LoadingSkeleton variant="table" columns={6} />
+      ) : blockedUsers.length === 0 ? (
+        <EmptyState icon={<GroupIcon />} title="차단된 회원이 없습니다." />
+      ) : (
+        <ResponsiveTableContainer minWidth={840}>
+          <Table>
+            <TableHead>
+              <TableRow>
                 <TableCell padding="checkbox">
                   <Checkbox
-                    checked={selectedUsers.includes(blockedUser.user.id)}
-                    onChange={() => handleSelectUser(blockedUser.user.id)}
+                    checked={blockedUsers.length > 0 && selectedUsers.length === blockedUsers.length}
+                    indeterminate={selectedUsers.length > 0 && selectedUsers.length < blockedUsers.length}
+                    onChange={handleSelectAll}
                   />
                 </TableCell>
-                <TableCell>
-                  <Box>
-                    <Typography variant="subtitle2">
-                      {blockedUser.user.name}
-                    </Typography>
-                    <Typography variant="body2" color="textSecondary">
-                      {blockedUser.user.email}
-                    </Typography>
-                    <Box sx={{ mt: 1 }}>
-                      <Chip
-                        label={getProviderText(blockedUser.user.provider)}
-                        size="small"
-                        variant="outlined"
-                      />
-                      {blockedUser.user.is_verified && (
-                        <Chip
-                          label="인증됨"
-                          size="small"
-                          color="success"
-                          icon={<CheckCircleIcon />}
-                          sx={{ ml: 1 }}
-                        />
-                      )}
-                    </Box>
-                  </Box>
-                </TableCell>
-                <TableCell>
-                  <Typography variant="body2" sx={{ maxWidth: 300 }}>
-                    {blockedUser.reason}
-                  </Typography>
-                </TableCell>
-                <TableCell>
-                  {blockedUser.blocked_by.id ? (
-                    <Box>
-                      <Typography variant="body2">
-                        {blockedUser.blocked_by.name}
-                      </Typography>
-                      <Typography variant="caption" color="textSecondary">
-                        ({blockedUser.blocked_by.email})
-                      </Typography>
-                    </Box>
-                  ) : (
-                    <Chip
-                      label="관리자"
-                      size="small"
-                      color="warning"
-                      icon={<ShieldIcon />}
-                    />
-                  )}
-                </TableCell>
-                <TableCell>
-                  {formatDate(blockedUser.blocked_at)}
-                </TableCell>
-                <TableCell>
-                  <Button
-                    size="small"
-                    color="success"
-                    onClick={() => {
-                      setSelectedUser(blockedUser);
-                      setUnblockDialogOpen(true);
-                    }}
-                    startIcon={<CheckCircleIcon />}
-                  >
-                    차단 해제
-                  </Button>
-                </TableCell>
+                <TableCell>회원 정보</TableCell>
+                <TableCell>차단 사유</TableCell>
+                <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>차단한 사람</TableCell>
+                <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>차단일시</TableCell>
+                <TableCell>관리</TableCell>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
+            </TableHead>
+            <TableBody>
+              {blockedUsers.map((blockedUser) => (
+                <TableRow key={blockedUser.block_id}>
+                  <TableCell padding="checkbox">
+                    <Checkbox
+                      checked={selectedUsers.includes(blockedUser.user.id)}
+                      onChange={() => handleSelectUser(blockedUser.user.id)}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Box>
+                      <Typography variant="subtitle2">
+                        {blockedUser.user.name}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {blockedUser.user.email}
+                      </Typography>
+                      <Box sx={{ mt: 1 }}>
+                        <Chip
+                          label={getProviderText(blockedUser.user.provider)}
+                          size="small"
+                          variant="outlined"
+                        />
+                        {blockedUser.user.is_verified && (
+                          <Chip
+                            label="인증됨"
+                            size="small"
+                            color="success"
+                            icon={<CheckCircleIcon />}
+                            sx={{ ml: 1 }}
+                          />
+                        )}
+                      </Box>
+                    </Box>
+                  </TableCell>
+                  <TableCell>
+                    <Typography variant="body2" sx={{ maxWidth: 300 }}>
+                      {blockedUser.reason}
+                    </Typography>
+                  </TableCell>
+                  <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
+                    {blockedUser.blocked_by.id ? (
+                      <Box>
+                        <Typography variant="body2">
+                          {blockedUser.blocked_by.name}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          ({blockedUser.blocked_by.email})
+                        </Typography>
+                      </Box>
+                    ) : (
+                      <Chip
+                        label="관리자"
+                        size="small"
+                        color="warning"
+                        icon={<ShieldIcon />}
+                      />
+                    )}
+                  </TableCell>
+                  <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
+                    {formatDateTime(blockedUser.blocked_at)}
+                  </TableCell>
+                  <TableCell>
+                    <Button
+                      size="small"
+                      color="success"
+                      onClick={() => {
+                        setSelectedUser(blockedUser);
+                        setUnblockDialogOpen(true);
+                      }}
+                      startIcon={<CheckCircleIcon />}
+                    >
+                      차단 해제
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </ResponsiveTableContainer>
+      )}
 
       {/* 페이지네이션 */}
       <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>

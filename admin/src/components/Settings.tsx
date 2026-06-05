@@ -15,6 +15,7 @@ import {
 } from '@mui/material';
 import SaveIcon from '@mui/icons-material/Save';
 import apiClient from '../utils/api';
+import { PageHeader, LoadingSkeleton } from './common';
 
 interface SystemSettings {
   maintenanceMode: boolean;
@@ -127,19 +128,18 @@ const Settings: React.FC = () => {
 
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight={400}>
-        <CircularProgress />
+      <Box>
+        <PageHeader title="설정" />
+        <LoadingSkeleton variant="cards" count={4} />
       </Box>
     );
   }
 
   return (
     <Box>
-      <Typography variant="h4" gutterBottom>
-        설정
-      </Typography>
+      <PageHeader title="설정" />
 
-      <Box sx={{ 
+      <Box sx={{
         display: 'grid', 
         gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, 
         gap: 3 
@@ -264,18 +264,10 @@ const Settings: React.FC = () => {
       <Box sx={{ mt: 4, display: 'flex', justifyContent: 'flex-end' }}>
         <Button
           variant="contained"
+          color="primary"
           startIcon={saving ? <CircularProgress size={20} color="inherit" /> : <SaveIcon />}
           onClick={saveSettings}
           disabled={saving}
-          sx={{ 
-            backgroundColor: '#C9B59C',
-            '&:hover': {
-              backgroundColor: '#A08B7A',
-            },
-            '&:disabled': {
-              backgroundColor: '#D9CFC7',
-            },
-          }}
         >
           {saving ? '저장 중...' : '설정 저장'}
         </Button>

@@ -22,6 +22,7 @@ import CancelIcon from '@mui/icons-material/Cancel';
 import SmartToyIcon from '@mui/icons-material/SmartToy';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import apiClient from '../utils/api';
+import { PageHeader, EmptyState, LoadingSkeleton } from './common';
 
 interface ChatbotSetting {
   id: number;
@@ -157,37 +158,24 @@ const ChatbotSettings: React.FC = () => {
     }
   };
 
-  const getMessageTypeColor = (messageType: string) => {
+  const getMessageTypeColor = (messageType: string): 'primary' | 'success' | 'secondary' | 'warning' | 'default' => {
     switch (messageType) {
       case 'welcome':
-        return '#C9B59C';
+        return 'primary';
       case 'reminder':
-        return '#7A8A6E';
+        return 'success';
       case 'instruction':
-        return '#D9CFC7';
+        return 'secondary';
       case 'warning':
-        return '#B5857A';
+        return 'warning';
       default:
-        return '#888888';
+        return 'default';
     }
   };
 
-  if (loading) {
-    return (
-      <Box display="flex" justifyContent="center" alignItems="center" height="200px">
-        <Typography>로딩 중...</Typography>
-      </Box>
-    );
-  }
-
   return (
     <Box>
-      <Box display="flex" alignItems="center" sx={{ mb: 3 }}>
-        <SmartToyIcon sx={{ mr: 1, color: '#C9B59C' }} />
-        <Typography variant="h4">
-          챗봇 메시지 설정
-        </Typography>
-      </Box>
+      <PageHeader title="챗봇 메시지 설정" />
 
       <Alert severity="info" sx={{ mb: 3 }}>
         <Typography variant="body2">
@@ -196,13 +184,18 @@ const ChatbotSettings: React.FC = () => {
         </Typography>
       </Alert>
 
-      <Box sx={{ 
-        display: 'grid', 
-        gridTemplateColumns: { 
-          xs: '1fr', 
-          md: '1fr 1fr' 
-        }, 
-        gap: 3 
+      {loading ? (
+        <LoadingSkeleton variant="cards" count={4} />
+      ) : settings.length === 0 ? (
+        <EmptyState icon={<SmartToyIcon />} title="등록된 챗봇 설정이 없습니다." />
+      ) : (
+      <Box sx={{
+        display: 'grid',
+        gridTemplateColumns: {
+          xs: '1fr',
+          md: '1fr 1fr'
+        },
+        gap: 3
       }}>
         {settings.map((setting) => (
           <Card sx={{ height: '100%' }} key={setting.id}>
@@ -213,13 +206,10 @@ const ChatbotSettings: React.FC = () => {
                       {getTriggerTypeDisplay(setting.trigger_type)}
                     </Typography>
                     <Box display="flex" gap={1} sx={{ mb: 1 }}>
-                      <Chip 
+                      <Chip
                         label={getMessageTypeDisplay(setting.message_type)}
                         size="small"
-                        sx={{ 
-                          backgroundColor: getMessageTypeColor(setting.message_type),
-                          color: 'white'
-                        }}
+                        color={getMessageTypeColor(setting.message_type)}
                       />
                       {setting.trigger_time_before > 0 && (
                         <Chip
@@ -269,7 +259,7 @@ const ChatbotSettings: React.FC = () => {
 
                 <Box
                   sx={{
-                    backgroundColor: '#f5f5f5',
+                    backgroundColor: 'background.default',
                     padding: 2,
                     borderRadius: 1,
                     mb: 2,
@@ -291,16 +281,9 @@ const ChatbotSettings: React.FC = () => {
 
                 <Button
                   variant="outlined"
+                  color="primary"
                   startIcon={<EditIcon />}
                   onClick={() => handleEdit(setting)}
-                  sx={{ 
-                    borderColor: '#C9B59C',
-                    color: '#C9B59C',
-                    '&:hover': {
-                      borderColor: '#B5A085',
-                      backgroundColor: 'rgba(201, 181, 156, 0.1)'
-                    }
-                  }}
                 >
                   편집
                 </Button>
@@ -308,6 +291,7 @@ const ChatbotSettings: React.FC = () => {
             </Card>
         ))}
       </Box>
+      )}
 
       {/* 편집 다이얼로그 */}
       <Dialog
@@ -375,11 +359,11 @@ const ChatbotSettings: React.FC = () => {
           <Button onClick={handleCancel} startIcon={<CancelIcon />}>
             취소
           </Button>
-          <Button 
-            onClick={handleSave} 
-            variant="contained" 
+          <Button
+            onClick={handleSave}
+            variant="contained"
+            color="primary"
             startIcon={<SaveIcon />}
-            sx={{ backgroundColor: '#C9B59C' }}
           >
             저장
           </Button>

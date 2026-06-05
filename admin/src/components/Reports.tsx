@@ -11,17 +11,18 @@ import {
   Table,
   TableBody,
   TableCell,
-  TableContainer,
   TableHead,
   TableRow,
-  Paper,
   Button,
+  Grid,
 } from '@mui/material';
 import DownloadIcon from '@mui/icons-material/Download';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import PeopleIcon from '@mui/icons-material/People';
 import EventIcon from '@mui/icons-material/Event';
 import apiClient from '../utils/api';
+import { won } from '../utils/format';
+import { PageHeader, EmptyState, StatCard, ResponsiveTableContainer } from './common';
 
 interface ReportData {
   period: string;
@@ -80,49 +81,24 @@ const Reports: React.FC = () => {
     { newUsers: 0, newMeetups: 0, completedMeetups: 0, revenue: 0, maxActiveUsers: 0 }
   );
 
-  const StatCard = ({ title, value, icon, color }: { 
-    title: string; 
-    value: number | string; 
-    icon: React.ReactNode; 
-    color: string; 
-  }) => (
-    <Card>
-      <CardContent>
-        <Box display="flex" alignItems="center" justifyContent="space-between">
-          <Box>
-            <Typography color="textSecondary" gutterBottom>
-              {title}
-            </Typography>
-            <Typography variant="h5" component="div">
-              {value}
-            </Typography>
-          </Box>
-          <Box sx={{ color: color }}>
-            {icon}
-          </Box>
-        </Box>
-      </CardContent>
-    </Card>
-  );
-
   return (
     <Box>
-      <Box display="flex" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
-        <Typography variant="h4">
-          리포트
-        </Typography>
-        <Button
-          variant="contained"
-          startIcon={<DownloadIcon />}
-          onClick={downloadReport}
-          sx={{ backgroundColor: '#C9B59C' }}
-        >
-          리포트 다운로드
-        </Button>
-      </Box>
+      <PageHeader
+        title="리포트"
+        actions={
+          <Button
+            variant="contained"
+            color="primary"
+            startIcon={<DownloadIcon />}
+            onClick={downloadReport}
+          >
+            리포트 다운로드
+          </Button>
+        }
+      />
 
       <Box sx={{ mb: 4 }}>
-        <FormControl sx={{ minWidth: 200 }}>
+        <FormControl size="small" sx={{ minWidth: 200 }}>
           <InputLabel>리포트 기간</InputLabel>
           <Select
             value={reportType}
@@ -136,80 +112,59 @@ const Reports: React.FC = () => {
         </FormControl>
       </Box>
 
-      <Box sx={{ 
-        display: 'grid', 
-        gridTemplateColumns: { 
-          xs: '1fr', 
-          sm: '1fr 1fr', 
-          md: '1fr 1fr 1fr',
-          lg: '1fr 1fr 1fr 1fr 1fr' 
-        }, 
-        gap: 3, 
-        mb: 4 
-      }}>
-        <StatCard
-          title="총 신규 사용자"
-          value={totalStats.newUsers}
-          icon={<PeopleIcon fontSize="large" />}
-          color="#C9B59C"
-        />
-        <StatCard
-          title="총 신규 약속"
-          value={totalStats.newMeetups}
-          icon={<EventIcon fontSize="large" />}
-          color="#D9CFC7"
-        />
-        <StatCard
-          title="총 완료된 약속"
-          value={totalStats.completedMeetups}
-          icon={<TrendingUpIcon fontSize="large" />}
-          color="#7A8A6E"
-        />
-        <StatCard
-          title="최대 활성 사용자"
-          value={totalStats.maxActiveUsers}
-          icon={<PeopleIcon fontSize="large" />}
-          color="#7A8A6E"
-        />
-        <StatCard
-          title="광고 수익"
-          value={`₩${totalStats.revenue.toLocaleString()}`}
-          icon={<TrendingUpIcon fontSize="large" />}
-          color="#B5857A"
-        />
-      </Box>
+      <Grid container spacing={2} sx={{ mb: 4 }}>
+        <Grid size={{ xs: 12, sm: 6, md: 4, lg: 2.4 }}>
+          <StatCard label="총 신규 사용자" value={totalStats.newUsers} icon={<PeopleIcon />} color="primary" />
+        </Grid>
+        <Grid size={{ xs: 12, sm: 6, md: 4, lg: 2.4 }}>
+          <StatCard label="총 신규 약속" value={totalStats.newMeetups} icon={<EventIcon />} color="secondary" />
+        </Grid>
+        <Grid size={{ xs: 12, sm: 6, md: 4, lg: 2.4 }}>
+          <StatCard label="총 완료된 약속" value={totalStats.completedMeetups} icon={<TrendingUpIcon />} color="success" />
+        </Grid>
+        <Grid size={{ xs: 12, sm: 6, md: 4, lg: 2.4 }}>
+          <StatCard label="최대 활성 사용자" value={totalStats.maxActiveUsers} icon={<PeopleIcon />} color="info" />
+        </Grid>
+        <Grid size={{ xs: 12, sm: 6, md: 4, lg: 2.4 }}>
+          <StatCard label="광고 수익" value={won(totalStats.revenue)} icon={<TrendingUpIcon />} color="warning" />
+        </Grid>
+      </Grid>
 
       <Card>
         <CardContent>
           <Typography variant="h6" gutterBottom>
             상세 통계 ({reportType === 'daily' ? '일별' : reportType === 'weekly' ? '주별' : '월별'})
           </Typography>
-          <TableContainer component={Paper}>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>기간</TableCell>
-                  <TableCell align="right">신규 사용자</TableCell>
-                  <TableCell align="right">신규 약속</TableCell>
-                  <TableCell align="right">완료된 약속</TableCell>
-                  <TableCell align="right">활성 사용자</TableCell>
-                  <TableCell align="right">광고 수익</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {reportData.map((row, index) => (
-                  <TableRow key={index}>
-                    <TableCell>{row.period}</TableCell>
-                    <TableCell align="right">{row.newUsers}</TableCell>
-                    <TableCell align="right">{row.newMeetups}</TableCell>
-                    <TableCell align="right">{row.completedMeetups}</TableCell>
-                    <TableCell align="right">{row.activeUsers}</TableCell>
-                    <TableCell align="right">₩{row.revenue.toLocaleString()}</TableCell>
+          {reportData.length === 0 ? (
+            <EmptyState icon={<TrendingUpIcon />} title="리포트 데이터가 없습니다." dense />
+          ) : (
+            <ResponsiveTableContainer minWidth={720}>
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>기간</TableCell>
+                    <TableCell align="right">신규 사용자</TableCell>
+                    <TableCell align="right">신규 약속</TableCell>
+                    <TableCell align="right">완료된 약속</TableCell>
+                    <TableCell align="right">활성 사용자</TableCell>
+                    <TableCell align="right">광고 수익</TableCell>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
+                </TableHead>
+                <TableBody>
+                  {reportData.map((row, index) => (
+                    <TableRow key={index}>
+                      <TableCell>{row.period}</TableCell>
+                      <TableCell align="right">{row.newUsers}</TableCell>
+                      <TableCell align="right">{row.newMeetups}</TableCell>
+                      <TableCell align="right">{row.completedMeetups}</TableCell>
+                      <TableCell align="right">{row.activeUsers}</TableCell>
+                      <TableCell align="right">{won(row.revenue)}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </ResponsiveTableContainer>
+          )}
         </CardContent>
       </Card>
     </Box>

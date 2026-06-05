@@ -5,10 +5,8 @@ import {
   Table,
   TableBody,
   TableCell,
-  TableContainer,
   TableHead,
   TableRow,
-  Paper,
   Button,
   Chip,
   TextField,
@@ -50,6 +48,8 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import DeleteIcon from '@mui/icons-material/Delete';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import apiClient from '../utils/api';
+import { won, formatDate, formatDateTime } from '../utils/format';
+import { PageHeader, EmptyState, ResponsiveTableContainer } from './common';
 
 interface Meetup {
   id: string;
@@ -301,78 +301,82 @@ const MeetupManagement: React.FC = () => {
 
   return (
     <Box>
-      <Typography variant="h4" gutterBottom>
-        약속 관리
-      </Typography>
+      <PageHeader
+        title="약속 관리"
+        actions={
+          <TextField
+            size="small"
+            placeholder="약속 검색..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon />
+                </InputAdornment>
+              ),
+            }}
+            sx={{ width: { xs: '100%', sm: 300 } }}
+          />
+        }
+      />
 
-      <Box sx={{ mb: 3 }}>
-        <TextField
-          placeholder="약속 검색..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon />
-              </InputAdornment>
-            ),
-          }}
-          sx={{ width: 300 }}
-        />
-      </Box>
-
-      <TableContainer component={Paper}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell>약속명</TableCell>
-              <TableCell>호스트</TableCell>
-              <TableCell>장소</TableCell>
-              <TableCell>카테고리</TableCell>
-              <TableCell>일시</TableCell>
-              <TableCell>참가자</TableCell>
-              <TableCell>상태</TableCell>
-              <TableCell>생성일</TableCell>
-              <TableCell>관리</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {filteredMeetups.map((meetup) => (
-              <TableRow key={meetup.id}>
-                <TableCell>{meetup.title}</TableCell>
-                <TableCell>{meetup.hostName}</TableCell>
-                <TableCell>{meetup.location}</TableCell>
-                <TableCell>{getCategoryText(meetup.category)}</TableCell>
-                <TableCell>
-                  {new Date(meetup.date).toLocaleDateString()} {meetup.time}
-                </TableCell>
-                <TableCell>
-                  {meetup.currentParticipants}/{meetup.maxParticipants}
-                </TableCell>
-                <TableCell>
-                  <Chip
-                    label={meetup.status}
-                    color={getStatusColor(meetup.status) as any}
-                    size="small"
-                  />
-                </TableCell>
-                <TableCell>
-                  {new Date(meetup.createdAt).toLocaleDateString()}
-                </TableCell>
-                <TableCell>
-                  <IconButton
-                    size="small"
-                    onClick={() => handleViewDetails(meetup)}
-                    color="primary"
-                  >
-                    <VisibilityIcon />
-                  </IconButton>
-                </TableCell>
+      {filteredMeetups.length === 0 ? (
+        <EmptyState icon={<GroupIcon />} title="약속이 없습니다." />
+      ) : (
+        <ResponsiveTableContainer minWidth={960}>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>약속명</TableCell>
+                <TableCell>호스트</TableCell>
+                <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>장소</TableCell>
+                <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>카테고리</TableCell>
+                <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>일시</TableCell>
+                <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>참가자</TableCell>
+                <TableCell>상태</TableCell>
+                <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>생성일</TableCell>
+                <TableCell>관리</TableCell>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
+            </TableHead>
+            <TableBody>
+              {filteredMeetups.map((meetup) => (
+                <TableRow key={meetup.id}>
+                  <TableCell>{meetup.title}</TableCell>
+                  <TableCell>{meetup.hostName}</TableCell>
+                  <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>{meetup.location}</TableCell>
+                  <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>{getCategoryText(meetup.category)}</TableCell>
+                  <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
+                    {formatDate(meetup.date)} {meetup.time}
+                  </TableCell>
+                  <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
+                    {meetup.currentParticipants}/{meetup.maxParticipants}
+                  </TableCell>
+                  <TableCell>
+                    <Chip
+                      label={meetup.status}
+                      color={getStatusColor(meetup.status) as any}
+                      size="small"
+                    />
+                  </TableCell>
+                  <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
+                    {formatDate(meetup.createdAt)}
+                  </TableCell>
+                  <TableCell>
+                    <IconButton
+                      size="small"
+                      onClick={() => handleViewDetails(meetup)}
+                      color="primary"
+                    >
+                      <VisibilityIcon />
+                    </IconButton>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </ResponsiveTableContainer>
+      )}
 
       {/* 모임 상세 정보 다이얼로그 */}
       <Dialog 
@@ -506,7 +510,7 @@ const MeetupManagement: React.FC = () => {
                                   {participant.email}
                                 </Typography>
                                 <Typography variant="caption" color="text.secondary">
-                                  참가일: {new Date(participant.joined_at).toLocaleString()}
+                                  참가일: {formatDateTime(participant.joined_at)}
                                 </Typography>
                               </Box>
                             }
@@ -515,7 +519,7 @@ const MeetupManagement: React.FC = () => {
                       ))}
                     </List>
                   ) : (
-                    <Alert severity="info">참가자가 없습니다.</Alert>
+                    <EmptyState icon={<GroupIcon />} title="참가자가 없습니다." dense />
                   )}
                 </Box>
               )}
@@ -538,7 +542,7 @@ const MeetupManagement: React.FC = () => {
                                 <Box display="flex" alignItems="center" gap={1}>
                                   <Rating value={review.rating} readOnly size="small" />
                                   <Typography variant="body2" color="text.secondary">
-                                    {new Date(review.created_at).toLocaleDateString()}
+                                    {formatDate(review.created_at)}
                                   </Typography>
                                 </Box>
                               </Box>
@@ -561,7 +565,7 @@ const MeetupManagement: React.FC = () => {
                       </Accordion>
                     ))
                   ) : (
-                    <Alert severity="info">작성된 리뷰가 없습니다.</Alert>
+                    <EmptyState icon={<StarIcon />} title="작성된 리뷰가 없습니다." dense />
                   )}
                 </Box>
               )}
@@ -586,7 +590,7 @@ const MeetupManagement: React.FC = () => {
                                   {payment.user_name}
                                 </Typography>
                                 <Typography variant="h6" color="primary">
-                                  {payment.amount.toLocaleString()}원
+                                  {won(payment.amount)}
                                 </Typography>
                                 <Chip
                                   label={getPaymentStatusText(payment.status)}
@@ -597,7 +601,7 @@ const MeetupManagement: React.FC = () => {
                             }
                             secondary={
                               <Typography variant="caption" color="text.secondary">
-                                결제일: {new Date(payment.created_at).toLocaleString()}
+                                결제일: {formatDateTime(payment.created_at)}
                               </Typography>
                             }
                           />
@@ -605,7 +609,7 @@ const MeetupManagement: React.FC = () => {
                       ))}
                     </List>
                   ) : (
-                    <Alert severity="info">결제 정보가 없습니다.</Alert>
+                    <EmptyState icon={<PaymentIcon />} title="결제 정보가 없습니다." dense />
                   )}
                 </Box>
               )}

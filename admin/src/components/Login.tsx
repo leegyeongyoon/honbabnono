@@ -13,39 +13,9 @@ import {
   CssBaseline,
 } from '@mui/material';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
-import { createTheme, ThemeProvider } from '@mui/material/styles';
+import { ThemeProvider } from '@mui/material/styles';
 import apiClient from '../utils/api';
-
-const theme = createTheme({
-  palette: {
-    primary: {
-      main: '#C9B59C',
-      light: '#F9F8F6',
-      dark: '#A08B7A',
-    },
-    secondary: {
-      main: '#D9CFC7',
-    },
-    background: {
-      default: '#F9F8F6',
-      paper: '#FFFFFF',
-    },
-    text: {
-      primary: '#4C422C',
-      secondary: '#766653',
-    },
-  },
-  typography: {
-    h4: {
-      fontWeight: 700,
-      color: '#4C422C',
-    },
-    h6: {
-      fontWeight: 600,
-      color: '#4C422C',
-    },
-  },
-});
+import theme from '../theme';
 
 interface LoginProps {
   onLoginSuccess: (token: string, adminData: any) => void;
@@ -100,7 +70,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
             flexDirection: 'column',
             alignItems: 'center',
             minHeight: '100vh',
-            backgroundColor: '#F9F8F6',
+            backgroundColor: 'background.default',
             pt: 8,
           }}
         >
@@ -113,7 +83,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
                   alignItems: 'center',
                 }}
               >
-                <Avatar sx={{ m: 1, bgcolor: '#C9B59C' }}>
+                <Avatar sx={{ m: 1, bgcolor: 'primary.main' }}>
                   <LockOutlinedIcon />
                 </Avatar>
                 <Typography component="h1" variant="h5" sx={{ mb: 3 }}>
@@ -139,16 +109,6 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     disabled={loading}
-                    sx={{
-                      '& .MuiOutlinedInput-root': {
-                        '&:hover fieldset': {
-                          borderColor: '#C9B59C',
-                        },
-                        '&.Mui-focused fieldset': {
-                          borderColor: '#C9B59C',
-                        },
-                      },
-                    }}
                   />
                   <TextField
                     margin="normal"
@@ -162,32 +122,12 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     disabled={loading}
-                    sx={{
-                      '& .MuiOutlinedInput-root': {
-                        '&:hover fieldset': {
-                          borderColor: '#C9B59C',
-                        },
-                        '&.Mui-focused fieldset': {
-                          borderColor: '#C9B59C',
-                        },
-                      },
-                    }}
                   />
                   <Button
                     type="submit"
                     fullWidth
                     variant="contained"
-                    sx={{ 
-                      mt: 3, 
-                      mb: 2, 
-                      bgcolor: '#C9B59C',
-                      '&:hover': {
-                        bgcolor: '#A08B7A',
-                      },
-                      '&:disabled': {
-                        bgcolor: '#D9CFC7',
-                      },
-                    }}
+                    sx={{ mt: 3, mb: 2 }}
                     disabled={loading || !username || !password}
                   >
                     {loading ? (

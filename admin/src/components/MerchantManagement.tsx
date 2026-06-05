@@ -5,18 +5,14 @@ import {
   Table,
   TableBody,
   TableCell,
-  TableContainer,
   TableHead,
   TableRow,
-  Paper,
   TextField,
   InputAdornment,
   Button,
   Chip,
   Card,
-  CardContent,
   Grid,
-  CircularProgress,
   Alert,
   Snackbar,
   Dialog,
@@ -36,6 +32,9 @@ import PersonIcon from '@mui/icons-material/Person';
 import DescriptionIcon from '@mui/icons-material/Description';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import apiClient from '../utils/api';
+import { MERCHANT_STATUS, resolveStatus } from '../theme';
+import { formatDateTime, formatBizNumber } from '../utils/format';
+import { PageHeader, EmptyState, StatCard, LoadingSkeleton, StatusChip, ResponsiveTableContainer } from './common';
 
 interface Merchant {
   id: string;
@@ -70,12 +69,6 @@ interface Counts {
   rejected: number;
   total: number;
 }
-
-const STATUS_CHIPS: Record<string, { label: string; color: 'warning' | 'success' | 'error' | 'default' }> = {
-  pending: { label: '승인 대기', color: 'warning' },
-  verified: { label: '승인됨', color: 'success' },
-  rejected: { label: '거절됨', color: 'error' },
-};
 
 const DOC_TYPE_LABELS: Record<string, string> = {
   business_license: '사업자등록증',
@@ -174,22 +167,6 @@ const MerchantManagement: React.FC = () => {
     }
   };
 
-  const formatDate = (dateStr: string) => {
-    if (!dateStr) return '-';
-    return new Date(dateStr).toLocaleDateString('ko-KR', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
-
-  const formatBizNumber = (num: string) => {
-    if (!num || num.length !== 10) return num || '-';
-    return `${num.slice(0, 3)}-${num.slice(3, 5)}-${num.slice(5)}`;
-  };
-
   const hasDocuments = (merchant: Merchant) => {
     const docs = merchant.verification_docs;
     return docs && typeof docs === 'object' && Object.keys(docs).length > 0;
@@ -197,48 +174,28 @@ const MerchantManagement: React.FC = () => {
 
   return (
     <Box>
-      <Typography variant="h4" gutterBottom>
-        점주 관리
-      </Typography>
+      <PageHeader title="점주 관리" />
 
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
       {/* Summary cards */}
       <Grid container spacing={2} sx={{ mb: 3 }}>
         {[
-          { label: '전체 점주', count: counts.total, icon: <StoreIcon />, color: '#C9B59C' },
-          { label: '승인 대기', count: counts.pending, icon: <HourglassEmptyIcon />, color: '#ED6C02' },
-          { label: '승인됨', count: counts.verified, icon: <CheckCircleIcon />, color: '#2E7D32' },
-          { label: '거절됨', count: counts.rejected, icon: <CancelIcon />, color: '#D32F2F' },
+          { label: '전체 점주', count: counts.total, icon: <StoreIcon />, color: 'primary' as const },
+          { label: '승인 대기', count: counts.pending, icon: <HourglassEmptyIcon />, color: 'warning' as const },
+          { label: '승인됨', count: counts.verified, icon: <CheckCircleIcon />, color: 'success' as const },
+          { label: '거절됨', count: counts.rejected, icon: <CancelIcon />, color: 'error' as const },
         ].map((item) => (
           <Grid size={{ xs: 6, md: 3 }} key={item.label}>
-            <Card sx={{ borderRadius: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
-              <CardContent sx={{ textAlign: 'center', py: 2 }}>
-                <Box sx={{ color: item.color, mb: 0.5 }}>{item.icon}</Box>
-                <Typography variant="h4" sx={{ fontWeight: 700 }}>
-                  {item.count}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  {item.label}
-                </Typography>
-              </CardContent>
-            </Card>
+            <StatCard label={item.label} value={item.count} icon={item.icon} color={item.color} />
           </Grid>
         ))}
       </Grid>
 
       {/* Tabs + Search */}
-      <Card sx={{ borderRadius: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+      <Card>
         <Box sx={{ borderBottom: 1, borderColor: 'divider', px: 2 }}>
-          <Tabs
-            value={tabIndex}
-            onChange={(_, v) => setTabIndex(v)}
-            sx={{
-              '& .MuiTab-root': { fontWeight: 600 },
-              '& .Mui-selected': { color: '#C9B59C' },
-              '& .MuiTabs-indicator': { backgroundColor: '#C9B59C' },
-            }}
-          >
+          <Tabs value={tabIndex} onChange={(_, v) => setTabIndex(v)}>
             <Tab label={`전체 (${counts.total})`} />
             <Tab label={`대기 (${counts.pending})`} />
             <Tab label={`승인 (${counts.verified})`} />
@@ -256,71 +213,69 @@ const MerchantManagement: React.FC = () => {
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
-                  <SearchIcon sx={{ color: '#999' }} />
+                  <SearchIcon sx={{ color: 'text.disabled' }} />
                 </InputAdornment>
               ),
             }}
-            sx={{ width: 360 }}
+            sx={{ width: { xs: '100%', sm: 360 } }}
           />
         </Box>
 
         {/* Table */}
         {loading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
-            <CircularProgress sx={{ color: '#C9B59C' }} />
-          </Box>
+          <LoadingSkeleton variant="table" columns={9} />
         ) : merchants.length === 0 ? (
-          <Typography color="text.secondary" sx={{ textAlign: 'center', py: 6 }}>
-            {tabIndex === 1 ? '승인 대기 중인 점주가 없습니다.' : '등록된 점주가 없습니다.'}
-          </Typography>
+          <EmptyState
+            icon={<StoreIcon />}
+            title={tabIndex === 1 ? '승인 대기 중인 점주가 없습니다.' : '등록된 점주가 없습니다.'}
+          />
         ) : (
-          <TableContainer component={Paper} elevation={0}>
+          <ResponsiveTableContainer minWidth={960}>
             <Table>
               <TableHead>
-                <TableRow sx={{ backgroundColor: '#F9F8F6' }}>
-                  <TableCell sx={{ fontWeight: 600 }}>상호명</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>사업자번호</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>대표자</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>계정 정보</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>매장</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }} align="center">서류</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }} align="center">상태</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>신청일</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }} align="center">관리</TableCell>
+                <TableRow>
+                  <TableCell>상호명</TableCell>
+                  <TableCell>사업자번호</TableCell>
+                  <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>대표자</TableCell>
+                  <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>계정 정보</TableCell>
+                  <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>매장</TableCell>
+                  <TableCell align="center" sx={{ display: { xs: 'none', md: 'table-cell' } }}>서류</TableCell>
+                  <TableCell align="center">상태</TableCell>
+                  <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>신청일</TableCell>
+                  <TableCell align="center">관리</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {merchants.map((m) => {
-                  const statusCfg = STATUS_CHIPS[m.verification_status] || { label: m.verification_status, color: 'default' as const };
                   return (
                     <TableRow key={m.id} hover>
                       <TableCell sx={{ fontWeight: 600 }}>{m.business_name || '-'}</TableCell>
                       <TableCell>{formatBizNumber(m.business_number)}</TableCell>
-                      <TableCell>{m.representative_name || '-'}</TableCell>
-                      <TableCell>
+                      <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>{m.representative_name || '-'}</TableCell>
+                      <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                          <PersonIcon sx={{ fontSize: 16, color: '#999' }} />
+                          <PersonIcon sx={{ fontSize: 16, color: 'text.disabled' }} />
                           <Box>
                             <Typography variant="body2">{m.username || '-'}</Typography>
                             <Typography variant="caption" color="text.secondary">{m.email || ''}</Typography>
                           </Box>
                         </Box>
                       </TableCell>
-                      <TableCell>
+                      <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
                         {m.restaurant_name ? (
                           <Chip label={m.restaurant_name} size="small" variant="outlined" />
                         ) : (
                           <Typography variant="body2" color="text.secondary">미등록</Typography>
                         )}
                       </TableCell>
-                      <TableCell align="center">
+                      <TableCell align="center" sx={{ display: { xs: 'none', md: 'table-cell' } }}>
                         {hasDocuments(m) ? (
                           <Tooltip title="서류 보기">
                             <Button
                               size="small"
                               variant="text"
                               onClick={() => openDetailDialog(m)}
-                              sx={{ minWidth: 0, p: 0.5, color: '#1976D2' }}
+                              sx={{ minWidth: 0, p: 0.5 }}
                             >
                               <DescriptionIcon sx={{ fontSize: 20 }} />
                             </Button>
@@ -330,10 +285,10 @@ const MerchantManagement: React.FC = () => {
                         )}
                       </TableCell>
                       <TableCell align="center">
-                        <Chip label={statusCfg.label} color={statusCfg.color} size="small" />
+                        <StatusChip status={m.verification_status} map={MERCHANT_STATUS} />
                       </TableCell>
-                      <TableCell>
-                        <Typography variant="body2">{formatDate(m.created_at)}</Typography>
+                      <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
+                        <Typography variant="body2">{formatDateTime(m.created_at)}</Typography>
                       </TableCell>
                       <TableCell align="center">
                         <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'center', alignItems: 'center' }}>
@@ -344,7 +299,7 @@ const MerchantManagement: React.FC = () => {
                               onClick={() => openDetailDialog(m)}
                               sx={{ minWidth: 0, px: 0.5 }}
                             >
-                              <VisibilityIcon sx={{ fontSize: 18, color: '#666' }} />
+                              <VisibilityIcon sx={{ fontSize: 18, color: 'text.secondary' }} />
                             </Button>
                           </Tooltip>
                           {m.verification_status === 'pending' && (
@@ -381,8 +336,9 @@ const MerchantManagement: React.FC = () => {
                               <Button
                                 size="small"
                                 variant="outlined"
+                                color="primary"
                                 onClick={() => openVerifyDialog(m, 'verified')}
-                                sx={{ minWidth: 0, px: 1.5, borderColor: '#C9B59C', color: '#A08B7A' }}
+                                sx={{ minWidth: 0, px: 1.5 }}
                               >
                                 재승인
                               </Button>
@@ -395,7 +351,7 @@ const MerchantManagement: React.FC = () => {
                 })}
               </TableBody>
             </Table>
-          </TableContainer>
+          </ResponsiveTableContainer>
         )}
       </Card>
 
@@ -406,7 +362,7 @@ const MerchantManagement: React.FC = () => {
           {detailMerchant && (
             <Box>
               {/* Basic info */}
-              <Box sx={{ backgroundColor: '#F9F8F6', borderRadius: 2, p: 2, mb: 3 }}>
+              <Box sx={{ backgroundColor: 'background.default', borderRadius: 2, p: 2, mb: 3 }}>
                 <Typography variant="body2"><strong>상호명:</strong> {detailMerchant.business_name || '-'}</Typography>
                 <Typography variant="body2"><strong>사업자번호:</strong> {formatBizNumber(detailMerchant.business_number)}</Typography>
                 <Typography variant="body2"><strong>대표자:</strong> {detailMerchant.representative_name || '-'}</Typography>
@@ -415,21 +371,21 @@ const MerchantManagement: React.FC = () => {
                   <Typography variant="body2"><strong>정산계좌:</strong> {detailMerchant.bank_name} {detailMerchant.bank_account} ({detailMerchant.bank_holder})</Typography>
                 )}
                 {detailMerchant.business_start_date && (
-                  <Typography variant="body2"><strong>개업일자:</strong> {formatDate(detailMerchant.business_start_date)}</Typography>
+                  <Typography variant="body2"><strong>개업일자:</strong> {formatDateTime(detailMerchant.business_start_date)}</Typography>
                 )}
-                <Typography variant="body2"><strong>신청일:</strong> {formatDate(detailMerchant.created_at)}</Typography>
-                <Typography variant="body2">
+                <Typography variant="body2"><strong>신청일:</strong> {formatDateTime(detailMerchant.created_at)}</Typography>
+                <Typography variant="body2" component="div" sx={{ mt: 0.5 }}>
                   <strong>상태:</strong>{' '}
                   <Chip
-                    label={(STATUS_CHIPS[detailMerchant.verification_status] || { label: detailMerchant.verification_status }).label}
-                    color={(STATUS_CHIPS[detailMerchant.verification_status] || { color: 'default' as const }).color}
+                    label={resolveStatus(MERCHANT_STATUS, detailMerchant.verification_status).label}
+                    color={resolveStatus(MERCHANT_STATUS, detailMerchant.verification_status).color}
                     size="small"
                   />
                   {' '}
                   <Chip label={ntsChip(detailMerchant).label} color={ntsChip(detailMerchant).color} size="small" variant="outlined" />
                 </Typography>
                 {detailMerchant.rejection_reason && (
-                  <Typography variant="body2" sx={{ mt: 1, color: '#D32F2F' }}>
+                  <Typography variant="body2" sx={{ mt: 1, color: 'error.main' }}>
                     <strong>반려 사유:</strong> {detailMerchant.rejection_reason}
                   </Typography>
                 )}
@@ -445,13 +401,14 @@ const MerchantManagement: React.FC = () => {
                     <Box
                       key={docType}
                       sx={{
-                        border: '1px solid #E0E0E0',
+                        border: '1px solid',
+                        borderColor: 'divider',
                         borderRadius: 2,
                         p: 1.5,
                         width: 200,
                         textAlign: 'center',
                         cursor: 'pointer',
-                        '&:hover': { borderColor: '#C9B59C', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' },
+                        '&:hover': { borderColor: 'primary.main', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' },
                         transition: 'all 0.2s',
                       }}
                       onClick={() => {
@@ -482,8 +439,8 @@ const MerchantManagement: React.FC = () => {
                           }}
                         />
                       ) : (
-                        <Box sx={{ height: 140, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#F5F5F5', borderRadius: 1, mb: 1 }}>
-                          <DescriptionIcon sx={{ fontSize: 48, color: '#999' }} />
+                        <Box sx={{ height: 140, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'background.default', borderRadius: 1, mb: 1 }}>
+                          <DescriptionIcon sx={{ fontSize: 48, color: 'text.disabled' }} />
                         </Box>
                       )}
                       <Typography variant="body2" sx={{ fontWeight: 600 }}>
@@ -496,9 +453,7 @@ const MerchantManagement: React.FC = () => {
                   ))}
                 </Box>
               ) : (
-                <Typography variant="body2" color="text.secondary" sx={{ py: 3, textAlign: 'center' }}>
-                  제출된 서류가 없습니다.
-                </Typography>
+                <EmptyState icon={<DescriptionIcon />} title="제출된 서류가 없습니다." dense />
               )}
 
               {/* Quick action buttons */}
@@ -571,7 +526,7 @@ const MerchantManagement: React.FC = () => {
                   ? '아래 점주를 승인하시겠습니까? 승인 후 대시보드 접근이 가능해집니다.'
                   : '아래 점주의 신청을 거절하시겠습니까?'}
               </Typography>
-              <Box sx={{ backgroundColor: '#F9F8F6', borderRadius: 2, p: 2, mb: 2 }}>
+              <Box sx={{ backgroundColor: 'background.default', borderRadius: 2, p: 2, mb: 2 }}>
                 <Typography variant="body2"><strong>상호명:</strong> {dialogTarget.business_name}</Typography>
                 <Typography variant="body2"><strong>사업자번호:</strong> {formatBizNumber(dialogTarget.business_number)}</Typography>
                 <Typography variant="body2"><strong>대표자:</strong> {dialogTarget.representative_name}</Typography>

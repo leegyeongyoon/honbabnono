@@ -8,10 +8,8 @@ import {
   Table,
   TableBody,
   TableCell,
-  TableContainer,
   TableHead,
   TableRow,
-  Paper,
   Chip,
   IconButton,
   Dialog,
@@ -27,7 +25,6 @@ import {
   TablePagination,
   Alert,
   Snackbar,
-  CircularProgress,
   Avatar,
   Stack,
 } from '@mui/material';
@@ -41,6 +38,8 @@ import {
   PhotoCamera,
 } from '@mui/icons-material';
 import apiClient from '../utils/api';
+import { formatDate } from '../utils/format';
+import { PageHeader, EmptyState, LoadingSkeleton, ResponsiveTableContainer } from './common';
 
 interface Advertisement {
   id: number;
@@ -362,53 +361,51 @@ const AdvertisementManagement: React.FC = () => {
 
   return (
     <Box>
-      <Typography variant="h4" gutterBottom>
-        광고 관리
-      </Typography>
+      <PageHeader
+        title="광고 관리"
+        actions={
+          <>
+            <IconButton onClick={fetchAdvertisements}>
+              <RefreshIcon />
+            </IconButton>
+            <Button
+              variant="contained"
+              color="primary"
+              startIcon={<AddIcon />}
+              onClick={openCreateDialog}
+            >
+              광고 추가
+            </Button>
+          </>
+        }
+      />
 
       <Card sx={{ mb: 3 }}>
         <CardContent>
-          <Box display="flex" justifyContent="space-between" alignItems="center">
-            <Typography variant="h6">광고 목록</Typography>
-            <Box>
-              <IconButton onClick={fetchAdvertisements} sx={{ mr: 1 }}>
-                <RefreshIcon />
-              </IconButton>
-              <Button
-                variant="contained"
-                startIcon={<AddIcon />}
-                onClick={openCreateDialog}
-                sx={{ backgroundColor: '#C9B59C' }}
-              >
-                광고 추가
-              </Button>
-            </Box>
-          </Box>
-
           {loading ? (
-            <Box display="flex" justifyContent="center" py={4}>
-              <CircularProgress />
-            </Box>
+            <LoadingSkeleton variant="table" columns={8} />
+          ) : advertisements.length === 0 ? (
+            <EmptyState icon={<ImageIcon />} title="등록된 광고가 없습니다." />
           ) : (
             <>
-              <TableContainer component={Paper} sx={{ mt: 2 }}>
+              <ResponsiveTableContainer minWidth={900}>
                 <Table>
                   <TableHead>
                     <TableRow>
                       <TableCell>이미지</TableCell>
                       <TableCell>제목</TableCell>
                       <TableCell>위치</TableCell>
-                      <TableCell>우선순위</TableCell>
-                      <TableCell>클릭/노출</TableCell>
+                      <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>우선순위</TableCell>
+                      <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>클릭/노출</TableCell>
                       <TableCell>상태</TableCell>
-                      <TableCell>생성일</TableCell>
+                      <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>생성일</TableCell>
                       <TableCell>작업</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
                     {advertisements.map((advertisement) => {
                       const imageUrl = getImageUrl(advertisement.imageUrl);
-                      
+
                       return (
                         <TableRow key={advertisement.id}>
                           <TableCell>
@@ -424,7 +421,7 @@ const AdvertisementManagement: React.FC = () => {
                             <Typography variant="body2" fontWeight="bold">
                               {advertisement.title}
                             </Typography>
-                            <Typography variant="caption" color="textSecondary">
+                            <Typography variant="caption" color="text.secondary">
                               {advertisement.description}
                             </Typography>
                           </TableCell>
@@ -435,8 +432,8 @@ const AdvertisementManagement: React.FC = () => {
                               size="small"
                             />
                           </TableCell>
-                          <TableCell>{advertisement.priority}</TableCell>
-                          <TableCell>
+                          <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>{advertisement.priority}</TableCell>
+                          <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
                             {advertisement.clickCount} / {advertisement.viewCount}
                           </TableCell>
                           <TableCell>
@@ -446,8 +443,8 @@ const AdvertisementManagement: React.FC = () => {
                               color="primary"
                             />
                           </TableCell>
-                          <TableCell>
-                            {new Date(advertisement.createdAt).toLocaleDateString()}
+                          <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
+                            {formatDate(advertisement.createdAt)}
                           </TableCell>
                           <TableCell>
                             <IconButton
@@ -479,7 +476,7 @@ const AdvertisementManagement: React.FC = () => {
                     })}
                   </TableBody>
                 </Table>
-              </TableContainer>
+              </ResponsiveTableContainer>
 
               <TablePagination
                 rowsPerPageOptions={[5, 10, 25, 50]}

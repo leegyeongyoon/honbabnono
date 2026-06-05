@@ -8,10 +8,8 @@ import {
   Table,
   TableBody,
   TableCell,
-  TableContainer,
   TableHead,
   TableRow,
-  Paper,
   Chip,
   IconButton,
   Dialog,
@@ -28,7 +26,6 @@ import {
   TablePagination,
   Alert,
   Snackbar,
-  CircularProgress,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -36,8 +33,11 @@ import {
   Delete as DeleteIcon,
   VpnKey as KeyIcon,
   Refresh as RefreshIcon,
+  AdminPanelSettings as AdminPanelSettingsIcon,
 } from '@mui/icons-material';
 import apiClient from '../utils/api';
+import { formatDateTime } from '../utils/format';
+import { PageHeader, EmptyState, LoadingSkeleton, ResponsiveTableContainer } from './common';
 
 interface Admin {
   id: string;
@@ -315,10 +315,6 @@ const AdminManagement: React.FC = () => {
     setPasswordDialogOpen(true);
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString('ko-KR');
-  };
-
   const getRoleColor = (role: string) => {
     switch (role) {
       case 'super_admin':
@@ -343,39 +339,38 @@ const AdminManagement: React.FC = () => {
 
   return (
     <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h4" gutterBottom>
-          관리자 계정 관리
-        </Typography>
-        <Box>
-          <Button
-            startIcon={<RefreshIcon />}
-            onClick={loadAdmins}
-            sx={{ mr: 1 }}
-            disabled={loading}
-          >
-            새로고침
-          </Button>
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => setCreateDialogOpen(true)}
-            sx={{ backgroundColor: '#C9B59C' }}
-          >
-            관리자 추가
-          </Button>
-        </Box>
-      </Box>
+      <PageHeader
+        title="관리자 계정 관리"
+        actions={
+          <>
+            <Button
+              startIcon={<RefreshIcon />}
+              onClick={loadAdmins}
+              disabled={loading}
+            >
+              새로고침
+            </Button>
+            <Button
+              variant="contained"
+              color="primary"
+              startIcon={<AddIcon />}
+              onClick={() => setCreateDialogOpen(true)}
+            >
+              관리자 추가
+            </Button>
+          </>
+        }
+      />
 
       <Card>
         <CardContent>
           {loading ? (
-            <Box display="flex" justifyContent="center" p={4}>
-              <CircularProgress />
-            </Box>
+            <LoadingSkeleton variant="table" columns={7} />
+          ) : admins.length === 0 ? (
+            <EmptyState icon={<AdminPanelSettingsIcon />} title="등록된 관리자가 없습니다." />
           ) : (
             <>
-              <TableContainer component={Paper} elevation={0}>
+              <ResponsiveTableContainer minWidth={840}>
                 <Table>
                   <TableHead>
                     <TableRow>
@@ -383,8 +378,8 @@ const AdminManagement: React.FC = () => {
                       <TableCell>이메일</TableCell>
                       <TableCell>역할</TableCell>
                       <TableCell>상태</TableCell>
-                      <TableCell>마지막 로그인</TableCell>
-                      <TableCell>생성일</TableCell>
+                      <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>마지막 로그인</TableCell>
+                      <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>생성일</TableCell>
                       <TableCell>작업</TableCell>
                     </TableRow>
                   </TableHead>
@@ -407,10 +402,10 @@ const AdminManagement: React.FC = () => {
                             size="small"
                           />
                         </TableCell>
-                        <TableCell>
-                          {admin.last_login ? formatDate(admin.last_login) : '없음'}
+                        <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
+                          {admin.last_login ? formatDateTime(admin.last_login) : '없음'}
                         </TableCell>
-                        <TableCell>{formatDate(admin.created_at)}</TableCell>
+                        <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>{formatDateTime(admin.created_at)}</TableCell>
                         <TableCell>
                           <IconButton
                             size="small"
@@ -438,7 +433,7 @@ const AdminManagement: React.FC = () => {
                     ))}
                   </TableBody>
                 </Table>
-              </TableContainer>
+              </ResponsiveTableContainer>
 
               <TablePagination
                 component="div"

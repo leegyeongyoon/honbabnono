@@ -5,10 +5,8 @@ import {
   Table,
   TableBody,
   TableCell,
-  TableContainer,
   TableHead,
   TableRow,
-  Paper,
   Button,
   Chip,
   TextField,
@@ -54,6 +52,9 @@ import RemoveIcon from '@mui/icons-material/Remove';
 import DeleteIcon from '@mui/icons-material/Delete';
 import TimelineIcon from '@mui/icons-material/Timeline';
 import apiClient from '../utils/api';
+import { USER_STATUS } from '../theme';
+import { formatDate } from '../utils/format';
+import { PageHeader, EmptyState, StatusChip, ResponsiveTableContainer } from './common';
 
 interface User {
   id: string;
@@ -298,24 +299,6 @@ const UserManagement: React.FC = () => {
     await fetchUserDetails(user.id);
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'active': return 'success';
-      case 'blocked': return 'error';
-      case 'pending': return 'warning';
-      default: return 'default';
-    }
-  };
-
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'active': return '활성';
-      case 'blocked': return '차단';
-      case 'pending': return '대기';
-      default: return status;
-    }
-  };
-
   const getProviderText = (provider: string) => {
     switch (provider) {
       case 'kakao': return '카카오';
@@ -381,81 +364,81 @@ const UserManagement: React.FC = () => {
 
   return (
     <Box>
-      <Typography variant="h4" gutterBottom>
-        사용자 관리
-      </Typography>
+      <PageHeader
+        title="사용자 관리"
+        actions={
+          <TextField
+            size="small"
+            placeholder="사용자 검색..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon />
+                </InputAdornment>
+              ),
+            }}
+            sx={{ width: { xs: '100%', sm: 300 } }}
+          />
+        }
+      />
 
-      <Box sx={{ mb: 3 }}>
-        <TextField
-          placeholder="사용자 검색..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon />
-              </InputAdornment>
-            ),
-          }}
-          sx={{ width: 300 }}
-        />
-      </Box>
-
-      <TableContainer component={Paper}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell>이름</TableCell>
-              <TableCell>이메일</TableCell>
-              <TableCell>로그인 방식</TableCell>
-              <TableCell>인증 상태</TableCell>
-              <TableCell>계정 상태</TableCell>
-              <TableCell>가입일</TableCell>
-              <TableCell>최근 로그인</TableCell>
-              <TableCell>관리</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {filteredUsers.map((user) => (
-              <TableRow key={user.id}>
-                <TableCell>{user.name}</TableCell>
-                <TableCell>{user.email}</TableCell>
-                <TableCell>{getProviderText(user.provider)}</TableCell>
-                <TableCell>
-                  <Chip
-                    label={user.isVerified ? '인증됨' : '미인증'}
-                    color={user.isVerified ? 'success' : 'warning'}
-                    size="small"
-                    icon={user.isVerified ? <CheckCircleIcon /> : undefined}
-                  />
-                </TableCell>
-                <TableCell>
-                  <Chip
-                    label={getStatusText(user.status)}
-                    color={getStatusColor(user.status) as any}
-                    size="small"
-                  />
-                </TableCell>
-                <TableCell>
-                  {new Date(user.createdAt).toLocaleDateString()}
-                </TableCell>
-                <TableCell>
-                  {user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleDateString() : '-'}
-                </TableCell>
-                <TableCell>
-                  <IconButton
-                    size="small"
-                    onClick={() => handleViewDetails(user)}
-                    color="primary"
-                  >
-                    <VisibilityIcon />
-                  </IconButton>
-                </TableCell>
+      {filteredUsers.length === 0 ? (
+        <EmptyState icon={<GroupIcon />} title="사용자가 없습니다." />
+      ) : (
+        <ResponsiveTableContainer minWidth={900}>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>이름</TableCell>
+                <TableCell>이메일</TableCell>
+                <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>로그인 방식</TableCell>
+                <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>인증 상태</TableCell>
+                <TableCell>계정 상태</TableCell>
+                <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>가입일</TableCell>
+                <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>최근 로그인</TableCell>
+                <TableCell>관리</TableCell>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
+            </TableHead>
+            <TableBody>
+              {filteredUsers.map((user) => (
+                <TableRow key={user.id}>
+                  <TableCell>{user.name}</TableCell>
+                  <TableCell>{user.email}</TableCell>
+                  <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>{getProviderText(user.provider)}</TableCell>
+                  <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
+                    <Chip
+                      label={user.isVerified ? '인증됨' : '미인증'}
+                      color={user.isVerified ? 'success' : 'warning'}
+                      size="small"
+                      icon={user.isVerified ? <CheckCircleIcon /> : undefined}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <StatusChip status={user.status} map={USER_STATUS} />
+                  </TableCell>
+                  <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
+                    {formatDate(user.createdAt)}
+                  </TableCell>
+                  <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
+                    {user.lastLoginAt ? formatDate(user.lastLoginAt) : '-'}
+                  </TableCell>
+                  <TableCell>
+                    <IconButton
+                      size="small"
+                      onClick={() => handleViewDetails(user)}
+                      color="primary"
+                    >
+                      <VisibilityIcon />
+                    </IconButton>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </ResponsiveTableContainer>
+      )}
 
       {/* 사용자 상세 정보 다이얼로그 */}
       <Dialog 
@@ -563,7 +546,7 @@ const UserManagement: React.FC = () => {
                       ))}
                     </List>
                   ) : (
-                    <Alert severity="info">포인트 사용 내역이 없습니다.</Alert>
+                    <EmptyState icon={<AccountBalanceWalletIcon />} title="포인트 사용 내역이 없습니다." dense />
                   )}
                 </Box>
               )}
@@ -604,7 +587,7 @@ const UserManagement: React.FC = () => {
                       </Accordion>
                     ))
                   ) : (
-                    <Alert severity="info">작성한 리뷰가 없습니다.</Alert>
+                    <EmptyState icon={<StarIcon />} title="작성한 리뷰가 없습니다." dense />
                   )}
                 </Box>
               )}
@@ -630,7 +613,7 @@ const UserManagement: React.FC = () => {
                       ))}
                     </List>
                   ) : (
-                    <Alert severity="info">최근 활동이 없습니다.</Alert>
+                    <EmptyState icon={<TimelineIcon />} title="최근 활동이 없습니다." dense />
                   )}
                 </Box>
               )}

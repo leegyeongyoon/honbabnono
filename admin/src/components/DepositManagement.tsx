@@ -5,10 +5,8 @@ import {
   Table,
   TableBody,
   TableCell,
-  TableContainer,
   TableHead,
   TableRow,
-  Paper,
   Button,
   Chip,
   TextField,
@@ -19,15 +17,13 @@ import {
   DialogActions,
   Alert,
   Snackbar,
-  Card,
-  CardContent,
-  CircularProgress,
   Tab,
   Tabs,
   FormControl,
   InputLabel,
   Select,
   MenuItem,
+  Grid,
   TablePagination,
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
@@ -38,6 +34,8 @@ import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import RefundIcon from '@mui/icons-material/Undo';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import apiClient from '../utils/api';
+import { won, formatDate, formatDateTime } from '../utils/format';
+import { PageHeader, EmptyState, StatCard, LoadingSkeleton, ResponsiveTableContainer } from './common';
 
 interface Deposit {
   id: string;
@@ -230,73 +228,48 @@ const DepositManagement: React.FC = () => {
 
   return (
     <Box>
-      <Typography variant="h4" gutterBottom>
-        예치금 관리
-      </Typography>
+      <PageHeader title="예치금 관리" />
 
       {/* Stats Cards */}
       {depositStats && (
-        <Box sx={{
-          display: 'grid',
-          gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: 'repeat(4, 1fr)' },
-          gap: 2,
-          mb: 3,
-        }}>
-          <Card>
-            <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <AccountBalanceWalletIcon sx={{ fontSize: 40, color: '#C9B59C' }} />
-              <Box>
-                <Typography variant="body2" color="text.secondary">전체 예치금</Typography>
-                <Typography variant="h5" sx={{ fontWeight: 700 }}>{depositStats.total}</Typography>
-                <Typography variant="caption" color="text.secondary">
-                  대기 {depositStats.pending}건
-                </Typography>
-              </Box>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <PaidIcon sx={{ fontSize: 40, color: '#2E7D32' }} />
-              <Box>
-                <Typography variant="body2" color="text.secondary">결제 금액</Typography>
-                <Typography variant="h5" sx={{ fontWeight: 700 }}>
-                  ₩{depositStats.total_paid_amount.toLocaleString()}
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  {depositStats.paid}건
-                </Typography>
-              </Box>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <RefundIcon sx={{ fontSize: 40, color: '#0288D1' }} />
-              <Box>
-                <Typography variant="body2" color="text.secondary">환불 금액</Typography>
-                <Typography variant="h5" sx={{ fontWeight: 700 }}>
-                  ₩{depositStats.total_refunded_amount.toLocaleString()}
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  {depositStats.refunded}건
-                </Typography>
-              </Box>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <MoneyOffIcon sx={{ fontSize: 40, color: '#D32F2F' }} />
-              <Box>
-                <Typography variant="body2" color="text.secondary">몰수 금액</Typography>
-                <Typography variant="h5" sx={{ fontWeight: 700 }}>
-                  ₩{depositStats.total_forfeited_amount.toLocaleString()}
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  {depositStats.forfeited}건
-                </Typography>
-              </Box>
-            </CardContent>
-          </Card>
-        </Box>
+        <Grid container spacing={2} sx={{ mb: 3 }}>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <StatCard
+              label="전체 예치금"
+              value={depositStats.total}
+              icon={<AccountBalanceWalletIcon />}
+              color="primary"
+              subtitle={`대기 ${depositStats.pending}건`}
+            />
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <StatCard
+              label="결제 금액"
+              value={won(depositStats.total_paid_amount)}
+              icon={<PaidIcon />}
+              color="success"
+              subtitle={`${depositStats.paid}건`}
+            />
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <StatCard
+              label="환불 금액"
+              value={won(depositStats.total_refunded_amount)}
+              icon={<RefundIcon />}
+              color="info"
+              subtitle={`${depositStats.refunded}건`}
+            />
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <StatCard
+              label="몰수 금액"
+              value={won(depositStats.total_forfeited_amount)}
+              icon={<MoneyOffIcon />}
+              color="error"
+              subtitle={`${depositStats.forfeited}건`}
+            />
+          </Grid>
+        </Grid>
       )}
 
       {/* Tabs */}
@@ -325,7 +298,7 @@ const DepositManagement: React.FC = () => {
                   </InputAdornment>
                 ),
               }}
-              sx={{ width: 300 }}
+              sx={{ width: { xs: '100%', sm: 300 } }}
               size="small"
             />
             <FormControl size="small" sx={{ minWidth: 140 }}>
@@ -348,80 +321,71 @@ const DepositManagement: React.FC = () => {
           </Box>
 
           {loading ? (
-            <Box display="flex" justifyContent="center" p={4}>
-              <CircularProgress sx={{ color: '#C9B59C' }} />
-            </Box>
+            <LoadingSkeleton variant="table" columns={6} />
+          ) : deposits.length === 0 ? (
+            <EmptyState icon={<AccountBalanceWalletIcon />} title="예치금 내역이 없습니다." />
           ) : (
-            <TableContainer component={Paper}>
+            <ResponsiveTableContainer minWidth={780}>
               <Table>
                 <TableHead>
                   <TableRow>
                     <TableCell>사용자</TableCell>
-                    <TableCell>모임</TableCell>
+                    <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>모임</TableCell>
                     <TableCell align="right">금액</TableCell>
                     <TableCell>상태</TableCell>
-                    <TableCell>결제일</TableCell>
+                    <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>결제일</TableCell>
                     <TableCell>관리</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {deposits.length > 0 ? (
-                    deposits.map((deposit) => (
-                      <TableRow key={deposit.id} hover>
-                        <TableCell>
-                          <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                            {deposit.user_name}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            {deposit.user_email}
-                          </Typography>
-                        </TableCell>
-                        <TableCell>
-                          <Typography variant="body2" noWrap sx={{ maxWidth: 200 }}>
-                            {deposit.meetup_title}
-                          </Typography>
-                        </TableCell>
-                        <TableCell align="right">
-                          <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                            ₩{deposit.amount.toLocaleString()}
-                          </Typography>
-                        </TableCell>
-                        <TableCell>
-                          <Chip
-                            label={getStatusText(deposit.status)}
-                            color={getStatusColor(deposit.status)}
+                  {deposits.map((deposit) => (
+                    <TableRow key={deposit.id} hover>
+                      <TableCell>
+                        <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                          {deposit.user_name}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {deposit.user_email}
+                        </Typography>
+                      </TableCell>
+                      <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
+                        <Typography variant="body2" noWrap sx={{ maxWidth: 200 }}>
+                          {deposit.meetup_title}
+                        </Typography>
+                      </TableCell>
+                      <TableCell align="right">
+                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                          {won(deposit.amount)}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Chip
+                          label={getStatusText(deposit.status)}
+                          color={getStatusColor(deposit.status)}
+                          size="small"
+                        />
+                      </TableCell>
+                      <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
+                        {formatDate(deposit.created_at)}
+                      </TableCell>
+                      <TableCell>
+                        {deposit.status === 'paid' && (
+                          <Button
                             size="small"
-                          />
-                        </TableCell>
-                        <TableCell>
-                          {new Date(deposit.created_at).toLocaleDateString()}
-                        </TableCell>
-                        <TableCell>
-                          {deposit.status === 'paid' && (
-                            <Button
-                              size="small"
-                              variant="outlined"
-                              color="info"
-                              startIcon={<RefundIcon />}
-                              onClick={() => {
-                                setSelectedDeposit(deposit);
-                                setRefundDialogOpen(true);
-                              }}
-                              sx={{ textTransform: 'none' }}
-                            >
-                              환불
-                            </Button>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  ) : (
-                    <TableRow>
-                      <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
-                        <Typography color="text.secondary">예치금 내역이 없습니다.</Typography>
+                            variant="outlined"
+                            color="info"
+                            startIcon={<RefundIcon />}
+                            onClick={() => {
+                              setSelectedDeposit(deposit);
+                              setRefundDialogOpen(true);
+                            }}
+                          >
+                            환불
+                          </Button>
+                        )}
                       </TableCell>
                     </TableRow>
-                  )}
+                  ))}
                 </TableBody>
               </Table>
               <TablePagination
@@ -434,7 +398,7 @@ const DepositManagement: React.FC = () => {
                 rowsPerPageOptions={[10, 20, 50]}
                 labelRowsPerPage="페이지당 행:"
               />
-            </TableContainer>
+            </ResponsiveTableContainer>
           )}
         </>
       )}
@@ -443,104 +407,71 @@ const DepositManagement: React.FC = () => {
       {tabValue === 1 && (
         <>
           {revenueStats && (
-            <Box sx={{
-              display: 'grid',
-              gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: 'repeat(4, 1fr)' },
-              gap: 2,
-              mb: 3,
-            }}>
-              <Card>
-                <CardContent>
-                  <Typography variant="body2" color="text.secondary">총 수익</Typography>
-                  <Typography variant="h5" sx={{ fontWeight: 700 }}>
-                    ₩{revenueStats.total_revenue.toLocaleString()}
-                  </Typography>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent>
-                  <Typography variant="body2" color="text.secondary">노쇼 수익</Typography>
-                  <Typography variant="h5" sx={{ fontWeight: 700, color: '#D32F2F' }}>
-                    ₩{revenueStats.noshow_revenue.toLocaleString()}
-                  </Typography>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent>
-                  <Typography variant="body2" color="text.secondary">취소 수익</Typography>
-                  <Typography variant="h5" sx={{ fontWeight: 700, color: '#ED6C02' }}>
-                    ₩{revenueStats.cancel_revenue.toLocaleString()}
-                  </Typography>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent>
-                  <Typography variant="body2" color="text.secondary">서비스 수익</Typography>
-                  <Typography variant="h5" sx={{ fontWeight: 700, color: '#2E7D32' }}>
-                    ₩{revenueStats.service_revenue.toLocaleString()}
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Box>
+            <Grid container spacing={2} sx={{ mb: 3 }}>
+              <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                <StatCard label="총 수익" value={won(revenueStats.total_revenue)} icon={<ReceiptLongIcon />} color="primary" />
+              </Grid>
+              <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                <StatCard label="노쇼 수익" value={won(revenueStats.noshow_revenue)} icon={<MoneyOffIcon />} color="error" />
+              </Grid>
+              <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                <StatCard label="취소 수익" value={won(revenueStats.cancel_revenue)} icon={<MoneyOffIcon />} color="warning" />
+              </Grid>
+              <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                <StatCard label="서비스 수익" value={won(revenueStats.service_revenue)} icon={<PaidIcon />} color="success" />
+              </Grid>
+            </Grid>
           )}
 
-          <TableContainer component={Paper}>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>유형</TableCell>
-                  <TableCell>설명</TableCell>
-                  <TableCell align="right">금액</TableCell>
-                  <TableCell>일시</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {revenues.length > 0 ? (
-                  revenues.map((revenue) => (
+          {revenues.length === 0 ? (
+            <EmptyState icon={<ReceiptLongIcon />} title="수익 내역이 없습니다." />
+          ) : (
+            <ResponsiveTableContainer minWidth={720}>
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>유형</TableCell>
+                    <TableCell>설명</TableCell>
+                    <TableCell align="right">금액</TableCell>
+                    <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>일시</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {revenues.map((revenue) => (
                     <TableRow key={revenue.id} hover>
                       <TableCell>
                         <Chip
                           label={getRevenueTypeText(revenue.type)}
                           size="small"
-                          sx={{
-                            backgroundColor: revenue.type === 'noshow' ? '#FFEBEE' :
-                              revenue.type === 'cancel' ? '#FFF3E0' : '#E8F5E9',
-                            color: revenue.type === 'noshow' ? '#D32F2F' :
-                              revenue.type === 'cancel' ? '#ED6C02' : '#2E7D32',
-                          }}
+                          color={revenue.type === 'noshow' ? 'error' : revenue.type === 'cancel' ? 'warning' : 'success'}
+                          variant="outlined"
                         />
                       </TableCell>
                       <TableCell>{revenue.description}</TableCell>
                       <TableCell align="right">
                         <Typography sx={{ fontWeight: 600 }}>
-                          ₩{revenue.amount.toLocaleString()}
+                          {won(revenue.amount)}
                         </Typography>
                       </TableCell>
-                      <TableCell>
-                        {new Date(revenue.created_at).toLocaleString()}
+                      <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
+                        {formatDateTime(revenue.created_at)}
                       </TableCell>
                     </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={4} align="center" sx={{ py: 4 }}>
-                      <Typography color="text.secondary">수익 내역이 없습니다.</Typography>
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-            <TablePagination
-              component="div"
-              count={revenuePagination.total}
-              page={revenuePagination.page - 1}
-              rowsPerPage={revenuePagination.limit}
-              onPageChange={(_, newPage) => setRevenuePagination(prev => ({ ...prev, page: newPage + 1 }))}
-              onRowsPerPageChange={(e) => setRevenuePagination(prev => ({ ...prev, limit: parseInt(e.target.value, 10), page: 1 }))}
-              rowsPerPageOptions={[10, 20, 50]}
-              labelRowsPerPage="페이지당 행:"
-            />
-          </TableContainer>
+                  ))}
+                </TableBody>
+              </Table>
+              <TablePagination
+                component="div"
+                count={revenuePagination.total}
+                page={revenuePagination.page - 1}
+                rowsPerPage={revenuePagination.limit}
+                onPageChange={(_, newPage) => setRevenuePagination(prev => ({ ...prev, page: newPage + 1 }))}
+                onRowsPerPageChange={(e) => setRevenuePagination(prev => ({ ...prev, limit: parseInt(e.target.value, 10), page: 1 }))}
+                rowsPerPageOptions={[10, 20, 50]}
+                labelRowsPerPage="페이지당 행:"
+              />
+            </ResponsiveTableContainer>
+          )}
         </>
       )}
 
@@ -548,7 +479,7 @@ const DepositManagement: React.FC = () => {
       <Dialog open={refundDialogOpen} onClose={() => setRefundDialogOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle>
           <Box display="flex" alignItems="center" gap={1}>
-            <WarningAmberIcon sx={{ color: '#ED6C02' }} />
+            <WarningAmberIcon sx={{ color: 'warning.main' }} />
             환불 확인
           </Box>
         </DialogTitle>
@@ -564,8 +495,8 @@ const DepositManagement: React.FC = () => {
                 <Typography variant="body2" color="text.secondary">모임:</Typography>
                 <Typography variant="body2" sx={{ fontWeight: 500 }}>{selectedDeposit.meetup_title}</Typography>
                 <Typography variant="body2" color="text.secondary">환불 금액:</Typography>
-                <Typography variant="body2" sx={{ fontWeight: 700, color: '#D32F2F' }}>
-                  ₩{selectedDeposit.amount.toLocaleString()}
+                <Typography variant="body2" sx={{ fontWeight: 700, color: 'error.main' }}>
+                  {won(selectedDeposit.amount)}
                 </Typography>
               </Box>
             </Box>
@@ -576,10 +507,7 @@ const DepositManagement: React.FC = () => {
           <Button
             onClick={handleRefund}
             variant="contained"
-            sx={{
-              backgroundColor: '#C9B59C',
-              '&:hover': { backgroundColor: '#A08B7A' },
-            }}
+            color="primary"
           >
             환불 처리
           </Button>

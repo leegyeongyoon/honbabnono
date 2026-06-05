@@ -5,10 +5,8 @@ import {
   Table,
   TableBody,
   TableCell,
-  TableContainer,
   TableHead,
   TableRow,
-  Paper,
   Button,
   Chip,
   TextField,
@@ -20,7 +18,7 @@ import {
   Snackbar,
   Card,
   CardContent,
-  CircularProgress,
+  Grid,
   FormControlLabel,
   Switch,
   IconButton,
@@ -39,6 +37,8 @@ import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import ThumbUpIcon from '@mui/icons-material/ThumbUp';
 import ThumbDownIcon from '@mui/icons-material/ThumbDown';
 import apiClient from '../utils/api';
+import { formatDate } from '../utils/format';
+import { PageHeader, EmptyState, StatCard, LoadingSkeleton, ResponsiveTableContainer } from './common';
 
 interface Review {
   id: string;
@@ -188,72 +188,41 @@ const ReviewManagement: React.FC = () => {
   };
 
   const getRatingColor = (rating: number): string => {
-    if (rating >= 4) return '#4CAF50';
-    if (rating >= 3) return '#FF9800';
-    return '#D32F2F';
+    if (rating >= 4) return 'success.main';
+    if (rating >= 3) return 'warning.main';
+    return 'error.main';
   };
 
   return (
     <Box>
-      <Typography variant="h4" gutterBottom>
-        리뷰 관리
-      </Typography>
+      <PageHeader title="리뷰 관리" />
 
       {/* Stats Cards */}
       {stats && (
-        <Box sx={{
-          display: 'grid',
-          gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr 1fr', md: 'repeat(6, 1fr)' },
-          gap: 2,
-          mb: 3,
-        }}>
-          <Card>
-            <CardContent sx={{ textAlign: 'center' }}>
-              <RateReviewIcon sx={{ fontSize: 32, color: '#C9B59C', mb: 0.5 }} />
-              <Typography variant="h5" sx={{ fontWeight: 700 }}>{stats.total}</Typography>
-              <Typography variant="caption" color="text.secondary">전체 리뷰</Typography>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent sx={{ textAlign: 'center' }}>
-              <StarIcon sx={{ fontSize: 32, color: '#FFD700', mb: 0.5 }} />
-              <Typography variant="h5" sx={{ fontWeight: 700 }}>{Number(stats.avg_rating || 0).toFixed(1)}</Typography>
-              <Typography variant="caption" color="text.secondary">평균 평점</Typography>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent sx={{ textAlign: 'center' }}>
-              <VisibilityOffIcon sx={{ fontSize: 32, color: '#757575', mb: 0.5 }} />
-              <Typography variant="h5" sx={{ fontWeight: 700 }}>{stats.hidden_count}</Typography>
-              <Typography variant="caption" color="text.secondary">숨김 리뷰</Typography>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent sx={{ textAlign: 'center' }}>
-              <TodayIcon sx={{ fontSize: 32, color: '#2196F3', mb: 0.5 }} />
-              <Typography variant="h5" sx={{ fontWeight: 700 }}>{stats.today_count}</Typography>
-              <Typography variant="caption" color="text.secondary">오늘 리뷰</Typography>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent sx={{ textAlign: 'center' }}>
-              <ThumbUpIcon sx={{ fontSize: 32, color: '#4CAF50', mb: 0.5 }} />
-              <Typography variant="h5" sx={{ fontWeight: 700 }}>{stats.positive_count}</Typography>
-              <Typography variant="caption" color="text.secondary">긍정 리뷰</Typography>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent sx={{ textAlign: 'center' }}>
-              <ThumbDownIcon sx={{ fontSize: 32, color: '#D32F2F', mb: 0.5 }} />
-              <Typography variant="h5" sx={{ fontWeight: 700 }}>{stats.negative_count}</Typography>
-              <Typography variant="caption" color="text.secondary">부정 리뷰</Typography>
-            </CardContent>
-          </Card>
-        </Box>
+        <Grid container spacing={2} sx={{ mb: 3 }}>
+          <Grid size={{ xs: 6, sm: 4, md: 2 }}>
+            <StatCard label="전체 리뷰" value={stats.total} icon={<RateReviewIcon />} color="primary" />
+          </Grid>
+          <Grid size={{ xs: 6, sm: 4, md: 2 }}>
+            <StatCard label="평균 평점" value={Number(stats.avg_rating || 0).toFixed(1)} icon={<StarIcon />} color="warning" />
+          </Grid>
+          <Grid size={{ xs: 6, sm: 4, md: 2 }}>
+            <StatCard label="숨김 리뷰" value={stats.hidden_count} icon={<VisibilityOffIcon />} color="secondary" />
+          </Grid>
+          <Grid size={{ xs: 6, sm: 4, md: 2 }}>
+            <StatCard label="오늘 리뷰" value={stats.today_count} icon={<TodayIcon />} color="info" />
+          </Grid>
+          <Grid size={{ xs: 6, sm: 4, md: 2 }}>
+            <StatCard label="긍정 리뷰" value={stats.positive_count} icon={<ThumbUpIcon />} color="success" />
+          </Grid>
+          <Grid size={{ xs: 6, sm: 4, md: 2 }}>
+            <StatCard label="부정 리뷰" value={stats.negative_count} icon={<ThumbDownIcon />} color="error" />
+          </Grid>
+        </Grid>
       )}
 
       {/* Filters */}
-      <Box sx={{ display: 'flex', gap: 2, mb: 3, alignItems: 'center' }}>
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 3, alignItems: 'center' }}>
         <FormControlLabel
           control={
             <Switch
@@ -261,10 +230,6 @@ const ReviewManagement: React.FC = () => {
               onChange={(e) => {
                 setShowReported(e.target.checked);
                 setPagination(prev => ({ ...prev, page: 1 }));
-              }}
-              sx={{
-                '& .MuiSwitch-switchBase.Mui-checked': { color: '#C9B59C' },
-                '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { backgroundColor: '#C9B59C' },
               }}
             />
           }
@@ -278,10 +243,6 @@ const ReviewManagement: React.FC = () => {
                 setShowHidden(e.target.checked);
                 setPagination(prev => ({ ...prev, page: 1 }));
               }}
-              sx={{
-                '& .MuiSwitch-switchBase.Mui-checked': { color: '#C9B59C' },
-                '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { backgroundColor: '#C9B59C' },
-              }}
             />
           }
           label="숨김 리뷰만"
@@ -290,147 +251,136 @@ const ReviewManagement: React.FC = () => {
 
       {/* Review List */}
       {loading ? (
-        <Box display="flex" justifyContent="center" p={4}>
-          <CircularProgress sx={{ color: '#C9B59C' }} />
-        </Box>
+        <LoadingSkeleton variant="table" columns={7} />
+      ) : reviews.length === 0 ? (
+        <EmptyState icon={<RateReviewIcon />} title="리뷰가 없습니다." />
       ) : (
-        <TableContainer component={Paper}>
+        <ResponsiveTableContainer minWidth={900}>
           <Table>
             <TableHead>
               <TableRow>
                 <TableCell>작성자</TableCell>
-                <TableCell>모임</TableCell>
+                <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>모임</TableCell>
                 <TableCell>평점</TableCell>
-                <TableCell>내용</TableCell>
+                <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>내용</TableCell>
                 <TableCell>상태</TableCell>
-                <TableCell>작성일</TableCell>
+                <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>작성일</TableCell>
                 <TableCell>관리</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {reviews.length > 0 ? (
-                reviews.map((review) => (
-                  <TableRow
-                    key={review.id}
-                    hover
-                    sx={{
-                      opacity: review.is_hidden ? 0.6 : 1,
-                      backgroundColor: review.is_reported ? '#FFF3E010' : undefined,
-                    }}
-                  >
-                    <TableCell>
-                      <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                        {review.reviewer_name}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2" noWrap sx={{ maxWidth: 180 }}>
-                        {review.meetup_title}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Box display="flex" alignItems="center" gap={0.5}>
-                        <Rating value={review.rating} readOnly size="small" />
-                        <Typography
-                          variant="body2"
-                          sx={{ fontWeight: 600, color: getRatingColor(review.rating) }}
-                        >
-                          {Number(review.rating || 0).toFixed(1)}
-                        </Typography>
-                      </Box>
-                    </TableCell>
-                    <TableCell>
+              {reviews.map((review) => (
+                <TableRow
+                  key={review.id}
+                  hover
+                  sx={{ opacity: review.is_hidden ? 0.6 : 1 }}
+                >
+                  <TableCell>
+                    <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                      {review.reviewer_name}
+                    </Typography>
+                  </TableCell>
+                  <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
+                    <Typography variant="body2" noWrap sx={{ maxWidth: 180 }}>
+                      {review.meetup_title}
+                    </Typography>
+                  </TableCell>
+                  <TableCell>
+                    <Box display="flex" alignItems="center" gap={0.5}>
+                      <Rating value={review.rating} readOnly size="small" />
                       <Typography
                         variant="body2"
-                        noWrap
-                        sx={{ maxWidth: 250 }}
-                        title={review.comment}
+                        sx={{ fontWeight: 600, color: getRatingColor(review.rating) }}
                       >
-                        {review.comment}
+                        {Number(review.rating || 0).toFixed(1)}
                       </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Box display="flex" gap={0.5} flexWrap="wrap">
-                        {review.is_reported && (
-                          <Chip
-                            icon={<ReportIcon />}
-                            label="신고됨"
-                            size="small"
-                            color="warning"
-                            variant="outlined"
-                          />
-                        )}
-                        {review.is_hidden && (
-                          <Chip
-                            icon={<VisibilityOffIcon />}
-                            label="숨김"
-                            size="small"
-                            color="default"
-                          />
-                        )}
-                        {!review.is_reported && !review.is_hidden && (
-                          <Chip
-                            label="정상"
-                            size="small"
-                            color="success"
-                            variant="outlined"
-                          />
-                        )}
-                      </Box>
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2">
-                        {new Date(review.created_at).toLocaleDateString()}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Box display="flex" gap={0.5}>
-                        {review.is_hidden ? (
-                          <Tooltip title="복원">
-                            <IconButton
-                              size="small"
-                              color="success"
-                              onClick={() => handleRestoreReview(review.id)}
-                            >
-                              <RestoreIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                        ) : (
-                          <Tooltip title="숨기기">
-                            <IconButton
-                              size="small"
-                              onClick={() => {
-                                setSelectedReview(review);
-                                setHideDialogOpen(true);
-                              }}
-                            >
-                              <VisibilityOffIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                        )}
-                        <Tooltip title="삭제">
+                    </Box>
+                  </TableCell>
+                  <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
+                    <Typography
+                      variant="body2"
+                      noWrap
+                      sx={{ maxWidth: 250 }}
+                      title={review.comment}
+                    >
+                      {review.comment}
+                    </Typography>
+                  </TableCell>
+                  <TableCell>
+                    <Box display="flex" gap={0.5} flexWrap="wrap">
+                      {review.is_reported && (
+                        <Chip
+                          icon={<ReportIcon />}
+                          label="신고됨"
+                          size="small"
+                          color="warning"
+                          variant="outlined"
+                        />
+                      )}
+                      {review.is_hidden && (
+                        <Chip
+                          icon={<VisibilityOffIcon />}
+                          label="숨김"
+                          size="small"
+                          color="default"
+                        />
+                      )}
+                      {!review.is_reported && !review.is_hidden && (
+                        <Chip
+                          label="정상"
+                          size="small"
+                          color="success"
+                          variant="outlined"
+                        />
+                      )}
+                    </Box>
+                  </TableCell>
+                  <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
+                    <Typography variant="body2">
+                      {formatDate(review.created_at)}
+                    </Typography>
+                  </TableCell>
+                  <TableCell>
+                    <Box display="flex" gap={0.5}>
+                      {review.is_hidden ? (
+                        <Tooltip title="복원">
                           <IconButton
                             size="small"
-                            color="error"
-                            onClick={() => {
-                              setSelectedReview(review);
-                              setDeleteDialogOpen(true);
-                            }}
+                            color="success"
+                            onClick={() => handleRestoreReview(review.id)}
                           >
-                            <DeleteIcon fontSize="small" />
+                            <RestoreIcon fontSize="small" />
                           </IconButton>
                         </Tooltip>
-                      </Box>
-                    </TableCell>
-                  </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
-                    <Typography color="text.secondary">리뷰가 없습니다.</Typography>
+                      ) : (
+                        <Tooltip title="숨기기">
+                          <IconButton
+                            size="small"
+                            onClick={() => {
+                              setSelectedReview(review);
+                              setHideDialogOpen(true);
+                            }}
+                          >
+                            <VisibilityOffIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      )}
+                      <Tooltip title="삭제">
+                        <IconButton
+                          size="small"
+                          color="error"
+                          onClick={() => {
+                            setSelectedReview(review);
+                            setDeleteDialogOpen(true);
+                          }}
+                        >
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                    </Box>
                   </TableCell>
                 </TableRow>
-              )}
+              ))}
             </TableBody>
           </Table>
           <TablePagination
@@ -443,21 +393,21 @@ const ReviewManagement: React.FC = () => {
             rowsPerPageOptions={[10, 20, 50]}
             labelRowsPerPage="페이지당 행:"
           />
-        </TableContainer>
+        </ResponsiveTableContainer>
       )}
 
       {/* Hide Review Dialog */}
       <Dialog open={hideDialogOpen} onClose={() => setHideDialogOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle>
           <Box display="flex" alignItems="center" gap={1}>
-            <VisibilityOffIcon sx={{ color: '#757575' }} />
+            <VisibilityOffIcon sx={{ color: 'text.secondary' }} />
             리뷰 숨기기
           </Box>
         </DialogTitle>
         <DialogContent>
           {selectedReview && (
             <Box sx={{ pt: 1 }}>
-              <Card sx={{ mb: 2, bgcolor: '#F9F8F6' }}>
+              <Card sx={{ mb: 2, bgcolor: 'background.default' }}>
                 <CardContent>
                   <Box display="flex" alignItems="center" gap={1} mb={1}>
                     <Typography variant="body2" sx={{ fontWeight: 500 }}>
@@ -493,11 +443,8 @@ const ReviewManagement: React.FC = () => {
           <Button
             onClick={handleHideReview}
             variant="contained"
+            color="primary"
             disabled={!hideReason}
-            sx={{
-              backgroundColor: '#C9B59C',
-              '&:hover': { backgroundColor: '#A08B7A' },
-            }}
           >
             숨기기
           </Button>
@@ -508,7 +455,7 @@ const ReviewManagement: React.FC = () => {
       <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)} maxWidth="xs" fullWidth>
         <DialogTitle>
           <Box display="flex" alignItems="center" gap={1}>
-            <WarningAmberIcon sx={{ color: '#D32F2F' }} />
+            <WarningAmberIcon sx={{ color: 'error.main' }} />
             리뷰 삭제
           </Box>
         </DialogTitle>

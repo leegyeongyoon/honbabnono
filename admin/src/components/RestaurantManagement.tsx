@@ -5,18 +5,13 @@ import {
   Table,
   TableBody,
   TableCell,
-  TableContainer,
   TableHead,
   TableRow,
-  Paper,
   TextField,
   InputAdornment,
   Switch,
   Chip,
-  Card,
-  CardContent,
   Grid,
-  CircularProgress,
   Alert,
   Snackbar,
   FormControl,
@@ -29,6 +24,8 @@ import StoreIcon from '@mui/icons-material/Store';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
 import apiClient from '../utils/api';
+import { formatDate } from '../utils/format';
+import { PageHeader, EmptyState, StatCard, LoadingSkeleton, ResponsiveTableContainer } from './common';
 
 interface Restaurant {
   id: string;
@@ -103,55 +100,29 @@ const RestaurantManagement: React.FC = () => {
 
   return (
     <Box>
-      <Typography variant="h4" gutterBottom>
-        매장 관리
-      </Typography>
+      <PageHeader title="매장 관리" />
 
       {/* 통계 카드 */}
       <Grid container spacing={2} sx={{ mb: 3 }}>
         <Grid size={{ xs: 12, sm: 4 }}>
-          <Card>
-            <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <StoreIcon sx={{ fontSize: 40, color: '#C9B59C' }} />
-              <Box>
-                <Typography variant="body2" color="text.secondary">전체 매장</Typography>
-                <Typography variant="h5" sx={{ fontWeight: 700 }}>{restaurants.length}</Typography>
-              </Box>
-            </CardContent>
-          </Card>
+          <StatCard label="전체 매장" value={restaurants.length} icon={<StoreIcon />} color="primary" />
         </Grid>
         <Grid size={{ xs: 12, sm: 4 }}>
-          <Card>
-            <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <CheckCircleIcon sx={{ fontSize: 40, color: '#2E7D4F' }} />
-              <Box>
-                <Typography variant="body2" color="text.secondary">활성 매장</Typography>
-                <Typography variant="h5" sx={{ fontWeight: 700, color: '#2E7D4F' }}>{activeCount}</Typography>
-              </Box>
-            </CardContent>
-          </Card>
+          <StatCard label="활성 매장" value={activeCount} icon={<CheckCircleIcon />} color="success" />
         </Grid>
         <Grid size={{ xs: 12, sm: 4 }}>
-          <Card>
-            <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <CancelIcon sx={{ fontSize: 40, color: '#D32F2F' }} />
-              <Box>
-                <Typography variant="body2" color="text.secondary">비활성 매장</Typography>
-                <Typography variant="h5" sx={{ fontWeight: 700, color: '#D32F2F' }}>{inactiveCount}</Typography>
-              </Box>
-            </CardContent>
-          </Card>
+          <StatCard label="비활성 매장" value={inactiveCount} icon={<CancelIcon />} color="error" />
         </Grid>
       </Grid>
 
       {/* 검색/필터 */}
-      <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 3 }}>
         <TextField
           placeholder="매장명, 점주명, 주소 검색"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           size="small"
-          sx={{ flex: 1, maxWidth: 400 }}
+          sx={{ width: { xs: '100%', sm: 360 } }}
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
@@ -178,66 +149,56 @@ const RestaurantManagement: React.FC = () => {
 
       {/* 테이블 */}
       {loading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 5 }}>
-          <CircularProgress />
-        </Box>
+        <LoadingSkeleton variant="table" columns={7} />
+      ) : filteredRestaurants.length === 0 ? (
+        <EmptyState icon={<StoreIcon />} title="매장 데이터가 없습니다." />
       ) : (
-        <TableContainer component={Paper}>
+        <ResponsiveTableContainer minWidth={840}>
           <Table>
             <TableHead>
-              <TableRow sx={{ backgroundColor: '#F9F8F6' }}>
-                <TableCell sx={{ fontWeight: 600 }}>매장명</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>카테고리</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>주소</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>점주명</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>활성상태</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>등록일</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>활성/비활성</TableCell>
+              <TableRow>
+                <TableCell>매장명</TableCell>
+                <TableCell>카테고리</TableCell>
+                <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>주소</TableCell>
+                <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>점주명</TableCell>
+                <TableCell>활성상태</TableCell>
+                <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>등록일</TableCell>
+                <TableCell>활성/비활성</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {filteredRestaurants.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
-                    <Typography color="text.secondary">매장 데이터가 없습니다.</Typography>
+              {filteredRestaurants.map((restaurant) => (
+                <TableRow key={restaurant.id} hover>
+                  <TableCell>{restaurant.name}</TableCell>
+                  <TableCell>
+                    <Chip label={restaurant.category || '-'} size="small" variant="outlined" />
+                  </TableCell>
+                  <TableCell sx={{ display: { xs: 'none', md: 'table-cell' }, maxWidth: 250, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {restaurant.address || '-'}
+                  </TableCell>
+                  <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>{restaurant.owner_name || '-'}</TableCell>
+                  <TableCell>
+                    <Chip
+                      label={restaurant.is_active ? '활성' : '비활성'}
+                      size="small"
+                      color={restaurant.is_active ? 'success' : 'error'}
+                    />
+                  </TableCell>
+                  <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
+                    {formatDate(restaurant.created_at)}
+                  </TableCell>
+                  <TableCell>
+                    <Switch
+                      checked={restaurant.is_active}
+                      onChange={() => handleToggleActive(restaurant)}
+                      color="success"
+                    />
                   </TableCell>
                 </TableRow>
-              ) : (
-                filteredRestaurants.map((restaurant) => (
-                  <TableRow key={restaurant.id} hover>
-                    <TableCell>{restaurant.name}</TableCell>
-                    <TableCell>
-                      <Chip label={restaurant.category || '-'} size="small" variant="outlined" />
-                    </TableCell>
-                    <TableCell sx={{ maxWidth: 250, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {restaurant.address || '-'}
-                    </TableCell>
-                    <TableCell>{restaurant.owner_name || '-'}</TableCell>
-                    <TableCell>
-                      <Chip
-                        label={restaurant.is_active ? '활성' : '비활성'}
-                        size="small"
-                        color={restaurant.is_active ? 'success' : 'error'}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      {restaurant.created_at
-                        ? new Date(restaurant.created_at).toLocaleDateString('ko-KR')
-                        : '-'}
-                    </TableCell>
-                    <TableCell>
-                      <Switch
-                        checked={restaurant.is_active}
-                        onChange={() => handleToggleActive(restaurant)}
-                        color="success"
-                      />
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
+              ))}
             </TableBody>
           </Table>
-        </TableContainer>
+        </ResponsiveTableContainer>
       )}
 
       <Snackbar
