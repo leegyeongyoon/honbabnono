@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
-import { ThemeProvider, createTheme } from '@mui/material/styles';
+import { ThemeProvider } from '@mui/material/styles';
+import useMediaQuery from '@mui/material/useMediaQuery';
+import IconButton from '@mui/material/IconButton';
+import MenuIcon from '@mui/icons-material/Menu';
 import CssBaseline from '@mui/material/CssBaseline';
 import Box from '@mui/material/Box';
 import AppBar from '@mui/material/AppBar';
@@ -14,6 +17,7 @@ import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
 import Button from '@mui/material/Button';
 import Divider from '@mui/material/Divider';
+import theme from './theme';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import EventIcon from '@mui/icons-material/Event';
 import RestaurantMenuIcon from '@mui/icons-material/RestaurantMenu';
@@ -38,37 +42,6 @@ import SettlementHistory from './components/SettlementHistory';
 import ReviewManagement from './components/ReviewManagement';
 import ChatInbox from './components/ChatInbox';
 import MerchantSettings from './components/MerchantSettings';
-
-const theme = createTheme({
-  palette: {
-    primary: {
-      main: '#C4A08A',
-      light: '#FAF6F3',
-      dark: '#A88068',
-    },
-    secondary: {
-      main: '#A88068',
-    },
-    background: {
-      default: '#FAF6F3',
-      paper: '#FFFFFF',
-    },
-    text: {
-      primary: '#333333',
-      secondary: '#666666',
-    },
-  },
-  typography: {
-    h4: {
-      fontWeight: 700,
-      color: '#333333',
-    },
-    h6: {
-      fontWeight: 600,
-      color: '#333333',
-    },
-  },
-});
 
 const drawerWidth = 240;
 
@@ -100,101 +73,118 @@ function PlaceholderPage({ title }: { title: string }) {
 function AppContent({ merchantData, onLogout }: { merchantData: any; onLogout: () => void }) {
   const navigate = useNavigate();
   const location = useLocation();
+  const isDesktop = useMediaQuery(theme.breakpoints.up('md'));
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  const drawerContent = (
+    <>
+      <Toolbar sx={{ justifyContent: 'center' }}>
+        <Typography variant="h6" sx={{ fontWeight: 800, color: 'custom.brand', letterSpacing: '-0.02em' }}>
+          잇테이블
+          <Typography component="span" variant="caption" sx={{ ml: 0.75, color: 'text.disabled', fontWeight: 600 }}>
+            점주
+          </Typography>
+        </Typography>
+      </Toolbar>
+      <Divider />
+      <List sx={{ px: 1, py: 1 }}>
+        {menuItems.map((item) => {
+          const active = location.pathname === item.path;
+          return (
+            <ListItem key={item.path} disablePadding sx={{ mb: 0.5 }}>
+              <ListItemButton
+                selected={active}
+                onClick={() => { navigate(item.path); if (!isDesktop) setMobileOpen(false); }}
+                sx={{
+                  borderRadius: 2,
+                  '&.Mui-selected': {
+                    backgroundColor: 'custom.brandSoft',
+                    '&:hover': { backgroundColor: 'custom.brandSoft' },
+                  },
+                  '&:hover': { backgroundColor: 'action.hover' },
+                }}
+              >
+                <ListItemIcon sx={{ minWidth: 40, color: active ? 'custom.brand' : 'text.disabled' }}>
+                  {item.icon}
+                </ListItemIcon>
+                <ListItemText
+                  primary={item.text}
+                  primaryTypographyProps={{
+                    fontWeight: active ? 700 : 500,
+                    color: active ? 'primary.dark' : 'text.primary',
+                    fontSize: '0.9rem',
+                  }}
+                />
+              </ListItemButton>
+            </ListItem>
+          );
+        })}
+      </List>
+    </>
+  );
 
   return (
     <Box sx={{ display: 'flex' }}>
       <AppBar
         position="fixed"
+        elevation={0}
         sx={{
-          width: `calc(100% - ${drawerWidth}px)`,
-          ml: `${drawerWidth}px`,
-          backgroundColor: '#C4A08A',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+          width: { md: `calc(100% - ${drawerWidth}px)` },
+          ml: { md: `${drawerWidth}px` },
+          backgroundColor: 'custom.brand',
+          borderBottom: '1px solid rgba(17,17,17,0.06)',
         }}
       >
         <Toolbar>
-          <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1, color: '#FFFFFF' }}>
-            잇테이블 점주 대시보드
+          {!isDesktop && (
+            <IconButton color="inherit" edge="start" onClick={() => setMobileOpen(true)} sx={{ mr: 1 }}>
+              <MenuIcon />
+            </IconButton>
+          )}
+          <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1, color: '#FFFFFF', fontWeight: 700 }}>
+            점주 대시보드
           </Typography>
-          <Typography variant="body2" sx={{ mr: 2, color: '#FFFFFF' }}>
+          <Typography variant="body2" sx={{ mr: 2, color: 'rgba(255,255,255,0.92)', display: { xs: 'none', sm: 'block' } }}>
             {merchantData?.business_name || merchantData?.username || '점주'}님
           </Typography>
           <Button
             color="inherit"
             onClick={onLogout}
             startIcon={<LogoutIcon />}
-            sx={{
-              '&:hover': {
-                backgroundColor: 'rgba(255, 255, 255, 0.15)',
-              },
-            }}
+            sx={{ '&:hover': { backgroundColor: 'rgba(255, 255, 255, 0.15)' } }}
           >
             로그아웃
           </Button>
         </Toolbar>
       </AppBar>
 
-      <Drawer
-        variant="permanent"
-        sx={{
-          width: drawerWidth,
-          flexShrink: 0,
-          '& .MuiDrawer-paper': {
-            width: drawerWidth,
-            boxSizing: 'border-box',
-            borderRight: '1px solid rgba(0,0,0,0.06)',
-          },
-        }}
-      >
-        <Toolbar sx={{ justifyContent: 'center' }}>
-          <Typography variant="h6" sx={{ fontWeight: 700, color: '#C4A08A' }}>
-            잇테이블
-          </Typography>
-        </Toolbar>
-        <Divider />
-        <List>
-          {menuItems.map((item) => (
-            <ListItem key={item.path} disablePadding>
-              <ListItemButton
-                selected={location.pathname === item.path}
-                onClick={() => navigate(item.path)}
-                sx={{
-                  '&.Mui-selected': {
-                    backgroundColor: '#FAF6F3',
-                    borderRight: '3px solid #C4A08A',
-                    '&:hover': {
-                      backgroundColor: '#FAF6F3',
-                    },
-                  },
-                  '&:hover': {
-                    backgroundColor: '#FAF6F3',
-                  },
-                }}
-              >
-                <ListItemIcon sx={{ color: location.pathname === item.path ? '#C4A08A' : '#999' }}>
-                  {item.icon}
-                </ListItemIcon>
-                <ListItemText
-                  primary={item.text}
-                  primaryTypographyProps={{
-                    fontWeight: location.pathname === item.path ? 600 : 400,
-                    color: location.pathname === item.path ? '#C4A08A' : '#333',
-                  }}
-                />
-              </ListItemButton>
-            </ListItem>
-          ))}
-        </List>
-      </Drawer>
+      <Box component="nav" sx={{ width: { md: drawerWidth }, flexShrink: { md: 0 } }}>
+        <Drawer
+          variant={isDesktop ? 'permanent' : 'temporary'}
+          open={isDesktop ? true : mobileOpen}
+          onClose={() => setMobileOpen(false)}
+          ModalProps={{ keepMounted: true }}
+          sx={{
+            '& .MuiDrawer-paper': {
+              width: drawerWidth,
+              boxSizing: 'border-box',
+              borderRight: '1px solid rgba(17,17,17,0.06)',
+            },
+          }}
+        >
+          {drawerContent}
+        </Drawer>
+      </Box>
 
       <Box
         component="main"
         sx={{
           flexGrow: 1,
           bgcolor: 'background.default',
-          p: 3,
+          p: { xs: 2, md: 3 },
           mt: '64px',
           minHeight: 'calc(100vh - 64px)',
+          width: { md: `calc(100% - ${drawerWidth}px)` },
         }}
       >
         <Routes>
