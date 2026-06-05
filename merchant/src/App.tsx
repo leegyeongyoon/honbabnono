@@ -20,6 +20,7 @@ import RestaurantMenuIcon from '@mui/icons-material/RestaurantMenu';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
 import StoreIcon from '@mui/icons-material/Store';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
+import RateReviewIcon from '@mui/icons-material/RateReview';
 import SettingsIcon from '@mui/icons-material/Settings';
 import LogoutIcon from '@mui/icons-material/Logout';
 
@@ -33,6 +34,7 @@ import OrderManagement from './components/OrderManagement';
 import MenuManagement from './components/MenuManagement';
 import StoreInfo from './components/StoreInfo';
 import SettlementHistory from './components/SettlementHistory';
+import ReviewManagement from './components/ReviewManagement';
 import MerchantSettings from './components/MerchantSettings';
 
 const theme = createTheme({
@@ -75,6 +77,7 @@ const menuItems: Array<{ text: string; icon: React.ReactNode; path: string }> = 
   { text: '메뉴 관리', icon: <MenuBookIcon />, path: '/menus' },
   { text: '매장 정보', icon: <StoreIcon />, path: '/store' },
   { text: '정산', icon: <AccountBalanceIcon />, path: '/settlements' },
+  { text: '리뷰 관리', icon: <RateReviewIcon />, path: '/reviews' },
   { text: '설정', icon: <SettingsIcon />, path: '/settings' },
 ];
 
@@ -198,6 +201,7 @@ function AppContent({ merchantData, onLogout }: { merchantData: any; onLogout: (
           <Route path="/menus" element={<MenuManagement />} />
           <Route path="/store" element={<StoreInfo />} />
           <Route path="/settlements" element={<SettlementHistory />} />
+          <Route path="/reviews" element={<ReviewManagement />} />
           <Route path="/settings" element={<MerchantSettings />} />
         </Routes>
       </Box>

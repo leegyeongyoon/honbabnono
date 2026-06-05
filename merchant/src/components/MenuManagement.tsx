@@ -76,6 +76,7 @@ interface MenuItemData {
   category_id?: number;
   category_name?: string;
   is_active: boolean;
+  image_url?: string;
 }
 
 interface OptionItemData {
@@ -158,6 +159,15 @@ const MenuManagement: React.FC = () => {
   // Option groups (in menu edit dialog)
   const [optionGroups, setOptionGroups] = useState<OptionGroupData[]>([]);
   const [optionGroupsLoading, setOptionGroupsLoading] = useState(false);
+
+  // Menu image (in menu edit dialog)
+  const [menuImageUrl, setMenuImageUrl] = useState<string>(''); // 현재 저장된/업로드된 이미지 URL
+  const [menuImageFile, setMenuImageFile] = useState<File | null>(null); // 신규 메뉴: 저장 후 업로드할 파일
+  const [menuImagePreview, setMenuImagePreview] = useState<string>(''); // 신규 메뉴 로컬 미리보기 (object URL)
+  const [menuImageUploading, setMenuImageUploading] = useState(false);
+
+  // Sold-out toggle (per card) — 진행 중인 menu id
+  const [togglingId, setTogglingId] = useState<number | null>(null);
 
   // Bulk price adjust
   const [bulkDialogOpen, setBulkDialogOpen] = useState(false);
@@ -276,10 +286,21 @@ const MenuManagement: React.FC = () => {
   };
 
   // ── Menu CRUD ──
+  const resetMenuImageState = () => {
+    if (menuImagePreview) {
+      try { URL.revokeObjectURL(menuImagePreview); } catch { /* ignore */ }
+    }
+    setMenuImageUrl('');
+    setMenuImageFile(null);
+    setMenuImagePreview('');
+    setMenuImageUploading(false);
+  };
+
   const openAddMenu = () => {
     setEditingMenu(null);
     setForm(EMPTY_FORM);
     setOptionGroups([]);
+    resetMenuImageState();
     setMenuDialogOpen(true);
   };
 
@@ -295,8 +316,65 @@ const MenuManagement: React.FC = () => {
       category_id: item.category_id ? String(item.category_id) : '',
     });
     setOptionGroups([]);
+    resetMenuImageState();
+    setMenuImageUrl(item.image_url || '');
     fetchOptionGroups(item.id);
     setMenuDialogOpen(true);
+  };
+
+  // 메뉴 이미지를 서버에 업로드하고 URL을 반환
+  const uploadMenuImage = async (menuId: number, file: File): Promise<string | null> => {
+    const formData = new FormData();
+    formData.append('image', file);
+    const res = await apiClient.post(`/api/menus/${menuId}/image`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return res.data.data?.url || res.data.url || null;
+  };
+
+  // 메뉴 편집 다이얼로그 내 이미지 선택 핸들러
+  const handleMenuImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) {
+      setSnackbar({ open: true, message: '이미지 크기는 10MB 이하여야 합니다.', severity: 'error' });
+      return;
+    }
+
+    if (editingMenu) {
+      // 기존 메뉴: 즉시 업로드
+      setMenuImageUploading(true);
+      try {
+        const url = await uploadMenuImage(editingMenu.id, file);
+        if (url) setMenuImageUrl(url);
+        setSnackbar({ open: true, message: '이미지가 업로드되었습니다.', severity: 'success' });
+      } catch (err: any) {
+        setSnackbar({ open: true, message: err.response?.data?.message || '이미지 업로드에 실패했습니다.', severity: 'error' });
+      } finally {
+        setMenuImageUploading(false);
+      }
+    } else {
+      // 신규 메뉴: 저장 후 업로드하기 위해 파일 보관 + 로컬 미리보기
+      if (menuImagePreview) {
+        try { URL.revokeObjectURL(menuImagePreview); } catch { /* ignore */ }
+      }
+      setMenuImageFile(file);
+      setMenuImagePreview(URL.createObjectURL(file));
+    }
+  };
+
+  // 품절(비활성) 토글
+  const handleToggleSoldOut = async (item: MenuItemData) => {
+    setTogglingId(item.id);
+    try {
+      await apiClient.put(`/api/menus/${item.id}`, { is_active: !item.is_active });
+      await fetchMenus();
+    } catch (err: any) {
+      setSnackbar({ open: true, message: err.response?.data?.message || '상태 변경에 실패했습니다.', severity: 'error' });
+    } finally {
+      setTogglingId(null);
+    }
   };
 
   const saveOptionGroups = async (menuId: number) => {
@@ -410,7 +488,17 @@ const MenuManagement: React.FC = () => {
         await saveOptionGroups(menuId);
       }
 
+      // 신규 메뉴 이미지 업로드 (저장 후 menuId 확보 뒤 2단계)
+      if (!editingMenu && menuImageFile && menuId) {
+        try {
+          await uploadMenuImage(menuId, menuImageFile);
+        } catch {
+          setSnackbar({ open: true, message: '메뉴는 저장됐지만 이미지 업로드에 실패했습니다.', severity: 'error' });
+        }
+      }
+
       setMenuDialogOpen(false);
+      resetMenuImageState();
       fetchMenus();
     } catch (err: any) {
       alert(err.response?.data?.message || '저장에 실패했습니다.');
@@ -672,16 +760,26 @@ const MenuManagement: React.FC = () => {
                   }}
                 >
                   <CardContent>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                      <Box>
-                        <Typography variant="subtitle1" fontWeight={700}>{item.name}</Typography>
-                        <Typography variant="h6" fontWeight={700} sx={{ color: BRAND_DARK }}>
-                          {formatPrice(item.price)}
-                        </Typography>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 1 }}>
+                      <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'flex-start', minWidth: 0 }}>
+                        {item.image_url && (
+                          <Box
+                            component="img"
+                            src={item.image_url}
+                            alt={item.name}
+                            sx={{ width: 56, height: 56, borderRadius: 1.5, objectFit: 'cover', flexShrink: 0 }}
+                          />
+                        )}
+                        <Box sx={{ minWidth: 0 }}>
+                          <Typography variant="subtitle1" fontWeight={700}>{item.name}</Typography>
+                          <Typography variant="h6" fontWeight={700} sx={{ color: BRAND_DARK }}>
+                            {formatPrice(item.price)}
+                          </Typography>
+                        </Box>
                       </Box>
-                      <Box sx={{ display: 'flex', gap: 0.5 }}>
+                      <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                         {item.is_set_menu && <Chip label="세트" size="small" sx={{ bgcolor: BRAND_LIGHT }} />}
-                        {!item.is_active && <Chip label="비활성" size="small" color="default" />}
+                        {!item.is_active && <Chip label="품절" size="small" color="error" />}
                       </Box>
                     </Box>
 
@@ -706,13 +804,27 @@ const MenuManagement: React.FC = () => {
 
                     <Divider sx={{ my: 1.5 }} />
 
-                    <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
-                      <IconButton size="small" onClick={() => openEditMenu(item)} sx={{ color: BRAND_DARK }}>
-                        <Edit fontSize="small" />
-                      </IconButton>
-                      <IconButton size="small" onClick={() => setDeleteTarget(item)} color="error">
-                        <Delete fontSize="small" />
-                      </IconButton>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 1 }}>
+                      <FormControlLabel
+                        sx={{ m: 0 }}
+                        control={
+                          <Switch
+                            size="small"
+                            checked={!item.is_active}
+                            disabled={togglingId === item.id}
+                            onChange={() => handleToggleSoldOut(item)}
+                          />
+                        }
+                        label={<Typography variant="caption" color="text.secondary">품절</Typography>}
+                      />
+                      <Box sx={{ display: 'flex', gap: 1 }}>
+                        <IconButton size="small" onClick={() => openEditMenu(item)} sx={{ color: BRAND_DARK }}>
+                          <Edit fontSize="small" />
+                        </IconButton>
+                        <IconButton size="small" onClick={() => setDeleteTarget(item)} color="error">
+                          <Delete fontSize="small" />
+                        </IconButton>
+                      </Box>
                     </Box>
                   </CardContent>
                 </Card>
@@ -760,6 +872,39 @@ const MenuManagement: React.FC = () => {
             }
             label="세트 메뉴"
           />
+
+          {/* ── 메뉴 이미지 ── */}
+          <Divider sx={{ my: 1 }} />
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            {(menuImagePreview || menuImageUrl) ? (
+              <Box
+                component="img"
+                src={menuImagePreview || menuImageUrl}
+                alt="메뉴 이미지"
+                sx={{ width: 72, height: 72, borderRadius: 1.5, objectFit: 'cover', flexShrink: 0 }}
+              />
+            ) : (
+              <Box
+                sx={{
+                  width: 72, height: 72, borderRadius: 1.5, flexShrink: 0,
+                  bgcolor: BRAND_LIGHT, border: '1px dashed #D8BCA8',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}
+              >
+                <PhotoCamera fontSize="small" sx={{ color: '#C4A08A' }} />
+              </Box>
+            )}
+            <Button
+              variant="outlined"
+              component="label"
+              startIcon={menuImageUploading ? <CircularProgress size={16} /> : <PhotoCamera />}
+              disabled={menuImageUploading}
+              sx={{ borderColor: BRAND, color: BRAND_DARK }}
+            >
+              {menuImageUploading ? '업로드 중...' : '이미지 선택'}
+              <input type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={handleMenuImageSelect} />
+            </Button>
+          </Box>
 
           {/* ── 옵션 그룹 관리 섹션 ── */}
           <Divider sx={{ my: 2 }} />

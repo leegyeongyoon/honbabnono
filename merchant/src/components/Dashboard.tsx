@@ -3,6 +3,7 @@ import Box from '@mui/material/Box';
 import Grid from '@mui/material/Grid';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
+import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
 import Chip from '@mui/material/Chip';
 import Table from '@mui/material/Table';
@@ -12,6 +13,8 @@ import TableCell from '@mui/material/TableCell';
 import TableHead from '@mui/material/TableHead';
 import Alert from '@mui/material/Alert';
 import CircularProgress from '@mui/material/CircularProgress';
+import ToggleButton from '@mui/material/ToggleButton';
+import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 import EventIcon from '@mui/icons-material/Event';
 import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
@@ -39,6 +42,28 @@ interface Order {
   created_at: string;
 }
 
+interface DailyStat {
+  date: string;
+  sales: number;
+  reservations: number;
+}
+
+interface TopMenu {
+  menu_name: string;
+  qty: number;
+  sales: number;
+}
+
+interface SalesStats {
+  period: string;
+  total_sales: number;
+  total_reservations: number;
+  daily: DailyStat[];
+  top_menus: TopMenu[];
+}
+
+type StatsPeriod = '7d' | '30d';
+
 const statusConfig: Record<string, { label: string; color: 'primary' | 'warning' | 'success' | 'secondary' | 'default' | 'info' | 'error' }> = {
   confirmed: { label: '확정', color: 'info' },
   preparing: { label: '준비 중', color: 'warning' },
@@ -63,11 +88,39 @@ const Dashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
+  // 매출 통계
+  const [statsPeriod, setStatsPeriod] = useState<StatsPeriod>('7d');
+  const [stats, setStats] = useState<SalesStats | null>(null);
+  const [statsLoading, setStatsLoading] = useState(false);
+
   const today = format(new Date(), 'yyyy-MM-dd');
 
   useEffect(() => {
     loadData();
   }, []);
+
+  useEffect(() => {
+    loadStats(statsPeriod);
+  }, [statsPeriod]);
+
+  const loadStats = async (period: StatsPeriod) => {
+    setStatsLoading(true);
+    try {
+      const res = await apiClient.get('/api/settlements/merchant/stats', { params: { period } });
+      const d = res.data.data || res.data;
+      setStats({
+        period: d.period || period,
+        total_sales: d.total_sales || 0,
+        total_reservations: d.total_reservations || 0,
+        daily: Array.isArray(d.daily) ? d.daily : [],
+        top_menus: Array.isArray(d.top_menus) ? d.top_menus : [],
+      });
+    } catch {
+      setStats(null);
+    } finally {
+      setStatsLoading(false);
+    }
+  };
 
   const loadData = async () => {
     setLoading(true);
@@ -296,6 +349,151 @@ const Dashboard: React.FC = () => {
           </Card>
         </Grid>
       </Grid>
+
+      {/* 매출 통계 */}
+      <Paper sx={{ mt: 3, p: 3, borderRadius: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 1 }}>
+          <Typography variant="h6">매출 통계</Typography>
+          <ToggleButtonGroup
+            value={statsPeriod}
+            exclusive
+            size="small"
+            onChange={(_e, val) => { if (val) setStatsPeriod(val); }}
+          >
+            <ToggleButton value="7d">최근 7일</ToggleButton>
+            <ToggleButton value="30d">최근 30일</ToggleButton>
+          </ToggleButtonGroup>
+        </Box>
+
+        {statsLoading ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+            <CircularProgress sx={{ color: '#C4A08A' }} />
+          </Box>
+        ) : !stats ? (
+          <Typography color="text.secondary" sx={{ py: 4, textAlign: 'center' }}>
+            통계 데이터를 불러올 수 없습니다.
+          </Typography>
+        ) : (
+          <>
+            {/* 요약 */}
+            <Grid container spacing={2} sx={{ mb: 3 }}>
+              <Grid size={{ xs: 6 }}>
+                <Box sx={{ textAlign: 'center', p: 2, bgcolor: '#FAF6F3', borderRadius: 2 }}>
+                  <Typography variant="body2" color="text.secondary">총 매출</Typography>
+                  <Typography variant="h5" sx={{ fontWeight: 700, color: '#2E7D4F' }}>
+                    {stats.total_sales.toLocaleString()}원
+                  </Typography>
+                </Box>
+              </Grid>
+              <Grid size={{ xs: 6 }}>
+                <Box sx={{ textAlign: 'center', p: 2, bgcolor: '#FAF6F3', borderRadius: 2 }}>
+                  <Typography variant="body2" color="text.secondary">총 예약</Typography>
+                  <Typography variant="h5" sx={{ fontWeight: 700, color: '#1976D2' }}>
+                    {stats.total_reservations.toLocaleString()}건
+                  </Typography>
+                </Box>
+              </Grid>
+            </Grid>
+
+            {/* 일별 매출 바 차트 (CSS) */}
+            <Typography variant="subtitle2" sx={{ mb: 1.5, fontWeight: 600 }}>일별 매출</Typography>
+            {stats.daily.length === 0 ? (
+              <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>
+                데이터가 없습니다.
+              </Typography>
+            ) : (
+              (() => {
+                const maxSales = Math.max(1, ...stats.daily.map((d) => d.sales || 0));
+                return (
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'flex-end',
+                      gap: 0.75,
+                      height: 180,
+                      overflowX: 'auto',
+                      pb: 1,
+                    }}
+                  >
+                    {stats.daily.map((d) => {
+                      const heightPct = maxSales > 0 ? (d.sales / maxSales) * 100 : 0;
+                      const mmdd = d.date ? d.date.slice(5).replace('-', '/') : '-';
+                      return (
+                        <Box
+                          key={d.date}
+                          sx={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            justifyContent: 'flex-end',
+                            flex: '1 0 auto',
+                            minWidth: 36,
+                            height: '100%',
+                          }}
+                        >
+                          <Typography variant="caption" sx={{ fontSize: 10, color: '#666', mb: 0.5, whiteSpace: 'nowrap' }}>
+                            {d.sales > 0 ? `${Math.round(d.sales / 1000)}k` : ''}
+                          </Typography>
+                          <Box
+                            title={`${mmdd}: ${(d.sales || 0).toLocaleString()}원`}
+                            sx={{
+                              width: '70%',
+                              minHeight: d.sales > 0 ? 2 : 0,
+                              height: `${heightPct}%`,
+                              bgcolor: '#C4A08A',
+                              borderRadius: '4px 4px 0 0',
+                              transition: 'height 0.3s',
+                            }}
+                          />
+                          <Typography variant="caption" sx={{ fontSize: 10, color: '#999', mt: 0.5, whiteSpace: 'nowrap' }}>
+                            {mmdd}
+                          </Typography>
+                        </Box>
+                      );
+                    })}
+                  </Box>
+                );
+              })()
+            )}
+
+            {/* 인기 메뉴 TOP5 */}
+            <Typography variant="subtitle2" sx={{ mt: 3, mb: 1.5, fontWeight: 600 }}>인기 메뉴 TOP5</Typography>
+            {stats.top_menus.length === 0 ? (
+              <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>
+                데이터가 없습니다.
+              </Typography>
+            ) : (
+              <Box>
+                {stats.top_menus.slice(0, 5).map((m, i) => (
+                  <Box
+                    key={`${m.menu_name}-${i}`}
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      py: 1,
+                      borderBottom: i < Math.min(stats.top_menus.length, 5) - 1 ? '1px solid rgba(0,0,0,0.06)' : 'none',
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, minWidth: 0 }}>
+                      <Chip label={i + 1} size="small" sx={{ bgcolor: '#C4A08A', color: '#fff', fontWeight: 700, width: 28 }} />
+                      <Typography variant="body2" sx={{ fontWeight: 500 }} noWrap>
+                        {m.menu_name}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>
+                        x{m.qty}
+                      </Typography>
+                    </Box>
+                    <Typography variant="body2" sx={{ fontWeight: 600, color: '#2E7D4F', whiteSpace: 'nowrap', ml: 1 }}>
+                      {(m.sales || 0).toLocaleString()}원
+                    </Typography>
+                  </Box>
+                ))}
+              </Box>
+            )}
+          </>
+        )}
+      </Paper>
     </Box>
   );
 };

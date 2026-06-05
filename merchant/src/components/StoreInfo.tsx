@@ -13,9 +13,13 @@ import InputLabel from '@mui/material/InputLabel';
 import FormControl from '@mui/material/FormControl';
 import Alert from '@mui/material/Alert';
 import CircularProgress from '@mui/material/CircularProgress';
+import Switch from '@mui/material/Switch';
+import FormControlLabel from '@mui/material/FormControlLabel';
+import Chip from '@mui/material/Chip';
 import EditIcon from '@mui/icons-material/Edit';
 import SaveIcon from '@mui/icons-material/Save';
 import CancelIcon from '@mui/icons-material/Cancel';
+import PhotoCameraIcon from '@mui/icons-material/PhotoCamera';
 import apiClient from '../utils/api';
 import getRestaurantId from '../utils/getRestaurantId';
 
@@ -42,6 +46,10 @@ interface StoreData {
   seat_count: number;
   image_url: string;
   operating_hours: Record<string, OperatingHour>;
+  is_accepting_reservations: boolean;
+  pause_reason: string;
+  paused_until: string; // datetime-local 형식 ('' = 미설정)
+  holidays: string[]; // 'YYYY-MM-DD'
 }
 
 interface MerchantInfo {
@@ -60,6 +68,23 @@ const defaultOperatingHours = (): Record<string, OperatingHour> => {
   return hours;
 };
 
+// ISO 문자열 → datetime-local input 값 ('YYYY-MM-DDTHH:mm')
+const isoToLocalInput = (iso: string | null | undefined): string => {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '';
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+};
+
+// datetime-local input 값 → ISO 문자열 (빈 값이면 null)
+const localInputToIso = (local: string): string | null => {
+  if (!local) return null;
+  const d = new Date(local);
+  if (isNaN(d.getTime())) return null;
+  return d.toISOString();
+};
+
 const StoreInfo: React.FC = () => {
   const [storeData, setStoreData] = useState<StoreData>({
     name: '',
@@ -71,7 +96,13 @@ const StoreInfo: React.FC = () => {
     seat_count: 0,
     image_url: '',
     operating_hours: defaultOperatingHours(),
+    is_accepting_reservations: true,
+    pause_reason: '',
+    paused_until: '',
+    holidays: [],
   });
+  const [holidayInput, setHolidayInput] = useState('');
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [merchantInfo, setMerchantInfo] = useState<MerchantInfo>({
     business_number: '',
     representative_name: '',
@@ -114,6 +145,10 @@ const StoreInfo: React.FC = () => {
           seat_count: d.seat_count || 0,
           image_url: d.image_url || '',
           operating_hours: d.operating_hours || defaultOperatingHours(),
+          is_accepting_reservations: d.is_accepting_reservations !== false,
+          pause_reason: d.pause_reason || '',
+          paused_until: isoToLocalInput(d.paused_until),
+          holidays: Array.isArray(d.holidays) ? d.holidays : [],
         });
       }
 
@@ -170,6 +205,10 @@ const StoreInfo: React.FC = () => {
         address_detail: storeData.address_detail,
         seat_count: storeData.seat_count,
         operating_hours: storeData.operating_hours,
+        is_accepting_reservations: storeData.is_accepting_reservations,
+        pause_reason: storeData.is_accepting_reservations ? null : (storeData.pause_reason || null),
+        paused_until: storeData.is_accepting_reservations ? null : localInputToIso(storeData.paused_until),
+        holidays: storeData.holidays,
       });
       setSuccess('매장 정보가 저장되었습니다.');
       setEditing(false);
@@ -177,6 +216,61 @@ const StoreInfo: React.FC = () => {
       setError(err.response?.data?.message || '매장 정보 저장에 실패했습니다.');
     } finally {
       setSaving(false);
+    }
+  };
+
+  // ── 휴무일 관리 ──
+  const handleAddHoliday = () => {
+    if (!holidayInput) return;
+    if (storeData.holidays.includes(holidayInput)) {
+      setHolidayInput('');
+      return;
+    }
+    setStoreData((prev) => ({
+      ...prev,
+      holidays: [...prev.holidays, holidayInput].sort(),
+    }));
+    setHolidayInput('');
+  };
+
+  const handleRemoveHoliday = (date: string) => {
+    setStoreData((prev) => ({
+      ...prev,
+      holidays: prev.holidays.filter((h) => h !== date),
+    }));
+  };
+
+  // ── 매장 대표 이미지 업로드 ──
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    if (!restaurantId) {
+      setError('매장 ID를 찾을 수 없습니다.');
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      setError('이미지 크기는 10MB 이하여야 합니다.');
+      return;
+    }
+    setUploadingImage(true);
+    setError('');
+    setSuccess('');
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+      const res = await apiClient.post(`/api/restaurants/${restaurantId}/image`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      const url = res.data.data?.url || res.data.url;
+      if (url) {
+        setStoreData((prev) => ({ ...prev, image_url: url }));
+      }
+      setSuccess('매장 이미지가 변경되었습니다.');
+    } catch (err: any) {
+      setError(err.response?.data?.message || '이미지 업로드에 실패했습니다.');
+    } finally {
+      setUploadingImage(false);
     }
   };
 
@@ -256,16 +350,46 @@ const StoreInfo: React.FC = () => {
             )}
           </Box>
 
-          {storeData.image_url && (
-            <Box sx={{ mb: 3, textAlign: 'center' }}>
+          <Box sx={{ mb: 3, textAlign: 'center' }}>
+            {storeData.image_url ? (
               <Box
                 component="img"
                 src={storeData.image_url}
                 alt="매장 이미지"
-                sx={{ maxWidth: 400, maxHeight: 250, borderRadius: 2, objectFit: 'cover' }}
+                sx={{ maxWidth: 400, maxHeight: 250, borderRadius: 2, objectFit: 'cover', display: 'block', mx: 'auto', mb: 1.5 }}
               />
-            </Box>
-          )}
+            ) : (
+              <Box
+                sx={{
+                  width: '100%',
+                  maxWidth: 400,
+                  height: 180,
+                  mx: 'auto',
+                  mb: 1.5,
+                  borderRadius: 2,
+                  bgcolor: '#FAF6F3',
+                  border: '1px dashed #D8BCA8',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Typography variant="body2" color="text.secondary">
+                  등록된 대표 이미지가 없습니다.
+                </Typography>
+              </Box>
+            )}
+            <Button
+              variant="outlined"
+              component="label"
+              startIcon={uploadingImage ? <CircularProgress size={16} /> : <PhotoCameraIcon />}
+              disabled={uploadingImage}
+              sx={{ borderColor: '#C4A08A', color: '#C4A08A' }}
+            >
+              {uploadingImage ? '업로드 중...' : '이미지 변경'}
+              <input type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={handleImageUpload} />
+            </Button>
+          </Box>
 
           <Grid container spacing={2}>
             <Grid size={{ xs: 12, sm: 6 }}>
@@ -378,6 +502,94 @@ const StoreInfo: React.FC = () => {
               </Grid>
             </Grid>
           ))}
+        </CardContent>
+      </Card>
+
+      {/* 예약 운영 / 휴무일 */}
+      <Card sx={{ mb: 3, borderRadius: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+        <CardContent sx={{ p: 3 }}>
+          <Typography variant="h6" sx={{ mb: 2 }}>예약 운영</Typography>
+
+          <FormControlLabel
+            control={
+              <Switch
+                checked={storeData.is_accepting_reservations}
+                onChange={(e) => handleStoreChange('is_accepting_reservations', e.target.checked)}
+                disabled={!editing}
+              />
+            }
+            label={storeData.is_accepting_reservations ? '예약 받는 중' : '예약 일시 중지'}
+          />
+
+          {!storeData.is_accepting_reservations && (
+            <Grid container spacing={2} sx={{ mt: 0.5 }}>
+              <Grid size={{ xs: 12, sm: 6 }}>
+                <TextField
+                  fullWidth
+                  label="중지 사유"
+                  value={storeData.pause_reason}
+                  onChange={(e) => handleStoreChange('pause_reason', e.target.value)}
+                  disabled={!editing}
+                  placeholder="예: 내부 공사로 인한 휴업"
+                />
+              </Grid>
+              <Grid size={{ xs: 12, sm: 6 }}>
+                <TextField
+                  fullWidth
+                  type="datetime-local"
+                  label="재개 일시 (선택)"
+                  value={storeData.paused_until}
+                  onChange={(e) => handleStoreChange('paused_until', e.target.value)}
+                  disabled={!editing}
+                  InputLabelProps={{ shrink: true }}
+                />
+              </Grid>
+            </Grid>
+          )}
+
+          <Divider sx={{ my: 3 }} />
+
+          <Typography variant="h6" sx={{ mb: 2 }}>휴무일 관리</Typography>
+          <Box sx={{ display: 'flex', gap: 1, mb: 2, alignItems: 'center', flexWrap: 'wrap' }}>
+            <TextField
+              type="date"
+              size="small"
+              label="휴무일 추가"
+              value={holidayInput}
+              onChange={(e) => setHolidayInput(e.target.value)}
+              disabled={!editing}
+              InputLabelProps={{ shrink: true }}
+              sx={{ width: 200 }}
+            />
+            <Button
+              variant="outlined"
+              onClick={handleAddHoliday}
+              disabled={!editing || !holidayInput}
+              sx={{ borderColor: '#C4A08A', color: '#C4A08A' }}
+            >
+              추가
+            </Button>
+          </Box>
+          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+            {storeData.holidays.length === 0 ? (
+              <Typography variant="body2" color="text.secondary">등록된 휴무일이 없습니다.</Typography>
+            ) : (
+              storeData.holidays.map((date) => (
+                <Chip
+                  key={date}
+                  label={date}
+                  onDelete={editing ? () => handleRemoveHoliday(date) : undefined}
+                  sx={{ bgcolor: '#FAF6F3' }}
+                />
+              ))
+            )}
+          </Box>
+
+          {!editing && (
+            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 2 }}>
+              변경하려면 상단 "기본 정보"의 수정 버튼을 눌러 편집 모드로 전환한 뒤 저장하세요.
+            </Typography>
+          )}
         </CardContent>
       </Card>
 

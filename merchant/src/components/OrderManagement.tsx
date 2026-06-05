@@ -28,6 +28,8 @@ import {
   Cancel,
 } from '@mui/icons-material';
 import apiClient from '../utils/api';
+import useRestaurantSocket from '../hooks/useRestaurantSocket';
+import { formatOptionsLabel } from '../utils/formatOptions';
 
 // ── Types ──────────────────────────────────────────────────────
 interface OrderItem {
@@ -130,6 +132,11 @@ const OrderManagement: React.FC = () => {
     const id = setInterval(fetchOrders, 15_000);
     return () => clearInterval(id);
   }, [fetchOrders]);
+
+  // 실시간 소켓: 새 예약(=새 주문) 수신 시 즉시 갱신
+  useRestaurantSocket({
+    onNewReservation: () => fetchOrders(),
+  });
 
   const advanceStatus = async (orderId: number, currentStatus: CookingStatus) => {
     const next = NEXT_STATUS[currentStatus];
@@ -262,11 +269,21 @@ const OrderManagement: React.FC = () => {
                       <Divider sx={{ mb: 1 }} />
 
                       {/* Menu items */}
-                      {order.items?.map((item, i) => (
-                        <Typography key={i} variant="body2" color="text.secondary">
-                          {item.menu_name} x {item.quantity}
-                        </Typography>
-                      ))}
+                      {order.items?.map((item, i) => {
+                        const optLabel = formatOptionsLabel(item.options);
+                        return (
+                          <Box key={i}>
+                            <Typography variant="body2" color="text.secondary">
+                              {item.menu_name} x {item.quantity}
+                            </Typography>
+                            {optLabel && (
+                              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', pl: 1.5 }}>
+                                · {optLabel}
+                              </Typography>
+                            )}
+                          </Box>
+                        );
+                      })}
 
                       {/* Estimated prep end time */}
                       {(order.cooking_status === 'preparing' || order.cooking_status === 'cooking') && (

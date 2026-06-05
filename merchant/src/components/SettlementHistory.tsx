@@ -28,6 +28,7 @@ import InputLabel from '@mui/material/InputLabel';
 import SearchIcon from '@mui/icons-material/Search';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import CloseIcon from '@mui/icons-material/Close';
+import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import apiClient from '../utils/api';
 
 // ── Types ──────────────────────────────────────────────────────
@@ -97,6 +98,15 @@ const getStatusLabel = (status: string): string => {
     case 'rejected': return '정산 거절';
     default: return status;
   }
+};
+
+// CSV 셀 값 이스케이프: 콤마/따옴표/줄바꿈 포함 시 따옴표로 감싸고 내부 따옴표는 두 번
+const csvEscape = (value: unknown): string => {
+  const s = value === null || value === undefined ? '' : String(value);
+  if (/[",\n\r]/.test(s)) {
+    return `"${s.replace(/"/g, '""')}"`;
+  }
+  return s;
 };
 
 const getMonthOptions = () => {
@@ -201,6 +211,42 @@ const SettlementHistory: React.FC = () => {
     }
   };
 
+  // ── CSV 내보내기 ──
+  const handleExportCsv = () => {
+    if (settlements.length === 0) return;
+
+    const headers = [
+      '기간시작', '기간끝', '주문수', '총매출',
+      '플랫폼수수료', '결제수수료', '정산금액', '상태', '지급일',
+    ];
+    const rows = settlements.map((s) => [
+      formatDate(s.period_start),
+      formatDate(s.period_end),
+      s.order_count ?? 0,
+      s.total_sales ?? 0,
+      s.platform_fee ?? 0,
+      s.payment_fee ?? 0,
+      s.settlement_amount ?? 0,
+      getStatusLabel(s.status),
+      s.paid_at ? formatDate(s.paid_at) : '',
+    ]);
+
+    const lines = [headers, ...rows].map((row) => row.map(csvEscape).join(','));
+    // BOM(﻿) 선두로 추가해 Excel에서 한글 깨짐 방지
+    const csvContent = '﻿' + lines.join('\r\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const { start, end } = getDateRange();
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `정산내역_${start}_${end}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <Box>
       <Typography variant="h4" gutterBottom>
@@ -273,9 +319,21 @@ const SettlementHistory: React.FC = () => {
       {/* 정산 목록 테이블 */}
       <Card sx={{ borderRadius: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
         <CardContent sx={{ p: 0 }}>
-          <Typography variant="h6" sx={{ p: 3, pb: 1 }}>
-            정산 목록 ({summary.settlement_count}건)
-          </Typography>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 3, pb: 1, gap: 1, flexWrap: 'wrap' }}>
+            <Typography variant="h6">
+              정산 목록 ({summary.settlement_count}건)
+            </Typography>
+            <Button
+              variant="outlined"
+              size="small"
+              startIcon={<FileDownloadIcon />}
+              onClick={handleExportCsv}
+              disabled={settlements.length === 0}
+              sx={{ borderColor: '#C4A08A', color: '#C4A08A' }}
+            >
+              CSV 내보내기
+            </Button>
+          </Box>
           {loading ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
               <CircularProgress sx={{ color: '#C4A08A' }} />
