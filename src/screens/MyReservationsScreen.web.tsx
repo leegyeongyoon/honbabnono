@@ -6,6 +6,7 @@ import { COLORS, CSS_SHADOWS, CARD_STYLE, TRANSITIONS } from '../styles/colors';
 import { SPACING, BORDER_RADIUS, HEADER_STYLE } from '../styles/spacing';
 import useReservationStore, { Reservation } from '../store/reservationStore';
 import restaurantApiService from '../services/restaurantApiService';
+import reservationChatApiService from '../services/reservationChatApiService';
 import useReservationSocket from '../hooks/useReservationSocket';
 
 // ============================================================
@@ -180,6 +181,19 @@ const MyReservationsScreen: React.FC = () => {
                 도착 알림
               </div>
             )}
+            <div
+              style={s.actionButton}
+              onClick={async () => {
+                try {
+                  const room = await reservationChatApiService.createOrGetRoom(reservation.id);
+                  navigate(`/reservation-chat/${room.id}`);
+                } catch (err: any) {
+                  alert(err?.response?.data?.error || '문의를 시작할 수 없습니다.');
+                }
+              }}
+            >
+              문의
+            </div>
             {canCheckin && (
               <div
                 style={s.actionButtonPrimary}

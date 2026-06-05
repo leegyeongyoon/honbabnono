@@ -254,6 +254,7 @@ apiRouter.use('/reservations', reservationsRoutes);
 apiRouter.use('/orders', ordersRoutes);
 apiRouter.use('/payments', paymentsRoutes);
 apiRouter.use('/settlements', settlementsRoutes);
+apiRouter.use('/reservation-chat', require('./modules/reservationChat/routes'));
 
 // Legal endpoints
 apiRouter.get('/legal/terms', supportController.getTerms);
@@ -603,6 +604,13 @@ app.set('io', io);
 // 주의: 이 호출이 없으면 reservations/socket.js의 emit이 어떤 클라이언트에도 도달하지 않는다
 const { setupReservationSocket } = require('./modules/reservations/socket');
 setupReservationSocket(io);
+
+// 예약 채팅 룸 (resvchat: prefix — 기존 room:/reservation:/restaurant: 와 충돌 없음)
+io.on('connection', (socket) => {
+  if (!socket.user) return;
+  socket.on('join_resv_chat', (roomId) => socket.join(`resvchat:${roomId}`));
+  socket.on('leave_resv_chat', (roomId) => socket.leave(`resvchat:${roomId}`));
+});
 
 // 온라인 사용자 추적: userId -> Set<socketId>
 const onlineUsers = new Map();

@@ -6,6 +6,7 @@ import { COLORS, CSS_SHADOWS, CARD_STYLE } from '../styles/colors';
 import { BORDER_RADIUS } from '../styles/spacing';
 import useReservationStore from '../store/reservationStore';
 import useReservationSocket from '../hooks/useReservationSocket';
+import reservationChatApiService from '../services/reservationChatApiService';
 import { QRCodeSVG } from 'qrcode.react';
 
 // ============================================================
@@ -158,6 +159,21 @@ const ReservationConfirmScreen: React.FC = () => {
           >
             예약 내역 보기
           </div>
+          {reservation && (
+            <div
+              style={s.secondaryButton}
+              onClick={async () => {
+                try {
+                  const room = await reservationChatApiService.createOrGetRoom(reservation.id);
+                  navigate(`/reservation-chat/${room.id}`);
+                } catch (err: any) {
+                  alert(err?.response?.data?.error || '문의를 시작할 수 없습니다.');
+                }
+              }}
+            >
+              💬 매장에 문의
+            </div>
+          )}
           {reservation?.restaurantPhone && (
             <a
               href={`tel:${reservation.restaurantPhone}`}

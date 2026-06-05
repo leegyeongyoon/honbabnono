@@ -52,6 +52,7 @@ import ReservationConfirmScreen from '../screens/ReservationConfirmScreen.web';
 import MyReservationsScreenV2 from '../screens/MyReservationsScreen.web';
 import WriteRestaurantReviewScreen from '../screens/WriteRestaurantReviewScreen.web';
 import SearchRestaurantsScreen from '../screens/SearchRestaurantsScreen.web';
+import ReservationChatScreen from '../screens/ReservationChatScreen.web';
 
 // Components
 import BottomTabBar from './BottomTabBar';
@@ -364,6 +365,7 @@ const AppRoutes: React.FC<{
         <Route path="/reservation-confirm/:reservationId" element={protectedElement(<ReservationConfirmScreen />)} />
         <Route path="/my-reservations" element={protectedElement(<MainLayout><MyReservationsScreenV2 /></MainLayout>)} />
         <Route path="/write-restaurant-review/:reservationId" element={protectedElement(<WriteRestaurantReviewScreen />)} />
+        <Route path="/reservation-chat/:roomId" element={protectedElement(<ReservationChatScreen />)} />
         <Route path="/search-restaurants" element={protectedElement(<MainLayout><SearchRestaurantsScreen /></MainLayout>)} />
 
         {/* 온보딩 페이지 */}
