@@ -56,33 +56,69 @@ jobs:
     - name: Recover v2 migrations (100~107 direct apply)
       if: ${{ inputs.recover_v2 }}
       run: |
-        ssh -o ConnectTimeout=15 ${{ secrets.DEPLOY_USER }}@deploy.eattable.kr << 'EOF'
+        ssh -o ConnectTimeout=15 ${{ secrets.DEPLOY_USER }}@deploy.eattable.kr << 'OUTER'
           set -e
-          PG=$(docker ps --format '{{.Names}}' | grep -i postgres | head -1)
-          echo "postgres container: $PG"
 
-          for f in 100_create_pivot_v2_tables 101_fix_orders_table_conflict 102_seed_demo_restaurants 103_merchant_upgrade 104_ensure_columns 105_schema_drift_and_nts 106_operational_features 107_reservation_chat; do
-            echo "=== applying $f.sql ==="
-            docker exec eattable-app cat server/migrations/$f.sql \
-              | docker exec -i "$PG" psql -U postgres -d honbabnono -v ON_ERROR_STOP=1 -q
-            docker exec "$PG" psql -U postgres -d honbabnono -c \
-              "INSERT INTO schema_migrations (filename) VALUES ('$f.sql') ON CONFLICT (filename) DO NOTHING;"
-          done
+          # 앱 컨테이너의 node + 기존 DB 풀로 적용 (runner.js와 동일 경로 — psql/컨테이너명 불필요)
+          cat > /tmp/recover-v2.js << 'NODEEOF'
+        const fs = require('fs');
+        const pool = require('/app/server/config/database');
+
+        const FILES = [
+          '100_create_pivot_v2_tables.sql',
+          '101_fix_orders_table_conflict.sql',
+          '102_seed_demo_restaurants.sql',
+          '103_merchant_upgrade.sql',
+          '104_ensure_columns.sql',
+          '105_schema_drift_and_nts.sql',
+          '106_operational_features.sql',
+          '107_reservation_chat.sql',
+        ];
+
+        (async () => {
+          for (const f of FILES) {
+            const sql = fs.readFileSync('/app/server/migrations/' + f, 'utf8');
+            const client = await pool.connect();
+            try {
+              await client.query('BEGIN');
+              await client.query(sql);
+              await client.query(
+                'INSERT INTO schema_migrations (filename) VALUES ($1) ON CONFLICT (filename) DO NOTHING',
+                [f]
+              );
+              await client.query('COMMIT');
+              console.log('OK:', f);
+            } catch (e) {
+              await client.query('ROLLBACK');
+              console.error('FAIL:', f, '-', e.message);
+              process.exit(1);
+            } finally {
+              client.release();
+            }
+          }
+
+          const cols = await pool.query(
+            "SELECT column_name FROM information_schema.columns WHERE table_name='restaurants' AND column_name = ANY($1)",
+            [['is_accepting_reservations', 'holidays', 'max_advance_days']]
+          );
+          console.log('검증 106 컬럼:', cols.rows.map((r) => r.column_name).join(', ') || '없음!');
+
+          const chat = await pool.query("SELECT to_regclass('public.reservation_chat_rooms') AS t");
+          console.log('검증 107 채팅 테이블:', chat.rows[0].t || '없음!');
+
+          process.exit(0);
+        })();
+        NODEEOF
+
+          docker cp /tmp/recover-v2.js eattable-app:/tmp/recover-v2.js
+          docker exec eattable-app node /tmp/recover-v2.js
 
           echo "=== 적용 후 마이그레이션 상태 ==="
           docker exec eattable-app node server/migrations/runner.js --status || true
 
-          echo "=== 검증: 106 신규 컬럼 ==="
-          docker exec "$PG" psql -U postgres -d honbabnono -c \
-            "SELECT column_name FROM information_schema.columns WHERE table_name='restaurants' AND column_name IN ('is_accepting_reservations','holidays','max_advance_days');"
-
-          echo "=== 검증: 107 채팅 테이블 ==="
-          docker exec "$PG" psql -U postgres -d honbabnono -c \
-            "SELECT to_regclass('public.reservation_chat_rooms') AS chat_rooms;"
-
           echo "=== 헬스체크 ==="
           curl -s -o /dev/null -w "API health: %{http_code}\n" http://localhost:80/api/health
-        EOF
+        OUTER
 
     - name: Apply migrations
       if: ${{ inputs.apply }}
