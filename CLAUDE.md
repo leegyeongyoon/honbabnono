@@ -25,8 +25,16 @@ cd ios && pod install  # iOS 전용
 ```bash
 npm run test           # 전체 테스트
 npm run test:api       # API 테스트 (tests/)
+npm run test:unit      # 유닛 테스트 (DB mock)
+npm run test:integration  # v2 풀플로우 통합테스트 (실DB 필요, --runInBand)
+npm run test:e2e       # Playwright E2E (API/웹 서버 자동 기동)
 npm run test:coverage  # 커버리지 리포트
 ```
+
+**테스트 DB**: `.env.test`는 로컬/Tailscale 테스트 DB(`honbabnono_test`)를 가리킨다.
+- `amazonaws.com` 호스트는 globalSetup이 차단 (RDS 오염 방지) — 절대 우회하지 말 것
+- 빈 DB면 globalSetup이 `database_schema_clean.sql` + 마이그레이션을 자동 적용
+- CI는 postgres service container 사용 (Tailscale은 로컬↔RPi 전용)
 
 ### Lint/Format
 ```bash
@@ -73,7 +81,7 @@ honbabnono/
 │   ├── scheduler/          # 스케줄러 작업
 │   └── utils/              # 유틸리티 함수
 ├── admin/                  # 관리자 대시보드 (React)
-├── merchant/               # 점주 대시보드 (Phase 2에서 생성 예정)
+├── merchant/               # 점주 대시보드 (React + MUI)
 ├── terraform/              # AWS 인프라 (IaC)
 ├── tests/                  # 테스트 파일
 ├── e2e/                    # Playwright E2E 테스트
@@ -103,18 +111,26 @@ server/modules/
 └── search/         # 검색 [수정 예정]
 ```
 
-### 신규 모듈 (v2 피벗)
+### 신규 모듈 (v2 피벗 — 전부 구현 완료)
 ```
 server/modules/
-├── restaurants/    # 매장 CRUD, 검색, 위치 기반 (Phase 1)
-├── merchants/      # 점주 등록, 사업자 인증 (Phase 1)
-├── menus/          # 메뉴 CRUD, 카테고리 (Phase 1)
-├── reservations/   # 예약 상태 머신, 시간 슬롯 (Phase 1)
-├── orders/         # 주문 생성, 조리 상태 (Phase 1)
-└── settlements/    # 매장별 정산 (Phase 2)
+├── restaurants/     # 매장 CRUD, 검색, 위치 기반, 운영 정책(일시중지/휴무일), 이미지
+├── merchants/       # 점주 등록, 사업자 인증 (국세청 진위확인 — config/nts.js)
+├── menus/           # 메뉴 CRUD, 카테고리, 옵션 그룹/아이템, 품절, 이미지
+├── reservations/    # 예약 상태 머신, 시간 슬롯, 수동(전화) 예약, 소켓(socket.js)
+├── orders/          # 주문 생성(옵션 금액 서버 권위 계산), 조리 상태
+├── payments/        # PortOne 선결제/환불/웹훅 (config/portone.js)
+├── settlements/     # 매장별 정산 + 점주 매출 통계
+└── reservationChat/ # 예약 기반 매장↔고객 1:1 채팅
 ```
 
 각 모듈은 `controller.js`와 `routes.js`로 구성.
+
+**주의 패턴**:
+- `middleware/validate.js`는 zod 스키마에 없는 키를 strip — 새 요청 필드는 반드시 `middleware/schemas/*.schemas.js`에 추가
+- API 응답은 snake_case 유지, 프론트는 서비스 레이어(`src/services/*ApiService.ts`)에서만 camelCase 변환
+- 상태 전이 UPDATE는 조건부(`WHERE status = 기대값`) + rowCount 검사 (동시성)
+- 마이그레이션 현황: 001~011(v1), 100~107(v2 — 105 NTS, 106 운영정책/수동예약, 107 예약채팅)
 
 ## Frontend Store Structure (전환 예정)
 ```
@@ -130,18 +146,12 @@ src/store/
 └── meetupStore.ts          # [폐기 예정]
 ```
 
-## 구현 로드맵 (Phase 0~7)
+## 구현 로드맵 — v2 피벗 Phase 0~9 전부 완료
 
-| Phase | 내용 | 기간 |
-|-------|------|------|
-| **0 (현재)** | 브랜치 생성, 마이그레이션 러너, CLAUDE.md | 1주 |
-| 1 | DB 새 테이블 + 핵심 백엔드 6개 모듈 | 3주 |
-| 2 | 점주 대시보드 (merchant/) | 2주 |
-| 3 | 고객 프론트엔드 핵심 화면 + Store | 3주 |
-| 4 | 실시간 시스템 (Socket.IO, QR, 도착 알림) | 2주 |
-| 5 | 리뷰 + 검색 + AI 전환 | 1주 |
-| 6 | Admin 업데이트 | 1주 |
-| 7 | 레거시 정리 + E2E + 배포 | 2주 |
+이후 고도화 이력 (2026-06):
+- 핵심 플로우 버그 수정 (오버부킹/환불계산/동시성) + v2 풀플로우 통합테스트·E2E·CI 구축
+- 기능 고도화: 메뉴 옵션 UI, 재결제, 실시간 알림(점주), 운영 정책, 이미지 업로드,
+  매출 통계, 리뷰 사진/답글, 관리자 정산 지급/수동 환불, 예약 기반 1:1 채팅
 
 > 상세 체크리스트: `docs/PIVOT-PLAN.md` 참조
 
