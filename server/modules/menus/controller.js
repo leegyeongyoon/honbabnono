@@ -203,6 +203,7 @@ exports.updateMenu = async (req, res) => {
       'category_id', 'name', 'description', 'price', 'image_url',
       'prep_time_min', 'min_order_qty', 'max_order_qty',
       'is_set_menu', 'serves', 'options', 'sort_order',
+      'is_active', // 품절(일시 비활성) 토글
     ];
 
     const setClauses = [];

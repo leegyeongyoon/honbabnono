@@ -124,13 +124,23 @@ describe('RestaurantsController', () => {
 
   describe('getTimeSlots', () => {
     it('should return time slots with availability for a date', async () => {
+      // 운영 정책(과거/상한) 검증을 통과하는 미래 날짜 사용
+      const future = new Date();
+      future.setDate(future.getDate() + 7);
+      const futureDateStr = `${future.getFullYear()}-${String(future.getMonth() + 1).padStart(2, '0')}-${String(future.getDate()).padStart(2, '0')}`;
+
       mockReq = createMockRequest({
         params: { id: 'r-1' },
-        query: { date: '2026-05-12' },
+        query: { date: futureDateStr },
       });
 
-      // 1st: slots query
       mockPool.query
+        // 1st: 운영 정책 조회 (holidays/max_advance_days)
+        .mockResolvedValueOnce({
+          rows: [{ holidays: [], max_advance_days: null }],
+          rowCount: 1,
+        })
+        // 2nd: slots query
         .mockResolvedValueOnce({
           rows: [
             { id: 1, day_of_week: 2, slot_time: '11:30:00', max_reservations: 5, is_active: true },
@@ -138,7 +148,7 @@ describe('RestaurantsController', () => {
           ],
           rowCount: 2,
         })
-        // 2nd: booked count query
+        // 3rd: booked count query
         .mockResolvedValueOnce({
           rows: [{ reservation_time: '11:30:00', booked: 3 }],
           rowCount: 1,

@@ -8,6 +8,7 @@ const {
   updateArrivalSchema,
   updateStatusSchema,
   cancelReservationSchema,
+  manualReservationSchema,
 } = require('../../middleware/schemas/reservations.schemas');
 
 // === 특수 엔드포인트 (/:id보다 먼저 정의해야 함) ===
@@ -17,6 +18,9 @@ router.get('/my', authenticateToken, controller.getMyReservations);
 
 // 점주 예약 목록 조회
 router.get('/merchant', authenticateMerchant, controller.getMerchantReservations);
+
+// 점주 수동(전화) 예약 등록
+router.post('/manual', authenticateMerchant, validate({ body: manualReservationSchema }), controller.createManualReservation);
 
 // === 일반 엔드포인트 ===
 

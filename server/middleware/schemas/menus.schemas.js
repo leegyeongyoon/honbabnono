@@ -85,11 +85,15 @@ const createMenuSchema = z.object({
 
 /**
  * Schema for menu update (PUT /menus/:id)
- * restaurant_id 제외한 partial
+ * restaurant_id 제외한 partial + 품절 토글(is_active)
+ * 주의: validate가 미정의 키를 strip하므로 is_active는 반드시 여기 선언되어야 함
  */
 const updateMenuSchema = createMenuSchema
   .omit({ restaurant_id: true })
-  .partial();
+  .partial()
+  .extend({
+    is_active: z.boolean().optional(),
+  });
 
 /**
  * Schema for menu category creation (POST /menus/categories)

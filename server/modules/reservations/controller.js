@@ -19,7 +19,9 @@ exports.createReservation = async (req, res) => {
 
     // 1. 식당 존재 + 활성 확인
     const restaurantResult = await client.query(
-      'SELECT id, name, is_active FROM restaurants WHERE id = $1',
+      `SELECT id, name, is_active, is_accepting_reservations, paused_until, pause_reason,
+              holidays, max_advance_days
+       FROM restaurants WHERE id = $1`,
       [restaurant_id]
     );
 
@@ -28,9 +30,50 @@ exports.createReservation = async (req, res) => {
       return res.status(404).json({ success: false, error: '식당을 찾을 수 없습니다.' });
     }
 
-    if (!restaurantResult.rows[0].is_active) {
+    const restaurant = restaurantResult.rows[0];
+
+    if (!restaurant.is_active) {
       await client.query('ROLLBACK');
       return res.status(400).json({ success: false, error: '현재 예약을 받지 않는 식당입니다.' });
+    }
+
+    // 1-1. 예약 일시중지 확인 (paused_until 경과 시 자동 재개)
+    const isPaused = restaurant.is_accepting_reservations === false
+      && (!restaurant.paused_until || new Date(restaurant.paused_until) > new Date());
+    if (isPaused) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({
+        success: false,
+        error: restaurant.pause_reason
+          ? `현재 예약을 받지 않습니다. (${restaurant.pause_reason})`
+          : '현재 예약을 받지 않습니다.',
+      });
+    }
+
+    // 1-2. 날짜 정책 확인 (문자열 비교 — 타임존 안전)
+    const now = new Date();
+    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
+    if (reservation_date < todayStr) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ success: false, error: '과거 날짜는 예약할 수 없습니다.' });
+    }
+
+    const advanceDays = restaurant.max_advance_days
+      ?? parseInt(process.env.RESERVATION_MAX_ADVANCE_DAYS || '30', 10);
+    const maxDate = new Date(now);
+    maxDate.setDate(maxDate.getDate() + advanceDays);
+    const maxDateStr = `${maxDate.getFullYear()}-${String(maxDate.getMonth() + 1).padStart(2, '0')}-${String(maxDate.getDate()).padStart(2, '0')}`;
+
+    if (reservation_date > maxDateStr) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ success: false, error: `최대 ${advanceDays}일 이내만 예약할 수 있습니다.` });
+    }
+
+    const holidays = Array.isArray(restaurant.holidays) ? restaurant.holidays : [];
+    if (holidays.includes(reservation_date)) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ success: false, error: '휴무일은 예약할 수 없습니다.' });
     }
 
     // 2. time_slot 잔여 확인 (요일 기반 슬롯 + 같은 날짜 내 이미 잡힌 예약 수)
@@ -193,9 +236,12 @@ exports.getMerchantReservations = async (req, res) => {
       SELECT r.id, r.reservation_date, r.reservation_time, r.party_size,
              r.status, r.arrival_status, r.special_request, r.qr_code,
              r.checked_in_at, r.cancelled_by, r.cancel_reason, r.created_at,
-             u.id AS user_id, u.name AS user_name, u.phone AS user_phone,
+             u.id AS user_id, COALESCE(u.name, r.guest_name) AS user_name,
+             COALESCE(u.phone, r.guest_phone) AS user_phone,
              u.profile_image AS user_profile_image,
-             u.name AS customer_name, u.phone AS customer_phone,
+             COALESCE(u.name, r.guest_name) AS customer_name,
+             COALESCE(u.phone, r.guest_phone) AS customer_phone,
+             r.is_manual,
              (
                SELECT json_agg(json_build_object(
                  'name', oi.menu_name,
@@ -215,7 +261,7 @@ exports.getMerchantReservations = async (req, res) => {
                ORDER BY oi.created_at LIMIT 1
              ) AS menu_name
       FROM reservations r
-      JOIN users u ON r.user_id = u.id
+      LEFT JOIN users u ON r.user_id = u.id
       WHERE r.restaurant_id = $1
     `;
     const params = [restaurantId];
@@ -225,7 +271,16 @@ exports.getMerchantReservations = async (req, res) => {
       query += ` AND r.reservation_date = $${params.length}`;
     }
 
-    query += ' ORDER BY r.reservation_time ASC';
+    // 주간 뷰 등 기간 조회 (date와 함께 쓰지 않음 — date 우선)
+    const { start_date, end_date } = req.query;
+    if (!date && start_date && end_date) {
+      params.push(start_date);
+      query += ` AND r.reservation_date >= $${params.length}`;
+      params.push(end_date);
+      query += ` AND r.reservation_date <= $${params.length}`;
+    }
+
+    query += ' ORDER BY r.reservation_date ASC, r.reservation_time ASC';
 
     const result = await pool.query(query, params);
 
@@ -773,5 +828,83 @@ exports.processNoShow = async (req, res) => {
   } catch (error) {
     logger.error('노쇼 처리 실패:', error);
     res.status(500).json({ success: false, error: '노쇼 처리 중 오류가 발생했습니다.' });
+  }
+};
+
+/**
+ * 점주 수동(전화) 예약 등록
+ * POST /reservations/manual
+ *
+ * 게스트 정보(이름/전화)로 예약 생성 — user_id 없음, 선결제 없음 → 즉시 confirmed.
+ * 점주가 직접 받는 예약이므로 휴무일/일시중지 정책은 적용하지 않음 (슬롯/정원만 검증).
+ */
+exports.createManualReservation = async (req, res) => {
+  const client = await pool.connect();
+  try {
+    const restaurantId = req.merchant.restaurantId;
+    const { reservation_date, reservation_time, party_size, guest_name, guest_phone, special_request } = req.body;
+
+    if (!restaurantId) {
+      return res.status(400).json({ success: false, error: '매장 등록을 먼저 완료해주세요.' });
+    }
+
+    await client.query('BEGIN');
+
+    // 슬롯 확인 (FOR UPDATE — 동시 요청 직렬화)
+    const dayOfWeek = new Date(reservation_date).getDay();
+    const slotResult = await client.query(
+      `SELECT id, max_reservations
+       FROM restaurant_time_slots
+       WHERE restaurant_id = $1 AND day_of_week = $2 AND slot_time = $3 AND is_active = true
+       FOR UPDATE`,
+      [restaurantId, dayOfWeek, reservation_time]
+    );
+
+    if (slotResult.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ success: false, error: '해당 시간대에 예약 슬롯이 없습니다.' });
+    }
+
+    const slot = slotResult.rows[0];
+
+    const bookedResult = await client.query(
+      `SELECT COUNT(*)::int AS booked
+       FROM reservations
+       WHERE restaurant_id = $1
+         AND reservation_date = $2
+         AND reservation_time = $3
+         AND status != 'cancelled'`,
+      [restaurantId, reservation_date, reservation_time]
+    );
+
+    if (bookedResult.rows[0].booked >= slot.max_reservations) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ success: false, error: '해당 시간대 예약이 마감되었습니다.' });
+    }
+
+    const qrCode = crypto.randomBytes(16).toString('hex');
+
+    const result = await client.query(
+      `INSERT INTO reservations
+         (user_id, restaurant_id, reservation_date, reservation_time, party_size,
+          special_request, qr_code, status, guest_name, guest_phone, is_manual)
+       VALUES (NULL, $1, $2, $3, $4, $5, $6, 'confirmed', $7, $8, true)
+       RETURNING id, restaurant_id, reservation_date, reservation_time, party_size,
+                 special_request, status, guest_name, guest_phone, is_manual, created_at`,
+      [restaurantId, reservation_date, reservation_time, party_size,
+       special_request || null, qrCode, guest_name, guest_phone || null]
+    );
+
+    await client.query('COMMIT');
+
+    logger.info('수동 예약 등록:', { restaurantId, reservationId: result.rows[0].id, guest_name });
+
+    res.status(201).json({ success: true, reservation: result.rows[0] });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    logger.error('수동 예약 등록 실패:', error);
+    res.status(500).json({ success: false, error: '수동 예약 등록 중 오류가 발생했습니다.' });
+  } finally {
+    client.release();
   }
 };

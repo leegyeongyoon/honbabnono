@@ -78,6 +78,36 @@ const createRestaurantSchema = z.object({
     .min(1, '조리시간은 1분 이상이어야 합니다.')
     .max(120, '조리시간은 120분 이하여야 합니다.')
     .optional(),
+
+  // ── 운영 정책 (마이그레이션 106) — validate가 미정의 키를 strip하므로 반드시 스키마에 선언 ──
+  is_accepting_reservations: z
+    .boolean()
+    .optional(),
+
+  pause_reason: z
+    .string()
+    .max(200, '일시중지 사유는 200자 이하여야 합니다.')
+    .nullable()
+    .optional(),
+
+  paused_until: z
+    .string()
+    .datetime({ offset: true, message: '재개 시각은 ISO 형식이어야 합니다.' })
+    .nullable()
+    .optional(),
+
+  holidays: z
+    .array(z.string().regex(/^\d{4}-\d{2}-\d{2}$/, '휴무일은 YYYY-MM-DD 형식이어야 합니다.'))
+    .max(60, '휴무일은 최대 60개까지 지정 가능합니다.')
+    .optional(),
+
+  max_advance_days: z
+    .number()
+    .int('예약 가능 일수는 정수여야 합니다.')
+    .min(1, '예약 가능 일수는 1일 이상이어야 합니다.')
+    .max(365, '예약 가능 일수는 365일 이하여야 합니다.')
+    .nullable()
+    .optional(),
 });
 
 /**

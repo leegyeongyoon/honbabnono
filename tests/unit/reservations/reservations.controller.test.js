@@ -32,6 +32,12 @@ const {
   createMockRequest,
 } = require('../../helpers/response.helper');
 
+
+// 운영 정책(과거 날짜/상한) 검증을 통과하는 미래 날짜
+const future = new Date();
+future.setDate(future.getDate() + 7);
+const FUTURE_DATE = `${future.getFullYear()}-${String(future.getMonth() + 1).padStart(2, '0')}-${String(future.getDate()).padStart(2, '0')}`;
+
 describe('ReservationsController', () => {
   let mockReq;
   let mockRes;
@@ -47,7 +53,7 @@ describe('ReservationsController', () => {
       mockReq = createMockRequest({
         body: {
           restaurant_id: 1,
-          reservation_date: '2026-05-01',
+          reservation_date: FUTURE_DATE,
           reservation_time: '18:00',
           party_size: 2,
           special_request: '창가 자리',
@@ -68,7 +74,7 @@ describe('ReservationsController', () => {
             id: 50,
             user_id: 'u-1',
             restaurant_id: 1,
-            reservation_date: '2026-05-01',
+            reservation_date: FUTURE_DATE,
             reservation_time: '18:00',
             party_size: 2,
             qr_code: 'abc123',
@@ -90,7 +96,7 @@ describe('ReservationsController', () => {
       mockReq = createMockRequest({
         body: {
           restaurant_id: 999,
-          reservation_date: '2026-05-01',
+          reservation_date: FUTURE_DATE,
           reservation_time: '18:00',
           party_size: 2,
         },
@@ -110,7 +116,7 @@ describe('ReservationsController', () => {
       mockReq = createMockRequest({
         body: {
           restaurant_id: 1,
-          reservation_date: '2026-05-01',
+          reservation_date: FUTURE_DATE,
           reservation_time: '18:00',
           party_size: 2,
         },
@@ -140,7 +146,7 @@ describe('ReservationsController', () => {
         .mockResolvedValueOnce({
           rows: [{
             id: 1,
-            reservation_date: '2026-05-01',
+            reservation_date: FUTURE_DATE,
             reservation_time: '18:00',
             status: 'confirmed',
             restaurant_id: 1,

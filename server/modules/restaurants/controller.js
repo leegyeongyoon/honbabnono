@@ -302,6 +302,33 @@ exports.getTimeSlots = async (req, res) => {
     let dayFilter = '';
 
     if (date) {
+      // 운영 정책 확인 — 휴무일/과거/예약 상한 초과면 빈 슬롯 + 사유 플래그 반환
+      const policyResult = await pool.query(
+        'SELECT holidays, max_advance_days FROM restaurants WHERE id = $1',
+        [id]
+      );
+      const policy = policyResult.rows[0] || {};
+
+      const holidays = Array.isArray(policy.holidays) ? policy.holidays : [];
+      if (holidays.includes(date)) {
+        return res.json({ success: true, data: [], is_holiday: true });
+      }
+
+      const now = new Date();
+      const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+      if (date < todayStr) {
+        return res.json({ success: true, data: [], is_past: true });
+      }
+
+      const advanceDays = policy.max_advance_days
+        ?? parseInt(process.env.RESERVATION_MAX_ADVANCE_DAYS || '30', 10);
+      const maxDate = new Date(now);
+      maxDate.setDate(maxDate.getDate() + advanceDays);
+      const maxDateStr = `${maxDate.getFullYear()}-${String(maxDate.getMonth() + 1).padStart(2, '0')}-${String(maxDate.getDate()).padStart(2, '0')}`;
+      if (date > maxDateStr) {
+        return res.json({ success: true, data: [], exceeds_advance: true, max_advance_days: advanceDays });
+      }
+
       const dayOfWeek = new Date(date).getDay();
       params.push(dayOfWeek);
       dayFilter = `AND rts.day_of_week = $${params.length}`;
@@ -465,6 +492,7 @@ exports.updateRestaurant = async (req, res) => {
       name, description, category, phone, address, address_detail,
       latitude, longitude, image_url, images, operating_hours, seat_count,
       auto_accept_orders, default_prep_time,
+      is_accepting_reservations, pause_reason, paused_until, holidays, max_advance_days,
     } = req.body;
 
     // 동적 업데이트 쿼리 생성
@@ -473,7 +501,8 @@ exports.updateRestaurant = async (req, res) => {
 
     const addField = (column, value) => {
       if (value !== undefined) {
-        params.push(column === 'images' || column === 'operating_hours' ? JSON.stringify(value) : value);
+        const jsonColumns = ['images', 'operating_hours', 'holidays'];
+        params.push(jsonColumns.includes(column) ? JSON.stringify(value) : value);
         fields.push(`${column} = $${params.length}`);
       }
     };
@@ -492,6 +521,12 @@ exports.updateRestaurant = async (req, res) => {
     addField('seat_count', seat_count);
     addField('auto_accept_orders', auto_accept_orders);
     addField('default_prep_time', default_prep_time);
+    // 운영 정책 (106): 예약 일시중지 / 휴무일 / 예약 상한
+    addField('is_accepting_reservations', is_accepting_reservations);
+    addField('pause_reason', pause_reason);
+    addField('paused_until', paused_until);
+    addField('holidays', holidays);
+    addField('max_advance_days', max_advance_days);
 
     if (fields.length === 0) {
       return res.status(400).json({ success: false, error: '수정할 항목이 없습니다.' });
