@@ -2,6 +2,8 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const pool = require('../../config/database');
 const logger = require('../../config/logger');
+const portone = require('../../config/portone');
+const { createNotification } = require('../notifications/controller');
 
 // 관리자 로그인
 exports.login = async (req, res) => {
@@ -106,10 +108,43 @@ exports.getDashboardStats = async (req, res) => {
       ORDER BY d
     `, [days]);
 
+    // v2 피벗 — 예약/결제(GMV)/노쇼 통계
+    // noshow_rate: 최근 30일, 노쇼(arrival_status='noshow') / (완료(completed) + 노쇼)
+    const v2Result = await pool.query(`
+      SELECT
+        (SELECT COUNT(*) FROM reservations WHERE reservation_date = CURRENT_DATE) AS today_reservations,
+        (SELECT COUNT(*) FROM reservations WHERE reservation_date >= CURRENT_DATE - INTERVAL '7 days') AS week_reservations,
+        (SELECT COALESCE(SUM(amount), 0) FROM payments WHERE status = 'paid') AS gmv_total,
+        (SELECT COALESCE(SUM(amount), 0) FROM payments WHERE status = 'paid' AND paid_at >= NOW() - INTERVAL '7 days') AS gmv_week,
+        (SELECT COUNT(*) FROM restaurants WHERE is_active = true) AS active_restaurants,
+        (SELECT ROUND(
+            100.0 * COUNT(*) FILTER (WHERE arrival_status = 'noshow')
+            / NULLIF(COUNT(*) FILTER (WHERE status = 'completed' OR arrival_status = 'noshow'), 0)
+          , 1)
+         FROM reservations
+         WHERE reservation_date >= CURRENT_DATE - INTERVAL '30 days') AS noshow_rate
+    `);
+
+    // 매장별 매출 TOP5 (최근 30일 paid 결제 기준)
+    const topRestaurantsResult = await pool.query(`
+      SELECT r.id, r.name,
+             COALESCE(SUM(p.amount), 0)::bigint AS sales,
+             COUNT(DISTINCT p.reservation_id)::int AS reservation_count
+      FROM payments p
+      JOIN reservations res ON res.id = p.reservation_id
+      JOIN restaurants r ON r.id = res.restaurant_id
+      WHERE p.status = 'paid'
+        AND p.paid_at >= NOW() - INTERVAL '30 days'
+      GROUP BY r.id, r.name
+      ORDER BY sales DESC
+      LIMIT 5
+    `);
+
     res.json({
       success: true,
-      stats: countsResult.rows[0],
-      trends: trendsResult.rows
+      stats: { ...countsResult.rows[0], ...v2Result.rows[0] },
+      trends: trendsResult.rows,
+      topRestaurants: topRestaurantsResult.rows
     });
   } catch (error) {
     logger.error('대시보드 통계 조회 오류:', error);
@@ -2507,5 +2542,378 @@ exports.verifyMerchant = async (req, res) => {
   } catch (error) {
     logger.error('점주 인증 상태 변경 오류:', error);
     res.status(500).json({ success: false, error: '점주 인증 상태 변경에 실패했습니다.' });
+  }
+};
+
+// ============================================
+// v2 피벗 — 정산 관리 (관리자)
+// ============================================
+
+/**
+ * 정산 목록 조회
+ * GET /admin/settlements?status=pending&restaurant_id=&period_start=&period_end=&page=1&limit=20
+ */
+exports.getSettlementsForAdmin = async (req, res) => {
+  try {
+    const { status, restaurant_id, period_start, period_end, page = 1, limit = 20 } = req.query;
+    const offset = (parseInt(page) - 1) * parseInt(limit);
+    const conditions = [];
+    const params = [];
+
+    if (status && status !== 'all') {
+      params.push(status);
+      conditions.push(`s.status = $${params.length}`);
+    }
+    if (restaurant_id) {
+      params.push(restaurant_id);
+      conditions.push(`s.restaurant_id = $${params.length}`);
+    }
+    if (period_start) {
+      params.push(period_start);
+      conditions.push(`s.period_start >= $${params.length}`);
+    }
+    if (period_end) {
+      params.push(period_end);
+      conditions.push(`s.period_end <= $${params.length}`);
+    }
+
+    const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+    params.push(parseInt(limit), offset);
+
+    const sql = `
+      SELECT s.id, s.restaurant_id, s.merchant_id,
+             s.period_start, s.period_end,
+             s.total_sales, s.platform_fee, s.payment_fee,
+             s.settlement_amount, s.fee_rate, s.payment_fee_rate,
+             s.order_count, s.status,
+             s.bank_name, s.bank_account, s.bank_holder,
+             s.paid_at, s.created_at,
+             r.name AS restaurant_name,
+             u.name AS owner_name,
+             COUNT(*) OVER() AS total_count
+      FROM settlements s
+      LEFT JOIN restaurants r ON r.id = s.restaurant_id
+      LEFT JOIN merchants m ON m.id = s.merchant_id
+      LEFT JOIN users u ON u.id = m.user_id
+      ${where}
+      ORDER BY
+        CASE s.status WHEN 'pending' THEN 0 WHEN 'paid' THEN 1 ELSE 2 END,
+        s.period_end DESC, s.created_at DESC
+      LIMIT $${params.length - 1} OFFSET $${params.length}
+    `;
+
+    const result = await pool.query(sql, params);
+    const total = result.rows.length ? parseInt(result.rows[0].total_count) : 0;
+
+    // 상태별 집계 (필터 무관 전체 — 요약 카드용)
+    const countsResult = await pool.query(`
+      SELECT status,
+             COUNT(*) AS cnt,
+             COALESCE(SUM(settlement_amount), 0) AS amount
+      FROM settlements
+      GROUP BY status
+    `);
+    const counts = {
+      pending: { count: 0, amount: 0 },
+      paid: { count: 0, amount: 0 },
+    };
+    for (const row of countsResult.rows) {
+      if (counts[row.status]) {
+        counts[row.status] = { count: parseInt(row.cnt), amount: parseFloat(row.amount) };
+      }
+    }
+
+    res.json({
+      success: true,
+      settlements: result.rows,
+      counts,
+      pagination: { page: parseInt(page), limit: parseInt(limit), total },
+    });
+  } catch (error) {
+    logger.error('관리자 정산 목록 조회 오류:', error);
+    res.status(500).json({ success: false, error: '정산 목록 조회에 실패했습니다.' });
+  }
+};
+
+/**
+ * 정산 지급 처리 (멱등)
+ * PATCH /admin/settlements/:id/pay
+ */
+exports.paySettlement = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // 1. 존재 확인 (404)
+    const existing = await pool.query(
+      'SELECT id, restaurant_id, merchant_id, settlement_amount, status FROM settlements WHERE id = $1',
+      [id]
+    );
+    if (existing.rows.length === 0) {
+      return res.status(404).json({ success: false, error: '정산 내역을 찾을 수 없습니다.' });
+    }
+
+    // 2. 조건부 UPDATE — pending인 경우에만 (멱등성 가드: rowCount 0이면 이미 지급됨)
+    const updateResult = await pool.query(
+      `UPDATE settlements
+       SET status = 'paid', paid_at = NOW(), updated_at = NOW()
+       WHERE id = $1 AND status = 'pending'
+       RETURNING id, restaurant_id, settlement_amount, paid_at, status`,
+      [id]
+    );
+
+    if (updateResult.rowCount === 0) {
+      return res.status(409).json({ success: false, error: '이미 지급 처리된 정산입니다.' });
+    }
+
+    const settlement = updateResult.rows[0];
+
+    // 3. 점주(merchants.user_id) 알림
+    if (existing.rows[0].merchant_id) {
+      const ownerResult = await pool.query(
+        'SELECT user_id FROM merchants WHERE id = $1',
+        [existing.rows[0].merchant_id]
+      );
+      const ownerUserId = ownerResult.rows[0]?.user_id;
+      if (ownerUserId) {
+        createNotification(
+          ownerUserId,
+          'settlement_paid',
+          '정산 지급 완료',
+          `${Number(settlement.settlement_amount).toLocaleString('ko-KR')}원이 정산 계좌로 지급되었습니다.`,
+          { settlementId: settlement.id, restaurantId: settlement.restaurant_id }
+        ).catch(() => {});
+      }
+    }
+
+    logger.info('정산 지급 처리 완료:', { settlementId: id, amount: settlement.settlement_amount });
+
+    res.json({ success: true, settlement });
+  } catch (error) {
+    logger.error('정산 지급 처리 오류:', error);
+    res.status(500).json({ success: false, error: '정산 지급 처리에 실패했습니다.' });
+  }
+};
+
+// ============================================
+// v2 피벗 — 결제/환불 관리 (관리자)
+// ============================================
+
+/**
+ * 결제 목록 조회
+ * GET /admin/payments?status=&period_start=&period_end=&restaurant_id=&page=1&limit=20
+ */
+exports.getPaymentsForAdmin = async (req, res) => {
+  try {
+    const { status, period_start, period_end, restaurant_id, page = 1, limit = 20 } = req.query;
+    const offset = (parseInt(page) - 1) * parseInt(limit);
+    const conditions = [];
+    const params = [];
+
+    if (status && status !== 'all') {
+      params.push(status);
+      conditions.push(`p.status = $${params.length}`);
+    }
+    if (period_start) {
+      params.push(period_start);
+      conditions.push(`p.created_at >= $${params.length}`);
+    }
+    if (period_end) {
+      params.push(period_end);
+      // period_end 당일 포함 (날짜 입력 시)
+      conditions.push(`p.created_at < ($${params.length}::date + INTERVAL '1 day')`);
+    }
+    if (restaurant_id) {
+      params.push(restaurant_id);
+      conditions.push(`res.restaurant_id = $${params.length}`);
+    }
+
+    const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+    params.push(parseInt(limit), offset);
+
+    const sql = `
+      SELECT p.id, p.reservation_id, p.order_id, p.user_id,
+             p.amount, p.payment_method, p.status,
+             p.merchant_uid, p.refund_amount, p.refund_rate, p.refund_reason,
+             p.paid_at, p.refunded_at, p.created_at,
+             u.name AS customer_name, u.email AS customer_email,
+             res.reservation_date, res.reservation_time,
+             r.name AS restaurant_name,
+             COUNT(*) OVER() AS total_count
+      FROM payments p
+      LEFT JOIN users u ON u.id = p.user_id
+      LEFT JOIN reservations res ON res.id = p.reservation_id
+      LEFT JOIN restaurants r ON r.id = res.restaurant_id
+      ${where}
+      ORDER BY p.created_at DESC
+      LIMIT $${params.length - 1} OFFSET $${params.length}
+    `;
+
+    const result = await pool.query(sql, params);
+    const total = result.rows.length ? parseInt(result.rows[0].total_count) : 0;
+
+    // 합계 카드용 (필터 무관 전체)
+    const totalsResult = await pool.query(`
+      SELECT
+        COALESCE(SUM(amount) FILTER (WHERE status = 'paid'), 0) AS paid_amount,
+        COALESCE(SUM(refund_amount) FILTER (WHERE status IN ('refunded', 'partial_refund')), 0) AS refunded_amount
+      FROM payments
+    `);
+
+    res.json({
+      success: true,
+      payments: result.rows,
+      totals: {
+        paid_amount: parseFloat(totalsResult.rows[0].paid_amount),
+        refunded_amount: parseFloat(totalsResult.rows[0].refunded_amount),
+      },
+      pagination: { page: parseInt(page), limit: parseInt(limit), total },
+    });
+  } catch (error) {
+    logger.error('관리자 결제 목록 조회 오류:', error);
+    res.status(500).json({ success: false, error: '결제 목록 조회에 실패했습니다.' });
+  }
+};
+
+/**
+ * 결제 환불 (관리자 — 정책 무시 가능)
+ * POST /admin/payments/:id/refund
+ * body: { amount?, reason, ignore_policy? }
+ *
+ * ignore_policy: 관리자 환불은 현재 매장별 환불 정책 검증을 적용하지 않으므로
+ *                (정책 무시가 기본 동작) 문서/감사 목적으로만 수신하며 별도 검증 분기는 없다.
+ */
+exports.refundPaymentForAdmin = async (req, res) => {
+  const { id: paymentId } = req.params;
+  const { amount, reason, ignore_policy } = req.body || {};
+
+  // (a) 결제 조회
+  const paymentResult = await pool.query('SELECT * FROM payments WHERE id = $1', [paymentId]).catch((e) => {
+    logger.error('관리자 환불 결제 조회 오류:', e);
+    return null;
+  });
+  if (!paymentResult) {
+    return res.status(500).json({ success: false, error: '환불 처리에 실패했습니다.' });
+  }
+  if (paymentResult.rows.length === 0) {
+    return res.status(404).json({ success: false, error: '결제 정보를 찾을 수 없습니다.' });
+  }
+  const payment = paymentResult.rows[0];
+
+  if (!['paid', 'partial_refund'].includes(payment.status)) {
+    return res.status(400).json({ success: false, error: `환불 가능한 상태가 아닙니다. (현재: ${payment.status})` });
+  }
+
+  // (b) 환불 가능 잔액 = amount - 누적 환불액
+  const alreadyRefunded = Number(payment.refund_amount) || 0;
+  const refundableBalance = Number(payment.amount) - alreadyRefunded;
+
+  let refundAmount;
+  if (amount === undefined || amount === null || amount === '') {
+    refundAmount = refundableBalance; // 미지정 시 잔액 전액
+  } else {
+    refundAmount = Math.floor(Number(amount));
+    if (!Number.isFinite(refundAmount) || refundAmount <= 0) {
+      return res.status(400).json({ success: false, error: '환불 금액이 올바르지 않습니다.' });
+    }
+    if (refundAmount > refundableBalance) {
+      return res.status(400).json({
+        success: false,
+        error: `환불 가능 잔액(${refundableBalance.toLocaleString('ko-KR')}원)을 초과했습니다.`,
+      });
+    }
+  }
+
+  if (refundAmount <= 0) {
+    return res.status(400).json({ success: false, error: '환불 가능한 잔액이 없습니다.' });
+  }
+
+  // (c) PG 취소 (포인트는 트랜잭션 내부에서 환급)
+  if (payment.payment_method !== 'points' && payment.imp_uid) {
+    try {
+      // 결제 전액 + 기존 환불 없음이면 전액 취소(금액 생략), 그 외엔 부분 금액 명시
+      const isFullCancel = refundAmount === Number(payment.amount) && alreadyRefunded === 0;
+      await portone.cancelPayment(
+        payment.imp_uid,
+        reason || '관리자 환불',
+        isFullCancel ? undefined : refundAmount
+      );
+    } catch (pgError) {
+      logger.error('관리자 환불 PG 취소 실패:', pgError);
+      return res.status(500).json({ success: false, error: '결제사 환불(PG 취소)에 실패했습니다.' });
+    }
+  }
+
+  // (d) 트랜잭션: payments 업데이트 (+ 포인트 환급 / 예약 취소)
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    if (payment.payment_method === 'points') {
+      await client.query(`
+        INSERT INTO user_points (user_id, total_earned, available_points, total_used)
+        VALUES ($1, $2, $2, 0)
+        ON CONFLICT (user_id)
+        DO UPDATE SET
+          available_points = user_points.available_points + $2,
+          updated_at = NOW()
+      `, [payment.user_id, refundAmount]);
+
+      await client.query(`
+        INSERT INTO point_transactions (user_id, type, amount, description, created_at)
+        VALUES ($1, 'earned', $2, $3, NOW())
+      `, [payment.user_id, refundAmount, `관리자 환불 (결제 ID: ${paymentId})`]);
+    }
+
+    const newRefundTotal = alreadyRefunded + refundAmount;
+    const newStatus = newRefundTotal === Number(payment.amount) ? 'refunded' : 'partial_refund';
+    const refundRate = Math.round((newRefundTotal / Number(payment.amount)) * 100);
+
+    await client.query(`
+      UPDATE payments
+      SET status = $1, refund_amount = $2, refund_rate = $3, refund_reason = $4,
+          refunded_at = NOW(), updated_at = NOW()
+      WHERE id = $5
+    `, [newStatus, newRefundTotal, refundRate, reason || null, paymentId]);
+
+    // 전액 환불이면 예약 취소
+    if (newStatus === 'refunded' && payment.reservation_id) {
+      await client.query(`
+        UPDATE reservations
+        SET status = 'cancelled', cancelled_by = 'admin', updated_at = NOW()
+        WHERE id = $1
+      `, [payment.reservation_id]);
+    }
+
+    await client.query('COMMIT');
+
+    // (e) 고객 알림
+    if (payment.user_id) {
+      createNotification(
+        payment.user_id,
+        'refund',
+        '환불 처리',
+        `${refundAmount.toLocaleString('ko-KR')}원이 환불 처리되었습니다.`,
+        { paymentId, reservationId: payment.reservation_id, amount: refundAmount }
+      ).catch(() => {});
+    }
+
+    logger.info('관리자 환불 완료:', { paymentId, refundAmount, newStatus, ignore_policy: Boolean(ignore_policy) });
+
+    res.json({
+      success: true,
+      refund: {
+        refund_amount: refundAmount,
+        total_refunded: newRefundTotal,
+        original_amount: Number(payment.amount),
+        status: newStatus,
+        refund_rate: refundRate,
+      },
+    });
+  } catch (error) {
+    await client.query('ROLLBACK').catch(() => {});
+    logger.error('관리자 환불 처리 오류:', error);
+    res.status(500).json({ success: false, error: '환불 처리에 실패했습니다.' });
+  } finally {
+    client.release();
   }
 };

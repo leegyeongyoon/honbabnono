@@ -29,6 +29,10 @@ import ReportProblemIcon from '@mui/icons-material/ReportProblem';
 import SupportAgentIcon from '@mui/icons-material/SupportAgent';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import RefreshIcon from '@mui/icons-material/Refresh';
+import EventAvailableIcon from '@mui/icons-material/EventAvailable';
+import StorefrontIcon from '@mui/icons-material/Storefront';
+import TrendingDownIcon from '@mui/icons-material/TrendingDown';
+import PointOfSaleIcon from '@mui/icons-material/PointOfSale';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -76,6 +80,20 @@ interface DashboardStats {
   total_revenue: number;
   total_badges_awarded: number;
   active_ads: number;
+  // v2 피벗
+  today_reservations: number;
+  week_reservations: number;
+  gmv_total: number;
+  gmv_week: number;
+  active_restaurants: number;
+  noshow_rate: number | null;
+}
+
+interface TopRestaurant {
+  id: string;
+  name: string;
+  sales: number;
+  reservation_count: number;
 }
 
 interface TrendItem {
@@ -148,6 +166,7 @@ const KpiCard: React.FC<KpiCardProps> = ({ title, value, subtitle, icon, color }
 export default function Dashboard() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [trends, setTrends] = useState<TrendItem[]>([]);
+  const [topRestaurants, setTopRestaurants] = useState<TopRestaurant[]>([]);
   const [realtimeData, setRealtimeData] = useState<RealtimeStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -173,6 +192,7 @@ export default function Dashboard() {
 
       setStats(dashData.stats || null);
       setTrends(dashData.trends || []);
+      setTopRestaurants(dashData.topRestaurants || []);
       setRealtimeData(rtData.data || null);
       setLastUpdated(new Date());
       setError(null);
@@ -401,6 +421,93 @@ export default function Dashboard() {
           color="#D32F2F"
         />
       </Box>
+
+      {/* v2 피벗 — 잇테이블 예약/매출 지표 */}
+      <Typography variant="h6" sx={{ mb: 1.5 }}>
+        잇테이블 예약/매출 현황
+      </Typography>
+      <Box sx={{
+        display: 'grid',
+        gridTemplateColumns: {
+          xs: '1fr',
+          sm: '1fr 1fr',
+          md: 'repeat(3, 1fr)',
+        },
+        gap: 2,
+        mb: 3,
+      }}>
+        <KpiCard
+          title="오늘 예약"
+          value={stats?.today_reservations ?? 0}
+          icon={<EventAvailableIcon />}
+          color="#C9B59C"
+        />
+        <KpiCard
+          title="최근 7일 예약"
+          value={stats?.week_reservations ?? 0}
+          icon={<EventIcon />}
+          color="#A08B7A"
+        />
+        <KpiCard
+          title="활성 매장"
+          value={stats?.active_restaurants ?? 0}
+          icon={<StorefrontIcon />}
+          color="#766653"
+        />
+        <KpiCard
+          title="GMV 누적"
+          value={`₩${(stats?.gmv_total ?? 0).toLocaleString()}`}
+          icon={<AttachMoneyIcon />}
+          color="#2E7D32"
+        />
+        <KpiCard
+          title="GMV (7일)"
+          value={`₩${(stats?.gmv_week ?? 0).toLocaleString()}`}
+          icon={<PointOfSaleIcon />}
+          color="#388E3C"
+        />
+        <KpiCard
+          title="노쇼율 (30일)"
+          value={stats?.noshow_rate != null ? `${stats.noshow_rate}%` : '-'}
+          icon={<TrendingDownIcon />}
+          color="#D32F2F"
+        />
+      </Box>
+
+      {/* 매장별 매출 TOP5 */}
+      <Paper sx={{ p: 2, mb: 3 }}>
+        <Typography variant="h6" gutterBottom>
+          매장별 매출 TOP5 (최근 30일)
+        </Typography>
+        {topRestaurants.length > 0 ? (
+          <TableContainer>
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell>순위</TableCell>
+                  <TableCell>매장명</TableCell>
+                  <TableCell align="right">매출</TableCell>
+                  <TableCell align="right">예약수</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {topRestaurants.map((r, idx) => (
+                  <TableRow key={r.id} hover>
+                    <TableCell>
+                      <Chip label={idx + 1} size="small" sx={{ fontWeight: 700, backgroundColor: '#C9B59C20', color: '#4C422C' }} />
+                    </TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>{r.name}</TableCell>
+                    <TableCell align="right">₩{Number(r.sales).toLocaleString()}</TableCell>
+                    <TableCell align="right">{Number(r.reservation_count).toLocaleString()}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        ) : (
+          <Alert severity="info">최근 30일 매출 데이터가 없습니다.</Alert>
+        )}
+      </Paper>
 
       {/* Charts */}
       <Box sx={{

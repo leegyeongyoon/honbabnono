@@ -154,4 +154,12 @@ router.patch('/restaurants/:id/toggle', authenticateAdminNew, adminController.to
 // v2 피벗 — 예약 모니터링
 router.get('/reservations', authenticateAdminNew, adminController.getReservationsForAdmin);
 
+// v2 피벗 — 정산 관리 (static 경로 먼저)
+router.get('/settlements', authenticateAdminNew, adminController.getSettlementsForAdmin);
+router.patch('/settlements/:id/pay', authenticateAdminNew, adminController.paySettlement);
+
+// v2 피벗 — 결제/환불 관리 (static 경로 먼저)
+router.get('/payments', authenticateAdminNew, adminController.getPaymentsForAdmin);
+router.post('/payments/:id/refund', authenticateAdminNew, adminController.refundPaymentForAdmin);
+
 module.exports = router;

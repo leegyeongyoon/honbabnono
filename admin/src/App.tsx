@@ -34,11 +34,15 @@ import RateReviewIcon from '@mui/icons-material/RateReview';
 import RestaurantIcon from '@mui/icons-material/Restaurant';
 import EventAvailableIcon from '@mui/icons-material/EventAvailable';
 import StorefrontIcon from '@mui/icons-material/Storefront';
+import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
+import CreditCardIcon from '@mui/icons-material/CreditCard';
 
 import Dashboard from './components/Dashboard';
 import MerchantManagement from './components/MerchantManagement';
 import RestaurantManagement from './components/RestaurantManagement';
 import ReservationMonitoring from './components/ReservationMonitoring';
+import SettlementManagement from './components/SettlementManagement';
+import PaymentManagement from './components/PaymentManagement';
 import UserManagement from './components/UserManagement';
 import MeetupManagement from './components/MeetupManagement';
 import Reports from './components/Reports';
@@ -95,6 +99,8 @@ const menuItems: Array<{ text: string; icon?: React.ReactNode; path?: string; di
   { text: '점주 관리', icon: <StorefrontIcon />, path: '/merchants' },
   { text: '매장 관리', icon: <RestaurantIcon />, path: '/restaurants' },
   { text: '예약 모니터링', icon: <EventAvailableIcon />, path: '/reservations' },
+  { text: '정산 관리', icon: <AccountBalanceIcon />, path: '/settlements' },
+  { text: '결제 관리', icon: <CreditCardIcon />, path: '/payments' },
   { text: '---', divider: true },
   { text: '사용자 관리', icon: <PeopleIcon />, path: '/users' },
   { text: '차단 관리', icon: <BlockIcon />, path: '/blocked-users' },
@@ -278,6 +284,8 @@ function App() {
               <Route path="/merchants" element={<MerchantManagement />} />
               <Route path="/restaurants" element={<RestaurantManagement />} />
               <Route path="/reservations" element={<ReservationMonitoring />} />
+              <Route path="/settlements" element={<SettlementManagement />} />
+              <Route path="/payments" element={<PaymentManagement />} />
               <Route path="/users" element={<UserManagement />} />
               <Route path="/blocked-users" element={<BlockedUserManagement />} />
               <Route path="/meetups" element={<MeetupManagement />} />
