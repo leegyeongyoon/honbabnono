@@ -128,6 +128,44 @@ function emitCookingUpdate(io, reservationId, data) {
 }
 
 /**
+ * 새 예약(결제 완료) 알림 (시스템 → 점주)
+ * 점주가 예약 보드를 보고 있으면 실시간 반영 + 알림음 트리거
+ */
+function emitNewReservation(io, restaurantId, data) {
+  io.to(`restaurant:${restaurantId}`).emit('reservation:new', {
+    reservationId: data.reservationId,
+    customerName: data.customerName,
+    reservationDate: data.reservationDate,
+    reservationTime: data.reservationTime,
+    partySize: data.partySize,
+    amount: data.amount,
+    createdAt: new Date().toISOString(),
+    ...data,
+  });
+  logger.debug(`${LOG_PREFIX} 새 예약 이벤트 전송`, {
+    restaurantId,
+    reservationId: data.reservationId,
+  });
+}
+
+/**
+ * 예약 취소 알림 (고객 → 점주)
+ * 점주 보드 실시간 갱신용
+ */
+function emitReservationCancelled(io, restaurantId, data) {
+  io.to(`restaurant:${restaurantId}`).emit('reservation:cancelled', {
+    reservationId: data.reservationId,
+    cancelledBy: data.cancelledBy,
+    cancelledAt: new Date().toISOString(),
+    ...data,
+  });
+  logger.debug(`${LOG_PREFIX} 예약 취소 이벤트 전송`, {
+    restaurantId,
+    reservationId: data.reservationId,
+  });
+}
+
+/**
  * 체크인 알림 (고객 → 점주)
  * 고객이 QR/예약번호로 체크인하면 점주에게 실시간 알림
  */
@@ -152,4 +190,6 @@ module.exports = {
   emitArrivalUpdate,
   emitCookingUpdate,
   emitCheckin,
+  emitNewReservation,
+  emitReservationCancelled,
 };

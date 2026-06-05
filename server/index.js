@@ -599,6 +599,11 @@ app.use('/chat', (req, res) => {
 // io 객체를 Express app에 저장 (컨트롤러에서 접근 가능)
 app.set('io', io);
 
+// 예약/식당 룸(join_reservation, join_restaurant) 이벤트 핸들러 등록
+// 주의: 이 호출이 없으면 reservations/socket.js의 emit이 어떤 클라이언트에도 도달하지 않는다
+const { setupReservationSocket } = require('./modules/reservations/socket');
+setupReservationSocket(io);
+
 // 온라인 사용자 추적: userId -> Set<socketId>
 const onlineUsers = new Map();
 
