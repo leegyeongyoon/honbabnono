@@ -21,6 +21,7 @@ import MenuBookIcon from '@mui/icons-material/MenuBook';
 import StoreIcon from '@mui/icons-material/Store';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import RateReviewIcon from '@mui/icons-material/RateReview';
+import ChatIcon from '@mui/icons-material/Chat';
 import SettingsIcon from '@mui/icons-material/Settings';
 import LogoutIcon from '@mui/icons-material/Logout';
 
@@ -35,6 +36,7 @@ import MenuManagement from './components/MenuManagement';
 import StoreInfo from './components/StoreInfo';
 import SettlementHistory from './components/SettlementHistory';
 import ReviewManagement from './components/ReviewManagement';
+import ChatInbox from './components/ChatInbox';
 import MerchantSettings from './components/MerchantSettings';
 
 const theme = createTheme({
@@ -78,6 +80,7 @@ const menuItems: Array<{ text: string; icon: React.ReactNode; path: string }> = 
   { text: '매장 정보', icon: <StoreIcon />, path: '/store' },
   { text: '정산', icon: <AccountBalanceIcon />, path: '/settlements' },
   { text: '리뷰 관리', icon: <RateReviewIcon />, path: '/reviews' },
+  { text: '문의', icon: <ChatIcon />, path: '/chat' },
   { text: '설정', icon: <SettingsIcon />, path: '/settings' },
 ];
 
@@ -202,6 +205,7 @@ function AppContent({ merchantData, onLogout }: { merchantData: any; onLogout: (
           <Route path="/store" element={<StoreInfo />} />
           <Route path="/settlements" element={<SettlementHistory />} />
           <Route path="/reviews" element={<ReviewManagement />} />
+          <Route path="/chat" element={<ChatInbox />} />
           <Route path="/settings" element={<MerchantSettings />} />
         </Routes>
       </Box>

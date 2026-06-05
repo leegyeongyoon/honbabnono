@@ -138,7 +138,7 @@ const OrderManagement: React.FC = () => {
     onNewReservation: () => fetchOrders(),
   });
 
-  const advanceStatus = async (orderId: number, currentStatus: CookingStatus) => {
+  const advanceStatus = async (orderId: string, currentStatus: CookingStatus) => {
     const next = NEXT_STATUS[currentStatus];
     if (!next) return;
     try {
