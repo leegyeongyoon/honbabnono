@@ -168,6 +168,11 @@ ALTER TABLE advertisements ADD COLUMN IF NOT EXISTS view_count INTEGER DEFAULT 0
 -- 6. 기존 데이터 마이그레이션 (image_url → image, detailed_location → address)
 -- =============================================
 
+-- 구버전 프로덕션 호환: 원본 컬럼(image_url, detailed_location)이 없으면 보장
+-- (없으면 아래 UPDATE가 column does not exist로 실패 — 빈 컬럼 추가 후 UPDATE는 no-op)
+ALTER TABLE meetups ADD COLUMN IF NOT EXISTS image_url TEXT;
+ALTER TABLE meetups ADD COLUMN IF NOT EXISTS detailed_location TEXT;
+
 -- image_url 에 값이 있고 image 가 NULL 인 경우 복사
 UPDATE meetups SET image = image_url WHERE image IS NULL AND image_url IS NOT NULL;
 

@@ -14,6 +14,10 @@ on:
         description: 'v2 마이그레이션(100~107) 직접 적용+기록 — 005 레거시 충돌 우회용 (전부 멱등)'
         type: boolean
         default: false
+      sync_and_apply:
+        description: '최신 migrations 폴더를 컨테이너에 주입 후 runner 실행 (배포 없이 마이그레이션만)'
+        type: boolean
+        default: false
 
 jobs:
   migrate:
@@ -22,6 +26,10 @@ jobs:
     timeout-minutes: 10
 
     steps:
+    - name: Checkout code
+      if: ${{ inputs.sync_and_apply }}
+      uses: actions/checkout@v4
+
     - name: Install cloudflared
       run: |
         curl -fsSL https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb -o cloudflared.deb
@@ -119,6 +127,36 @@ jobs:
           echo "=== 헬스체크 ==="
           curl -s -o /dev/null -w "API health: %{http_code}\n" http://localhost:80/api/health
         OUTER
+
+    # 최신 migrations 폴더를 RPi → 컨테이너에 주입 후 runner 실행 (전체 재배포 없이)
+    - name: Sync migrations & apply
+      if: ${{ inputs.sync_and_apply }}
+      run: |
+        # checkout한 최신 migrations를 RPi 임시 디렉토리로 전송
+        rsync -az --delete \
+          -e "ssh -o ProxyCommand='cloudflared access ssh --hostname deploy.eattable.kr' -o ConnectTimeout=15" \
+          server/migrations/ \
+          ${{ secrets.DEPLOY_USER }}@deploy.eattable.kr:/tmp/latest-migrations/
+
+        ssh -o ConnectTimeout=15 ${{ secrets.DEPLOY_USER }}@deploy.eattable.kr << 'EOF'
+          set -e
+          echo "=== 컨테이너에 최신 migrations 주입 ==="
+          docker cp /tmp/latest-migrations/. eattable-app:/app/server/migrations/
+
+          echo "=== runner 실행 ==="
+          docker exec eattable-app node server/migrations/runner.js
+
+          echo "=== 적용 후 상태 ==="
+          docker exec eattable-app node server/migrations/runner.js --status
+
+          echo "=== 검증: users.is_blocked (108) ==="
+          PG=$(docker ps --format '{{.Names}}' | grep -i postgres | head -1)
+          docker exec "$PG" psql -U postgres -d honbabnono -c \
+            "SELECT column_name FROM information_schema.columns WHERE table_name='users' AND column_name='is_blocked';"
+
+          echo "=== 헬스체크 ==="
+          curl -s -o /dev/null -w "API health: %{http_code}\n" http://localhost:80/api/health
+        EOF
 
     - name: Apply migrations
       if: ${{ inputs.apply }}
