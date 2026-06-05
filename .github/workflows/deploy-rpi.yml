@@ -64,26 +64,53 @@ jobs:
 
     - name: Build and deploy
       run: |
-        ssh -o ServerAliveInterval=15 -o ServerAliveCountMax=10 ${{ secrets.DEPLOY_USER }}@deploy.eattable.kr << 'EOF'
+        # 빌드를 RPi에서 detach 실행 (setsid) — ARM 풀빌드가 길어 SSH가 끊겨도(broken pipe) 빌드는 계속 진행.
+        # GHA는 짧은 SSH로 상태 파일만 폴링한다.
+        ssh -o ConnectTimeout=20 ${{ secrets.DEPLOY_USER }}@deploy.eattable.kr << 'EOF'
           cd /home/gyoungyoon/eattable
-          echo "=== Docker build ==="
-          docker compose build --no-cache app 2>&1 | tail -30
-          echo "=== Starting container ==="
-          docker compose up -d --force-recreate app 2>&1 | tail -10
-          echo "=== Waiting for startup ==="
-          sleep 30
-          HTTP=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:80/)
-          API=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:80/api/health)
-          echo "Web: $HTTP | API: $API"
-          docker ps --format "table {{.Names}}\t{{.Status}}"
-          if [ "$HTTP" = "200" ] && [ "$API" = "200" ]; then
-            echo "Deploy SUCCESS"
-          else
-            echo "Deploy WARNING - check logs"
-            docker logs eattable-app --tail 20
-            exit 1
-          fi
+          rm -f /tmp/deploy-build.status /tmp/deploy-build.log
+          setsid bash -c '
+            cd /home/gyoungyoon/eattable
+            echo "=== Docker build ===" > /tmp/deploy-build.log
+            if docker compose build --no-cache app >> /tmp/deploy-build.log 2>&1 && \
+               docker compose up -d --force-recreate app >> /tmp/deploy-build.log 2>&1; then
+              echo OK > /tmp/deploy-build.status
+            else
+              echo FAIL > /tmp/deploy-build.status
+            fi
+          ' < /dev/null > /dev/null 2>&1 &
+          echo "빌드를 백그라운드로 시작했습니다 (detached)."
         EOF
+
+        echo "=== 빌드 완료 폴링 (최대 ~40분) ==="
+        STATUS=""
+        for i in $(seq 1 80); do
+          sleep 30
+          STATUS=$(ssh -o ConnectTimeout=20 ${{ secrets.DEPLOY_USER }}@deploy.eattable.kr "cat /tmp/deploy-build.status 2>/dev/null" || echo "")
+          echo "[$i/80] 빌드 상태: ${STATUS:-진행중}"
+          if [ -n "$STATUS" ]; then break; fi
+        done
+
+        echo "=== 빌드 로그 (마지막 30줄) ==="
+        ssh -o ConnectTimeout=20 ${{ secrets.DEPLOY_USER }}@deploy.eattable.kr "tail -30 /tmp/deploy-build.log 2>/dev/null" || true
+
+        if [ "$STATUS" != "OK" ]; then
+          echo "Deploy FAILED (status=${STATUS:-timeout})"
+          exit 1
+        fi
+
+        echo "=== 컨테이너 부팅 대기 + 헬스체크 ==="
+        sleep 25
+        HTTP=$(ssh -o ConnectTimeout=20 ${{ secrets.DEPLOY_USER }}@deploy.eattable.kr "curl -s -o /dev/null -w '%{http_code}' http://localhost:80/")
+        API=$(ssh -o ConnectTimeout=20 ${{ secrets.DEPLOY_USER }}@deploy.eattable.kr "curl -s -o /dev/null -w '%{http_code}' http://localhost:80/api/health")
+        echo "Web: $HTTP | API: $API"
+        if [ "$HTTP" = "200" ] && [ "$API" = "200" ]; then
+          echo "Deploy SUCCESS"
+        else
+          echo "Deploy WARNING - 헬스체크 실패"
+          ssh -o ConnectTimeout=20 ${{ secrets.DEPLOY_USER }}@deploy.eattable.kr "docker logs eattable-app --tail 20" || true
+          exit 1
+        fi
 
     - name: Summary
       if: always()
