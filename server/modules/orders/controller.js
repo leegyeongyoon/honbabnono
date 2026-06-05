@@ -54,16 +54,59 @@ exports.createOrder = async (req, res) => {
         return res.status(400).json({ success: false, error: `해당 식당의 메뉴가 아닙니다. (${menu.name})` });
       }
 
-      const subtotal = menu.price * item.quantity;
+      // 2-1. 메뉴 옵션 가격 계산 (서버 권위 — 클라이언트가 보낸 가격은 신뢰하지 않음)
+      // 신규 계약: items[].options = [{ group_id, item_ids: [...] }]
+      // 저장 형태: 이름/가격 스냅샷 [{ group_name, name, additional_price }] (점주 표시용)
+      let optionsTotal = 0;
+      let optionsSnapshot = null;
+
+      const isStructuredOptions = Array.isArray(item.options)
+        && item.options.length > 0
+        && typeof item.options[0] === 'object'
+        && item.options[0] !== null
+        && Array.isArray(item.options[0].item_ids);
+
+      if (isStructuredOptions) {
+        const allItemIds = item.options.flatMap((g) => g.item_ids);
+        if (allItemIds.length > 0) {
+          const optResult = await client.query(
+            `SELECT oi.id, oi.name, oi.additional_price,
+                    og.name AS group_name, og.menu_id
+             FROM menu_option_items oi
+             JOIN menu_option_groups og ON og.id = oi.option_group_id
+             WHERE oi.id = ANY($1::uuid[]) AND oi.is_active = true`,
+            [allItemIds]
+          );
+
+          const invalidOption = optResult.rows.some((r) => r.menu_id !== menu.id);
+          if (invalidOption || optResult.rows.length !== allItemIds.length) {
+            await client.query('ROLLBACK');
+            return res.status(400).json({ success: false, error: `유효하지 않은 메뉴 옵션입니다. (${menu.name})` });
+          }
+
+          optionsTotal = optResult.rows.reduce((sum, r) => sum + (r.additional_price || 0), 0);
+          optionsSnapshot = optResult.rows.map((r) => ({
+            group_name: r.group_name,
+            name: r.name,
+            additional_price: r.additional_price,
+          }));
+        }
+      } else if (item.options) {
+        // 레거시/자유 형식 — 가격 영향 없이 스냅샷만 보존
+        optionsSnapshot = item.options;
+      }
+
+      const unitPrice = menu.price + optionsTotal;
+      const subtotal = unitPrice * item.quantity;
       totalAmount += subtotal;
 
       orderItems.push({
         menu_id: menu.id,
         menu_name: menu.name,
-        unit_price: menu.price,
+        unit_price: unitPrice,
         quantity: item.quantity,
         subtotal,
-        options: item.options || null,
+        options: optionsSnapshot,
       });
     }
 
@@ -240,7 +283,7 @@ exports.getMerchantOrders = async (req, res) => {
       SELECT o.id, o.reservation_id, o.total_amount, o.cooking_status,
              o.cooking_started_at, o.cooking_ready_at, o.created_at,
              r.reservation_date, r.reservation_time, r.party_size,
-             u.name AS user_name,
+             u.name AS user_name, u.name AS customer_name,
              COALESCE(
                json_agg(
                  json_build_object(

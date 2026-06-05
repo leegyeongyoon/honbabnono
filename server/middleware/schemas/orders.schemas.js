@@ -21,8 +21,16 @@ const createOrderSchema = z.object({
           .min(1, '수량은 1개 이상이어야 합니다.')
           .max(99, '수량은 99개 이하여야 합니다.'),
 
+        // 신규 계약: [{ group_id, item_ids }] — 서버가 menu_option_items에서 가격 재조회 (권위 계산)
+        // 레거시 문자열 배열도 허용 (가격 영향 없음, 스냅샷 보존용)
         options: z
-          .array(z.string())
+          .union([
+            z.array(z.object({
+              group_id: z.string().uuid('유효한 옵션 그룹 ID를 입력해주세요.'),
+              item_ids: z.array(z.string().uuid('유효한 옵션 항목 ID를 입력해주세요.')),
+            })),
+            z.array(z.string()),
+          ])
           .optional(),
       }),
       { required_error: '주문 항목을 입력해주세요.' }

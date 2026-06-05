@@ -38,14 +38,14 @@ interface OrderItem {
 }
 
 interface Reservation {
-  id: number;
+  id: string; // UUID
   reservation_time: string;
   customer_name: string;
   party_size: number;
   orders?: OrderItem[];
   arrival_status?: string;
   status: string;
-  special_requests?: string;
+  special_request?: string; // API 필드명 (기존 special_requests 오독)
 }
 
 type ReservationStatus =
@@ -319,9 +319,9 @@ const ReservationBoard: React.FC = () => {
                   </Box>
                 )}
 
-                {r.special_requests && (
+                {r.special_request && (
                   <Typography variant="body2" color="text.secondary" sx={{ mt: 1, fontStyle: 'italic' }}>
-                    요청사항: {r.special_requests}
+                    요청사항: {r.special_request}
                   </Typography>
                 )}
               </CardContent>

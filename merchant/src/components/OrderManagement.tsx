@@ -31,16 +31,18 @@ import apiClient from '../utils/api';
 
 // ── Types ──────────────────────────────────────────────────────
 interface OrderItem {
-  name: string;
+  menu_name: string;
   quantity: number;
+  unit_price?: number;
+  options?: any;
 }
 
 interface Order {
-  id: number;
+  id: string; // UUID
   reservation_time: string;
   customer_name: string;
   party_size: number;
-  order_items: OrderItem[];
+  items: OrderItem[]; // API 응답 필드명은 items (기존 order_items 오독으로 메뉴가 안 보였음)
   cooking_status: CookingStatus;
   total_amount?: number;
   cooking_started_at?: string;
@@ -260,9 +262,9 @@ const OrderManagement: React.FC = () => {
                       <Divider sx={{ mb: 1 }} />
 
                       {/* Menu items */}
-                      {order.order_items?.map((item, i) => (
+                      {order.items?.map((item, i) => (
                         <Typography key={i} variant="body2" color="text.secondary">
-                          {item.name} x {item.quantity}
+                          {item.menu_name} x {item.quantity}
                         </Typography>
                       ))}
 
