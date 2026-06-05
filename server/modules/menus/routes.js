@@ -40,6 +40,10 @@ router.delete('/categories/:id', authenticateMerchant, controller.deleteCategory
 // AI 메뉴판 사진 분석 (점주 전용)
 router.post('/analyze-image', authenticateMerchant, controller.analyzeMenuImage);
 
+// 메뉴 이미지 업로드 (점주 전용, S3)
+const { imageUpload } = require('../../utils/imageUpload');
+router.post('/:id/image', authenticateMerchant, imageUpload.single('image'), controller.uploadMenuImage);
+
 // 일괄 가격 조정 (점주 전용)
 router.post('/bulk-price', authenticateMerchant, controller.bulkPriceAdjust);
 

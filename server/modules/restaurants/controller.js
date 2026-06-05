@@ -940,3 +940,40 @@ exports.setRefundPolicy = async (req, res) => {
     res.status(500).json({ success: false, error: '환불 정책 설정 중 오류가 발생했습니다.' });
   }
 };
+
+/**
+ * 매장 대표 이미지 업로드 (S3)
+ * POST /restaurants/:id/image
+ */
+exports.uploadRestaurantImage = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const merchantRestaurantId = req.merchant && req.merchant.restaurantId;
+
+    if (!merchantRestaurantId || String(merchantRestaurantId) !== String(id)) {
+      return res.status(403).json({ success: false, error: '본인 매장의 이미지만 변경할 수 있습니다.' });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({ success: false, error: '이미지 파일이 필요합니다.' });
+    }
+
+    const { uploadImageToS3 } = require('../../utils/imageUpload');
+    const url = await uploadImageToS3(
+      req.file.buffer,
+      req.file.mimetype,
+      `restaurant-images/${id}`
+    );
+
+    await pool.query('UPDATE restaurants SET image_url = $1, updated_at = NOW() WHERE id = $2', [url, id]);
+
+    logger.info('매장 이미지 업로드:', { restaurantId: id, url });
+    res.json({ success: true, data: { url } });
+  } catch (error) {
+    if (error.code === 'S3_UNAVAILABLE') {
+      return res.status(503).json({ success: false, error: error.message });
+    }
+    logger.error('매장 이미지 업로드 오류:', error);
+    res.status(500).json({ success: false, error: '이미지 업로드 중 오류가 발생했습니다.' });
+  }
+};

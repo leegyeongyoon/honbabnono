@@ -58,6 +58,10 @@ router.get('/:id/refund-policy', controller.getRefundPolicy);
 // 환불 정책 설정 (점주 전용)
 router.post('/:id/refund-policy', authenticateMerchant, controller.setRefundPolicy);
 
+// 매장 대표 이미지 업로드 (점주 전용, S3)
+const { imageUpload } = require('../../utils/imageUpload');
+router.post('/:id/image', authenticateMerchant, imageUpload.single('image'), controller.uploadRestaurantImage);
+
 // ============================================
 // 점주 전용 API
 // ============================================

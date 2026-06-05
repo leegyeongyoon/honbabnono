@@ -851,3 +851,44 @@ exports.bulkPriceAdjust = async (req, res) => {
     res.status(500).json({ success: false, error: '가격 조정 중 오류가 발생했습니다.' });
   }
 };
+
+/**
+ * 메뉴 이미지 업로드 (S3)
+ * POST /menus/:id/image
+ */
+exports.uploadMenuImage = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!req.file) {
+      return res.status(400).json({ success: false, error: '이미지 파일이 필요합니다.' });
+    }
+
+    // 소유권 확인
+    const menuResult = await pool.query('SELECT id, restaurant_id FROM menus WHERE id = $1', [id]);
+    if (menuResult.rows.length === 0) {
+      return res.status(404).json({ success: false, error: '메뉴를 찾을 수 없습니다.' });
+    }
+    if (menuResult.rows[0].restaurant_id !== req.merchant.restaurantId) {
+      return res.status(403).json({ success: false, error: '본인 레스토랑의 메뉴만 수정할 수 있습니다.' });
+    }
+
+    const { uploadImageToS3 } = require('../../utils/imageUpload');
+    const url = await uploadImageToS3(
+      req.file.buffer,
+      req.file.mimetype,
+      `menu-images/${req.merchant.restaurantId}`
+    );
+
+    await pool.query('UPDATE menus SET image_url = $1, updated_at = NOW() WHERE id = $2', [url, id]);
+
+    logger.info('메뉴 이미지 업로드:', { menuId: id, url });
+    res.json({ success: true, data: { url } });
+  } catch (error) {
+    if (error.code === 'S3_UNAVAILABLE') {
+      return res.status(503).json({ success: false, error: error.message });
+    }
+    logger.error('메뉴 이미지 업로드 오류:', error);
+    res.status(500).json({ success: false, error: '이미지 업로드 중 오류가 발생했습니다.' });
+  }
+};

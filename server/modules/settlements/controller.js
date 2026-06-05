@@ -396,3 +396,73 @@ exports.processSettlements = async (req, res) => {
     client.release();
   }
 };
+
+// ============================================
+// 점주 기간 매출 통계
+// GET /settlements/merchant/stats?period=7d|30d
+// 정산(D+3) 기준이 아닌 실매출(주문) 기준 집계 — 운영 의사결정용
+// ============================================
+exports.getMerchantStats = async (req, res) => {
+  try {
+    const restaurantId = req.merchant.restaurantId;
+    if (!restaurantId) {
+      return res.status(400).json({ success: false, error: '매장 등록을 먼저 완료해주세요.' });
+    }
+
+    const period = req.query.period === '30d' ? 30 : 7;
+
+    // 일별 매출/예약 수 (취소 제외)
+    const dailyResult = await pool.query(
+      `SELECT r.reservation_date::text AS date,
+              COALESCE(SUM(o.total_amount), 0)::int AS sales,
+              COUNT(DISTINCT r.id)::int AS reservations
+       FROM reservations r
+       LEFT JOIN orders o ON o.reservation_id = r.id AND o.cooking_status != 'rejected'
+       WHERE r.restaurant_id = $1
+         AND r.status != 'cancelled'
+         AND r.reservation_date >= CURRENT_DATE - ($2 - 1) * INTERVAL '1 day'
+         AND r.reservation_date <= CURRENT_DATE
+       GROUP BY r.reservation_date
+       ORDER BY r.reservation_date`,
+      [restaurantId, period]
+    );
+
+    // 인기 메뉴 TOP 5 (수량 기준)
+    const topMenusResult = await pool.query(
+      `SELECT oi.menu_name,
+              SUM(oi.quantity)::int AS qty,
+              SUM(oi.subtotal)::int AS sales
+       FROM order_items oi
+       JOIN orders o ON oi.order_id = o.id
+       JOIN reservations r ON o.reservation_id = r.id
+       WHERE o.restaurant_id = $1
+         AND o.cooking_status != 'rejected'
+         AND r.status != 'cancelled'
+         AND r.reservation_date >= CURRENT_DATE - ($2 - 1) * INTERVAL '1 day'
+       GROUP BY oi.menu_name
+       ORDER BY qty DESC, sales DESC
+       LIMIT 5`,
+      [restaurantId, period]
+    );
+
+    const daily = dailyResult.rows;
+    const totals = daily.reduce(
+      (acc, d) => ({ sales: acc.sales + d.sales, reservations: acc.reservations + d.reservations }),
+      { sales: 0, reservations: 0 }
+    );
+
+    res.json({
+      success: true,
+      data: {
+        period: `${period}d`,
+        total_sales: totals.sales,
+        total_reservations: totals.reservations,
+        daily,
+        top_menus: topMenusResult.rows,
+      },
+    });
+  } catch (error) {
+    logger.error('점주 매출 통계 조회 실패:', error);
+    res.status(500).json({ success: false, error: '매출 통계를 불러오는 중 오류가 발생했습니다.' });
+  }
+};
