@@ -1,5 +1,6 @@
 const pool = require('../../config/database');
 const logger = require('../../config/logger');
+const { createNotification } = require('../notifications/controller');
 
 const PLATFORM_FEE_RATE = 0.05; // 5%
 const PAYMENT_FEE_RATE = 0.03;  // 3%
@@ -252,13 +253,14 @@ exports.processSettlements = async (req, res) => {
     }
 
     let settlementsCreated = 0;
+    const pendingNotifications = []; // COMMIT 후 발송할 점주 알림
     let ordersProcessed = 0;
 
     // 3. 각 매장별 정산 생성
     for (const [restaurantId, orders] of Object.entries(ordersByRestaurant)) {
       // 매장에 연결된 점주 조회
       const merchantResult = await client.query(
-        'SELECT id, bank_name, bank_account, bank_holder FROM merchants WHERE restaurant_id = $1',
+        'SELECT id, user_id, bank_name, bank_account, bank_holder FROM merchants WHERE restaurant_id = $1',
         [restaurantId]
       );
 
@@ -345,6 +347,16 @@ exports.processSettlements = async (req, res) => {
       settlementsCreated++;
       ordersProcessed += orders.length;
 
+      // COMMIT 후 일괄 발송할 점주 알림 큐
+      pendingNotifications.push({
+        userId: merchant.user_id,
+        settlementId,
+        restaurantId,
+        amount: settlementAmount,
+        periodStart: startDate.toISOString().split('T')[0],
+        periodEnd: cutoffDate.toISOString().split('T')[0],
+      });
+
       logger.info('정산 생성 완료:', {
         settlementId,
         restaurantId,
@@ -355,6 +367,16 @@ exports.processSettlements = async (req, res) => {
     }
 
     await client.query('COMMIT');
+
+    // 점주 알림 (트랜잭션 외부, 비동기)
+    for (const n of pendingNotifications) {
+      if (!n.userId) continue;
+      createNotification(n.userId, 'settlement_created',
+        '정산 내역 생성',
+        `${n.periodStart}~${n.periodEnd} 정산 ${Number(n.amount).toLocaleString('ko-KR')}원이 생성되었습니다.`,
+        { settlementId: n.settlementId, restaurantId: n.restaurantId, amount: n.amount }
+      ).catch(() => {});
+    }
 
     res.json({
       success: true,

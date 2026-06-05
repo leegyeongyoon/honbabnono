@@ -2,6 +2,59 @@ const pool = require('../../config/database');
 const logger = require('../../config/logger');
 const portone = require('../../config/portone');
 const { combineReservationDateTime, pickRefundRate } = require('../../utils/helpers');
+const { createNotification } = require('../notifications/controller');
+const { emitNewReservation } = require('../reservations/socket');
+
+/**
+ * 결제 확정(confirmed 전이) 시 점주 알림 + 예약 보드 실시간 emit
+ * 주의: complete/webhook 양쪽에서 호출되므로, 실제 상태 전이가 일어난 경우에만
+ *       (조건부 UPDATE rowCount > 0) 호출할 것 — 중복 알림 방지.
+ */
+const notifyMerchantOfPaidReservation = async (io, reservationId) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT r.restaurant_id, r.reservation_date, r.reservation_time, r.party_size,
+              rst.name AS restaurant_name, u.name AS customer_name,
+              m.user_id AS owner_user_id, p.amount
+       FROM reservations r
+       JOIN restaurants rst ON rst.id = r.restaurant_id
+       LEFT JOIN users u ON u.id = r.user_id
+       LEFT JOIN merchants m ON m.restaurant_id = r.restaurant_id
+       LEFT JOIN payments p ON p.reservation_id = r.id AND p.status = 'paid'
+       WHERE r.id = $1`,
+      [reservationId]
+    );
+    const row = rows[0];
+    if (!row) return;
+
+    const d = row.reservation_date;
+    const dateStr = d instanceof Date
+      ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+      : String(d);
+    const timeStr = String(row.reservation_time).slice(0, 5);
+
+    if (row.owner_user_id) {
+      createNotification(row.owner_user_id, 'reservation_paid',
+        `${row.restaurant_name} 새 예약`,
+        `${dateStr} ${timeStr} ${row.party_size}명 예약이 결제 완료되었습니다.`,
+        { reservationId, restaurantId: row.restaurant_id }
+      ).catch(() => {});
+    }
+
+    if (io) {
+      emitNewReservation(io, row.restaurant_id, {
+        reservationId,
+        customerName: row.customer_name,
+        reservationDate: dateStr,
+        reservationTime: timeStr,
+        partySize: row.party_size,
+        amount: row.amount,
+      });
+    }
+  } catch (error) {
+    logger.error('점주 새 예약 알림 실패:', error.message);
+  }
+};
 
 // ============================================
 // 결제 준비 (merchant_uid 생성 및 pending 레코드 생성)
@@ -184,6 +237,7 @@ exports.completePayment = async (req, res) => {
     try {
       await client.query('BEGIN');
 
+      // 조건부 UPDATE — 웹훅이 먼저 처리했으면 rowCount 0 (중복 전이/알림 방지)
       const updatedPayment = await client.query(`
         UPDATE payments
         SET status = 'paid',
@@ -194,7 +248,7 @@ exports.completePayment = async (req, res) => {
             card_number = $4,
             receipt_url = $5,
             updated_at = NOW()
-        WHERE id = $6
+        WHERE id = $6 AND status = 'pending'
         RETURNING *
       `, [
         imp_uid,
@@ -205,15 +259,29 @@ exports.completePayment = async (req, res) => {
         payment.id,
       ]);
 
-      await client.query(`
-        UPDATE reservations
-        SET status = 'confirmed', updated_at = NOW()
-        WHERE id = $1
-      `, [payment.reservation_id]);
+      const transitioned = updatedPayment.rowCount > 0;
+
+      if (transitioned) {
+        await client.query(`
+          UPDATE reservations
+          SET status = 'confirmed', updated_at = NOW()
+          WHERE id = $1
+        `, [payment.reservation_id]);
+      }
 
       await client.query('COMMIT');
 
       logger.info('결제 완료 확인 성공:', { paymentId: payment.id, imp_uid, amount: payment.amount });
+
+      // 실제 전이가 일어난 경우에만 점주 알림 (웹훅 선처리 시 중복 방지)
+      if (transitioned) {
+        notifyMerchantOfPaidReservation(req.app.get('io'), payment.reservation_id).catch(() => {});
+      }
+
+      if (!transitioned) {
+        const current = await pool.query('SELECT * FROM payments WHERE id = $1', [payment.id]);
+        return res.json({ success: true, message: '이미 결제 완료된 건입니다.', payment: current.rows[0] });
+      }
 
       res.json({ success: true, payment: updatedPayment.rows[0] });
     } catch (txError) {
@@ -276,6 +344,7 @@ exports.handleWebhook = async (req, res) => {
     }
 
     // 상태에 따라 처리
+    let webhookTransitioned = false; // confirmed 전이 발생 여부 (점주 알림 멱등 가드)
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
@@ -296,7 +365,7 @@ exports.handleWebhook = async (req, res) => {
             break;
           }
 
-          await client.query(`
+          const webhookUpdate = await client.query(`
             UPDATE payments
             SET status = 'paid', imp_uid = $1, paid_at = NOW(),
                 pg_provider = $2, card_name = $3, card_number = $4, receipt_url = $5,
@@ -311,10 +380,15 @@ exports.handleWebhook = async (req, res) => {
             payment.id,
           ]);
 
-          await client.query(`
-            UPDATE reservations SET status = 'confirmed', updated_at = NOW()
-            WHERE id = $1
-          `, [payment.reservation_id]);
+          if (webhookUpdate.rowCount > 0) {
+            await client.query(`
+              UPDATE reservations SET status = 'confirmed', updated_at = NOW()
+              WHERE id = $1
+            `, [payment.reservation_id]);
+
+            // COMMIT 후 점주 알림을 위해 플래그 기록
+            webhookTransitioned = true;
+          }
 
           logger.info('웹훅: 결제 확정:', { paymentId: payment.id, imp_uid });
           break;
@@ -343,6 +417,11 @@ exports.handleWebhook = async (req, res) => {
       throw txError;
     } finally {
       client.release();
+    }
+
+    // 실제 confirmed 전이가 일어난 경우에만 점주 알림 (complete 선처리 시 중복 방지)
+    if (webhookTransitioned) {
+      notifyMerchantOfPaidReservation(req.app.get('io'), payment.reservation_id).catch(() => {});
     }
 
     res.status(200).json({ success: true, message: '웹훅 처리 완료' });

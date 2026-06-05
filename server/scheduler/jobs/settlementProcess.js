@@ -9,6 +9,7 @@
 
 const pool = require('../../config/database');
 const logger = require('../../config/logger');
+const { createNotification } = require('../../modules/notifications/controller');
 
 const JOB_NAME = '[정산 처리]';
 const PLATFORM_FEE_RATE = 0.05; // 5%
@@ -58,12 +59,13 @@ async function run() {
 
     let settlementsCreated = 0;
     let ordersProcessed = 0;
+    const pendingNotifications = []; // COMMIT 후 발송할 점주 알림
 
     // 3. 매장별 정산 생성
     for (const [restaurantId, orders] of Object.entries(ordersByRestaurant)) {
       // 점주 정보 조회
       const merchantResult = await client.query(
-        'SELECT id, bank_name, bank_account, bank_holder FROM merchants WHERE restaurant_id = $1',
+        'SELECT id, user_id, bank_name, bank_account, bank_holder FROM merchants WHERE restaurant_id = $1',
         [restaurantId]
       );
       if (merchantResult.rows.length === 0) {
@@ -154,10 +156,29 @@ async function run() {
       settlementsCreated++;
       ordersProcessed += orders.length;
 
+      pendingNotifications.push({
+        userId: merchant.user_id,
+        settlementId,
+        restaurantId,
+        amount: settlementAmount,
+        periodStart,
+        periodEnd,
+      });
+
       logger.info(`${JOB_NAME} 매장 ${restaurantId}: ${orders.length}건 정산 생성 (ID: ${settlementId}, 금액: ${settlementAmount})`);
     }
 
     await client.query('COMMIT');
+
+    // 점주 알림 (트랜잭션 외부)
+    for (const n of pendingNotifications) {
+      if (!n.userId) continue;
+      createNotification(n.userId, 'settlement_created',
+        '정산 내역 생성',
+        `${n.periodStart}~${n.periodEnd} 정산 ${Number(n.amount).toLocaleString('ko-KR')}원이 생성되었습니다.`,
+        { settlementId: n.settlementId, restaurantId: n.restaurantId, amount: n.amount }
+      ).catch(() => {});
+    }
 
     logger.info(`${JOB_NAME} 완료: ${settlementsCreated}개 정산, ${ordersProcessed}건 주문 처리`);
   } catch (error) {

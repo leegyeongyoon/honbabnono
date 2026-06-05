@@ -194,7 +194,26 @@ exports.getMerchantReservations = async (req, res) => {
              r.status, r.arrival_status, r.special_request, r.qr_code,
              r.checked_in_at, r.cancelled_by, r.cancel_reason, r.created_at,
              u.id AS user_id, u.name AS user_name, u.phone AS user_phone,
-             u.profile_image AS user_profile_image
+             u.profile_image AS user_profile_image,
+             u.name AS customer_name, u.phone AS customer_phone,
+             (
+               SELECT json_agg(json_build_object(
+                 'name', oi.menu_name,
+                 'quantity', oi.quantity,
+                 'unit_price', oi.unit_price,
+                 'options', oi.options
+               ))
+               FROM order_items oi
+               JOIN orders o ON oi.order_id = o.id
+               WHERE o.reservation_id = r.id
+             ) AS orders,
+             (
+               SELECT oi.menu_name
+               FROM order_items oi
+               JOIN orders o ON oi.order_id = o.id
+               WHERE o.reservation_id = r.id
+               ORDER BY oi.created_at LIMIT 1
+             ) AS menu_name
       FROM reservations r
       JOIN users u ON r.user_id = u.id
       WHERE r.restaurant_id = $1
@@ -408,6 +427,34 @@ exports.cancelReservation = async (req, res) => {
       `예약이 취소되었습니다.${refundMsg}`,
       { reservationId: id, restaurantId: reservation.restaurant_id }
     ).catch(() => {});
+
+    // 점주 알림 + 예약 보드 실시간 갱신
+    pool.query(
+      `SELECT m.user_id AS owner_user_id, rst.name AS restaurant_name
+       FROM restaurants rst
+       LEFT JOIN merchants m ON m.restaurant_id = rst.id
+       WHERE rst.id = $1`,
+      [reservation.restaurant_id]
+    ).then(({ rows }) => {
+      const owner = rows[0];
+      if (owner?.owner_user_id) {
+        createNotification(owner.owner_user_id, 'reservation_cancelled',
+          `${owner.restaurant_name} 예약 취소`,
+          `${reservation.reservation_date instanceof Date
+            ? reservation.reservation_date.toISOString().split('T')[0]
+            : reservation.reservation_date} ${String(reservation.reservation_time).slice(0, 5)} 예약이 고객에 의해 취소되었습니다.`,
+          { reservationId: id, restaurantId: reservation.restaurant_id }
+        ).catch(() => {});
+      }
+      const io = req.app.get('io');
+      if (io) {
+        const { emitReservationCancelled } = require('./socket');
+        emitReservationCancelled(io, reservation.restaurant_id, {
+          reservationId: id,
+          cancelledBy: 'customer',
+        });
+      }
+    }).catch(() => {});
 
     res.json({
       success: true,
