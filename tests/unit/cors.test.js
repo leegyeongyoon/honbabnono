@@ -7,19 +7,26 @@
  * (index.js 전체를 require하면 서버가 기동되므로 로직만 분리 테스트).
  */
 
-const PROD_ORIGINS = ['https://eattable.kr', 'https://admin.eattable.kr'];
+const PROD_ORIGINS = [
+  'https://eattable.kr',
+  'https://admin.eattable.kr',
+  'https://merchant.eattable.kr',
+];
 const isLocalhostOrigin = (origin) => /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin || '');
+const isAllowedOrigin = (origin, nodeEnv) => {
+  if (!origin || PROD_ORIGINS.includes(origin)) return true;
+  if (nodeEnv !== 'production' && isLocalhostOrigin(origin)) return true;
+  return false;
+};
 
 function makeCorsOrigin(nodeEnv) {
-  return (origin, callback) => {
-    if (!origin || PROD_ORIGINS.includes(origin)) return callback(null, true);
-    if (nodeEnv !== 'production' && isLocalhostOrigin(origin)) return callback(null, true);
-    return callback(new Error('Not allowed by CORS'));
-  };
+  // 비허용 origin도 Error 없이 통과(false) — CORS 헤더만 생략, 요청 자체는 500으로 막지 않음
+  return (origin, callback) => callback(null, isAllowedOrigin(origin, nodeEnv));
 }
 
-const allows = (fn, origin) => new Promise((resolve) => {
-  fn(origin, (err, ok) => resolve(!err && ok === true));
+// allows: CORS 헤더가 붙는지(허용 origin) 여부. 비허용은 false지만 에러는 없어야 함
+const allows = (fn, origin) => new Promise((resolve, reject) => {
+  fn(origin, (err, ok) => (err ? reject(err) : resolve(ok === true)));
 });
 
 describe('CORS origin 허용 로직', () => {
@@ -49,16 +56,17 @@ describe('CORS origin 허용 로직', () => {
   describe('프로덕션 환경', () => {
     const cors = makeCorsOrigin('production');
 
-    it('화이트리스트 도메인만 허용한다', async () => {
+    it('화이트리스트 도메인(고객/관리자/점주)을 허용한다', async () => {
       expect(await allows(cors, 'https://eattable.kr')).toBe(true);
       expect(await allows(cors, 'https://admin.eattable.kr')).toBe(true);
+      expect(await allows(cors, 'https://merchant.eattable.kr')).toBe(true);
     });
 
-    it('프로덕션에서는 localhost를 차단한다', async () => {
+    it('프로덕션에서는 localhost에 CORS 헤더를 붙이지 않는다(에러는 없음)', async () => {
       expect(await allows(cors, 'http://localhost:3004')).toBe(false);
     });
 
-    it('외부 출처는 차단한다', async () => {
+    it('외부 출처에 CORS 헤더를 붙이지 않는다(에러 없이 통과)', async () => {
       expect(await allows(cors, 'https://evil.example.com')).toBe(false);
     });
   });

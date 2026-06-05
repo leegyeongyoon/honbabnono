@@ -111,19 +111,28 @@ const server = http.createServer(app);
 // CORS 허용 출처
 // - 프로덕션: 고정 화이트리스트
 // - 개발/테스트: 모든 localhost 포트 허용 (고객 web/점주 3002/관리자 등 포트 충돌 대응)
-const PROD_ORIGINS = ['https://eattable.kr', 'https://admin.eattable.kr'];
+const PROD_ORIGINS = [
+  'https://eattable.kr',
+  'https://admin.eattable.kr',
+  'https://merchant.eattable.kr',
+];
 const isLocalhostOrigin = (origin) => /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin || '');
+const isAllowedOrigin = (origin) => {
+  if (!origin || PROD_ORIGINS.includes(origin)) return true;
+  if (process.env.NODE_ENV !== 'production' && isLocalhostOrigin(origin)) return true;
+  return false;
+};
 const corsOrigin = (origin, callback) => {
-  // origin 없음(서버간/curl) 또는 프로덕션 화이트리스트 또는 (비프로덕션) localhost
-  if (!origin || PROD_ORIGINS.includes(origin)) return callback(null, true);
-  if (process.env.NODE_ENV !== 'production' && isLocalhostOrigin(origin)) return callback(null, true);
-  return callback(new Error('Not allowed by CORS'));
+  // 허용 origin이면 CORS 헤더 부착. 비허용이어도 Error를 던지지 않고 통과시킨다
+  // (cors 배열 방식의 기본 동작 — same-origin/비브라우저 요청까지 500으로 막던 회귀 방지).
+  // 비허용 origin은 CORS 헤더가 빠져 브라우저의 cross-origin 호출만 차단된다.
+  callback(null, isAllowedOrigin(origin));
 };
 
 const io = new Server(server, {
   cors: {
     origin: process.env.NODE_ENV === 'production'
-      ? ['https://eattable.kr', 'https://admin.eattable.kr']
+      ? PROD_ORIGINS
       : true, // 개발: 모든 출처 (소켓은 JWT로 별도 인증)
     methods: ['GET', 'POST'],
     credentials: true
