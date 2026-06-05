@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { ThemeProvider, createTheme } from '@mui/material/styles';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
+import { ThemeProvider } from '@mui/material/styles';
+import useMediaQuery from '@mui/material/useMediaQuery';
 import CssBaseline from '@mui/material/CssBaseline';
 import Box from '@mui/material/Box';
 import AppBar from '@mui/material/AppBar';
@@ -8,12 +9,19 @@ import Toolbar from '@mui/material/Toolbar';
 import Typography from '@mui/material/Typography';
 import Drawer from '@mui/material/Drawer';
 import List from '@mui/material/List';
+import ListSubheader from '@mui/material/ListSubheader';
 import ListItem from '@mui/material/ListItem';
 import ListItemButton from '@mui/material/ListItemButton';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
+import Collapse from '@mui/material/Collapse';
+import IconButton from '@mui/material/IconButton';
 import Button from '@mui/material/Button';
-import Divider from '@mui/material/Divider';
+import MenuIcon from '@mui/icons-material/Menu';
+import ExpandLess from '@mui/icons-material/ExpandLess';
+import ExpandMore from '@mui/icons-material/ExpandMore';
+import HistoryIcon from '@mui/icons-material/History';
+import theme from './theme';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import PeopleIcon from '@mui/icons-material/People';
 import EventIcon from '@mui/icons-material/Event';
@@ -60,70 +68,200 @@ import ChatManagement from './components/ChatManagement';
 import ReviewManagement from './components/ReviewManagement';
 import Login from './components/Login';
 
-const theme = createTheme({
-  palette: {
-    primary: {
-      main: '#C9B59C',
-      light: '#F9F8F6',
-      dark: '#A08B7A',
-    },
-    secondary: {
-      main: '#D9CFC7',
-    },
-    background: {
-      default: '#F9F8F6',
-      paper: '#FFFFFF',
-    },
-    text: {
-      primary: '#4C422C',
-      secondary: '#766653',
-    },
-  },
-  typography: {
-    h4: {
-      fontWeight: 700,
-      color: '#4C422C',
-    },
-    h6: {
-      fontWeight: 600,
-      color: '#4C422C',
-    },
-  },
-});
-
 const drawerWidth = 240;
 
-const menuItems: Array<{ text: string; icon?: React.ReactNode; path?: string; divider?: boolean }> = [
-  { text: '대시보드', icon: <DashboardIcon />, path: '/dashboard' },
-  { text: '---', divider: true },
-  { text: '점주 관리', icon: <StorefrontIcon />, path: '/merchants' },
-  { text: '매장 관리', icon: <RestaurantIcon />, path: '/restaurants' },
-  { text: '예약 모니터링', icon: <EventAvailableIcon />, path: '/reservations' },
-  { text: '정산 관리', icon: <AccountBalanceIcon />, path: '/settlements' },
-  { text: '결제 관리', icon: <CreditCardIcon />, path: '/payments' },
-  { text: '---', divider: true },
-  { text: '사용자 관리', icon: <PeopleIcon />, path: '/users' },
-  { text: '차단 관리', icon: <BlockIcon />, path: '/blocked-users' },
-  { text: '---', divider: true },
-  { text: '약속 관리 (레거시)', icon: <EventIcon />, path: '/meetups' },
-  { text: '약속금/결제', icon: <PaymentIcon />, path: '/deposits' },
-  { text: '---', divider: true },
-  { text: '채팅 관리', icon: <ChatIcon />, path: '/chat' },
-  { text: '리뷰 관리', icon: <RateReviewIcon />, path: '/reviews' },
-  { text: '뱃지 관리', icon: <EmojiEventsIcon />, path: '/badges' },
-  { text: '---', divider: true },
-  { text: '알림 관리', icon: <NotificationsIcon />, path: '/notifications' },
-  { text: '신고 관리', icon: <ReportIcon />, path: '/reports' },
-  { text: '지원 티켓', icon: <SupportAgentIcon />, path: '/support' },
-  { text: '---', divider: true },
-  { text: '공지사항', icon: <AnnouncementIcon />, path: '/notices' },
-  { text: '광고 관리', icon: <CampaignIcon />, path: '/advertisements' },
-  { text: '---', divider: true },
-  { text: '관리자 계정', icon: <AdminPanelSettingsIcon />, path: '/admin-accounts' },
-  { text: '챗봇 설정', icon: <SmartToyIcon />, path: '/chatbot-settings' },
-  { text: '리포트', icon: <ReportIcon />, path: '/reports-download' },
-  { text: '설정', icon: <SettingsIcon />, path: '/settings' },
+interface NavItem { text: string; icon: React.ReactNode; path: string; }
+interface NavGroup { label: string; items: NavItem[]; collapsible?: boolean; defaultOpen?: boolean; }
+
+const NAV_GROUPS: NavGroup[] = [
+  { label: '', items: [
+    { text: '대시보드', icon: <DashboardIcon />, path: '/dashboard' },
+  ] },
+  { label: '운영', items: [
+    { text: '점주 관리', icon: <StorefrontIcon />, path: '/merchants' },
+    { text: '매장 관리', icon: <RestaurantIcon />, path: '/restaurants' },
+    { text: '예약 모니터링', icon: <EventAvailableIcon />, path: '/reservations' },
+    { text: '정산 관리', icon: <AccountBalanceIcon />, path: '/settlements' },
+    { text: '결제 관리', icon: <CreditCardIcon />, path: '/payments' },
+  ] },
+  { label: '사용자', items: [
+    { text: '사용자 관리', icon: <PeopleIcon />, path: '/users' },
+    { text: '차단 관리', icon: <BlockIcon />, path: '/blocked-users' },
+    { text: '리뷰 관리', icon: <RateReviewIcon />, path: '/reviews' },
+    { text: '신고 관리', icon: <ReportIcon />, path: '/reports' },
+    { text: '지원 티켓', icon: <SupportAgentIcon />, path: '/support' },
+  ] },
+  { label: '콘텐츠', items: [
+    { text: '공지사항', icon: <AnnouncementIcon />, path: '/notices' },
+    { text: '광고 관리', icon: <CampaignIcon />, path: '/advertisements' },
+    { text: '알림 관리', icon: <NotificationsIcon />, path: '/notifications' },
+    { text: '채팅 관리', icon: <ChatIcon />, path: '/chat' },
+  ] },
+  { label: '시스템', items: [
+    { text: '관리자 계정', icon: <AdminPanelSettingsIcon />, path: '/admin-accounts' },
+    { text: '챗봇 설정', icon: <SmartToyIcon />, path: '/chatbot-settings' },
+    { text: '리포트', icon: <ReportIcon />, path: '/reports-download' },
+    { text: '설정', icon: <SettingsIcon />, path: '/settings' },
+  ] },
+  { label: '레거시 (v1)', collapsible: true, defaultOpen: false, items: [
+    { text: '약속 관리', icon: <EventIcon />, path: '/meetups' },
+    { text: '약속금/결제', icon: <PaymentIcon />, path: '/deposits' },
+    { text: '뱃지 관리', icon: <EmojiEventsIcon />, path: '/badges' },
+  ] },
 ];
+
+/** 사이드바 + 상단바 셸 — Router 내부에서 useNavigate/useLocation 사용 (SPA 네비) */
+function AdminShell({
+  adminData, onLogout, children,
+}: { adminData: any; onLogout: () => void; children: React.ReactNode }) {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const isDesktop = useMediaQuery(theme.breakpoints.up('md'));
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [legacyOpen, setLegacyOpen] = useState(false);
+
+  const go = (path: string) => { navigate(path); if (!isDesktop) setMobileOpen(false); };
+
+  const renderItem = (item: NavItem) => {
+    const active = location.pathname === item.path;
+    return (
+      <ListItem key={item.path} disablePadding sx={{ mb: 0.25 }}>
+        <ListItemButton
+          selected={active}
+          onClick={() => go(item.path)}
+          sx={{
+            borderRadius: 2, mx: 1,
+            '&.Mui-selected': {
+              backgroundColor: 'primary.light',
+              '&:hover': { backgroundColor: 'primary.light' },
+            },
+            '&:hover': { backgroundColor: 'action.hover' },
+          }}
+        >
+          <ListItemIcon sx={{ minWidth: 38, color: active ? 'primary.dark' : 'text.disabled' }}>
+            {item.icon}
+          </ListItemIcon>
+          <ListItemText
+            primary={item.text}
+            primaryTypographyProps={{
+              fontWeight: active ? 700 : 500,
+              color: active ? 'primary.dark' : 'text.primary',
+              fontSize: '0.875rem',
+            }}
+          />
+        </ListItemButton>
+      </ListItem>
+    );
+  };
+
+  const drawerContent = (
+    <>
+      <Toolbar>
+        <Typography variant="h6" sx={{ color: 'primary.dark', fontWeight: 800, letterSpacing: '-0.02em' }}>
+          잇테이블
+          <Typography component="span" variant="caption" sx={{ ml: 0.75, color: 'text.disabled', fontWeight: 600 }}>
+            관리자
+          </Typography>
+        </Typography>
+      </Toolbar>
+      <Box sx={{ overflowY: 'auto', flexGrow: 1, py: 1 }}>
+        {NAV_GROUPS.map((group) => {
+          if (group.collapsible) {
+            return (
+              <List key={group.label} dense>
+                <ListItemButton onClick={() => setLegacyOpen((o) => !o)} sx={{ mx: 1, borderRadius: 2 }}>
+                  <ListItemIcon sx={{ minWidth: 38, color: 'text.disabled' }}><HistoryIcon /></ListItemIcon>
+                  <ListItemText primary={group.label}
+                    primaryTypographyProps={{ fontSize: '0.8125rem', fontWeight: 600, color: 'text.secondary' }} />
+                  {legacyOpen ? <ExpandLess fontSize="small" /> : <ExpandMore fontSize="small" />}
+                </ListItemButton>
+                <Collapse in={legacyOpen} timeout="auto" unmountOnExit>
+                  <List disablePadding>{group.items.map(renderItem)}</List>
+                </Collapse>
+              </List>
+            );
+          }
+          return (
+            <List
+              key={group.label || 'home'}
+              dense
+              subheader={group.label ? (
+                <ListSubheader disableSticky sx={{ bgcolor: 'transparent', color: 'text.disabled', fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.04em', lineHeight: 2.4 }}>
+                  {group.label}
+                </ListSubheader>
+              ) : undefined}
+            >
+              {group.items.map(renderItem)}
+            </List>
+          );
+        })}
+      </Box>
+    </>
+  );
+
+  return (
+    <Box sx={{ display: 'flex' }}>
+      <AppBar
+        position="fixed"
+        elevation={0}
+        sx={{
+          width: { md: `calc(100% - ${drawerWidth}px)` },
+          ml: { md: `${drawerWidth}px` },
+          backgroundColor: 'primary.main',
+          borderBottom: '1px solid rgba(76,66,44,0.08)',
+        }}
+      >
+        <Toolbar>
+          {!isDesktop && (
+            <IconButton color="inherit" edge="start" onClick={() => setMobileOpen(true)} sx={{ mr: 1 }}>
+              <MenuIcon />
+            </IconButton>
+          )}
+          <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1, fontWeight: 700 }}>
+            관리자 패널
+          </Typography>
+          <Typography variant="body2" sx={{ mr: 2, display: { xs: 'none', sm: 'block' } }}>
+            {adminData?.username || '관리자'}님
+          </Typography>
+          <Button color="inherit" onClick={onLogout} startIcon={<LogoutIcon />}
+            sx={{ '&:hover': { backgroundColor: 'rgba(255,255,255,0.15)' } }}>
+            로그아웃
+          </Button>
+        </Toolbar>
+      </AppBar>
+
+      <Box component="nav" sx={{ width: { md: drawerWidth }, flexShrink: { md: 0 } }}>
+        <Drawer
+          variant={isDesktop ? 'permanent' : 'temporary'}
+          open={isDesktop ? true : mobileOpen}
+          onClose={() => setMobileOpen(false)}
+          ModalProps={{ keepMounted: true }}
+          sx={{
+            '& .MuiDrawer-paper': {
+              width: drawerWidth, boxSizing: 'border-box',
+              backgroundColor: '#FFFFFF', borderRight: '1px solid', borderColor: 'divider',
+              display: 'flex', flexDirection: 'column',
+            },
+          }}
+        >
+          {drawerContent}
+        </Drawer>
+      </Box>
+
+      <Box
+        sx={{
+          flexGrow: 1,
+          bgcolor: 'background.default',
+          p: { xs: 2, md: 3 },
+          width: { md: `calc(100% - ${drawerWidth}px)` },
+          minHeight: '100vh',
+        }}
+      >
+        {children}
+      </Box>
+    </Box>
+  );
+}
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -190,93 +328,8 @@ function App() {
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <Router>
-        <Box sx={{ display: 'flex' }}>
-          <AppBar
-            position="fixed"
-            sx={{ 
-              width: `calc(100% - ${drawerWidth}px)`, 
-              ml: `${drawerWidth}px`,
-              backgroundColor: '#C9B59C',
-            }}
-          >
-            <Toolbar>
-              <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
-                잇테이블 관리자 패널
-              </Typography>
-              <Typography variant="body2" sx={{ mr: 2 }}>
-                {adminData?.username || '관리자'}님
-              </Typography>
-              <Button 
-                color="inherit" 
-                onClick={handleLogout}
-                startIcon={<LogoutIcon />}
-                sx={{ 
-                  '&:hover': {
-                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                  }
-                }}
-              >
-                로그아웃
-              </Button>
-            </Toolbar>
-          </AppBar>
-          
-          <Drawer
-            sx={{
-              width: drawerWidth,
-              flexShrink: 0,
-              '& .MuiDrawer-paper': {
-                width: drawerWidth,
-                boxSizing: 'border-box',
-                backgroundColor: '#FFFFFF',
-                borderRight: '1px solid #D9CFC7',
-              },
-            }}
-            variant="permanent"
-            anchor="left"
-          >
-            <Toolbar>
-              <Typography variant="h6" sx={{ color: '#4C422C', fontWeight: 700 }}>
-                잇테이블
-              </Typography>
-            </Toolbar>
-            <List>
-              {menuItems.map((item, index) => {
-                if (item.divider) {
-                  return <Divider key={index} sx={{ my: 0.5 }} />;
-                }
-                return (
-                  <ListItem key={item.text} disablePadding>
-                    <ListItemButton
-                      component="a"
-                      href={item.path}
-                      sx={{
-                        '&:hover': { backgroundColor: '#F9F8F6' },
-                      }}
-                    >
-                      <ListItemIcon sx={{ color: '#C9B59C' }}>
-                        {item.icon}
-                      </ListItemIcon>
-                      <ListItemText
-                        primary={item.text}
-                        sx={{ '& .MuiTypography-root': { color: '#4C422C', fontWeight: 500 } }}
-                      />
-                    </ListItemButton>
-                  </ListItem>
-                );
-              })}
-            </List>
-          </Drawer>
-          
-          <Box
-            component="main"
-            sx={{ 
-              flexGrow: 1, 
-              bgcolor: 'background.default', 
-              p: 3,
-              width: `calc(100% - ${drawerWidth}px)`,
-            }}
-          >
+        <AdminShell adminData={adminData} onLogout={handleLogout}>
+          <Box component="main" sx={{ flexGrow: 1 }}>
             <Toolbar />
             <Routes>
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
@@ -304,7 +357,7 @@ function App() {
               <Route path="/settings" element={<Settings />} />
             </Routes>
           </Box>
-        </Box>
+        </AdminShell>
       </Router>
     </ThemeProvider>
   );
