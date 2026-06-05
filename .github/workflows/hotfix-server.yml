@@ -1,0 +1,65 @@
+name: Hotfix Server (Manual)
+
+# 전체 재배포(ARM 빌드 ~25분) 없이 server/ 코드만 컨테이너에 주입 + 재시작.
+# 긴급 백엔드 핫픽스용 (예: CORS 로그인 차단). 영구 반영은 정규 배포가 담당.
+on:
+  workflow_dispatch:
+
+jobs:
+  hotfix:
+    name: Hotfix server on Raspberry Pi
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install cloudflared
+      run: |
+        curl -fsSL https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb -o cloudflared.deb
+        sudo dpkg -i cloudflared.deb
+
+    - name: Setup SSH
+      run: |
+        mkdir -p ~/.ssh
+        echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+        cat >> ~/.ssh/config << 'SSHCONFIG'
+        Host deploy.eattable.kr
+          ProxyCommand cloudflared access ssh --hostname %h
+          StrictHostKeyChecking no
+          UserKnownHostsFile /dev/null
+        SSHCONFIG
+
+    - name: Inject server code & restart
+      run: |
+        # 최신 server/ 를 RPi 임시 디렉토리로 전송
+        rsync -az --delete \
+          -e "ssh -o ProxyCommand='cloudflared access ssh --hostname deploy.eattable.kr' -o ConnectTimeout=20" \
+          server/ \
+          ${{ secrets.DEPLOY_USER }}@deploy.eattable.kr:/tmp/server-hotfix/
+
+        ssh -o ConnectTimeout=20 ${{ secrets.DEPLOY_USER }}@deploy.eattable.kr << 'EOF'
+          set -e
+          echo "=== 컨테이너에 server/ 주입 ==="
+          docker cp /tmp/server-hotfix/. eattable-app:/app/server/
+
+          echo "=== 컨테이너 재시작 (start.js 재실행 → 수정된 index.js 로드) ==="
+          docker restart eattable-app
+
+          echo "=== 부팅 대기 ==="
+          for i in $(seq 1 12); do
+            sleep 10
+            code=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:80/api/health)
+            echo "[$i] API health: $code"
+            [ "$code" = "200" ] && break
+          done
+
+          echo "=== CORS 검증: merchant origin 으로 로그인 시도 ==="
+          curl -s -o /dev/null -w "merchant origin 로그인: %{http_code}\n" \
+            -X POST http://localhost:80/api/auth/login \
+            -H "Content-Type: application/json" \
+            -H "Origin: https://merchant.eattable.kr" \
+            -d '{"email":"demo.merchant@eattable.kr","password":"Demo1234!"}'
+        EOF
