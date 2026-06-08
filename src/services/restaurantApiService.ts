@@ -235,7 +235,7 @@ const getRestaurantById = async (id: string): Promise<Restaurant & { menus?: Men
         ]),
       )
     : undefined;
-  return { ...restaurant, menus, menusByCategory, timeSlots: data.timeSlots, isFavorited: data.isFavorited ?? data.is_favorited ?? false };
+  return { ...restaurant, menus, menusByCategory, timeSlots: data.timeSlots, isFavorited: (data as any).isFavorited ?? (data as any).is_favorited ?? false };
 };
 
 const getTimeSlots = async (

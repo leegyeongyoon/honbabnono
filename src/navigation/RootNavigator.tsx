@@ -4,6 +4,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import TabNavigator from './TabNavigator';
 import {COLORS} from '../styles/colors';
 
+// v2 외식예약 스택 화면
+import RestaurantDetailScreen from '../screens/RestaurantDetailScreen';
+import ReservationFormScreen from '../screens/ReservationFormScreen';
+import ReservationConfirmScreen from '../screens/ReservationConfirmScreen';
+
 // Import existing screens
 import MeetupDetailScreen from '../screens/MeetupDetailScreen';
 import CreateMeetupScreen from '../screens/CreateMeetupScreen';
@@ -43,6 +48,13 @@ const ONBOARDING_STORAGE_KEY = 'has_seen_onboarding';
 export type RootStackParamList = {
   Onboarding: undefined;
   Main: undefined;
+  // v2 외식예약
+  RestaurantDetail: { restaurantId: string };
+  ReservationForm: { restaurantId: string };
+  ReservationConfirm: { reservationId: string };
+  ReservationChat: { roomId: string };
+  WriteRestaurantReview: { reservationId: string };
+  // v1 (전환 중)
   MeetupDetail: { meetupId?: string };
   MeetupList: { category?: string };
   CreateMeetup: undefined;
@@ -51,7 +63,7 @@ export type RootStackParamList = {
   ChatRoom: { meetupId?: string; meetupTitle?: string };
   Chat: { chatId?: string };
   Notification: undefined;
-  Payment: { meetupId?: string };
+  Payment: { meetupId?: string; reservationId?: string };
   DepositPayment: { meetupId?: string; depositAmount?: number };
   NotificationSettings: undefined;
   PrivacySettings: undefined;
@@ -127,6 +139,22 @@ const RootNavigator = () => {
       <Stack.Screen
         name="Main"
         component={TabNavigator}
+        options={{ headerShown: false }}
+      />
+      {/* v2 외식예약 스택 */}
+      <Stack.Screen
+        name="RestaurantDetail"
+        component={RestaurantDetailScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="ReservationForm"
+        component={ReservationFormScreen}
+        options={{ title: '예약하기' }}
+      />
+      <Stack.Screen
+        name="ReservationConfirm"
+        component={ReservationConfirmScreen}
         options={{ headerShown: false }}
       />
       <Stack.Screen

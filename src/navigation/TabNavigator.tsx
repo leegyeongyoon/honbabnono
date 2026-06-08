@@ -5,29 +5,27 @@ import {TAB_ROUTES} from './routes';
 import {COLORS, SHADOWS} from '../styles/colors';
 import {TYPOGRAPHY} from '../styles/typography';
 import {SPACING} from '../styles/spacing';
-import {SimpleIcon} from '../components/SimpleIcon';
-import HomeScreen from '../screens/HomeScreen';
-import MyMeetupsScreen from '../screens/MyMeetupsScreen';
-import ExploreScreen from '../screens/ExploreScreen';
-import ChatScreen from '../screens/ChatScreen';
+import {SimpleIcon, IconName} from '../components/SimpleIcon';
+import RestaurantHomeScreen from '../screens/RestaurantHomeScreen';
+import SearchRestaurantsScreen from '../screens/SearchRestaurantsScreen';
+import MyReservationsScreen from '../screens/MyReservationsScreen';
 import MyPageScreen from '../screens/MyPageScreen';
 
 const Tab = createBottomTabNavigator<RootTabParamList>();
 
+// v2 외식예약 탭: 홈(매장) / 검색 / 내 예약 / 마이
 const getScreenComponent = (routeName: string) => {
   switch (routeName) {
-    case 'Home':
-      return HomeScreen;
-    case 'MyMeetups':
-      return MyMeetupsScreen;
-    case 'Search':
-      return ExploreScreen; // 탐색 탭에 지도/리스트 뷰 사용
-    case 'Chat':
-      return ChatScreen;
+    case 'RestaurantHome':
+      return RestaurantHomeScreen;
+    case 'SearchRestaurants':
+      return SearchRestaurantsScreen;
+    case 'MyReservations':
+      return MyReservationsScreen;
     case 'MyPage':
       return MyPageScreen;
     default:
-      return HomeScreen;
+      return RestaurantHomeScreen;
   }
 };
 
@@ -73,8 +71,8 @@ const TabNavigator = () => {
               <TabIcon icon={route.icon} color={color} />
             ),
             headerTitle: route.headerTitle,
-            // Home, MyMeetups, Search, MyPage는 자체 헤더 사용
-            headerShown: route.name === 'Chat',
+            // 모든 v2 탭 화면은 자체 헤더 사용
+            headerShown: false,
           }}
         />
       ))}
@@ -88,16 +86,14 @@ interface TabIconProps {
 }
 
 const TabIcon: React.FC<TabIconProps> = ({icon, color}) => {
-  const getIconName = (tabIcon: string): string => {
+  const getIconName = (tabIcon: string): IconName => {
     switch (tabIcon) {
       case '🏠':
         return 'home';
-      case '📅':
-        return 'calendar';
       case '🔍':
-        return 'compass'; // 탐색 아이콘 (지도 뷰에 더 적합)
-      case '💬':
-        return 'message-circle';
+        return 'search';
+      case '📋':
+        return 'calendar';
       case '👤':
         return 'user';
       default:
