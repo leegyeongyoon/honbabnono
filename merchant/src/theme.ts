@@ -22,12 +22,12 @@ export const RESERVATION_STATUS: Record<string, StatusDef> = {
   cancelled:       { label: '취소',      color: 'error' },
 };
 
+// 도착 상태 — server/constants/arrivalStatus.js 표준값과 일치
 export const ARRIVAL_STATUS: Record<string, StatusDef> = {
-  on_time: { label: '정시 도착', color: 'success' },
-  delayed: { label: '지연',      color: 'warning' },
-  nearby:  { label: '근처 도착', color: 'info' },
-  arrived: { label: '도착',      color: 'success' },
-  noshow:  { label: '노쇼',      color: 'error' },
+  on_the_way: { label: '가는 중',   color: 'warning' },
+  nearby:     { label: '근처 도착', color: 'info' },
+  arrived:    { label: '도착',      color: 'success' },
+  noshow:     { label: '노쇼',      color: 'error' },
 };
 
 export const COOKING_STATUS: Record<string, StatusDef> = {

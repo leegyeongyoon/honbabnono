@@ -1,4 +1,5 @@
 const { z } = require('zod');
+const { CUSTOMER_SETTABLE } = require('../../constants/arrivalStatus');
 
 /**
  * Schema for creating a reservation (POST /reservations)
@@ -32,9 +33,10 @@ const createReservationSchema = z.object({
  * Schema for updating arrival status (PUT /reservations/:id/arrival)
  */
 const updateArrivalSchema = z.object({
-  arrival_status: z.enum(['on_time', 'delayed', 'nearby', 'arrived'], {
+  // 고객이 설정 가능한 도착 상태 (on_the_way, nearby, arrived) — constants/arrivalStatus 단일 소스
+  arrival_status: z.enum(CUSTOMER_SETTABLE, {
     required_error: '도착 상태를 입력해주세요.',
-    invalid_type_error: '유효한 도착 상태를 입력해주세요. (on_time, delayed, nearby, arrived)',
+    invalid_type_error: `유효한 도착 상태를 입력해주세요. (${CUSTOMER_SETTABLE.join(', ')})`,
   }),
 });
 

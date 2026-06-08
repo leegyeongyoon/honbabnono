@@ -3,6 +3,7 @@ const logger = require('../../config/logger');
 const crypto = require('crypto');
 const { createNotification } = require('../notifications/controller');
 const { combineReservationDateTime, pickRefundRate } = require('../../utils/helpers');
+const { ARRIVAL_STATUS } = require('../../constants/arrivalStatus');
 const portone = require('../../config/portone');
 
 /**
@@ -631,9 +632,9 @@ exports.checkin = async (req, res) => {
 
     // 4. UPDATE checked_in_at, arrival_status
     await pool.query(
-      `UPDATE reservations SET checked_in_at = NOW(), arrival_status = 'arrived', updated_at = NOW()
+      `UPDATE reservations SET checked_in_at = NOW(), arrival_status = $2, updated_at = NOW()
        WHERE id = $1`,
-      [id]
+      [id, ARRIVAL_STATUS.ARRIVED]
     );
 
     // 5. 소켓을 통해 점주에게 체크인 알림 (io가 app에 설정된 경우)
