@@ -948,6 +948,15 @@ exports.updateStatus = async (req, res) => {
       { reservationId: id, restaurantId: reservation.restaurant_id, status }
     ).catch(() => {});
 
+    // 식사 완료(completed) 시 리뷰 요청 — 조건부 UPDATE가 1회만 성공하므로 자연 멱등
+    if (status === 'completed') {
+      createNotification(reservation.user_id, 'review_request',
+        '식사는 어떠셨나요?',
+        `${reservation.restaurant_name} 방문 후기를 남겨주세요.`,
+        { reservationId: id, restaurantId: reservation.restaurant_id, deepLink: `/write-restaurant-review/${id}` }
+      ).catch(() => {});
+    }
+
     res.json({
       success: true,
       message: `예약 상태가 ${status}(으)로 변경되었습니다.`,

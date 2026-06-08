@@ -10,8 +10,12 @@ const { authenticateMerchant, authenticateAdmin } = require('../../middleware/au
 // 정산 요약 (총매출, 수수료, 순정산) — summary를 :id보다 먼저 정의
 router.get('/merchant/summary', authenticateMerchant, controller.getMerchantSettlementSummary);
 
-// 기간 매출 통계 (일별 매출/예약 + 인기메뉴 TOP5) — :id보다 먼저 정의
+// 기간 매출 통계 (일별/시간대별/요일별 매출·예약 + 인기메뉴 TOP5) — :id보다 먼저 정의
 router.get('/merchant/stats', authenticateMerchant, controller.getMerchantStats);
+
+// 단골 고객 (완료 예약 N회 이상) + 타겟 알림 발송 — :id보다 먼저 정의
+router.get('/merchant/regulars', authenticateMerchant, controller.getRegulars);
+router.post('/merchant/regulars/notify', authenticateMerchant, controller.notifyRegulars);
 
 // 정산 목록 조회 (기간 필터, 페이지네이션)
 router.get('/merchant', authenticateMerchant, controller.getMerchantSettlements);

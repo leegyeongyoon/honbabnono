@@ -445,6 +445,32 @@ exports.getMerchantStats = async (req, res) => {
       [restaurantId, period]
     );
 
+    // 시간대별 (예약 시간 기준)
+    const hourlyResult = await pool.query(
+      `SELECT EXTRACT(HOUR FROM r.reservation_time)::int AS hour,
+              COALESCE(SUM(o.total_amount), 0)::int AS sales,
+              COUNT(DISTINCT r.id)::int AS reservations
+       FROM reservations r
+       LEFT JOIN orders o ON o.reservation_id = r.id AND o.cooking_status != 'rejected'
+       WHERE r.restaurant_id = $1 AND r.status != 'cancelled'
+         AND r.reservation_date >= CURRENT_DATE - ($2 - 1) * INTERVAL '1 day'
+       GROUP BY hour ORDER BY hour`,
+      [restaurantId, period]
+    );
+
+    // 요일별 (0=일 ~ 6=토)
+    const weekdayResult = await pool.query(
+      `SELECT EXTRACT(DOW FROM r.reservation_date)::int AS dow,
+              COALESCE(SUM(o.total_amount), 0)::int AS sales,
+              COUNT(DISTINCT r.id)::int AS reservations
+       FROM reservations r
+       LEFT JOIN orders o ON o.reservation_id = r.id AND o.cooking_status != 'rejected'
+       WHERE r.restaurant_id = $1 AND r.status != 'cancelled'
+         AND r.reservation_date >= CURRENT_DATE - ($2 - 1) * INTERVAL '1 day'
+       GROUP BY dow ORDER BY dow`,
+      [restaurantId, period]
+    );
+
     const daily = dailyResult.rows;
     const totals = daily.reduce(
       (acc, d) => ({ sales: acc.sales + d.sales, reservations: acc.reservations + d.reservations }),
@@ -459,10 +485,92 @@ exports.getMerchantStats = async (req, res) => {
         total_reservations: totals.reservations,
         daily,
         top_menus: topMenusResult.rows,
+        hourly: hourlyResult.rows,
+        weekday: weekdayResult.rows,
       },
     });
   } catch (error) {
     logger.error('점주 매출 통계 조회 실패:', error);
     res.status(500).json({ success: false, error: '매출 통계를 불러오는 중 오류가 발생했습니다.' });
+  }
+};
+
+/**
+ * 단골 고객 목록 — 완료 예약 N회 이상
+ * GET /settlements/merchant/regulars?min_visits=N
+ */
+exports.getRegulars = async (req, res) => {
+  try {
+    const restaurantId = req.merchant.restaurantId;
+    if (!restaurantId) {
+      return res.status(400).json({ success: false, error: '매장 등록을 먼저 완료해주세요.' });
+    }
+    const minVisits = Math.max(2, parseInt(req.query.min_visits || '2', 10));
+
+    const result = await pool.query(
+      `SELECT u.id AS user_id, u.name, u.phone_number,
+              COUNT(*)::int AS visit_count,
+              MAX(r.reservation_date)::text AS last_visit,
+              COALESCE(SUM(o.total_amount), 0)::int AS total_spent
+       FROM reservations r
+       JOIN users u ON r.user_id = u.id
+       LEFT JOIN orders o ON o.reservation_id = r.id AND o.cooking_status != 'rejected'
+       WHERE r.restaurant_id = $1 AND r.status = 'completed'
+       GROUP BY u.id, u.name, u.phone_number
+       HAVING COUNT(*) >= $2
+       ORDER BY visit_count DESC, last_visit DESC
+       LIMIT 100`,
+      [restaurantId, minVisits]
+    );
+
+    res.json({ success: true, data: { regulars: result.rows, min_visits: minVisits } });
+  } catch (error) {
+    logger.error('단골 고객 조회 실패:', error);
+    res.status(500).json({ success: false, error: '단골 고객을 불러오는 중 오류가 발생했습니다.' });
+  }
+};
+
+/**
+ * 단골 고객에게 알림 발송 (본인 매장 단골만 — 서버 재검증)
+ * POST /settlements/merchant/regulars/notify  body: { user_ids[], title, message }
+ */
+exports.notifyRegulars = async (req, res) => {
+  try {
+    const restaurantId = req.merchant.restaurantId;
+    if (!restaurantId) {
+      return res.status(400).json({ success: false, error: '매장 등록을 먼저 완료해주세요.' });
+    }
+    const { user_ids, title, message } = req.body;
+    if (!Array.isArray(user_ids) || user_ids.length === 0 || !title || !message) {
+      return res.status(400).json({ success: false, error: '대상/제목/내용을 입력해주세요.' });
+    }
+    if (user_ids.length > 100) {
+      return res.status(400).json({ success: false, error: '한 번에 최대 100명까지 발송할 수 있습니다.' });
+    }
+
+    // 본인 매장 단골(완료 예약 보유)인 user_id만 화이트리스트
+    const verified = await pool.query(
+      `SELECT DISTINCT user_id FROM reservations
+       WHERE restaurant_id = $1 AND status = 'completed' AND user_id = ANY($2::uuid[])`,
+      [restaurantId, user_ids]
+    );
+    const validIds = verified.rows.map((r) => r.user_id);
+    if (validIds.length === 0) {
+      return res.status(400).json({ success: false, error: '발송 가능한 단골 고객이 없습니다.' });
+    }
+
+    const { restaurantName } = req.merchant;
+    await Promise.all(validIds.map((uid) =>
+      createNotification(uid, 'merchant_message',
+        title,
+        message,
+        { restaurantId, fromRestaurant: restaurantName || '' }
+      ).catch(() => {})
+    ));
+
+    res.json({ success: true, data: { sent: validIds.length } });
+  } catch (error) {
+    logger.error('단골 알림 발송 실패:', error);
+    res.status(500).json({ success: false, error: '알림 발송 중 오류가 발생했습니다.' });
   }
 };
