@@ -24,7 +24,6 @@ import HistoryIcon from '@mui/icons-material/History';
 import theme from './theme';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import PeopleIcon from '@mui/icons-material/People';
-import EventIcon from '@mui/icons-material/Event';
 import ReportIcon from '@mui/icons-material/Report';
 import SettingsIcon from '@mui/icons-material/Settings';
 import BlockIcon from '@mui/icons-material/Block';
@@ -33,8 +32,6 @@ import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import SmartToyIcon from '@mui/icons-material/SmartToy';
 import CampaignIcon from '@mui/icons-material/Campaign';
 import AnnouncementIcon from '@mui/icons-material/Announcement';
-import PaymentIcon from '@mui/icons-material/Payment';
-import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import NotificationsIcon from '@mui/icons-material/Notifications';
 import SupportAgentIcon from '@mui/icons-material/SupportAgent';
 import ChatIcon from '@mui/icons-material/Chat';
@@ -52,7 +49,6 @@ import ReservationMonitoring from './components/ReservationMonitoring';
 import SettlementManagement from './components/SettlementManagement';
 import PaymentManagement from './components/PaymentManagement';
 import UserManagement from './components/UserManagement';
-import MeetupManagement from './components/MeetupManagement';
 import Reports from './components/Reports';
 import Settings from './components/Settings';
 import BlockedUserManagement from './components/BlockedUserManagement';
@@ -60,8 +56,6 @@ import AdminManagement from './components/AdminManagement';
 import AdvertisementManagement from './components/AdvertisementManagement';
 import ChatbotSettings from './components/ChatbotSettings';
 import NoticeManagement from './components/NoticeManagement';
-import DepositManagement from './components/DepositManagement';
-import BadgeManagement from './components/BadgeManagement';
 import NotificationManagement from './components/NotificationManagement';
 import SupportManagement from './components/SupportManagement';
 import ChatManagement from './components/ChatManagement';
@@ -102,11 +96,6 @@ const NAV_GROUPS: NavGroup[] = [
     { text: '챗봇 설정', icon: <SmartToyIcon />, path: '/chatbot-settings' },
     { text: '리포트', icon: <ReportIcon />, path: '/reports-download' },
     { text: '설정', icon: <SettingsIcon />, path: '/settings' },
-  ] },
-  { label: '레거시 (v1)', collapsible: true, defaultOpen: false, items: [
-    { text: '약속 관리', icon: <EventIcon />, path: '/meetups' },
-    { text: '약속금/결제', icon: <PaymentIcon />, path: '/deposits' },
-    { text: '뱃지 관리', icon: <EmojiEventsIcon />, path: '/badges' },
   ] },
 ];
 
@@ -341,11 +330,8 @@ function App() {
               <Route path="/payments" element={<PaymentManagement />} />
               <Route path="/users" element={<UserManagement />} />
               <Route path="/blocked-users" element={<BlockedUserManagement />} />
-              <Route path="/meetups" element={<MeetupManagement />} />
-              <Route path="/deposits" element={<DepositManagement />} />
               <Route path="/chat" element={<ChatManagement />} />
               <Route path="/reviews" element={<ReviewManagement />} />
-              <Route path="/badges" element={<BadgeManagement />} />
               <Route path="/notifications" element={<NotificationManagement />} />
               <Route path="/reports" element={<Reports />} />
               <Route path="/support" element={<SupportManagement />} />

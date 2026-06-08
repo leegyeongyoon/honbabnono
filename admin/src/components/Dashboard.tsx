@@ -15,39 +15,28 @@ import {
   TableRow,
   Chip,
   Snackbar,
-  Collapse,
-  Button,
 } from '@mui/material';
-import PeopleIcon from '@mui/icons-material/People';
-import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import EventIcon from '@mui/icons-material/Event';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
 import ReportProblemIcon from '@mui/icons-material/ReportProblem';
 import SupportAgentIcon from '@mui/icons-material/SupportAgent';
-import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import EventAvailableIcon from '@mui/icons-material/EventAvailable';
 import StorefrontIcon from '@mui/icons-material/Storefront';
 import TrendingDownIcon from '@mui/icons-material/TrendingDown';
 import PointOfSaleIcon from '@mui/icons-material/PointOfSale';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import ExpandLessIcon from '@mui/icons-material/ExpandLess';
-import HistoryIcon from '@mui/icons-material/History';
 import {
   Chart as ChartJS,
   CategoryScale,
   LinearScale,
   PointElement,
   LineElement,
-  BarElement,
   Title,
   Tooltip,
   Legend,
-  ArcElement,
   Filler,
 } from 'chart.js';
-import { Line, Bar, Doughnut } from 'react-chartjs-2';
+import { Line } from 'react-chartjs-2';
 import { format } from 'date-fns';
 import apiClient from '../utils/api';
 import { brand } from '../theme';
@@ -59,11 +48,9 @@ ChartJS.register(
   LinearScale,
   PointElement,
   LineElement,
-  BarElement,
   Title,
   Tooltip,
   Legend,
-  ArcElement,
   Filler
 );
 
@@ -136,7 +123,6 @@ export default function Dashboard() {
   const [error, setError] = useState<string | null>(null);
   const [dateRange, setDateRange] = useState('7');
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-  const [legacyOpen, setLegacyOpen] = useState(false);
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: '',
@@ -214,35 +200,6 @@ export default function Dashboard() {
         backgroundColor: 'rgba(160, 139, 122, 0.2)',
         tension: 0.3,
         fill: true,
-      },
-    ],
-  };
-
-  const meetupActivityData = {
-    labels: trends.map(item => format(new Date(item.date), 'MM/dd')),
-    datasets: [
-      {
-        label: '신규 모임',
-        data: trends.map(item => item.new_meetups),
-        backgroundColor: 'rgba(201, 181, 156, 0.7)',
-      },
-      {
-        label: '완료 모임',
-        data: trends.map(item => item.completed_meetups),
-        backgroundColor: 'rgba(160, 139, 122, 0.7)',
-      },
-    ],
-  };
-
-  // 밥알점수 분포 — brand 스케일(상위) + 양끝 success/error로 의미 부여
-  const babalScoreData = {
-    labels: ['전설 (60+)', '고수 (50+)', '단골 (42+)', '밥친구 (36.5+)', '새싹 (30+)', '주의 (<30)'],
-    datasets: [
-      {
-        data: [5, 12, 25, 40, 15, 3],
-        backgroundColor: ['#2E7D32', brand[400], brand[500], brand[600], brand[700], '#D32F2F'],
-        borderColor: ['#2E7D32', brand[400], brand[500], brand[600], brand[700], '#D32F2F'],
-        borderWidth: 1,
       },
     ],
   };
@@ -359,40 +316,12 @@ export default function Dashboard() {
         )}
       </Paper>
 
-      {/* ── 레거시(v1) 지표 — 접이식 ── */}
-      <Paper sx={{ mb: 3 }}>
-        <Button
-          fullWidth
-          onClick={() => setLegacyOpen((o) => !o)}
-          startIcon={<HistoryIcon />}
-          endIcon={legacyOpen ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-          sx={{ justifyContent: 'space-between', px: 2.5, py: 1.5, color: 'text.secondary', fontWeight: 600 }}
-        >
-          <Box component="span" sx={{ flexGrow: 1, textAlign: 'left' }}>레거시 (v1) 지표 — 회원 · 모임 · 밥알점수</Box>
-        </Button>
-        <Collapse in={legacyOpen} timeout="auto" unmountOnExit>
-          <Box sx={{ p: 2.5, pt: 0 }}>
-
-      {/* 회원/모임 KPI */}
-      <Box sx={{
-        display: 'grid',
-        gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: 'repeat(4, 1fr)' },
-        gap: 2,
-        mb: 3,
-      }}>
-        <StatCard label="총 회원" value={num(stats?.total_users)} subtitle={`이번 주 +${stats?.week_users ?? 0}`} icon={<PeopleIcon />} color="primary" />
-        <StatCard label="오늘 가입" value={num(stats?.today_users)} subtitle={realtimeData ? `최근 1시간 +${realtimeData.new_users_hour}` : undefined} icon={<PersonAddIcon />} color="info" />
-        <StatCard label="활성 모임" value={num(stats?.active_meetups)} subtitle={`오늘 신규 ${stats?.today_meetups ?? 0}개`} icon={<EventIcon />} color="secondary" />
-        <StatCard label="완료 모임" value={num(stats?.completed_meetups)} subtitle={`전체 ${stats?.total_meetups ?? 0}개`} icon={<CheckCircleIcon />} color="success" />
-        <StatCard label="노쇼 약속금" value={won(stats?.total_deposit_amount)} subtitle={`활성 ${stats?.active_deposits ?? 0}건`} icon={<AccountBalanceWalletIcon />} color="error" />
-      </Box>
-
-      {/* Charts */}
+      {/* ── 사용자 증가 추이 · 실시간 현황 (v2 유효) ── */}
       <Box sx={{
         display: 'grid',
         gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' },
         gap: 3,
-        mb: 1,
+        mb: 3,
       }}>
         <Paper sx={{ p: 2 }}>
           <Typography variant="h6" gutterBottom>
@@ -405,42 +334,6 @@ export default function Dashboard() {
               <Typography color="text.secondary">데이터가 없습니다</Typography>
             </Box>
           )}
-        </Paper>
-
-        <Paper sx={{ p: 2 }}>
-          <Typography variant="h6" gutterBottom>
-            모임 활동
-          </Typography>
-          {trends.length > 0 ? (
-            <Bar data={meetupActivityData} options={chartOptions} />
-          ) : (
-            <Box display="flex" justifyContent="center" alignItems="center" height={200}>
-              <Typography color="text.secondary">데이터가 없습니다</Typography>
-            </Box>
-          )}
-        </Paper>
-
-        <Paper sx={{ p: 2 }}>
-          <Typography variant="h6" gutterBottom>
-            밥알점수 분포
-          </Typography>
-          <Box display="flex" justifyContent="center" height={300}>
-            <Doughnut
-              data={babalScoreData}
-              options={{
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                  legend: {
-                    position: 'right',
-                    labels: {
-                      font: { size: 11 },
-                    },
-                  },
-                },
-              }}
-            />
-          </Box>
         </Paper>
 
         <Paper sx={{ p: 2 }}>
@@ -481,49 +374,6 @@ export default function Dashboard() {
           )}
         </Paper>
       </Box>
-
-      {/* Recent Activity Table */}
-      <Paper sx={{ p: 2 }}>
-        <Typography variant="h6" gutterBottom>
-          일별 활동 추이
-        </Typography>
-        {trends.length > 0 ? (
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell>날짜</TableCell>
-                <TableCell align="right">신규 사용자</TableCell>
-                <TableCell align="right">신규 모임</TableCell>
-                <TableCell align="right">완료 모임</TableCell>
-                <TableCell align="right">신규 리뷰</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {trends.slice().reverse().map((row) => (
-                <TableRow key={row.date} hover>
-                  <TableCell>{format(new Date(row.date), 'yyyy-MM-dd')}</TableCell>
-                  <TableCell align="right">
-                    <Chip
-                      label={`+${row.new_users}`}
-                      size="small"
-                      color={row.new_users > 0 ? 'primary' : 'default'}
-                    />
-                  </TableCell>
-                  <TableCell align="right">{num(row.new_meetups)}</TableCell>
-                  <TableCell align="right">{num(row.completed_meetups)}</TableCell>
-                  <TableCell align="right">{num(row.new_reviews)}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        ) : (
-          <EmptyState icon={<HistoryIcon />} title="활동 데이터가 없습니다" description="선택한 기간에 집계된 활동이 없습니다." dense />
-        )}
-      </Paper>
-
-          </Box>
-        </Collapse>
-      </Paper>
 
       <Snackbar
         open={snackbar.open}

@@ -1,23 +1,15 @@
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { View, StyleSheet } from 'react-native';
 import { COLORS } from '../styles/colors';
 import { useUserStore } from '../store/userStore';
-import { useMeetupStore } from '../store/meetupStore';
 
 // Screens
-import HomeScreen from '../screens/HomeScreen.web';
-import MyMeetupsScreen from '../screens/MyMeetupsScreen.web';
 import ChatScreen from '../screens/ChatScreen.web';
 import MyPageScreen from '../screens/MyPageScreen';
 import LoginScreen from '../screens/LoginScreen.web';
-import MeetupDetailScreen from '../screens/MeetupDetailScreen.web';
-import CreateMeetupWizard from '../screens/CreateMeetupWizard.web';
 import PaymentScreen from '../screens/PaymentScreen.web';
-import DepositPaymentScreen from '../screens/DepositPaymentScreen.web';
-import MeetupListScreen from '../screens/MeetupListScreen.web';
 import MyActivitiesScreen from '../screens/MyActivitiesScreen.web';
-import JoinedMeetupsScreen from '../screens/JoinedMeetupsScreen.web';
 import WishlistScreen from '../screens/WishlistScreen.web';
 import MyReviewsScreen from '../screens/MyReviewsScreen.web';
 import ReviewManagementScreen from '../screens/ReviewManagementScreen.web';
@@ -25,7 +17,6 @@ import PointHistoryScreen from '../screens/PointHistoryScreen.web';
 import PointChargeScreen from '../screens/PointChargeScreen.web';
 import NotificationSettingsScreen from '../screens/NotificationSettingsScreen.web';
 import PrivacySettingsScreen from '../screens/PrivacySettingsScreen.web';
-import MyBadgesScreen from '../screens/MyBadgesScreen';
 import PointBalanceScreen from '../screens/PointBalanceScreen';
 import RecentViewsScreen from '../screens/RecentViewsScreen.web';
 import BlockedUsersScreen from '../screens/BlockedUsersScreen.web';
@@ -33,11 +24,9 @@ import NotificationScreen from '../screens/NotificationScreen.web';
 import AdvertisementDetailScreen from '../screens/AdvertisementDetailScreen';
 import NoticesScreen from '../screens/NoticesScreen.web';
 import NoticeDetailScreen from '../screens/NoticeDetailScreen.web';
-import SearchScreen from '../screens/SearchScreen.web';
 import AISearchResultScreen from '../screens/AISearchResultScreen.web';
 import ExploreScreen from '../screens/ExploreScreen.web';
 import SettingsScreen from '../screens/SettingsScreen.web';
-import HostProfileScreen from '../screens/HostProfileScreen.web';
 import OnboardingScreen from '../screens/OnboardingScreen.web';
 import FAQScreen from '../screens/FAQScreen.web';
 import TermsScreen from '../screens/TermsScreen.web';
@@ -176,30 +165,13 @@ const RouterApp: React.FC = () => {
     logout();
   };
 
-  // fetchMeetups를 useCallback으로 안정화
-  const fetchMeetups = useCallback(() => {
-    const fetchFn = useMeetupStore.getState().fetchMeetups;
-    fetchFn();
-  }, []);
-
-  // 로그인 성공 시 모임 목록 가져오기
-  useEffect(() => {
-    if (isLoggedIn && user) {
-      fetchMeetups();
-    }
-  }, [isLoggedIn, user, fetchMeetups]);
-
   // screenName→path 매핑 (React Navigation 호환 네비게이션 어댑터)
   const screenRouteMap: Record<string, string | ((params?: any) => string)> = {
     Notifications: '/notifications',
-    MeetupDetail: (p: any) => `/meetup/${p?.meetupId}`,
-    CreateMeetup: '/create-meetup',
     Chat: (p: any) => `/chat/${p?.meetupId}?title=${encodeURIComponent(p?.meetupTitle || '')}`,
     Settings: '/settings',
-    HostProfile: (p: any) => `/host-profile/${p?.userId}`,
     EditProfile: '/mypage',
     Profile: '/mypage',
-    MyMeetups: '/my-meetups',
     Wishlist: '/wishlist',
     PointCharge: '/point-charge',
     MyReviews: '/my-reviews',
@@ -207,13 +179,10 @@ const RouterApp: React.FC = () => {
     Notices: '/notices',
     FAQ: '/faq',
     Terms: '/terms',
-    WriteReview: (p: any) => `/meetup/${p?.meetupId}`,
-    DepositPayment: (p: any) => `/meetup/${p?.meetupId}/deposit-payment`,
     Explore: '/explore',
     Payment: '/payment',
     ReviewManagement: '/review-management',
     UserVerification: '/mypage',
-    MyBadges: '/my-badges',
     OnboardingScreen: '/onboarding',
     Onboarding: '/onboarding',
     Home: '/home',
@@ -327,34 +296,24 @@ const AppRoutes: React.FC<{
 
         {/* 보호된 라우트들 */}
         <Route path="/chat/:id" element={protectedElement(<MainLayout><ChatScreen {...getNavigationProps()} /></MainLayout>)} />
-        <Route path="/meetup/:id/deposit-payment" element={protectedElement(<DepositPaymentScreen />)} />
-        <Route path="/meetup/:id" element={protectedElement(<MeetupDetailScreen user={user} />)} />
         <Route path="/home" element={protectedElement(<MainLayout><RestaurantHomeScreen /></MainLayout>)} />
-        <Route path="/legacy-home" element={protectedElement(<MainLayout><HomeScreen user={user} navigation={getReactRouterNavigation()} /></MainLayout>)} />
-        <Route path="/search" element={protectedElement(<MainLayout><SearchScreen user={user} navigation={getReactRouterNavigation()} /></MainLayout>)} />
         <Route path="/ai-search" element={protectedElement(<AISearchResultScreen user={user} navigation={getReactRouterNavigation()} />)} />
         <Route path="/notifications" element={protectedElement(<MainLayout><NotificationScreen user={user} navigation={getReactRouterNavigation()} /></MainLayout>)} />
-        <Route path="/my-meetups" element={protectedElement(<MainLayout><MyMeetupsScreen user={user} /></MainLayout>)} />
         <Route path="/chat" element={protectedElement(<MainLayout><ChatScreen user={user} /></MainLayout>)} />
         <Route path="/mypage" element={protectedElement(<MainLayout><MyPageScreen user={user} onLogout={handleLogout} /></MainLayout>)} />
-        <Route path="/create-meetup" element={protectedElement(<CreateMeetupWizard user={user} />)} />
         <Route path="/explore" element={protectedElement(<MainLayout><ExploreScreen /></MainLayout>)} />
-        <Route path="/meetup-list" element={protectedElement(<MeetupListScreen />)} />
         <Route path="/payment" element={protectedElement(<PaymentScreen />)} />
         <Route path="/my-activities" element={protectedElement(<MyActivitiesScreen />)} />
         <Route path="/wishlist" element={protectedElement(<WishlistScreen />)} />
         <Route path="/my-reviews" element={protectedElement(<MyReviewsScreen />)} />
-        <Route path="/joined-meetups" element={protectedElement(<JoinedMeetupsScreen />)} />
         <Route path="/point-history" element={protectedElement(<PointHistoryScreen />)} />
         <Route path="/point-charge" element={protectedElement(<PointChargeScreen />)} />
         <Route path="/review-management" element={protectedElement(<ReviewManagementScreen />)} />
         <Route path="/notification-settings" element={protectedElement(<NotificationSettingsScreen />)} />
         <Route path="/privacy-settings" element={protectedElement(<PrivacySettingsScreen />)} />
-        <Route path="/my-badges" element={protectedElement(<MyBadgesScreen />)} />
         <Route path="/point-balance" element={protectedElement(<PointBalanceScreen />)} />
         <Route path="/recent-views" element={protectedElement(<RecentViewsScreen />)} />
         <Route path="/blocked-users" element={protectedElement(<BlockedUsersScreen />)} />
-        <Route path="/host-profile/:userId" element={protectedElement(<HostProfileScreen />)} />
         <Route path="/settings" element={protectedElement(<SettingsScreen />)} />
 
         {/* v2 피벗: 매장/예약 라우트 */}

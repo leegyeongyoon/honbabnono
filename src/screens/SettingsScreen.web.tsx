@@ -128,7 +128,7 @@ const SettingsScreen: React.FC = () => {
         </button>
         <span style={styles.headerTitle}>설정</span>
         <button
-          onClick={() => navigate('/search')}
+          onClick={() => navigate('/search-restaurants')}
           style={styles.headerRightButton}
         >
           <Icon name="search" size={22} color="#121212" />

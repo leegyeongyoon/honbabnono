@@ -33,16 +33,6 @@ interface MyPageScreenProps {
   onLogout?: () => void;
 }
 
-// 밥알지수 등급 계산 (피라미드 구조: 시작 36.5, 범위 0~99)
-const getRiceGrade = (score: number): { label: string; emoji: string } => {
-  if (score >= 60) return { label: '전설', emoji: '👑' };
-  if (score >= 50) return { label: '고수', emoji: '⭐' };
-  if (score >= 42) return { label: '단골', emoji: '🍽' };
-  if (score >= 36.5) return { label: '밥친구', emoji: '🍚' };
-  if (score >= 30) return { label: '새싹', emoji: '🌱' };
-  return { label: '주의', emoji: '⚠' };
-};
-
 // 메뉴 아이템 (활동 관리 / 결제 관리)
 interface MenuRow {
   id: string;
@@ -127,10 +117,8 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ user: propsUser }) => {
   const user = propsUser || storeUser;
 
   const [userStats, setUserStats] = useState({
-    riceIndex: 0,
     availablePoints: 0,
     totalMeetups: 0,
-    hostedMeetups: 0,
     reviewCount: 0,
   });
   const [loading, setLoading] = useState(true);
@@ -146,10 +134,10 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ user: propsUser }) => {
       try {
         setLoading(true);
         const stats = await userApiService.getUserStats();
-        const riceIndexResponse = await userApiService.getRiceIndex();
         setUserStats({
-          ...stats,
-          riceIndex: riceIndexResponse?.riceIndex || 0,
+          availablePoints: stats?.availablePoints || 0,
+          totalMeetups: stats?.totalMeetups || 0,
+          reviewCount: stats?.reviewCount || 0,
         });
         const userData = await userApiService.getProfile();
         setUserProfileImageUrl(userData.profileImage);
@@ -182,8 +170,6 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ user: propsUser }) => {
       }
     }
   };
-
-  const riceGrade = getRiceGrade(userStats.riceIndex);
 
   if (loading) {
     return (
@@ -248,59 +234,7 @@ const MyPageScreen: React.FC<MyPageScreenProps> = ({ user: propsUser }) => {
           </View>
         </FadeIn>
 
-        {/* 밥알지수 카드 */}
-        <FadeIn delay={50}>
-          <div style={riceCardStyle}>
-            <div style={{
-              display: 'flex',
-              flexDirection: 'row',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: 14,
-            }}>
-              <span style={{
-                fontSize: 16,
-                fontWeight: 600,
-                color: COLORS.text.primary,
-                fontFamily: '"Pretendard Variable", Pretendard, system-ui, -apple-system, sans-serif',
-              }}>밥알지수</span>
-              <span style={{
-                fontSize: 16,
-                fontWeight: 700,
-                color: COLORS.primary.main,
-                fontFamily: '"Pretendard Variable", Pretendard, system-ui, -apple-system, sans-serif',
-              }}>
-                {userStats.riceIndex} 밥알 {riceGrade.emoji}
-              </span>
-            </div>
-            {/* Progress bar */}
-            <div style={{
-              height: 8,
-              backgroundColor: COLORS.neutral.light,
-              borderRadius: BORDER_RADIUS.sm,
-              overflow: 'hidden',
-              marginBottom: SPACING.sm,
-            }}>
-              <div style={{
-                height: '100%',
-                borderRadius: BORDER_RADIUS.sm,
-                backgroundColor: COLORS.primary.main,
-                width: `${Math.min(userStats.riceIndex, 100)}%`,
-                transition: `width 800ms cubic-bezier(0, 0, 0.2, 1)`,
-              }} />
-            </div>
-            <div style={{
-              display: 'flex',
-              flexDirection: 'row',
-              justifyContent: 'space-between',
-            }}>
-              <span style={{ fontSize: 12, color: COLORS.text.tertiary, fontFamily: '"Pretendard Variable", Pretendard, system-ui, -apple-system, sans-serif' }}>0 밥알</span>
-              <span style={{ fontSize: 12, color: COLORS.text.tertiary, fontFamily: '"Pretendard Variable", Pretendard, system-ui, -apple-system, sans-serif' }}>100 밥알</span>
-            </div>
-          </div>
-        </FadeIn>
-
-        {/* 스탯 섹션 (보유 포인트, 참가한 모임, 후기 관리) */}
+        {/* 스탯 섹션 (보유 포인트, 이용한 예약, 후기 관리) */}
         <FadeIn delay={100}>
           <View style={styles.sectionCard}>
             <HoverStatRow
@@ -406,18 +340,6 @@ const pageStyles: Record<string, React.CSSProperties> = {
     backgroundColor: COLORS.neutral.background,
     minHeight: '100vh',
   },
-};
-
-// Inline style for rice-index card (CSS-in-JS for web-specific properties)
-const riceCardStyle: React.CSSProperties = {
-  backgroundColor: COLORS.surface.primary,
-  borderRadius: BORDER_RADIUS.xxl,
-  padding: SPACING.screen.horizontal,
-  marginLeft: SPACING.screen.horizontal,
-  marginRight: SPACING.screen.horizontal,
-  marginBottom: SPACING.lg,
-  boxShadow: CSS_SHADOWS.card,
-  border: `1px solid ${CARD_STYLE.borderColor}`,
 };
 
 const styles = StyleSheet.create({
