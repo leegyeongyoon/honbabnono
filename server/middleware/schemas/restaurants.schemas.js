@@ -171,6 +171,25 @@ const searchQuerySchema = z.object({
     .max(50)
     .optional(),
 
+  sort: z
+    .enum(['rating', 'reviews', 'name', 'newest', 'distance'])
+    .optional(),
+
+  // 위치 기반
+  lat: z.coerce.number().min(-90).max(90).optional(),
+  lng: z.coerce.number().min(-180).max(180).optional(),
+  radius: z.coerce.number().min(0).max(50000).optional(), // 미터
+
+  // 가격대 (매장 최저 메뉴가 기준)
+  min_price: z.coerce.number().min(0).optional(),
+  max_price: z.coerce.number().min(0).optional(),
+
+  // 평점 필터
+  min_rating: z.coerce.number().min(0).max(5).optional(),
+
+  // 예약 가능 매장만
+  available: z.enum(['true', 'false']).optional(),
+
   limit: z.coerce
     .number()
     .int()

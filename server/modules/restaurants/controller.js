@@ -152,7 +152,10 @@ exports.getNearbyRestaurants = async (req, res) => {
  */
 exports.searchRestaurants = async (req, res) => {
   try {
-    const { keyword, category, sort, limit = 20, offset = 0 } = req.query;
+    const {
+      keyword, category, sort, limit = 20, offset = 0,
+      lat, lng, radius, min_price, max_price, min_rating, available,
+    } = req.query;
 
     const params = [];
     const conditions = ['r.is_active = true'];
@@ -168,24 +171,77 @@ exports.searchRestaurants = async (req, res) => {
       conditions.push(`r.category = $${params.length}`);
     }
 
+    // 예약 가능 매장만
+    if (available === 'true') {
+      conditions.push('r.is_accepting_reservations = true');
+    }
+
+    // 위치 기반 — lat/lng 있으면 거리 계산 컬럼 + (radius 있으면) 반경 필터
+    const hasGeo = lat != null && lng != null && !Number.isNaN(parseFloat(lat)) && !Number.isNaN(parseFloat(lng));
+    let distanceExpr = 'NULL';
+    if (hasGeo) {
+      params.push(parseFloat(lat), parseFloat(lng));
+      const latIdx = params.length - 1;
+      const lngIdx = params.length;
+      // Haversine (미터) — helpers.calculateDistance와 동일 공식
+      distanceExpr = `(6371000 * acos(LEAST(1, cos(radians($${latIdx})) * cos(radians(r.latitude)) * cos(radians(r.longitude) - radians($${lngIdx})) + sin(radians($${latIdx})) * sin(radians(r.latitude)))))`;
+      conditions.push('r.latitude IS NOT NULL AND r.longitude IS NOT NULL');
+      if (radius != null && !Number.isNaN(parseFloat(radius))) {
+        params.push(parseFloat(radius));
+        conditions.push(`${distanceExpr} <= $${params.length}`);
+      }
+    }
+
+    // 가격대 — 매장 최저 메뉴가(LATERAL 집계) 기준
+    const priceConditions = [];
+    if (min_price != null && !Number.isNaN(parseFloat(min_price))) {
+      params.push(parseFloat(min_price));
+      priceConditions.push(`mp.min_price >= $${params.length}`);
+    }
+    if (max_price != null && !Number.isNaN(parseFloat(max_price))) {
+      params.push(parseFloat(max_price));
+      priceConditions.push(`mp.min_price <= $${params.length}`);
+    }
+
+    // 평점 필터 (HAVING)
+    const having = [];
+    if (min_rating != null && !Number.isNaN(parseFloat(min_rating))) {
+      params.push(parseFloat(min_rating));
+      having.push(`COALESCE(AVG(rv.overall_rating), 0) >= $${params.length}`);
+    }
+
+    // ORDER BY는 집계 표현식을 직접 사용 (restaurants.avg_rating 컬럼과 별칭 충돌 회피 — 42702)
+    const ratingExpr = 'COALESCE(AVG(rv.overall_rating), 0)';
+    const reviewExpr = 'COUNT(DISTINCT rv.id)';
     const sortOptions = {
-      rating: 'r.avg_rating DESC NULLS LAST, r.review_count DESC',
-      reviews: 'r.review_count DESC',
+      rating: `${ratingExpr} DESC, ${reviewExpr} DESC`,
+      reviews: `${reviewExpr} DESC`,
       name: 'r.name ASC',
       newest: 'r.created_at DESC',
+      distance: hasGeo ? `${distanceExpr} ASC NULLS LAST` : `${ratingExpr} DESC`,
     };
     const orderBy = sortOptions[sort] || sortOptions.rating;
+
+    const allConditions = [...conditions, ...priceConditions].join(' AND ');
+    const havingClause = having.length > 0 ? `HAVING ${having.join(' AND ')}` : '';
 
     params.push(limit, offset);
 
     const query = `
       SELECT r.*,
              COALESCE(AVG(rv.overall_rating), 0) AS avg_rating,
-             COUNT(DISTINCT rv.id) AS review_count
+             COUNT(DISTINCT rv.id) AS review_count,
+             mp.min_price AS min_price,
+             ${distanceExpr} AS distance
       FROM restaurants r
       LEFT JOIN restaurant_reviews rv ON rv.restaurant_id = r.id
-      WHERE ${conditions.join(' AND ')}
-      GROUP BY r.id
+      LEFT JOIN LATERAL (
+        SELECT MIN(price) AS min_price
+        FROM menus m WHERE m.restaurant_id = r.id AND m.is_active = true
+      ) mp ON true
+      WHERE ${allConditions}
+      GROUP BY r.id, mp.min_price
+      ${havingClause}
       ORDER BY ${orderBy}
       LIMIT $${params.length - 1} OFFSET $${params.length}
     `;
