@@ -25,6 +25,8 @@ export interface Restaurant {
   pauseReason?: string;
   avgRating?: number;
   reviewCount?: number;
+  distance?: number;
+  minPrice?: number;
 }
 
 export interface MenuItem {
@@ -120,6 +122,8 @@ const mapRestaurant = (r: any): Restaurant => ({
   pauseReason: r.pause_reason ?? r.pauseReason,
   avgRating: r.avg_rating != null ? Number(r.avg_rating) : r.avgRating,
   reviewCount: r.review_count != null ? Number(r.review_count) : r.reviewCount,
+  distance: r.distance != null ? Number(r.distance) : (r.distance ?? undefined),
+  minPrice: r.min_price != null ? Number(r.min_price) : (r.minPrice != null ? Number(r.minPrice) : undefined),
 });
 
 const mapMenuItem = (m: any): MenuItem => ({
@@ -183,13 +187,36 @@ const getNearbyRestaurants = async (
   return Array.isArray(list) ? list.map(mapRestaurant) : [];
 };
 
+export interface SearchRestaurantsOpts {
+  lat?: number;
+  lng?: number;
+  radius?: number; // 미터
+  sort?: 'rating' | 'reviews' | 'name' | 'newest' | 'distance';
+  minPrice?: number;
+  maxPrice?: number;
+  minRating?: number;
+  available?: boolean;
+}
+
 const searchRestaurants = async (
   keyword: string,
-  sort?: 'rating' | 'reviews' | 'name' | 'newest',
+  sort?: 'rating' | 'reviews' | 'name' | 'newest' | 'distance',
+  opts?: SearchRestaurantsOpts,
 ): Promise<Restaurant[]> => {
-  const response = await apiClient.get('/restaurants/search', {
-    params: { keyword, sort },
-  });
+  // sort는 두 번째 인자(기존 호출 호환) 또는 opts.sort로 지정 가능
+  const params: Record<string, any> = { keyword };
+  const resolvedSort = opts?.sort ?? sort;
+  if (resolvedSort != null) params.sort = resolvedSort;
+  if (opts) {
+    if (opts.lat != null) params.lat = opts.lat;
+    if (opts.lng != null) params.lng = opts.lng;
+    if (opts.radius != null) params.radius = opts.radius;
+    if (opts.minPrice != null) params.min_price = opts.minPrice;
+    if (opts.maxPrice != null) params.max_price = opts.maxPrice;
+    if (opts.minRating != null) params.min_rating = opts.minRating;
+    if (opts.available != null) params.available = opts.available ? 'true' : 'false';
+  }
+  const response = await apiClient.get('/restaurants/search', { params });
   const data = response.data.data ?? response.data;
   const list = data.restaurants || data;
   return Array.isArray(list) ? list.map(mapRestaurant) : [];
