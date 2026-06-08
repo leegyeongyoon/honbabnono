@@ -56,12 +56,26 @@ interface TopMenu {
   sales: number;
 }
 
+interface HourlyStat {
+  hour: number;
+  sales: number;
+  reservations: number;
+}
+
+interface WeekdayStat {
+  dow: number; // 0=일 ~ 6=토
+  sales: number;
+  reservations: number;
+}
+
 interface SalesStats {
   period: string;
   total_sales: number;
   total_reservations: number;
   daily: DailyStat[];
   top_menus: TopMenu[];
+  hourly: HourlyStat[];
+  weekday: WeekdayStat[];
 }
 
 type StatsPeriod = '7d' | '30d';
@@ -98,6 +112,8 @@ const Dashboard: React.FC = () => {
         total_reservations: d.total_reservations || 0,
         daily: Array.isArray(d.daily) ? d.daily : [],
         top_menus: Array.isArray(d.top_menus) ? d.top_menus : [],
+        hourly: Array.isArray(d.hourly) ? d.hourly : [],
+        weekday: Array.isArray(d.weekday) ? d.weekday : [],
       });
     } catch {
       setStats(null);
@@ -413,6 +429,105 @@ const Dashboard: React.FC = () => {
                 );
               })()
             )}
+
+            {/* 시간대별 매출 (0~23시) */}
+            <Typography variant="subtitle2" sx={{ mt: 3, mb: 1.5, fontWeight: 600 }}>시간대별 매출</Typography>
+            {(() => {
+              // 희소 응답(데이터 있는 시간만 반환)을 0~23 전체로 채움
+              const byHour = new Map(stats.hourly.map((h) => [h.hour, h]));
+              const bars = Array.from({ length: 24 }, (_, hour) => ({
+                label: `${hour}`,
+                tooltip: `${hour}시`,
+                sales: byHour.get(hour)?.sales || 0,
+              }));
+              const hasData = stats.hourly.some((h) => (h.sales || 0) > 0);
+              if (!hasData) {
+                return (
+                  <EmptyState icon={<BarChartIcon />} title="시간대별 매출 데이터가 없습니다" description="결제 완료된 예약이 집계되면 표시됩니다." dense />
+                );
+              }
+              const maxSales = Math.max(1, ...bars.map((b) => b.sales));
+              return (
+                <Box sx={{ display: 'flex', alignItems: 'flex-end', gap: 0.5, height: 160, overflowX: 'auto', pb: 1 }}>
+                  {bars.map((b) => {
+                    const heightPct = (b.sales / maxSales) * 100;
+                    return (
+                      <Box
+                        key={b.label}
+                        sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', flex: '1 0 auto', minWidth: 22, height: '100%' }}
+                      >
+                        <Box
+                          title={`${b.tooltip}: ${b.sales.toLocaleString()}원`}
+                          sx={{
+                            width: '70%',
+                            minHeight: b.sales > 0 ? 2 : 0,
+                            height: `${heightPct}%`,
+                            bgcolor: 'info.main',
+                            borderRadius: '4px 4px 0 0',
+                            transition: 'height 0.3s',
+                          }}
+                        />
+                        <Typography variant="caption" sx={{ fontSize: 9, color: 'text.disabled', mt: 0.5, whiteSpace: 'nowrap' }}>
+                          {b.label}
+                        </Typography>
+                      </Box>
+                    );
+                  })}
+                </Box>
+              );
+            })()}
+
+            {/* 요일별 매출 (일~토) */}
+            <Typography variant="subtitle2" sx={{ mt: 3, mb: 1.5, fontWeight: 600 }}>요일별 매출</Typography>
+            {(() => {
+              const WEEKDAY_LABELS = ['일', '월', '화', '수', '목', '금', '토'];
+              const byDow = new Map(stats.weekday.map((w) => [w.dow, w]));
+              const bars = WEEKDAY_LABELS.map((label, dow) => ({
+                label,
+                sales: byDow.get(dow)?.sales || 0,
+              }));
+              const hasData = stats.weekday.some((w) => (w.sales || 0) > 0);
+              if (!hasData) {
+                return (
+                  <EmptyState icon={<BarChartIcon />} title="요일별 매출 데이터가 없습니다" description="결제 완료된 예약이 집계되면 표시됩니다." dense />
+                );
+              }
+              const maxSales = Math.max(1, ...bars.map((b) => b.sales));
+              return (
+                <Box sx={{ display: 'flex', alignItems: 'flex-end', gap: 1, height: 160, pb: 1 }}>
+                  {bars.map((b, i) => {
+                    const heightPct = (b.sales / maxSales) * 100;
+                    return (
+                      <Box
+                        key={b.label}
+                        sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', flex: 1, height: '100%' }}
+                      >
+                        <Typography variant="caption" sx={{ fontSize: 10, color: 'text.secondary', mb: 0.5, whiteSpace: 'nowrap' }}>
+                          {b.sales > 0 ? `${Math.round(b.sales / 1000)}k` : ''}
+                        </Typography>
+                        <Box
+                          title={`${b.label}요일: ${b.sales.toLocaleString()}원`}
+                          sx={{
+                            width: '60%',
+                            minHeight: b.sales > 0 ? 2 : 0,
+                            height: `${heightPct}%`,
+                            bgcolor: 'primary.main',
+                            borderRadius: '4px 4px 0 0',
+                            transition: 'height 0.3s',
+                          }}
+                        />
+                        <Typography
+                          variant="caption"
+                          sx={{ fontSize: 11, fontWeight: 600, mt: 0.5, color: i === 0 ? 'error.main' : i === 6 ? 'info.main' : 'text.secondary' }}
+                        >
+                          {b.label}
+                        </Typography>
+                      </Box>
+                    );
+                  })}
+                </Box>
+              );
+            })()}
 
             {/* 인기 메뉴 TOP5 */}
             <Typography variant="subtitle2" sx={{ mt: 3, mb: 1.5, fontWeight: 600 }}>인기 메뉴 TOP5</Typography>

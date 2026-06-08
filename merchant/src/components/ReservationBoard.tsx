@@ -79,7 +79,7 @@ type ReservationStatus =
   | 'completed'
   | 'cancelled';
 
-type ViewMode = 'day' | 'week';
+type ViewMode = 'day' | 'week' | 'month';
 
 // 상태색/도착색은 중앙 테마(ARRIVAL_STATUS / RESERVATION_STATUS)에서 가져옴
 
@@ -149,6 +149,12 @@ const ReservationBoard: React.FC = () => {
         const start = getWeekStart(selectedDate);
         const end = new Date(start);
         end.setDate(start.getDate() + 6);
+        params.start_date = toDateStr(start);
+        params.end_date = toDateStr(end);
+      } else if (viewMode === 'month') {
+        const base = new Date(selectedDate + 'T00:00:00');
+        const start = new Date(base.getFullYear(), base.getMonth(), 1);
+        const end = new Date(base.getFullYear(), base.getMonth() + 1, 0); // 말일
         params.start_date = toDateStr(start);
         params.end_date = toDateStr(end);
       } else {
@@ -394,6 +400,29 @@ const ReservationBoard: React.FC = () => {
     return days;
   })();
 
+  // ── Month grid 데이터 (일요일 시작, 앞뒤 빈 칸 패딩) ──
+  const MONTH_DAY_LABELS = ['일', '월', '화', '수', '목', '금', '토'];
+  const monthCells = (() => {
+    if (viewMode !== 'month') return [];
+    const base = new Date(selectedDate + 'T00:00:00');
+    const year = base.getFullYear();
+    const month = base.getMonth();
+    const firstDow = new Date(year, month, 1).getDay(); // 0=일
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const cells: Array<{ dateStr: string; day: number } | null> = [];
+    for (let i = 0; i < firstDow; i++) cells.push(null); // 선행 빈 칸
+    for (let d = 1; d <= daysInMonth; d++) {
+      cells.push({ dateStr: toDateStr(new Date(year, month, d)), day: d });
+    }
+    while (cells.length % 7 !== 0) cells.push(null); // 후행 빈 칸
+    return cells;
+  })();
+
+  const monthTitle = (() => {
+    const base = new Date(selectedDate + 'T00:00:00');
+    return `${base.getFullYear()}년 ${base.getMonth() + 1}월`;
+  })();
+
   const reservationsForDate = (dateStr: string): Reservation[] => {
     return reservations
       .filter((r) => {
@@ -419,6 +448,7 @@ const ReservationBoard: React.FC = () => {
             >
               <ToggleButton value="day">일간</ToggleButton>
               <ToggleButton value="week">주간</ToggleButton>
+              <ToggleButton value="month">월간</ToggleButton>
             </ToggleButtonGroup>
 
             <TextField
@@ -541,6 +571,112 @@ const ReservationBoard: React.FC = () => {
               </Card>
             );
           })}
+        </Box>
+      )}
+
+      {/* ── Month view ── */}
+      {!loading && viewMode === 'month' && (
+        <Box>
+          <Typography variant="h6" fontWeight={700} sx={{ mb: 1.5 }}>
+            {monthTitle}
+          </Typography>
+
+          {/* 요일 헤더 */}
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(7, 1fr)',
+              gap: 1,
+              mb: 1,
+            }}
+          >
+            {MONTH_DAY_LABELS.map((label, i) => (
+              <Typography
+                key={label}
+                variant="caption"
+                align="center"
+                sx={{
+                  fontWeight: 700,
+                  color: i === 0 ? 'error.main' : i === 6 ? 'info.main' : 'text.secondary',
+                }}
+              >
+                {label}
+              </Typography>
+            ))}
+          </Box>
+
+          {/* 날짜 그리드 */}
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(7, 1fr)',
+              gap: 1,
+            }}
+          >
+            {monthCells.map((cell, idx) => {
+              if (!cell) {
+                return <Box key={`empty-${idx}`} sx={{ minHeight: { xs: 64, sm: 96 } }} />;
+              }
+              const dayReservations = reservationsForDate(cell.dateStr);
+              const isSelected = cell.dateStr === selectedDate;
+              const isToday = cell.dateStr === today;
+              return (
+                <Card
+                  key={cell.dateStr}
+                  variant="outlined"
+                  sx={{
+                    minHeight: { xs: 64, sm: 96 },
+                    cursor: 'pointer',
+                    borderColor: isSelected ? 'primary.main' : 'divider',
+                    borderWidth: isSelected ? 2 : 1,
+                    bgcolor: isSelected ? 'custom.brandSoft' : 'background.paper',
+                  }}
+                  onClick={() => {
+                    setSelectedDate(cell.dateStr);
+                    setViewMode('day');
+                  }}
+                >
+                  <CardContent sx={{ p: 1, '&:last-child': { pb: 1 } }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          fontWeight: 700,
+                          color: isToday ? 'primary.dark' : 'text.primary',
+                        }}
+                      >
+                        {cell.day}
+                        {isToday ? ' (오늘)' : ''}
+                      </Typography>
+                      {dayReservations.length > 0 && (
+                        <Chip
+                          label={`${dayReservations.length}`}
+                          size="small"
+                          color="primary"
+                          sx={{ fontWeight: 700, height: 18, '& .MuiChip-label': { px: 0.75, fontSize: 11 } }}
+                        />
+                      )}
+                    </Box>
+                    {dayReservations.slice(0, 2).map((r) => (
+                      <Typography
+                        key={r.id}
+                        variant="caption"
+                        noWrap
+                        sx={{ display: 'block', fontSize: 10, color: 'text.secondary' }}
+                      >
+                        {formatTime(r.reservation_time)} {r.customer_name}
+                      </Typography>
+                    ))}
+                    {dayReservations.length > 2 && (
+                      <Typography variant="caption" sx={{ display: 'block', fontSize: 10, color: 'text.disabled' }}>
+                        +{dayReservations.length - 2}건
+                      </Typography>
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </Box>
         </Box>
       )}
 
