@@ -98,39 +98,49 @@ jobs:
             echo "rsync 재시도 $attempt..."; sleep 10
           done
 
-      - name: Pull & restart
+      - name: Pull & restart (detached)
         run: |
-          deploy_cmd() {
-            ssh -o ConnectTimeout=20 ${{ secrets.DEPLOY_USER }}@deploy.eattable.kr "$1"
-          }
-          # 1) pull 먼저 — 실패해도(예: GHCR 인증 미설정) 기존 컨테이너는 안 건드림 → 서비스 보호
-          PULLED=""
+          ssh_rpi() { ssh -o ConnectTimeout=20 ${{ secrets.DEPLOY_USER }}@deploy.eattable.kr "$1"; }
+          # pull은 이미지 레이어 다운로드라 길어 SSH가 끊긴다(broken pipe). RPi에서 detach 실행 → 끊겨도 계속.
+          # GHA는 짧은 SSH로 상태파일만 폴링한다.
           for attempt in 1 2 3; do
-            if deploy_cmd "cd /home/gyoungyoon/eattable && docker compose pull app autoheal"; then
-              PULLED=1; break
+            if ssh_rpi 'rm -f /tmp/deploy.status /tmp/deploy.log; setsid bash -c "
+              cd /home/gyoungyoon/eattable
+              if docker compose pull app autoheal >> /tmp/deploy.log 2>&1 && \
+                 docker compose up -d --remove-orphans >> /tmp/deploy.log 2>&1; then
+                echo OK > /tmp/deploy.status
+              else
+                echo FAIL > /tmp/deploy.status
+              fi
+            " < /dev/null > /dev/null 2>&1 &'; then
+              echo "배포를 백그라운드로 시작했습니다 (detached)."; break
             fi
-            echo "pull 재시도 $attempt..."; sleep 15
+            echo "시작 SSH 재시도 $attempt (터널 일시 장애)..."; sleep 15
           done
-          if [ -z "$PULLED" ]; then
-            echo "::error::이미지 pull 실패 — 기존 컨테이너 유지(서비스 보호). GHCR 패키지 public 또는 RPi docker login 필요."
+
+          echo "=== pull+up 완료 폴링 (최대 ~20분) ==="
+          STATUS=""
+          for i in $(seq 1 40); do
+            sleep 30
+            STATUS=$(ssh_rpi "cat /tmp/deploy.status 2>/dev/null" 2>/dev/null || echo "")
+            echo "[$i/40] 상태: ${STATUS:-진행중}"
+            if [ -n "$STATUS" ]; then break; fi
+          done
+          echo "=== 배포 로그(마지막 25줄) ==="
+          ssh_rpi "tail -25 /tmp/deploy.log 2>/dev/null" || true
+          if [ "$STATUS" != "OK" ]; then
+            echo "::error::pull/up 실패(status=${STATUS:-timeout}). 기존 컨테이너는 유지됨(서비스 보호)."
             exit 1
           fi
-          # 2) pull 성공 시에만 컨테이너 교체
-          deploy_cmd "cd /home/gyoungyoon/eattable && docker compose up -d --remove-orphans"
 
-      - name: Health check
-        run: |
-          echo "컨테이너 부팅 대기..."
+          echo "=== 헬스체크 ==="
           for i in $(seq 1 12); do
             sleep 10
-            code=$(ssh -o ConnectTimeout=20 ${{ secrets.DEPLOY_USER }}@deploy.eattable.kr \
-              "curl -s -o /dev/null -w '%{http_code}' http://localhost:80/api/health" 2>/dev/null || echo "000")
+            code=$(ssh_rpi "curl -s -o /dev/null -w '%{http_code}' http://localhost:80/api/health" 2>/dev/null || echo "000")
             echo "[$i/12] API health: $code"
             if [ "$code" = "200" ]; then echo "Deploy SUCCESS"; exit 0; fi
           done
-          echo "헬스체크 실패"
-          ssh -o ConnectTimeout=20 ${{ secrets.DEPLOY_USER }}@deploy.eattable.kr "docker logs eattable-app --tail 30" || true
-          exit 1
+          echo "헬스체크 실패"; ssh_rpi "docker logs eattable-app --tail 30" || true; exit 1
 
       - name: Summary
         if: always()
