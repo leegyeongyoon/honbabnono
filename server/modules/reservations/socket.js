@@ -184,6 +184,21 @@ function emitCheckin(io, restaurantId, data) {
   });
 }
 
+/**
+ * 예약 변경 알림 (고객 → 점주) — 날짜/시간/인원 변경 시 점주 보드 갱신
+ */
+function emitReservationModified(io, restaurantId, data) {
+  io.to(`restaurant:${restaurantId}`).emit('reservation:modified', {
+    reservationId: data.reservationId,
+    modifiedAt: new Date().toISOString(),
+    ...data,
+  });
+  logger.debug(`${LOG_PREFIX} 예약 변경 이벤트 전송`, {
+    restaurantId,
+    reservationId: data.reservationId,
+  });
+}
+
 module.exports = {
   setupReservationSocket,
   emitStatusUpdate,
@@ -192,4 +207,5 @@ module.exports = {
   emitCheckin,
   emitNewReservation,
   emitReservationCancelled,
+  emitReservationModified,
 };

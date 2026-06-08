@@ -41,6 +41,31 @@ const updateArrivalSchema = z.object({
 });
 
 /**
+ * Schema for modifying a reservation (PUT /reservations/:id/modify)
+ * 변경분만 전송 — 모든 필드 optional, 미지정 시 기존값 유지.
+ */
+const modifyReservationSchema = z.object({
+  reservation_date: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, '날짜 형식은 YYYY-MM-DD여야 합니다.')
+    .optional(),
+  reservation_time: z
+    .string()
+    .regex(/^\d{2}:\d{2}$/, '시간 형식은 HH:MM이어야 합니다.')
+    .optional(),
+  party_size: z
+    .number()
+    .int('인원 수는 정수여야 합니다.')
+    .min(1, '인원 수는 1명 이상이어야 합니다.')
+    .max(20, '인원 수는 20명 이하여야 합니다.')
+    .optional(),
+  special_request: z
+    .string()
+    .max(500, '요청사항은 500자 이하여야 합니다.')
+    .optional(),
+});
+
+/**
  * Schema for updating reservation status (PUT /reservations/:id/status) - merchant
  */
 const updateStatusSchema = z.object({
@@ -101,4 +126,5 @@ module.exports = {
   updateStatusSchema,
   cancelReservationSchema,
   manualReservationSchema,
+  modifyReservationSchema,
 };

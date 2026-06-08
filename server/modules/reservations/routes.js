@@ -9,6 +9,7 @@ const {
   updateStatusSchema,
   cancelReservationSchema,
   manualReservationSchema,
+  modifyReservationSchema,
 } = require('../../middleware/schemas/reservations.schemas');
 
 // === 특수 엔드포인트 (/:id보다 먼저 정의해야 함) ===
@@ -30,8 +31,14 @@ router.post('/', authenticateToken, validate({ body: createReservationSchema }),
 // 예약 상세 조회
 router.get('/:id', authenticateToken, controller.getReservationById);
 
+// 취소 미리보기 (환불액 — 읽기 전용)
+router.get('/:id/cancel-preview', authenticateToken, controller.cancelPreview);
+
 // 예약 취소
 router.put('/:id/cancel', authenticateToken, validate({ body: cancelReservationSchema }), controller.cancelReservation);
+
+// 예약 변경 (날짜/시간/인원)
+router.put('/:id/modify', authenticateToken, validate({ body: modifyReservationSchema }), controller.modifyReservation);
 
 // 도착 상태 업데이트
 router.put('/:id/arrival', authenticateToken, validate({ body: updateArrivalSchema }), controller.updateArrival);

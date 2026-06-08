@@ -86,10 +86,41 @@ const pickRefundRate = (policies, daysUntil) => {
   return sorted[0].refund_rate;
 };
 
+// 환불 금액 계산 — 취소 실행/미리보기 공통 단일 경로.
+// 표시값(cancel-preview)과 실제 환불(cancelReservation)이 100% 일치하도록 한곳에서 계산.
+// - amount: 결제 금액
+// - reservationAt: combineReservationDateTime 결과(Date)
+// - policies: restaurant_refund_policies 행 배열(없으면 기본 정책: 당일 50%, 1일전 90%, 그외 100%)
+const computeRefund = (amount, reservationAt, policies) => {
+  const now = Date.now();
+  const msUntil = reservationAt ? reservationAt.getTime() - now : Infinity;
+  const daysUntil = Math.ceil(msUntil / (1000 * 60 * 60 * 24));
+  const hoursUntil = msUntil / (1000 * 60 * 60);
+
+  let refundRate = 100;
+  if (policies && policies.length > 0) {
+    refundRate = pickRefundRate(policies, daysUntil);
+  } else {
+    if (daysUntil <= 0) refundRate = 50;
+    else if (daysUntil <= 1) refundRate = 90;
+  }
+
+  const refundAmount = Math.floor((amount || 0) * refundRate / 100);
+  return {
+    refundRate,
+    refundAmount,
+    originalAmount: amount || 0,
+    daysUntil,
+    hoursUntil,
+    isImminent: hoursUntil < 2, // 2시간 이내 — 환불액 감소 경고용
+  };
+};
+
 module.exports = {
   getDefaultImageByCategory,
   processImageUrl,
   calculateDistance,
   combineReservationDateTime,
-  pickRefundRate
+  pickRefundRate,
+  computeRefund,
 };

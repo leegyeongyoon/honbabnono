@@ -2,7 +2,7 @@ const pool = require('../../config/database');
 const logger = require('../../config/logger');
 const crypto = require('crypto');
 const { createNotification } = require('../notifications/controller');
-const { combineReservationDateTime, pickRefundRate } = require('../../utils/helpers');
+const { combineReservationDateTime, pickRefundRate, computeRefund } = require('../../utils/helpers');
 const { ARRIVAL_STATUS } = require('../../constants/arrivalStatus');
 const portone = require('../../config/portone');
 
@@ -421,26 +421,13 @@ exports.cancelReservation = async (req, res) => {
     if (paymentResult.rows.length > 0) {
       const payment = paymentResult.rows[0];
 
-      // 환불 정책 적용: 예약 시각(일자+시각 합산)까지 남은 일수 기반
+      // 환불 정책 적용 — computeRefund 단일 경로 (cancel-preview와 동일 계산)
       const reservationAt = combineReservationDateTime(reservation.reservation_date, reservation.reservation_time);
-      const daysUntil = Math.ceil((reservationAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
-
-      // 매장 환불 정책 조회
       const policyResult = await client.query(
         'SELECT days_before, refund_rate FROM restaurant_refund_policies WHERE restaurant_id = $1 ORDER BY days_before ASC',
         [reservation.restaurant_id]
       );
-
-      let refundRate = 100;
-      if (policyResult.rows.length > 0) {
-        refundRate = pickRefundRate(policyResult.rows, daysUntil);
-      } else {
-        // 기본 정책: 당일 50%, 1일 전 90%, 그외 100%
-        if (daysUntil <= 0) refundRate = 50;
-        else if (daysUntil <= 1) refundRate = 90;
-      }
-
-      const refundAmount = Math.floor(payment.amount * refundRate / 100);
+      const { refundRate, refundAmount } = computeRefund(payment.amount, reservationAt, policyResult.rows);
 
       if (refundAmount > 0) {
         if (payment.payment_method === 'points') {
@@ -610,6 +597,185 @@ exports.updateArrival = async (req, res) => {
   } catch (error) {
     logger.error('도착 상태 업데이트 실패:', error);
     res.status(500).json({ success: false, error: '도착 상태 업데이트 중 오류가 발생했습니다.' });
+  }
+};
+
+/**
+ * 취소 미리보기 — "지금 취소하면 얼마 환불되는지" (읽기 전용, 상태 변경 없음)
+ * GET /reservations/:id/cancel-preview
+ * 실제 취소(cancelReservation)와 computeRefund 단일 경로를 공유해 표시값=실환불.
+ */
+exports.cancelPreview = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.userId;
+
+    const result = await pool.query(
+      `SELECT r.id, r.user_id, r.status, r.reservation_date, r.reservation_time,
+              p.amount AS payment_amount
+       FROM reservations r
+       LEFT JOIN payments p ON p.reservation_id = r.id AND p.status IN ('paid', 'partial_refund')
+       WHERE r.id = $1`,
+      [id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, error: '예약을 찾을 수 없습니다.' });
+    }
+    const reservation = result.rows[0];
+    if (reservation.user_id !== userId) {
+      return res.status(403).json({ success: false, error: '본인의 예약만 조회할 수 있습니다.' });
+    }
+
+    const cancellable = !['cancelled', 'completed', 'seated'].includes(reservation.status);
+    const reservationAt = combineReservationDateTime(reservation.reservation_date, reservation.reservation_time);
+    const policyResult = await pool.query(
+      'SELECT days_before, refund_rate FROM restaurant_refund_policies WHERE restaurant_id = (SELECT restaurant_id FROM reservations WHERE id = $1) ORDER BY days_before ASC',
+      [id]
+    );
+    const refund = computeRefund(reservation.payment_amount || 0, reservationAt, policyResult.rows);
+
+    res.json({
+      success: true,
+      data: {
+        cancellable,
+        has_payment: !!reservation.payment_amount,
+        ...refund,
+      },
+    });
+  } catch (error) {
+    logger.error('취소 미리보기 실패:', error);
+    res.status(500).json({ success: false, error: '취소 미리보기 중 오류가 발생했습니다.' });
+  }
+};
+
+/**
+ * 예약 변경 — 날짜/시간/인원 (in-place UPDATE)
+ * PUT /reservations/:id/modify
+ * 변경 가능: status='confirmed' 이고 변경 시한(예약 N시간 전) 이내가 아닐 때.
+ * 금액모델이 메뉴 선주문 기반(인원 무관)이라 재결제 없음.
+ */
+exports.modifyReservation = async (req, res) => {
+  const client = await pool.connect();
+  try {
+    const { id } = req.params;
+    const userId = req.user.userId;
+    const { reservation_date, reservation_time, party_size, special_request } = req.body;
+
+    await client.query('BEGIN');
+
+    const result = await client.query(
+      'SELECT * FROM reservations WHERE id = $1 FOR UPDATE',
+      [id]
+    );
+    if (result.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ success: false, error: '예약을 찾을 수 없습니다.' });
+    }
+    const reservation = result.rows[0];
+
+    if (reservation.user_id !== userId) {
+      await client.query('ROLLBACK');
+      return res.status(403).json({ success: false, error: '본인의 예약만 변경할 수 있습니다.' });
+    }
+    if (reservation.status !== 'confirmed') {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ success: false, error: '확정된 예약만 변경할 수 있습니다.' });
+    }
+
+    // 변경 시한 가드 (예약 N시간 전까지만)
+    const currentAt = combineReservationDateTime(reservation.reservation_date, reservation.reservation_time);
+    const deadlineHours = parseInt(process.env.RESERVATION_MODIFY_DEADLINE_HOURS || '2', 10);
+    if (currentAt && (currentAt.getTime() - Date.now()) / (1000 * 60 * 60) < deadlineHours) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ success: false, error: `예약 ${deadlineHours}시간 전까지만 변경할 수 있습니다.` });
+    }
+
+    // 변경 후 값 (미지정 필드는 기존 유지)
+    const newDate = reservation_date || (reservation.reservation_date instanceof Date
+      ? reservation.reservation_date.toISOString().slice(0, 10)
+      : String(reservation.reservation_date).slice(0, 10));
+    const newTime = reservation_time || String(reservation.reservation_time).slice(0, 5);
+    const newPartySize = party_size ?? reservation.party_size;
+    const newSpecial = special_request !== undefined ? special_request : reservation.special_request;
+
+    // 날짜/시간이 바뀌면 새 슬롯 가용성 확인 (자기 예약 제외 COUNT)
+    const dateTimeChanged = newDate !== (reservation.reservation_date instanceof Date
+      ? reservation.reservation_date.toISOString().slice(0, 10)
+      : String(reservation.reservation_date).slice(0, 10))
+      || newTime !== String(reservation.reservation_time).slice(0, 5);
+
+    if (dateTimeChanged) {
+      // 휴무일/상한 등 매장 정책 재확인
+      const rst = await client.query(
+        'SELECT holidays, max_advance_days FROM restaurants WHERE id = $1',
+        [reservation.restaurant_id]
+      );
+      const holidays = Array.isArray(rst.rows[0]?.holidays) ? rst.rows[0].holidays : [];
+      if (holidays.includes(newDate)) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({ success: false, error: '휴무일로는 변경할 수 없습니다.' });
+      }
+
+      const dow = new Date(newDate).getDay();
+      const slotResult = await client.query(
+        `SELECT id, max_reservations FROM restaurant_time_slots
+         WHERE restaurant_id = $1 AND day_of_week = $2 AND slot_time = $3 AND is_active = true FOR UPDATE`,
+        [reservation.restaurant_id, dow, newTime]
+      );
+      if (slotResult.rows.length === 0) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({ success: false, error: '변경하려는 시간대에 예약이 불가합니다.' });
+      }
+      const booked = await client.query(
+        `SELECT COUNT(*)::int AS booked FROM reservations
+         WHERE restaurant_id = $1 AND reservation_date = $2 AND reservation_time = $3
+           AND status != 'cancelled' AND id != $4`,
+        [reservation.restaurant_id, newDate, newTime, id]
+      );
+      if (booked.rows[0].booked >= slotResult.rows[0].max_reservations) {
+        await client.query('ROLLBACK');
+        return res.status(409).json({ success: false, error: '변경하려는 시간대 예약이 마감되었습니다.' });
+      }
+    }
+
+    // 조건부 in-place UPDATE (status='confirmed' 유지 확인 — 레이스 방어)
+    const updated = await client.query(
+      `UPDATE reservations
+       SET reservation_date = $1, reservation_time = $2, party_size = $3, special_request = $4, updated_at = NOW()
+       WHERE id = $5 AND status = 'confirmed'
+       RETURNING id, reservation_date, reservation_time, party_size, special_request, status`,
+      [newDate, newTime, newPartySize, newSpecial, id]
+    );
+    if (updated.rowCount === 0) {
+      await client.query('ROLLBACK');
+      return res.status(409).json({ success: false, error: '예약 상태가 변경되어 수정할 수 없습니다.' });
+    }
+
+    await client.query('COMMIT');
+
+    // 알림 + 점주 보드 갱신
+    createNotification(userId, 'reservation', '예약 변경 완료',
+      `${newDate} ${newTime} ${newPartySize}명으로 변경되었습니다.`,
+      { reservationId: id, restaurantId: reservation.restaurant_id }
+    ).catch(() => {});
+
+    const io = req.app.get('io');
+    if (io) {
+      try {
+        const { emitReservationModified } = require('./socket');
+        if (emitReservationModified) {
+          emitReservationModified(io, reservation.restaurant_id, { reservationId: id });
+        }
+      } catch { /* socket optional */ }
+    }
+
+    res.json({ success: true, reservation: updated.rows[0] });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    logger.error('예약 변경 실패:', error);
+    res.status(500).json({ success: false, error: '예약 변경 중 오류가 발생했습니다.' });
+  } finally {
+    client.release();
   }
 };
 
