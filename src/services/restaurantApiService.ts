@@ -421,6 +421,89 @@ const updateArrival = async (
   await apiClient.put(`/reservations/${id}/arrival`, { arrival_status: status });
 };
 
+export interface CancelPreview {
+  cancellable: boolean;
+  hasPayment: boolean;
+  refundRate: number;
+  refundAmount: number;
+  originalAmount: number;
+  daysUntil: number;
+  hoursUntil: number;
+  isImminent: boolean;
+}
+
+/** 취소 미리보기 — 지금 취소 시 환불액/환불율 (읽기전용) */
+const getCancelPreview = async (
+  reservationId: string,
+): Promise<CancelPreview> => {
+  const response = await apiClient.get(
+    `/reservations/${reservationId}/cancel-preview`,
+  );
+  const d = response.data.data ?? response.data;
+  return {
+    cancellable: d.cancellable ?? false,
+    hasPayment: d.has_payment ?? d.hasPayment ?? false,
+    refundRate: d.refundRate ?? d.refund_rate ?? 0,
+    refundAmount: d.refundAmount ?? d.refund_amount ?? 0,
+    originalAmount: d.originalAmount ?? d.original_amount ?? 0,
+    daysUntil: d.daysUntil ?? d.days_until ?? 0,
+    hoursUntil: d.hoursUntil ?? d.hours_until ?? 0,
+    isImminent: d.isImminent ?? d.is_imminent ?? false,
+  };
+};
+
+/** 예약 변경 — 날짜/시간/인원/요청사항 (status=confirmed만, 변경시한 2시간) */
+const modifyReservation = async (
+  reservationId: string,
+  payload: {
+    reservationDate?: string;
+    reservationTime?: string;
+    partySize?: number;
+    specialRequest?: string;
+  },
+): Promise<Reservation> => {
+  const body: Record<string, any> = {};
+  if (payload.reservationDate !== undefined) body.reservation_date = payload.reservationDate;
+  if (payload.reservationTime !== undefined) body.reservation_time = payload.reservationTime;
+  if (payload.partySize !== undefined) body.party_size = payload.partySize;
+  if (payload.specialRequest !== undefined) body.special_request = payload.specialRequest;
+
+  const response = await apiClient.put(`/reservations/${reservationId}/modify`, body);
+  const resData = response.data.data ?? response.data;
+  const r = resData.reservation || resData;
+  return {
+    id: r.id,
+    restaurantId: r.restaurant_id ?? r.restaurantId,
+    restaurantName: r.restaurant_name ?? r.restaurantName,
+    reservationDate: r.reservation_date ?? r.reservationDate,
+    reservationTime: sliceTime(r.reservation_time ?? r.reservationTime),
+    partySize: r.party_size ?? r.partySize,
+    status: r.status,
+    arrivalStatus: r.arrival_status ?? r.arrivalStatus,
+    qrCode: r.qr_code ?? r.qrCode,
+    checkedInAt: r.checked_in_at ?? r.checkedInAt,
+    specialRequest: r.special_request ?? r.specialRequest,
+  };
+};
+
+export interface RefundPolicyTier {
+  daysBefore: number;
+  refundRate: number;
+}
+
+/** 매장 환불정책 조회 — 공개 ([{ daysBefore, refundRate }]) */
+const getRefundPolicy = async (
+  restaurantId: string,
+): Promise<RefundPolicyTier[]> => {
+  const response = await apiClient.get(`/restaurants/${restaurantId}/refund-policy`);
+  const data = response.data.data ?? response.data;
+  const list = Array.isArray(data) ? data : [];
+  return list.map((p: any) => ({
+    daysBefore: p.days_before ?? p.daysBefore ?? 0,
+    refundRate: p.refund_rate ?? p.refundRate ?? 0,
+  }));
+};
+
 const checkin = async (id: string): Promise<void> => {
   await apiClient.post(`/reservations/${id}/checkin`);
 };
@@ -636,6 +719,9 @@ const restaurantApiService = {
   cancelReservation,
   updateArrival,
   checkin,
+  getCancelPreview,
+  modifyReservation,
+  getRefundPolicy,
   // orders
   createOrder,
   getOrderById,

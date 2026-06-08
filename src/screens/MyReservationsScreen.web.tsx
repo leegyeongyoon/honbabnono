@@ -5,7 +5,7 @@ import { Icon } from '../components/Icon';
 import { COLORS, CSS_SHADOWS, CARD_STYLE, TRANSITIONS } from '../styles/colors';
 import { SPACING, BORDER_RADIUS, HEADER_STYLE } from '../styles/spacing';
 import useReservationStore, { Reservation } from '../store/reservationStore';
-import restaurantApiService from '../services/restaurantApiService';
+import restaurantApiService, { CancelPreview, TimeSlot } from '../services/restaurantApiService';
 import reservationChatApiService from '../services/reservationChatApiService';
 import useReservationSocket from '../hooks/useReservationSocket';
 import { nextArrivalStep } from '../constants/arrivalStatus';
@@ -36,6 +36,28 @@ const MyReservationsScreen: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabKey>('active');
   const [loading, setLoading] = useState(true);
 
+  // 취소 다이얼로그 상태
+  const [cancelTarget, setCancelTarget] = useState<Reservation | null>(null);
+  const [cancelPreview, setCancelPreview] = useState<CancelPreview | null>(null);
+  const [cancelLoading, setCancelLoading] = useState(false);
+  const [cancelSubmitting, setCancelSubmitting] = useState(false);
+
+  // 변경 모달 상태
+  const [modifyTarget, setModifyTarget] = useState<Reservation | null>(null);
+  const [modifyDate, setModifyDate] = useState('');
+  const [modifyTime, setModifyTime] = useState('');
+  const [modifyPartySize, setModifyPartySize] = useState(2);
+  const [modifySlots, setModifySlots] = useState<TimeSlot[]>([]);
+  const [modifyLoadingSlots, setModifyLoadingSlots] = useState(false);
+  const [modifySubmitting, setModifySubmitting] = useState(false);
+
+  // 변경 모달 날짜 범위 (오늘~30일 후)
+  const modifyToday = new Date();
+  const modifyMinDate = modifyToday.toISOString().split('T')[0];
+  const modifyMaxDate = new Date(modifyToday.getTime() + 30 * 24 * 60 * 60 * 1000)
+    .toISOString()
+    .split('T')[0];
+
   useEffect(() => {
     reservationStore
       .fetchMyReservations()
@@ -51,16 +73,57 @@ const MyReservationsScreen: React.FC = () => {
     onCookingUpdate: () => { reservationStore.fetchMyReservations().catch(() => {}); },
   });
 
+  // 변경 모달: 날짜 변경 시 해당 매장의 시간 슬롯 조회
+  useEffect(() => {
+    if (!modifyTarget || !modifyDate) {
+      setModifySlots([]);
+      return;
+    }
+    let cancelled = false;
+    setModifyLoadingSlots(true);
+    restaurantApiService
+      .getTimeSlots(modifyTarget.restaurantId, modifyDate)
+      .then((slots) => { if (!cancelled) setModifySlots(Array.isArray(slots) ? slots : []); })
+      .catch(() => { if (!cancelled) setModifySlots([]); })
+      .finally(() => { if (!cancelled) setModifyLoadingSlots(false); });
+    return () => { cancelled = true; };
+  }, [modifyTarget, modifyDate]);
+
   const filteredReservations = reservationStore.reservations.filter((r) => {
     if (activeTab === 'active') return ACTIVE_STATUSES.includes(r.status);
     if (activeTab === 'completed') return COMPLETED_STATUSES.includes(r.status);
     return CANCELLED_STATUSES.includes(r.status);
   });
 
-  const handleCancel = useCallback(async (id: string) => {
-    if (!window.confirm('예약을 취소하시겠습니까?')) return;
+  // 취소 다이얼로그 열기 — 환불 미리보기 조회
+  const openCancelDialog = useCallback(async (reservation: Reservation) => {
+    setCancelTarget(reservation);
+    setCancelPreview(null);
+    setCancelLoading(true);
     try {
-      const result = await reservationStore.cancelReservation(id);
+      const preview = await restaurantApiService.getCancelPreview(reservation.id);
+      setCancelPreview(preview);
+    } catch {
+      // 미리보기 실패해도 다이얼로그는 유지 — 환불액 미표시로 진행
+      setCancelPreview(null);
+    } finally {
+      setCancelLoading(false);
+    }
+  }, []);
+
+  const closeCancelDialog = useCallback(() => {
+    if (cancelSubmitting) return;
+    setCancelTarget(null);
+    setCancelPreview(null);
+  }, [cancelSubmitting]);
+
+  const confirmCancel = useCallback(async () => {
+    if (!cancelTarget) return;
+    setCancelSubmitting(true);
+    try {
+      const result = await reservationStore.cancelReservation(cancelTarget.id);
+      setCancelTarget(null);
+      setCancelPreview(null);
       if (result?.refund) {
         const { refundRate, refundAmount } = result.refund;
         alert(`예약이 취소되었습니다.\n환불: ${refundAmount.toLocaleString('ko-KR')}원 (${refundRate}%)`);
@@ -69,8 +132,42 @@ const MyReservationsScreen: React.FC = () => {
       }
     } catch (err: any) {
       alert(err.message || '취소에 실패했습니다.');
+    } finally {
+      setCancelSubmitting(false);
     }
-  }, [reservationStore]);
+  }, [cancelTarget, reservationStore]);
+
+  // 변경 모달 열기 — 현재 예약값으로 초기화
+  const openModifyModal = useCallback((reservation: Reservation) => {
+    setModifyTarget(reservation);
+    setModifyDate(reservation.reservationDate?.slice(0, 10) || '');
+    setModifyTime(reservation.reservationTime || '');
+    setModifyPartySize(reservation.partySize || 2);
+    setModifySlots([]);
+  }, []);
+
+  const closeModifyModal = useCallback(() => {
+    if (modifySubmitting) return;
+    setModifyTarget(null);
+  }, [modifySubmitting]);
+
+  const confirmModify = useCallback(async () => {
+    if (!modifyTarget || !modifyDate || !modifyTime) return;
+    setModifySubmitting(true);
+    try {
+      await reservationStore.modifyReservation(modifyTarget.id, {
+        reservationDate: modifyDate,
+        reservationTime: modifyTime,
+        partySize: modifyPartySize,
+      });
+      setModifyTarget(null);
+      alert('예약이 변경되었습니다.');
+    } catch (err: any) {
+      alert(err.message || '예약 변경에 실패했습니다.');
+    } finally {
+      setModifySubmitting(false);
+    }
+  }, [modifyTarget, modifyDate, modifyTime, modifyPartySize, reservationStore]);
 
   const handleCheckin = useCallback(async (id: string) => {
     try {
@@ -116,6 +213,7 @@ const MyReservationsScreen: React.FC = () => {
 
   const renderReservationCard = (reservation: Reservation) => {
     const canCancel = ['pending_payment', 'confirmed'].includes(reservation.status);
+    const canModify = reservation.status === 'confirmed';
     const canCheckin = ['confirmed', 'preparing'].includes(reservation.status);
     // 도착 알림은 확정/준비중에만 (결제대기/착석/완료 제외)
     const canNotify = ['confirmed', 'preparing'].includes(reservation.status);
@@ -205,10 +303,18 @@ const MyReservationsScreen: React.FC = () => {
                 체크인
               </div>
             )}
+            {canModify && (
+              <div
+                style={s.actionButton}
+                onClick={() => openModifyModal(reservation)}
+              >
+                변경
+              </div>
+            )}
             {canCancel && (
               <div
                 style={s.actionButtonDanger}
-                onClick={() => handleCancel(reservation.id)}
+                onClick={() => openCancelDialog(reservation)}
               >
                 취소
               </div>
@@ -300,6 +406,174 @@ const MyReservationsScreen: React.FC = () => {
 
         <div style={{ height: 80 }} />
       </div>
+
+      {/* 취소 다이얼로그 — 환불 미리보기 */}
+      {cancelTarget && (
+        <div style={s.modalOverlay} onClick={closeCancelDialog}>
+          <div style={s.modal} onClick={(e) => e.stopPropagation()}>
+            <div style={s.modalTitle}>예약 취소</div>
+            <div style={s.modalRestaurant}>
+              {cancelTarget.restaurantName || '매장'} · {formatDate(cancelTarget.reservationDate)} {cancelTarget.reservationTime}
+            </div>
+
+            <div style={s.modalBody}>
+              {cancelLoading ? (
+                <div style={s.modalLoadingWrap}>
+                  <ActivityIndicator size="small" color={COLORS.primary.main} />
+                </div>
+              ) : cancelPreview && cancelPreview.hasPayment ? (
+                <>
+                  <div style={s.refundLine}>
+                    지금 취소하면{' '}
+                    <span style={s.refundAmount}>
+                      {cancelPreview.refundAmount.toLocaleString('ko-KR')}원 환불
+                    </span>
+                    됩니다 ({cancelPreview.refundRate}%)
+                  </div>
+                  {cancelPreview.isImminent && (
+                    <div style={s.imminentWarning}>
+                      예약이 임박해 환불액이 줄어듭니다.
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div style={s.refundLine}>예약을 취소하시겠습니까?</div>
+              )}
+            </div>
+
+            <div style={s.modalActions}>
+              <div
+                style={s.modalCancelBtn}
+                onClick={closeCancelDialog}
+              >
+                닫기
+              </div>
+              <div
+                style={{
+                  ...s.modalConfirmDangerBtn,
+                  opacity: cancelSubmitting ? 0.5 : 1,
+                  cursor: cancelSubmitting ? 'not-allowed' : 'pointer',
+                }}
+                onClick={cancelSubmitting ? undefined : confirmCancel}
+              >
+                {cancelSubmitting ? '처리 중...' : '취소하기'}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 변경 모달 — 날짜/시간/인원 */}
+      {modifyTarget && (
+        <div style={s.modalOverlay} onClick={closeModifyModal}>
+          <div style={s.modal} onClick={(e) => e.stopPropagation()}>
+            <div style={s.modalTitle}>예약 변경</div>
+            <div style={s.modalRestaurant}>
+              {modifyTarget.restaurantName || '매장'}
+            </div>
+
+            <div style={s.modalBody}>
+              {/* 날짜 */}
+              <div style={s.modifyField}>
+                <div style={s.modifyLabel}>날짜</div>
+                <input
+                  type="date"
+                  value={modifyDate}
+                  min={modifyMinDate}
+                  max={modifyMaxDate}
+                  onChange={(e) => { setModifyDate(e.target.value); setModifyTime(''); }}
+                  style={s.modifyDateInput}
+                />
+              </div>
+
+              {/* 시간 */}
+              <div style={s.modifyField}>
+                <div style={s.modifyLabel}>시간</div>
+                {!modifyDate ? (
+                  <div style={s.modifyHint}>날짜를 먼저 선택해주세요.</div>
+                ) : modifyLoadingSlots ? (
+                  <ActivityIndicator size="small" color={COLORS.primary.main} />
+                ) : modifySlots.length === 0 ? (
+                  <div style={s.modifyHint}>예약 가능한 시간이 없습니다.</div>
+                ) : (
+                  <div style={s.modifySlotGrid}>
+                    {modifySlots.map((slot) => {
+                      const selected = modifyTime === slot.time;
+                      return (
+                        <div
+                          key={slot.time}
+                          onClick={() => slot.available && setModifyTime(slot.time)}
+                          style={{
+                            ...s.modifySlotButton,
+                            backgroundColor: selected
+                              ? COLORS.primary.main
+                              : slot.available
+                              ? COLORS.neutral.white
+                              : COLORS.neutral.light,
+                            color: selected
+                              ? COLORS.text.white
+                              : slot.available
+                              ? COLORS.text.primary
+                              : COLORS.text.tertiary,
+                            cursor: slot.available ? 'pointer' : 'not-allowed',
+                            borderColor: selected ? COLORS.primary.main : COLORS.neutral.grey200,
+                          }}
+                        >
+                          {slot.time}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* 인원 */}
+              <div style={s.modifyField}>
+                <div style={s.modifyLabel}>인원</div>
+                <div style={s.modifyPartyRow}>
+                  <div
+                    style={{
+                      ...s.modifyPmButton,
+                      opacity: modifyPartySize <= 1 ? 0.3 : 1,
+                      cursor: modifyPartySize <= 1 ? 'not-allowed' : 'pointer',
+                    }}
+                    onClick={() => modifyPartySize > 1 && setModifyPartySize(modifyPartySize - 1)}
+                  >
+                    -
+                  </div>
+                  <span style={s.modifyPartyText}>{modifyPartySize}명</span>
+                  <div
+                    style={{
+                      ...s.modifyPmButton,
+                      opacity: modifyPartySize >= 20 ? 0.3 : 1,
+                      cursor: modifyPartySize >= 20 ? 'not-allowed' : 'pointer',
+                    }}
+                    onClick={() => modifyPartySize < 20 && setModifyPartySize(modifyPartySize + 1)}
+                  >
+                    +
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div style={s.modalActions}>
+              <div style={s.modalCancelBtn} onClick={closeModifyModal}>
+                닫기
+              </div>
+              <div
+                style={{
+                  ...s.modalConfirmBtn,
+                  opacity: (!modifyDate || !modifyTime || modifySubmitting) ? 0.5 : 1,
+                  cursor: (!modifyDate || !modifyTime || modifySubmitting) ? 'not-allowed' : 'pointer',
+                }}
+                onClick={(!modifyDate || !modifyTime || modifySubmitting) ? undefined : confirmModify}
+              >
+                {modifySubmitting ? '처리 중...' : '변경하기'}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -418,6 +692,94 @@ const s: Record<string, React.CSSProperties> = {
     background: `linear-gradient(135deg, ${COLORS.primary.main} 0%, ${COLORS.primary.gradient} 100%)`,
     color: COLORS.text.white, fontSize: 14, fontWeight: 600, cursor: 'pointer',
     fontFamily: FONT, transition: `all ${TRANSITIONS.fast}`,
+  },
+
+  // ── 모달 (취소 다이얼로그 / 변경 모달) ──
+  modalOverlay: {
+    position: 'fixed' as const, inset: 0, zIndex: 1000,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    padding: SPACING.screen.horizontal, fontFamily: FONT,
+  },
+  modal: {
+    width: '100%', maxWidth: 360,
+    backgroundColor: COLORS.neutral.white, borderRadius: BORDER_RADIUS.xl,
+    padding: SPACING.xl, boxShadow: CSS_SHADOWS.card, fontFamily: FONT,
+    maxHeight: '85vh', overflowY: 'auto' as const,
+  },
+  modalTitle: {
+    fontSize: 17, fontWeight: 700, color: COLORS.text.primary, fontFamily: FONT,
+    marginBottom: SPACING.xs,
+  },
+  modalRestaurant: {
+    fontSize: 13, color: COLORS.text.secondary, fontFamily: FONT,
+    marginBottom: SPACING.md,
+  },
+  modalBody: { marginBottom: SPACING.lg },
+  modalLoadingWrap: {
+    display: 'flex', justifyContent: 'center', alignItems: 'center', padding: `${SPACING.lg}px 0`,
+  },
+  refundLine: {
+    fontSize: 14, color: COLORS.text.primary, fontFamily: FONT, lineHeight: '1.6',
+  },
+  refundAmount: { fontWeight: 700, color: COLORS.primary.main },
+  imminentWarning: {
+    marginTop: SPACING.sm, padding: `${SPACING.xs + 2}px ${SPACING.md}px`,
+    borderRadius: BORDER_RADIUS.sm, backgroundColor: COLORS.functional.errorLight,
+    color: COLORS.functional.error, fontSize: 12, fontWeight: 600, fontFamily: FONT,
+  },
+  modalActions: {
+    display: 'flex', gap: SPACING.sm, fontFamily: FONT,
+  },
+  modalCancelBtn: {
+    flex: 1, padding: `${SPACING.md}px 0`, textAlign: 'center' as const,
+    borderRadius: BORDER_RADIUS.md, border: `1px solid ${COLORS.neutral.grey200}`,
+    backgroundColor: COLORS.neutral.white, fontSize: 14, fontWeight: 600,
+    color: COLORS.text.secondary, cursor: 'pointer', fontFamily: FONT,
+  },
+  modalConfirmBtn: {
+    flex: 1, padding: `${SPACING.md}px 0`, textAlign: 'center' as const,
+    borderRadius: BORDER_RADIUS.md, border: 'none',
+    background: `linear-gradient(135deg, ${COLORS.primary.main} 0%, ${COLORS.primary.gradient} 100%)`,
+    color: COLORS.text.white, fontSize: 14, fontWeight: 700, fontFamily: FONT,
+  },
+  modalConfirmDangerBtn: {
+    flex: 1, padding: `${SPACING.md}px 0`, textAlign: 'center' as const,
+    borderRadius: BORDER_RADIUS.md, border: 'none',
+    backgroundColor: COLORS.functional.error,
+    color: COLORS.text.white, fontSize: 14, fontWeight: 700, fontFamily: FONT,
+  },
+
+  // 변경 모달 필드
+  modifyField: { marginBottom: SPACING.lg },
+  modifyLabel: {
+    fontSize: 13, fontWeight: 600, color: COLORS.text.primary, fontFamily: FONT,
+    marginBottom: SPACING.sm,
+  },
+  modifyHint: { fontSize: 13, color: COLORS.text.tertiary, fontFamily: FONT },
+  modifyDateInput: {
+    width: '100%', padding: `${SPACING.sm + 2}px ${SPACING.md + 2}px`,
+    borderRadius: BORDER_RADIUS.md, border: `1px solid ${COLORS.neutral.grey200}`,
+    fontSize: 14, fontFamily: FONT, color: COLORS.text.primary,
+    backgroundColor: COLORS.neutral.white, boxSizing: 'border-box' as const,
+  },
+  modifySlotGrid: { display: 'flex', flexWrap: 'wrap' as const, gap: SPACING.sm },
+  modifySlotButton: {
+    padding: `${SPACING.sm}px ${SPACING.md + 2}px`, borderRadius: BORDER_RADIUS.md,
+    border: `1px solid ${COLORS.neutral.grey200}`, fontSize: 13, fontWeight: 500,
+    textAlign: 'center' as const, fontFamily: FONT, minWidth: 60,
+    transition: `all ${TRANSITIONS.fast}`,
+  },
+  modifyPartyRow: { display: 'flex', alignItems: 'center', gap: SPACING.xl },
+  modifyPmButton: {
+    width: 36, height: 36, borderRadius: 18, display: 'flex',
+    alignItems: 'center', justifyContent: 'center',
+    border: `1px solid ${COLORS.neutral.grey200}`, backgroundColor: COLORS.neutral.white,
+    fontSize: 18, fontWeight: 600, fontFamily: FONT, color: COLORS.text.primary,
+  },
+  modifyPartyText: {
+    fontSize: 16, fontWeight: 700, color: COLORS.text.primary, fontFamily: FONT,
+    minWidth: 44, textAlign: 'center' as const,
   },
 };
 

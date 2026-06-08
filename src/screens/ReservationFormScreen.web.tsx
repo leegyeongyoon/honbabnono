@@ -4,7 +4,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Icon } from '../components/Icon';
 import { COLORS, CSS_SHADOWS, CARD_STYLE } from '../styles/colors';
 import { BORDER_RADIUS } from '../styles/spacing';
-import restaurantApiService, { Restaurant, TimeSlot } from '../services/restaurantApiService';
+import restaurantApiService, { Restaurant, TimeSlot, RefundPolicyTier } from '../services/restaurantApiService';
 import useCartStore from '../store/cartStore';
 import useReservationStore from '../store/reservationStore';
 
@@ -29,6 +29,7 @@ const ReservationFormScreen: React.FC = () => {
   const [specialRequest, setSpecialRequest] = useState('');
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
+  const [refundPolicy, setRefundPolicy] = useState<RefundPolicyTier[]>([]);
 
   // 오늘~30일 후 날짜 범위
   const today = new Date();
@@ -46,6 +47,15 @@ const ReservationFormScreen: React.FC = () => {
       .finally(() => setLoading(false));
   }, [restaurantId]);
 
+  // 매장 환불정책 조회 (공개)
+  useEffect(() => {
+    if (!restaurantId) return;
+    restaurantApiService
+      .getRefundPolicy(restaurantId)
+      .then((tiers) => setRefundPolicy(Array.isArray(tiers) ? tiers : []))
+      .catch(() => setRefundPolicy([]));
+  }, [restaurantId]);
+
   useEffect(() => {
     if (!restaurantId || !selectedDate) return;
     setLoadingSlots(true);
@@ -58,6 +68,21 @@ const ReservationFormScreen: React.FC = () => {
   }, [restaurantId, selectedDate]);
 
   const formatPrice = (n: number) => n.toLocaleString('ko-KR');
+
+  // 환불정책 안내 문장 — 정책 없으면 기본값(당일 50% / 1일 전 90% / 그 외 100%)
+  const refundPolicyLines: string[] = refundPolicy.length > 0
+    ? [...refundPolicy]
+        .sort((a, b) => b.daysBefore - a.daysBefore)
+        .map((tier) =>
+          tier.daysBefore <= 0
+            ? `예약 당일 ${tier.refundRate}% 환불`
+            : `예약 ${tier.daysBefore}일 전 ${tier.refundRate}% 환불`,
+        )
+    : [
+        '예약 1일 전까지 90% 환불',
+        '예약 당일 50% 환불',
+        '그 외 100% 환불',
+      ];
   // 현재 매장 장바구니만 사용
   const isCurrentCart = restaurantId && cartStore.restaurantId === restaurantId;
   const totalAmount = isCurrentCart ? cartStore.totalAmount : 0;
@@ -264,6 +289,19 @@ const ReservationFormScreen: React.FC = () => {
           />
         </div>
 
+        {/* 환불정책 안내 */}
+        <div style={s.section}>
+          <div style={s.label}>취소·환불 정책</div>
+          <div style={s.refundPolicyBox}>
+            {refundPolicyLines.map((line, idx) => (
+              <div key={idx} style={s.refundPolicyLine}>
+                <span style={s.refundPolicyDot}>•</span>
+                <span>{line}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
         {/* 결제 버튼 */}
         <div style={s.submitSection}>
           <div
@@ -368,6 +406,17 @@ const s: Record<string, React.CSSProperties> = {
     color: COLORS.text.primary, resize: 'vertical' as const,
     boxSizing: 'border-box' as const,
   } as any,
+
+  refundPolicyBox: {
+    borderRadius: BORDER_RADIUS.md, border: `1px solid ${CARD_STYLE.borderColor}`,
+    padding: 14, backgroundColor: COLORS.neutral.light,
+    display: 'flex', flexDirection: 'column' as const, gap: 6,
+  },
+  refundPolicyLine: {
+    display: 'flex', alignItems: 'flex-start', gap: 6,
+    fontSize: 13, color: COLORS.text.secondary, fontFamily: FONT, lineHeight: '1.5',
+  },
+  refundPolicyDot: { color: COLORS.text.tertiary },
 
   submitSection: { padding: '24px 20px 0' },
   submitButton: {

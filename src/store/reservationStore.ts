@@ -41,6 +41,15 @@ interface ReservationState {
     specialRequest?: string;
   }) => Promise<string>;
   cancelReservation: (id: string, reason?: string) => Promise<any>;
+  modifyReservation: (
+    id: string,
+    payload: {
+      reservationDate?: string;
+      reservationTime?: string;
+      partySize?: number;
+      specialRequest?: string;
+    },
+  ) => Promise<void>;
   updateArrival: (id: string, status: string) => Promise<void>;
   checkin: (id: string) => Promise<void>;
   clearCurrent: () => void;
@@ -122,6 +131,36 @@ const useReservationStore = create<ReservationState>((set, get) => ({
     } catch (err: any) {
       const message =
         err?.response?.data?.message ?? err?.message ?? '예약 취소에 실패했습니다.';
+      set({ error: message, loading: false });
+      throw new Error(message);
+    }
+  },
+
+  modifyReservation: async (id, payload) => {
+    set({ loading: true, error: null });
+    try {
+      const updated = await restaurantApiService.modifyReservation(id, payload);
+
+      // 로컬 상태 즉시 갱신
+      set((state) => ({
+        reservations: state.reservations.map((r) =>
+          r.id === id ? { ...r, ...updated } : r,
+        ),
+        currentReservation:
+          state.currentReservation?.id === id
+            ? { ...state.currentReservation, ...updated }
+            : state.currentReservation,
+        loading: false,
+      }));
+
+      // 서버 권위값으로 재조회 (슬롯/잔여석 등 반영)
+      await get().fetchMyReservations();
+    } catch (err: any) {
+      const message =
+        err?.response?.data?.error ??
+        err?.response?.data?.message ??
+        err?.message ??
+        '예약 변경에 실패했습니다.';
       set({ error: message, loading: false });
       throw new Error(message);
     }
