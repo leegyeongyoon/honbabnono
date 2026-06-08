@@ -42,7 +42,16 @@ jobs:
 
         ssh -o ConnectTimeout=20 ${{ secrets.DEPLOY_USER }}@deploy.eattable.kr << 'EOF'
           set -e
-          echo "=== 컨테이너에 server/ 주입 ==="
+          echo "=== 컨테이너 상태 ==="
+          docker ps -a --filter name=eattable-app --format "{{.Names}} {{.Status}}"
+
+          echo "=== 컨테이너 살리기 (죽어있으면 기존 이미지로 기동) ==="
+          cd /home/gyoungyoon/eattable
+          docker compose up -d app 2>&1 | tail -5 || docker start eattable-app || true
+          sleep 8
+          docker ps --filter name=eattable-app --format "{{.Names}} {{.Status}}"
+
+          echo "=== 컨테이너에 server/ 주입 (CORS+메뉴 수정 반영) ==="
           docker cp /tmp/server-hotfix/. eattable-app:/app/server/
 
           echo "=== 컨테이너 재시작 (start.js 재실행 → 수정된 index.js 로드) ==="
