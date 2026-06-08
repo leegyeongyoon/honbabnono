@@ -63,9 +63,10 @@ RUN npm prune --production
 
 # 백엔드 서버 코드 복사
 COPY server/ ./server/
-COPY .env.production ./
 
-# 환경변수 파일이 없는 경우 기본값 생성
+# 시크릿(.env.production)은 이미지에 굽지 않는다 — 런타임에 RPi 볼륨(/app/.env.production:ro)으로 주입.
+# database.js는 상대경로 '.env.production'(=/app/.env.production)을 override:false로 읽으므로 볼륨이 제공한다.
+# 볼륨이 없는 환경(로컬 단독 실행) 대비 최소 기본값만 생성.
 RUN if [ ! -f .env.production ]; then \
     echo "PORT=3001" > .env.production; \
     fi
