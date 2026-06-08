@@ -556,10 +556,20 @@ exports.updateArrival = async (req, res) => {
       return res.status(403).json({ success: false, error: '본인의 예약만 수정할 수 있습니다.' });
     }
 
-    await pool.query(
-      'UPDATE reservations SET arrival_status = $1, updated_at = NOW() WHERE id = $2',
+    // 조건부 UPDATE — 진행 중(confirmed/preparing)인 예약에만 도착 알림 허용
+    // (이미 취소/완료/노쇼된 예약에 도착 상태를 덮어쓰는 것 방지 — 레이스 방어)
+    const updated = await pool.query(
+      `UPDATE reservations SET arrival_status = $1, updated_at = NOW()
+       WHERE id = $2 AND status IN ('confirmed', 'preparing')`,
       [arrival_status, id]
     );
+
+    if (updated.rowCount === 0) {
+      return res.status(409).json({
+        success: false,
+        error: '도착 상태를 변경할 수 없는 예약입니다. (확정 상태에서만 가능)',
+      });
+    }
 
     // 소켓을 통해 점주에게 도착 상태 변경 알림
     const io = req.app.get('io');
@@ -571,6 +581,26 @@ exports.updateArrival = async (req, res) => {
         userId: reservation.user_id,
         userName: reservation.user_name,
       });
+    }
+
+    // 고객 "도착" 시 점주에게 알림 — 조리/상차림 마무리 신호 (cancelReservation 점주알림 패턴)
+    if (arrival_status === ARRIVAL_STATUS.ARRIVED) {
+      pool.query(
+        `SELECT m.user_id AS owner_user_id, rst.name AS restaurant_name
+         FROM restaurants rst
+         LEFT JOIN merchants m ON m.restaurant_id = rst.id
+         WHERE rst.id = $1`,
+        [reservation.restaurant_id]
+      ).then(({ rows }) => {
+        const owner = rows[0];
+        if (owner?.owner_user_id) {
+          createNotification(owner.owner_user_id, 'reservation_arrived',
+            `${owner.restaurant_name} 고객 도착`,
+            `${reservation.user_name} 고객이 도착했습니다.`,
+            { reservationId: id, restaurantId: reservation.restaurant_id }
+          ).catch(() => {});
+        }
+      }).catch(() => {});
     }
 
     res.json({

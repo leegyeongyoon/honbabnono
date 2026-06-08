@@ -187,7 +187,17 @@ const ReservationBoard: React.FC = () => {
     },
     onCancelled: () => fetchReservations(),
     onCheckin: () => fetchReservations(),
-    onArrival: () => fetchReservations(),
+    onArrival: (payload) => {
+      fetchReservations();
+      // 고객이 도착했거나 근처에 왔을 때 점주에게 알림음 + 브라우저 알림 (조리/상차림 마무리 신호)
+      if (payload.arrivalStatus === 'arrived') {
+        showBrowserNotification('고객 도착', `${payload.userName ?? '고객'}님이 도착했습니다`);
+        playBeep();
+      } else if (payload.arrivalStatus === 'nearby') {
+        showBrowserNotification('고객 근처 도착', `${payload.userName ?? '고객'}님이 근처에 왔습니다`);
+        playBeep();
+      }
+    },
   });
 
   const handleRequestNotif = async () => {
@@ -260,6 +270,27 @@ const ReservationBoard: React.FC = () => {
   };
 
   // ── Render helpers ──
+  // 도착 상태별 카드 좌측 강조선 — 점주가 "가는 중/근처/도착"을 한눈에 보고 조리 타이밍 결정
+  const arrivalCardSx = (arrival?: string) => {
+    const map: Record<string, { color: string; bg: string }> = {
+      arrived:    { color: '#2E7D4F', bg: '#F2FAF5' },
+      nearby:     { color: '#2563A8', bg: '#F1F6FC' },
+      on_the_way: { color: '#C77700', bg: '#FFFAF2' },
+    };
+    const v = arrival ? map[arrival] : undefined;
+    return v
+      ? { borderLeft: `4px solid ${v.color}`, backgroundColor: v.bg }
+      : {};
+  };
+
+  // 도착 임박 고객을 위로 — arrived > nearby > on_the_way > 그외, 그 다음 시간순
+  const arrivalRank = (a?: string) =>
+    a === 'arrived' ? 0 : a === 'nearby' ? 1 : a === 'on_the_way' ? 2 : 3;
+  const byArrivalThenTime = (a: Reservation, b: Reservation) => {
+    const d = arrivalRank(a.arrival_status) - arrivalRank(b.arrival_status);
+    return d !== 0 ? d : formatTime(a.reservation_time).localeCompare(formatTime(b.reservation_time));
+  };
+
   const renderArrivalChip = (arrival?: string) => {
     if (!arrival) return null;
     return (
@@ -527,9 +558,9 @@ const ReservationBoard: React.FC = () => {
 
           {/* Cards */}
           <Grid container spacing={2}>
-            {reservations.map((r) => (
+            {[...reservations].sort(byArrivalThenTime).map((r) => (
               <Grid size={{ xs: 12, sm: 6, md: 4 }} key={r.id}>
-                <Card variant="outlined">
+                <Card variant="outlined" sx={arrivalCardSx(r.arrival_status)}>
                   <CardContent sx={{ pb: 1 }}>
                     {/* Time + status chips */}
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>

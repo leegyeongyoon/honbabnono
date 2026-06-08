@@ -25,6 +25,7 @@ export interface CheckinPayload {
 export interface ArrivalPayload {
   reservationId: string;
   arrivalStatus: string;
+  userName?: string;
 }
 
 export interface RestaurantSocketHandlers {
