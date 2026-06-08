@@ -34,6 +34,17 @@ jobs:
       run: |
         ssh -o ConnectTimeout=15 ${{ secrets.DEPLOY_USER }}@deploy.eattable.kr << 'EOF'
           set +e
+          echo "################ A. docker-compose.yml 전문 ################"
+          cat /home/gyoungyoon/eattable/docker-compose.yml 2>/dev/null
+          echo "################ B. .env.production 키 이름(값 숨김) ################"
+          sed 's/=.*/=***/' /home/gyoungyoon/eattable/.env.production 2>/dev/null
+          echo "################ C. nginx 디렉토리 ################"
+          ls -la /home/gyoungyoon/eattable/nginx/ 2>/dev/null
+          echo "################ D. docker login 상태 / GHCR 가능 여부 ################"
+          cat ~/.docker/config.json 2>/dev/null | sed 's/"auth":.*/"auth":"***"/' | head -20
+          echo "################ E. docker/아키텍처 ################"
+          docker --version; uname -m
+          echo ""
           echo "================ 1. 디렉토리 구조 ================"
           echo "--- ~/eattable ---"
           ls -la /home/gyoungyoon/eattable/ | head -20
