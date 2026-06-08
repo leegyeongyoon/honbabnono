@@ -7,6 +7,7 @@ import { BORDER_RADIUS } from '../styles/spacing';
 import useReservationStore from '../store/reservationStore';
 import useReservationSocket from '../hooks/useReservationSocket';
 import reservationChatApiService from '../services/reservationChatApiService';
+import { nextArrivalStep } from '../constants/arrivalStatus';
 import { QRCodeSVG } from 'qrcode.react';
 
 // ============================================================
@@ -151,6 +152,27 @@ const ReservationConfirmScreen: React.FC = () => {
           </div>
         </div>
 
+        {/* 도착 상태 알림 — 확정/준비중일 때 단계별로 매장에 알림 */}
+        {reservation && ['confirmed', 'preparing'].includes(reservation.status) && (() => {
+          const step = nextArrivalStep(reservation.arrivalStatus);
+          if (!step) return null;
+          return (
+            <div
+              style={s.arrivalButton}
+              onClick={async () => {
+                try {
+                  await reservationStore.updateArrival(reservation.id, step.value);
+                  alert(`'${step.label}' 상태를 매장에 알렸습니다.`);
+                } catch (err: any) {
+                  alert(err?.response?.data?.error || '알림 전송에 실패했습니다.');
+                }
+              }}
+            >
+              {step.emoji} {step.label} — 매장에 알리기
+            </div>
+          );
+        })()}
+
         {/* 버튼 */}
         <div style={s.buttonGroup}>
           <div
@@ -287,6 +309,13 @@ const s: Record<string, React.CSSProperties> = {
     color: COLORS.text.secondary, fontSize: 15, fontWeight: 600,
     textAlign: 'center' as const, fontFamily: FONT, cursor: 'pointer',
     boxSizing: 'border-box' as const,
+  },
+  arrivalButton: {
+    width: '100%', padding: '14px 0', borderRadius: BORDER_RADIUS.md,
+    backgroundColor: '#FFF8F0', border: `1.5px solid ${COLORS.primary.main}`,
+    color: COLORS.primary.dark, fontSize: 15, fontWeight: 700,
+    textAlign: 'center' as const, fontFamily: FONT, cursor: 'pointer',
+    boxSizing: 'border-box' as const, marginBottom: 12,
   },
 };
 

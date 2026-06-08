@@ -8,6 +8,7 @@ import useReservationStore, { Reservation } from '../store/reservationStore';
 import restaurantApiService from '../services/restaurantApiService';
 import reservationChatApiService from '../services/reservationChatApiService';
 import useReservationSocket from '../hooks/useReservationSocket';
+import { nextArrivalStep } from '../constants/arrivalStatus';
 
 // ============================================================
 // MyReservationsScreen — 잇테이블 v2 내 예약 목록
@@ -80,14 +81,14 @@ const MyReservationsScreen: React.FC = () => {
     }
   }, [reservationStore]);
 
-  const handleArrivalNotify = useCallback(async (id: string) => {
+  const handleArrival = useCallback(async (id: string, status: string, label: string) => {
     try {
-      await restaurantApiService.updateArrival(id, 'on_the_way');
-      alert('도착 알림을 보냈습니다.');
-    } catch {
-      alert('알림 전송에 실패했습니다.');
+      await reservationStore.updateArrival(id, status);
+      alert(`'${label}' 상태를 매장에 알렸습니다.`);
+    } catch (err: any) {
+      alert(err?.response?.data?.error || '알림 전송에 실패했습니다.');
     }
-  }, []);
+  }, [reservationStore]);
 
   const formatDate = (dateStr: string) => {
     try {
@@ -116,7 +117,9 @@ const MyReservationsScreen: React.FC = () => {
   const renderReservationCard = (reservation: Reservation) => {
     const canCancel = ['pending_payment', 'confirmed'].includes(reservation.status);
     const canCheckin = ['confirmed', 'preparing'].includes(reservation.status);
-    const canNotify = ACTIVE_STATUSES.includes(reservation.status);
+    // 도착 알림은 확정/준비중에만 (결제대기/착석/완료 제외)
+    const canNotify = ['confirmed', 'preparing'].includes(reservation.status);
+    const arrivalStep = nextArrivalStep(reservation.arrivalStatus);
     const needsPayment = reservation.status === 'pending_payment';
 
     return (
@@ -173,12 +176,12 @@ const MyReservationsScreen: React.FC = () => {
                 결제하기
               </div>
             )}
-            {canNotify && (
+            {canNotify && arrivalStep && (
               <div
                 style={s.actionButton}
-                onClick={() => handleArrivalNotify(reservation.id)}
+                onClick={() => handleArrival(reservation.id, arrivalStep.value, arrivalStep.label)}
               >
-                도착 알림
+                {arrivalStep.emoji} {arrivalStep.label}
               </div>
             )}
             <div
