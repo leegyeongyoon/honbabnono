@@ -30,6 +30,7 @@ import SettingsScreen from '../screens/SettingsScreen.web';
 import OnboardingScreen from '../screens/OnboardingScreen.web';
 import FAQScreen from '../screens/FAQScreen.web';
 import TermsScreen from '../screens/TermsScreen.web';
+import FakeDoorLanding from '../screens/FakeDoorLanding.web';
 
 // v2 피벗 화면
 import RestaurantHomeScreen from '../screens/RestaurantHomeScreen.web';
@@ -293,6 +294,8 @@ const AppRoutes: React.FC<{
         <Route path="/notices/:id" element={<NoticeDetailScreen />} />
         <Route path="/faq" element={<FAQScreen />} />
         <Route path="/terms" element={<TermsScreen />} />
+        {/* 가짜문(Fake Door) 검증 랜딩 — 로그인 불필요 공개 라우트 */}
+        <Route path="/try" element={<FakeDoorLanding />} />
 
         {/* 보호된 라우트들 */}
         <Route path="/chat/:id" element={protectedElement(<MainLayout><ChatScreen {...getNavigationProps()} /></MainLayout>)} />

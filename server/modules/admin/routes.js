@@ -162,4 +162,7 @@ router.patch('/settlements/:id/pay', authenticateAdminNew, adminController.paySe
 router.get('/payments', authenticateAdminNew, adminController.getPaymentsForAdmin);
 router.post('/payments/:id/refund', authenticateAdminNew, adminController.refundPaymentForAdmin);
 
+// 가짜문(Fake Door) 퍼널 통계
+router.get('/funnel', authenticateAdminNew, adminController.getFunnelStats);
+
 module.exports = router;

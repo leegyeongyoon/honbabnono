@@ -2929,3 +2929,74 @@ exports.refundPaymentForAdmin = async (req, res) => {
     client.release();
   }
 };
+
+// ============================================
+// 가짜문(Fake Door) 퍼널 통계
+// GET /admin/funnel?days=14&restaurant_ref=&variant=
+// ============================================
+exports.getFunnelStats = async (req, res) => {
+  try {
+    const days = Math.min(90, Math.max(1, parseInt(req.query.days || '14', 10)));
+    const { restaurant_ref, variant } = req.query;
+
+    const conds = ['created_at >= NOW() - ($1 || \' days\')::interval'];
+    const params = [days];
+    if (restaurant_ref) { params.push(restaurant_ref); conds.push(`restaurant_ref = $${params.length}`); }
+    if (variant) { params.push(variant); conds.push(`variant = $${params.length}`); }
+    const where = conds.join(' AND ');
+
+    // 단계별 distinct 세션 수 (퍼널)
+    const stepResult = await pool.query(
+      `SELECT step, COUNT(DISTINCT session_id)::int AS sessions
+       FROM funnel_events WHERE ${where}
+       GROUP BY step`,
+      params
+    );
+    const STEP_ORDER = ['landing_view', 'menu_view', 'add_to_cart', 'reservation_intent', 'payment_click', 'lead_submit'];
+    const byStep = {};
+    stepResult.rows.forEach((r) => { byStep[r.step] = r.sessions; });
+    const funnel = STEP_ORDER.map((step) => ({ step, sessions: byStep[step] || 0 }));
+
+    // 핵심 전환율
+    const landing = byStep['landing_view'] || 0;
+    const paymentClick = byStep['payment_click'] || 0;
+    const leadSubmit = byStep['lead_submit'] || 0;
+    const conversions = {
+      landing_to_payment: landing > 0 ? Math.round((paymentClick / landing) * 1000) / 10 : 0,
+      payment_to_lead: paymentClick > 0 ? Math.round((leadSubmit / paymentClick) * 1000) / 10 : 0,
+      landing_to_lead: landing > 0 ? Math.round((leadSubmit / landing) * 1000) / 10 : 0,
+    };
+
+    // variant별 분해 (payment_click 기준)
+    const variantResult = await pool.query(
+      `SELECT variant, step, COUNT(DISTINCT session_id)::int AS sessions
+       FROM funnel_events WHERE ${where} AND variant IS NOT NULL
+       GROUP BY variant, step`,
+      params
+    );
+
+    // 리드 목록 + 수
+    const leadsResult = await pool.query(
+      `SELECT id, contact, contact_type, restaurant_ref, variant, note, created_at
+       FROM waitlist_leads
+       WHERE created_at >= NOW() - ($1 || ' days')::interval
+       ORDER BY created_at DESC LIMIT 200`,
+      [days]
+    );
+
+    res.json({
+      success: true,
+      data: {
+        days,
+        funnel,
+        conversions,
+        variant_breakdown: variantResult.rows,
+        leads: leadsResult.rows,
+        lead_count: leadsResult.rows.length,
+      },
+    });
+  } catch (error) {
+    logger.error('퍼널 통계 조회 실패:', error);
+    res.status(500).json({ success: false, error: '퍼널 통계를 불러오는 중 오류가 발생했습니다.' });
+  }
+};

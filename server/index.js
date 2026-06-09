@@ -280,6 +280,9 @@ apiRouter.use('/payments', paymentsRoutes);
 apiRouter.use('/settlements', settlementsRoutes);
 apiRouter.use('/reservation-chat', require('./modules/reservationChat/routes'));
 
+// 가짜문(Fake Door) 검증 랜딩 — 공개 (apiLimiter 전역 적용됨)
+apiRouter.use('/landing', require('./modules/landing/routes'));
+
 // Legal endpoints
 apiRouter.get('/legal/terms', supportController.getTerms);
 apiRouter.get('/legal/privacy', supportController.getPrivacyPolicy);
