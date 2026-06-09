@@ -41,8 +41,10 @@ import EventAvailableIcon from '@mui/icons-material/EventAvailable';
 import StorefrontIcon from '@mui/icons-material/Storefront';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import CreditCardIcon from '@mui/icons-material/CreditCard';
+import InsightsIcon from '@mui/icons-material/Insights';
 
 import Dashboard from './components/Dashboard';
+import FunnelDashboard from './components/FunnelDashboard';
 import MerchantManagement from './components/MerchantManagement';
 import RestaurantManagement from './components/RestaurantManagement';
 import ReservationMonitoring from './components/ReservationMonitoring';
@@ -77,6 +79,7 @@ const NAV_GROUPS: NavGroup[] = [
     { text: '예약 모니터링', icon: <EventAvailableIcon />, path: '/reservations' },
     { text: '정산 관리', icon: <AccountBalanceIcon />, path: '/settlements' },
     { text: '결제 관리', icon: <CreditCardIcon />, path: '/payments' },
+    { text: '퍼널 검증', icon: <InsightsIcon />, path: '/funnel' },
   ] },
   { label: '사용자', items: [
     { text: '사용자 관리', icon: <PeopleIcon />, path: '/users' },
@@ -328,6 +331,7 @@ function App() {
               <Route path="/reservations" element={<ReservationMonitoring />} />
               <Route path="/settlements" element={<SettlementManagement />} />
               <Route path="/payments" element={<PaymentManagement />} />
+              <Route path="/funnel" element={<FunnelDashboard />} />
               <Route path="/users" element={<UserManagement />} />
               <Route path="/blocked-users" element={<BlockedUserManagement />} />
               <Route path="/chat" element={<ChatManagement />} />
