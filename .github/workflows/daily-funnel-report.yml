@@ -1,0 +1,112 @@
+name: Daily Funnel Report
+
+# 매일 아침 9시(KST) 가짜문 검증 퍼널 요약을 이메일로 발송.
+# 서버를 건드리지 않고 GitHub Actions에서 프로덕션 API를 조회해 메일링.
+#
+# 필요한 Secret (Settings → Secrets and variables → Actions):
+#   MAIL_USERNAME  : 발송용 Gmail/Workspace 주소 (받는 주소도 이걸로)
+#   MAIL_PASSWORD  : 위 계정의 "앱 비밀번호" (일반 비번 아님)
+#   ADMIN_PASSWORD : 프로덕션 관리자(admin) 비밀번호
+#   REPORT_TO      : (선택) 받는 주소. 없으면 MAIL_USERNAME 으로 발송
+
+on:
+  schedule:
+    - cron: '0 0 * * *'   # UTC 00:00 = KST 09:00
+  workflow_dispatch: {}    # 수동 실행(즉시 테스트)
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 퍼널 데이터 조회 + 요약 생성
+        id: build
+        env:
+          ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+        run: |
+          set -e
+          BASE="https://eattable.kr"
+
+          # 1) 관리자 로그인 → 토큰
+          TOKEN=$(curl -s -X POST "$BASE/api/admin/login" \
+            -H "Content-Type: application/json" \
+            -d "{\"username\":\"admin\",\"password\":\"${ADMIN_PASSWORD}\"}" \
+            | python3 -c "import json,sys; print(json.load(sys.stdin).get('token',''))" || true)
+
+          if [ -z "$TOKEN" ]; then
+            echo "::warning::관리자 로그인 실패 — ADMIN_PASSWORD Secret 확인 필요"
+            echo "subject=⚠️ 잇테이블 퍼널 리포트 — 로그인 실패" >> "$GITHUB_OUTPUT"
+            echo "관리자 로그인에 실패했습니다. GitHub Secret ADMIN_PASSWORD 를 확인해주세요." > body.txt
+            exit 0
+          fi
+
+          # 2) 최근 1일 / 7일 퍼널 조회
+          curl -s "$BASE/api/admin/funnel?days=1" -H "Authorization: Bearer $TOKEN" > d1.json
+          curl -s "$BASE/api/admin/funnel?days=7" -H "Authorization: Bearer $TOKEN" > d7.json
+
+          # 3) 요약 본문 생성
+          python3 - <<'PY' > body.txt
+          import json
+          def load(f):
+              try:
+                  return json.load(open(f)).get('data', {})
+              except Exception:
+                  return {}
+          d1, d7 = load('d1.json'), load('d7.json')
+          LABEL = {
+            'landing_view':'랜딩 방문', 'menu_view':'메뉴 봄', 'add_to_cart':'메뉴 담음',
+            'reservation_intent':'예약정보 입력', 'payment_click':'결제하기 클릭', 'lead_submit':'베타 신청',
+          }
+          def fmt(d, title):
+              if not d: return f"[{title}] 데이터 없음\n"
+              lines = [f"[{title}]"]
+              for f in d.get('funnel', []):
+                  lines.append(f"  - {LABEL.get(f['step'], f['step'])}: {f['sessions']}명")
+              c = d.get('conversions', {})
+              lines.append("")
+              lines.append(f"  ▶ 방문→결제클릭: {c.get('landing_to_payment',0)}%  (합격선 10%+)")
+              lines.append(f"  ▶ 결제클릭→베타신청: {c.get('payment_to_lead',0)}%  (합격선 30%+)")
+              lines.append(f"  ▶ 방문→베타신청(전체): {c.get('landing_to_lead',0)}%  (합격선 3%+)")
+              lines.append(f"  ▶ 신규 리드: {d.get('lead_count',0)}명")
+              # variant별
+              vb = {}
+              for r in d.get('variant_breakdown', []):
+                  vb.setdefault(r['variant'], {})[r['step']] = r['sessions']
+              if vb:
+                  lines.append("")
+                  lines.append("  선결제 형태별(방문→결제클릭):")
+                  for v, steps in vb.items():
+                      lv = steps.get('landing_view', 0); pc = steps.get('payment_click', 0)
+                      rate = round(pc/lv*100, 1) if lv else 0
+                      lines.append(f"    · {v}: {rate}% ({pc}/{lv})")
+              return "\n".join(lines) + "\n"
+
+          out = []
+          out.append("잇테이블 가짜문 검증 — 일일 리포트\n")
+          out.append("대시보드: https://eattable.kr (관리자 → 운영 → 퍼널 검증)\n")
+          out.append("랜딩: https://eattable.kr/try\n")
+          out.append("="*40 + "\n")
+          out.append(fmt(d1, "어제(최근 1일)"))
+          out.append("\n" + "-"*40 + "\n")
+          out.append(fmt(d7, "최근 7일 누적"))
+          out.append("\n" + "="*40)
+          out.append("\n해석 팁: 절대수보다 전환율 추세를 보세요.")
+          out.append("\n방문이 있는데 결제클릭이 0이면 → 카피/오퍼를 바꿔 재실험.")
+          out.append("\n리드가 쌓이면 → 그게 IR 무기('X% 수용률 검증').")
+          print("\n".join(out))
+          PY
+
+          LEADS=$(python3 -c "import json; print(json.load(open('d1.json')).get('data',{}).get('lead_count',0))" 2>/dev/null || echo 0)
+          echo "subject=📊 잇테이블 퍼널 리포트 — 신규 신청 ${LEADS}명" >> "$GITHUB_OUTPUT"
+
+      - name: 이메일 발송
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          secure: true
+          username: ${{ secrets.MAIL_USERNAME }}
+          password: ${{ secrets.MAIL_PASSWORD }}
+          subject: ${{ steps.build.outputs.subject }}
+          to: ${{ secrets.REPORT_TO || secrets.MAIL_USERNAME }}
+          from: 잇테이블 리포트 <${{ secrets.MAIL_USERNAME }}>
+          body: file://body.txt
