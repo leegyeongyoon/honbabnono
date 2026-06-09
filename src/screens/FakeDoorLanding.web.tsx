@@ -31,6 +31,15 @@ const resolveStoreRef = (): string => {
   return DEFAULT_STORE_REF;
 };
 
+// URL ?src=threads 로 유입 채널 식별 (채널별 전환율 측정용)
+const resolveSrc = (): string => {
+  try {
+    return (new URLSearchParams(window.location.search).get('src') || 'direct').slice(0, 40);
+  } catch {
+    return 'direct';
+  }
+};
+
 const TIME_OPTIONS = [
   '11:30', '12:00', '12:30', '13:00',
   '17:30', '18:00', '18:30', '19:00', '19:30', '20:00',
@@ -40,6 +49,7 @@ const formatPrice = (n: number) => n.toLocaleString('ko-KR');
 
 const FakeDoorLanding: React.FC = () => {
   const storeRef = useMemo(resolveStoreRef, []);
+  const src = useMemo(resolveSrc, []);
   const store = FAKE_STORES[storeRef];
   const { variant, depositAmount } = store;
 
@@ -75,8 +85,8 @@ const FakeDoorLanding: React.FC = () => {
   useEffect(() => {
     if (landingTracked.current) return;
     landingTracked.current = true;
-    track('landing_view', { restaurantRef: storeRef, variant });
-  }, [storeRef, variant]);
+    track('landing_view', { restaurantRef: storeRef, variant, metadata: { src } });
+  }, [storeRef, variant, src]);
 
   // 메뉴 섹션 노출 시 menu_view (IntersectionObserver, 1회) — fallback으로 마운트 후에도 보장
   useEffect(() => {
