@@ -1,18 +1,20 @@
 name: Daily Funnel Report
 
-# 매일 아침 9시(KST) 가짜문 검증 퍼널 요약을 이메일로 발송.
-# 서버를 건드리지 않고 GitHub Actions에서 프로덕션 API를 조회해 메일링.
+# 매일 아침 9시(KST) 가짜문 검증 퍼널 요약을 자동 리포트.
+# 서버를 건드리지 않고 GitHub Actions에서 프로덕션 API를 조회.
 #
-# 필요한 Secret (Settings → Secrets and variables → Actions):
-#   MAIL_USERNAME  : 발송용 Gmail/Workspace 주소 (받는 주소도 이걸로)
-#   MAIL_PASSWORD  : 위 계정의 "앱 비밀번호" (일반 비번 아님)
-#   ADMIN_PASSWORD : 프로덕션 관리자(admin) 비밀번호
-#   REPORT_TO      : (선택) 받는 주소. 없으면 MAIL_USERNAME 으로 발송
+# 기본 채널 = GitHub Issue 코멘트 (GitHub이 알아서 알림 메일 발송 → SMTP 불필요).
+#   → 필요한 Secret: ADMIN_PASSWORD 1개뿐. (Issue 알림을 받으려면 저장소 Watch)
+# 선택: 직접 이메일도 받고 싶으면 MAIL_USERNAME/MAIL_PASSWORD/REPORT_TO 추가.
 
 on:
   schedule:
     - cron: '0 0 * * *'   # UTC 00:00 = KST 09:00
   workflow_dispatch: {}    # 수동 실행(즉시 테스트)
+
+permissions:
+  issues: write
+  contents: read
 
 jobs:
   report:
@@ -98,7 +100,42 @@ jobs:
           LEADS=$(python3 -c "import json; print(json.load(open('d1.json')).get('data',{}).get('lead_count',0))" 2>/dev/null || echo 0)
           echo "subject=📊 잇테이블 퍼널 리포트 — 신규 신청 ${LEADS}명" >> "$GITHUB_OUTPUT"
 
-      - name: 이메일 발송
+      # 기본 채널 — GitHub Issue에 코멘트(누적). Watch 중이면 GitHub이 알림 메일 발송.
+      - name: GitHub Issue 리포트
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const body = fs.readFileSync('body.txt', 'utf8');
+            const title = '📊 퍼널 검증 리포트 (자동)';
+            const { owner, repo } = context.repo;
+            // 기존 리포트 Issue 찾기 (없으면 생성)
+            const found = await github.rest.issues.listForRepo({
+              owner, repo, state: 'open', labels: 'funnel-report', per_page: 1,
+            });
+            let number;
+            if (found.data.length) {
+              number = found.data[0].number;
+            } else {
+              // 라벨 보장
+              try { await github.rest.issues.createLabel({ owner, repo, name: 'funnel-report', color: '5319e7' }); } catch (e) {}
+              const created = await github.rest.issues.create({
+                owner, repo, title,
+                labels: ['funnel-report'],
+                body: '가짜문 선결제 수용률 검증 — 매일 09:00(KST) 퍼널 요약이 코멘트로 쌓입니다.\n대시보드: https://eattable.kr (관리자 → 운영 → 퍼널 검증)',
+              });
+              number = created.data.number;
+            }
+            await github.rest.issues.createComment({
+              owner, repo, issue_number: number,
+              body: '```\n' + body + '\n```',
+            });
+            core.info(`리포트 코멘트 완료: issue #${number}`);
+
+      # 선택 채널 — MAIL_* Secret이 있을 때만 직접 이메일도 발송 (없으면 스킵)
+      - name: 이메일 발송 (선택)
+        if: ${{ secrets.MAIL_USERNAME != '' && secrets.MAIL_PASSWORD != '' }}
+        continue-on-error: true
         uses: dawidd6/action-send-mail@v3
         with:
           server_address: smtp.gmail.com
