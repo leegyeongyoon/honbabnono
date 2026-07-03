@@ -1,0 +1,82 @@
+name: Stop Production (임시 중단)
+
+# 라즈베리 파이 프로덕션을 임시로 내린다.
+# 컨테이너만 정지(docker compose stop) — 데이터 볼륨(pgdata)은 100% 보존.
+# 재개하려면 workflow_dispatch로 action=start 실행하거나 Deploy 워크플로 재실행.
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: '작업 선택'
+        required: true
+        default: 'stop'
+        type: choice
+        options:
+          - stop     # 전체 컨테이너 정지 (데이터 보존)
+          - start    # 정지된 컨테이너 재개
+          - status   # 현재 상태만 확인
+
+jobs:
+  control:
+    name: RPi 컨테이너 제어
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Install cloudflared
+        run: |
+          curl -fsSL https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb -o cloudflared.deb
+          sudo dpkg -i cloudflared.deb
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          cat >> ~/.ssh/config << 'SSHCONFIG'
+          Host deploy.eattable.kr
+            ProxyCommand cloudflared access ssh --hostname %h
+            StrictHostKeyChecking no
+            UserKnownHostsFile /dev/null
+          SSHCONFIG
+
+      - name: 실행
+        run: |
+          ssh_rpi() { ssh -o ConnectTimeout=20 ${{ secrets.DEPLOY_USER }}@deploy.eattable.kr "$1"; }
+          DIR=/home/gyoungyoon/eattable
+          ACTION="${{ github.event.inputs.action }}"
+
+          echo "=== 실행 전 상태 ==="
+          ssh_rpi "cd $DIR && docker compose ps 2>/dev/null" || true
+
+          case "$ACTION" in
+            stop)
+              echo "=== 컨테이너 정지 (데이터 보존) ==="
+              # stop: 컨테이너만 정지, 볼륨/데이터는 건드리지 않음
+              ssh_rpi "cd $DIR && docker compose stop"
+              ;;
+            start)
+              echo "=== 컨테이너 재개 ==="
+              ssh_rpi "cd $DIR && docker compose start || docker compose up -d"
+              ;;
+            status)
+              echo "=== 상태 확인만 ==="
+              ;;
+          esac
+
+          echo ""
+          echo "=== 실행 후 컨테이너 상태 ==="
+          ssh_rpi "cd $DIR && docker compose ps -a 2>/dev/null" || true
+
+          echo ""
+          echo "=== 데이터 볼륨 보존 확인 (pgdata) ==="
+          ssh_rpi "docker volume ls | grep pgdata || echo '⚠️ pgdata 볼륨 없음'"
+          echo "--- pgdata 상세 ---"
+          ssh_rpi "docker volume inspect \$(docker volume ls -q | grep pgdata | head -1) --format '{{.Mountpoint}} (생성: {{.CreatedAt}})' 2>/dev/null" || true
+
+          echo ""
+          if [ "$ACTION" = "stop" ]; then
+            echo "✅ 프로덕션 임시 중단 완료. 도메인(eattable.kr)은 이제 응답하지 않습니다."
+            echo "   데이터는 pgdata 볼륨에 그대로 보존됩니다."
+            echo "   재개: 이 워크플로를 action=start 로 다시 실행."
+          fi

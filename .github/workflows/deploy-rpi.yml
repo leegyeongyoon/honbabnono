@@ -15,6 +15,10 @@ on:
       - '.github/workflows/cleanup.yml'
       - '.github/workflows/destroy.yml'
       - '.github/workflows/emergency-cleanup.yml'
+      - '.github/workflows/deploy-rpi.yml'
+      - '.github/workflows/stop-prod.yml'
+      - '.github/workflows/daily-funnel-report.yml'
+      - '.github/workflows/diagnose-deploy.yml'
   workflow_dispatch:
 
 concurrency:
